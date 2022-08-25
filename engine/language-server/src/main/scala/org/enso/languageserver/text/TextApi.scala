@@ -29,6 +29,21 @@ object TextApi {
     }
   }
 
+  case object OpenBuffer extends Method("text/openBuffer") {
+    case class Params(path: Path)
+    case class Result(
+      writeCapability: Option[CapabilityRegistration],
+      content: String,
+      currentVersion: Version
+    )
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = OpenBuffer.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = OpenBuffer.Result
+    }
+  }
+
   case object CloseFile extends Method("text/closeFile") {
     case class Params(path: Path)
     implicit val hasParams = new HasParams[this.type] {
@@ -69,6 +84,13 @@ object TextApi {
     case class Params(edits: List[FileEdit])
     implicit val hasParams = new HasParams[this.type] {
       type Params = TextDidChange.Params
+    }
+  }
+
+  case object FileAutoSaved extends Method("text/autoSave") {
+    case class Params(path: Path)
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = FileAutoSaved.Params
     }
   }
 

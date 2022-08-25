@@ -1,5 +1,5 @@
-/// Definition of font, font face, and font registry. Aggregates information and utilities for
-/// working with fonts.
+//! Definition of font, font face, and font registry. Aggregates information and utilities for
+//! working with fonts.
 use crate::prelude::*;
 
 use enso_shapely::shared;
@@ -242,11 +242,12 @@ impl Face {
 // ==============
 
 /// A generalization of a font family, a set of font faces. Allows borrowing a font face based on
-/// variations. For non-variable fonts, variations is a triple (width, weight, style), see
-/// [`NonVariableFaceHeader`] to learn more. For variable faces, the variation is [`VariationAxes`],
-/// however, as variable fonts have one face only, this parameter is not used while borrowing the
-/// face.
+/// variations.
 pub trait Family {
+    /// For non-variable fonts, variations is a triple (width, weight, style), see
+    /// [`NonVariableFaceHeader`] to learn more. For variable faces, the variation is
+    /// [`VariationAxes`], however, as variable fonts have one face only, this parameter is not
+    /// used while borrowing the face.
     type Variations: Eq + Hash + Clone + Debug;
 
     /// Update MSDFgen settings for given variations. For non-variable fonts, this function is a

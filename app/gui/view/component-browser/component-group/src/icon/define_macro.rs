@@ -98,6 +98,13 @@ macro_rules! define_icons {
             pub fn for_each<F: FnMut(Self)>(mut f: F) {
                 $(f(Self::$variant);)*
             }
+
+            /// Get a string identifier with the icon's name.
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $(Self::$variant => stringify!($variant),)*
+                }
+            }
         }
 
         impl FromStr for Id {

@@ -641,6 +641,8 @@ case object DataflowAnalysis extends IRPass {
             fields      = fields.map(analysePattern(_, info))
           )
           .updateMetadata(this -->> info)
+      case literal: Pattern.Literal =>
+        literal.updateMetadata(this -->> info)
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

@@ -426,6 +426,18 @@ case object AliasAnalysis extends IRPass {
   ): List[IR.DefinitionArgument] = {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(
+            IR.Name.Self(_, true, _, _),
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        // Synthetic `self` must not be added to the scope
+        val occurrenceId = graph.nextId()
+        arg.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+      case arg @ IR.DefinitionArgument.Specified(
             name,
             _,
             value,
@@ -684,6 +696,8 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = fields.map(analysePattern(_, graph, parentScope))
         )
+      case literalPattern: Pattern.Literal =>
+        literalPattern
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

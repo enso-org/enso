@@ -1,6 +1,8 @@
 from Standard.Base import all
+
+import Standard.Base.Runtime.Resource
+
 import Standard.Test
-from Standard.Base.Runtime.Resource import all
 
 spec = Test.group "Resource.bracket" <|
     Test.specify "should call the destructor even if the action fails" <|

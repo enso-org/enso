@@ -210,7 +210,7 @@ case object IgnoredBindings extends IRPass {
   ): IR.DefinitionArgument = {
     arg match {
       case spec @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, _, _),
+            IR.Name.Self(_, _, _, _),
             _,
             _,
             _,
@@ -348,7 +348,8 @@ case object IgnoredBindings extends IRPass {
         cons.copy(
           fields = fields.map(resolvePattern(_, supply))
         )
-      case err: IR.Error.Pattern => err
+      case literal: Pattern.Literal => literal
+      case err: IR.Error.Pattern    => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

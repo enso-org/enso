@@ -1,12 +1,6 @@
 package org.enso.base;
 
-import java.time.DateTimeException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Period;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
@@ -41,6 +35,11 @@ public class Time_Utils {
             .toFormatter();
   }
 
+  public enum AdjustOp {
+    PLUS,
+    MINUS
+  }
+
   /** @return default Time formatter. */
   public static DateTimeFormatter default_time_formatter() {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME;
@@ -64,16 +63,69 @@ public class Time_Utils {
     return date.atTime(time).atZone(zone);
   }
 
-  public static LocalDate date_adjust(LocalDate date, long add, Period duration) {
-    return add == 1 ? date.plus(duration) : date.minus(duration);
+  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period duration) {
+    switch (op) {
+      case PLUS:
+        return date.plus(duration);
+      case MINUS:
+        return date.minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
   }
 
-  public static long week_of_year(LocalDate date, Locale locale) {
+  public static ZonedDateTime datetime_adjust(
+      ZonedDateTime datetime, AdjustOp op, Period period, Duration duration) {
+    switch (op) {
+      case PLUS:
+        return datetime.plus(period).plus(duration);
+      case MINUS:
+        return datetime.minus(period).minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
+  }
+
+  public static LocalTime time_adjust(LocalTime time, AdjustOp op, Duration duration) {
+    switch (op) {
+      case PLUS:
+        return time.plus(duration);
+      case MINUS:
+        return time.minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
+  }
+
+  public static long week_of_year_localdate(LocalDate date, Locale locale) {
     return WeekFields.of(locale).weekOfYear().getFrom(date);
   }
 
-  public static int compare_to(LocalDate self, LocalDate that) {
+  public static long week_of_year_zoneddatetime(ZonedDateTime date, Locale locale) {
+    return WeekFields.of(locale).weekOfYear().getFrom(date);
+  }
+
+  public static Duration duration_between(
+      ZonedDateTime start, ZonedDateTime end, boolean timezoneAware) {
+    return timezoneAware
+        ? Duration.between(start, end)
+        : Duration.between(start.toLocalDateTime(), end.toLocalDateTime());
+  }
+
+  public static int compare_to_localdate(LocalDate self, LocalDate that) {
     return self.compareTo(that);
+  }
+
+  public static int compare_to_zoneddatetime(ZonedDateTime self, ZonedDateTime that) {
+    return self.compareTo(that);
+  }
+
+  public static int compare_to_localtime(LocalTime self, LocalTime that) {
+    return self.compareTo(that);
+  }
+
+  public static boolean equals_zone(ZoneId self, ZoneId that) {
+    return self.equals(that);
   }
 
   /**
@@ -91,7 +143,7 @@ public class Time_Utils {
    * @param text the string to parse.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_time(String text) {
+  public static ZonedDateTime parse_datetime(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
     if (time instanceof ZonedDateTime) {
       return (ZonedDateTime) time;
@@ -109,9 +161,10 @@ public class Time_Utils {
    *
    * @param text the string to parse.
    * @param pattern the format string.
+   * @param locale localization config to be uses in the formatter.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_time_format(String text, String pattern, Locale locale) {
+  public static ZonedDateTime parse_datetime_format(String text, String pattern, Locale locale) {
     TemporalAccessor time =
         DateTimeFormatter.ofPattern(pattern)
             .withLocale(locale)
@@ -122,5 +175,18 @@ public class Time_Utils {
       return ((LocalDateTime) time).atZone(ZoneId.systemDefault());
     }
     throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
+  }
+
+  /**
+   * Obtains an instance of LocalTime from a text string using a custom string.
+   *
+   * @param text the string to parse.
+   * @param pattern the format string.
+   * @param locale localization config to be uses in the formatter.
+   * @return parsed LocalTime instance.
+   */
+  public static LocalTime parse_time(String text, String pattern, Locale locale) {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+    return (LocalTime.parse(text, formatter.withLocale(locale)));
   }
 }

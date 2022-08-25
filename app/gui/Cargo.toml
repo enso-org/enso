@@ -38,6 +38,7 @@ parser = { path = "language/parser" }
 span-tree = { path = "language/span-tree" }
 bimap = { version = "0.4.0" }
 console_error_panic_hook = { version = "0.1.6" }
+const_format = { version = "0.2.22" }
 convert_case = { version = "0.5.0" }
 failure = { version = "0.1.6" }
 flo_stream = { version = "0.4.0" }

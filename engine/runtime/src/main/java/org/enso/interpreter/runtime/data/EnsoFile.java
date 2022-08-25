@@ -17,8 +17,11 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -51,6 +54,23 @@ public class EnsoFile implements TruffleObject {
     return this.truffleFile.newInputStream(opts);
   }
 
+  @Builtin.Method(name = "read_last_bytes_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  public ArrayOverBuffer readLastBytes(long n) throws IOException {
+    try (SeekableByteChannel channel =
+        this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
+      int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
+      channel.position(channel.size() - bytesToRead);
+      ByteBuffer buffer = ByteBuffer.allocate(bytesToRead);
+      while (buffer.hasRemaining()) {
+        channel.read(buffer);
+      }
+
+      buffer.flip();
+      return ArrayOverBuffer.wrapBuffer(buffer);
+    }
+  }
+
   @Builtin.Method(name = "resolve")
   @Builtin.Specialize
   public EnsoFile resolve(String subPath) {
@@ -71,15 +91,17 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
-  public ZonedDateTime getCreationTime() throws IOException {
-    return ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC);
+  public EnsoDateTime getCreationTime() throws IOException {
+    return new EnsoDateTime(
+        ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
-  public ZonedDateTime getLastModifiedTime() throws IOException {
-    return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
+  public EnsoDateTime getLastModifiedTime() throws IOException {
+    return new EnsoDateTime(
+        ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")

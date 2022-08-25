@@ -1,28 +1,27 @@
 from Standard.Base import all
-from Standard.Table import all
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
 
-from Standard.Table.Data.Table as Table_Internal import Empty_Error
-
-import Standard.Base.Data.Time.Date
+import Standard.Table
+from Standard.Table import Column, Sort_Column, Sort_Column_Selector
+from Standard.Table.Data.Table import Empty_Error
+from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 import Standard.Table.Data.Storage
+
+import Standard.Visualization
+
 import Standard.Test
 import Standard.Test.Problems
-import Standard.Visualization
-from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 
 import project.Common_Table_Spec
 
 type My x y
 
-My.== that = case that of
+My.== self that = case that of
     My x1 y1 -> (self.x + self.y) == (x1 + y1)
     _ -> False
 
-My.compare_to that = self.x+self.y . compare_to that.x+that.y
+My.compare_to self that = self.x+self.y . compare_to that.x+that.y
 
-My.frobnicate = case self of
+My.frobnicate self = case self of
     My x1 y1 -> My y1 x1
 
 spec =
@@ -335,32 +334,32 @@ spec =
         df = (enso_project.data / "clothes.csv").read
 
         Test.specify "should allow sorting by a single column name" <|
-            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity"])
+            r_1 = df.order_by (Sort_Column_Selector.By_Name ["Quantity"])
             r_1.at 'Id' . to_vector . should_equal [2,4,1,3,5,6]
 
             r_3 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Rating" Sort_Direction.Descending])
             r_3.at 'Id' . to_vector . should_equal [3,1,4,5,2,6]
 
         Test.specify 'should allow sorting by multiple column names' <|
-            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', 'Rating'])
             r_1.at 'Id' . to_vector . should_equal [2,4,1,3,6,5]
 
             r_2 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Rating' Sort_Direction.Descending, Sort_Column.Name 'Quantity' Sort_Direction.Descending])
             r_2.at 'Id' . to_vector . should_equal [3,1,4,5,6,2]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity", Sort_Column.Name "Price" Sort_Direction.Descending])
+            r_1 = df.order_by (Sort_Column_Selector.By_Name ["Quantity", Sort_Column.Name "Price" Sort_Direction.Descending])
             r_1.at 'Id' . to_vector . should_equal [4,2,3,1,6,5]
 
         Test.specify 'should respect defined comparison operations for custom types' <|
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My 1 2, My 3 4, My 2 1, My 5 2, My 7 0, My 4 -1]]
             df = Table.new [c_1, c_2]
-            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'val'])
+            r = df.order_by (Sort_Column_Selector.By_Name ['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
         Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            action = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
+            action = df.order_by (Sort_Column_Selector.By_Name ['foobar']) on_problems=_
             tester table =
                 table.at 'Id' . to_vector . should_equal [1,2,3,4,5,6]
             problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
@@ -375,7 +374,7 @@ spec =
             objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
-            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'ord'])
+            r = df.order_by (Sort_Column_Selector.By_Name ['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
@@ -429,7 +428,7 @@ spec =
 
             r = t_1.concat t_2
 
-            r.columns.length.should_equal 2
+            r.column_count.should_equal 2
             r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
             r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', False, True, False]
 
@@ -444,7 +443,7 @@ spec =
 
             r = t_1.concat t_2
 
-            r.columns.length.should_equal 3
+            r.column_count.should_equal 3
             r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
             r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', Nothing, Nothing, Nothing]
             r.at 'baz' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, False, True, False]
@@ -486,12 +485,12 @@ spec =
             t_1.take_start 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take_start 2
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take_start 2)
-            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take_start 2)
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take_start 2)
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take_start 2)
+            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
+            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
-            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take_start 2)
+            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -503,10 +502,10 @@ spec =
             t_1.take_end 10 . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
             t_2 = t_1.take_end 2
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take_end 2)
-            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take_end 2)
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take_end 2)
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take_end 2)
+            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (Last 2))
+            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
 
         Test.specify "should allow getting the first / head row" <|
             i_1 = ['ix', [1, 2, 3]]

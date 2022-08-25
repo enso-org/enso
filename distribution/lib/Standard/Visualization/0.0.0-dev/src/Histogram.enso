@@ -8,13 +8,13 @@ import Standard.Visualization.Helpers
 
    Get first numeric column of the table.
 Table.Table.first_numeric : Table -> Column ! Nothing
-Table.Table.first_numeric = self.all_columns.find _.is_numeric
+Table.Table.first_numeric self = self.all_columns.find _.is_numeric
 
 ## PRIVATE
 
    Get the value column - the column that will be used to create histogram.
 Table.Table.value_column : Table -> Column ! Nothing
-Table.Table.value_column =
+Table.Table.value_column self =
     named_col = self.lookup_ignore_case 'value'
     named_col.catch_ self.first_numeric
 
@@ -30,7 +30,7 @@ type Update
 
        Generate JSON that can be consumed by the visualization.
     to_json : Object
-    to_json =
+    to_json self =
         data = ['data', Json.from_pairs [['values', self.values]]]
         axis = ['axis', Json.from_pairs [['x', Json.from_pairs [['label', self.label]]]]]
         ret_pairs = case self.label of

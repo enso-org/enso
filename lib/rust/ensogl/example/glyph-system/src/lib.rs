@@ -30,7 +30,7 @@ use ensogl_text_msdf::run_once_initialized;
 
 
 
-const CHARS_TO_TEST: &[&str] = &["abcdqwerty", "ABCDQUERTY"];
+const CHARS_TO_TEST: &[&str] = &["abcdqwertyx", "ABCDQUERTY"];
 
 /// Main example runner.
 #[entry_point]

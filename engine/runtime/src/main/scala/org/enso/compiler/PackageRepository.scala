@@ -23,8 +23,10 @@ import org.enso.pkg.{
   ExtendedComponentGroup,
   Package,
   PackageManager,
-  QualifiedName
+  QualifiedName,
+  SourceFile
 }
+import org.enso.text.buffer.Rope
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
@@ -277,11 +279,32 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      pkg.listSources
-        .map { srcFile =>
-          new Module(srcFile.qualifiedName, pkg, srcFile.file)
+      val (regularModules, syntheticModulesMetadata) = pkg.listSources
+        .map(srcFile =>
+          (
+            new Module(srcFile.qualifiedName, pkg, srcFile.file),
+            inferSyntheticModules(srcFile)
+          )
+        )
+        .unzip
+
+      regularModules.foreach(registerModule)
+
+      syntheticModulesMetadata.flatten
+        .groupMap(_._1)(v => (v._2, v._3))
+        .foreach { case (qName, modulesWithSources) =>
+          val source = modulesWithSources
+            .map(_._2)
+            .foldLeft("")(_ ++ "\n" ++ _)
+          registerSyntheticModule(
+            Module.synthetic(
+              qName,
+              pkg,
+              Rope(source)
+            ),
+            modulesWithSources.map(_._1)
+          )
         }
-        .foreach(registerModule)
 
       if (isLibrary) {
         val root = Path.of(pkg.root.toString)
@@ -289,6 +312,59 @@ object PackageRepository {
       }
 
       loadedPackages.put(libraryName, Some(pkg))
+    }
+
+    /** For any given source file, infer data necessary to generate synthetic modules as well as their contents.
+      * E.g., for A/B/C.enso it infers modules
+      * - A.B that exports A.B.C
+      * - A that exports A.B
+      *
+      * @param srcFile Enso source file to consider
+      * @return a list of triples representing the name of submodule along the path, what submodule it exports and its contents
+      */
+    private def inferSyntheticModules(
+      srcFile: SourceFile[TruffleFile]
+    ): List[(QualifiedName, QualifiedName, String)] = {
+      def listAllIntermediateModules(
+        namespace: String,
+        name: String,
+        elements: List[String],
+        exportItem: String
+      ): List[(QualifiedName, QualifiedName, String)] = {
+        elements match {
+          case Nil =>
+            Nil
+          case lastModuleName :: parts =>
+            val pathElems = elements.reverse
+            val modName =
+              s"${namespace}.$name.${pathElems.mkString(".")}.$exportItem"
+            val modSource =
+              s"""|import $modName
+                  |export $modName
+                  |""".stripMargin
+            (
+              QualifiedName(namespace :: name :: parts, lastModuleName),
+              QualifiedName(namespace :: name :: pathElems, exportItem),
+              modSource
+            ) :: listAllIntermediateModules(
+              namespace,
+              name,
+              parts,
+              lastModuleName
+            )
+        }
+      }
+      srcFile.qualifiedName.path match {
+        case namespace :: name :: rest =>
+          listAllIntermediateModules(
+            namespace,
+            name,
+            rest.reverse,
+            srcFile.qualifiedName.item
+          )
+        case _ =>
+          Nil
+      }
     }
 
     /** This package modifies the [[loadedPackages]], so it should be only
@@ -457,8 +533,33 @@ object PackageRepository {
     override def registerModuleCreatedInRuntime(module: Module): Unit =
       registerModule(module)
 
-    private def registerModule(module: Module): Unit =
+    private def registerModule(module: Module): Unit = {
       loadedModules.put(module.getName.toString, module)
+    }
+
+    /** Registering synthetic module, unlike the non-compiler generated one, is conditional
+      * in a sense that if a module already exists with a given name we only update its
+      * list of synthetic modules that it should export.
+      * If no module exists under the given name, we register the synthetic one.
+      *
+      * @param syntheticModule a synthetic module to register
+      * @param refs list of names of modules that should be exported by the module under the given name
+      */
+    private def registerSyntheticModule(
+      syntheticModule: Module,
+      refs: List[QualifiedName]
+    ): Unit = {
+      import scala.jdk.CollectionConverters._
+
+      assert(syntheticModule.isSynthetic)
+      if (!loadedModules.contains(syntheticModule.getName.toString)) {
+        loadedModules.put(syntheticModule.getName.toString, syntheticModule)
+      } else {
+        val loaded = loadedModules(syntheticModule.getName.toString)
+        assert(!loaded.isSynthetic)
+        loaded.setDirectModulesRefs(refs.asJava)
+      }
+    }
 
     override def deregisterModule(qualifiedName: String): Unit =
       loadedModules.remove(qualifiedName)

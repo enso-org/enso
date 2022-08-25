@@ -18,7 +18,7 @@ type File_Permissions
 
     ## Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
-    to_java =
+    to_java self =
         result = Vector.new_builder
         if self.owner.contains Read then
             result.append PosixFilePermission.OWNER_READ
@@ -42,39 +42,39 @@ type File_Permissions
 
     ## Checks if the given file can be read by the owner.
     owner_read : Boolean
-    owner_read = self.owner.contains Read
+    owner_read self = self.owner.contains Read
 
     ## Checks if the given file can be written by the owner.
     owner_write : Boolean
-    owner_write = self.owner.contains Write
+    owner_write self = self.owner.contains Write
 
     ## Checks if the given file can be executed by the owner.
     owner_execute : Boolean
-    owner_execute = self.owner.contains Execute
+    owner_execute self = self.owner.contains Execute
 
     ## Checks if the given file can be read by the group.
     group_read : Boolean
-    group_read = self.group.contains Read
+    group_read self = self.group.contains Read
 
     ## Checks if the given file can be written by the group.
     group_write : Boolean
-    group_write = self.group.contains Write
+    group_write self = self.group.contains Write
 
     ## Checks if the given file can be executed by the group.
     group_execute : Boolean
-    group_execute = self.group.contains Execute
+    group_execute self = self.group.contains Execute
 
     ## Checks if the given file can be read by others.
     others_read : Boolean
-    others_read = self.others.contains Read
+    others_read self = self.others.contains Read
 
     ## Checks if the given file can be written by others.
     others_write : Boolean
-    others_write = self.others.contains Write
+    others_write self = self.others.contains Write
 
     ## Checks if the given file can be executed by others.
     others_execute : Boolean
-    others_execute = self.others.contains Execute
+    others_execute self = self.others.contains Execute
 
 ## Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
 from_java_set java_set =

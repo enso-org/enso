@@ -21,7 +21,6 @@ use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
@@ -105,8 +104,6 @@ fn init(app: &Application) {
 
     let world = &app.display;
     let scene = &world.default_scene;
-    let camera = scene.camera();
-    let navigator = Navigator::new(scene, &camera);
 
     app.views.register::<root::View>();
     app.views.register::<project::View>();
@@ -256,7 +253,6 @@ fn init(app: &Application) {
         .on
         .before_frame
         .add(move |_| {
-            let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 
             if to_theme_switch == 0 {

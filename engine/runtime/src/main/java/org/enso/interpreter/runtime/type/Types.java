@@ -41,6 +41,7 @@ import org.enso.polyglot.data.TypeGraph;
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
+  ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
@@ -49,7 +50,10 @@ import org.enso.polyglot.data.TypeGraph;
   PanicSentinel.class,
   Warning.class,
   EnsoFile.class,
-  EnsoDate.class
+  EnsoDate.class,
+  EnsoDateTime.class,
+  EnsoTimeOfDay.class,
+  EnsoZone.class,
 })
 public class Types {
 
@@ -128,7 +132,7 @@ public class Types {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value)) {
+    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
@@ -220,6 +224,10 @@ public class Types {
     graph.insert(ConstantsGen.PANIC, ConstantsGen.ANY);
     graph.insert(ConstantsGen.REF, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TEXT, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE_TIME, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_OF_DAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.ZONE, ConstantsGen.ANY);
     graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);
     graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);

@@ -170,7 +170,7 @@ impl<'s, T> Token<'s, T> {
 
 impl<'s, T: Debug> Debug for Token<'s, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}:\"{}\"] ", self.left_offset.visible, self.code)?;
+        write!(f, "[{}:{:?}] ", self.left_offset.visible, self.code)?;
         Debug::fmt(&self.variant, f)
     }
 }
@@ -262,7 +262,10 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub is_free: bool,
             pub lift_level: usize
         },
-        Operator,
+        Operator {
+            pub binary_infix_precedence: Option<Precedence>,
+            pub unary_prefix_precedence: Option<Precedence>,
+        },
         Modifier,
         Comment,
         DocComment,
@@ -279,6 +282,27 @@ impl Default for Variant {
         Self::Newline(variant::Newline {})
     }
 }
+
+
+// === Operator properties ===
+
+/// Value that can be compared to determine which operator will bind more tightly within an
+/// expression.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
+pub struct Precedence {
+    /// A numeric value determining precedence order.
+    pub value: usize,
+}
+
+impl Precedence {
+    /// Return a precedence that is not higher than any other precedence.
+    pub fn minimum() -> Self {
+        Precedence { value: 0 }
+    }
+}
+
+
+// === Macro-based implementation ===
 
 macro_rules! generate_token_aliases {
     (

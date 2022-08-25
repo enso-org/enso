@@ -89,7 +89,7 @@ public @interface Builtin {
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "length")
    * public class EmptyFooNode extends Node {
    *
-   *   Foo execute(Foo self) {
+   *   Foo execute() {
    *     return Foo.empty();
    *   }
    *
@@ -138,13 +138,13 @@ public @interface Builtin {
      * <pre>
      * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create_1")
      * public class Create1FooNode extends Node {
-     *   Foo execute(Foo self, Object items_1) {
+     *   Foo execute(Object items_1) {
      *     return Foo.create(items_1);
      *   }
      * }
      * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create_2")
      * public class Create2FooNode extends Node {
-     *   Foo execute(Foo self, Object items_1, Object items_2) {
+     *   Foo execute(Object items_1, Object items_2) {
      *     return Foo.create(items_1, items_2);
      *   }
      * }
@@ -335,10 +335,10 @@ public @interface Builtin {
    *     return CreateFooNodeGen.create();
    *   }
    *
-   *   abstract Foo execute((Object self, Object path);
+   *   abstract Foo execute(Object path);
    *
    *   {@link Specialization @Specialization}
-   *   Foo doString(Object self, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
+   *   Foo doString(Object path, @Cached("build()") ExpectStringNode expectStringNode) {
    *     Context context = Context.get(this);
    *     java.lang.String pathCached = expectStringNode.execute(path);
    *     return Foo.create(context, pathCached);

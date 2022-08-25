@@ -1,8 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-import Standard.Base.Error.Problem_Behavior
-
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 

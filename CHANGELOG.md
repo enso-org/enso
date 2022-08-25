@@ -42,6 +42,7 @@
   visualizations. (Previously, they were placed to the left of the
   visualizations.)
 - [Fixed histograms coloring and added a color legend.][3153]
+- [Lazy visualization for scatter plot.][3655]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
   registered.][3181]
@@ -52,8 +53,13 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The The panel is unstable, and thus is
+  popular tools are available at hand. The panel is unstable, and thus is
   available under the `--enable-new-component-browser` flag.
+- [Fixed error handling during startup.][3648] This prevents entering IDE into a
+  "zombie" state, where processes were started but not visible to user. They
+  could cause issues with starting further IDE instances.
+- [New nodes are created in the project source when the searcher is opened  
+  and a new node is created.][5250]
 
 #### EnsoGL (rendering engine)
 
@@ -64,7 +70,8 @@
 - [Added a new component: Grid View.][3588] It's parametrized by Entry object,
   display them arranged in a Grid. It does not instantiate all entries, only
   those visible, and re-use created entries during scrolling thus achieving
-  great performance.
+  great performance. There are variants of grid view with selection and
+  highlight, scrollbars, and both.
 
 #### Enso Standard Library
 
@@ -168,10 +175,20 @@
   the Postgres connection][3593]
 - [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
   type from `Standard.Table`.][3601]
+- [Created `Index_Sub_Range` type and updated `Text.take` and
+  `Text.drop`.][3617]
+- [Added `Vector.from_polyglot_array` to make `Vector`s backed by polyglot
+  Arrays][3628]
+- [Updated `Vector.take` and `Vector.drop` and removed their obsolete
+  counterparts.][3629]
+- [Short-hand syntax for `order_by` added.][3643]
+- [Expanded `Table.at` to support index access and added `Table.column_count`
+  method.][3644]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
+[3655]: https://github.com/enso-org/enso/pull/3655
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
 [3186]: https://github.com/enso-org/enso/pull/3186
@@ -266,6 +283,13 @@
 [3590]: https://github.com/enso-org/enso/pull/3590
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
+[3617]: https://github.com/enso-org/enso/pull/3617
+[3628]: https://github.com/enso-org/enso/pull/3628
+[3629]: https://github.com/enso-org/enso/pull/3629
+[3643]: https://github.com/enso-org/enso/pull/3643
+[3644]: https://github.com/enso-org/enso/pull/3644
+[3648]: https://github.com/enso-org/enso/pull/3648
+[5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
 
@@ -295,7 +319,16 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
+- [Support module imports using a qualified name][3608]
+- [Enable caching in visualisation functions][3618]
+- [Update Scala compiler and libraries][3631]
+- [Support importing module methods][3633]
+- [Support Autosave for open buffers][3637]
+- [Support pattern matching on constants][3641]
+- [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
+  support][3658]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -329,7 +362,16 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
+[3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3618]: https://github.com/enso-org/enso/pull/3618
+[3608]: https://github.com/enso-org/enso/pull/3608
+[3608]: https://github.com/enso-org/enso/pull/3608
+[3631]: https://github.com/enso-org/enso/pull/3631
+[3633]: https://github.com/enso-org/enso/pull/3633
+[3637]: https://github.com/enso-org/enso/pull/3637
+[3633]: https://github.com/enso-org/enso/pull/3641
+[3658]: https://github.com/enso-org/enso/pull/3658
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

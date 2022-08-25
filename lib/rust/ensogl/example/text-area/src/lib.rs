@@ -30,7 +30,6 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_text::buffer;
 use ensogl_text::style;
 use ensogl_text::Area;
-use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_msdf::run_once_initialized;
 
 
@@ -53,7 +52,7 @@ fn init(app: Application) {
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
     let snowman = "\u{2603}";
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
-    let text = quote.to_string() + snowman + zalgo;
+    let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
     area.set_content(text.clone() + "\n" + text.as_str());
     area.set_font("default");

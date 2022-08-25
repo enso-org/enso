@@ -1,17 +1,15 @@
 from Standard.Base import all
-
-import Standard.Base.Warning
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+
 import Standard.Table.Data.Position
-from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Problem_Builder
-import Standard.Base.Data.Ordering.Natural_Order
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
@@ -173,8 +171,8 @@ rename_columns internal_columns mapping on_problems =
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
-                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop_start col_count))
-                    vec.take_start col_count
+                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop (First col_count)))
+                    vec.take (First col_count)
                 False -> vec
 
             new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
@@ -365,11 +363,23 @@ prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         Sort_Column_Selector.By_Name name_selectors matcher ->
-            select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
+            unified_name_selectors = name_selectors.map selector-> case selector of
+                Text -> Sort_Column.Name selector
+                Sort_Column.Name _ _ -> selector
+            select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
-            select_columns_by_index internal_columns index_selectors problem_builder index_extractor=(_.index)
+            unified_index_selectors = index_selectors.map selector-> case selector of
+                Integer -> Sort_Column.Index selector
+                Sort_Column.Index _ _ -> selector
+            select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
-            select_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
+            unified_column_selectors = column_selectors.map selector-> case selector of
+                Sort_Column.Column _ _ -> selector
+                ## We cannot match by type here, as there is no common `Column`
+                   type - the type is different for In-Memory and Database
+                   tables, and we do not have interfaces yet.
+                column_reference -> Sort_Column.Column column_reference
+            select_columns_by_column_reference internal_columns unified_column_selectors problem_builder column_extractor=(_.column)
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements

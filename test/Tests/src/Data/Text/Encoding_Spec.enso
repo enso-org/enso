@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-import Standard.Base.Data.Text.Encoding as Encoding_Module
+from Standard.Base.Data.Text.Encoding as Encoding_Module import all_character_sets, all_encodings
 
 import Standard.Test
 import Standard.Test.Problems
@@ -20,12 +19,12 @@ spec =
             invalid.to_java_charset . should_fail_with Illegal_Argument_Error
 
         Test.specify "Can get full set of character sets" <|
-            character_sets = Encoding_Module.all_character_sets
+            character_sets = all_character_sets
             character_sets.length . should_not_equal 0
             character_sets.contains "UTF-8" . should_equal True
 
         Test.specify "Can get full set of encoding objects" <|
-            encodings = Encoding_Module.all_encodings
+            encodings = all_encodings
             encodings.length . should_not_equal 0
             encodings.contains Encoding.utf_8 . should_equal True
 
@@ -165,6 +164,5 @@ spec =
             tester result = result . should_equal invalid_windows_out
             problems = [Encoding_Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
-
 
 main = Test.Suite.run_main spec

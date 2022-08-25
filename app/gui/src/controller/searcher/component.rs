@@ -16,6 +16,7 @@ use convert_case::Casing;
 
 pub mod builder;
 pub mod group;
+pub mod hardcoded;
 
 pub use group::Group;
 
@@ -29,33 +30,6 @@ pub use group::Group;
 pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
-
-
-
-// ==============
-// === Errors ===
-// ==============
-
-// === NoSuchGroup===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
-pub struct NoSuchGroup {
-    section_name: CowString,
-    index:        usize,
-}
-
-
-// === NoSuchComponent ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
-pub struct NoSuchComponent {
-    group_name: CowString,
-    index:      usize,
-}
 
 
 
@@ -81,6 +55,34 @@ pub enum Order {
 
 
 
+// ============
+// === Data ===
+// ============
+
+/// Contains detailed data of a [`Component`]. The storage of the details differs depending on
+/// where the data originates from (either from the [`suggestion_database`] or from a
+/// [`hardcoded::Snippet`]).
+#[derive(Clone, CloneRef, Debug)]
+pub enum Data {
+    /// A component from the [`suggestion_database`]. When this component is picked in the
+    /// Component Browser, the code returned by [`suggestion_database::Entry::code_to_insert`] will
+    /// be inserted into the program.
+    FromDatabase {
+        /// The ID of the component in the [`suggestion_database`].
+        id:    Immutable<Id>,
+        /// The component's entry in the [`suggestion_database`].
+        entry: Rc<suggestion_database::Entry>,
+    },
+    /// A virtual component containing a hardcoded snippet of code. When this component is picked
+    /// in the Component Browser, the [`Snippet::code`] will be inserted into the program.
+    Virtual {
+        /// A hardcoded snippet of code.
+        snippet: Rc<hardcoded::Snippet>,
+    },
+}
+
+
+
 // =================
 // === Component ===
 // =================
@@ -91,27 +93,43 @@ pub enum Order {
 /// The components are usually stored in [`List`], which may be filtered; the single component keeps
 /// then information how it matches the current filtering pattern.
 ///
-/// The component corresponds to some Suggestion Database Entry, and the entry will be used to
-/// properly insert code into the program.
+/// See the documentation of the [`Data`] variants for information on what will happen when the
+/// component is picked in the Component Browser panel.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
-    pub id:         Immutable<Id>,
-    pub suggestion: Rc<suggestion_database::Entry>,
+    pub data:       Data,
     pub match_info: Rc<RefCell<MatchInfo>>,
 }
 
 impl Component {
-    /// Construct a new component.
+    /// Construct a new component from a [`suggestion_database`] entry.
     ///
     /// The matching info will be filled for an empty pattern.
-    pub fn new(id: Id, suggestion: Rc<suggestion_database::Entry>) -> Self {
-        Self { id: Immutable(id), suggestion, match_info: default() }
+    pub fn new_from_database_entry(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
+        let data = Data::FromDatabase { id: Immutable(id), entry };
+        Self { data, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> String {
         self.to_string()
+    }
+
+    /// The name of the component.
+    pub fn name(&self) -> &str {
+        match &self.data {
+            Data::FromDatabase { entry, .. } => entry.name.as_str(),
+            Data::Virtual { snippet } => snippet.name,
+        }
+    }
+
+    /// The [`Id`] of the component in the [`suggestion_database`], or `None` if not applicable.
+    pub fn id(&self) -> Option<Id> {
+        match self.data {
+            Data::FromDatabase { id, .. } => Some(*id),
+            Data::Virtual { .. } => None,
+        }
     }
 
     /// Checks if component is filtered out.
@@ -124,7 +142,8 @@ impl Component {
     /// Currently, only modules can be entered, and then the Browser should display content and
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
-        self.suggestion.kind == suggestion_database::entry::Kind::Module
+        use suggestion_database::entry::Kind as EntryKind;
+        matches!(&self.data, Data::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
     /// Update matching info.
@@ -144,16 +163,27 @@ impl Component {
     }
 }
 
+impl From<Rc<hardcoded::Snippet>> for Component {
+    fn from(snippet: Rc<hardcoded::Snippet>) -> Self {
+        Self { data: Data::Virtual { snippet }, match_info: default() }
+    }
+}
+
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let self_type_not_here =
-            self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
-        if let Some(self_type) = self_type_not_here {
-            let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
-            let name = self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
-            write!(f, "{} {}", self_name, name)
-        } else {
-            write!(f, "{}", self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
+        match &self.data {
+            Data::FromDatabase { entry, .. } => {
+                let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
+                let self_type_ref = entry.self_type.as_ref();
+                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
+                if let Some(self_type) = self_type_not_here {
+                    let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+                    write!(f, "{} {}", self_name, entry_name)
+                } else {
+                    write!(f, "{}", entry_name)
+                }
+            }
+            Data::Virtual { snippet } => write!(f, "{}", snippet.name),
         }
     }
 }
@@ -227,31 +257,6 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
-    /// Get the component from Top Modules by index.
-    pub fn top_module_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Favorites section by index.
-    pub fn favorites_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Local Scope section by index.
-    pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
-        let error =
-            || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
-        self.local_scope.get_entry(index).ok_or_else(error).map_err(|e| e.into())
-    }
-
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();
@@ -292,6 +297,7 @@ pub(crate) mod tests {
     use crate::model::suggestion_database::entry::Kind;
 
     use double_representation::module;
+    use double_representation::project;
     use engine_protocol::language_server;
 
 
@@ -299,10 +305,11 @@ pub(crate) mod tests {
 
     pub fn mock_module(name: &str) -> model::suggestion_database::Entry {
         let ls_entry = language_server::SuggestionEntry::Module {
-            module:             name.to_owned(),
-            documentation:      default(),
-            documentation_html: default(),
-            reexport:           default(),
+            module:                 name.to_owned(),
+            documentation:          default(),
+            documentation_html:     default(),
+            documentation_sections: default(),
+            reexport:               default(),
         };
         model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
     }
@@ -320,6 +327,7 @@ pub(crate) mod tests {
             documentation_html: None,
             self_type:          None,
             scope:              model::suggestion_database::entry::Scope::Everywhere,
+            icon_name:          None,
         }
     }
 
@@ -362,6 +370,7 @@ pub(crate) mod tests {
     ) -> Vec<crate::model::execution_context::ComponentGroup> {
         let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
         let group = crate::model::execution_context::ComponentGroup {
+            project:    project::QualifiedName::standard_base_library(),
             name:       "Test Group 1".into(),
             color:      None,
             components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),
@@ -381,7 +390,7 @@ pub(crate) mod tests {
             .borrow()
             .iter()
             .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-            .map(|c| *c.id)
+            .map(|c| c.id().unwrap())
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
     }
@@ -458,7 +467,7 @@ pub(crate) mod tests {
         // ("test.Test.TopModule1.SubModule2").
         let content = list.get_module_content(3).unwrap();
         let expected_content_ids = vec![9, 4];
-        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
         let direct_submodules = list.submodules_of(3).unwrap();
         let expected_direct_submodules_ids = vec![Some(4)];
@@ -469,7 +478,7 @@ pub(crate) mod tests {
         // ("test.Test.TopModule1.SubModule1.SubSubModule").
         let content = list.get_module_content(4).unwrap();
         let expected_content_ids = vec![10];
-        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
     }
 }

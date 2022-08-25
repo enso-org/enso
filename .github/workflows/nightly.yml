@@ -27,10 +27,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -64,10 +72,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -75,9 +91,12 @@ jobs:
       - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
   enso-build-cli-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
     needs:
@@ -102,10 +121,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -113,9 +140,12 @@ jobs:
       - run: "./run backend upload"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
@@ -141,10 +171,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -152,9 +190,12 @@ jobs:
       - run: "./run backend upload"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
@@ -182,10 +223,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -193,9 +242,12 @@ jobs:
       - run: "./run backend upload"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
@@ -226,10 +278,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -237,9 +297,12 @@ jobs:
       - run: "./run release publish"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       AWS_ACCESS_KEY_ID: "${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}"
       AWS_REGION: us-west-1
@@ -272,10 +335,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -283,9 +354,12 @@ jobs:
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
@@ -313,10 +387,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -324,9 +406,12 @@ jobs:
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
@@ -356,10 +441,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -367,9 +460,12 @@ jobs:
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"

@@ -1,8 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Numbers
 
 import Standard.Test
-from Standard.Base.Data.Ordering import Equal, Less, Greater
 
 spec =
     Test.group "identity" <|
@@ -38,6 +36,5 @@ spec =
         Test.specify "uncurry on number list" <|
             times = uncurry (*)
             times [6, 7] . should_equal 42
-
 
 main = Test.Suite.run_main spec

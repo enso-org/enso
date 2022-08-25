@@ -5,12 +5,14 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
@@ -24,7 +26,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-@Builtin(pkg = "date", name = "Date")
+@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date")
 public final class EnsoDate implements TruffleObject {
   private final LocalDate date;
 
@@ -71,6 +73,11 @@ public final class EnsoDate implements TruffleObject {
     return date.getDayOfMonth();
   }
 
+  @Builtin.Method(name = "to_time_builtin", description = "Combine this day with time to create a point in time.")
+  public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoZone zone) {
+    return new EnsoDateTime(date.atTime(timeOfDay.asTime()).atZone(zone.asTimeZone()));
+  }
+
   @ExportMessage
   boolean isDate() {
     return true;
@@ -79,6 +86,16 @@ public final class EnsoDate implements TruffleObject {
   @ExportMessage
   LocalDate asDate() {
     return date;
+  }
+
+  @ExportMessage
+  boolean isTime() {
+    return false;
+  }
+
+  @ExportMessage
+  LocalTime asTime() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage

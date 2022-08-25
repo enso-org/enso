@@ -253,12 +253,16 @@ public class Error {
 
     @ExportMessage
     boolean hasExceptionMessage() {
-      return getMessage() != null;
+      return true;
     }
 
     @ExportMessage
     public Object getExceptionMessage() {
-      return Text.create(getMessage());
+      if (getMessage() != null) {
+        return Text.create(getMessage());
+      } else {
+        return Text.create(original.getClass().getName());
+      }
     }
 
     @ExportMessage

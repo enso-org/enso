@@ -25,6 +25,8 @@ import firebase_config from '../firebase.yaml'
 import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
 
+import * as https from 'https'
+
 const authInfo = 'auth-info'
 
 // ==================
@@ -497,14 +499,14 @@ class Versions {
 
 /// Fetch the application config from the provided url.
 async function fetchApplicationConfig(url: string) {
-    const https = require('https')
     const statusCodeOK = 200
 
     return new Promise((resolve: any, reject: any) => {
-        https.get(url, (res: any) => {
+        https.get(url, res => {
             const statusCode = res.statusCode
             if (statusCode !== statusCodeOK) {
                 reject(new ErrorDetails('Request failed.', { url, statusCode }))
+                return
             }
 
             res.setEncoding('utf8')

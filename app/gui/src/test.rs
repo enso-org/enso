@@ -97,37 +97,39 @@ pub mod mock {
         }
 
         pub fn suggestion_entry_foo() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
+            let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "foo".to_owned(),
                 module:             module::QualifiedName::from_segments(project_name, &["Main"])
                     .unwrap(),
-                self_type:          Some("std.Base.Main".to_owned().try_into().unwrap()),
+                self_type:          Some("Standard.Base.Main".to_owned().try_into().unwrap()),
                 arguments:          vec![foo_method_parameter(), foo_method_parameter2()],
                 return_type:        "Any".to_owned(),
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
+                icon_name:          None,
             }
         }
 
         pub fn suggestion_entry_bar() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
+            let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "bar".to_owned(),
                 module:             module::QualifiedName::from_segments(project_name, &["Other"])
                     .unwrap(),
-                self_type:          Some("std.Base.Other".to_owned().try_into().unwrap()),
+                self_type:          Some("Standard.Base.Other".to_owned().try_into().unwrap()),
                 arguments:          vec![bar_method_parameter()],
                 return_type:        "Any".to_owned(),
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
+                icon_name:          None,
             }
         }
     }
 
-    /// This mock data represents a rudimentary enviromment consisting of a project with a single
+    /// This mock data represents a rudimentary environment consisting of a project with a single
     /// module. The module contents is provided by default by [data::CODE], can be overwritten by
     /// calling [set_code] or [set_inline_code].
     #[derive(Clone, Debug)]
@@ -297,10 +299,13 @@ pub mod mock {
                 project.clone_ref(),
                 execution.clone_ref(),
             );
-            let executor = TestWithLocalPoolExecutor::set_up();
+            let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
-            let searcher_mode =
-                controller::searcher::Mode::NewNode { position: None, source_node: None };
+            let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
+            let searcher_mode = controller::searcher::Mode::NewNode {
+                node_id:     searcher_target,
+                source_node: None,
+            };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
@@ -309,6 +314,7 @@ pub mod mock {
                 searcher_mode,
             )
             .unwrap();
+            executor.run_until_stalled();
             Fixture {
                 logger,
                 executor,

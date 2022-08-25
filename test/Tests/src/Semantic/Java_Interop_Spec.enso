@@ -1,17 +1,17 @@
 from Standard.Base import all
 
-import Standard.Test
-
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
-
-import Standard.Base.Data.Time.Date
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
+
+import Standard.Test
+
+Any.test_me x = x.is_nothing
 
 spec =
     Test.group "Java FFI" <|
@@ -33,6 +33,9 @@ spec =
             builder.append "bar"
             str = builder.toString
             str.should_equal "foobar"
+        Test.specify "should invoke static methods" <|
+            x = Integer.valueOf 1
+            x.test_me x . should_equal False
 
     Test.group "Java/Enso Date" <|
         Test.specify "Java date has Enso properties" <|
@@ -44,11 +47,10 @@ spec =
         Test.specify "send Enso date into Java" <|
             ensodate = Date.new 2022 04 01
             javatime = LocalTime.of 10 26
-            javatimedate = javatime.atDate ensodate
-            april1st = javatimedate . toLocalDate
+            javatimedate = javatime . to_time ensodate
+            april1st = javatimedate . date
             april1st.year.should_equal 2022
             april1st.month.should_equal 4
             april1st.day.should_equal 1
-
 
 main = Test.Suite.run_main spec

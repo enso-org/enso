@@ -99,10 +99,20 @@ impl ExecutionContext {
 
     /// Load the component groups defined in libraries imported into the execution context.
     async fn load_component_groups(&self) {
+        let log_group_parsing_error = |err: &failure::Error| {
+            let msg = iformat!(
+                "Failed to parse a component group returned by the Engine. The group will not \
+                appear in the Favorites section of the Component Browser. Error: {err}"
+            );
+            error!(self.logger, "{msg}");
+        };
         match self.language_server.get_component_groups(&self.id).await {
             Ok(ls_response) => {
                 let ls_groups = ls_response.component_groups;
-                let groups = ls_groups.into_iter().map(|group| group.into()).collect();
+                let groups = ls_groups
+                    .into_iter()
+                    .filter_map(|group| group.try_into().inspect_err(log_group_parsing_error).ok())
+                    .collect();
                 *self.model.component_groups.borrow_mut() = Rc::new(groups);
                 info!(self.logger, "Loaded component groups.");
             }
@@ -312,6 +322,7 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
+    use double_representation::project;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
@@ -608,6 +619,7 @@ pub mod test {
 
             // Verify that the second component group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
+                project:    project::QualifiedName::standard_base_library(),
                 name:       "Input".into(),
                 color:      None,
                 components: vec!["Standard.Base.System.File.new".into(),],

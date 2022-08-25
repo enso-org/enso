@@ -12,7 +12,7 @@ type Ref
 
              (Ref.new 0) . get
     get : Any
-    get ref = @Builtin_Method "Ref.get"
+    get self = @Builtin_Method "Ref.get"
 
     ## Puts a new value into this reference, returning the old value.
 
@@ -24,7 +24,7 @@ type Ref
 
              (Ref.new 0) . put 10
     put : Any -> Any
-    put new_value = @Builtin_Method "Ref.put"
+    put self new_value = @Builtin_Method "Ref.put"
 
 ## Creates a new reference containing the provided value.
 

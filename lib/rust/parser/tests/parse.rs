@@ -49,9 +49,7 @@ fn application() {
 
 #[test]
 fn parentheses_simple() {
-    let expected = block![
-        (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-    ];
+    let expected = block![(Group "(" (App (Ident a) (Ident b)) ")")];
     test("(a b)", expected);
 }
 
@@ -67,25 +65,116 @@ fn section_simple() {
 fn parentheses_nested() {
     #[rustfmt::skip]
     let expected = block![
-        (MultiSegmentApp #(
-         ((Symbol "(")
-          (App (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-               (Ident c)))
-          ((Symbol ")") ())))
-    ];
+        (Group
+         "("
+         (App (Group "(" (App (Ident a) (Ident b)) ")")
+              (Ident c))
+         ")")];
     test("((a b) c)", expected);
 }
 
 #[test]
-fn type_definition() {
-    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #())]);
-    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)))]);
+fn comments() {
+    // Basic, full-line comment.
+    test("# a b c", block![(Comment "# a b c")]);
 }
+
+
+// === Type Definitions ===
+
+#[test]
+fn type_definition_no_body() {
+    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #() #() #())]);
+    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)) #() #())]);
+}
+
+#[test]
+fn type_constructors() {
+    let code = [
+        "type Geo",
+        "    Circle",
+        "        radius",
+        "        4",
+        "    Rectangle width height",
+        "    Point",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #()
+         #(((Circle #() #((Ident radius) (Number 4))))
+           ((Rectangle #((Ident width) (Ident height)) #()))
+           ((Point #() #())))
+         #())
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_methods() {
+    let code = ["type Geo", "    number =", "        23", "    area self = 1 + 1"];
+    #[rustfmt::skip]
+        let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #() #()
+         #((Function number #() "=" (BodyBlock #((Number 23))))
+           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_def_full() {
+    let code = [
+        "type Geo",
+        "    Circle",
+        "        radius : float",
+        "        4",
+        "    Rectangle width height",
+        "    Point",
+        "",
+        "    number =",
+        "        23",
+        "    area self = 1 + 1",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #()
+         #(((Circle #() #((OprApp (Ident radius) (Ok ":") (Ident float)) (Number 4))))
+           ((Rectangle #((Ident width) (Ident height)) #()))
+           ((Point #() #()))
+           (()))
+         #((Function number #() "=" (BodyBlock #((Number 23))))
+           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_def_nested() {
+    #[rustfmt::skip]
+    let code = [
+        "type Foo",
+        "    type Bar",
+        "    type Baz",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Foo) #() #()
+         #((TypeDef (Ident type) (Ident Bar) #() #() #())
+           (TypeDef (Ident type) (Ident Baz) #() #() #())))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
+// === Variable Assignment ===
 
 #[test]
 fn assignment_simple() {
     test("foo = 23", block![(Assignment (Ident foo) "=" (Number 23))]);
 }
+
+
+// === Functions ===
 
 #[test]
 fn function_inline_simple_args() {
@@ -105,6 +194,9 @@ fn function_block_simple_args() {
     test("foo a b =", block![(Function foo #((Ident a) (Ident b)) "=" ())]);
     test("foo a b c =", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
 }
+
+
+// === Code Blocks ===
 
 #[test]
 fn code_block_body() {
@@ -219,6 +311,167 @@ fn code_block_with_following_statement() {
 }
 
 
+// === Binary Operators ===
+
+#[test]
+fn multiple_operator_error() {
+    let code = ["4 + + 1"];
+    let expected = block![
+        (OprApp (Number 4) (Err (#("+" "+"))) (Number 1))
+    ];
+    test(&code.join("\n"), expected);
+    let code = ["4 + + + 1"];
+    let expected = block![
+        (OprApp (Number 4) (Err (#("+" "+" "+"))) (Number 1))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn precedence() {
+    let code = ["1 * 2 + 3"];
+    let expected = block![
+        (OprApp (OprApp (Number 1) (Ok "*") (Number 2)) (Ok "+") (Number 3))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
+// === Unary Operators ===
+
+#[test]
+fn unevaluated_argument() {
+    let code = ["main ~foo = 4"];
+    let expected = block![
+        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Number 4))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn unary_operator_missing_operand() {
+    let code = ["main ~ = 4"];
+    let expected = block![
+        (Function main #((UnaryOprApp "~" ())) "=" (Number 4))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn unary_operator_at_end_of_expression() {
+    let code = ["foo ~"];
+    let expected = block![
+        (App (Ident foo) (UnaryOprApp "~" ()))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn plus_negative() {
+    let code = ["x = 4+-1"];
+    let expected = block![
+        (Assignment (Ident x) "=" (OprApp (Number 4) (Ok "+") (UnaryOprApp "-" (Number 1))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn minus_binary() {
+    let cases = [
+        ("x - 5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
+        ("x-5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
+        ("x.-y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "-" (Ident y)))]),
+        ("x.~y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn minus_section() {
+    #[rustfmt::skip]
+    let cases = [
+        ("- x", block![(OprSectionBoundary (OprApp () (Ok "-") (Ident x)))]),
+        ("(- x)", block![(Group "(" (OprSectionBoundary (OprApp () (Ok "-") (Ident x))) ")")]),
+        ("- (x * 2)", block![
+            (OprSectionBoundary (OprApp () (Ok "-")
+             (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")")))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn minus_unary() {
+    #[rustfmt::skip]
+    let cases = [
+        ("f -5", block![(App (Ident f) (UnaryOprApp "-" (Number 5)))]),
+        ("-5", block![(UnaryOprApp "-" (Number 5))]),
+        ("(-5)", block![(Group "(" (UnaryOprApp "-" (Number 5)) ")")]),
+        ("-(x * 2)", block![
+            (UnaryOprApp "-" (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")"))]),
+        ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number 1)))]),
+        ("-1+2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "+") (Number 2))]),
+        ("-1*2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "*") (Number 2))]),
+        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok ".") (Ident x))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Import ===
+
+#[test]
+fn import() {
+    #[rustfmt::skip]
+    let cases = [
+        ("import project.IO", block![
+            (Import () () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () ())]),
+        ("import Standard.Base as Enso_List", block![
+            (Import () () ()
+             ((Ident import) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident as) (Ident Enso_List))
+             ())]),
+        ("from Standard.Base import all", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ()
+             ((Ident import) (Ident all))
+             () ())]),
+        ("from Standard.Base import all hiding Number, Boolean", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ()
+             ((Ident import) (Ident all))
+             ()
+             ((Ident hiding)
+              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean))))]),
+        ("from Standard.Table as Column_Module import Column", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
+             ((Ident as) (Ident Column_Module))
+             ((Ident import) (Ident Column))
+             () ())]),
+        ("polyglot java import java.lang.Float", block![
+            (Import
+             ((Ident polyglot) (Ident java))
+             ()
+             ()
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident lang)) (Ok ".") (Ident Float)))
+             () ())]),
+        ("polyglot java import java.net.URI as Java_URI", block![
+            (Import
+             ((Ident polyglot) (Ident java))
+             ()
+             ()
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
+             ((Ident as) (Ident Java_URI))
+             ())]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
 
 // ====================
 // === Test Support ===
@@ -231,6 +484,8 @@ use std::collections::HashSet;
 /// Given a block of input Enso code, test that:
 /// - The given code parses to the AST represented by the given S-expression.
 /// - The AST pretty-prints back to the original code.
+/// - Rust's deserialization is compatible with Rust's serialization for the type. (The Java format
+///   tests check Java's deserialization against Rust's deserialization).
 ///
 /// The S-expression format is as documented for [`enso_metamodel_lexpr`], with some
 /// postprocessing:
@@ -243,6 +498,9 @@ fn test(code: &str, expect: Value) {
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
     assert_eq!(ast.code(), code, "{:?}", &ast);
+    let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
+    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
+    deserialized.unwrap();
 }
 
 
@@ -263,6 +521,7 @@ where T: serde::Serialize + Reflect {
     let mut to_s_expr = ToSExpr::new(&graph);
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
     let ident_token = rust_to_meta[&token::variant::Ident::reflect().id];
+    let comment_token = rust_to_meta[&token::variant::Comment::reflect().id];
     let operator_token = rust_to_meta[&token::variant::Operator::reflect().id];
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Number::reflect().id];
@@ -277,6 +536,8 @@ where T: serde::Serialize + Reflect {
     };
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(ident_token, move |token| Value::symbol(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(comment_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();

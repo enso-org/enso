@@ -165,16 +165,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -230,16 +221,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -317,16 +299,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -424,16 +397,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -541,16 +505,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -751,8 +706,8 @@ class RuntimeSuggestionUpdatesTest
         |    10.overloaded x
         |    Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
-        |Number.overloaded arg = arg + 2
+        |Text.Text.overloaded self arg = arg + 1
+        |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
@@ -811,16 +766,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    Seq(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    Seq(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -929,7 +875,7 @@ class RuntimeSuggestionUpdatesTest
         |type MyType
         |    type MkA a
         |
-        |Integer.fortytwo = 42
+        |Integer.fortytwo self = 42
         |
         |hello = "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1123,16 +1069,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,

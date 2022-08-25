@@ -1,4 +1,6 @@
+from Standard.Base import Any, Boolean
 import Standard.Base.Meta
+
 polyglot java import org.enso.base.Text_Utils
 
 ## Enso's text type.
@@ -25,7 +27,7 @@ type Text
 
              "Hello" + ", world!"
     + : Text -> Text
-    + that = @Builtin_Method "Text.+"
+    + self that = @Builtin_Method "Text.+"
 
     ## Checks whether `self` is equal to `that`.
 
@@ -45,5 +47,5 @@ type Text
 
              ('é' == 'e\u0301') == True
     == : Any -> Boolean
-    == that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
+    == self that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
         Text_Utils.equals self that

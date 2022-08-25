@@ -300,13 +300,25 @@ class IrToTruffle(
             // and not attempt to register it in the scope (can't redefined methods).
             // For non-builtin types (or modules) that own the builtin method
             // we have to look up the function and register it in the scope.
+            val x              = methodDef.body.asInstanceOf[IR.Function.Lambda].body
+            val fullMethodName = x.asInstanceOf[IR.Literal.Text]
+
+            val builtinNameElements = fullMethodName.text.split('.')
+            if (builtinNameElements.length != 2) {
+              throw new CompilerError(
+                s"Unknwon builtin method ${fullMethodName.text}"
+              )
+            }
+            val methodName      = builtinNameElements(1)
+            val methodOwnerName = builtinNameElements(0)
+
             val builtinFunction = context.getBuiltins
-              .getBuiltinFunction(cons, methodDef.methodName.name, language)
+              .getBuiltinFunction(methodOwnerName, methodName, language)
             builtinFunction.toScala
               .map(Some(_))
               .toRight(
                 new CompilerError(
-                  s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"
+                  s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
                 )
               )
               .left
@@ -947,6 +959,50 @@ class IrToTruffle(
 
             branchNode
           }
+        case literalPattern: Pattern.Literal =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location
+          )
+
+          literalPattern.literal match {
+            case num: IR.Literal.Number =>
+              num.numericValue match {
+                case doubleVal: Double =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      doubleVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case longVal: Long =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      longVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case bigIntVal: BigInteger =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      bigIntVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case _ =>
+                  throw new CompilerError(
+                    "Invalid literal numeric value"
+                  )
+              }
+            case text: IR.Literal.Text =>
+              Right(
+                StringLiteralBranchNode.build(
+                  text.text,
+                  branchCodeNode.getCallTarget
+                )
+              )
+          }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
@@ -1092,9 +1148,9 @@ class IrToTruffle(
                     .getPolyglotSymbols
                     .get(symbol.name)
                 )
-              case BindingsMap.ResolvedMethod(_, _) =>
+              case BindingsMap.ResolvedMethod(_, method) =>
                 throw new CompilerError(
-                  "Impossible here, should be desugared by GlobalNames resolver"
+                  s"Impossible here, ${method.name} should be caught when translating application"
                 )
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {
@@ -1104,7 +1160,7 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Self(location, passData, _) =>
+        case IR.Name.Self(location, _, passData, _) =>
           processName(
             IR.Name.Literal(
               Constants.Names.SELF_ARGUMENT,
@@ -1382,37 +1438,8 @@ class IrToTruffle(
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
           run(fn)
-        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
-          val callArgFactory = new CallArgumentProcessor(scope, scopeName)
-
-          val arguments = args
-          val callArgs  = new ArrayBuffer[CallArgument]()
-
-          for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
-            val arg = callArgFactory.run(unprocessedArg, position)
-            callArgs.append(arg)
-          }
-
-          val defaultsExecutionMode = if (hasDefaultsSuspended) {
-            InvokeCallableNode.DefaultsExecutionMode.IGNORE
-          } else {
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE
-          }
-
-          val appNode = application.getMetadata(ApplicationSaturation) match {
-            case Some(
-                  ApplicationSaturation.CallSaturation.Exact(createOptimised)
-                ) =>
-              createOptimised(moduleScope)(scope)(callArgs.toList)
-            case _ =>
-              ApplicationNode.build(
-                this.run(fn),
-                callArgs.toArray,
-                defaultsExecutionMode
-              )
-          }
-
-          setLocation(appNode, loc)
+        case app: IR.Application.Prefix =>
+          processApplicationWithArgs(app)
         case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
         case IR.Application.Literal.Sequence(items, location, _, _) =>
@@ -1441,6 +1468,44 @@ class IrToTruffle(
             s"$sec found"
           )
       }
+
+    private def processApplicationWithArgs(
+      application: IR.Application.Prefix
+    ): RuntimeExpression = {
+      val IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+        application
+      val callArgFactory = new CallArgumentProcessor(scope, scopeName)
+
+      val arguments = args
+      val callArgs  = new ArrayBuffer[CallArgument]()
+
+      for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
+        val arg = callArgFactory.run(unprocessedArg, position)
+        callArgs.append(arg)
+      }
+
+      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+        InvokeCallableNode.DefaultsExecutionMode.IGNORE
+      } else {
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+      }
+
+      val appNode = application.getMetadata(ApplicationSaturation) match {
+        case Some(
+              ApplicationSaturation.CallSaturation.Exact(createOptimised)
+            ) =>
+          createOptimised(moduleScope)(scope)(callArgs.toList)
+        case _ =>
+          ApplicationNode.build(
+            this.run(fn),
+            callArgs.toArray,
+            defaultsExecutionMode
+          )
+      }
+
+      setLocation(appNode, loc)
+    }
+
   }
 
   // ==========================================================================

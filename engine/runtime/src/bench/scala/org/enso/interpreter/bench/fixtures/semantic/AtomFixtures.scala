@@ -29,9 +29,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
       |
-      |    res = generator List.nil length
+      |    res = generator List.Nil length
       |    res
     """.stripMargin
   val generateListQualified = getMain(generateListQualifiedCode)
@@ -52,10 +52,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Cons.rev = acc -> case self of
+      |Cons.rev self = acc -> case self of
       |    Cons h t -> @Tail_Call t.rev (Cons h acc)
       |
-      |Nil.rev = acc -> acc
+      |Nil.rev self = acc -> acc
       |
       |main = list ->
       |    res = list.rev Nil
@@ -105,8 +105,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.sum = acc -> acc
-      |Cons.sum = acc -> case self of
+      |Nil.sum self = acc -> acc
+      |Cons.sum self = acc -> case self of
       |    Cons h t -> @Tail_Call t.sum h+acc
       |
       |main = list ->
@@ -118,8 +118,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseListCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.mapReverse = f -> acc -> acc
-      |Cons.mapReverse = f -> acc -> case self of
+      |Nil.mapReverse self = f -> acc -> acc
+      |Cons.mapReverse self = f -> acc -> case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->
@@ -131,8 +131,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseListCurryCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.mapReverse = f -> acc -> acc
-      |Cons.mapReverse = f -> acc -> case self of
+      |Nil.mapReverse self = f -> acc -> acc
+      |Cons.mapReverse self = f -> acc -> case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->
