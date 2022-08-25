@@ -121,8 +121,8 @@ class GatherDiagnosticsTest extends CompilerTest {
       val ir =
         """
           |type Foo
-          |    type Bar1
-          |    type Bar2
+          |    Bar1
+          |    Bar2
           |
           |    foo x =
           |        unused = 0
