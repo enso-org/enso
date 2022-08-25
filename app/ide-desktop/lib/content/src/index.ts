@@ -753,15 +753,15 @@ function ok(value: any) {
 }
 
 class Config {
-    public entry: string = null
-    public project: string = null
-    public project_manager: string = null
-    public language_server_rpc: string = null
-    public language_server_data: string = null
-    public namespace: string = null
-    public platform: string = null
+    public entry: string = undefined
+    public project: string = undefined
+    public project_manager: string = undefined
+    public language_server_rpc: string = undefined
+    public language_server_data: string = undefined
+    public namespace: string = undefined
+    public platform: string = undefined
     public frame: boolean = false
-    public theme: string = null
+    public theme: string = undefined
     public dark_theme: boolean = false
     public high_contrast: boolean = false
     public use_loader: boolean = true
@@ -773,9 +773,9 @@ class Config {
     public is_in_cloud: boolean = false
     public verbose: boolean = false
     public authentication_enabled: boolean = true
-    public email: string = null
+    public email: string = undefined
     public application_config_url: string = 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
-    public test_workflow: string = null
+    public test_workflow: string = undefined
     public skip_min_version_check: boolean = Versions.isDevVersion()
     public preferred_engine_version: SemVer = Versions.ideVersion
     public enable_new_component_browser: boolean = false

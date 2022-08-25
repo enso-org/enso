@@ -43,7 +43,6 @@ use ensogl_text_msdf::run_once_initialized;
 #[allow(dead_code)]
 pub fn main() {
     run_once_initialized(|| {
-        init_tracing(TRACE);
         let app = Application::new("root");
         init(&app);
         mem::forget(app);

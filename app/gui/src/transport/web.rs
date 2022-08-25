@@ -180,11 +180,11 @@ impl Model {
     pub fn new(socket: web_sys::WebSocket, logger: Logger) -> Model {
         socket.set_binary_type(BinaryType::Arraybuffer);
         Model {
-            on_close: Slot::new(&socket, &logger),
-            on_message: Slot::new(&socket, &logger),
-            on_open: Slot::new(&socket, &logger),
-            on_error: Slot::new(&socket, &logger),
-            on_close_internal: Slot::new(&socket, &logger),
+            on_close: Slot::new(&socket),
+            on_message: Slot::new(&socket),
+            on_open: Slot::new(&socket),
+            on_error: Slot::new(&socket),
+            on_close_internal: Slot::new(&socket),
             auto_reconnect: true,
             logger,
             socket,

@@ -34,9 +34,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 #(#attrs)*
                 #[wasm_bindgen]
                 pub #fn_sig {
-                    init_tracing(WARN);
-                    // web::forward_panic_hook_to_console();
-                    // web::set_stack_trace_limit();
+                    init_wasm();
                     #block
                 }
             };

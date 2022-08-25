@@ -18,7 +18,6 @@
 
 #[cfg(feature = "futures")]
 pub mod channel;
-mod clone;
 mod collections;
 mod data;
 pub mod debug;
@@ -47,10 +46,11 @@ mod wrapper;
 #[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
-pub use clone::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
+pub use enso_shapely::clone_ref::*;
+pub use enso_shapely::impl_clone_ref_as_clone;
 pub use fail::*;
 pub use leak::Leak;
 pub use leak::*;
@@ -137,6 +137,12 @@ pub fn init_tracing(level: tracing::Level) {
         tracing::Registry::default().with(WASMLayer::new(config))
     };
     tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
+}
+
+pub fn init_wasm() {
+    init_tracing(WARN);
+    enso_web::forward_panic_hook_to_console();
+    enso_web::set_stack_trace_limit();
 }
 
 

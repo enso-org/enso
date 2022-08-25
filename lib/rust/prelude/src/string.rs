@@ -1,8 +1,8 @@
 //! This module defines several useful string variants, including copy-on-write and immutable
 //! implementations.
 
-use crate::clone::*;
 use derive_more::*;
+use enso_shapely::clone_ref::*;
 use itertools::*;
 
 use crate::impls;
