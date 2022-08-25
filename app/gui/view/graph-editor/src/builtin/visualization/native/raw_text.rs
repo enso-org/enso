@@ -141,9 +141,9 @@ impl RawTextModel {
                 node.set_inner_text(&line);
                 let res = self.dom.dom().append_child(&node);
                 if res.is_err() {
-                    return Err(DataError::InternalComputationError);
+                    Err(DataError::InternalComputationError)
                 } else {
-                    return Ok(())
+                    Ok(())
                 }
             })
         } else {
@@ -165,10 +165,7 @@ fn split_long_lines(data_str: &String, process_line: &mut impl FnMut(String) -> 
     let it = data_str.chars().chunks(1024);
     for ch in &it {
         let s: String = ch.collect();
-        let res = process_line(s);
-        if res.is_err() {
-            return res;
-        }
+        process_line(s)?;
     }
     Ok(())
 }
