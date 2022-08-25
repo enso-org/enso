@@ -62,7 +62,7 @@ impl<T: AsRef<str> + Display> GithubRelease<T> {
 // === GithubRelease ===
 // =====================
 
-/// A file description of a Github repository.
+/// A file description of a GitHub repository.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[allow(missing_docs)]
 pub struct GithubFile {

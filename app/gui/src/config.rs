@@ -58,7 +58,6 @@ impl BackendService {
     /// documentation.
     pub fn from_web_arguments(args: &Args) -> FallibleResult<Self> {
         if let Some(endpoint) = &args.project_manager {
-            event!(WARN, "{:#?}", args);
             if args.language_server_rpc.is_some() || args.language_server_data.is_some() {
                 Err(MutuallyExclusiveOptions.into())
             } else {
