@@ -469,6 +469,7 @@ pub trait API: Debug {
         &'a self,
         id: VisualizationId,
         method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<'a, FallibleResult>;
 
     /// Dispatches the visualization update data (typically received from as LS binary notification)

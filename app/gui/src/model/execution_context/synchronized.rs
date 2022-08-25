@@ -270,8 +270,9 @@ impl model::execution_context::API for ExecutionContext {
         &self,
         id: VisualizationId,
         method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        let result = self.model.modify_visualization(id, method_pointer);
+        let result = self.model.modify_visualization(id, method_pointer, arguments);
         let new_config = self.model.visualization_config(id, self.id);
         async move {
             result?;
@@ -558,7 +559,7 @@ pub mod test {
             let expected_config = language_server::types::VisualisationConfiguration {
                 execution_context_id: data.context_id,
                 expression: new_expression.clone().into(),
-                positional_arguments_expressions: arguments,
+                positional_arguments_expressions: arguments.clone(),
             };
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
@@ -568,7 +569,7 @@ pub mod test {
         test.run_task(async move {
             context.attach_visualization(vis.clone()).await.unwrap();
             let method_pointer = Some(new_expression);
-            context.modify_visualization(vis_id, method_pointer).await.unwrap();
+            context.modify_visualization(vis_id, method_pointer, Some(arguments)).await.unwrap();
         });
     }
 

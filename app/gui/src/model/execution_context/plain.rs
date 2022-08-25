@@ -135,15 +135,17 @@ impl ExecutionContext {
         &self,
         id: VisualizationId,
         method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> FallibleResult {
         let err = || InvalidVisualizationId(id);
         let mut visualizations = self.visualizations.borrow_mut();
         let visualization = &mut visualizations.get_mut(&id).ok_or_else(err)?.visualization;
-
         if let Some(method_pointer) = method_pointer {
             visualization.method_pointer = method_pointer;
         }
-
+        if let Some(arguments) = arguments {
+            visualization.arguments = arguments;
+        }
         Ok(())
     }
 
@@ -226,8 +228,10 @@ impl model::execution_context::API for ExecutionContext {
         &self,
         id: VisualizationId,
         method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        futures::future::ready(self.modify_visualization(id, method_pointer)).boxed_local()
+        futures::future::ready(self.modify_visualization(id, method_pointer, arguments))
+            .boxed_local()
     }
 
     fn dispatch_visualization_update(

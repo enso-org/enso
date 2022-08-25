@@ -476,7 +476,9 @@ impl Manager {
         self.update_status(target, status);
         let id = so_far.id;
         let method_pointer = new_visualization.method_pointer.clone();
-        let modifying_result = self.executed_graph.modify_visualization(id, Some(method_pointer));
+        let arguments = new_visualization.arguments.clone();
+        let modifying_result =
+            self.executed_graph.modify_visualization(id, Some(method_pointer), Some(arguments));
         match modifying_result.await {
             Ok(_) => {
                 let status = Status::Attached(new_visualization);
@@ -599,7 +601,7 @@ mod tests {
 
             let sender = request_sender;
             execution_context.expect_modify_visualization().returning_st(
-                move |id, method_pointer| {
+                move |id, method_pointer, _| {
                     let request = ExecutionContextRequest::Modify { id, method_pointer };
                     sender.unbounded_send(request).unwrap();
                     ready(Ok(())).boxed_local()

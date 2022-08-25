@@ -144,8 +144,9 @@ impl Handle {
         &self,
         id: VisualizationId,
         method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        self.execution_ctx.modify_visualization(id, method_pointer)
+        self.execution_ctx.modify_visualization(id, method_pointer, arguments)
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].
@@ -163,17 +164,6 @@ impl Handle {
     /// See [`model::ExecutionContext::expression_info_registry`].
     pub fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
         self.execution_ctx.computed_value_info_registry()
-    }
-
-    /// Modify preprocessor code in visualization. See also
-    /// [`model::ExecutionContext::modify_visualization`].
-    #[profile(Detail)]
-    pub async fn set_visualization_preprocessor(
-        &self,
-        id: VisualizationId,
-        method_pointer: QualifiedMethodPointer,
-    ) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id, Some(method_pointer)).await
     }
 
     /// See [`model::ExecutionContext::component_groups`].
