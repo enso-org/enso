@@ -97,7 +97,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Data]
+      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Type]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
       getDoc(ir.bindings(0)) shouldEqual DocParserWrapper.runOnPureDoc(

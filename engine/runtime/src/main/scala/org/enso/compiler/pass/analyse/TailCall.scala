@@ -110,7 +110,8 @@ case object TailCall extends IRPass {
           "Sugared method definitions should not occur during tail call " +
           "analysis."
         )
-      case _: IR.Module.Scope.Definition.Type => definition
+      case _: IR.Module.Scope.Definition.Type =>
+        definition.updateMetadata(this -->> TailPosition.Tail)
       case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +

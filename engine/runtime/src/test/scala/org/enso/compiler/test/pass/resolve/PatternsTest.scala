@@ -61,7 +61,8 @@ class PatternsTest extends CompilerTest {
 
     val ir =
       """
-        |type Foo a b c
+        |type F
+        |    Foo a b c
         |
         |main = case this of
         |    Foo a b c -> a + b + c

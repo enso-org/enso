@@ -1035,7 +1035,7 @@ object IR {
           /** @inheritdoc */
           override def toString: String =
             s"""
-               |IR.Module.Scope.Definition.UnionType(
+               |IR.Module.Scope.Definition.Type(
                |name = $name,
                |params = $params,
                |members = $members,
@@ -1269,7 +1269,7 @@ object IR {
           /** @inheritdoc */
           override def toString: String =
             s"""
-            |IR.Module.Scope.Definition.Type(
+            |IR.Module.Scope.Definition.SugaredType(
             |name = $name,
             |arguments = $arguments,
             |body = $body,
