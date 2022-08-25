@@ -77,7 +77,7 @@ impl Pen {
         Self { offset, current_char, font }
     }
 
-    // FIXME all unwraps
+    // FIXME[WD] all unwraps. https://www.pivotaltracker.com/story/show/182746060
     /// Advance the pen to the next position.
     pub fn advance(&mut self, next: Option<CharInfo>) -> AdvanceResult {
         let next_char = next.as_ref().map(|t| t.char);
@@ -89,7 +89,7 @@ impl Pen {
                     &current.variable_font_variations,
                     current.char,
                 )
-                .unwrap(); // FIXME
+                .unwrap();
             let b = next.as_ref().map(|t| {
                 self.font
                     .glyph_id_of_code_point(
@@ -97,7 +97,7 @@ impl Pen {
                         &t.variable_font_variations,
                         t.char,
                     )
-                    .unwrap() // FIXME
+                    .unwrap()
             });
             let kerning = b
                 .map(|ch| {

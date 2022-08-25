@@ -143,15 +143,15 @@ mod test {
         assert_eq!(1.0 / 2.0, y_distance_from_msdf_value(16.0));
     }
 
-    // #[wasm_bindgen_test(async)]
-    // async fn msdf_translation_converting() {
-    //     ensogl_text_msdf::initialized().await;
-    //     let mut msdf = Msdf::mock_results();
-    //     msdf.translation = Vector2::new(16.0, 4.0);
-    //
-    //     let converted = convert_msdf_translation(&msdf);
-    //     let expected = Vector2::new(0.5, 1.0 / 8.0);
-    //
-    //     assert_eq!(expected, converted);
-    // }
+    #[wasm_bindgen_test(async)]
+    async fn msdf_translation_converting() {
+        ensogl_text_msdf::initialized().await;
+        let mut msdf = Msdf::mock_results();
+        msdf.translation = Vector2::new(16.0, 4.0);
+
+        let converted = convert_msdf_translation(&msdf);
+        let expected = Vector2::new(0.5, 1.0 / 8.0);
+
+        assert_eq!(expected, converted);
+    }
 }

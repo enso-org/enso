@@ -154,7 +154,7 @@ impl Glyph {
         if let Some(glyph_id) = opt_glyph_id {
             self.set_glyph_id(glyph_id)
         }
-        // FIXME: display not found char
+        // FIXME[WD]: display not found char. https://www.pivotaltracker.com/story/show/182746060
     }
 
     /// Change the displayed character.

@@ -151,10 +151,10 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
 /// running modes that you can access by adding `?entry=` to the end of the application URL.
 #[proc_macro_attribute]
 pub fn entry_point(
-    _: proc_macro::TokenStream,
+    args: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    derive_entry_point::derive(item)
+    derive_entry_point::derive(args, item)
 }
 
 #[allow(missing_docs)]

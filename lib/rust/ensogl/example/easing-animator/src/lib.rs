@@ -289,8 +289,6 @@ macro_rules! examples {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
     let container = web::document.create_div_or_panic();
     container.set_attribute_or_warn("id", "examples");
     container.set_style_or_warn("display", "flex");

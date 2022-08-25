@@ -513,11 +513,10 @@ impl<F: Family> FontTemplate<F> {
     ) -> Option<GlyphId> {
         self.family
             .with_borrowed_face(variations, |face| {
-                let id = face.ttf.as_face_ref().glyph_index(code_point);
-                if let Some(id) = id {
+                face.ttf.as_face_ref().glyph_index(code_point).map(|id| {
                     self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
-                }
-                id
+                    id
+                })
             })
             .flatten()
     }
