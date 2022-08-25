@@ -196,7 +196,7 @@ mod tests {
         let mut cnt = 0;
         let res = super::split_long_lines(&str, &mut |l| {
             assert_eq!(l.len(), 1024);
-            cnt = cnt + 1;
+            cnt += 1;
             Ok(())
         });
         assert!(res.is_ok());
@@ -209,7 +209,7 @@ mod tests {
         let mut cnt = 0;
         let res = super::split_long_lines(&str, &mut |l| {
             assert_eq!(l.len(), 1024);
-            cnt = cnt + 1;
+            cnt += 1;
             if cnt >= 4 {
                 Err(DataError::InvalidJsonText)
             } else {
