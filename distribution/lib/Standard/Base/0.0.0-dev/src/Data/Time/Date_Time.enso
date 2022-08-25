@@ -293,6 +293,16 @@ type Date_Time
     week_of_year : Locale.Locale -> Integer
     week_of_year self locale=Locale.default = Time_Utils.week_of_year_zoneddatetime self locale.java_locale
 
+    ## Returns if the date is in a leap year.
+    is_leap_year : Boolean
+    is_leap_year self =
+        year = self.year
+        (year%4 == 0) && ((year%100 != 0) || (year%400 == 0))
+
+    ## Returns the century of the date.
+    century : Integer
+    century self = (self.year - 1).div 100 + 1
+
     ## ALIAS Time to Date
 
        Convert this point in time to date, discarding the time of day

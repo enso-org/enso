@@ -130,6 +130,19 @@ specWith name create_new_date parse_date =
             date_1>date_2 . should_be_true
             date_1<date_2 . should_be_false
 
+        Test.specify "should return if a leap year" <|
+            create_new_date 2022 8 25 . is_leap_year . should_equal False
+            create_new_date 1999 12 31 . is_leap_year . should_equal False
+            create_new_date 1996 6 19 . is_leap_year . should_equal True
+            create_new_date 2000 1 1 . is_leap_year . should_equal True
+            create_new_date 1900 1 1 . is_leap_year . should_equal False
+
+        Test.specify "should return the correct century" <|
+            create_new_date 2022 8 25 . century . should_equal 21
+            create_new_date 1999 12 31 . century . should_equal 20
+            create_new_date 2000 1 1 . century . should_equal 20
+            create_new_date 2001 1 1 . century . should_equal 21
+
         Test.specify "should return the correct week of year" <|
             date_1 = parse_date "2021-08-01"
             date_1.week_of_year Locale.mexico . should_equal 32
