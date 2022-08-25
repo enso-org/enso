@@ -3,6 +3,8 @@ import Standard.Base.Data.Time.Duration
 
 import Standard.Test
 
+import project.Data.Time.Date_Part_Spec
+
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.format.DateTimeFormatter
@@ -296,18 +298,8 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
-        Test.specify "should return if a leap year" <|
-            create_new_datetime 2022 8 25 . is_leap_year . should_equal False
-            create_new_datetime 1999 12 31 . is_leap_year . should_equal False
-            create_new_datetime 1996 6 19 . is_leap_year . should_equal True
-            create_new_datetime 2000 1 1 . is_leap_year . should_equal True
-            create_new_datetime 1900 1 1 . is_leap_year . should_equal False
+    Date_Part_Spec.spec name create_new_datetime
 
-        Test.specify "should return the correct century" <|
-            create_new_datetime 2022 8 25 . century . should_equal 21
-            create_new_datetime 1999 12 31 . century . should_equal 20
-            create_new_datetime 2000 1 1 . century . should_equal 20
-            create_new_datetime 2001 1 1 . century . should_equal 21
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error err.payload.cause))

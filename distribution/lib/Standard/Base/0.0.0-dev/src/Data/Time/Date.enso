@@ -206,6 +206,10 @@ type Date
     century : Integer
     century self = (self.year - 1).div 100 + 1
 
+    ## Returns the quarter of the year the date falls into.
+    quarter : Integer
+    quarter self = (self.month - 1).div 3 + 1
+
     ## ALIAS Date to Time
 
        Combine this date with time of day to create a point in time.
