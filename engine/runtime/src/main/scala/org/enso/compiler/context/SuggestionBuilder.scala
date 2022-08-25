@@ -42,10 +42,37 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Data(name, arguments, _, _, _) =>
-            val suggestions =
-              buildAtom(module, name.name, arguments, doc)
-            go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
+          case IR.Module.Scope.Definition.Type(tpName, _, List(), _, _, _) =>
+            val cons =
+              buildAtomConstructor(module, tpName.name, tpName.name, Seq(), doc)
+            go(tree ++= Vector(Tree.Node(cons, Vector())), scope)
+
+          case IR.Module.Scope.Definition.Type(tpName, _, members, _, _, _) =>
+            val conses = members.map {
+              case data @ IR.Module.Scope.Definition.Data(
+                    name,
+                    arguments,
+                    _,
+                    _,
+                    _
+                  ) =>
+                buildAtomConstructor(
+                  module,
+                  tpName.name,
+                  name.name,
+                  arguments,
+                  data.getMetadata(DocumentationComments).map(_.documentation)
+                )
+            }
+            val getters = members
+              .flatMap(_.arguments)
+              .map(_.name.name)
+              .distinct
+              .map(buildGetter(module, tpName.name, _))
+
+            val tpSuggestions = conses ++ getters
+
+            go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
           case IR.Module.Scope.Definition.Method
                 .Explicit(
@@ -58,7 +85,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             val typeSignature = ir.getMetadata(TypeSignatures)
             val selfTypeOpt = typePtr match {
               case Some(typePtr) =>
-                typePtr.getMetadata(MethodDefinitions).map(_.target.qualifiedName)
+                typePtr
+                  .getMetadata(MethodDefinitions)
+                  .map(_.target.qualifiedName)
               case None =>
                 Some(module)
             }
@@ -66,7 +95,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               buildMethod(
                 body.getExternalId,
                 module,
-                methodName,
+                methodName.name,
                 selfType,
                 args,
                 doc,
@@ -161,7 +190,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildMethod(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
-    name: IR.Name,
+    name: String,
     selfType: QualifiedName,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
@@ -173,7 +202,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     Suggestion.Method(
       externalId    = externalId,
       module        = module.toString,
-      name          = name.name,
+      name          = name,
       arguments     = methodArgs,
       selfType      = selfType.toString,
       returnType    = buildReturnType(returnTypeDef),
@@ -254,19 +283,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       documentation = doc
     )
 
-  /** Build suggestions for an atom definition. */
-  private def buildAtom(
-    module: QualifiedName,
-    name: String,
-    arguments: Seq[IR.DefinitionArgument],
-    doc: Option[String]
-  ): Seq[Suggestion] =
-    buildAtomConstructor(module, name, arguments, doc) +:
-    buildAtomGetters(module, name, arguments)
-
   /** Build an atom constructor. */
   private def buildAtomConstructor(
     module: QualifiedName,
+    tp: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
@@ -276,34 +296,33 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       module        = module.toString,
       name          = name,
       arguments     = arguments.map(buildArgument),
-      returnType    = module.createChild(name).toString,
+      returnType    = module.createChild(tp).toString,
       documentation = doc
     )
 
   /** Build getter methods from atom arguments. */
-  private def buildAtomGetters(
+  private def buildGetter(
     module: QualifiedName,
-    name: String,
-    arguments: Seq[IR.DefinitionArgument]
-  ): Seq[Suggestion] =
-    arguments.map { argument =>
-      val thisArg = IR.DefinitionArgument.Specified(
-        name         = IR.Name.Self(argument.name.location),
-        ascribedType = None,
-        defaultValue = None,
-        suspended    = false,
-        location     = argument.location
-      )
-      buildMethod(
-        externalId    = None,
-        module        = module,
-        name          = argument.name,
-        selfType      = module.createChild(name),
-        args          = Seq(thisArg),
-        doc           = None,
-        typeSignature = None
-      )
-    }
+    typeName: String,
+    getterName: String
+  ): Suggestion = {
+    val thisArg = IR.DefinitionArgument.Specified(
+      name         = IR.Name.Self(None),
+      ascribedType = None,
+      defaultValue = None,
+      suspended    = false,
+      location     = None
+    )
+    buildMethod(
+      externalId    = None,
+      module        = module,
+      name          = getterName,
+      selfType      = module.createChild(typeName),
+      args          = Seq(thisArg),
+      doc           = None,
+      typeSignature = None
+    )
+  }
 
   private def buildResolvedUnionTypeName(
     resolvedName: BindingsMap.ResolvedName
@@ -482,9 +501,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     )
 
   private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)         => Seq(n.toString)
-    case _                        => Seq()
+    case TypeArg.Sum(Some(n), List()) => Seq(n.toString)
+    case TypeArg.Sum(_, variants)     => variants.flatMap(pluckVariants)
+    case TypeArg.Value(n)             => Seq(n.toString)
+    case _                            => Seq()
   }
 
   /** Build the name of type argument.

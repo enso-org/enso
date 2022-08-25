@@ -136,8 +136,8 @@ class TypeSignaturesTest
        |type Util_2
        |
        |type Util_Sum
-       |    type Util_Sum_1
-       |    type Util_Sum_2
+       |    Util_Sum_1
+       |    Util_Sum_2
        |""".stripMargin
   )
 
@@ -181,8 +181,8 @@ class TypeSignaturesTest
           |type B
           |
           |type C
-          |  type X
-          |  type D
+          |    X
+          |    D
           |
           |foo : A -> B -> C -> X -> D
           |foo a = 42""".stripMargin
