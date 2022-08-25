@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Numbers import Parse_Error
+from Standard.Base.Data.Numbers import Parse_Error_Data
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
@@ -94,7 +94,7 @@ default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
-        port -> Integer.parse port . catch Parse_Error (_->hardcoded_port)
+        port -> Integer.parse port . catch Parse_Error_Data (_->hardcoded_port)
 
 ## PRIVATE
 default_postgres_database = Environment.get_or_else "PGDATABASE" ""
