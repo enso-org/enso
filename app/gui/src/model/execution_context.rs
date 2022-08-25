@@ -238,7 +238,7 @@ impl QualifiedMethodPointer {
         QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
     }
     /// Tries to create a new method pointer from string components.
-    pub fn from_unqualified(
+    pub fn from_qualified_text(
         module: &str,
         defined_on_type: &str,
         name: &str,

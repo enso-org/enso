@@ -329,7 +329,7 @@ impl Manager {
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
         let preprocessor_module = desired.metadata.preprocessor.module;
         let preprocessor_method = desired.metadata.preprocessor.method;
-        let method_pointer = QualifiedMethodPointer::from_unqualified(
+        let method_pointer = QualifiedMethodPointer::from_qualified_text(
             &preprocessor_module,
             &preprocessor_module,
             &preprocessor_method,
@@ -663,7 +663,7 @@ mod tests {
         manager.request_visualization(node_id, desired_vis_1.clone());
         inner.run_until_stalled();
         if let ExecutionContextRequest::Modify { id, method_pointer } = requests.expect_one() {
-            let desired_method_pointer = QualifiedMethodPointer::from_unqualified(
+            let desired_method_pointer = QualifiedMethodPointer::from_qualified_text(
                 &desired_vis_1.preprocessor.module,
                 &desired_vis_1.preprocessor.module,
                 &desired_vis_1.preprocessor.method,
