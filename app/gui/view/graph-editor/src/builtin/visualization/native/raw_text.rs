@@ -139,7 +139,7 @@ impl RawTextModel {
         if data_str.len() > max_line_size {
             split_long_lines(&data_str, max_line_size, &mut |line| {
                 let node = web::document.create_div_or_panic();
-                node.set_inner_text(&line);
+                node.set_inner_text(line);
                 let res = self.dom.dom().append_child(&node);
                 if res.is_err() {
                     Err(DataError::InternalComputationError)
@@ -162,10 +162,14 @@ impl RawTextModel {
     }
 }
 
-fn split_long_lines(data_str: &str, max_line_size: usize, process_line: &mut impl FnMut(&str) -> Result<(), DataError>) -> Result<(), DataError> {
+fn split_long_lines(
+    data_str: &str,
+    max_line_size: usize,
+    process_line: &mut impl FnMut(&str) -> Result<(), DataError>,
+) -> Result<(), DataError> {
     let it = data_str.char_indices().chunks(max_line_size);
     for mut index in &it {
-        let first = index.nth(0).expect("first").0;
+        let first = index.next().expect("first").0;
         let end = index.last().expect("end").0 + 1;
         process_line(&data_str[first..end])?;
     }
