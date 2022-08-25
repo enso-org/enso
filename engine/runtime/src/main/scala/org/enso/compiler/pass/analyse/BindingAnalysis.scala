@@ -85,12 +85,12 @@ case object BindingAnalysis extends IRPass {
           case Some(IR.Name.Qualified(List(), _, _, _)) =>
             Some(ref.methodName.name)
           case Some(IR.Name.Qualified(List(n), _, _, _)) =>
-            val shadowed = definedConstructors.exists(_.name == n.name)
+            val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None
           case Some(IR.Name.Literal(n, _, _, _, _)) =>
-            val shadowed = definedConstructors.exists(_.name == n)
+            val shadowed = definedSumTypes.exists(_.name == n)
             if (!shadowed && n == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None

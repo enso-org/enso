@@ -54,6 +54,8 @@ case object OverloadsResolution extends IRPass {
       case tp: IR.Module.Scope.Definition.Type => tp
     }
 
+    println("TYPES " + types)
+
     val newTypes: List[IR.Module.Scope.Definition] = types.map(tp => {
       if (seenTypes.contains(tp.name.name)) {
         IR.Error.Redefined.Type(tp.name, tp.location)
@@ -62,6 +64,8 @@ case object OverloadsResolution extends IRPass {
         tp
       }
     })
+
+    println("NEW TYPES " + newTypes)
 
     val methods = ir.bindings.collect {
       case meth: IR.Module.Scope.Definition.Method.Explicit =>

@@ -177,14 +177,10 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their valid methods desugared" in {
-      ir.bindings(2) shouldBe a[Definition.Method.Binding]
-      ir.bindings(3) shouldBe a[Definition.Method.Binding]
-      val methodOnBar = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
-      val methodOnBaz = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
-      methodOnBar.typeName.get.name shouldEqual "Bar"
-      methodOnBar.methodName.name shouldEqual "g"
-      methodOnBaz.typeName.get.name shouldEqual "Baz"
-      methodOnBaz.methodName.name shouldEqual "g"
+      ir.bindings(1) shouldBe a[Definition.Method.Binding]
+      val method = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
+      method.typeName.get.name shouldEqual "Foo"
+      method.methodName.name shouldEqual "g"
     }
   }
 }
