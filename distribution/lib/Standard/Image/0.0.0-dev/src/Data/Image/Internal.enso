@@ -26,7 +26,7 @@ core_op mat value function =
         _ ->
             Scalar.all value
     function mat scalar result
-    Image.Image result
+    Image.Image_Data result
 
 ## PRIVATE
 
