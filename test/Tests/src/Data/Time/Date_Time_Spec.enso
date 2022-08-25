@@ -10,12 +10,12 @@ polyglot java import java.time.LocalDateTime
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    specWith "Date_Time" Date_Time.new Date_Time.parse
-    specWith "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
-    specWith "JavaZonedDateTime" java_datetime java_parse
-    specWith "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with "Date_Time" Date_Time.new Date_Time.parse
+    spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with "JavaZonedDateTime" java_datetime java_parse
+    spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
-specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
+spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 
         Test.specify "should create time" <|
@@ -299,7 +299,6 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time_1<time_2 . should_be_false
 
     Date_Part_Spec.spec name create_new_datetime
-
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error err.payload.cause))

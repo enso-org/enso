@@ -29,6 +29,20 @@ spec name create_new_date =
             create_new_date 2019 10 1 . quarter . should_equal 4
             create_new_date 2019 12 31 . quarter . should_equal 4
 
+        Test.specify "should return the correct day_of_year" <|
+            create_new_date 1990 9 18 . day_of_year . should_equal 261
+            create_new_date 1990 10 13 . day_of_year . should_equal 286
+            create_new_date 1992 9 28 . day_of_year . should_equal 272
+            create_new_date 1993 9 10 . day_of_year . should_equal 253
+            create_new_date 1996 3 15 . day_of_year . should_equal 75
+            create_new_date 2002 6 15 . day_of_year . should_equal 166
+            create_new_date 2007 5 4 . day_of_year . should_equal 124
+            create_new_date 2020 1 9 . day_of_year . should_equal 9
+            create_new_date 2020 4 9 . day_of_year . should_equal 100
+            create_new_date 2021 11 25 . day_of_year . should_equal 329
+            create_new_date 2023 3 21 . day_of_year . should_equal 80
+            create_new_date 2024 1 13 . day_of_year . should_equal 13
+
         Test.specify "should return the correct week of year" <|
             date_1 = create_new_date 2021 8 1
             date_1.week_of_year Locale.mexico . should_equal 32

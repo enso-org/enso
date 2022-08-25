@@ -307,6 +307,13 @@ type Date_Time
     quarter : Integer
     quarter self = (self.month - 1).div 3 + 1
 
+    ## Returns the day of the year.
+    day_of_year : Integer
+    day_of_year self =
+        month = self.month
+        month_day = [0, 1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].at month
+        month_day + self.day - 1 + (if (month > 2) && self.is_leap_year then 1 else 0)
+
     ## ALIAS Time to Date
 
        Convert this point in time to date, discarding the time of day
