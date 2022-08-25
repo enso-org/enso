@@ -13,11 +13,11 @@ import Standard.Visualization.Helpers
 json_from_table : Table.Table -> Object
 json_from_table table =
     names = ['label', 'latitude', 'longitude', 'radius', 'color']
-    pairs = names.filter_map <| name->
+    pairs = names.map <| name->
         column = table.lookup_ignore_case name
-        column.when_valid ["df_" + name, column.to_vector]
+        column.when_valid ["df_" + name, column.to_vector] . catch Nothing
 
-    Json.from_pairs pairs
+    Json.from_pairs <| pairs.filter (x -> x.is_nothing.not)
 
 ## PRIVATE
 
