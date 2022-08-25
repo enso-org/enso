@@ -60,6 +60,7 @@
   could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened  
   and a new node is created.][5250]
+- [Visualization of long textual values improved][3665]
 
 #### EnsoGL (rendering engine)
 
@@ -289,6 +290,7 @@
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3648]: https://github.com/enso-org/enso/pull/3648
+[3665]: https://github.com/enso-org/enso/pull/3665
 [5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
