@@ -136,17 +136,17 @@ impl RawTextModel {
         let data_str = serde_json::to_string_pretty(&**data_inner);
         let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
         if data_str.len() > 1024 {
-            let it = data_str.chars().chunks(1024);
-            for ch in &it {
-                let s: String = ch.collect();
+            let res = split_long_lines(&data_str, &mut |line| {
                 let node = web::document.create_div_or_panic();
-                node.set_inner_text(&s);
+                node.set_inner_text(&line);
                 let res = self.dom.dom().append_child(&node);
                 if res.is_err() {
                     return Err(DataError::InternalComputationError);
+                } else {
+                    return Ok(())
                 }
-            }
-            Ok(())
+            });
+            res
         } else {
             self.dom.dom().set_inner_text(&data_str);
             Ok(())
@@ -162,6 +162,18 @@ impl RawTextModel {
     }
 }
 
+fn split_long_lines(data_str: &String, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
+    let it = data_str.chars().chunks(1024);
+    for ch in &it {
+        let s: String = ch.collect();
+        let res = process_line(s);
+        if res.is_err() {
+            return res;
+        }
+    }
+    Ok(())
+}
+
 impl From<RawText> for Instance {
     fn from(t: RawText) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.dom.clone_ref()))
@@ -171,5 +183,41 @@ impl From<RawText> for Instance {
 impl display::Object for RawText {
     fn display_object(&self) -> &display::object::Instance {
         self.dom.display_object()
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use crate::component::visualization::DataError;
+
+    #[test]
+    fn test_split_long_lines() {
+        let str = "ABCDEFGH".to_string().repeat(1024);
+        let mut cnt = 0;
+        let res = super::split_long_lines(&str, &mut |l| {
+            assert_eq!(l.len(), 1024);
+            cnt = cnt + 1;
+            Ok(())
+        });
+        assert!(res.is_ok());
+        assert_eq!(cnt, 8);
+    }
+
+    #[test]
+    fn test_split_long_lines_with_failure() {
+        let str = "ABCDEFGH".to_string().repeat(1024);
+        let mut cnt = 0;
+        let res = super::split_long_lines(&str, &mut |l| {
+            assert_eq!(l.len(), 1024);
+            cnt = cnt + 1;
+            if cnt >= 4 {
+                Err(DataError::InvalidJsonText)
+            } else {
+                Ok(())
+            }
+        });
+        assert!(res.is_err());
+        assert_eq!(cnt, 4);
     }
 }
