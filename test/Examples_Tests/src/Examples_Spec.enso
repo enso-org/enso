@@ -10,8 +10,8 @@ import Standard.Test
 
 spec = Test.group "Examples" <|
     Test.specify "should allow construction of Example_Error_Type" <|
-        val = Examples.Example_Error_Type "Oh, no! Something went wrong!"
-        val.should_be_an Examples.Example_Error_Type
+        val = Examples.Example_Error_Type_Data "Oh, no! Something went wrong!"
+        val.should_be_an Examples.Example_Error_Type_Data
 
     Test.specify "should allow getting the examples data directory" <|
         dir = Examples.data_dir
@@ -58,13 +58,13 @@ spec = Test.group "Examples" <|
         Examples.no_such_method
 
     Test.specify "should provide a dummy error type" <|
-        Examples.My_Error
+        Examples.My_Error_Data
 
     Test.specify "should provide a method that throws an error" <|
-        Examples.throw_error.should_fail_with Examples.My_Error
+        Examples.throw_error.should_fail_with Examples.My_Error_Data
 
     Test.specify "should provide a method that throws a panic" <|
-        Test.expect_panic_with Examples.throw_panic Examples.My_Error
+        Test.expect_panic_with Examples.throw_panic Examples.My_Error_Data
 
     Test.specify "should provide a URL for some geo data" <|
         (Examples.geo_data_url.length > 0) . should_be_true
