@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Date_Time
 
 import Standard.Test
 
@@ -37,8 +37,8 @@ spec =
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 12, 0]
 
         Test.specify "should create interval between two points in time" <|
-            time1 = Time.new 2001 1 2
-            time2 = Time.new 2001 2 1
+            time1 = Date_Time.new 2001 1 2
+            time2 = Date_Time.new 2001 2 1
             interval = Duration.between time1 time2
             interval.to_vector . should_equal [0, 0, 0, 720, 0, 0, 0]
 
@@ -99,3 +99,5 @@ spec =
             duration_1!=duration_2 . should_be_true
             duration_1>duration_2 . should_be_true
             duration_1<duration_2 . should_be_false
+
+main = Test.Suite.run_main spec

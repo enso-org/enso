@@ -327,6 +327,8 @@
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
 - [Support pattern matching on constants][3641]
+- [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
+  support][3658]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -369,6 +371,7 @@
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
 [3633]: https://github.com/enso-org/enso/pull/3641
+[3658]: https://github.com/enso-org/enso/pull/3658
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

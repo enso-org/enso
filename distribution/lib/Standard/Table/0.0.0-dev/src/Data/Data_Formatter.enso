@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Time import Time
+from Standard.Base.Data.Time import Date_Time
 from Standard.Base.Data.Time.Time_Of_Day import Time_Of_Day
 import Standard.Base.Error.Common as Errors
 
@@ -67,7 +67,7 @@ type Data_Formatter
          By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Problem_Behavior -> Any
+    parse : Text -> (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Problem_Behavior -> Any
     parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
         parser = case datatype of
             Auto -> self.make_auto_parser
@@ -171,14 +171,13 @@ type Data_Formatter
 
     ## PRIVATE
     make_datatype_parser self datatype = case datatype of
-        Integer -> self.make_integer_parser
-        Decimal -> self.make_decimal_parser
-        Boolean -> self.make_boolean_parser
-        _ ->
-            if datatype == Date then self.make_date_parser else
-                if datatype == Time then self.make_datetime_parser else
-                    if datatype == Time_Of_Day then self.make_time_parser else
-                        Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+        Integer     -> self.make_integer_parser
+        Decimal     -> self.make_decimal_parser
+        Boolean     -> self.make_boolean_parser
+        Date        -> self.make_date_parser
+        Date_Time   -> self.make_datetime_parser
+        Time_Of_Day -> self.make_time_parser
+        _           -> Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
 
     ## PRIVATE
     get_specific_type_parsers self =

@@ -1,7 +1,10 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
+
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
+polyglot java import org.enso.base.Time_Utils
 
 ## The system default timezone.
 
@@ -12,7 +15,7 @@ polyglot java import java.time.ZoneOffset
 
          example_system = Zone.system
 system : Zone
-system = Zone ZoneId.systemDefault
+system = @Builtin_Method "Zone.system"
 
 ## ALIAS Current Time Zone
 
@@ -58,7 +61,7 @@ utc = parse "UTC"
          example_new = Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
+    Zone.new_builtin hours minutes seconds
 
 ## ALIAS Time Zone from Text
 
@@ -95,7 +98,9 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
 
          example_parse = Zone.parse "+03:02:01"
 parse : Text -> Zone
-parse text = Zone (ZoneId.of text)
+parse text =
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+        Zone.parse_builtin text
 
 type Zone
 
@@ -109,7 +114,8 @@ type Zone
 
        A time zone can be eiter offset-based like "-06:00" or id-based like
        "Europe/Paris".
-    type Zone internal_zone_id
+    @Builtin_Type
+    type Zone
 
     ## Get the unique timezone ID.
 
@@ -120,7 +126,7 @@ type Zone
 
              example_zone_id = Zone.system.zone_id
     zone_id : Text
-    zone_id self = self.internal_zone_id . getId
+    zone_id self = @Builtin_Method "Zone.zone_id"
 
     ## Convert the time zone to JSON.
 
@@ -132,3 +138,7 @@ type Zone
              example_to_json = Zone.system.to_json
     to_json : Json.Object
     to_json self = Json.from_pairs [["type", "Zone"], ["id", self.zone_id]]
+
+    ## Compares two Zones for equality.
+    == : Zone -> Boolean
+    == self that = Time_Utils.equals_zone self that
