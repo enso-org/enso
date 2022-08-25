@@ -202,6 +202,11 @@ type Date
         year = self.year
         (year%4 == 0) && ((year%100 != 0) || (year%400 == 0))
 
+    ## Returns the number of days in the year represented by this date.
+    length_of_year : Integer
+    length_of_year self =
+        if self.is_leap_year then 366 else 365
+
     ## Returns the century of the date.
     century : Integer
     century self = (self.year - 1).div 100 + 1
@@ -209,6 +214,17 @@ type Date
     ## Returns the quarter of the year the date falls into.
     quarter : Integer
     quarter self = (self.month - 1).div 3 + 1
+
+    ## Returns the number of days in the month represented by this date.
+    length_of_month : Integer
+    length_of_month self =
+        case self.month of
+            2 -> if self.is_leap_year then 29 else 28
+            4 -> 30
+            6 -> 30
+            9 -> 30
+            11 -> 30
+            _ -> 31
 
     ## Returns the day of the year.
     day_of_year : Integer
