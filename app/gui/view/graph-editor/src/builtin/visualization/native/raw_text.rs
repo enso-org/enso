@@ -135,8 +135,9 @@ impl RawTextModel {
         self.dom.dom().set_inner_html("");
         let data_str = serde_json::to_string_pretty(&**data_inner);
         let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
-        if data_str.len() > 1024 {
-            split_long_lines(&data_str, &mut |line| {
+        let max_line_size = 1024;
+        if data_str.len() > max_line_size {
+            split_long_lines(&data_str, max_line_size, &mut |line| {
                 let node = web::document.create_div_or_panic();
                 node.set_inner_text(&line);
                 let res = self.dom.dom().append_child(&node);
@@ -161,8 +162,8 @@ impl RawTextModel {
     }
 }
 
-fn split_long_lines(data_str: &str, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
-    let it = data_str.chars().chunks(1024);
+fn split_long_lines(data_str: &str, max_line_size: usize, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
+    let it = data_str.chars().chunks(max_line_size);
     for ch in &it {
         let s: String = ch.collect();
         process_line(s)?;
@@ -191,21 +192,21 @@ mod tests {
     fn test_split_long_lines() {
         let str = "ABCDEFGH".to_string().repeat(1024);
         let mut cnt = 0;
-        let res = super::split_long_lines(&str, &mut |l| {
-            assert_eq!(l.len(), 1024);
+        let res = super::split_long_lines(&str, 512, &mut |l| {
+            assert_eq!(l.len(), 512);
             cnt += 1;
             Ok(())
         });
         assert!(res.is_ok());
-        assert_eq!(cnt, 8);
+        assert_eq!(cnt, 16);
     }
 
     #[test]
     fn test_split_long_lines_with_failure() {
         let str = "ABCDEFGH".to_string().repeat(1024);
         let mut cnt = 0;
-        let res = super::split_long_lines(&str, &mut |l| {
-            assert_eq!(l.len(), 1024);
+        let res = super::split_long_lines(&str, 128, &mut |l| {
+            assert_eq!(l.len(), 128);
             cnt += 1;
             if cnt >= 4 {
                 Err(DataError::InvalidJsonText)
