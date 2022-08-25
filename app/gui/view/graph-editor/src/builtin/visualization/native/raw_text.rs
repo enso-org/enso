@@ -165,8 +165,7 @@ impl RawTextModel {
 fn split_long_lines(data_str: &str, max_line_size: usize, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
     let it = data_str.chars().chunks(max_line_size);
     for ch in &it {
-        let s: String = ch.collect();
-        process_line(s)?;
+        process_line(ch.collect())?;
     }
     Ok(())
 }
