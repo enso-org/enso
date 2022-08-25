@@ -679,6 +679,10 @@ type Vector
          If a `Range`, the selection is specified by two indices, from and to.
     take : (Index_Sub_Range | Range) -> Vector Any
     take self range=(First 1) = case range of
+        ## We are using a specialized implementation for `take Sample`, because
+           the default implementation (which needs to be generic for any
+           collection) generates a random set of indices and then selects these
+           indices, but we can sample the vector directly.
         Index_Sub_Range.Sample count seed ->
             rng = Random.new seed
             Random.sample self count rng
