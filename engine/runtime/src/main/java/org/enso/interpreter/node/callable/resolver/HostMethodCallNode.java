@@ -55,8 +55,7 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_ZONED_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
-     * Standard.Base.Data.Time.Date_Time} with a system Time_Zone and
-     * dispatching natively.
+     * Standard.Base.Data.Time.Date_Time} with a system Time_Zone and dispatching natively.
      */
     CONVERT_TO_DATE_TIME,
     /**
@@ -69,9 +68,7 @@ public abstract class HostMethodCallNode extends Node {
      * Standard.Base.Data.Time.Time_Zone} and dispatching natively.
      */
     CONVERT_TO_TIME_ZONE,
-    /** The method call should be handled by dispatching through the {@code Any}
-     * type.
-     */
+    /** The method call should be handled by dispatching through the {@code Any} type. */
     NOT_SUPPORTED;
 
     /**
