@@ -162,10 +162,12 @@ impl RawTextModel {
     }
 }
 
-fn split_long_lines(data_str: &str, max_line_size: usize, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
-    let it = data_str.chars().chunks(max_line_size);
-    for ch in &it {
-        process_line(ch.collect())?;
+fn split_long_lines(data_str: &str, max_line_size: usize, process_line: &mut impl FnMut(&str) -> Result<(), DataError>) -> Result<(), DataError> {
+    let it = data_str.char_indices().chunks(max_line_size);
+    for mut index in &it {
+        let first = index.nth(0).expect("first").0;
+        let end = index.last().expect("end").0 + 1;
+        process_line(&data_str[first..end])?;
     }
     Ok(())
 }
@@ -193,6 +195,7 @@ mod tests {
         let mut cnt = 0;
         let res = super::split_long_lines(&str, 512, &mut |l| {
             assert_eq!(l.len(), 512);
+            assert_eq!(&l[0..1], "A");
             cnt += 1;
             Ok(())
         });
@@ -206,6 +209,7 @@ mod tests {
         let mut cnt = 0;
         let res = super::split_long_lines(&str, 128, &mut |l| {
             assert_eq!(l.len(), 128);
+            assert_eq!(&l[0..1], "A");
             cnt += 1;
             if cnt >= 4 {
                 Err(DataError::InvalidJsonText)
