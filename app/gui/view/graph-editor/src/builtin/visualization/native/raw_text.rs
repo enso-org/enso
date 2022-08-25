@@ -136,7 +136,7 @@ impl RawTextModel {
         let data_str = serde_json::to_string_pretty(&**data_inner);
         let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
         if data_str.len() > 1024 {
-            let res = split_long_lines(&data_str, &mut |line| {
+            split_long_lines(&data_str, &mut |line| {
                 let node = web::document.create_div_or_panic();
                 node.set_inner_text(&line);
                 let res = self.dom.dom().append_child(&node);
@@ -145,8 +145,7 @@ impl RawTextModel {
                 } else {
                     return Ok(())
                 }
-            });
-            res
+            })
         } else {
             self.dom.dom().set_inner_text(&data_str);
             Ok(())
