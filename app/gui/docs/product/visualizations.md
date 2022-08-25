@@ -200,7 +200,7 @@ In particular:
   as visualizations. The superclass defines a default constructor and a set of
   utilities:
 
-  - #### Method `setPreprocessor(module,method)`
+  - #### Method `setPreprocessor(module,method,arguments)`
     Set an Enso method which will be evaluated on the server-side before sending
     data to visualization. If not called, a default unspecified method is used
     that will provide some JSON representation of the value. See

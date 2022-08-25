@@ -222,7 +222,7 @@ pub struct LocalCall {
 // ==============================
 
 /// A method pointer containing the qualified module and type names.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QualifiedMethodPointer {
     /// A module name containing the method.
     pub module:          module::QualifiedName,
