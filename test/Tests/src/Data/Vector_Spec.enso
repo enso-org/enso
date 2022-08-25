@@ -412,10 +412,10 @@ spec = Test.group "Vectors" <|
         small_expected = [T 4 0, T 1 3, T 1 8, T -1 10, T -1 1, T -20 0]
         small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
 
-    Test.specify "should be able to map over errors" <|
-        fail a = Error.throw <| My_Error a
-        [fail 1].map (x -> x.catch Any (x -> x.a)) . should_equal [1]
-        [1].map fail . map .catch . should_equal [My_Error 1]
+    Test.specify "should correctly propagate error through map" <|
+        [1, 2, 3].map Error.throw . catch . should_equal 1
+        fun a = if a == 3 then Error.throw (My_Error a) else a
+        [1, 2, 3, 4].map fun . catch My_Error . should_equal (My_Error 3)
 
     Test.specify "should be able to be efficiently converted to a visualisation" <|
         vec = Vector.fill 1000 0

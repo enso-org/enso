@@ -29,8 +29,8 @@ polyglot java import java.lang.IndexOutOfBoundsException
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
 new length constructor =
-    builder = new_builder length
-    0.up_to length . each ix-> builder.append (constructor ix)
+    builder = (0.up_to length).fold (new_builder length) builder-> ix->
+        builder.append (constructor ix)
     builder.to_vector
 
 ## Creates a new vector of the given length, filling the elements with
@@ -49,8 +49,8 @@ new length constructor =
          Vector.fill length=50 item=42
 fill : Number -> Any -> Vector Any
 fill length ~item =
-    builder = new_builder length
-    0.up_to length . each _-> builder.append item
+    builder = (0.up_to length).fold (new_builder length) builder-> _->
+        builder.append item
     builder.to_vector
 
 ## Creates a new vector builder instance.
@@ -1009,6 +1009,13 @@ type Builder
                              @Tail_Call do_build new_builder start+1 stop
                      builder = do_build Vector.new_builder 1 10
                      builder.to_vector
+
+       ! TODO
+         We may want to revisit the fold pattern - it is required for correct
+         propagation of dataflow errors, but it is very easy to forget about it
+         and get wrong error propagation. Instead we may want to have a `Ref`
+         inside of the Builder. Any error detected during `append` could set
+         that `Ref` and then `to_vector` could propagate that error.
     type Builder java_builder
 
     ## Creates a new builder.
@@ -1064,7 +1071,10 @@ type Builder
     append_vector_range : Vector Any ! Error -> Builder ! Error
     append_vector_range self vector start end =
         subrange = vector.slice start end
-        self.java_builder.addAll subrange.to_array
+        # self.java_builder.addAll subrange.to_array
+        subrange.fold self builder-> elem->
+            self.append elem
+            builder
 
     ## PRIVATE
        Appends a new element into this builder.
@@ -1211,7 +1221,7 @@ slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         Integer -> acc+1
         Range _ _ _ -> acc+descriptor.length
-    builder = Vector.new_builder new_length
+    builder = new_builder new_length
     ranges.each descriptor-> case descriptor of
         Integer ->
             builder.append (vector.unsafe_at descriptor)
