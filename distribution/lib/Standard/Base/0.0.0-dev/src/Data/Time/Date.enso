@@ -1,11 +1,9 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date_Time
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
+
 import Standard.Base.Polyglot
+from Standard.Base.Error.Common import Time_Error
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -41,7 +39,7 @@ today = now
    > Example
      Create a new local date at Unix epoch.
 
-         import Standard.Base.Data.Time.Date
+         from Standard.Base import Date
 
          example_new = Date.new 1970
 
@@ -50,7 +48,7 @@ today = now
 
          example_new = Date.new 1986 8 5
 
-new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
+new : Integer -> Integer -> Integer -> Date ! Time_Error
 new year (month = 1) (day = 1) =
     ## TODO This is left using the old error handling approach, because
        magically, changing this to the `catch_java` (which is now preferred way
@@ -60,7 +58,7 @@ new year (month = 1) (day = 1) =
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
     Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
+        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         ex -> ex
 
 ## ALIAS Date from Text
@@ -96,41 +94,43 @@ new year (month = 1) (day = 1) =
    > Example
      Parse the date of 23rd December 2020.
 
-         import Standard.Base.Data.Time.Date
+         from Standard.Base import Date
 
          example_parse = Date.parse "2020-12-23"
 
    > Example
      Recover from an error due to a wrong format.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date
+         from Standard.Base.Error.Common import Time_Error
 
-         example_parse_err = Date.parse "my birthday" . catch Time.Time_Error _->
+         example_parse_err = Date.parse "my birthday" . catch Time_Error _->
              Date.new 2000 1 1
 
    > Example
      Parse "1999-1-1" as Date using a custom format.
 
-         import Standard.Base.Data.Time.Date
+         from Standard.Base import Date
 
          example_parse = Date.parse "1999-1-1" "yyyy-M-d"
 
    > Example
      Recover from the parse error.
 
-         import Standard.base.Data.Time
+         from Standard.Base import Date
+         from Standard.Base.Error.Common import Time_Error
 
          example_parse_err =
              date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch Time.Time_Error (_->Date.new 2000 1 1)
-parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
+             date.catch Time_Error (_->Date.new 2000 1 1)
+parse : Text -> (Text | Nothing) -> Date ! Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
         Nothing -> Date.internal_parse text 0
         Text -> Date.internal_parse text pattern
-        _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
+        _ -> Panic.throw (Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
+        Polyglot_Error err -> Time_Error err.getMessage
         ex -> ex
 
 type Date
@@ -154,7 +154,7 @@ type Date
        > Example
          Get the current year.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_year = Date.now.year
     year : Integer
@@ -174,7 +174,7 @@ type Date
        > Example
          Get the current day.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_day = Date.now.day
     day : Integer
@@ -207,8 +207,7 @@ type Date
        > Example
          Convert this date to midnight UTC time.
 
-             import Standard.Base.Data.Time.Time_Of_Day
-             import Standard.Base.Data.Time.Zone
+             from Standard.Base import Date, Time_Of_Day, Zone
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
     to_time : Time_Of_Day -> Zone -> Date_Time
@@ -226,7 +225,7 @@ type Date
 
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
-    + self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+    + self amount = if amount.is_time then Error.throw (Time_Error "Date does not support time intervals") else
         (Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period) . internal_local_date
 
     ## Subtract the specified amount of time from this instant to get another
@@ -238,12 +237,12 @@ type Date
        > Example
          Subtract 7 days from a local date.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
-    - self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+    - self amount = if amount.is_time then Error.throw (Time_Error "Date does not support time intervals") else
         (Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS amount.internal_period) . internal_local_date
 
 
@@ -268,7 +267,7 @@ type Date
        > Example
          Format "2020-06-02" as "2 June 2020"
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
 

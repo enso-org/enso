@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
 
 ## The type representing inferring the column type automatically based on values
    present in the column.
@@ -9,7 +8,7 @@ import Standard.Base.Data.Time
    - if all values are decimals or integers, `Decimal` is chosen,
    - if all values are booleans, `Boolean` is chosen,
    - if the values are all the same time type (a date, a time or a date-time),
-     the corresponding type is chosen, `Date`, `Time_Of_Day` or `Time`,
+     the corresponding type is chosen, `Date`, `Time_Of_Day` or `Date_Time`,
      respectively,
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
@@ -22,4 +21,4 @@ type Auto
      index.
    - datatype: The desired datatype for the column or `Auto` to infer the type
      from the data.
-type Column_Type_Selection (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Time|Time_Of_Day|Boolean)=Auto
+type Column_Type_Selection (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean)=Auto

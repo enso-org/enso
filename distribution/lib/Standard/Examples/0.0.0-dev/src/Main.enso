@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Date_Time
+import Standard.Base.Data.Time.Duration
 import Standard.Base.Network.Http
 import Standard.Base.System.Platform
-import Standard.Base.Data.Time.Duration
 import Standard.Base.Network.URI
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 

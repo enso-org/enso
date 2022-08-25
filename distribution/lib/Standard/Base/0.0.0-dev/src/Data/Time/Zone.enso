@@ -1,6 +1,5 @@
 from Standard.Base import all
-
-import Standard.Base.Data.Time
+from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
@@ -11,7 +10,7 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      Get the system default timezone.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_system = Zone.system
 system : Zone
@@ -24,7 +23,7 @@ system = @Builtin_Method "Zone.system"
    > Example
      Get the system's local timezone.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_local = Zone.local
 local : Zone
@@ -37,7 +36,7 @@ local = system
    > Example
      Get the UTC timezone.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_utc = Zone.utc
 utc : Zone
@@ -56,7 +55,7 @@ utc = parse "UTC"
    > Example
      Get time zone 1 hour 1 minute and 50 seconds from UTC.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_new = Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
@@ -73,33 +72,33 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
    > Example
      Get Central European Time.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_parse = Zone.parse "CET"
 
    > Example
      Get Moscow time.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_parse = Zone.parse "Europe/Moscow"
 
    > Example
      Get time zone -06:00.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_parse = Zone.parse "-06:00"
 
    > Example
      Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
 
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Zone
 
          example_parse = Zone.parse "+03:02:01"
 parse : Text -> Zone
 parse text =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
         Zone.parse_builtin text
 
 type Zone
@@ -122,7 +121,7 @@ type Zone
        > Example
          Get the unique identifier for your system's current timezone.
 
-             import Standard.Base.Data.Time.Zone
+             from Standard.Base import Zone
 
              example_zone_id = Zone.system.zone_id
     zone_id : Text
@@ -133,7 +132,7 @@ type Zone
        > Example
          Convert your system's current timezone to JSON.
 
-             import Standard.Base.Data.Time.Zone
+             from Standard.Base import Zone
 
              example_to_json = Zone.system.to_json
     to_json : Json.Object

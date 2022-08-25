@@ -1,10 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Text_Sub_Range
-import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
+from Standard.Base.Error.Common import Time_Error
 
 import Standard.Test
 
@@ -28,7 +26,7 @@ specWith name create_new_date parse_date =
 
         Test.specify "should handle errors when creating local date" <|
             case create_new_date 2020 30 30 . catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -50,7 +48,7 @@ specWith name create_new_date parse_date =
 
         Test.specify "should throw error when parsing invalid date" <|
             case parse_date "birthday" . catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Text 'birthday' could not be parsed at index 0"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -70,7 +68,7 @@ specWith name create_new_date parse_date =
         Test.specify "should throw error when parsing custom format" <|
             date = parse_date "1999-01-01" "yyyy M d"
             case date.catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -111,14 +109,14 @@ specWith name create_new_date parse_date =
 
         Test.specify "should throw error when adding time-based interval" <|
             case (create_new_date 1970 + 1.hour) . catch of
-                Time.Time_Error message ->
+                Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting time-based interval" <|
             case (create_new_date 1970 - (1.day - 1.minute)) . catch of
-                Time.Time_Error message ->
+                Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -157,19 +155,19 @@ js_set_zone local_datetime =
     (datetime_with_tz + diff).to_localdate_builtin
 
 js_date year month=1 day=1 =
-    Panic.catch Any (js_set_zone (js_date_impl year month day)) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    Panic.catch Any (js_set_zone (js_date_impl year month day)) (err -> Error.throw (Time_Error err.payload.cause))
 
 js_array_date year month=1 day=1 =
-    arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time_Error err.payload.cause))
     js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
-  if pattern == Nothing then Panic.catch Polyglot_Error (LocalDate.parse date_text) (err -> Error.throw (Time.Time_Error err.payload.cause.getMessage)) else
+  if pattern == Nothing then Panic.catch Polyglot_Error (LocalDate.parse date_text) (err -> Error.throw (Time_Error err.payload.cause.getMessage)) else
       formatter = DateTimeFormatter.ofPattern(pattern)
-      Panic.catch Polyglot_Error (LocalDate.parse date_text formatter) (err -> Error.throw (Time.Time_Error err.payload.cause.getMessage))
+      Panic.catch Polyglot_Error (LocalDate.parse date_text formatter) (err -> Error.throw (Time_Error err.payload.cause.getMessage))
 
 java_date year month=1 day=1 =
-    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
 
 foreign js js_date_impl year month=1 day=1 = """
     if (month > 12) {

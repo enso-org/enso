@@ -1,8 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Zone
-
 import Standard.Test
 
 polyglot java import java.time.ZoneId
@@ -35,7 +32,7 @@ spec =
                 Json.from_pairs [["type", "Zone"], ["id", "UTC"]]
         Test.specify "should throw error when parsing invalid zone id" <|
             case Zone.parse "foo" . catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Unknown time-zone ID: foo"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

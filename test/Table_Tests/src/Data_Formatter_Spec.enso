@@ -1,8 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date_Time
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
 
 import Standard.Table
 from Standard.Table import Column, Data_Formatter, Quote_Style
