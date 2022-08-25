@@ -162,9 +162,10 @@ js_array_date year month=1 day=1 =
     js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
-  if pattern == Nothing then Panic.catch Polyglot_Error (LocalDate.parse date_text) (err -> Error.throw (Time_Error err.payload.cause.getMessage)) else
-      formatter = DateTimeFormatter.ofPattern(pattern)
-      Panic.catch Polyglot_Error (LocalDate.parse date_text formatter) (err -> Error.throw (Time_Error err.payload.cause.getMessage))
+    Panic.catch Polyglot_Error handler=(err -> Error.throw (Time_Error err.payload.cause.getMessage)) <|
+        if pattern.is_nothing then LocalDate.parse date_text else
+            formatter = DateTimeFormatter.ofPattern pattern
+            LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =
     Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
