@@ -51,7 +51,6 @@ spec name create_new_date =
             create_new_date 2019 11 7 . length_of_month . should_equal 30
             create_new_date 2019 12 31 . length_of_month . should_equal 31
 
-
         Test.specify "should return the day_of_year" <|
             create_new_date 1990 9 18 . day_of_year . should_equal 261
             create_new_date 1990 10 13 . day_of_year . should_equal 286
