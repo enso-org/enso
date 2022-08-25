@@ -7,6 +7,7 @@ import Standard.Base.Random
 
 polyglot java import java.util.ArrayList
 polyglot java import java.lang.IndexOutOfBoundsException
+polyglot java import org.enso.base.Array_Utils
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -1071,10 +1072,10 @@ type Builder
     append_vector_range : Vector Any ! Error -> Builder ! Error
     append_vector_range self vector start end =
         subrange = vector.slice start end
-        # self.java_builder.addAll subrange.to_array
-        subrange.fold self builder-> elem->
-            self.append elem
-            builder
+        ## This workaround is needed because
+           `self.java_builder.addAll subrange.to_array` fails with
+           `Unsupported argument types: [Array]`.
+        Array_Utils.appendToArrayList self.java_builder subrange.to_array
 
     ## PRIVATE
        Appends a new element into this builder.
