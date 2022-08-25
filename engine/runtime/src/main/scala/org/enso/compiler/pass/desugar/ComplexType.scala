@@ -20,7 +20,11 @@ import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
   LambdaConsolidate
 }
-import org.enso.compiler.pass.resolve.{IgnoredBindings, ModuleAnnotations}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  ModuleAnnotations
+}
 import org.enso.compiler.core.ir.MetadataStorage._
 
 import scala.annotation.unused
@@ -198,7 +202,12 @@ case object ComplexType extends IRPass {
       .map(ann => sumType.updateMetadata(ModuleAnnotations -->> ann))
       .getOrElse(sumType)
 
-    withAnnotations :: allEntities
+    val withDoc = typ
+      .getMetadata(DocumentationComments)
+      .map(ann => withAnnotations.updateMetadata(DocumentationComments -->> ann))
+      .getOrElse(sumType)
+
+    withDoc :: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.
