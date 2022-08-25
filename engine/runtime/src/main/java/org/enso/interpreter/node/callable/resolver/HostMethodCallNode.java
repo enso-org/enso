@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.resolver;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -253,6 +254,7 @@ public abstract class HostMethodCallNode extends Node {
     try {
       return hostValueToEnsoNode.execute(arrays.readArrayElement(self, idx));
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
@@ -283,9 +285,8 @@ public abstract class HostMethodCallNode extends Node {
     long idx = (Long) args[0];
     try {
       arrays.writeArrayElement(self, idx, args[1]);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
-    } catch (UnsupportedTypeException e) {
+    } catch (UnsupportedMessageException | UnsupportedTypeException e) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
@@ -317,6 +318,7 @@ public abstract class HostMethodCallNode extends Node {
     try {
       arrays.removeArrayElement(self, idx);
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
