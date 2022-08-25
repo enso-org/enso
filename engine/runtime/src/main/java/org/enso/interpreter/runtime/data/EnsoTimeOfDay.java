@@ -89,7 +89,7 @@ public class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(
       name = "to_time_builtin",
       description = "Combine this time of day with a date to create a point in time.")
-  public EnsoDateTime toTime(EnsoDate date, EnsoZone zone) {
+  public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
     return new EnsoDateTime(localTime.atDate(date.asDate()).atZone(zone.asTimeZone()));
   }
 

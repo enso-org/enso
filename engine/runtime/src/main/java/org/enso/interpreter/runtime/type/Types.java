@@ -53,7 +53,7 @@ import org.enso.polyglot.data.TypeGraph;
   EnsoDate.class,
   EnsoDateTime.class,
   EnsoTimeOfDay.class,
-  EnsoZone.class,
+  EnsoTimeZone.class,
 })
 public class Types {
 
@@ -227,7 +227,7 @@ public class Types {
     graph.insert(ConstantsGen.DATE, ConstantsGen.ANY);
     graph.insert(ConstantsGen.DATE_TIME, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TIME_OF_DAY, ConstantsGen.ANY);
-    graph.insert(ConstantsGen.ZONE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_ZONE, ConstantsGen.ANY);
     graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);
     graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);

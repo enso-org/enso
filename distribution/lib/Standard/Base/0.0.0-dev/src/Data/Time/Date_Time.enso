@@ -38,18 +38,18 @@ now = @Builtin_Method "Date_Time.now"
    > Example
      Create a new zoned date time at Unix epoch.
 
-         from Standard.Base import Date_Time, Zone
+         from Standard.Base import Date_Time, Time_Zone
 
-         example_new = Date_Time.new 1970 (zone = Zone.utc)
+         example_new = Date_Time.new 1970 (zone = Time_Zone.utc)
 
    > Example
      Get the 5 August 1986 at midnight.
 
-         from Standard.Base import Date_Time, Zone
+         from Standard.Base import Date_Time, Time_Zone
 
          example_new = Date_Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Date_Time ! Time_Error
-new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
+new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
     Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error java_exception.getMessage)
 
@@ -240,7 +240,7 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_zone = Date_Time.now.zone
-    zone : Zone
+    zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
     ## Return the number of seconds from the Unix epoch.
@@ -317,10 +317,10 @@ type Date_Time
        > Example
          Convert time instance to -04:00 timezone.
 
-             from Standard.Base import Date_Time, Zone
+             from Standard.Base import Date_Time, Time_Zone
 
-             example_at_zone = Date_Time.new 2020 . at_zone (Zone.new -4)
-    at_zone : Zone -> Date_Time
+             example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+    at_zone : Time_Zone -> Date_Time
     at_zone self zone = @Builtin_Method "Date_Time.at_zone"
 
     ## Add the specified amount of time to this instant to produce a new instant.

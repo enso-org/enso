@@ -71,7 +71,7 @@ specWith name create_new_time parse_time =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            datetime = create_new_time 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
+            datetime = create_new_time 1 0 0 . to_time (Date.new 2000 12 21) Time_Zone.utc
             datetime . year . should_equal 2000
             datetime . month . should_equal 12
             datetime . day . should_equal 21
@@ -79,7 +79,7 @@ specWith name create_new_time parse_time =
             datetime . minute . should_equal 0
             datetime . second . should_equal 0
             datetime . nanosecond . should_equal 0
-            datetime . zone . zone_id . should_equal Zone.utc.zone_id
+            datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should add time-based interval" <|
             time = create_new_time 0 + 1.minute

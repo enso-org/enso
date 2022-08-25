@@ -27,7 +27,7 @@ import project.Data.Text.Span
 import project.Data.Time.Date
 import project.Data.Time.Date_Time
 import project.Data.Time.Time_Of_Day
-import project.Data.Time.Zone
+import project.Data.Time.Time_Zone
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Problem_Behavior
@@ -65,7 +65,7 @@ export project.Data.Text.Regex.Mode as Regex_Mode
 export project.Data.Time.Date
 export project.Data.Time.Date_Time
 export project.Data.Time.Time_Of_Day
-export project.Data.Time.Zone
+export project.Data.Time.Time_Zone
 export project.Data.Vector
 export project.Error.Problem_Behavior
 export project.IO

@@ -195,8 +195,8 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
-    to_time : Date -> Zone -> Time
-    to_time self date (zone=Zone.system) = self.to_time_builtin date zone
+    to_time : Date -> Time_Zone -> Time
+    to_time self date (zone=Time_Zone.system) = self.to_time_builtin date zone
 
     ## Add the specified amount of time to this instant to get a new instant.
 

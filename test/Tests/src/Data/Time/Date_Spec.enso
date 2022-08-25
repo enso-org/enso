@@ -74,7 +74,7 @@ specWith name create_new_date parse_date =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            time = create_new_date 2000 12 21 . to_time (Time_Of_Day.new 12 30 45) Zone.utc
+            time = create_new_date 2000 12 21 . to_time (Time_Of_Day.new 12 30 45) Time_Zone.utc
             time . year . should_equal 2000
             time . month . should_equal 12
             time . day . should_equal 21
@@ -82,7 +82,7 @@ specWith name create_new_date parse_date =
             time . minute . should_equal 30
             time . second . should_equal 45
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should convert to Json" <|
             date = create_new_date 2001 12 21
@@ -149,8 +149,8 @@ js_parse text format=Nothing =
 ## JSDate is not only a date but also time and timezone.
 ## Here, we explicitly convert JS ZonedDateTime to LocalDate
 js_set_zone local_datetime =
-    zone = Zone.utc
-    datetime_with_tz = local_datetime.at_zone(zone)
+    zone = Time_Zone.utc
+    datetime_with_tz = local_datetime.at_zone zone
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     (datetime_with_tz + diff).to_localdate_builtin
 
