@@ -300,13 +300,25 @@ class IrToTruffle(
             // and not attempt to register it in the scope (can't redefined methods).
             // For non-builtin types (or modules) that own the builtin method
             // we have to look up the function and register it in the scope.
+            val x              = methodDef.body.asInstanceOf[IR.Function.Lambda].body
+            val fullMethodName = x.asInstanceOf[IR.Literal.Text]
+
+            val builtinNameElements = fullMethodName.text.split('.')
+            if (builtinNameElements.length != 2) {
+              throw new CompilerError(
+                s"Unknwon builtin method ${fullMethodName.text}"
+              )
+            }
+            val methodName      = builtinNameElements(1)
+            val methodOwnerName = builtinNameElements(0)
+
             val builtinFunction = context.getBuiltins
-              .getBuiltinFunction(cons, methodDef.methodName.name, language)
+              .getBuiltinFunction(methodOwnerName, methodName, language)
             builtinFunction.toScala
               .map(Some(_))
               .toRight(
                 new CompilerError(
-                  s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"
+                  s"Unable to find Truffle Node for method ${cons.getName}.${methodDef.methodName.name}"
                 )
               )
               .left

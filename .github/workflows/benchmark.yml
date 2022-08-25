@@ -45,7 +45,7 @@ jobs:
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:

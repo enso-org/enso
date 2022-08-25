@@ -178,6 +178,8 @@
   type from `Standard.Table`.][3601]
 - [Created `Index_Sub_Range` type and updated `Text.take` and
   `Text.drop`.][3617]
+- [Added `Vector.from_polyglot_array` to make `Vector`s backed by polyglot
+  Arrays][3628]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
@@ -283,6 +285,7 @@
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
+[3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
@@ -326,6 +329,8 @@
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
 - [Support pattern matching on constants][3641]
+- [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
+  support][3658]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -359,7 +364,8 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
-[3538]: https://github.com/enso-org/enso/pull/3569
+[3569]: https://github.com/enso-org/enso/pull/3569
+[3578]: https://github.com/enso-org/enso/pull/3578
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
@@ -367,6 +373,7 @@
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
 [3633]: https://github.com/enso-org/enso/pull/3641
+[3658]: https://github.com/enso-org/enso/pull/3658
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

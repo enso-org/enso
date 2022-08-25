@@ -85,7 +85,7 @@ spec =
             obj.compare 11 . should_be_true
 
         Test.specify "should expose array interfaces for Python arrays" <|
-            vec = Vector.Vector make_array
+            vec = Vector.from_polyglot_array make_array
             vec.map .x . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|
@@ -139,6 +139,10 @@ spec =
             num_double_match = case make_double of
                 Number -> True
             num_double_match.should_be_true
+
+        Test.specify "should make Python None values equal to Nothing" <|
+            py_null = make_null
+            py_null . should_equal Nothing
 
         Test.specify "should allow Enso to catch Python exceptions" <|
             value = My_Type 1 2

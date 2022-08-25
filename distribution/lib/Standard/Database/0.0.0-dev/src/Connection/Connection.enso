@@ -64,7 +64,7 @@ type Connection
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
                 schema_result_set = metadata.getCatalogs
-                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
+                Vector.from_polyglot_array (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -73,7 +73,7 @@ type Connection
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
                 schema_result_set = metadata.getSchemas
-                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
+                Vector.from_polyglot_array (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
 
     ## ADVANCED
 
@@ -208,8 +208,8 @@ type Connection
                 Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                     num_rows = table.row_count
                     columns = table.columns
-                    check_rows updates_array expected_size =
-                        updates = Vector.Vector updates_array
+                    check_rows updates_polyglot_array expected_size =
+                        updates = Vector.from_polyglot_array updates_polyglot_array
                         if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then

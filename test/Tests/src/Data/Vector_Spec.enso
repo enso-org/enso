@@ -26,7 +26,18 @@ compare_tco a b = case a.vec.length == b.vec.length of
 foreign js generate_js_array = """
     return [1, 2, 3, 4, 5]
 
+foreign js generate_nested_js_array = """
+    return [[1, 2, 3], [4, 5]]
+
+foreign python generate_py_array = """
+    return [1, 2, 3, 4, None]
+
+foreign python generate_nested_py_array = """
+    return [[1, 2, 3], [4, 5]]
+
 spec = Test.group "Vectors" <|
+    pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
+        Can't run Python tests, Python is not installed.
 
     Test.specify "text bytes" <|
         "Lore".utf_8 . should_equal [76, 111, 114, 101]
@@ -38,8 +49,18 @@ spec = Test.group "Vectors" <|
         Vector.fill 100 1 . fold (0) (+) . should_equal 100
 
     Test.specify "should allow creation from arrays without mutability" <|
-        built = Vector.from_array generate_js_array
-        built . should_equal [1, 2, 3, 4, 5]
+        built_from_js = Vector.from_polyglot_array generate_js_array
+        built_from_js . should_equal [1, 2, 3, 4, 5]
+
+    Test.specify "should allow creation from arrays without mutability in Python" pending=pending_python_missing <|
+        built_from_py = Vector.from_polyglot_array generate_py_array
+        built_from_py . should_equal [1, 2, 3, 4, Nothing]
+
+    Test.specify "should allow creation from arrays without mutability for nested arrays" pending="Polyglot Arrays/Vector rewrite" <|
+        built_from_js = Vector.from_polyglot_array generate_nested_js_array
+        built_from_js . should_equal [[1, 2, 3], [4, 5]]
+        built_from_py = Vector.from_polyglot_array generate_nested_py_array
+        built_from_py . should_equal [[1, 2, 3], [4, 5]]
 
     Test.specify "should allow accessing elements" <|
         [1,2,3].at 0 . should_equal 1

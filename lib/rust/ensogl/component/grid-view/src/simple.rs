@@ -173,6 +173,7 @@ impl crate::Entry for Entry {
 
             out.override_column_width <+ input.set_model.filter_map(|m| *m.override_width);
             out.contour <+ contour;
+            out.highlight_contour <+ contour;
             out.disabled <+ disabled;
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
@@ -209,3 +210,8 @@ pub type SimpleSelectableGridView = selectable::GridView<Entry>;
 /// The Simple version of scrollable and selectable Grid View, where each entry is just a label with
 /// background.
 pub type SimpleScrollableSelectableGridView = scrollable::SelectableGridView<Entry>;
+
+/// The Simple version of scrollable and selectable Grid View with headers, where each header or
+/// entry is just a label with background.
+pub type SimpleScrollableSelectableGridViewWithHeaders =
+    scrollable::SelectableGridViewWithHeaders<Entry, Entry>;

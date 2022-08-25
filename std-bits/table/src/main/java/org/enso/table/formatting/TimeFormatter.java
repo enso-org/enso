@@ -1,5 +1,7 @@
 package org.enso.table.formatting;
 
+import org.graalvm.polyglot.Value;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -17,6 +19,10 @@ public class TimeFormatter implements DataFormatter {
       return NULL_REPRESENTATION;
     }
 
+    if (value instanceof Value v && v.isTime()) {
+      value = v.asTime();
+    }
+
     if (value instanceof LocalTime date) {
       return date.format(formatter);
     }
@@ -26,6 +32,6 @@ public class TimeFormatter implements DataFormatter {
 
   @Override
   public boolean canFormat(Object value) {
-    return value instanceof LocalTime;
+    return value instanceof LocalTime || (value instanceof Value v && !v.isDate() && v.isTime());
   }
 }

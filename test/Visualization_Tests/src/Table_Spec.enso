@@ -53,7 +53,7 @@ visualization_spec connection =
 
             g = t.aggregate [Group_By "A", Group_By "B", Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[]
+            json2 = make_json header=["Average C"] data=[[4]] all_rows=2 ixes_header=[] ixes=[]
             vis2 . should_equal json2
 
         t2 = Dataframe_Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
