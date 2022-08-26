@@ -19,10 +19,10 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use reqwest::header::HeaderMap;
 use std::fmt::Display;
 use std::io::ErrorKind;
 use std::path;
-
 
 
 // =====================
@@ -79,7 +79,16 @@ impl GoogleFontsRelease {
     pub fn download(name: &str, destination_dir: &path::Path) -> Vec<GithubFile> {
         let url = format!("https://api.github.com/repos/google/fonts/contents/ofl/{}", name);
         let raw_url = format!("https://raw.githubusercontent.com/google/fonts/master/ofl/{}", name);
-        let request = reqwest::blocking::Client::builder().user_agent("request").build().unwrap();
+        let mut client = reqwest::blocking::Client::builder().user_agent("request");
+
+        if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+            let mut header_map = HeaderMap::new();
+            let value = format!("Bearer {}", token).parse().unwrap();
+            header_map.append(reqwest::header::AUTHORIZATION, value);
+            client = client.default_headers(header_map);
+        }
+
+        let request = client.build().unwrap();
         let resp = request.get(&url).send().expect("Failed to get GitHub response.");
         let files: Vec<GithubFile> = resp.json().expect("Failed to parse JSON.");
         let font_files: Vec<_> = files.into_iter().filter(|f| f.name.ends_with(".ttf")).collect();
