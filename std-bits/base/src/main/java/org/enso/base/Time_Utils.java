@@ -3,6 +3,7 @@ package org.enso.base;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
@@ -97,8 +98,36 @@ public class Time_Utils {
     }
   }
 
+  /**
+   * Gets the weekday of the date as a long.
+   * With Monday as 1 through to Sunday as 7.
+   * @param date a datetime
+   * @return the week day as an integer of the date.
+   */
+  public static long day_of_week_localdate(LocalDate date) {
+    return date.getDayOfWeek().getValue();
+  }
+
+  /**
+   * Gets the weekday of the date as a long.
+   * With Monday as 1 through to Sunday as 7.
+   * @param date a datetime
+   * @return the week day as an integer of the date.
+   */
+  public static long day_of_week_zoneddatetime(ZonedDateTime date) {
+    return date.getDayOfWeek().getValue();
+  }
+
+  public static long week_of_year_localdate(LocalDate date) {
+    return date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+  }
+
   public static long week_of_year_localdate(LocalDate date, Locale locale) {
     return WeekFields.of(locale).weekOfYear().getFrom(date);
+  }
+
+  public static long week_of_year_zoneddatetime(ZonedDateTime date) {
+    return date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
   }
 
   public static long week_of_year_zoneddatetime(ZonedDateTime date, Locale locale) {

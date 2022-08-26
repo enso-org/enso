@@ -2,11 +2,17 @@ from Standard.Base import all
 
 type Day_Of_Week
     type Sunday
+
     type Monday
+
     type Tuesday
+
     type Wednesday
+
     type Thursday
+
     type Friday
+
     type Saturday
 
     ## Convert the Day_Of_Week to an Integer
@@ -14,8 +20,8 @@ type Day_Of_Week
        Arguments:
        - `first_day`: The first day of the week.
        - `include_zero`: If True, first day of the week is 0 otherwise is 1.
-    to_integer: Day_Of_Week -> Boolean -> Integer
-    to_integer self first_day=Day_Of_Week.Sunday start_at_zero=False =
+    to_integer : Day_Of_Week -> Boolean -> Integer
+    to_integer self first_day=Sunday start_at_zero=False =
         day_number = case self of
             Sunday -> 0
             Monday -> 1
@@ -29,3 +35,18 @@ type Day_Of_Week
             (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
 
         shifted + if start_at_zero then 0 else 1
+
+## Convert the Java int value of a DayOfWeek to a Day_Of_Week
+
+   Arguments:
+   - `value`: The first day of the week.
+from_java_value : Integer -> Day_Of_Week
+from_java_value value = case value of
+    1 -> Monday
+    2 -> Tuesday
+    3 -> Wednesday
+    4 -> Thursday
+    5 -> Friday
+    6 -> Saturday
+    7 -> Sunday
+    _ -> Error.throw (Illegal_Argument_Error "Invalid day of week (must be 1-7).")
