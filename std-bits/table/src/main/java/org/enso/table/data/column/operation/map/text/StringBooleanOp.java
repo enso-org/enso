@@ -3,11 +3,12 @@ package org.enso.table.data.column.operation.map.text;
 import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.error.UnexpectedTypeException;
 
-public abstract class StringBooleanOp extends MapOperation<StringStorage> {
+public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
     super(name);
   }
@@ -19,7 +20,7 @@ public abstract class StringBooleanOp extends MapOperation<StringStorage> {
   }
 
   @Override
-  public Storage runMap(StringStorage storage, Object arg) {
+  public Storage runMap(SpecializedStorage<String> storage, Object arg) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -52,7 +53,7 @@ public abstract class StringBooleanOp extends MapOperation<StringStorage> {
   }
 
   @Override
-  public Storage runZip(StringStorage storage, Storage arg) {
+  public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
     if (arg instanceof StringStorage) {
       StringStorage v = (StringStorage) arg;
       BitSet newVals = new BitSet();

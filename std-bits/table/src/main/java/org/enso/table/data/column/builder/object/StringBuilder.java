@@ -6,11 +6,11 @@ import org.enso.table.data.column.storage.StringStorage;
 
 /** A builder for string columns. */
 public class StringBuilder extends TypedBuilder {
-  private Object[] data;
+  private String[] data;
   private int currentSize = 0;
 
   public StringBuilder(int size) {
-    this.data = new Object[size];
+    this.data = new String[size];
   }
 
   @Override
@@ -28,7 +28,8 @@ public class StringBuilder extends TypedBuilder {
   @Override
   public TypedBuilder retypeTo(long type) {
     if (type == Storage.Type.OBJECT) {
-      ObjectBuilder res = new ObjectBuilder(data);
+      Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
+      ObjectBuilder res = new ObjectBuilder(widenedData);
       res.setCurrentSize(currentSize);
       return res;
     } else {
@@ -43,7 +44,8 @@ public class StringBuilder extends TypedBuilder {
 
   @Override
   public void appendNoGrow(Object o) {
-    data[currentSize++] = o;
+    // TODO make type more specific?
+    data[currentSize++] = (String) o;
   }
 
   @Override
@@ -51,7 +53,7 @@ public class StringBuilder extends TypedBuilder {
     if (currentSize + 1 > data.length) {
       grow();
     }
-    data[currentSize++] = o;
+    data[currentSize++] = (String) o;
   }
 
   @Override

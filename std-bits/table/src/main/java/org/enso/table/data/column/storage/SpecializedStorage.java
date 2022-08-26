@@ -8,7 +8,7 @@ import org.enso.table.data.mask.SliceRange;
 import java.util.BitSet;
 import java.util.List;
 
-abstract class SpecializedStorage<T> extends Storage {
+public abstract class SpecializedStorage<T> extends Storage {
 
   protected abstract SpecializedStorage<T> newInstance(T[] data, int size);
 
@@ -21,7 +21,7 @@ abstract class SpecializedStorage<T> extends Storage {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  protected SpecializedStorage(T[] data, int size, MapOpStorage<? extends SpecializedStorage<T>> ops) {
+  protected SpecializedStorage(T[] data, int size, MapOpStorage<SpecializedStorage<T>> ops) {
     this.data = data;
     this.size = size;
     this.ops = ops;
@@ -29,7 +29,7 @@ abstract class SpecializedStorage<T> extends Storage {
 
   protected final T[] data;
   protected final int size;
-  private final MapOpStorage<? extends SpecializedStorage<T>> ops;
+  private final MapOpStorage<SpecializedStorage<T>> ops;
 
   /** @inheritDoc */
   @Override

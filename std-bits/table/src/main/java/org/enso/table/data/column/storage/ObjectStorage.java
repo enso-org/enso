@@ -11,7 +11,7 @@ public class ObjectStorage extends SpecializedStorage<Object> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  protected ObjectStorage(Object[] data, int size) {
+  public ObjectStorage(Object[] data, int size) {
     super(data, size, ops);
   }
 
@@ -30,7 +30,7 @@ public class ObjectStorage extends SpecializedStorage<Object> {
     return Type.OBJECT;
   }
 
-  private static final MapOpStorage<ObjectStorage> ops = buildObjectOps();
+  private static final MapOpStorage<SpecializedStorage<Object>> ops = buildObjectOps();
   static <S extends SpecializedStorage<?>> MapOpStorage<S> buildObjectOps() {
     MapOpStorage<S> ops = new MapOpStorage<>();
     ops.add(
