@@ -6,7 +6,13 @@ name: Benchmark Engine
       - develop
   schedule:
     - cron: 0 5 * * 2-6
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      just-check:
+        description: "If set, benchmarks will be only checked to run correctly, not to measure actual performance."
+        required: true
+        type: boolean
+        default: false
 jobs:
   benchmark-engine:
     name: Benchmark Engine
@@ -28,16 +34,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
+        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
         if: "runner.os == 'Windows'"
         shell: cmd
-      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: "runner.os != 'Windows'"
         shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: true
+          clean: false
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -45,8 +53,12 @@ jobs:
       - run: "./run backend benchmark runtime"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: List files if failed
-        run: ls -lR
-        if: failure()
+      - name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+        if: "failure() && runner.os == 'Windows'"
+      - name: List files if failed (non-Windows)
+        run: ls -lAR
+        if: "failure() && runner.os != 'Windows'"
 env:
+  ENSO_BUILD_MINIMAL_RUN: "${{ inputs.just-check }}"
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

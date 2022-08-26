@@ -1,5 +1,13 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref
 import Standard.Base.Runtime.Unsafe
+from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
+import Standard.Base.Polyglot.Proxy_Polyglot_Array
+import Standard.Base.Random
+
+polyglot java import java.util.ArrayList
+polyglot java import java.lang.IndexOutOfBoundsException
+polyglot java import org.enso.base.Array_Utils
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -22,9 +30,9 @@ import Standard.Base.Runtime.Unsafe
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
 new length constructor =
-    arr = Array.new length
-    0.up_to length . each ix-> arr.set_at ix (constructor ix)
-    Vector_Data arr
+    builder = (0.up_to length).fold (new_builder length) builder-> ix->
+        builder.append (constructor ix)
+    builder.to_vector
 
 ## Creates a new vector of the given length, filling the elements with
    the provided constant.
@@ -42,9 +50,9 @@ new length constructor =
          Vector.fill length=50 item=42
 fill : Number -> Any -> Vector Any
 fill length ~item =
-    arr = Array.new length
-    0.up_to length . each ix-> arr.set_at ix item
-    Vector_Data arr
+    builder = (0.up_to length).fold (new_builder length) builder-> _->
+        builder.append item
+    builder.to_vector
 
 ## Creates a new vector builder instance.
 
@@ -59,18 +67,18 @@ fill length ~item =
    - capacity: Initial capacity of the Vector.Builder
 
    > Example
-     Construct a vector using a builder that contains the items 1 to 10.
+     Construct a vector using a builder that contains the items 1 to 5.
 
          example_new_builder =
-              builder = Vector.new_builder 10
+              builder = Vector.new_builder 5
               do_build start stop =
                   builder.append start
                   if start >= stop then Nothing else
                       @Tail_Call do_build start+1 stop
-              do_build 1 10
+              do_build 1 5
               builder.to_vector
 new_builder : Integer -> Builder
-new_builder (capacity=1) = Builder.new capacity
+new_builder (capacity=10) = Builder.new capacity
 
 ## ADVANCED
 
@@ -83,15 +91,8 @@ new_builder (capacity=1) = Builder.new capacity
 
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
-
-   ! Value Copying
-     As Enso vectors implement immutable semantics, this constructor function
-     makes a copy of each value in the argument array.
-
-     If this didn't happen then it would be possible for the underlying array to
-     be mutated under the hood, and sneak mutability into our immutable data.
-from_array : Any -> Vector.Vector Any
-from_array arr = new (Polyglot.get_array_size arr) (arr.at _)
+from_polyglot_array : Any -> Vector Any
+from_polyglot_array arr = Vector (Proxy_Polyglot_Array.Proxy_Polyglot_Array arr)
 
 ## The basic, immutable, vector type.
 type Vector
@@ -101,7 +102,7 @@ type Vector
        The basic, immutable, vector type.
 
        Arguments:
-       - to_array: The underlying array.
+       - storage: The underlying storage.
 
        A vector allows to store an arbitrary number of elements, in linear memory.
        It is the recommended data structure for most applications.
@@ -114,7 +115,18 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    Vector_Data to_array
+    type Vector_Data storage
+
+    ## PRIVATE
+    to_array self =
+        arr = self.storage.to_array
+        case Meta.meta arr of
+            Meta.Primitive _ -> arr
+            _ ->
+                len = self.storage.length
+                a = Array.new len
+                Array.copy arr 0 a 0 len
+                a
 
     ## Returns the number of elements stored in this vector.
 
@@ -123,7 +135,8 @@ type Vector
 
              [1, 2, 3, 4].length
     length : Number
-    length self = Polyglot.get_array_size self.to_array
+    length self =
+        self.storage.length
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -156,7 +169,7 @@ type Vector
        bounds or with additional error handling.
     unsafe_at : Integer -> Any
     unsafe_at self index =
-        self.to_array.at index
+        self.storage.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -176,8 +189,7 @@ type Vector
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        arr = self.to_array
-        f = acc -> ix -> function acc (arr.at ix)
+        f = acc -> ix -> function acc (self.storage.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -191,11 +203,10 @@ type Vector
        > Example
          Compute the sum of all of the elements and indexes in a vector.
 
-             [0, 1, 2] . fold 0 (s->i->e->s+i+e)
+             [0, 1, 2] . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function =
-        arr = self.to_array
-        f = acc -> ix -> function acc ix (arr.at ix)
+        f = acc -> ix -> function acc ix (self.storage.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
@@ -213,8 +224,7 @@ type Vector
     reduce self function =
         case self.not_empty of
             True -> if self.length == 1 then self.unsafe_at 0 else
-                arr = self.to_array
-                f = acc -> ix -> function acc (arr.at ix)
+                f = acc -> ix -> function acc (self.storage.at ix)
                 1.up_to self.length . fold (self.unsafe_at 0) f
             False -> Error.throw Empty_Error
 
@@ -553,7 +563,7 @@ type Vector
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 =
         if max_entries < 1 then Error.throw <| Illegal_Argument_Error_Data "The `max_entries` parameter must be positive." else
-            prefix = self.take_start max_entries
+            prefix = self.take (First max_entries)
             if prefix.length == self.length then self.to_text else
                 remaining_count = self.length - prefix.length
                 remaining_text = if remaining_count == 1 then "and 1 more element" else
@@ -637,7 +647,8 @@ type Vector
             if self.length == 1 then prefix + self.unsafe_at 0 + suffix else
                 prefix + self.unsafe_at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.unsafe_at i) + suffix
 
-    ## Creates a new vector with the skipping elements until `start` and then
+    ## PRIVATE
+       Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
 
        Arguments:
@@ -648,89 +659,81 @@ type Vector
          Remove the first 2 elements then continue until index 5 from the vector.
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
-    take : Integer -> Integer -> Vector Any
-    take self start end =
+    slice : Integer -> Integer -> Vector Any
+    slice self start end =
         slice_start = Math.max 0 start
         slice_end = Math.min self.length end
-        if slice_start >= slice_end then Vector_Data (Array.new 0) else
+        if slice_start >= slice_end then [] else
             if (slice_start == 0) && (slice_end == self.length) then self else
                 len = slice_end - slice_start
                 arr = Array.new len
                 Array.copy self.to_array slice_start arr 0 len
                 Vector_Data arr
 
-    ## Creates a new vector with the first `count` elements in `self` removed.
+    ## Creates a new vector with only the specified range of elements from the
+       input, removing any elements outside the range.
 
        Arguments:
-       - count: The number of elements to drop from the start of `self`.
+       - range: The section of the this Vector to return.
+         If an `Index_Sub_Range`, then the selection is interpreted following
+         the rules of that type.
+         If a `Range`, the selection is specified by two indices, from and to.
+    take : (Index_Sub_Range | Range) -> Vector Any
+    take self range=(First 1) = case range of
+        Range _ _ _ -> self.take (By_Index range)
+        First count -> self.slice 0 (Math.min self.length count)
+        Last count -> self.slice self.length-count self.length
+        While predicate ->
+            end = 0.up_to self.length . find i-> (predicate (self.at i)).not
+            if end.is_nothing then self else self.slice 0 end
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+            indices = case one_or_many_descriptors of
+                Vector _ -> one_or_many_descriptors
+                _ -> [one_or_many_descriptors]
+            trimmed = resolve_ranges indices self.length
+            slice_ranges self trimmed
+        Sample count seed ->
+            rng = Random.new seed
+            Random.sample self count rng
+        Every step start ->
+            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                if start >= self.length then [] else
+                    range = Range start self.length step
+                    self.take (By_Index range)
 
-       > Example
-         Remove the first element from the start of the vector.
-
-             [1, 2, 3, 4, 5].drop_start 1
-    drop_start : Integer -> Vector Any
-    drop_start self count = self.take count self.length
-
-    ## Creates a new vector with elements at the beginning of the vector which
-       satisfy the provided predicate removed.
-
-       Arguments:
-       - predicate: A function returning `Boolean` specifying the prefix to
-         remove.
-
-       > Example
-         Remove any odd elements at the beginining of the vector (but keeping
-         any odd elements later on).
-
-             [1, 3, 5, 6, 8, 9, 10, 11, 13].drop_while (x-> x%2 == 1) == [6, 8, 9, 10, 11, 13]
-    drop_while : (Any -> Boolean) -> Vector Any
-    drop_while self predicate =
-        find_first_false current =
-            if current >= self.length then Nothing else
-                case predicate (self.unsafe_at current) of
-                    False -> current
-                    True -> @Tail_Call find_first_false current+1
-        case find_first_false 0 of
-            Nothing -> []
-            first_false -> self.take first_false self.length
-
-    ## Creates a new vector with the last `count` elements in `self` removed.
+    ## Creates a new vector with only the specified range of elements from the
+       input, removing any elements outside the range.
 
        Arguments:
-       - count: The number of elements to drop from the end of `self`.
-
-       > Example
-         Remove the last two elements from the end of the vector.
-
-             [1, 2, 3, 4, 5].drop_end 2
-    drop_end : Integer -> Vector Any
-    drop_end self count = self.take 0 (self.length - count)
-
-    ## Creates a new vector, consisting of the first `count` elements on the
-       left of `self`.
-
-       Arguments:
-       - count: The number of elements to take from the start of `self`.
-
-       > Example
-         Create a new vector from the first two elements of the vector.
-
-             [1, 2, 3, 4, 5].take_start 2
-    take_start : Integer -> Vector Any
-    take_start self count = self.take 0 count
-
-    ## Creates a new vector, consisting of the last `count` elements on the
-       right of `self`.
-
-       Arguments:
-       - count: The number of elements to take from the end of `self`.
-
-       > Example
-         Create a new vector from the last two elements of the vector.
-
-             [1, 2, 3, 4, 5].take_end 3
-    take_end : Integer -> Vector Any
-    take_end self count = self.take (self.length - count) self.length
+       - range: The section of the this Vector to return.
+         If an `Index_Sub_Range`, then the selection is interpreted following
+         the rules of that type.
+         If a `Range`, the selection is specified by two indices, from and to.
+    drop : (Index_Sub_Range | Range) -> Vector Any
+    drop self range=(First 1) = case range of
+        Range _ _ _ -> self.drop (By_Index range)
+        First count -> self.slice count self.length
+        Last count -> self.slice 0 self.length-count
+        While predicate ->
+            end = 0.up_to self.length . find i-> (predicate (self.at i)).not
+            if end.is_nothing then [] else self.slice end self.length
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+            indices = case one_or_many_descriptors of
+                Vector _ -> one_or_many_descriptors
+                _ -> [one_or_many_descriptors]
+            trimmed = resolve_ranges indices self.length
+            normalized = normalize_ranges trimmed
+            inverted = invert_range_selection normalized self.length needs_sorting=True
+            slice_ranges self inverted
+        Sample count seed ->
+            rng = Random.new seed
+            indices_to_drop = Random.random_indices self.length count rng
+            self.drop (By_Index indices_to_drop)
+        Every step start ->
+            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                if start >= self.length then self else
+                    range = Range start self.length step
+                    self.drop (By_Index range)
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
@@ -808,7 +811,7 @@ type Vector
 
              [1, 2, 3, 4].tail
     tail : Vector ! Empty_Error
-    tail self = if self.length >= 1 then self.drop_start 1 else
+    tail self = if self.length >= 1 then self.drop (First 1) else
         Error.throw Empty_Error
 
     ## Get the all elements in the vector except the last.
@@ -818,7 +821,7 @@ type Vector
 
              [1, 2, 3, 4].init
     init : Vector ! Empty_Error
-    init self = if self.length >= 1 then self.drop_end 1 else Error.throw Empty_Error
+    init self = if self.length >= 1 then self.drop (Last 1) else Error.throw Empty_Error
 
     ## Get the last element of the vector, or an `Empty_Error` if the vector is
        empty.
@@ -974,7 +977,7 @@ type Vector
        visualization.
     to_default_visualization_data : Text
     to_default_visualization_data self =
-        json = self.take_start 100 . to_json
+        json = self.take (First 100) . to_json
         json.to_text
 
 ## PRIVATE
@@ -987,8 +990,7 @@ type Builder
        A builder type for Enso vectors.
 
        Arguments:
-       - to_array: The accumulator for the new vector.
-       - length: The current length of the vector being built.
+       - java_builder: The accumulator for the new vector.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
@@ -1008,7 +1010,14 @@ type Builder
                              @Tail_Call do_build new_builder start+1 stop
                      builder = do_build Vector.new_builder 1 10
                      builder.to_vector
-    Builder_Data to_array length
+
+       ! TODO
+         We may want to revisit the fold pattern - it is required for correct
+         propagation of dataflow errors, but it is very easy to forget about it
+         and get wrong error propagation. Instead we may want to have a `Ref`
+         inside of the Builder. Any error detected during `append` could set
+         that `Ref` and then `to_vector` could propagate that error.
+    type Builder_Data java_builder
 
     ## Creates a new builder.
 
@@ -1020,21 +1029,11 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=1) = Builder_Data (Array.new capacity) 0
-
-    ## Returns the current capacity (i.e. the size of the underlying storage)
-       of this builder.
-
-       > Example
-         Get the capacity of a new builder.
-
-             Vector.new_builder.capacity
-    capacity : Integer
-    capacity self = self.to_array.length
+    new (capacity=10) = Builder_Data (ArrayList.new capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
-    is_empty self = self.length == 0
+    is_empty self = self.java_builder.isEmpty
 
     ## Checks if this builder is not empty.
     not_empty : Boolean
@@ -1057,6 +1056,27 @@ type Builder
             self.unsafe_append item
             self
 
+    ## Appends a part of a given vector to this builder
+
+       Arguments:
+       - vector: The vector from which the elements are sourced.
+       - start: The start index of the range to append.
+       - end: The end index (the first index after the last element to be
+         appended) of the range to be appended.
+
+       > Example
+         Append a part of the vector.
+
+             builder = Vector.new_builder
+             builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
+    append_vector_range : Vector Any ! Error -> Builder ! Error
+    append_vector_range self vector start end =
+        subrange = vector.slice start end
+        ## This workaround is needed because
+           `self.java_builder.addAll subrange.to_array` fails with
+           `Unsupported argument types: [Array]`.
+        Array_Utils.appendToArrayList self.java_builder subrange.to_array
+
     ## PRIVATE
        Appends a new element into this builder.
 
@@ -1076,17 +1096,7 @@ type Builder
 
              Vector.new_builder.unsafe_append 10
     unsafe_append : Any -> Nothing
-    unsafe_append self item = case self.capacity > self.length of
-        True ->
-            self.to_array.set_at self.length item
-            Unsafe.set_atom_field self 1 (self.length + 1)
-        False ->
-            old_array = self.to_array
-            new_array = Array.new old_array.length*2
-            Array.copy old_array 0 new_array 0 old_array.length
-            Unsafe.set_atom_field self 0 new_array
-            self.append item
-            Nothing
+    unsafe_append self item = self.java_builder.add item
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -1097,7 +1107,7 @@ type Builder
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error_Data (self.to_array.at actual_index) _->
+        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
@@ -1108,7 +1118,7 @@ type Builder
 
     exists : (Any -> Boolean) -> Boolean
     exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.to_array.at idx)))
+        0.up_to self.length . exists (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
@@ -1123,10 +1133,10 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector self =
-        old_array = self.to_array
-        new_array = Array.new self.length
-        Array.copy old_array 0 new_array 0 self.length
-        Vector_Data new_array
+        ## This creates a fresh copy of the builders storage, so any future
+           changes to the builder will not affect the returned vector.
+        new_array = self.java_builder.toArray
+        from_polyglot_array new_array
 
 ## UNSTABLE
 
@@ -1171,3 +1181,111 @@ type Incomparable_Values_Error
 handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
     handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <| function
+
+## PRIVATE
+   Resolves a vector of ranges or indices into a vector of ranges that fit
+   within a sequence.
+resolve_ranges : Vector (Integer | Range) -> Integer -> Vector Range
+resolve_ranges ranges length =
+    ## Ensures that a descriptor fits within the range of the current
+       vector, trimming it or reporting an error if it is invalid.
+    trim descriptor = case descriptor of
+        Integer ->
+            actual_index = if descriptor < 0 then length + descriptor else descriptor
+            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor length) else
+                actual_index
+        Range start end step ->
+            if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
+                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error start length) else
+                        actual_end = Math.min end length
+                        if actual_end < start then Range start start step else
+                            Range start actual_end step
+    ranges.map trim
+
+## PRIVATE
+   Creates a new vector where for each range, a corresponding section of the
+   source vector is added to the result.
+
+   Assumes that the ranges have been already bounds-checked (for example by
+   passing them through `resolve_ranges`).
+slice_ranges vector ranges =
+    if ranges.length == 0 then [] else
+        if ranges.length != 1 then slice_many_ranges vector ranges else
+            case ranges.first of
+                Integer -> [vector.unsafe_at ranges.first]
+                Range start end step -> case step == 1 of
+                    True -> vector.slice start end
+                    False -> slice_many_ranges vector ranges
+
+## PRIVATE
+   See `slice_ranges`.
+slice_many_ranges vector ranges =
+    new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
+        Integer -> acc+1
+        Range _ _ _ -> acc+descriptor.length
+    builder = new_builder new_length
+    ranges.each descriptor-> case descriptor of
+        Integer ->
+            builder.append (vector.unsafe_at descriptor)
+        Range start end step -> case step == 1 of
+            True ->
+                builder.append_vector_range vector start end
+            False ->
+                descriptor.each ix->
+                    builder.append (vector.unsafe_at ix)
+    builder.to_vector
+
+## PRIVATE
+   Takes a list of descriptors and returns a new one where ranges with
+   non-unitary step have been replaced with series of ranges covering the same
+   set of indices with step equal to 1, and indices have been replaced with
+   single-element ranges.
+normalize_ranges descriptors =
+    normalize descriptor = case descriptor of
+        Integer -> [Range descriptor descriptor+1]
+        Range _ _ _ ->
+            if descriptor.step == 1 then [descriptor] else
+                descriptor.to_vector.map ix->
+                    Range ix ix+1
+    descriptors.flat_map normalize
+
+## PRIVATE
+   Inverts the selection determined by the input list of ranges.
+
+   The input ranges are assumed to be normalized (i.e. all of them have step
+   equal to 1).
+
+   Arguments:
+   - ranges: The list of ranges determining indices which are selected. The
+     result will be a list of ranges containing all the indices which were not
+     originally selected here.
+   - length: Length of the related sequence.
+   - needs_sorting: Determines if `ranges` need to be sorted and merged or if it
+     can be assumed that they are sorted already.
+invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
+invert_range_selection ranges length needs_sorting =
+    sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
+    ranges_with_sentinels = [Range 0 0] + sorted + [Range length length]
+    ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+        Range prev.end next.start
+
+## PRIVATE
+   Returns a new sorted list of ranges where intersecting ranges have been
+   merged.
+
+   Empty subranges are discarded.
+sort_and_merge_ranges ranges =
+    sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
+    if sorted.is_empty then [] else
+        current_ref = Ref.new sorted.first
+        builder = new_builder
+        sorted.tail.each range->
+            current = current_ref.get
+            case range.start <= current.end of
+                True -> current_ref.put (Range current.start (Math.max current.end range.end))
+                False ->
+                    builder.append current
+                    current_ref.put range
+        builder.append current_ref.get
+        builder.to_vector

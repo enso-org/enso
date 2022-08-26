@@ -84,12 +84,12 @@ spec =
     Test.group "read_bytes" <|
         Test.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         Test.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
             contents = File.read_bytes full_path
-            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         Test.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
@@ -111,10 +111,10 @@ spec =
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.read_bytes path_name
-            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
             file = sample_file
             contents_2 = File.read_bytes file
-            contents_2.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+            contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
     Test.group "read_text" <|
         Test.specify "should allow reading a UTF-8 file" <|

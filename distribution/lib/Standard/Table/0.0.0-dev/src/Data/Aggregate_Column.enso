@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 from Standard.Table.Data.Column import Column
-import Standard.Table.Data.Column_Selector
-import Standard.Table.Data.Sort_Column_Selector
+from Standard.Table.Data.Column_Selector import Column_Selector
+from Standard.Table.Data.Sort_Column_Selector import Sort_Column_Selector
 
 ## Defines an Aggregate Column
 type Aggregate_Column

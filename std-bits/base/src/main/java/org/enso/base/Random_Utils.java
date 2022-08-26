@@ -8,7 +8,7 @@ public class Random_Utils {
   public static Object[] sample(Object[] array, int k, Random rng) {
     k = Math.min(k, array.length);
     var copy = Arrays.copyOf(array, array.length);
-    shuffleFirstInPlace(copy, k, rng);
+    sampleInPlace(copy, k, rng);
     return Arrays.copyOf(copy, k);
   }
 
@@ -22,11 +22,15 @@ public class Random_Utils {
       indices[i] = (long) i;
     }
     k = Math.min(k, n);
-    shuffleFirstInPlace(indices, k, rng);
+    sampleInPlace(indices, k, rng);
     return Arrays.copyOf(indices, k);
   }
 
-  private static <T> void shuffleFirstInPlace(T[] array, int k, Random rng) {
+  /**
+   * Reorders the array in such a way that the first k elements contain a random selection (without
+   * replacement) of k elements from the whole array.
+   */
+  private static <T> void sampleInPlace(T[] array, int k, Random rng) {
     int n = array.length;
     for (int i = 0; i < Math.min(k, n); ++i) {
       int r = i + rng.nextInt(n - i);

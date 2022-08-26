@@ -5,7 +5,6 @@ import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.URI
-import Standard.Base.System.File
 
 ## Create new HTTP request.
 

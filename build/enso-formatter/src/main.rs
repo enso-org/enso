@@ -390,7 +390,8 @@ fn discover_paths_internal(
     is_main_dir: bool,
 ) {
     let path = path.as_ref();
-    let md = fs::metadata(path).unwrap();
+    let md = fs::metadata(path);
+    let md = md.unwrap_or_else(|_| panic!("Could get metadata of {}", path.display()));
     if md.is_dir() && path.file_name() != Some(OsStr::new("target")) {
         let dir_name = path.file_name();
         // FIXME: This should cover 'tests' folder also, but only the files that contain actual

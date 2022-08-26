@@ -8,6 +8,14 @@ import org.enso.text.editing.model.TextEdit
 
 object TextProtocol {
 
+  /** Requests the language server to open an in-memory buffer on behalf of a
+    * given user.
+    *
+    * @param rpcSession the client opening the file.
+    * @param path the file path.
+    */
+  case class OpenBuffer(rpcSession: JsonSession, path: Path)
+
   /** Requests the language server to open a file on behalf of a given user.
     *
     * @param rpcSession the client opening the file.
@@ -116,6 +124,13 @@ object TextProtocol {
     * @param changes a series of edits
     */
   case class TextDidChange(changes: List[FileEdit])
+
+  /** A notification sent by the Language Server, notifying a client about
+    * a successful auto-save action.
+    *
+    * @param path path to the saved file
+    */
+  case class FileAutoSaved(path: Path)
 
   /** Requests the language server to save a file on behalf of a given user.
     *

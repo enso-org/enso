@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Ordering.Natural_Order
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 
 polyglot java import org.enso.base.ObjectComparator
 

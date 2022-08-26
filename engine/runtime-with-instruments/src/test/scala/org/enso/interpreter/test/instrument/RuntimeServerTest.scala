@@ -414,7 +414,60 @@ class RuntimeServerTest
     )
   }
 
-  it should "push method with default arguments" in {
+  it should "push method with default arguments on top of the stack" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idFoo    = metadata.addItem(35, 6)
+
+    val code =
+      """import Standard.Base.IO
+        |
+        |foo x=0 = x + 42
+        |
+        |main =
+        |    IO.println foo
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idFoo, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "push method with default arguments on the stack" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1013,7 +1066,9 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           ConstantsGen.INTEGER,
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+          Api
+            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
+          fromCache = true
         ),
       context.executionComplete(contextId)
     )

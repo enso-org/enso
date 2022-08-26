@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import Text
 
 ## An enumeration of different line ending styles.
 type Line_Ending_Style

@@ -14,6 +14,7 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
 import project.Data.Range
+import project.Data.Index_Sub_Range
 import project.Data.Regression
 import project.Data.Statistics
 import project.Data.Statistics.Rank_Method
@@ -21,10 +22,13 @@ import project.Data.Text
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
-import project.Data.Text.Matching_Mode
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Data.Time.Date
+import project.Data.Time.Date_Time
+import project.Data.Time.Time_Of_Day
+import project.Data.Time.Time_Zone
+import project.Data.Time.Day_Of_Week
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Problem_Behavior
@@ -41,6 +45,7 @@ import project.Runtime.State
 import project.System.Environment
 import project.System.File
 import project.System.File.Existing_File_Behavior
+import project.Data.Text.Regex
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
@@ -50,14 +55,19 @@ export project.Data.Locale
 export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
+
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
 export project.Data.Statistics
 export project.Data.Statistics.Rank_Method
+export project.Data.Text.Regex
 export project.Data.Text.Regex.Mode as Regex_Mode
-export project.Data.Text.Matching_Mode
 export project.Data.Time.Date
+export project.Data.Time.Date_Time
+export project.Data.Time.Time_Of_Day
+export project.Data.Time.Time_Zone
+export project.Data.Time.Day_Of_Week
 export project.Data.Vector
 export project.Error.Problem_Behavior
 export project.IO
@@ -86,8 +96,8 @@ from project.Data.Range export all
    Relevant issues:
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
-from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
-from project.Data.Text.Matching export Case_Insensitive, Case_Insensitive_Data, Text_Matcher, Text_Matcher_Data, Regex_Matcher, Regex_Matcher_Data, No_Matches_Found, No_Matches_Found_Data
+from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location, Matching_Mode
+from project.Data.Text.Matching export Case_Insensitive_Data, Text_Matcher_Data, Regex_Matcher_Data, No_Matches_Found_Data
 from project.Data.Text export all hiding Encoding, Span, Text_Ordering
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Text_Ordering export all
@@ -97,3 +107,4 @@ from project.Function export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
+from project.Data.Index_Sub_Range export First, Last

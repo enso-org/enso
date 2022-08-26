@@ -1,14 +1,9 @@
 from Standard.Base import all
 
 import Standard.Table
-import Standard.Table.Data.Column
-from Standard.Table.Errors import all
-import Standard.Table.IO.File_Read
+from Standard.Table import Column, File_Format, Data_Formatter_Data, Quote_Style
 from Standard.Table.IO.File_Format import Delimited_Data
-import Standard.Table.IO.File_Format
-from Standard.Table.Data.Data_Formatter import Data_Formatter_Data
-import Standard.Table.IO.Quote_Style
-import Standard.Base.Data.Text.Line_Ending_Style
+from Standard.Table.Errors import all
 
 import Standard.Test
 import Standard.Test.Problems

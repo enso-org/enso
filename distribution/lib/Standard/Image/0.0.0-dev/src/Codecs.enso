@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.File
 import Standard.Image.Codecs.Internal
 import Standard.Image.Data.Image
 

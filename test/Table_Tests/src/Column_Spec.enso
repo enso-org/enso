@@ -1,8 +1,8 @@
 from Standard.Base import all
-from Standard.Table import all
+from Standard.Table import Column
 
 import Standard.Examples
-import Standard.Table.Data.Column
+
 import Standard.Test
 
 spec = Test.group "Columns" <|

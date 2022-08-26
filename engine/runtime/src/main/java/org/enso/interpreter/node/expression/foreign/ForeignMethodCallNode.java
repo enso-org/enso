@@ -6,17 +6,20 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Performs a call into a given foreign call target. */
 public class ForeignMethodCallNode extends ExpressionNode {
   private @Children ExpressionNode[] arguments;
   private @Child DirectCallNode callNode;
+  private @Child CoerceNothing coerceNothingNode;
   private final BranchProfile[] errorProfiles;
 
   ForeignMethodCallNode(ExpressionNode[] arguments, CallTarget foreignCt) {
     this.arguments = arguments;
     this.callNode = DirectCallNode.create(foreignCt);
+    this.coerceNothingNode = CoerceNothing.build();
 
     this.errorProfiles = new BranchProfile[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
@@ -46,6 +49,6 @@ public class ForeignMethodCallNode extends ExpressionNode {
         return args[i];
       }
     }
-    return callNode.call(args);
+    return coerceNothingNode.execute(callNode.call(args));
   }
 }

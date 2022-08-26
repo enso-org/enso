@@ -6,7 +6,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError;
 import org.enso.interpreter.runtime.Context;
@@ -134,16 +133,6 @@ public class Array implements TruffleObject {
     return getItems()[(int) index];
   }
 
-  @Builtin.Method(name = "setAt", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = InvalidIndexException.class, to = InvalidArrayIndexError.class)
-  public Object set(long index, @AcceptsError Object value) {
-    if (index < 0 || index >= items.length) {
-      throw new InvalidIndexException(index, this);
-    }
-    getItems()[(int) index] = value;
-    return this;
-  }
-
   /**
    * Exposes an index validity check through the polyglot API.
    *
@@ -153,21 +142,6 @@ public class Array implements TruffleObject {
   @ExportMessage
   boolean isArrayElementReadable(long index) {
     return index < getArraySize() && index >= 0;
-  }
-
-  @ExportMessage
-  void writeArrayElement(long index, Object value) {
-    items[(int) index] = value;
-  }
-
-  @ExportMessage
-  boolean isArrayElementModifiable(long index) {
-    return isArrayElementReadable(index);
-  }
-
-  @ExportMessage
-  boolean isArrayElementInsertable(long index) {
-    return false;
   }
 
   @ExportMessage

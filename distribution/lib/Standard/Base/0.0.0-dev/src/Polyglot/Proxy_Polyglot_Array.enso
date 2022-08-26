@@ -1,0 +1,24 @@
+from Standard.Base import Polyglot, Array
+
+## Advanced
+
+    Wrapper for Polyglot Arrays
+type Proxy_Polyglot_Array
+
+    type Proxy_Polyglot_Array arr
+
+    ## Returns the number of elements stored in this Polyglot Array.
+
+    length : Number
+    length self =
+        Polyglot.get_array_size self.arr
+
+    ## Gets an element from this Polyglot Array at a specified index (0-based).
+
+    at : Number -> Any
+    at self index =
+        Polyglot.read_array_element self.arr index
+
+    to_array : Array Any
+    to_array self =
+        self.arr

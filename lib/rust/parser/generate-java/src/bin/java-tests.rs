@@ -32,6 +32,8 @@ fn main() {
     let reject = fmt_cases(&cases.reject);
     let package = enso_parser_generate_java::PACKAGE;
     let serialization = enso_parser_generate_java::SERIALIZATION_SUPPORT;
+    println!("package {package};");
+    println!();
     println!("import {package}.Tree;");
     println!("import {serialization}.Message;",);
     println!("import java.nio.ByteBuffer;");

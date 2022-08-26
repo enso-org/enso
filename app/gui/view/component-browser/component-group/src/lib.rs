@@ -114,23 +114,6 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 // === Shapes Definitions ===
 // ==========================
 
-// === Selection ===
-
-/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
-/// layers. See module-level documentation to learn more.
-pub mod selection_box {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        pointer_events = false;
-        (style:Style,corners_radius:f32) {
-            let width: Var<Pixels> = "input_size.x".into();
-            let height: Var<Pixels> = "input_size.y".into();
-            Rect((width, height)).corners_radius(corners_radius.px()).into()
-        }
-    }
-}
-
 
 // === Background ===
 
@@ -383,6 +366,16 @@ impl Colors {
 // === FRP ===
 // ===========
 
+/// Represents the selection state of the component group. (the [`selected`] FRP output)
+///
+/// The user can select either the header of the component group or one of the entries.
+#[derive(Clone, Copy, CloneRef, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum Selected {
+    Header,
+    Entry(entry::Id),
+}
+
 ensogl::define_endpoints_2! {
     Input {
         /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
@@ -404,10 +397,9 @@ ensogl::define_endpoints_2! {
     }
     Output {
         is_mouse_over(bool),
-        selected_entry(Option<entry::Id>),
+        selected(Option<Selected>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
-        is_header_selected(bool),
         header_accepted(),
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
@@ -489,9 +481,10 @@ impl component::Frp<Model> for Frp {
         // === Suggestion Acceptance ===
 
         frp::extend! { network
+            is_header_selected <- out.selected.map(|s| *s == Some(Selected::Header));
             accepted_entry <- model.entries.selected_entry.sample(&input.accept_suggestion);
             out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e);
-            header_accepted_by_frp <- input.accept_suggestion.gate(&out.is_header_selected);
+            header_accepted_by_frp <- input.accept_suggestion.gate(&is_header_selected);
             header_accepted_by_mouse <- model.header_overlay.events.mouse_down.constant(());
             header_accepted <- any(header_accepted_by_frp, header_accepted_by_mouse);
             out.header_accepted <+ header_accepted;
@@ -510,25 +503,21 @@ impl component::Frp<Model> for Frp {
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             is_mouse_over_header <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
-            is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
-            some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
-            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over_header);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
-            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
+            out.selected <+ select_header.map(|_| Some(Selected::Header));
             model.entries.select_entry <+ select_header.constant(None);
 
             let selection_style = SelectionStyle::from_style(style, network);
             out.selection_size <+ all_with3(
                 &selection_style,
-                &out.is_header_selected,
+                &is_header_selected,
                 &out.focused,
                 f!((style, h_sel, _) model.selection_size(*h_sel, *style))
             );
             out.selection_position_target <+ all_with5(
-                &out.is_header_selected,
+                &is_header_selected,
                 &header_geometry,
                 &out.size,
                 &model.entries.selection_position_target,
@@ -538,7 +527,7 @@ impl component::Frp<Model> for Frp {
                 )
             );
             out.selection_corners_radius <+ all_with3(
-                &out.is_header_selected,
+                &is_header_selected,
                 &selection_style,
                 &out.focused,
                 f!((h_sel, style,_) model.selection_corners_radius(*h_sel, *style))
@@ -557,8 +546,7 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry;
-            out.selected_entry <+ out.is_header_selected.on_true().constant(None);
+            out.selected <+ model.entries.selected_entry.map(|e| e.map(Selected::Entry)).filter(|e| e.is_some());
         }
 
         init.emit(());
@@ -746,10 +734,7 @@ impl Model {
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
         let half_header_height = header_height / 2.0;
-        let header_center_y = size.y / 2.0 - half_header_height;
-        let header_center_y = header_center_y - header_pos;
-        let header_center_y = header_center_y.max(-size.y / 2.0 + half_header_height);
-        let header_center_y = header_center_y.min(size.y / 2.0 - half_header_height);
+        let header_center_y = self.header_y(header_geometry, size, header_pos);
         let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
@@ -807,13 +792,31 @@ impl Model {
         header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0 - header_pos)
+            let header_y = self.header_y(header_geometry, size, header_pos);
+            Vector2(0.0, header_y)
         } else {
-            let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
-            let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
-            let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
-            self.entries.position().xy() + selection_pos
+            self.entries.position().xy() + entries_selection_position
         }
+    }
+
+    /// Calculate the y position of the header of the component group.
+    ///
+    /// The position is calculated by adding the [`header_pos`] to the y coordinate at the component
+    /// group's top. The final result is also limited by the top and bottom borders of the group
+    /// in such a way that the header is always displayed inside it.
+    fn header_y(
+        &self,
+        header_geometry: HeaderGeometry,
+        group_size: Vector2,
+        header_pos: f32,
+    ) -> f32 {
+        let header_height = header_geometry.height;
+        let half_header_height = header_height / 2.0;
+        let top = group_size.y / 2.0;
+        let bottom = -group_size.y / 2.0;
+        let header_center_y = top - half_header_height - header_pos;
+        let header_center_y = header_center_y.max(bottom + half_header_height);
+        header_center_y.min(top - half_header_height)
     }
 
     fn selection_size(&self, is_header_selected: bool, style: SelectionStyle) -> Vector2 {
@@ -864,19 +867,17 @@ mod tests {
     macro_rules! expect_entry_selected {
         ($cgv:ident, $id:expr) => {
             assert_eq!(
-                $cgv.selected_entry.value(),
-                Some($id),
+                $cgv.selected.value(),
+                Some(Selected::Entry($id)),
                 "Selected entry is not Some({}).",
                 $id
             );
-            assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }
 
     macro_rules! expect_header_selected {
         ($cgv:ident) => {
-            assert_eq!($cgv.selected_entry.value(), None, "Selected entry is not None.");
-            assert!($cgv.is_header_selected.value(), "Header is not selected.");
+            assert_eq!($cgv.selected.value(), Some(Selected::Header), "Header is not selected.");
         };
     }
 

@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
 import Standard.Base.Runtime.State
 import Standard.Base.System
 
@@ -346,8 +345,8 @@ Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
-Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
+Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
+Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         Number -> self.equals that epsilon
         _ -> False
@@ -516,14 +515,13 @@ Any.should_be_an self typ = self.should_be_a typ
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
 Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
         if self.contains element . not then
-            loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
             fail msg
     self.each element->
         if that.contains element . not then
-            loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
             fail msg
 
@@ -742,7 +740,7 @@ fail_match_on_unexpected_error error frames_to_skip =
     payload = error.catch
     loc = Meta.get_source_location 1+frames_to_skip
     msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-    fail msg
+    fail msg+'\n'+error.get_stack_trace_text
 
 
 ## PRIVATE
@@ -768,7 +766,7 @@ wrap_junit_testsuites config builder ~action =
 report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 report_pending_group name reason config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
         builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
         builder.append '    </testsuite>\n'
 
@@ -781,7 +779,7 @@ report_pending_group name reason config builder =
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report self config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')

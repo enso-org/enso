@@ -78,6 +78,9 @@ public class Builtins {
   private final ProjectDescription projectDescription;
   private final Builtin file;
   private final Builtin date;
+  private final Builtin dateTime;
+  private final Builtin timeOfDay;
+  private final Builtin timeZone;
   private final Builtin warning;
 
   /**
@@ -115,6 +118,9 @@ public class Builtins {
     projectDescription = getBuiltinType(ProjectDescription.class);
     file = builtins.get(File.class);
     date = builtins.get(org.enso.interpreter.node.expression.builtin.date.Date.class);
+    dateTime = builtins.get(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
+    timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     special = new Special(language);
     warning = builtins.get(Warning.class);
   }
@@ -425,6 +431,33 @@ public class Builtins {
    */
   public Type date() {
     return date.getType();
+  }
+
+  /**
+   * Returns the {@code DateTime} atom constructor.
+   *
+   * @return the {@code DateTime} atom constructor
+   */
+  public Type dateTime() {
+    return dateTime.getType();
+  }
+
+  /**
+   * Returns the {@code TimeOfDay} atom constructor.
+   *
+   * @return the {@code TimeOfDay} atom constructor
+   */
+  public Type timeOfDay() {
+    return timeOfDay.getType();
+  }
+
+  /**
+   * Returns the {@code TimeZone} atom constructor.
+   *
+   * @return the {@code TimeZone} atom constructor
+   */
+  public Type timeZone() {
+    return timeZone.getType();
   }
 
   /**

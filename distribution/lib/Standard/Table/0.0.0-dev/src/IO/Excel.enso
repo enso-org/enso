@@ -1,12 +1,10 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior
-import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.System.File.Option
-from Standard.Table.IO.File_Format import Infer
+import Standard.Base.Error.Common as Errors
 
 import Standard.Table.Data.Table
+from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
-import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
@@ -184,8 +182,8 @@ validate validation ~error_message ~wrapped =
 read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector_Data (ExcelReader.readSheetNames stream xls_format)
-        Range_Names -> Vector.Vector_Data (ExcelReader.readRangeNames stream xls_format)
+        Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
                 Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
@@ -229,10 +227,10 @@ write_excel file table on_existing_file section headers match_columns _ xls_form
 prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
-        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names_Data (Vector.Vector_Data java_problem.duplicatedNames) else
-              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.Vector_Data java_problem.invalidNames) else
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames) else
                 java_problem
-    parsing_problems = Vector.Vector_Data (result_with_problems.problems) . map map_problem
+    parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
     on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
 
 ## PRIVATE

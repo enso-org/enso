@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Column import Column
 from Standard.Table.Data.Aggregate_Column import all
@@ -219,9 +219,9 @@ parse_aggregated_problems problems =
         problems_array = problems.getProblems
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation_Data p.getColumnName (Vector.Vector_Data p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping_Data p.getColumnName (Vector.Vector_Data p.getRows) else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter_Data p.getColumnName (Vector.Vector_Data p.getRows) else
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation_Data p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
                         Invalid_Aggregation_Data Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
