@@ -916,6 +916,8 @@ define_endpoints_2! {
         selected(Option<Selected>),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
+        /// The last selected suggestion.
+        suggestion_selected(EntryId),
         header_accepted(GroupId),
         size(Vector2),
     }
@@ -968,7 +970,9 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
 
-            output.selected <+ groups.selected.map(|op| op.as_ref().map(Selected::from_wrapper_event));
+            selected <- groups.selected.map(|op| op.as_ref().map(Selected::from_wrapper_event));
+            output.selected <+ selected;
+            output.suggestion_selected <+ selected.map(|selected| selected.and_then(|selected| selected.as_entry_id())).unwrap();
             output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
             output.header_accepted <+ groups.header_accepted;
