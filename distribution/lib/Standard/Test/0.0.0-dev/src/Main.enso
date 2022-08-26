@@ -346,8 +346,8 @@ Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
-Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
+Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
+Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         Number -> self.equals that epsilon
         _ -> False
