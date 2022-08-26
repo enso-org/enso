@@ -135,48 +135,62 @@ case object AliasAnalysis extends IRPass {
     sourceIr: T,
     copyOfIr: T
   ): T = {
+    def doCopy(sourceBinding: IR, copyBinding: IR): Unit = {
+      val sourceRootScopeGraphOpt = sourceBinding
+        .getMetadata(this)
+
+      sourceRootScopeGraphOpt.foreach { sourceRootScopeGraphScope =>
+        val sourceRootScopeGraph =
+          sourceRootScopeGraphScope.asInstanceOf[Info.Scope.Root].graph
+
+        val scopeMapping = mutable.Map[Scope, Scope]()
+        val copyRootScopeGraph =
+          sourceRootScopeGraph.deepCopy(scopeMapping)
+
+        val sourceNodes = sourceBinding.preorder
+        val copyNodes   = copyBinding.preorder
+
+        val matchedNodes = sourceNodes.lazyZip(copyNodes)
+
+        matchedNodes.foreach { case (sourceNode, copyNode) =>
+          sourceNode.getMetadata(this) match {
+            case Some(meta) =>
+              val newMeta = meta match {
+                case root: Info.Scope.Root =>
+                  root.copy(graph = copyRootScopeGraph)
+                case child: Info.Scope.Child =>
+                  child.copy(
+                    graph = copyRootScopeGraph,
+                    scope = child.scope.deepCopy(scopeMapping)
+                  )
+                case occ: Info.Occurrence =>
+                  occ.copy(graph = copyRootScopeGraph)
+              }
+              copyNode.updateMetadata(this -->> newMeta)
+            case None =>
+          }
+        }
+      }
+    }
+
     (sourceIr, copyOfIr) match {
       case (sourceIr: IR.Module, copyOfIr: IR.Module) =>
         val sourceBindings = sourceIr.bindings
         val copyBindings   = copyOfIr.bindings
         val zippedBindings = sourceBindings.lazyZip(copyBindings)
 
-        zippedBindings.foreach { case (sourceBinding, copyBinding) =>
-          val sourceRootScopeGraphOpt = sourceBinding
-            .getMetadata(this)
-
-          sourceRootScopeGraphOpt.map { sourceRootScopeGraphScope =>
-            val sourceRootScopeGraph =
-              sourceRootScopeGraphScope.asInstanceOf[Info.Scope.Root].graph
-
-            val scopeMapping = mutable.Map[Scope, Scope]()
-            val copyRootScopeGraph =
-              sourceRootScopeGraph.deepCopy(scopeMapping)
-
-            val sourceNodes = sourceBinding.preorder
-            val copyNodes   = copyBinding.preorder
-
-            val matchedNodes = sourceNodes.lazyZip(copyNodes)
-
-            matchedNodes.foreach { case (sourceNode, copyNode) =>
-              sourceNode.getMetadata(this) match {
-                case Some(meta) =>
-                  val newMeta = meta match {
-                    case root: Info.Scope.Root =>
-                      root.copy(graph = copyRootScopeGraph)
-                    case child: Info.Scope.Child =>
-                      child.copy(
-                        graph = copyRootScopeGraph,
-                        scope = child.scope.deepCopy(scopeMapping)
-                      )
-                    case occ: Info.Occurrence =>
-                      occ.copy(graph = copyRootScopeGraph)
-                  }
-                  copyNode.updateMetadata(this -->> newMeta)
-                case None =>
-              }
+        zippedBindings.foreach {
+          case (
+                source: IR.Module.Scope.Definition.Type,
+                copy: IR.Module.Scope.Definition.Type
+              ) =>
+            doCopy(source, copy)
+            source.members.lazyZip(copy.members).foreach {
+              case (source, copy) =>
+                doCopy(source, copy)
             }
-          }
+          case (sourceBinding, copyBinding) =>
+            doCopy(sourceBinding, copyBinding)
         }
         copyOfIr.asInstanceOf[T]
       case _ => copyOfIr
