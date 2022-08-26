@@ -54,6 +54,9 @@ features = [
   'DomRectReadOnly',
   'Location',
   'ReadableStream',
+  'AddEventListenerOptions',
+  'KeyboardEvent',
+  'WheelEvent',
 ]
 
 [dev-dependencies]

@@ -792,9 +792,19 @@ class Config {
             let selfVal = self[key]
             if (ok(otherVal)) {
                 if (typeof selfVal === 'boolean') {
-                    self[key] = tryAsBoolean(otherVal)
+                    let val = tryAsBoolean(otherVal);
+                    if (val === null) {
+                        console.error(`Invalid value for ${key}: ${otherVal}. Expected boolean. Reverting to the default value of `)
+                    } else {
+                        self[key] = val
+                    }
                 } else if (selfVal instanceof SemVer) {
-                    self[key] = semver.parse(otherVal)
+                    let val = semver.parse(otherVal);
+                    if (val === null) {
+                        console.error(`Invalid value for ${key}: ${otherVal}. Expected semver.`)
+                    } else {
+                        self[key] = val
+                    }
                 } else {
                     self[key] = tryAsString(otherVal)
                 }
@@ -815,10 +825,9 @@ function parseBooleanOrLeaveAsIs(value: any): any {
     return value
 }
 
-function tryAsBoolean(value: any): boolean {
+function tryAsBoolean(value: any): boolean | null {
     value = parseBooleanOrLeaveAsIs(value)
-    assert(typeof value == 'boolean')
-    return value
+    return (typeof value == 'boolean') ? value : null
 }
 
 function tryAsString(value: any): string {
