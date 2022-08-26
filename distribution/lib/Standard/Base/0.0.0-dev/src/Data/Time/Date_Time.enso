@@ -4,7 +4,10 @@ import Standard.Base.Data.Time.Duration
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
-polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.temporal.ChronoField
+polyglot java import java.time.temporal.IsoFields
+polyglot java import java.util.GregorianCalendar
+
 polyglot java import org.enso.base.Time_Utils
 
 ## ALIAS Current Time
@@ -293,52 +296,38 @@ type Date_Time
          properly specify the `locale` argument.
     week_of_year : (Locale.Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
-        if locale.is_nothing then
-            Time_Utils.week_of_year_zoneddatetime self
-        else
+        if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
             Time_Utils.week_of_year_zoneddatetime self locale.java_locale
 
     ## Returns if the date is in a leap year.
     is_leap_year : Boolean
-    is_leap_year self =
-        year = self.year
-        (year%4 == 0) && ((year%100 != 0) || (year%400 == 0))
+    is_leap_year self = GregorianCalendar.new . isLeapYear self.year
 
     ## Returns the number of days in the year represented by this date.
     length_of_year : Integer
-    length_of_year self =
-        if self.is_leap_year then 366 else 365
+    length_of_year self = if self.is_leap_year then 366 else 365
 
     ## Returns the century of the date.
     century : Integer
-    century self = (self.year - 1).div 100 + 1
+    century self = if self.year >= 0 then (self.year - 1).div 100 + 1 else
+        Error.throw (Illegal_Argument_Error "Century can only be given for AD years.")
 
     ## Returns the quarter of the year the date falls into.
     quarter : Integer
-    quarter self = (self.month - 1).div 3 + 1
+    quarter self = Time_Utils.get_field_as_zoneddatetime self IsoFields.QUARTER_OF_YEAR
 
     ## Returns the number of days in the month represented by this date.
     length_of_month : Integer
-    length_of_month self =
-        case self.month of
-            2 -> if self.is_leap_year then 29 else 28
-            4 -> 30
-            6 -> 30
-            9 -> 30
-            11 -> 30
-            _ -> 31
+    length_of_month self = self.date.length_of_month
 
     ## Returns the day of the year.
     day_of_year : Integer
-    day_of_year self =
-        month = self.month
-        month_day = [0, 1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].at month
-        month_day + self.day - 1 + (if (month > 2) && self.is_leap_year then 1 else 0)
+    day_of_year self = Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_YEAR
 
     ## Returns the day of the week.
     day_of_week : Day_Of_Week
     day_of_week self =
-        Day_Of_Week.from_java_value (Time_Utils.day_of_week_zoneddatetime self)
+        Day_Of_Week.from_java_value (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK)
 
     ## ALIAS Time to Date
 
