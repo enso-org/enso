@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Storage
-import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -1007,45 +1008,33 @@ type Column
         Column new_col
 
     ## UNSTABLE
-
-       Returns a column containing the first `count` elements in this column.
+       Creates a new Column with the specified range of rows from the input
+       Column.
 
        Arguments:
-       - count: The number of elements to take from the start of this column.
-
-       If `self` has a number of items in it less than `count`, the entire
-       column will be returned.
-
-       > Example
-         Take the first 2 elements of a column.
-
-             import Standard.Examples
-
-             example_take_start = Examples.integer_column.take (First 2)
-    take_start : Integer -> Column
-    take_start self count =
-        Column (self.java_column.slice 0 count)
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Column
+    take self range=(First 1) =
+        Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
 
     ## UNSTABLE
-
-       Returns a column containing the last `count` elements in this column.
+       Creates a new Column from the input with the specified range of rows
+       removed.
 
        Arguments:
-       - count: The number of elements to take from the end of this column.
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Column
+    drop self range=(First 1) =
+        Index_Sub_Range.drop_helper self.length self.at self.slice (slice_ranges self) range
 
-       If `self` has a number of items in it less than `count`, the entire
-       column will be returned.
-
-       > Example
-         Take the last 2 elements of a column.
-
-             import Standard.Examples
-
-             example_take_end = Examples.integer_column.take_end 2
-    take_end : Integer -> Column
-    take_end self count =
-        start_point = Math.max (self.length - count) 0
-        Column (self.java_column.slice start_point count)
+    ## PRIVATE
+       Returns a column with a continuous sub-range of rows taken.
+    slice : Integer -> Integer -> Column
+    slice self start end =
+        length = self.length
+        offset = Math.max (Math.min start length) 0
+        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        Column (self.java_column.slice offset limit)
 
     ## UNSTABLE
 
@@ -1387,3 +1376,8 @@ get_item_string column ix =
     if tp == storage_type_string then column.getItem ix else
         column.getItem ix . to_text
 
+## PRIVATE
+   A helper to create a new table consisting of slices of the original table.
+slice_ranges column ranges =
+    normalized = Index_Sub_Range.normalize_ranges ranges
+    Column (column.java_column.slice normalized.to_array)

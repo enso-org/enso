@@ -186,6 +186,7 @@
   method.][3644]
 - [Removed `Array.set_at`.][3634]
 - [Added various date part functions to `Date` and `Date_Time`.][3669]
+- [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -295,6 +296,7 @@
 [3648]: https://github.com/enso-org/enso/pull/3648
 [3634]: https://github.com/enso-org/enso/pull/3634
 [3669]: https://github.com/enso-org/enso/pull/3669
+[3647]: https://github.com/enso-org/enso/pull/3647
 
 #### Enso Compiler
 

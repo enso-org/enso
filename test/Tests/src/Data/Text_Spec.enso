@@ -242,6 +242,7 @@ spec =
             text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
 
         Test.specify "should allow taking or dropping every other character" <|
+            "ABCDE".take (Every 1) . should_equal "ABCDE"
             "ABCDE".take (Every 2) . should_equal "ACE"
             "ABCD".take (Every 2) . should_equal "AC"
             "ABCD".take (Every 2 first=1) . should_equal "BD"
@@ -252,6 +253,7 @@ spec =
             "ABCDEFG".take (Every 3 first=6) . should_equal "G"
             "ABCDEFG".take (Every 10) . should_equal "A"
 
+            "ABCDE".drop (Every 1) . should_equal ""
             "ABCDE".drop (Every 2) . should_equal "BD"
             "ABCD".drop (Every 2) . should_equal "BD"
             "ABCD".drop (Every 2 first=1) . should_equal "AC"
@@ -406,6 +408,7 @@ spec =
         Test.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
+            txt_1.take (Every 2) . should_equal 'Hlo\u0308Wrd'
             txt_1.take (First 2) . should_equal 'He\u{302}'
             txt_1.take (First 5) . should_equal 'He\u{302}llo\u{308}'
             txt_1.take (Last 6) . should_equal 'Wo\u{301}rld!'
@@ -531,6 +534,7 @@ spec =
         Test.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
             txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
+            txt_1.drop (Every 2) . should_equal 'e\u0302l o\u0301l!'
             txt_1.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
             txt_1.drop (First 5) . should_equal ' Wo\u{301}rld!'
             txt_1.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
