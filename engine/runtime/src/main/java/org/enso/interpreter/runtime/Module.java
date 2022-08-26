@@ -573,6 +573,12 @@ public class Module implements TruffleObject {
       return scope.getConstructors().get(name);
     }
 
+    private static Type getType(ModuleScope scope, Object[] args)
+        throws ArityException, UnsupportedTypeException {
+      String name = Types.extractArguments(args, String.class);
+      return scope.getTypes().get(name);
+    }
+
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
@@ -653,6 +659,9 @@ public class Module implements TruffleObject {
         case MethodNames.Module.GET_CONSTRUCTOR:
           scope = module.compileScope(context);
           return getConstructor(scope, arguments);
+        case MethodNames.Module.GET_TYPE:
+          scope = module.compileScope(context);
+          return getType(scope, arguments);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
         case MethodNames.Module.GENERATE_DOCS:
@@ -663,7 +672,7 @@ public class Module implements TruffleObject {
           return setSource(module, arguments, context);
         case MethodNames.Module.SET_SOURCE_FILE:
           return setSourceFile(module, arguments, context);
-        case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
+        case MethodNames.Module.GET_ASSOCIATED_TYPE:
           scope = module.compileScope(context);
           return getAssociatedType(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
@@ -698,7 +707,7 @@ public class Module implements TruffleObject {
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
-        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR)
+        || member.equals(MethodNames.Module.GET_ASSOCIATED_TYPE)
         || member.equals(MethodNames.Module.EVAL_EXPRESSION);
   }
 
@@ -716,7 +725,7 @@ public class Module implements TruffleObject {
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,
-        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
+        MethodNames.Module.GET_ASSOCIATED_TYPE,
         MethodNames.Module.EVAL_EXPRESSION);
   }
 }

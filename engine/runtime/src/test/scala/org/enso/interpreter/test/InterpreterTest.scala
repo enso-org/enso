@@ -171,7 +171,7 @@ trait InterpreterRunner {
     val module = InterpreterException.rethrowPolyglot(
       interpreterContext.executionContext.evalModule(code, "Test")
     )
-    val assocCons    = module.getAssociatedConstructor
+    val assocCons    = module.getAssociatedType
     val mainFunction = module.getMethod(assocCons, "main").get
     MainMethod(assocCons, mainFunction)
   }

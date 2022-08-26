@@ -754,7 +754,7 @@ object Main {
     mainMethodName: String = "main"
   ): Unit = {
     try {
-      val mainCons = mainModule.getAssociatedConstructor
+      val mainCons = mainModule.getAssociatedType
       val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
       mainFun match {
         case Some(main) => main.execute()
