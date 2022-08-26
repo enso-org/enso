@@ -527,7 +527,7 @@ class RuntimeServerTest
     val aCode =
       """
         |type AT
-        |    type A un_a
+        |    A un_a
         |
         |    foo = 11
         |
@@ -571,7 +571,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer(
           "Enso_Test.Test.Main",
-          "Enso_Test.Test.Main.Quux",
+          "Enso_Test.Test.Main.QuuxT",
           "foo"
         )
       ),
@@ -586,7 +586,7 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.INTEGER,
-        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.A", "foo")
+        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.AT", "foo")
       ),
       TestMessages.update(
         contextId,
