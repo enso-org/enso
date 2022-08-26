@@ -31,7 +31,7 @@ import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.service.error.{
-  ConstructorNotFoundException,
+  TypeNotFoundException,
   MethodNotFoundException,
   ModuleNotFoundForExpressionIdException,
   ServiceException,
@@ -290,7 +290,7 @@ object ProgramExecutionSupport {
   def getFailureOutcome(implicit
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
-    case ex: ConstructorNotFoundException =>
+    case ex: TypeNotFoundException =>
       Api.ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)

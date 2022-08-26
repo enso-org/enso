@@ -82,9 +82,6 @@ public class ModuleScope implements TruffleObject {
    * @return the atom constructor associated with {@code name}, or {@link Optional#empty()}
    */
   public Optional<AtomConstructor> getLocalConstructor(String name) {
-    //    if (associatedType.getName().equals(name)) {
-    //      return Optional.of(associatedType);
-    //    }
     return Optional.ofNullable(this.constructors.get(name));
   }
 
@@ -293,6 +290,9 @@ public class ModuleScope implements TruffleObject {
   }
 
   public Optional<Type> getType(String name) {
+    if (associatedType.getName().equals(name)) {
+      return Optional.of(associatedType);
+    }
     return Optional.ofNullable(types.get(name));
   }
 
@@ -322,6 +322,7 @@ public class ModuleScope implements TruffleObject {
     exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
+    types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
   }
