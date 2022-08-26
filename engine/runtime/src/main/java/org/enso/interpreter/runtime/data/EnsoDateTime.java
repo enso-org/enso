@@ -43,7 +43,7 @@ public final class EnsoDateTime implements TruffleObject {
    * <p>Accepts:
    *
    * <ul>
-   *   <li>Local date time, such as '2011-12-03T10:15:30' adding system dafault timezone.
+   *   <li>Local date time, such as '2011-12-03T10:15:30' adding system default timezone.
    *   <li>Offset date time, such as '2011-12-03T10:15:30+01:00' parsing offset as a timezone.
    *   <li>Zoned date time, such as '2011-12-03T10:15:30+01:00[Europe/Paris]' with optional region
    *       id in square brackets.
@@ -82,7 +82,7 @@ public final class EnsoDateTime implements TruffleObject {
       long minute,
       long second,
       long nanosecond,
-      EnsoZone zone) {
+      EnsoTimeZone zone) {
     return new EnsoDateTime(
         ZonedDateTime.of(
             Math.toIntExact(year),
@@ -138,8 +138,8 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(name = "zone", description = "Gets the zone")
-  public EnsoZone zone() {
-    return new EnsoZone(dateTime.getZone());
+  public EnsoTimeZone zone() {
+    return new EnsoTimeZone(dateTime.getZone());
   }
 
   @Builtin.Method(description = "Return the number of seconds from the Unix epoch.")
@@ -169,14 +169,14 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(description = "Return this datetime in the provided time zone.")
-  public EnsoDateTime atZone(EnsoZone zone) {
+  public EnsoDateTime atZone(EnsoTimeZone zone) {
     return new EnsoDateTime(dateTime.withZoneSameInstant(zone.asTimeZone()));
   }
 
   @Builtin.Method(
       name = "to_time_builtin",
       description = "Combine this day with time to create a point in time.")
-  public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoZone zone) {
+  public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoTimeZone zone) {
     return new EnsoDateTime(
         dateTime.toLocalDate().atTime(timeOfDay.asTime()).atZone(zone.asTimeZone()));
   }

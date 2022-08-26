@@ -1,8 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Date_Time
-
 import Standard.Test
 
 spec =

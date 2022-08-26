@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Line_Ending_Style
-import Standard.Base.Data.Time
 
 import Standard.Table
 import Standard.Table.Data.Column

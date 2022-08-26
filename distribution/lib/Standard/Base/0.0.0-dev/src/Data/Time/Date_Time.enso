@@ -1,12 +1,12 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Time import Time_Error
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
+from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
-polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.temporal.ChronoField
+polyglot java import java.time.temporal.IsoFields
+
 polyglot java import org.enso.base.Time_Utils
 
 ## ALIAS Current Time
@@ -16,7 +16,7 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      Get the current time
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_now = Date_Time.now
 now : Date_Time
@@ -40,20 +40,18 @@ now = @Builtin_Method "Date_Time.now"
    > Example
      Create a new zoned date time at Unix epoch.
 
-         import Standard.Base.Data.Time.Date_Time
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Date_Time, Time_Zone
 
-         example_new = Date_Time.new 1970 (zone = Zone.utc)
+         example_new = Date_Time.new 1970 (zone = Time_Zone.utc)
 
    > Example
      Get the 5 August 1986 at midnight.
 
-         import Standard.Base.Data.Time.Date_Time
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Date_Time, Time_Zone
 
          example_new = Date_Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Date_Time ! Time_Error
-new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
+new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
     Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error java_exception.getMessage)
 
@@ -89,49 +87,49 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
    > Example
      Parse UTC time.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01T04:11:12Z"
 
    > Example
      Parse UTC-04:00 time.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00"
 
    > Example
      Parse UTC-04:00 time specifying New York timezone.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00[America/New_York]"
 
    > Example
      Parse UTC-04:00 time with nanoseconds.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01T04:11:12.177528-04:00"
 
    > Example
      Recover from the parse error.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse = Date_Time.parse "2020-10-01" . catch Time_Error (_->Date_Time.now)
 
    > Example
      Parse "2020-05-06 04:30:20" as Date_Time
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
-         example_parse = Date.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+         example_parse = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
 
    > Example
      Parse "06 of May 2020 at 04:30AM" as Date_Tme
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_parse =
             Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
@@ -164,7 +162,7 @@ type Date_Time
        > Example
          Get the current year.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_year = Date_Time.now.year
     year : Integer
@@ -175,7 +173,7 @@ type Date_Time
        > Example
          Get the current month.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_month = Date_Time.now.month
     month : Integer
@@ -186,7 +184,7 @@ type Date_Time
        > Example
          Get the current day.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_day = Date_Time.now.day
     day : Integer
@@ -197,7 +195,7 @@ type Date_Time
        > Example
          Get the current hour.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_hour = Date_Time.now.hour
     hour : Integer
@@ -208,7 +206,7 @@ type Date_Time
        > Example
          Get the current minute.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_minute = Date_Time.now.minute
     minute : Integer
@@ -219,7 +217,7 @@ type Date_Time
        > Example
          Get the current second.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_second = Date_Time.now.second
     second : Integer
@@ -230,7 +228,7 @@ type Date_Time
        > Example
          Get the current nanosecond.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_nanosecond = Date_Time.now.nanosecond
     nanosecond : Integer
@@ -241,10 +239,10 @@ type Date_Time
        > Example
          Get the current timezone.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_zone = Date_Time.now.zone
-    zone : Zone
+    zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
     ## Return the number of seconds from the Unix epoch.
@@ -252,7 +250,7 @@ type Date_Time
        > Example
          Get the current number of seconds from the Unix epoch.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_epoch = Date_Time.now.to_epoch_seconds
     to_epoch_seconds : Integer
@@ -263,7 +261,7 @@ type Date_Time
        > Example
          Get the current number of milliseconds from the unix epoch.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_epoch = Date_Time.now.to_epoch_milliseconds
     to_epoch_milliseconds : Integer
@@ -275,7 +273,7 @@ type Date_Time
        > Example
          Convert the current time to a time of day.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_time_of_day = Date_Time.now.time_of_day
     time_of_day : Time_Of_Day
@@ -285,6 +283,7 @@ type Date_Time
 
        Arguments:
        - locale: the locale used to define the notion of weeks of year.
+         If no locale is provided, then the ISO 8601 week of year is used.
 
        ! Locale Dependency
          Note that this operation is locale-specific. It varies both by the
@@ -294,8 +293,39 @@ type Date_Time
          other hand, the first day of the week is Monday, and week 1 is the week
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
-    week_of_year : Locale.Locale -> Integer
-    week_of_year self locale=Locale.default = Time_Utils.week_of_year_zoneddatetime self locale.java_locale
+    week_of_year : (Locale.Locale | Nothing) -> Integer
+    week_of_year self locale=Nothing =
+        if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
+            Time_Utils.week_of_year_zoneddatetime self locale.java_locale
+
+    ## Returns if the date is in a leap year.
+    is_leap_year : Boolean
+    is_leap_year self = self.date.is_leap_year
+
+    ## Returns the number of days in the year represented by this date.
+    length_of_year : Integer
+    length_of_year self = self.date.length_of_year
+
+    ## Returns the century of the date.
+    century : Integer
+    century self = self.date.century
+
+    ## Returns the quarter of the year the date falls into.
+    quarter : Integer
+    quarter self = Time_Utils.get_field_as_zoneddatetime self IsoFields.QUARTER_OF_YEAR
+
+    ## Returns the number of days in the month represented by this date.
+    length_of_month : Integer
+    length_of_month self = self.date.length_of_month
+
+    ## Returns the day of the year.
+    day_of_year : Integer
+    day_of_year self = Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_YEAR
+
+    ## Returns the day of the week.
+    day_of_week : Day_Of_Week
+    day_of_week self =
+        Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## ALIAS Time to Date
 
@@ -305,7 +335,7 @@ type Date_Time
        > Example
          Convert the current time to a date.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_date = Date_Time.now.date
     date : Date
@@ -321,11 +351,10 @@ type Date_Time
        > Example
          Convert time instance to -04:00 timezone.
 
-             import Standard.Base.Data.Time.Date_Time
-             import Standard.Base.Data.Time.Zone
+             from Standard.Base import Date_Time, Time_Zone
 
-             example_at_zone = Date_Time.new 2020 . at_zone (Zone.new -4)
-    at_zone : Zone -> Date_Time
+             example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+    at_zone : Time_Zone -> Date_Time
     at_zone self zone = @Builtin_Method "Date_Time.at_zone"
 
     ## Add the specified amount of time to this instant to produce a new instant.
@@ -336,7 +365,7 @@ type Date_Time
        > Example
          Add 15 years and 3 hours to a zoned date time.
 
-             import Standard.Base.Data.Time.Date_Time
+             from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_plus = Date_Time.new 2020 + 15.years + 3.hours
@@ -353,7 +382,7 @@ type Date_Time
        > Example
          Subtract 1 year and 9 months from a zoned date time.
 
-             import Standard.Base.Data.Time.Date_Time
+             from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_minus = Date_Time.new 2020 - 1.year - 9.months
@@ -366,7 +395,7 @@ type Date_Time
        > Example
          Convert the current time to text.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_to_text = Date_Time.now.to_text
     to_text : Text
@@ -377,7 +406,7 @@ type Date_Time
        > Example
          Convert the current time to JSON.
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_to_json = Date_Time.now.to_json
     to_json : Json.Object
@@ -438,7 +467,7 @@ type Date_Time
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
          "2020-10-08T16:41:13+03:00[Europe/Moscow]".
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_format =
                 Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
@@ -446,7 +475,7 @@ type Date_Time
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
          "Thursday October 8 4:41 PM".
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_format =
                 Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEEE MMMM d h:mm a"
@@ -455,7 +484,7 @@ type Date_Time
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
          "Thu Oct 8 (16:41)".
 
-             import Standard.Base.Data.Time
+             from Standard.Base import Date_Time
 
              example_format =
                 Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"

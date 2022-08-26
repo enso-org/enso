@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior import all
 
