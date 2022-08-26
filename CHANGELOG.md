@@ -287,6 +287,7 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3641]: https://github.com/enso-org/enso/pull/3641
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3645]: https://github.com/enso-org/enso/pull/3645
