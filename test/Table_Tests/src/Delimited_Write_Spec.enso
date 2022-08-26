@@ -3,7 +3,7 @@ import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-from Standard.Table import Column, Data_Formatter, Quote_Style, Column_Name_Mapping, Match_Columns
+from Standard.Table import Column, Data_Formatter, Data_Formatter_Data, Quote_Style, Column_Name_Mapping, Match_Columns
 from Standard.Table.Errors import all
 from Standard.Table.IO.File_Format import Delimited_Data
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name

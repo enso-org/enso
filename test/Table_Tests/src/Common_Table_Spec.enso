@@ -52,7 +52,7 @@ spec prefix table_builder test_selection pending=Nothing =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error
+            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error_Data
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
             column_1.name . should_equal "foo"
@@ -66,7 +66,7 @@ spec prefix table_builder test_selection pending=Nothing =
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error
+            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
     Test.group prefix+"Table.column_count" pending=pending <|
         Test.specify "should allow getting the column count" <|

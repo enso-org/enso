@@ -250,7 +250,8 @@ Column_Name_Mismatch.handle_java_exception =
 
    Arguments:
    - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error column_name
+type No_Such_Column_Error
+    No_Such_Column_Error_Data column_name
 
 ## UNSTABLE
 

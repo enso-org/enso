@@ -29,7 +29,7 @@ export project.IO.File_Format
 export project.IO.Quote_Style
 
 from project.IO.Excel export Excel_Section, Excel_Range
-from project.Data.Data_Formatter export Data_Formatter
+from project.Data.Data_Formatter export Data_Formatter, Data_Formatter_Data
 
 import Standard.Geo.Geo_Json
 
