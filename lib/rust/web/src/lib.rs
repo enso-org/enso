@@ -3,8 +3,8 @@
 //! compilation in order to run native tests of code which uses this API.
 
 // === Features ===
-#![feature(default_free_fn)]
 #![allow(incomplete_features)]
+#![feature(default_free_fn)]
 #![feature(trait_alias)]
 #![feature(negative_impls)]
 #![feature(specialization)]

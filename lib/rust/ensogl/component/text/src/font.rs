@@ -1,5 +1,6 @@
 //! Definition of font, font face, and font registry. Aggregates information and utilities for
 //! working with fonts.
+
 use crate::prelude::*;
 
 use enso_shapely::shared;
