@@ -1,4 +1,6 @@
 from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import While, Sample, Every
+import Standard.Base.Data.Index_Sub_Range
 
 from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector
 from Standard.Table.Errors as Table_Errors import all
@@ -8,7 +10,9 @@ from Standard.Table.Data.Position import all
 import Standard.Test
 import Standard.Test.Problems
 
-type Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False
+from project.Util import all
+
+type Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
 
 ## A common test suite for shared operations on the Table API.
 
@@ -22,9 +26,6 @@ type Test_Selection supports_case_sensitive_columns=True order_by=True natural_o
      builds a Table using the backend that is meant to be tested. Each column
      description is a triple of column name, column type and a vector containing
      column elements.
-   - materialize: A helper function which materializes a table from the tested
-     backend as an in-memory table. Used to easily inspect results of a
-     particular query/operation.
    - test_selection: A selection of which suites should be run. Can be used to
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
@@ -776,3 +777,272 @@ spec prefix table_builder test_selection pending=Nothing =
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"]) text_ordering=ordering
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+    take_drop_by_pending = if pending.is_nothing.not then pending else
+        if test_selection.take_drop.not then "TODO: take/drop are not yet supported by this backend." else
+            Nothing
+    Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
+        table =
+            col1 = ["alpha", [1,2,3,4,5,6,7,8]]
+            col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
+            table_builder [col1, col2]
+        empty = table_builder [["alpha", []], ["beta", []]]
+
+        Test.specify "should allow selecting first or last N rows" <|
+            table.take.at "alpha" . to_vector . should_equal [1]
+            table.take.at "beta" . to_vector . should_equal ["A"]
+            table.drop.at "alpha" . to_vector . should_equal [2,3,4,5,6,7,8]
+
+            table.take (First 4) . at "alpha" . to_vector . should_equal [1,2,3,4]
+            table.take (First 0) . at "alpha" . to_vector . should_equal []
+            table.take (First -1) . at "alpha" . to_vector . should_equal []
+            table.take (First 100) . should_equal table
+
+            table.drop (First 2) . at "beta" . to_vector . should_equal ["C","D","E","F","G","H"]
+            table.drop (First 0) . should_equal table
+            table.drop (First -1) . should_equal table
+            table.drop (First 100) . should_equal empty
+
+            table.take (Last 4) . at "beta" . to_vector . should_equal ["E","F","G","H"]
+            table.take (Last 0) . should_equal empty
+            table.take (Last -1) . should_equal empty
+            table.take (Last 100) . should_equal table
+
+            table.drop (Last 2) . at "alpha" . to_vector . should_equal [1,2,3,4,5,6]
+            table.drop (Last 0) . should_equal table
+            table.drop (Last -1) . should_equal table
+            table.drop (Last 100) . should_equal empty
+
+        Test.specify "should allow selecting rows by ranges or indices" <|
+            table.take (Range 2 4) . at "beta" . to_vector . should_equal ["C", "D"]
+            table.take (Range 0 0) . should_equal empty
+            table.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+            table.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
+            table.take (Range 0 100) . should_equal table
+            table.take (Range 0 table.row_count) . should_equal table
+            empty.take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty.take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            table.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+            table.drop (Range 2 4) . at "alpha" . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            table.drop (Range 0 0) . should_equal table
+            table.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+            table.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
+            table.drop (Range 0 100) . should_equal empty
+            table.drop (Range 0 table.row_count) . should_equal empty
+            empty.drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty.drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            table.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+            table.take (Index_Sub_Range.By_Index 0) . at "beta" . to_vector . should_equal ["A"]
+            empty.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            table.take (Index_Sub_Range.By_Index []) . should_equal empty
+            table.take (Index_Sub_Range.By_Index [-1, -1]) . at "beta" . to_vector . should_equal ["H", "H"]
+            table.take (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . at "alpha" . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            table.take (Range 0 100 2) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
+            table.take (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . at "alpha" . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            table.take (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . at "alpha" . to_vector . should_equal [2, 3, 3, 4, 5]
+            table.take (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . at "alpha" . to_vector . should_equal [3, 4, 5, 2, 3]
+            table.take (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+            table.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+            table.drop (Index_Sub_Range.By_Index 0) . at "alpha" . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index []) . should_equal table
+            table.drop (Index_Sub_Range.By_Index [-1, -1]) . at "alpha" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
+            table.drop (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . at "alpha" . to_vector . should_equal [2, 3]
+            table.drop (Range 0 100 2) . at "alpha" . to_vector . should_equal [2, 4, 6, 8]
+            table.drop (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . at "alpha" . to_vector . should_equal [8]
+            table.drop (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+            table.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should allow selecting every Nth row" <|
+            table.take (Every 1) . should_equal table
+            table.take (Every 3) . at "alpha" . to_vector . should_equal [1, 4, 7]
+            table.take (Every 3 first=1) . at "alpha" . to_vector . should_equal [2, 5, 8]
+            table.take (Every 2 first=1) . at "beta" . to_vector . should_equal ["B", "D", "F", "H"]
+            table.take (Every 2 first=100) . at "alpha" . to_vector . should_equal []
+            table.take (Every 200) . at "alpha" . to_vector . should_equal [1]
+            empty.take (Every 2) . should_equal empty
+            table.take (Every 0) . should_fail_with Illegal_Argument_Error
+            empty.take (Every 0) . should_fail_with Illegal_Argument_Error
+
+            table.drop (Every 1) . should_equal empty
+            table.drop (Every 3) . at "alpha" . to_vector . should_equal [2, 3, 5, 6, 8]
+            table.drop (Every 3 first=1) . at "alpha" . to_vector . should_equal [1, 3, 4, 6, 7]
+            table.drop (Every 2 first=1) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
+            table.drop (Every 2 first=100) . should_equal table
+            table.drop (Every 200) . at "beta" . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
+            empty.drop (Every 2) . should_equal empty
+            table.drop (Every 0) . should_fail_with Illegal_Argument_Error
+            empty.drop (Every 0) . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should allow sampling rows" <|
+            empty = table_builder [["X", []]]
+            one = table_builder [["X", ["a"]]]
+            two = table_builder [["X", ["a", "a"]]]
+            three = table_builder [["X", ["a", "a", "a"]]]
+            three.take (Sample 0) . should_equal empty
+            empty.take (Sample 0) . should_equal empty
+            empty.take (Sample 1) . should_equal empty
+            three.take (Sample 1) . should_equal one
+            three.take (Sample 100) . should_equal three
+
+            three.drop (Sample 0) . should_equal three
+            empty.drop (Sample 0) . should_equal empty
+            empty.drop (Sample 1) . should_equal empty
+            one.drop (Sample 1) . should_equal empty
+            three.drop (Sample 1) . should_equal two
+            three.drop (Sample 100) . should_equal empty
+
+            rnd = table.take (Sample 3 seed=42)
+            random_indices = [5, 6, 2]
+            alpha_sample = random_indices.map (table.at "alpha" . to_vector . at)
+            beta_sample = random_indices.map (table.at "beta" . to_vector . at)
+            rnd.at "alpha" . to_vector . should_equal alpha_sample
+            rnd.at "beta" . to_vector . should_equal beta_sample
+
+        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending="While is not implemented for Table until the Row type is implemented." <|
+            Nothing
+
+    Test.group prefix+"Column.take/drop" pending=take_drop_by_pending <|
+        table =
+            col1 = ["alpha", [1,2,3,4,5,6,7,8]]
+            col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
+            table_builder [col1, col2]
+        alpha = table.at "alpha"
+        beta = table.at "beta"
+
+        empty_table = table_builder [["alpha", []], ["beta", []]]
+        empty_alpha = empty_table.at "alpha"
+        empty_beta = empty_table.at "beta"
+
+        Test.specify "should allow selecting first or last N rows" <|
+            alpha.take.to_vector . should_equal [1]
+            beta.take.to_vector . should_equal ["A"]
+            alpha.drop.to_vector . should_equal [2,3,4,5,6,7,8]
+
+            alpha.take (First 4) . to_vector . should_equal [1,2,3,4]
+            alpha.take (First 0) . should_equal empty_alpha
+            alpha.take (First -1) . should_equal empty_alpha
+            alpha.take (First 100) . should_equal alpha
+
+            beta.drop (First 2) . to_vector . should_equal ["C","D","E","F","G","H"]
+            alpha.drop (First 0) . should_equal alpha
+            alpha.drop (First -1) . should_equal alpha
+            alpha.drop (First 100) . should_equal empty_alpha
+
+            beta.take (Last 4) . to_vector . should_equal ["E","F","G","H"]
+            beta.take (Last 0) . should_equal empty_beta
+            beta.take (Last -1) . should_equal empty_beta
+            beta.take (Last 100) . should_equal beta
+
+            alpha.drop (Last 2) . to_vector . should_equal [1,2,3,4,5,6]
+            alpha.drop (Last 0) . should_equal alpha
+            alpha.drop (Last -1) . should_equal alpha
+            alpha.drop (Last 100) . should_equal empty_alpha
+
+        Test.specify "should allow selecting rows by ranges or indices" <|
+            beta.take (Range 2 4) . to_vector . should_equal ["C", "D"]
+            beta.take (Range 0 0) . should_equal empty_beta
+            beta.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+            beta.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
+            beta.take (Range 0 100) . should_equal beta
+            beta.take (Range 0 table.row_count) . should_equal beta
+            empty_beta.take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty_beta.take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            beta.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+            alpha.drop (Range 2 4) . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            alpha.drop (Range 0 0) . should_equal alpha
+            alpha.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
+            alpha.drop (Range 0 100) . should_equal empty_alpha
+            alpha.drop (Range 0 table.row_count) . should_equal empty_alpha
+            empty_alpha.drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty_alpha.drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            alpha.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+            beta.take (Index_Sub_Range.By_Index 0) . to_vector . should_equal ["A"]
+            empty_beta.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            beta.take (Index_Sub_Range.By_Index []) . should_equal empty_beta
+            beta.take (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal ["H", "H"]
+            alpha.take (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            alpha.take (Range 0 100 2) . to_vector . should_equal [1, 3, 5, 7]
+            alpha.take (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            alpha.take (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . to_vector . should_equal [2, 3, 3, 4, 5]
+            alpha.take (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . to_vector . should_equal [3, 4, 5, 2, 3]
+            alpha.take (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+            alpha.drop (Index_Sub_Range.By_Index 0) . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index []) . should_equal alpha
+            alpha.drop (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
+            alpha.drop (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . to_vector . should_equal [2, 3]
+            alpha.drop (Range 0 100 2) . to_vector . should_equal [2, 4, 6, 8]
+            alpha.drop (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . to_vector . should_equal [8]
+            alpha.drop (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+        Test.specify "should allow selecting every Nth row" <|
+            alpha.take (Every 1) . should_equal alpha
+            alpha.take (Every 3) . to_vector . should_equal [1, 4, 7]
+            alpha.take (Every 3 first=1) . to_vector . should_equal [2, 5, 8]
+            beta.take (Every 2 first=1) . to_vector . should_equal ["B", "D", "F", "H"]
+            alpha.take (Every 2 first=100) . to_vector . should_equal []
+            alpha.take (Every 200) . to_vector . should_equal [1]
+            empty_beta.take (Every 2) . should_equal empty_beta
+            beta.take (Every 0) . should_fail_with Illegal_Argument_Error
+            empty_beta.take (Every 0) . should_fail_with Illegal_Argument_Error
+
+            alpha.drop (Every 1) . should_equal empty_alpha
+            alpha.drop (Every 3) . to_vector . should_equal [2, 3, 5, 6, 8]
+            alpha.drop (Every 3 first=1) . to_vector . should_equal [1, 3, 4, 6, 7]
+            alpha.drop (Every 2 first=1) . to_vector . should_equal [1, 3, 5, 7]
+            alpha.drop (Every 2 first=100) . should_equal alpha
+            beta.drop (Every 200) . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
+            empty_beta.drop (Every 2) . should_equal empty_beta
+            beta.drop (Every 0) . should_fail_with Illegal_Argument_Error
+            empty_beta.drop (Every 0) . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should allow sampling rows" <|
+            three = table_builder [["X", ["a", "a", "a"]]] . at "X"
+            two = three.take (First 2)
+            one = three.take First
+            empty = three.take (First 0)
+
+            [three, two, one, empty].map .to_vector . should_equal [["a", "a", "a"], ["a", "a"], ["a"], []]
+
+            three.take (Sample 0) . should_equal empty
+            empty.take (Sample 0) . should_equal empty
+            empty.take (Sample 1) . should_equal empty
+            three.take (Sample 1) . should_equal one
+            three.take (Sample 100) . should_equal three
+
+            three.drop (Sample 0) . should_equal three
+            empty.drop (Sample 0) . should_equal empty
+            empty.drop (Sample 1) . should_equal empty
+            one.drop (Sample 1) . should_equal empty
+            three.drop (Sample 1) . should_equal two
+            three.drop (Sample 100) . should_equal empty
+
+            rnd = alpha.take (Sample 3 seed=42)
+            random_indices = [5, 6, 2]
+            sample = alpha.take (Index_Sub_Range.By_Index random_indices)
+            rnd.should_equal sample
+
+        Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+            col = table_builder [["X", [1, 3, 5, 6, 8, 9, 10, 11, 13]]] . at "X"
+            col.take (While (x-> x%2 == 1)) . to_vector . should_equal [1, 3, 5]
+            col.drop (While (x-> x%2 == 1)) . to_vector . should_equal [6, 8, 9, 10, 11, 13]
+
+            three = table_builder [["X", [1, 2, 3]]] . at "X"
+            empty = table_builder [["X", []]] . at "X"
+            three.take (While (_ > 10)) . should_equal empty
+            three.take (While (_ < 10)) . should_equal three
+
+            three.drop (While (_ > 10)) . should_equal three
+            three.drop (While (_ < 10)) . should_equal empty

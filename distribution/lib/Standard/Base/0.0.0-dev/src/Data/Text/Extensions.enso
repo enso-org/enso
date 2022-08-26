@@ -10,6 +10,7 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 
+import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Text.Text_Sub_Range
 
 from Standard.Base.Error.Problem_Behavior import Report_Warning
@@ -1150,7 +1151,7 @@ Text.drop self range=(First 1) =
         Text_Sub_Range.Codepoint_Ranges _ _ ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Vector.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            inverted = Index_Sub_Range.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
 ## ALIAS lower, upper, title, proper

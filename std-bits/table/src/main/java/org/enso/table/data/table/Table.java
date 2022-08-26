@@ -10,6 +10,7 @@ import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -467,12 +468,21 @@ public class Table {
     return new Table(newColumns, index);
   }
 
-  /** @return a copy of the Column containing a slice of the original data */
+  /** @return a copy of the Table containing a slice of the original data */
   public Table slice(int offset, int limit) {
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(offset, limit);
     }
     return new Table(newColumns, index.slice(offset, limit));
+  }
+
+  /** @return a copy of the Table consisting of slices of the original data */
+  public Table slice(List<SliceRange> ranges) {
+    Column[] newColumns = new Column[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].slice(ranges);
+    }
+    return new Table(newColumns, index.slice(ranges));
   }
 }
