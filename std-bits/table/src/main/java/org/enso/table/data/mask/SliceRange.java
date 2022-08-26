@@ -4,6 +4,7 @@ import java.util.List;
 
 public interface SliceRange {
   int start();
+
   int end();
 
   static int totalLength(List<SliceRange> ranges) {
