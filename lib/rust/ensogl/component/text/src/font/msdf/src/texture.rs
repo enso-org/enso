@@ -145,7 +145,7 @@ mod test {
 
     #[wasm_bindgen_test(async)]
     async fn msdf_translation_converting() {
-        ensogl_text_msdf::initialized().await;
+        crate::initialized().await;
         let mut msdf = Msdf::mock_results();
         msdf.translation = Vector2::new(16.0, 4.0);
 
