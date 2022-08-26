@@ -607,7 +607,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
-        debug!(self.logger, "Manually setting input to {new_input}.");
+        tracing::debug!("Manually setting input to {}.", new_input);
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
         let new_expr = parsed_input.expression.repr();
@@ -696,6 +696,18 @@ impl Searcher {
         }
     }
 
+    /// Preview the suggestion in the searcher.
+    pub fn preview_entry_as_suggestion(&self, index: usize) {
+        tracing::debug!("Previewing entry: {:?}", index);
+        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
+    }
+
+    /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
+    pub fn preview_suggestion(&self, selected_suggestion: action::Suggestion) {
+        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
+        tracing::debug!("Previewing suggestion: {:?}", selected_suggestion);
+    }
+
     /// Execute given action.
     ///
     /// If the action results in adding new node to the graph, or changing an exiting node, its id
@@ -752,6 +764,20 @@ impl Searcher {
             list.get_cloned(index).ok_or_else(error)?.action
         };
         self.execute_action(action.clone_ref())
+    }
+
+    /// Preview the action in the searcher.
+    #[profile(Task)]
+    pub fn preview_action_by_index(&self, index: usize) -> FallibleResult<()> {
+        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
+        let error = || NoSuchAction { index };
+        let action = {
+            let data = self.data.borrow();
+            let list = data.actions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.action
+        };
+        tracing::debug!("Previewing action: {:?}", action);
+        Ok(())
     }
 
     /// Check if the first fragment in the input (i.e. the one representing the called function)
