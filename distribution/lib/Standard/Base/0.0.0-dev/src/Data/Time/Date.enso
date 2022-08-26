@@ -8,7 +8,6 @@ from Standard.Base.Error.Common import Time_Error
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.util.GregorianCalendar
 
 ## Obtains the current date from the system clock in the system timezone.
 
@@ -204,7 +203,7 @@ type Date
 
     ## Returns if the date is in a leap year.
     is_leap_year : Boolean
-    is_leap_year self = GregorianCalendar.new . isLeapYear self.year
+    is_leap_year self = Time_Utils.is_leap_year self
 
     ## Returns the number of days in the year represented by this date.
     length_of_year : Integer
@@ -221,7 +220,7 @@ type Date
 
     ## Returns the number of days in the month represented by this date.
     length_of_month : Integer
-    length_of_month self = Time_Utils.length_of_month_as_localdate self
+    length_of_month self = Time_Utils.length_of_month self
 
     ## Returns the day of the year.
     day_of_year : Integer

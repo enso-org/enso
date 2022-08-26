@@ -106,7 +106,11 @@ public class Time_Utils {
     return date.get(field);
   }
 
-  public static int length_of_month_as_localdate(LocalDate date) {
+  public static boolean is_leap_year(LocalDate date) {
+    return date.isLeapYear();
+  }
+
+  public static int length_of_month(LocalDate date) {
     return date.lengthOfMonth();
   }
 

@@ -6,7 +6,6 @@ from Standard.Base.Error.Common import Time_Error
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.util.GregorianCalendar
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -301,16 +300,15 @@ type Date_Time
 
     ## Returns if the date is in a leap year.
     is_leap_year : Boolean
-    is_leap_year self = GregorianCalendar.new . isLeapYear self.year
+    is_leap_year self = self.date.is_leap_year
 
     ## Returns the number of days in the year represented by this date.
     length_of_year : Integer
-    length_of_year self = if self.is_leap_year then 366 else 365
+    length_of_year self = self.date.length_of_year
 
     ## Returns the century of the date.
     century : Integer
-    century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
-        Error.throw (Illegal_Argument_Error "Century can only be given for AD years.")
+    century self = self.date.century
 
     ## Returns the quarter of the year the date falls into.
     quarter : Integer
