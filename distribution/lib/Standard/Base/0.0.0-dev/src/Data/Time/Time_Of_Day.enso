@@ -1,8 +1,7 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Zone
+from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
@@ -14,7 +13,7 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      Get the current time in the default time zone.
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_now = Time_Of_Day.now
 now : Time_Of_Day
@@ -34,20 +33,20 @@ now = @Builtin_Method "Time_Of_Day.now"
    > Example
      Create a new local time at Unix epoch.
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_epoch = Time_Of_Day.new
 
    > Example
      Get the local time at 9:30.
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_epoch = Time_Of_Day.new hour=9 minute=30
-new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
+new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Panic.catch_java Any (Time_Of_Day.new_builtin hour minute second nanosecond) java_exception->
-        Error.throw (Time.Time_Error java_exception.getMessage)
+        Error.throw (Time_Error java_exception.getMessage)
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -84,35 +83,35 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
    > Example
      Get the time 15:05:30.
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_parse = Time_Of_Day.parse "15:05:30"
 
    > Example
      Recover from the parse error.
 
-         import Standard.Base.Data.Time
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
+         from Standard.Base.Error.Common import Time_Error
 
-         example_parse = Time_Of_Day.parse "half twelve" . catch Time.Time_Error _->
+         example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
              Time_Of_Day.new
 
    > Example
      Parse "04:30:20" as Time_Of_Day.
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_parse = Time_Of_Day.parse "04:30:20" "HH:mm:ss"
 
    > Example
      Parse "4:30AM" as Time_Of_Day
 
-         import Standard.Base.Data.Time.Time_Of_Day
+         from Standard.Base import Time_Of_Day
 
          example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
-parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time.Time_Error
+parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
         case pattern of
             Nothing -> Time_Of_Day.parse_builtin text
             Text    -> Time_Utils.parse_time text pattern locale.java_locale
@@ -134,7 +133,7 @@ type Time_Of_Day
        > Example
          Get the current hour.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_hour = Time_Of_Day.now.hour
     hour : Integer
@@ -145,7 +144,7 @@ type Time_Of_Day
        > Example
          Get the current minute.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_minute = Time_Of_Day.now.minute
     minute : Integer
@@ -156,7 +155,7 @@ type Time_Of_Day
        > Example
          Get the current second.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_second = Time_Of_Day.now.second
     second : Integer
@@ -167,7 +166,7 @@ type Time_Of_Day
        > Example
          Get the current nanosecond.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
     nanosecond : Integer
@@ -178,7 +177,7 @@ type Time_Of_Day
        > Example
          Convert the current time into elapsed seconds in the day.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_to_seconds = Time_Of_Day.now.to_seconds
     to_seconds : Integer
@@ -193,11 +192,11 @@ type Time_Of_Day
        > Example
          Convert local time to 1st January 2020 12:30 at system timezone.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
-    to_time : Date -> Zone -> Time
-    to_time self date (zone=Zone.system) = self.to_time_builtin date zone
+    to_time : Date -> Time_Zone -> Time
+    to_time self date (zone=Time_Zone.system) = self.to_time_builtin date zone
 
     ## Add the specified amount of time to this instant to get a new instant.
 
@@ -206,12 +205,12 @@ type Time_Of_Day
 
        > Example
 
+             from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
-             import Standard.Base.Data.Time.Time_Of_Day
 
              example_plus = Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
+    + self amount = if amount.is_date then Error.throw (Time_Error "Time_Of_Day does not support date intervals") else
         Time_Utils.time_adjust self Time_Utils.AdjustOp.PLUS amount.internal_duration
 
     ## Subtract the  specified amount of time from this instant to get a new
@@ -223,12 +222,12 @@ type Time_Of_Day
        > Example
          Subtract 12 hours from a local time.
 
+             from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
-             import Standard.Base.Data.Time.Time_Of_Day
 
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
-    - self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
+    - self amount = if amount.is_date then Error.throw (Time_Error "Time_Of_Day does not support date intervals") else
         Time_Utils.time_adjust self Time_Utils.AdjustOp.MINUS amount.internal_duration
 
     ## Format this time of day as text using the default formatter.
@@ -236,7 +235,7 @@ type Time_Of_Day
        > Example
          Convert the current time to text.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_to_text = Time_Of_Day.now.to_text
     to_text : Text
@@ -247,7 +246,7 @@ type Time_Of_Day
        > Example
          Convert the current time to JSON.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_to_json = Time_Of_Day.now.to_text
     to_json : Json.Object
@@ -268,35 +267,35 @@ type Time_Of_Day
        > Example
          Format "16:21:10" as "16:21:00.1234"
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "HH:mm:ss.SSSS"
 
        > Example
          Format "16:21:10" as "16:21:00.123456789"
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "HH:mm:ss.n"
 
        > Example
          Format "16:21:10" as "4:21pm"
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "h:mma"
 
        > Example
          Format "16:21:10" as "04:21:10pm"
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "hh:mm:ssa"
 
        > Example
          Format "16:21:10" as "hour:4"
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
@@ -310,7 +309,7 @@ type Time_Of_Day
        > Example
          Compare two times for their ordering.
 
-             import Standard.Base.Data.Time.Time_Of_Day
+             from Standard.Base import Time_Of_Day
 
              example_compare_to =
                  time_1 = Time_Of_Day.new hour=2 minute=30

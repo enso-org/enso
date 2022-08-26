@@ -1,8 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date_Time
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
 
 import Standard.Table
 from Standard.Table import Column, Data_Formatter, Quote_Style
@@ -140,15 +136,15 @@ spec =
             formatter = Data_Formatter
             formatter.format (Date.new 2022) . should_equal "2022-01-01"
             formatter.format (Date_Time.new 1999) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=Zone.utc) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=(Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999 zone=Time_Zone.utc) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00"
             formatter.format (Time_Of_Day.new) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
             formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [z]"] time_formats=["h:mma"] datetime_locale=Locale.uk
             formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
-            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Zone.utc) . should_equal "03/02/1999 04:56 UTC"
-            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
+            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Time_Zone.utc) . should_equal "03/02/1999 04:56 UTC"
+            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
             formatter.format (Time_Of_Day.new 13 55) . should_equal "1:55pm"
 
         Test.specify "should act as identity on Text" <|

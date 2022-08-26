@@ -19,16 +19,15 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
 import java.time.zone.ZoneRulesException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-@Builtin(pkg = "date", name = "Zone", stdlibName = "Standard.Base.Data.Time.Zone")
-public final class EnsoZone implements TruffleObject {
+@Builtin(pkg = "date", name = "TimeZone", stdlibName = "Standard.Base.Data.Time.Time_Zone")
+public final class EnsoTimeZone implements TruffleObject {
   private final ZoneId zone;
 
-  public EnsoZone(ZoneId zone) {
+  public EnsoTimeZone(ZoneId zone) {
     this.zone = zone;
   }
 
@@ -37,30 +36,30 @@ public final class EnsoZone implements TruffleObject {
     return Text.create(this.zone.getId());
   }
 
-  @Builtin.Method(name = "parse_builtin", description = "Parse the ID producing EnsoZone.")
+  @Builtin.Method(name = "parse_builtin", description = "Parse the ID producing a Time_Zone.")
   @Builtin.Specialize
   @Builtin.WrapException(
       from = ZoneRulesException.class,
       to = PolyglotError.class,
       propagate = true)
-  public static EnsoZone parse(String text) {
-    return new EnsoZone(ZoneId.of(text));
+  public static EnsoTimeZone parse(String text) {
+    return new EnsoTimeZone(ZoneId.of(text));
   }
 
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Obtains an instance of `Zone` using an offset in hours, minutes and seconds from the UTC zone.")
+          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.")
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)
-  public static EnsoZone create(long hours, long minutes, long seconds) {
-    return new EnsoZone(
+  public static EnsoTimeZone create(long hours, long minutes, long seconds) {
+    return new EnsoTimeZone(
         ZoneOffset.ofHoursMinutesSeconds(
             Math.toIntExact(hours), Math.toIntExact(minutes), Math.toIntExact(seconds)));
   }
 
   @Builtin.Method(name = "system", description = "The system default timezone.")
-  public static EnsoZone system() {
-    return new EnsoZone(ZoneId.systemDefault());
+  public static EnsoTimeZone system() {
+    return new EnsoTimeZone(ZoneId.systemDefault());
   }
 
   @ExportMessage
@@ -83,14 +82,14 @@ public final class EnsoZone implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(InteropLibrary my, UnresolvedSymbol symbol) {
       Context context = Context.get(my);
-      return symbol.resolveFor(context.getBuiltins().zone(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().timeZone(), context.getBuiltins().any());
     }
 
     @Specialization(
         guards = {"cachedSymbol == symbol", "function != null"},
         limit = "3")
     static Function resolveCached(
-        EnsoZone self,
+        EnsoTimeZone self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @CachedLibrary("self") InteropLibrary mySelf,
@@ -100,7 +99,7 @@ public final class EnsoZone implements TruffleObject {
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        EnsoZone self, UnresolvedSymbol symbol, @CachedLibrary("self") InteropLibrary mySelf)
+        EnsoTimeZone self, UnresolvedSymbol symbol, @CachedLibrary("self") InteropLibrary mySelf)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(mySelf, symbol);
       if (function == null) {

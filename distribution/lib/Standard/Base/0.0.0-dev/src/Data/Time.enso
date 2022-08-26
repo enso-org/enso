@@ -1,9 +1,0 @@
-type Time_Error
-
-    ## UNSTABLE
-
-       An error produced while working with time- and date-related methods.
-
-       Arguments:
-       - error_message: The message for the error.
-    type Time_Error error_message

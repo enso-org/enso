@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Time_Of_Day
 
 import Standard.Table
 from Standard.Table import Data_Formatter
