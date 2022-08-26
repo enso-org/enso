@@ -2,6 +2,7 @@ package org.enso.compiler.test.codegen
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Syntax
+import org.enso.compiler.core.IR.Module.Scope.Definition.SugaredType
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -495,49 +496,37 @@ class AstToIrTest extends CompilerTest with Inside {
   }
 
   "AST translation for atom definitions" should {
-    "work for atoms with no arguments" in {
+    "work for types with no arguments" in {
       val ir =
         """
           |type My_Type
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val tp =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+      tp.name.name shouldEqual "My_Type"
     }
 
-    "work for atoms with arguments" in {
+    "work for types with arguments" in {
       val ir =
         """
-          |type My_Type a b c
+          |type My_Type x
+          |    Data a b c
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val atom = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+        .body
+        .head
+        .asInstanceOf[IR.Module.Scope.Definition.Data]
+      atom.name.name shouldEqual "Data"
       val args = atom.arguments
       args.length shouldEqual 3
       args.head.name.name shouldEqual "a"
       args(1).name.name shouldEqual "b"
       args(2).name.name shouldEqual "c"
-    }
-
-    "work for atoms with default arguments" in {
-      val ir =
-        """
-          |type My_Type (a = 1)
-          |""".stripMargin.toIrModule
-
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
-      atom.name.name shouldEqual "My_Type"
-      val args = atom.arguments
-      args.length shouldEqual 1
-      val firstArg = args.head
-      firstArg.name.name shouldEqual "a"
-      firstArg.ascribedType should not be defined
-      firstArg.defaultValue shouldBe defined
-      firstArg.suspended shouldBe false
     }
 
     "raise an error for atoms with lazy arguments" in {
@@ -554,12 +543,17 @@ class AstToIrTest extends CompilerTest with Inside {
     "work for atoms with ascribed arguments" in {
       val ir =
         """
-          |type My_Type a:b (c : d = 1)
+          |type My_Type
+          |    Data a:b (c : d = 1)
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val atom = ir.bindings.head
+        .asInstanceOf[SugaredType]
+        .body
+        .head
+        .asInstanceOf[IR.Module.Scope.Definition.Data]
+      atom.name.name shouldEqual "Data"
       val args = atom.arguments
       args.length shouldEqual 2
 
@@ -606,7 +600,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |type MyAtom a b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Data]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
     }
 
     "translate complex type defs properly" in {
@@ -614,7 +608,7 @@ class AstToIrTest extends CompilerTest with Inside {
         """
           |type Maybe
           |    Nothing
-          |    type Just a
+          |    Just a
           |
           |    is_just = case this of
           |        Just _  -> true
@@ -630,7 +624,7 @@ class AstToIrTest extends CompilerTest with Inside {
       typeDef.name.name shouldEqual "Maybe"
       typeDef.arguments.length shouldEqual 0
 
-      typeDef.body.head shouldBe an[IR.Name.Literal]
+      typeDef.body.head shouldBe an[IR.Module.Scope.Definition.Data]
       typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Data]
       typeDef.body(2) shouldBe an[IR.Expression.Binding]
       typeDef.body(3) shouldBe an[IR.Function.Binding]
@@ -665,19 +659,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .body(3)
         .asInstanceOf[IR.Error.Syntax]
         .reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
-    }
-
-    "disallow definitions with 'type' arguments" in {
-      val ir =
-        """
-          |type Maybe a
-          |    Nothing
-          |    type Just a
-          |""".stripMargin.toIrModule.bindings.head
-
-      ir shouldBe an[IR.Error.Syntax]
-      ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.InvalidTypeDefinition.type]
     }
 
     "allow defining methods with operator names" in {
@@ -987,7 +968,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Name.Annotation]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Data]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.SugaredType]
     }
 
     "support annotations inside complex type bodies" in {
