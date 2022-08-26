@@ -60,7 +60,7 @@ new year (month = 1) (day = 1) =
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
     Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
-        Polyglot_Error err -> Error.throw (Time_Error err.Message)
+        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         ex -> ex
 
 ## ALIAS Date from Text
@@ -229,7 +229,7 @@ type Date
     ## Returns the day of the week.
     day_of_week : Day_Of_Week
     day_of_week self =
-        Day_Of_Week.from_java_value (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK)
+        Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## ALIAS Date to Time
 

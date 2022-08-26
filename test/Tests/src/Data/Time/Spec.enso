@@ -7,6 +7,7 @@ import project.Data.Time.Time_Of_Day_Spec
 import project.Data.Time.Date_Spec
 import project.Data.Time.Date_Time_Spec
 import project.Data.Time.Time_Zone_Spec
+import project.Data.Time.Day_Of_Week_Spec
 
 spec =
     Date_Spec.spec
@@ -14,5 +15,6 @@ spec =
     Time_Of_Day_Spec.spec
     Date_Time_Spec.spec
     Time_Zone_Spec.spec
+    Day_Of_Week_Spec.spec
 
 main = Test.Suite.run_main spec

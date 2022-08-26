@@ -325,7 +325,7 @@ type Date_Time
     ## Returns the day of the week.
     day_of_week : Day_Of_Week
     day_of_week self =
-        Day_Of_Week.from_java_value (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK)
+        Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## ALIAS Time to Date
 
