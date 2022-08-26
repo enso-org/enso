@@ -262,7 +262,6 @@ function parseCmdArgs() {
 
 let args = parseCmdArgs()
 
-
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
 // borderless on Mac. See https://github.com/enso-org/ide/issues/1101 and

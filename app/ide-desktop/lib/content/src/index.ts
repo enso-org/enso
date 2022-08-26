@@ -776,7 +776,8 @@ class Config {
     public verbose: boolean = false
     public authentication_enabled: boolean = true
     public email: string = undefined
-    public application_config_url: string = 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+    public application_config_url: string =
+        'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
     public test_workflow: string = undefined
     public skip_min_version_check: boolean = Versions.isDevVersion()
     public preferred_engine_version: SemVer = Versions.ideVersion
@@ -792,14 +793,16 @@ class Config {
             let selfVal = self[key]
             if (ok(otherVal)) {
                 if (typeof selfVal === 'boolean') {
-                    let val = tryAsBoolean(otherVal);
+                    let val = tryAsBoolean(otherVal)
                     if (val === null) {
-                        console.error(`Invalid value for ${key}: ${otherVal}. Expected boolean. Reverting to the default value of `)
+                        console.error(
+                            `Invalid value for ${key}: ${otherVal}. Expected boolean. Reverting to the default value of `
+                        )
                     } else {
                         self[key] = val
                     }
                 } else if (selfVal instanceof SemVer) {
-                    let val = semver.parse(otherVal);
+                    let val = semver.parse(otherVal)
                     if (val === null) {
                         console.error(`Invalid value for ${key}: ${otherVal}. Expected semver.`)
                     } else {
@@ -827,7 +830,7 @@ function parseBooleanOrLeaveAsIs(value: any): any {
 
 function tryAsBoolean(value: any): boolean | null {
     value = parseBooleanOrLeaveAsIs(value)
-    return (typeof value == 'boolean') ? value : null
+    return typeof value == 'boolean' ? value : null
 }
 
 function tryAsString(value: any): string {
