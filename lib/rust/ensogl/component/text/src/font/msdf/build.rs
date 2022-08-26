@@ -11,7 +11,7 @@ mod msdfgen_wasm {
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
         project_url: "https://github.com/enso-org/msdfgen-wasm",
-        version:     "v1.1",
+        version:     "v1.4",
         filename:    "msdfgen_wasm.js",
     };
 
@@ -28,9 +28,10 @@ mod msdfgen_wasm {
         PACKAGE.download(path::Path::new("."))
     }
 
-    const PATCH_LINE: &str = "; export { ccall, getValue, _msdfgen_getKerning,\
-        _msdfgen_generateAutoframedMSDF, _msdfgen_result_getMSDFData,\
-        _msdfgen_result_getAdvance, _msdfgen_result_getTranslation,\
+    const PATCH_LINE: &str =
+        "; export { ccall, getValue, _msdfgen_getKerning, _msdfgen_setVariationAxis,\
+        _msdfgen_generateAutoframedMSDF, _msdfgen_generateAutoframedMSDFByIndex, \
+        _msdfgen_result_getMSDFData, _msdfgen_result_getAdvance, _msdfgen_result_getTranslation,\
         _msdfgen_result_getScale, _msdfgen_freeResult, _msdfgen_freeFont,\
         addInitializationCb, isInitialized }";
 

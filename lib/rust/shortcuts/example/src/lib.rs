@@ -5,25 +5,19 @@
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_web as web;
-use enso_shortcuts as shortcuts;
-use enso_shortcuts::Registry;
 use enso_frp as frp;
-use frp::io::keyboard;
-use frp::io::keyboard::Keyboard;
 use enso_logger::AnyLogger;
 use enso_logger::WarningLogger as Logger;
+use enso_shortcuts as shortcuts;
+use enso_shortcuts::Registry;
+use enso_web as web;
+use frp::io::keyboard;
+use frp::io::keyboard::Keyboard;
 
 
 
-#[wasm_bindgen]
+#[entry_point(shortcuts)]
 #[allow(dead_code)]
-pub fn entry_point_shortcuts() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-    main();
-}
-
 pub fn main() {
     let shortcut_registry = shortcuts::AutomataRegistry::<String>::new();
     shortcut_registry.add(shortcuts::Press, "ctrl + a", "hello");

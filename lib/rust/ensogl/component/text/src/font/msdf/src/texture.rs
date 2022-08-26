@@ -2,20 +2,22 @@
 
 use crate::prelude::*;
 
-use ensogl_text_msdf_sys::Msdf;
+use crate::Msdf;
+
+use serde;
 
 
 
-// ====================
-// === MSDF Texture ===
-// ====================
+// ===============
+// === Texture ===
+// ===============
 
 /// MSDF texture data for all loaded glyph of a font.
 ///
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which is ready to be passed
 /// to WebGL `texImage2D`. The texture contains MSDFs for all loaded glyph, organized in vertical
 /// column.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Texture {
     /// A plain data of this texture.
     data: Rc<RefCell<Vec<u8>>>,
@@ -143,7 +145,7 @@ mod test {
 
     #[wasm_bindgen_test(async)]
     async fn msdf_translation_converting() {
-        ensogl_text_msdf_sys::initialized().await;
+        crate::initialized().await;
         let mut msdf = Msdf::mock_results();
         msdf.translation = Vector2::new(16.0, 4.0);
 

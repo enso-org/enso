@@ -28,12 +28,30 @@ extern "C" {
     #[wasm_bindgen(js_name = "_msdfgen_getKerning")]
     pub fn msdfgen_get_kerning(font_handle: JsValue, left_unicode: u32, right_unicode: u32) -> f64;
 
+    // Actually, this method returns bool, but Emscripten does not translate it to JavaScript
+    // boolean type, so we read it here as usize. The 0 value means false, any other means true.
+    #[wasm_bindgen(js_name = "_msdfgen_setVariationAxis")]
+    pub fn msdfgen_set_variation_axis(font_handle: JsValue, name: u32, coordinate: f64) -> usize;
+
     #[wasm_bindgen(js_name = "_msdfgen_generateAutoframedMSDF")]
     pub fn msdfgen_generate_msdf(
         width: usize,
         height: usize,
         font_handle: JsValue,
         unicode: u32,
+        edge_coloring_angle_threshold: f64,
+        range: f64,
+        max_scale: f64,
+        edge_threshold: f64,
+        overlap_support: bool,
+    ) -> JsValue;
+
+    #[wasm_bindgen(js_name = "_msdfgen_generateAutoframedMSDFByIndex")]
+    pub fn msdfgen_generate_msdf_by_index(
+        width: usize,
+        height: usize,
+        font_handle: JsValue,
+        index: usize,
         edge_coloring_angle_threshold: f64,
         range: f64,
         max_scale: f64,

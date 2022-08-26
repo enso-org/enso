@@ -819,6 +819,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f609ceb2c41b0d0277314a789ef0e7eb14593d5485f7c67320bed3924ebb1b33"
+dependencies = [
+ "bincode_derive",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "913287a8f3e00db4c7ae1b87e9b9b8cebd6b89217eaadfc281fa5c897da35dc3"
+dependencies = [
+ "virtue",
+]
+
+[[package]]
 name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1604,7 +1622,7 @@ dependencies = [
  "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-group",
  "wasm-bindgen",
 ]
@@ -1619,7 +1637,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-group",
  "ide-view-component-list-panel",
  "js-sys",
@@ -1644,7 +1662,7 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view",
  "parser",
  "span-tree",
@@ -1659,7 +1677,7 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view",
  "js-sys",
  "nalgebra 0.26.2",
@@ -1945,6 +1963,7 @@ version = "0.1.0"
 dependencies = [
  "path-clean",
  "reqwest 0.10.10",
+ "serde",
 ]
 
 [[package]]
@@ -2073,7 +2092,7 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "failure",
  "flo_stream",
  "futures 0.3.21",
@@ -2122,6 +2141,7 @@ version = "0.3.1"
 dependencies = [
  "enso-prelude",
  "enso-shapely",
+ "ifmt",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -2141,7 +2161,7 @@ dependencies = [
 name = "enso-metamodel"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "derivative",
  "derive_more",
 ]
@@ -2150,7 +2170,7 @@ dependencies = [
 name = "enso-metamodel-lexpr"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "derivative",
  "enso-metamodel",
  "enso-reflect",
@@ -2169,7 +2189,7 @@ dependencies = [
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "enso-data-structures",
  "enso-metamodel",
  "enso-metamodel-lexpr",
@@ -2200,7 +2220,7 @@ dependencies = [
 name = "enso-parser-jni"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "enso-parser",
  "enso-prelude",
  "jni",
@@ -2231,6 +2251,7 @@ dependencies = [
  "enclose",
  "enso-reflect",
  "enso-shapely",
+ "enso-web",
  "failure",
  "futures 0.3.21",
  "ifmt",
@@ -2337,7 +2358,9 @@ dependencies = [
  "paste 0.1.18",
  "rustversion",
  "shrinkwraprs 0.3.0",
+ "wasm-bindgen",
  "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]
@@ -2398,14 +2421,14 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "console_error_panic_hook",
- "enso-data-structures",
+ "derivative",
  "enso-debug-api",
- "enso-logger",
- "enso-prelude",
+ "enso-shapely",
  "failure",
  "gloo-timers",
  "js-sys",
  "nalgebra 0.26.2",
+ "tracing",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -2470,7 +2493,7 @@ dependencies = [
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "enum_dispatch",
  "failure",
  "itertools 0.10.3",
@@ -2531,7 +2554,7 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl-core",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2592,7 +2615,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-text",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2605,7 +2628,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "itertools 0.10.3",
  "wasm-bindgen",
 ]
@@ -2619,7 +2642,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2629,7 +2652,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2649,7 +2672,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-sequence-diagram",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ensogl-tooltip",
  "futures 0.3.21",
  "qstring",
@@ -2673,7 +2696,7 @@ dependencies = [
  "ensogl-flame-graph",
  "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ensogl-tooltip",
  "futures 0.3.21",
  "wasm-bindgen",
@@ -2688,7 +2711,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-scroll-area",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2708,7 +2731,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2738,7 +2761,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2819,7 +2842,6 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
- "ensogl-text-embedded-fonts",
 ]
 
 [[package]]
@@ -2907,6 +2929,7 @@ dependencies = [
 name = "ensogl-text"
 version = "0.1.0"
 dependencies = [
+ "bincode 2.0.0-rc.1",
  "const_format",
  "enso-frp",
  "enso-prelude",
@@ -2915,7 +2938,11 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-font-family",
+ "ensogl-text-msdf",
+ "ordered-float",
+ "owned_ttf_parser",
+ "serde",
  "wasm-bindgen-test",
  "xi-rope",
 ]
@@ -2926,25 +2953,34 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
- "ensogl-text-embedded-fonts-names",
+ "ensogl-text-font-family",
+ "owned_ttf_parser",
  "zip 0.5.13",
 ]
 
 [[package]]
-name = "ensogl-text-embedded-fonts-names"
+name = "ensogl-text-font-family"
 version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "owned_ttf_parser",
+]
 
 [[package]]
-name = "ensogl-text-msdf-sys"
+name = "ensogl-text-msdf"
 version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "enso-types",
  "ensogl-text-embedded-fonts",
- "ensogl-text-embedded-fonts-names",
+ "ensogl-text-font-family",
+ "failure",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
+ "owned_ttf_parser",
+ "serde",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -3827,7 +3863,7 @@ dependencies = [
  "anyhow",
  "async-compression",
  "async-trait",
- "bincode",
+ "bincode 1.3.3",
  "byte-unit",
  "bytes 1.1.0",
  "cached 0.34.0",
@@ -3919,7 +3955,7 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
@@ -4002,7 +4038,7 @@ dependencies = [
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "failure",
  "js-sys",
  "nalgebra 0.26.2",
@@ -5003,6 +5039,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "owned_ttf_parser"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07ef1a404ae479dd6906f4fa2c88b3c94028f1284beb42a47c183a7c27ee9a3e"
+dependencies = [
+ "ttf-parser",
+]
+
+[[package]]
 name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5782,6 +5827,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "pin-project-lite 0.2.9",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "tokio 0.2.25",
  "tokio-tls 0.3.1",
@@ -7110,6 +7156,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
+name = "ttf-parser"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b3e06c9b9d80ed6b745c7159c40b311ad2916abb34a49e9be2653b90db0d8dd"
+
+[[package]]
 name = "typeable"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7289,6 +7341,12 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "virtue"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "757cfbfe0d17ee6f22fe97e536d463047d451b47cf9d11e2b7d1398b0ef274dd"
 
 [[package]]
 name = "void"

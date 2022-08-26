@@ -18,7 +18,6 @@
 
 #[cfg(feature = "futures")]
 pub mod channel;
-mod clone;
 mod collections;
 mod data;
 pub mod debug;
@@ -47,10 +46,11 @@ mod wrapper;
 #[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
-pub use clone::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
+pub use enso_shapely::clone_ref::*;
+pub use enso_shapely::impl_clone_ref_as_clone;
 pub use fail::*;
 pub use leak::Leak;
 pub use leak::*;
@@ -125,18 +125,37 @@ pub const INFO: tracing::Level = tracing::Level::INFO;
 pub const DEBUG: tracing::Level = tracing::Level::DEBUG;
 pub const TRACE: tracing::Level = tracing::Level::TRACE;
 
+
+use std::sync::Once;
+
+/// Tracing's `set_global_default` can be called only once. When running tests this can fail if
+/// not fenced.
+static TRACING_INIT_ONCE: Once = Once::new();
+
 pub fn init_tracing(level: tracing::Level) {
-    #[cfg(not(target_arch = "wasm32"))]
-    let subscriber =
-        tracing::fmt().compact().with_target(false).with_max_level(level).without_time().finish();
-    #[cfg(target_arch = "wasm32")]
-    let subscriber = {
-        use tracing_subscriber::layer::SubscriberExt;
-        use tracing_wasm::*;
-        let config = WASMLayerConfigBuilder::new().set_max_level(level).build();
-        tracing::Registry::default().with(WASMLayer::new(config))
-    };
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
+    TRACING_INIT_ONCE.call_once(|| {
+        #[cfg(not(target_arch = "wasm32"))]
+        let subscriber = tracing::fmt()
+            .compact()
+            .with_target(false)
+            .with_max_level(level)
+            .without_time()
+            .finish();
+        #[cfg(target_arch = "wasm32")]
+        let subscriber = {
+            use tracing_subscriber::layer::SubscriberExt;
+            use tracing_wasm::*;
+            let config = WASMLayerConfigBuilder::new().set_max_level(level).build();
+            tracing::Registry::default().with(WASMLayer::new(config))
+        };
+        tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
+    });
+}
+
+pub fn init_wasm() {
+    init_tracing(WARN);
+    enso_web::forward_panic_hook_to_console();
+    enso_web::set_stack_trace_limit();
 }
 
 
@@ -209,6 +228,12 @@ pub trait ToImpl: Sized {
     }
 }
 impl<T> ToImpl for T {}
+
+
+
+// ================
+// === Nalgebra ===
+// ================
 
 #[cfg(feature = "nalgebra")]
 impl<T, R, C, S> TypeDisplay for nalgebra::Matrix<T, R, C, S>

@@ -31,7 +31,7 @@ wasm-bindgen = { version = "0.2.78" }
 wasm-bindgen-test = { version = "0.3.8" }
 
 [build-dependencies]
-enso-build-utilities = { path = "../../../../lib/rust/build-utils" }
+enso-build-utilities = { path = "../../../../build/build-utils" }
 bytes = { version = "0.5.4" }
 futures = { version = "0.3.1" }
 reqwest = { version = "0.10.1" }

@@ -29,7 +29,7 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
 use ensogl_selector::Bounds;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 
 
 

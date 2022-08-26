@@ -9,10 +9,11 @@ crate-type = ["cdylib", "rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-enso-prelude = { path = "../../../../prelude" }
-ensogl-text-embedded-fonts-names = { path = "names" }
+enso-prelude = { path = "../../../../../../prelude" }
+ensogl-text-font-family = { path = "../../font/family" }
 
 [build-dependencies]
-enso-build-utilities = { path = "../../../../build-utils" }
-ensogl-text-embedded-fonts-names = { path = "names" }
+enso-build-utilities = { path = "../../../../../../../../build/build-utils" }
+ensogl-text-font-family = { path = "../../font/family" }
 zip = { version = "0.5" }
+owned_ttf_parser = "0.15.1"
