@@ -139,11 +139,6 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
-  public int getCurrentCapacity() {
-    return data.length;
-  }
-
-  @Override
   public Storage seal() {
     if (isDouble) {
       return new DoubleStorage(data, currentSize, isMissing);

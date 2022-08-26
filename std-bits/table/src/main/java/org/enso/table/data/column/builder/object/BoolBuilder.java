@@ -66,11 +66,6 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public int getCurrentCapacity() {
-    return vals.size();
-  }
-
-  @Override
   public void writeTo(Object[] items) {
     for (int i = 0; i < size; i++) {
       if (isNa.get(i)) {

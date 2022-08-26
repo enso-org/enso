@@ -45,9 +45,9 @@ public abstract class Storage {
   /**
    * Enumerating possible storage types.
    *
-   * <p>Keep in sync with variables in {@code Standard.Table.Data.Column}. These variables are copied between Enso
-   * and Java code, in order to make them trivially constant on the Enso side, without invoking the
-   * polyglot machinery to access them.
+   * <p>Keep in sync with variables in {@code Standard.Table.Data.Column}. These variables are
+   * copied between Enso and Java code, in order to make them trivially constant on the Enso side,
+   * without invoking the polyglot machinery to access them.
    */
   public static final class Type {
     public static final int OBJECT = 0;

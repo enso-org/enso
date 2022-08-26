@@ -31,6 +31,7 @@ public class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   private static final MapOpStorage<SpecializedStorage<Object>> ops = buildObjectOps();
+
   static <S extends SpecializedStorage<?>> MapOpStorage<S> buildObjectOps() {
     MapOpStorage<S> ops = new MapOpStorage<>();
     ops.add(

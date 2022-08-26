@@ -180,11 +180,6 @@ public class InferredBuilder extends Builder {
   }
 
   @Override
-  public int getCurrentCapacity() {
-    return 0;
-  }
-
-  @Override
   public Storage seal() {
     if (currentBuilder == null) {
       initBuilderFor(null);

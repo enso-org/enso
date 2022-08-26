@@ -61,11 +61,6 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public int getCurrentCapacity() {
-    return data.length;
-  }
-
-  @Override
   public Storage seal() {
     return new ObjectStorage(data, currentSize);
   }
