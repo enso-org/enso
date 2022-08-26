@@ -315,9 +315,9 @@ public class Builtins {
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<Function> getBuiltinFunction(Type type, String methodName, Language language) {
+  public Optional<Function> getBuiltinFunction(String type, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type.getName());
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
     if (clazz == null) return Optional.empty();
@@ -328,6 +328,10 @@ public class Builtins {
       e.printStackTrace();
       return Optional.empty();
     }
+  }
+
+  public Optional<Function> getBuiltinFunction(Type type, String methodName, Language language) {
+    return getBuiltinFunction(type.getName(), methodName, language);
   }
 
   public <T extends Builtin> T getBuiltinType(Class<T> clazz) {

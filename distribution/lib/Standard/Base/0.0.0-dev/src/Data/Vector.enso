@@ -92,10 +92,10 @@ new_builder (capacity=10) = Builder.new capacity
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
 from_polyglot_array : Any -> Vector Any
-from_polyglot_array arr = Vector (Proxy_Polyglot_Array.Proxy_Polyglot_Array arr)
+from_polyglot_array arr = Vector_Data (Proxy_Polyglot_Array.Proxy_Polyglot_Array_Data arr)
 
 ## The basic, immutable, vector type.
-type Vector
+type Vector a
 
     ## ADVANCED
 
@@ -115,13 +115,13 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    type Vector_Data storage
+    Vector_Data storage
 
     ## PRIVATE
     to_array self =
         arr = self.storage.to_array
         case Meta.meta arr of
-            Meta.Primitive _ -> arr
+            Meta.Primitive_Data _ -> arr
             _ ->
                 len = self.storage.length
                 a = Array.new len
@@ -680,15 +680,15 @@ type Vector
          If a `Range`, the selection is specified by two indices, from and to.
     take : (Index_Sub_Range | Range) -> Vector Any
     take self range=(First 1) = case range of
-        Range _ _ _ -> self.take (By_Index range)
+        Range_Data _ _ _ -> self.take (By_Index range)
         First count -> self.slice 0 (Math.min self.length count)
         Last count -> self.slice self.length-count self.length
         While predicate ->
             end = 0.up_to self.length . find i-> (predicate (self.at i)).not
             if end.is_nothing then self else self.slice 0 end
-        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
             indices = case one_or_many_descriptors of
-                Vector _ -> one_or_many_descriptors
+                Vector_Data _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
             trimmed = resolve_ranges indices self.length
             slice_ranges self trimmed
@@ -696,9 +696,9 @@ type Vector
             rng = Random.new seed
             Random.sample self count rng
         Every step start ->
-            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 if start >= self.length then [] else
-                    range = Range start self.length step
+                    range = Range_Data start self.length step
                     self.take (By_Index range)
 
     ## Creates a new vector with only the specified range of elements from the
@@ -711,15 +711,15 @@ type Vector
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range) -> Vector Any
     drop self range=(First 1) = case range of
-        Range _ _ _ -> self.drop (By_Index range)
+        Range_Data _ _ _ -> self.drop (By_Index range)
         First count -> self.slice count self.length
         Last count -> self.slice 0 self.length-count
         While predicate ->
             end = 0.up_to self.length . find i-> (predicate (self.at i)).not
             if end.is_nothing then [] else self.slice end self.length
-        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
             indices = case one_or_many_descriptors of
-                Vector _ -> one_or_many_descriptors
+                Vector_Data _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
             trimmed = resolve_ranges indices self.length
             normalized = normalize_ranges trimmed
@@ -730,9 +730,9 @@ type Vector
             indices_to_drop = Random.random_indices self.length count rng
             self.drop (By_Index indices_to_drop)
         Every step start ->
-            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 if start >= self.length then self else
-                    range = Range start self.length step
+                    range = Range_Data start self.length step
                     self.drop (By_Index range)
 
     ## Performs a pair-wise operation passed in `function` on consecutive
@@ -1017,7 +1017,7 @@ type Builder
          and get wrong error propagation. Instead we may want to have a `Ref`
          inside of the Builder. Any error detected during `append` could set
          that `Ref` and then `to_vector` could propagate that error.
-    type Builder_Data java_builder
+    Builder_Data java_builder
 
     ## Creates a new builder.
 
@@ -1192,15 +1192,15 @@ resolve_ranges ranges length =
     trim descriptor = case descriptor of
         Integer ->
             actual_index = if descriptor < 0 then length + descriptor else descriptor
-            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor length) else
+            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error_Data descriptor length) else
                 actual_index
-        Range start end step ->
-            if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
-                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
-                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error start length) else
+        Range_Data start end step ->
+            if step <= 0 then Panic.throw (Illegal_Argument_Error_Data "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error_Data "Range start and end must not be negative.") else
+                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error_Data start length) else
                         actual_end = Math.min end length
-                        if actual_end < start then Range start start step else
-                            Range start actual_end step
+                        if actual_end < start then Range_Data start start step else
+                            Range_Data start actual_end step
     ranges.map trim
 
 ## PRIVATE
@@ -1214,7 +1214,7 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 Integer -> [vector.unsafe_at ranges.first]
-                Range start end step -> case step == 1 of
+                Range_Data start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
@@ -1223,12 +1223,12 @@ slice_ranges vector ranges =
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         Integer -> acc+1
-        Range _ _ _ -> acc+descriptor.length
+        Range_Data _ _ _ -> acc+descriptor.length
     builder = new_builder new_length
     ranges.each descriptor-> case descriptor of
         Integer ->
             builder.append (vector.unsafe_at descriptor)
-        Range start end step -> case step == 1 of
+        Range_Data start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->
@@ -1243,11 +1243,11 @@ slice_many_ranges vector ranges =
    single-element ranges.
 normalize_ranges descriptors =
     normalize descriptor = case descriptor of
-        Integer -> [Range descriptor descriptor+1]
-        Range _ _ _ ->
+        Integer -> [Range_Data descriptor descriptor+1]
+        Range_Data _ _ _ ->
             if descriptor.step == 1 then [descriptor] else
                 descriptor.to_vector.map ix->
-                    Range ix ix+1
+                    Range_Data ix ix+1
     descriptors.flat_map normalize
 
 ## PRIVATE
@@ -1266,9 +1266,9 @@ normalize_ranges descriptors =
 invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
 invert_range_selection ranges length needs_sorting =
     sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
-    ranges_with_sentinels = [Range 0 0] + sorted + [Range length length]
+    ranges_with_sentinels = [Range_Data 0 0] + sorted + [Range_Data length length]
     ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
-        Range prev.end next.start
+        Range_Data prev.end next.start
 
 ## PRIVATE
    Returns a new sorted list of ranges where intersecting ranges have been
@@ -1283,7 +1283,7 @@ sort_and_merge_ranges ranges =
         sorted.tail.each range->
             current = current_ref.get
             case range.start <= current.end of
-                True -> current_ref.put (Range current.start (Math.max current.end range.end))
+                True -> current_ref.put (Range_Data current.start (Math.max current.end range.end))
                 False ->
                     builder.append current
                     current_ref.put range

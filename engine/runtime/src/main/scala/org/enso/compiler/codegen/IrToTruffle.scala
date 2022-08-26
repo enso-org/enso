@@ -247,7 +247,7 @@ class IrToTruffle(
             )
           }
         }
-      val tp = moduleScope.getType(tpDef.name.name).get()
+      val tp = moduleScope.getTypes.get(tpDef.name.name)
       tp.generateGetters(atomConstructors.asJava)
     }
 
@@ -492,10 +492,7 @@ class IrToTruffle(
           definitionModule
             .unsafeAsModule()
             .getScope
-            .getType(tp.name)
-            .orElseGet(() =>
-              throw new CompilerError(s"Type ${tp.name} not found in codegen.")
-            )
+            .getTypes.get(tp.name)
         case BindingsMap.ResolvedModule(module) =>
           module.unsafeAsModule().getScope.getAssociatedType
         case BindingsMap.ResolvedConstructor(_, _) =>
@@ -613,7 +610,7 @@ class IrToTruffle(
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>
               val runtimeTp =
-                module.unsafeAsModule().getScope.getType(tp.name).get()
+                module.unsafeAsModule().getScope.getTypes.get(tp.name)
               val fun = mkTypeGetter(runtimeTp)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,

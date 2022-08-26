@@ -79,12 +79,16 @@ public class ExecutionService {
     this.connectedLockManager = connectedLockManager;
   }
 
-  /** @return the language context. */
+  /**
+   * @return the language context.
+   */
   public Context getContext() {
     return context;
   }
 
-  /** @return the execution service logger. */
+  /**
+   * @return the execution service logger.
+   */
   public TruffleLogger getLogger() {
     return logger;
   }
@@ -96,14 +100,12 @@ public class ExecutionService {
     Type type =
         scope
             .getType(typeName)
-            .orElseThrow(
-                () -> new TypeNotFoundException(module.getName().toString(), typeName));
+            .orElseThrow(() -> new TypeNotFoundException(module.getName().toString(), typeName));
     Function function = scope.lookupMethodDefinition(type, methodName);
     if (function == null) {
       throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
-    Object[] arguments =
-        MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {atomConstructor};
+    Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(function, EmptyMap.create(), arguments);
   }
 

@@ -28,7 +28,7 @@ Foo.from (that:Function) = Foo_Data (that 5)
 Foo.from (that:Boolean) = Foo_Data that
 Foo.from (that:Array) = Foo_Data that.length
 
-Not_Foo.from (that:Boolean) = Not_Foo_Data True
+Not_Foo.from (_:Boolean) = Not_Foo_Data True
 Not_Foo.from (_:Any) = Not_Foo_Data "ANY!!!"
 
 Foo.from (_:Quaffle) = Foo_Data "quaffle"

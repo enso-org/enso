@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import all_character_sets, all_encodings
+from Standard.Base.Data.Text.Encoding import all_character_sets, all_encodings, Encoding, Encoding_Data
 
 import Standard.Test
 import Standard.Test.Problems

@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -11,10 +9,8 @@ import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -23,7 +19,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "DateTime", stdlibName = "Standard.Base.Data.Time.Date_Time")
 public final class EnsoDateTime implements TruffleObject {
   private final ZonedDateTime dateTime;
@@ -56,10 +52,7 @@ public final class EnsoDateTime implements TruffleObject {
       name = "parse_builtin",
       description = "Constructs a new DateTime from text with optional pattern")
   @Builtin.Specialize
-  @Builtin.WrapException(
-      from = DateTimeParseException.class,
-      to = PolyglotError.class,
-      propagate = true)
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   public static EnsoDateTime parse(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
     if (time instanceof ZonedDateTime) {
@@ -73,7 +66,7 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(
       name = "new_builtin",
       description = "Constructs a new Date from a year, month, and day")
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   public static EnsoDateTime create(
       long year,
       long month,
@@ -223,40 +216,13 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(InteropLibrary my, UnresolvedSymbol symbol) {
-      Context context = Context.get(my);
-      return symbol.resolveFor(context.getBuiltins().dateTime(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {"cachedSymbol == symbol", "function != null"},
-        limit = "3")
-    static Function resolveCached(
-        EnsoDateTime self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @CachedLibrary("self") InteropLibrary mySelf,
-        @Cached("doResolve(mySelf, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        EnsoDateTime self, UnresolvedSymbol symbol, @CachedLibrary("self") InteropLibrary mySelf)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(mySelf, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().dateTime();
   }
 
   @ExportMessage

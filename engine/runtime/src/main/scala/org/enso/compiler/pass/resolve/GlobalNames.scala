@@ -156,21 +156,6 @@ case object GlobalNames extends IRPass {
                 fun.passData.remove(ExpressionAnnotations)
                 app
               }
-            case Right(res @ BindingsMap.ResolvedType(_, tp)) =>
-              val warned = if (tp.members.nonEmpty) {
-//                lit.addDiagnostic(
-//                  IR.Warning.NonUnitTypeUsedOnValueLevel(
-//                    lit,
-//                    if (isInsideApplication) {
-//                      "a constructor position"
-//                    } else { "an argument position" }
-//                  )
-//                )
-                lit
-              } else {
-                lit
-              }
-              warned.updateMetadata(this -->> BindingsMap.Resolution(res))
             case Right(value) =>
               lit.updateMetadata(this -->> BindingsMap.Resolution(value))
           }
@@ -244,17 +229,6 @@ case object GlobalNames extends IRPass {
     } yield (thisArgPos, funAsVar, cons)
 
     val newApp = appData.flatMap {
-      case (_, _, BindingsMap.ResolvedType(_, tp)) =>
-        if (tp.members.nonEmpty) {
-          Some(
-            app
-              .copy(function = processedFun, arguments = processedArgs)
-//              .addDiagnostic(
-//                IR.Warning
-//                  .NonUnitTypeUsedOnValueLevel(funAsVar, "a qualified call")
-//              )
-          )
-        } else { None }
       case (
             thisArgPos,
             funAsVar,
