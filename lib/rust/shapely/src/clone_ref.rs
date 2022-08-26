@@ -1,13 +1,10 @@
-use crate::*;
-
-
 // ==============
 // === Export ===
 // ==============
 
-pub use enso_shapely::entry_point;
-pub use enso_shapely::CloneRef;
-pub use enso_shapely::NoCloneBecauseOfCustomDrop;
+pub use crate::entry_point;
+pub use crate::CloneRef;
+pub use crate::NoCloneBecauseOfCustomDrop;
 
 
 
@@ -90,11 +87,10 @@ impl_clone_ref_as_clone_no_from!(u32);
 impl_clone_ref_as_clone_no_from!(u64);
 impl_clone_ref_as_clone_no_from!(usize);
 impl_clone_ref_as_clone_no_from!(std::any::TypeId);
-impl_clone_ref_as_clone_no_from!([T] PhantomData<T>);
-impl_clone_ref_as_clone_no_from!([T:?Sized] Rc<T>);
-impl_clone_ref_as_clone_no_from!([T:?Sized] Weak<T>);
+impl_clone_ref_as_clone_no_from!([T] std::marker::PhantomData<T>);
+impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Rc<T>);
+impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Weak<T>);
 
-#[cfg(feature = "wasm-bindgen")]
 impl_clone_ref_as_clone_no_from!(wasm_bindgen::JsValue);
 impl_clone_ref_as_clone_no_from!(web_sys::Element);
 impl_clone_ref_as_clone_no_from!(web_sys::HtmlDivElement);

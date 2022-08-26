@@ -1,0 +1,27 @@
+[package]
+name = "ensogl-text-msdf"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-prelude = { path = "../../../../../../prelude" }
+enso-types = { path = "../../../../../../types" }
+failure = { version = "0.1.6" }
+js-sys = { version = "0.3" }
+nalgebra = { version = "0.26.1" }
+wasm-bindgen = { version = "0.2.78" }
+serde = { version = "1", features = ["rc"] }
+owned_ttf_parser = "0.15.1"
+
+[dev-dependencies]
+wasm-bindgen-test = { version = "0.3.8" }
+futures = { version = "0.3.1" }
+ensogl-text-embedded-fonts = { path = "../../../src/font/embedded" }
+ensogl-text-font-family = { path = "../../../src/font/family" }
+
+[build-dependencies]
+enso-build-utilities = { path = "../../../../../../../../build/build-utils" }

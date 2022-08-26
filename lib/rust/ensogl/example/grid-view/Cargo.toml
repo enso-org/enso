@@ -12,7 +12,7 @@ enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-grid-view = { path = "../../component/grid-view" }
-ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 enso-text = { path = "../../../text" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 itertools = "0.10.3"

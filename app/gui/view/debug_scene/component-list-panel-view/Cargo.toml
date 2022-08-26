@@ -13,7 +13,7 @@ ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
-ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view-component-group = { path = "../../component-browser/component-group" }
 ide-view-component-list-panel = { path = "../../component-browser/searcher-list-panel" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

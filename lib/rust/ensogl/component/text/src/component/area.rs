@@ -12,12 +12,12 @@ use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface;
+use crate::font;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface::glyph;
-use crate::typeface::glyph::Glyph;
+use crate::font::glyph;
+use crate::font::glyph::Glyph;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface::pen;
+use crate::font::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -29,10 +29,6 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
-#[cfg(target_arch = "wasm32")]
-use ensogl_text_embedded_fonts as embedded_fonts;
-#[cfg(target_arch = "wasm32")]
-use ensogl_text_embedded_fonts::Family;
 use std::ops::Not;
 
 
@@ -270,7 +266,7 @@ ensogl_core::define_endpoints! {
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
-        /// Set font in the text area. The name will be looked up in [`typeface::font::Registry`].
+        /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
         /// lines, but also re-load internal structures for rendering (like WebGL buffers,
@@ -612,9 +608,9 @@ impl AreaModel {
         let display_object = display::object::Instance::new(&logger);
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
-            let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load(embedded_fonts::DefaultFamily::mono());
-            let glyph_system = typeface::glyph::System::new(&scene, font);
+            let fonts = scene.extension::<font::Registry>();
+            let font = fonts.load(font::DEFAULT_FONT_MONO);
+            let glyph_system = font::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
         };
@@ -824,7 +820,14 @@ impl AreaModel {
             let next = iter.next();
             let style = line_style.next().unwrap_or_default();
             let chr_size = style.size.raw;
-            let char_info = next.as_ref().map(|t| pen::CharInfo::new(t.1, chr_size));
+            let char_info = next.as_ref().map(|(glyph, ch)| {
+                pen::CharInfo::new(
+                    *ch,
+                    chr_size,
+                    glyph.properties.get(),
+                    glyph.variations.borrow().clone(),
+                )
+            });
             let info = pen.advance(char_info);
 
             cursor_map.get(&column).for_each(|id| {
@@ -843,14 +846,25 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = glyph_system.font.glyph_info(chr);
+                    let glyph_id = glyph_system
+                        .font
+                        .glyph_id_of_code_point(
+                            glyph.properties.get(),
+                            &glyph.variations.borrow(),
+                            chr,
+                        )
+                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
+                    let glyph_info = glyph_system
+                        .font
+                        .glyph_info(glyph.properties.get(), &glyph.variations.borrow(), glyph_id)
+                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    glyph.set_bold(style.bold.raw);
+                    // glyph.set_bold(style.bold.raw); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
                     glyph.set_sdf_bold(style.sdf_bold.raw);
                     glyph.set_font_size(chr_size);
                     match &last_cursor {
@@ -878,6 +892,7 @@ impl AreaModel {
         line.to_string()
     }
 
+    // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
     /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
     /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
     /// character appended, or `content` if not truncated.
@@ -888,32 +903,33 @@ impl AreaModel {
     fn line_truncated_with_ellipsis(
         &self,
         line: &str,
-        font_size: style::Size,
-        max_width_px: f32,
+        _font_size: style::Size,
+        _max_width_px: f32,
     ) -> String {
-        const ELLIPSIS: char = '\u{2026}';
-        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        let mut truncation_point = 0.bytes();
-        let truncate = line.char_indices().any(|(i, ch)| {
-            let char_info = pen::CharInfo::new(ch, font_size.raw);
-            let pen_info = pen.advance(Some(char_info));
-            let next_width = pen_info.offset + char_info.size;
-            if next_width > max_width_px {
-                return true;
-            }
-            let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
-            let char_length: Bytes = ch.len_utf8().into();
-            if next_width + width_of_ellipsis <= max_width_px {
-                truncation_point = Bytes::from(i) + char_length;
-            }
-            false
-        });
-        if truncate {
-            let truncated_content = line[..truncation_point.as_usize()].to_string();
-            truncated_content + String::from(ELLIPSIS).as_str()
-        } else {
-            line.to_string()
-        }
+        // const ELLIPSIS: char = '\u{2026}';
+        // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        // let mut truncation_point = 0.bytes();
+        // let truncate = line.char_indices().any(|(i, ch)| {
+        //     let char_info = pen::CharInfo::new(ch, font_size.raw);
+        //     let pen_info = pen.advance(Some(char_info));
+        //     let next_width = pen_info.offset + char_info.size;
+        //     if next_width > max_width_px {
+        //         return true;
+        //     }
+        //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+        //     let char_length: Bytes = ch.len_utf8().into();
+        //     if next_width + width_of_ellipsis <= max_width_px {
+        //         truncation_point = Bytes::from(i) + char_length;
+        //     }
+        //     false
+        // });
+        // if truncate {
+        //     let truncated_content = line[..truncation_point.as_usize()].to_string();
+        //     truncated_content + String::from(ELLIPSIS).as_str()
+        // } else {
+        //     line.to_string()
+        // }
+        line.to_string()
     }
 
     /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
@@ -1028,9 +1044,9 @@ impl AreaModel {
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
-        let fonts = scene.extension::<typeface::font::Registry>();
+        let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let glyph_system = typeface::glyph::System::new(&scene, font);
+        let glyph_system = font::glyph::System::new(&scene, font);
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
