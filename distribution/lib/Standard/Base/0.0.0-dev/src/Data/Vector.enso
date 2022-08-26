@@ -5,6 +5,10 @@ from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
 import Standard.Base.Polyglot.Proxy_Polyglot_Array
 import Standard.Base.Random
 
+polyglot java import java.util.ArrayList
+polyglot java import java.lang.IndexOutOfBoundsException
+polyglot java import org.enso.base.Array_Utils
+
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
 
@@ -26,9 +30,9 @@ import Standard.Base.Random
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
 new length constructor =
-    arr = Array.new length
-    0.up_to length . each ix-> arr.set_at ix (constructor ix)
-    Vector arr
+    builder = (0.up_to length).fold (new_builder length) builder-> ix->
+        builder.append (constructor ix)
+    builder.to_vector
 
 ## Creates a new vector of the given length, filling the elements with
    the provided constant.
@@ -46,9 +50,9 @@ new length constructor =
          Vector.fill length=50 item=42
 fill : Number -> Any -> Vector Any
 fill length ~item =
-    arr = Array.new length
-    0.up_to length . each ix-> arr.set_at ix item
-    Vector arr
+    builder = (0.up_to length).fold (new_builder length) builder-> _->
+        builder.append item
+    builder.to_vector
 
 ## Creates a new vector builder instance.
 
@@ -63,18 +67,18 @@ fill length ~item =
    - capacity: Initial capacity of the Vector.Builder
 
    > Example
-     Construct a vector using a builder that contains the items 1 to 10.
+     Construct a vector using a builder that contains the items 1 to 5.
 
          example_new_builder =
-              builder = Vector.new_builder 10
+              builder = Vector.new_builder 5
               do_build start stop =
                   builder.append start
                   if start >= stop then Nothing else
                       @Tail_Call do_build start+1 stop
-              do_build 1 10
+              do_build 1 5
               builder.to_vector
 new_builder : Integer -> Builder
-new_builder (capacity=1) = Builder.new capacity
+new_builder (capacity=10) = Builder.new capacity
 
 ## ADVANCED
 
@@ -113,12 +117,12 @@ type Vector
              Vector.fill length=50 item=42
     type Vector storage
 
+    ## PRIVATE
     to_array self =
         arr = self.storage.to_array
-        case arr of
-            Array ->
-                arr
-            _     ->
+        case Meta.meta arr of
+            Meta.Primitive _ -> arr
+            _ ->
                 len = self.storage.length
                 a = Array.new len
                 Array.copy arr 0 a 0 len
@@ -986,8 +990,7 @@ type Builder
        A builder type for Enso vectors.
 
        Arguments:
-       - to_array: The accumulator for the new vector.
-       - length: The current length of the vector being built.
+       - java_builder: The accumulator for the new vector.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
@@ -1007,7 +1010,14 @@ type Builder
                              @Tail_Call do_build new_builder start+1 stop
                      builder = do_build Vector.new_builder 1 10
                      builder.to_vector
-    type Builder to_array length
+
+       ! TODO
+         We may want to revisit the fold pattern - it is required for correct
+         propagation of dataflow errors, but it is very easy to forget about it
+         and get wrong error propagation. Instead we may want to have a `Ref`
+         inside of the Builder. Any error detected during `append` could set
+         that `Ref` and then `to_vector` could propagate that error.
+    type Builder java_builder
 
     ## Creates a new builder.
 
@@ -1019,21 +1029,11 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=1) = Builder (Array.new capacity) 0
-
-    ## Returns the current capacity (i.e. the size of the underlying storage)
-       of this builder.
-
-       > Example
-         Get the capacity of a new builder.
-
-             Vector.new_builder.capacity
-    capacity : Integer
-    capacity self = self.to_array.length
+    new (capacity=10) = Builder (ArrayList.new capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
-    is_empty self = self.length == 0
+    is_empty self = self.java_builder.isEmpty
 
     ## Checks if this builder is not empty.
     not_empty : Boolean
@@ -1056,6 +1056,27 @@ type Builder
             self.unsafe_append item
             self
 
+    ## Appends a part of a given vector to this builder
+
+       Arguments:
+       - vector: The vector from which the elements are sourced.
+       - start: The start index of the range to append.
+       - end: The end index (the first index after the last element to be
+         appended) of the range to be appended.
+
+       > Example
+         Append a part of the vector.
+
+             builder = Vector.new_builder
+             builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
+    append_vector_range : Vector Any ! Error -> Builder ! Error
+    append_vector_range self vector start end =
+        subrange = vector.slice start end
+        ## This workaround is needed because
+           `self.java_builder.addAll subrange.to_array` fails with
+           `Unsupported argument types: [Array]`.
+        Array_Utils.appendToArrayList self.java_builder subrange.to_array
+
     ## PRIVATE
        Appends a new element into this builder.
 
@@ -1075,17 +1096,7 @@ type Builder
 
              Vector.new_builder.unsafe_append 10
     unsafe_append : Any -> Nothing
-    unsafe_append self item = case self.capacity > self.length of
-        True ->
-            self.to_array.set_at self.length item
-            Unsafe.set_atom_field self 1 (self.length + 1)
-        False ->
-            old_array = self.to_array
-            new_array = Array.new old_array.length*2
-            Array.copy old_array 0 new_array 0 old_array.length
-            Unsafe.set_atom_field self 0 new_array
-            self.append item
-            Nothing
+    unsafe_append self item = self.java_builder.add item
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -1096,7 +1107,7 @@ type Builder
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error (self.to_array.at actual_index) _->
+        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds_Error index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
@@ -1107,7 +1118,7 @@ type Builder
 
     exists : (Any -> Boolean) -> Boolean
     exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.to_array.at idx)))
+        0.up_to self.length . exists (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
@@ -1122,10 +1133,10 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector self =
-        old_array = self.to_array
-        new_array = Array.new self.length
-        Array.copy old_array 0 new_array 0 self.length
-        Vector new_array
+        ## This creates a fresh copy of the builders storage, so any future
+           changes to the builder will not affect the returned vector.
+        new_array = self.java_builder.toArray
+        from_polyglot_array new_array
 
 ## UNSTABLE
 
@@ -1211,21 +1222,17 @@ slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         Integer -> acc+1
         Range _ _ _ -> acc+descriptor.length
-    arr = Array.new new_length
-    ranges.fold 0 start_ix-> descriptor-> case descriptor of
+    builder = new_builder new_length
+    ranges.each descriptor-> case descriptor of
         Integer ->
-            arr.set_at start_ix (vector.unsafe_at descriptor)
-            start_ix+1
+            builder.append (vector.unsafe_at descriptor)
         Range start end step -> case step == 1 of
             True ->
-                len = end-start
-                Array.copy vector.to_array start arr start_ix len
-                start_ix+len
+                builder.append_vector_range vector start end
             False ->
-                descriptor.each_with_index within_range_ix-> descriptor_ix->
-                    arr.set_at start_ix+within_range_ix (vector.unsafe_at descriptor_ix)
-                start_ix+descriptor.length
-    Vector arr
+                descriptor.each ix->
+                    builder.append (vector.unsafe_at ix)
+    builder.to_vector
 
 ## PRIVATE
    Takes a list of descriptors and returns a new one where ranges with
