@@ -50,12 +50,12 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_DATE,
     /**
      * The method call should be handled by converting {@code self} to a {@code
-     * Standard.Base.Data.DateTime} and dispatching natively.
+     * Standard.Base.Data.Time.Date_Time} and dispatching natively.
      */
     CONVERT_TO_ZONED_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
-     * Standard.Base.Data.DateTime} with a system Zone and dispatching natively.
+     * Standard.Base.Data.Time.Date_Time} with a system Time_Zone and dispatching natively.
      */
     CONVERT_TO_DATE_TIME,
     /**
@@ -65,9 +65,9 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_TIME_OF_DAY,
     /**
      * The method call should be handled by converting {@code self} to a {@code
-     * Standard.Base.Data.Time.Zone} and dispatching natively.
+     * Standard.Base.Data.Time.Time_Zone} and dispatching natively.
      */
-    CONVERT_TO_ZONE,
+    CONVERT_TO_TIME_ZONE,
     /** The method call should be handled by dispatching through the {@code Any} type. */
     NOT_SUPPORTED;
 
@@ -85,7 +85,7 @@ public abstract class HostMethodCallNode extends Node {
           && this != CONVERT_TO_DATE_TIME
           && this != CONVERT_TO_ZONED_DATE_TIME
           && this != CONVERT_TO_TIME_OF_DAY
-          && this != CONVERT_TO_ZONE;
+          && this != CONVERT_TO_TIME_ZONE;
     }
   }
 
@@ -119,7 +119,7 @@ public abstract class HostMethodCallNode extends Node {
     } else if (library.isTime(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_OF_DAY;
     } else if (library.isTimeZone(self)) {
-      return PolyglotCallType.CONVERT_TO_ZONE;
+      return PolyglotCallType.CONVERT_TO_TIME_ZONE;
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.isMemberInvocable(self, methodName)) {

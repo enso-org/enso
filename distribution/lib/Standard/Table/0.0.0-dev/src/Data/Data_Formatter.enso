@@ -1,7 +1,4 @@
 from Standard.Base import all
-
-from Standard.Base.Data.Time import Date_Time
-from Standard.Base.Data.Time.Time_Of_Day import Time_Of_Day
 import Standard.Base.Error.Common as Errors
 
 from Standard.Table.Data.Column_Type_Selection import Auto

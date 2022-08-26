@@ -1,27 +1,25 @@
 from Standard.Base import all
-
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date_Time
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Zone
 
 import Standard.Test
+
+import project.Data.Time.Date_Part_Spec
 
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    specWith "Date_Time" Date_Time.new Date_Time.parse
-    specWith "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
-    specWith "JavaZonedDateTime" java_datetime java_parse
-    specWith "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with "Date_Time" Date_Time.new Date_Time.parse
+    spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with "JavaZonedDateTime" java_datetime java_parse
+    spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
-specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
+spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 
         Test.specify "should create time" <|
-            time = create_new_datetime 1970 (zone = Zone.utc)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -29,32 +27,32 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should handle errors when creating time" <|
             case create_new_datetime 1970 0 0 . catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 0"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should format using provided pattern" <|
-            text = create_new_datetime 1970 (zone = Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
+            text = create_new_datetime 1970 (zone = Time_Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
             text . should_equal "1970-01-01T00:00:00"
 
         Test.specify "should format using default pattern" <|
-            text = create_new_datetime 1970 (zone = Zone.utc) . to_text
+            text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
             text . should_equal "1970-01-01T00:00:00Z[UTC]"
 
         Test.specify "should convert to Json" <|
-            time = create_new_datetime 1970 12 21 (zone = Zone.utc)
+            time = create_new_datetime 1970 12 21 (zone = Time_Zone.utc)
             time.to_json.should_equal <|
-                zone_pairs = [["zone", Zone.utc]]
+                zone_pairs = [["zone", Time_Zone.utc]]
                 time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
                 Json.from_pairs ([["type", "Time"]] + time_pairs + zone_pairs)
 
         Test.specify "should parse default time format" <|
-            text = create_new_datetime 1970 (zone = Zone.utc) . to_text
+            text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
             time = parse_datetime text
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -63,7 +61,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should parse local time adding system zone" <|
             time = parse_datetime "1970-01-01T00:00:01"
@@ -74,7 +72,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . zone . should_equal Zone.system
+            time . zone . should_equal Time_Zone.system
 
         Test.specify "should parse time Z" <|
             time = parse_datetime "1970-01-01T00:00:01Z"
@@ -107,7 +105,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal (Zone.new 1 . zone_id)
+            time . zone . zone_id . should_equal (Time_Zone.new 1 . zone_id)
 
         Test.specify "should parse time with id-based zone" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00[Europe/Paris]"
@@ -122,7 +120,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -151,22 +149,22 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
         Test.specify "should throw error when parsing custom format" <|
             time = parse_datetime "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
             case time.catch of
-                Time.Time_Error msg ->
+                Time_Error msg ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should get epoch seconds" <|
-            time = create_new_datetime 1970 1 1 0 0 8 (zone = Zone.utc)
+            time = create_new_datetime 1970 1 1 0 0 8 (zone = Time_Zone.utc)
             time . to_epoch_seconds . should_equal 8
 
         Test.specify "should get epoch millis" <|
-            time = create_new_datetime 1970 1 1 0 0 8 (zone = Zone.utc)
+            time = create_new_datetime 1970 1 1 0 0 8 (zone = Time_Zone.utc)
             time . to_epoch_milliseconds . should_equal 8000
 
         Test.specify "should set offset-based timezone" <|
-            tz = Zone.new 1 1 1
-            time = create_new_datetime 1970 (zone = Zone.utc) . at_zone tz
+            tz = Time_Zone.new 1 1 1
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -177,8 +175,8 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . zone . zone_id . should_equal tz.zone_id
 
         Test.specify "should set id-based timezone" <|
-            tz = Zone.parse "Europe/Moscow"
-            time = create_new_datetime 1970 (zone = Zone.utc) . at_zone tz
+            tz = Time_Zone.parse "Europe/Moscow"
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -215,7 +213,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . day . should_equal 1
 
         Test.specify "should add time interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) + 1.nanosecond
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + 1.nanosecond
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -223,10 +221,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 1
-            time . zone . should_equal Zone.utc
+            time . zone . should_equal Time_Zone.utc
 
         Test.specify "should add date interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) + 1.month
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + 1.month
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -234,10 +232,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should add mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) + (1.month + 3.hours)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (1.month + 3.hours)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -245,10 +243,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract time interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) - 1.hour
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - 1.hour
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 31
@@ -256,10 +254,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract date interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) - 1.month
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - 1.month
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -267,10 +265,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) - (1.month - 3.hours)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (1.month - 3.hours)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -278,10 +276,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should support mixed interval operators" <|
-            time = create_new_datetime 1970 (zone = Zone.utc) - 1.month + 12.hours
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - 1.month + 12.hours
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -289,7 +287,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should be comparable" <|
             time_1 = parse_datetime "2021-01-01T00:30:12.7102[UTC]"
@@ -300,8 +298,10 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
-js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Zone.system =
-    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    Date_Part_Spec.spec name create_new_datetime
+
+js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error err.payload.cause))
 
 # This ensures that date returned by javascript has the right timezone specified by the zone parameter.
 # Javascript's toLocaleString will accept the timezone but it will just adapt the datetime while keeping the local timezone.
@@ -309,7 +309,7 @@ js_datetime_with_zone year month day hour minute second nanosecond zone =
     js_set_zone (js_local_datetime_impl year month day hour minute second nanosecond) zone
 
 js_set_zone local_datetime zone =
-    datetime_with_tz = local_datetime.at_zone(zone)
+    datetime_with_tz = local_datetime.at_zone zone
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     datetime_with_tz + diff
 
@@ -323,8 +323,8 @@ js_parse text format=Nothing =
     d = Date_Time.parse text format
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 
-js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Zone.system =
-    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time.Time_Error err.payload.cause))
+js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error err.payload.cause))
     js_set_zone arr.at(0) zone
 
 foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
@@ -333,17 +333,18 @@ foreign js js_array_datetimeCreate year month day hour minute second nanosecond 
     }
     return [ new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000) ];
 
-java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Zone.system =
-    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
 
 maybe_parse_java_zoned text pattern=Nothing =
     if pattern == Nothing then ZonedDateTime.parse text else
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    if pattern == Nothing then Panic.catch Polyglot_Error (LocalDateTime.parse text) (_ -> Error.throw (Time.Time_Error original_error.payload.cause.getMessage)) else
-        formatter = DateTimeFormatter.ofPattern(pattern)
-        Panic.catch Polyglot_Error (LocalDateTime.parse text formatter) (_ -> Error.throw (Time.Time_Error original_error.payload.cause.getMessage))
+    Panic.catch Polyglot_Error handler=(_ -> Error.throw (Time_Error original_error.payload.cause.getMessage)) <|
+        if pattern.is_nothing then LocalDateTime.parse text else
+            formatter = DateTimeFormatter.ofPattern pattern
+            LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)
 
 java_parse date_text_raw pattern=Nothing =
   utc_replaced = date_text_raw.replace "[UTC]" "Z"

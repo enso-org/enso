@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec =
+    Test.group "Day_Of_Week conversions" <|
+        Test.specify "should be able to convert to an Integer" <|
+            Day_Of_Week.Sunday.to_integer . should_equal 1
+            Day_Of_Week.Wednesday.to_integer . should_equal 4
+            Day_Of_Week.Friday.to_integer . should_equal 6
+            Day_Of_Week.Saturday.to_integer . should_equal 7
+
+        Test.specify "should be able to convert from an Integer" <|
+            Day_Of_Week.from 1 . should_equal Day_Of_Week.Sunday
+            Day_Of_Week.from 4 . should_equal Day_Of_Week.Wednesday
+            Day_Of_Week.from 6 . should_equal Day_Of_Week.Friday
+            Day_Of_Week.from 7 . should_equal Day_Of_Week.Saturday
+
+        Test.specify "should be able to convert to an Integer starting at 0" <|
+            Day_Of_Week.Sunday.to_integer start_at_zero=True . should_equal 0
+            Day_Of_Week.Wednesday.to_integer start_at_zero=True . should_equal 3
+            Day_Of_Week.Friday.to_integer start_at_zero=True . should_equal 5
+            Day_Of_Week.Saturday.to_integer start_at_zero=True . should_equal 6
+
+        Test.specify "should be able to convert from an Integer starting at 0" <|
+            Day_Of_Week.from 0 start_at_zero=True . should_equal Day_Of_Week.Sunday
+            Day_Of_Week.from 3 start_at_zero=True . should_equal Day_Of_Week.Wednesday
+            Day_Of_Week.from 5 start_at_zero=True . should_equal Day_Of_Week.Friday
+            Day_Of_Week.from 6 start_at_zero=True . should_equal Day_Of_Week.Saturday
+
+        Test.specify "should be able to convert to an Integer starting on Monday" <|
+            Day_Of_Week.Sunday.to_integer Day_Of_Week.Monday . should_equal 7
+            Day_Of_Week.Wednesday.to_integer Day_Of_Week.Monday . should_equal 3
+            Day_Of_Week.Friday.to_integer Day_Of_Week.Monday . should_equal 5
+            Day_Of_Week.Saturday.to_integer Day_Of_Week.Monday . should_equal 6
+
+        Test.specify "should be able to convert from an Integer starting on Monday" <|
+            Day_Of_Week.from 7 Day_Of_Week.Monday . should_equal Day_Of_Week.Sunday
+            Day_Of_Week.from 3 Day_Of_Week.Monday . should_equal Day_Of_Week.Wednesday
+            Day_Of_Week.from 5 Day_Of_Week.Monday . should_equal Day_Of_Week.Friday
+            Day_Of_Week.from 6 Day_Of_Week.Monday . should_equal Day_Of_Week.Saturday
+
+        Test.specify "should be able to convert to an Integer starting on Monday at 0" <|
+            Day_Of_Week.Sunday.to_integer Day_Of_Week.Monday True . should_equal 6
+            Day_Of_Week.Wednesday.to_integer Day_Of_Week.Monday True . should_equal 2
+            Day_Of_Week.Friday.to_integer Day_Of_Week.Monday True . should_equal 4
+            Day_Of_Week.Saturday.to_integer Day_Of_Week.Monday True . should_equal 5
+
+        Test.specify "should be able to convert from an Integer starting on Monday at 0" <|
+            Day_Of_Week.from 6 Day_Of_Week.Monday True . should_equal Day_Of_Week.Sunday
+            Day_Of_Week.from 2 Day_Of_Week.Monday True . should_equal Day_Of_Week.Wednesday
+            Day_Of_Week.from 4 Day_Of_Week.Monday True . should_equal Day_Of_Week.Friday
+            Day_Of_Week.from 5 Day_Of_Week.Monday True . should_equal Day_Of_Week.Saturday
+
+main = Test.Suite.run_main spec
