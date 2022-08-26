@@ -46,10 +46,11 @@
 
 use enso_prelude::*;
 
-use owned_ttf_parser::Style;
-use owned_ttf_parser::Weight;
-use owned_ttf_parser::Width;
 use std::collections::HashMap;
+
+pub use owned_ttf_parser::Style;
+pub use owned_ttf_parser::Weight;
+pub use owned_ttf_parser::Width;
 
 
 
@@ -184,43 +185,4 @@ impl NonVariableFaceHeader {
     pub fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
     }
-}
-
-
-
-// ======================
-// === Embedded Fonts ===
-// ======================
-
-/// List of embedded fonts. For now this list is hardcoded, but it should be generated from the
-/// build.rs script in the future.
-pub fn font_family_files_map() -> HashMap<Name, Definition> {
-    let mut map = HashMap::new();
-    let mplus1 = Definition::Variable(VariableDefinition::new("MPLUS1[wght].ttf"));
-    let dejavusans = Definition::NonVariable(NonVariableDefinition::from_iter([
-        (
-            NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
-            "DejaVuSans.ttf".to_string(),
-        ),
-        (
-            NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
-            "DejaVuSans-Bold.ttf".to_string(),
-        ),
-    ]));
-    let dejavusansmono = Definition::NonVariable(NonVariableDefinition::from_iter([
-        (
-            NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
-            "DejaVuSansMono.ttf".to_string(),
-        ),
-        (
-            NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
-            "DejaVuSansMono-Bold.ttf".to_string(),
-        ),
-    ]));
-    map.insert("mplus1".into(), mplus1);
-    map.insert("dejavusans".into(), dejavusans.clone());
-    map.insert("dejavusansmono".into(), dejavusansmono.clone());
-    map.insert("default".into(), dejavusans);
-    map.insert("default-mono".into(), dejavusansmono);
-    map
 }

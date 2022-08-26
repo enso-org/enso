@@ -42,17 +42,7 @@ pub fn main() {
 
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
-    // let font = fonts.load(embedded_fonts::DefaultFamily::regular());
-    // FIXME: support different names
-    // let font = fonts.load("DejaVuSans");
     let font = fonts.load("mplus1");
-    // for a in 'a'..'z' {
-    //     for b in 'a'..'z' {
-    //         font.kerning(a, b);
-    //     }
-    // }
-
-
     let glyph_system = font::glyph::System::new(&world.default_scene, font);
     let height = 64.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);

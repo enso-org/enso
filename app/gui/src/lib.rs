@@ -138,7 +138,7 @@ mod profile_workflow;
 // ===================
 
 /// IDE startup function.
-#[entry_point]
+#[entry_point(ide)]
 #[profile(Objective)]
 #[allow(dead_code)]
 pub fn main() {

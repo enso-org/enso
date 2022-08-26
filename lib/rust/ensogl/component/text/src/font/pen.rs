@@ -125,7 +125,6 @@ impl Pen {
         self.current_char = next;
         let offset = self.offset;
         AdvanceResult { char: next_char, offset }
-        // panic!()
     }
 }
 

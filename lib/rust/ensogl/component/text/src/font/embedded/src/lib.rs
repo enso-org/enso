@@ -51,7 +51,7 @@ impl Embedded {
     /// Construct and load all the embedded fonts to memory.
     pub fn init_and_load_embedded_fonts() -> Self {
         let data = embedded_fonts_data();
-        let definitions = family::font_family_files_map();
+        let definitions = embedded_family_definitions_ext();
         Self { data, definitions }
     }
 }
@@ -81,4 +81,57 @@ mod test {
         assert_eq!(0x01, example_font[1]);
         assert_eq!(0x1d, example_font[example_font.len() - 1]);
     }
+}
+
+
+// ======================
+// === Embedded Fonts ===
+// ======================
+
+/// List of embedded fonts. The list is extended with hardcoded "DejaVuSans" font. It should be
+/// generated from the build.rs script in the future.
+pub fn embedded_family_definitions_ext() -> HashMap<family::Name, family::Definition> {
+    let mut map = embedded_family_definitions();
+    let dejavusans = family::Definition::NonVariable(family::NonVariableDefinition::from_iter([
+        (
+            family::NonVariableFaceHeader::new(
+                family::Width::Normal,
+                family::Weight::Normal,
+                family::Style::Normal,
+            ),
+            "DejaVuSans.ttf".to_string(),
+        ),
+        (
+            family::NonVariableFaceHeader::new(
+                family::Width::Normal,
+                family::Weight::Bold,
+                family::Style::Normal,
+            ),
+            "DejaVuSans-Bold.ttf".to_string(),
+        ),
+    ]));
+    let dejavusansmono =
+        family::Definition::NonVariable(family::NonVariableDefinition::from_iter([
+            (
+                family::NonVariableFaceHeader::new(
+                    family::Width::Normal,
+                    family::Weight::Normal,
+                    family::Style::Normal,
+                ),
+                "DejaVuSansMono.ttf".to_string(),
+            ),
+            (
+                family::NonVariableFaceHeader::new(
+                    family::Width::Normal,
+                    family::Weight::Bold,
+                    family::Style::Normal,
+                ),
+                "DejaVuSansMono-Bold.ttf".to_string(),
+            ),
+        ]));
+    map.insert("dejavusans".into(), dejavusans.clone());
+    map.insert("dejavusansmono".into(), dejavusansmono.clone());
+    map.insert("default".into(), dejavusans);
+    map.insert("default-mono".into(), dejavusansmono);
+    map
 }

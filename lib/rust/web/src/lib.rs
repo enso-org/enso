@@ -248,7 +248,6 @@ macro_rules! ops {
 
             /// WASM bindings.
             pub mod wasm {
-                // use enso_prelude::*;
                 use super::binding::wasm::*;
                 use super::wasm_traits::*;
                 pub use tracing;
@@ -262,7 +261,6 @@ macro_rules! ops {
 
             /// Mock bindings.
             pub mod mock {
-                // use enso_prelude::*;
                 use super::binding::mock::*;
                 use super::mock_traits::*;
                 pub use tracing;

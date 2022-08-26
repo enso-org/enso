@@ -16,3 +16,4 @@ ensogl-text-font-family = { path = "../../font/family" }
 enso-build-utilities = { path = "../../../../../../../../build/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }
 zip = { version = "0.5" }
+owned_ttf_parser = "0.15.1"

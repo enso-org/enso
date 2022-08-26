@@ -2863,6 +2863,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-font-family",
+ "owned_ttf_parser",
  "zip 0.5.13",
 ]
 

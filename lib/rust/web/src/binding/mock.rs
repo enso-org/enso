@@ -4,8 +4,6 @@
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::boxed_local)]
 
-// use enso_prelude::*;
-
 use crate::prelude::*;
 use std::marker::Unsize;
 
