@@ -184,6 +184,7 @@
 - [Short-hand syntax for `order_by` added.][3643]
 - [Expanded `Table.at` to support index access and added `Table.column_count`
   method.][3644]
+- [Removed `Array.set_at`.][3634]
 - [Added various date part functions to `Date` and `Date_Time`.][3669]
 
 [debug-shortcuts]:
@@ -292,6 +293,7 @@
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
+[3634]: https://github.com/enso-org/enso/pull/3634
 [3669]: https://github.com/enso-org/enso/pull/3669
 
 #### Enso Compiler
@@ -373,7 +375,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3633]: https://github.com/enso-org/enso/pull/3641
+[3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

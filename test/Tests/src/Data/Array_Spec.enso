@@ -2,40 +2,64 @@ from Standard.Base import all
 
 import Standard.Test
 
+polyglot java import java.util.ArrayList
+
 Array.method self = 0
 
-spec = Test.group "Arrays" <|
-    Test.specify "should be able to be converted to a visualization rep" <|
-        arr = Vector.fill 1000 0 . to_array
-        text = arr.to_default_visualization_data
-        json = Json.parse text
-        as_vec = json.into (Vector.Vector Number)
-        as_vec.should_equal <| Vector.fill 100 0
+## Returns an array with the same contents as the given vector, surely backed by
+   the Enso Array primitive.
+make_enso_array vector =
+    enso_array = Array.new vector.length
+    Array.copy vector.to_array 0 enso_array 0 vector.length
+    enso_array
 
+## Returns an array with the same contents as the given vector, surely backed by
+   a Java array.
+make_java_array vector =
+    builder = ArrayList.new
+    vector.each x->
+        builder.add x
+    builder.toArray
+
+test_arrays array_from_vector =
     Test.specify "should allow accessing elements" <|
-        arr = [1, 2, 3] . to_array
+        arr = array_from_vector [1, 2, 3]
         arr.at 0 . should_equal 1
         arr.at 2 . should_equal 3
 
-    Test.specify "should allow setting elements" <|
-        arr = [1, 2, 3] . to_array
-        arr.set_at 1 10
-        arr.at 1 . should_equal 10
-        Vector.from_polyglot_array arr . should_equal [1, 10, 3]
-
     Test.specify "should panic on out of bounds access" <|
-        arr = [1, 2, 3] . to_array
+        arr = array_from_vector [1, 2, 3]
         Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
         Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
-        Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error
 
-    Test.specify "should allow for functional dispatch on a method defined in this module"
-        arr = [1, 2, 3] . to_array
-        arr.method . should_equal 0
+spec =
+    Test.group "Enso Arrays" <|
+        test_arrays make_enso_array
 
-    Test.specify "should propagate dataflow errors" <|
-        err = Error.throw (Illegal_State_Error "Foo")
-        res = Array.new err
-        res . should_fail_with Illegal_State_Error
+        Test.specify "should allow for functional dispatch on a method defined in this module" <|
+            arr = make_enso_array [1, 2, 3]
+            arr.method . should_equal 0
+
+        Test.specify "should propagate dataflow errors" <|
+            err = Error.throw (Illegal_State_Error "Foo")
+            res = Array.new err
+            res . should_fail_with Illegal_State_Error
+
+        Test.specify "should be able to be converted to a visualization rep" <|
+            arr = make_enso_array (Vector.fill 1000 0)
+            text = arr.to_default_visualization_data
+            json = Json.parse text
+            as_vec = json.into (Vector.Vector Number)
+            as_vec.should_equal <| Vector.fill 100 0
+
+    Test.group "Polyglot Arrays" <|
+        test_arrays make_java_array
+
+        Test.specify "should be able to be converted to a visualization rep" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
+            arr = make_java_array (Vector.fill 1000 0)
+            text = arr.to_default_visualization_data
+            json = Json.parse text
+            as_vec = json.into (Vector.Vector Number)
+            as_vec.should_equal <| Vector.fill 100 0
 
 main = Test.Suite.run_main spec
