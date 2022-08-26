@@ -20,10 +20,9 @@ const_format = "0.2.22"
 xi-rope = { version = "0.3.0" }
 owned_ttf_parser = "0.15.1"
 bincode = "2.0.0-rc.1"
-serde = {version = "1", features = ["rc"]}
+serde = { version = "1", features = ["rc"] }
 ordered-float = "3.0.0"
 ensogl-text-font-family = { path = "src/font/family" }
-
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }

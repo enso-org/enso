@@ -64,7 +64,8 @@ pub mod prelude {
     pub use std::ops::Deref;
     pub use std::rc::Rc;
     pub use tracing;
-    pub use tracing::event;
+    pub use tracing::debug;
+    pub use tracing::warn;
 }
 
 
@@ -251,7 +252,7 @@ macro_rules! ops {
                 use super::binding::wasm::*;
                 use super::wasm_traits::*;
                 pub use tracing;
-                pub use tracing::event;
+                pub use tracing::warn;
                 pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
@@ -264,7 +265,7 @@ macro_rules! ops {
                 use super::binding::mock::*;
                 use super::mock_traits::*;
                 pub use tracing;
-                pub use tracing::event;
+                pub use tracing::warn;
                 pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
@@ -550,7 +551,7 @@ ops! { DocumentOps for Document
             let root_elem = self.get_element_by_id(id);
             match root_elem {
                 Some(v) => f(v),
-                None => event!(tracing::Level::WARN,"Failed to get element by ID."),
+                None => warn!("Failed to get element by ID."),
             }
         }
     }
@@ -575,7 +576,7 @@ ops! { NodeOps for Node
         fn append_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
             if self.append_child(node).is_err() {
-                event!(tracing::Level::WARN,warn_msg)
+                warn!(warn_msg)
             };
         }
 
@@ -583,7 +584,7 @@ ops! { NodeOps for Node
             let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
             let first_c = self.first_child();
             if self.insert_before(node, first_c.as_ref()).is_err() {
-                event!(tracing::Level::WARN,warn_msg)
+                warn!(warn_msg)
             }
         }
 
@@ -591,7 +592,7 @@ ops! { NodeOps for Node
             let warn_msg: &str =
                 &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
             if self.insert_before(node, Some(ref_node)).is_err() {
-                event!(tracing::Level::WARN,warn_msg)
+                warn!(warn_msg)
             }
         }
 
@@ -599,7 +600,7 @@ ops! { NodeOps for Node
             if let Some(parent) = self.parent_node() {
                 let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
                 if parent.remove_child(self).is_err() {
-                    event!(tracing::Level::WARN,warn_msg)
+                    warn!(warn_msg)
                 }
             }
         }
@@ -607,7 +608,7 @@ ops! { NodeOps for Node
         fn remove_child_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
             if self.remove_child(node).is_err() {
-                event!(tracing::Level::WARN,warn_msg)
+                warn!(warn_msg)
             }
         }
     }
@@ -631,7 +632,7 @@ ops! { ElementOps for Element
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set attribute {}", values);
             if self.set_attribute(name, value).is_err() {
-                event!(tracing::Level::WARN,warn_msg)
+                warn!(warn_msg)
             }
         }
     }
@@ -655,7 +656,7 @@ ops! { HtmlElementOps for HtmlElement
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set style {}", values);
             if self.style().set_property(name, value).is_err() {
-                event!(tracing::Level::WARN,warn_msg);
+                warn!(warn_msg);
             }
         }
     }

@@ -44,7 +44,7 @@ impl<EventType: crate::event::Type> Slot<EventType> {
     /// Register the event listener if both target and callback are set.
     fn add_if_active(&mut self) {
         if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
-            event!(tracing::Level::DEBUG, "Attaching the callback.");
+            debug!("Attaching the callback.");
             EventType::add_listener(target, function)
         }
     }
@@ -52,7 +52,7 @@ impl<EventType: crate::event::Type> Slot<EventType> {
     /// Unregister the event listener if both target and callback are set.
     fn remove_if_active(&mut self) {
         if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
-            event!(tracing::Level::DEBUG, "Detaching the callback.");
+            debug!("Detaching the callback.");
             EventType::remove_listener(target, function)
         }
     }
