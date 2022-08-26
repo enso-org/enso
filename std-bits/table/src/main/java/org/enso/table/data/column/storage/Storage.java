@@ -12,6 +12,8 @@ import java.util.function.Function;
 
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.Column;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -268,6 +270,9 @@ public abstract class Storage {
 
   /** @return a copy of the storage containing a slice of the original data */
   public abstract Storage slice(int offset, int limit);
+
+  /** @return a copy of the storage consisting of slices of the original data */
+  public abstract Storage slice(List<SliceRange> ranges);
 
   public List<Object> toList() {
     return new StorageListView(this);

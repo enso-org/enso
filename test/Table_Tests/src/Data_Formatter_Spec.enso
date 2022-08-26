@@ -84,6 +84,36 @@ spec =
             formatter.parse "000" . should_equal 0
             formatter.parse "000.0" . should_equal 0.0
 
+        Test.specify "should parse booleans" <|
+            formatter = Data_Formatter
+            formatter.parse "True" . should_equal True
+            formatter.parse "False" . should_equal False
+
+        Test.specify "should allow custom boolean formats" <|
+            formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
+            formatter.parse "YES" . should_equal True
+            formatter.parse "NO" . should_equal False
+            (Data_Formatter true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
+
+        Test.specify "should parse dates" <|
+            formatter = Data_Formatter
+            formatter.parse "2022-01-01" . should_equal (Date.new 2022)
+            formatter.parse "2020-05-07" . should_equal (Date.new 2020 5 7)
+            formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
+            formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-02-03 04:05" . should_equal (Date_Time.new 1999 2 3 4 5 0)
+            formatter.parse "00:00:00" . should_equal (Time_Of_Day.new)
+            formatter.parse "17:34:59" . should_equal (Time_Of_Day.new 17 34 59)
+            formatter.parse "00:00" . should_equal (Time_Of_Day.new)
+            formatter.parse "17:34" datatype=Time_Of_Day . should_equal (Time_Of_Day.new 17 34)
+
+            formatter.parse "00:00:65" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "30:00:65" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" datatype=Date . should_equal Nothing
+            formatter.parse "30:00:65" . should_equal "30:00:65"
+
         Test.specify "should fallback to Text" <|
             formatter = Data_Formatter
             formatter.parse "Text" . should_equal "Text"

@@ -14,6 +14,7 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
@@ -205,6 +206,11 @@ public class Column {
   /** @return a copy of the Column containing a slice of the original data */
   public Column slice(int offset, int limit) {
     return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
+  }
+
+  /** @return a copy of the Column consisting of slices of the original data */
+  public Column slice(List<SliceRange> ranges) {
+    return new Column(name, index.slice(ranges), storage.slice(ranges));
   }
 
   /** @return a column counting value repetitions in this column. */

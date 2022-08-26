@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Random
+import Standard.Base.Runtime.Ref
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -43,3 +44,179 @@ type Index_Sub_Range
        - first: The first entry to include. If it is outside of bounds of the
          input, an error is raised.
     type Every (step:Integer) (first:Integer=0)
+
+## PRIVATE
+   Resolves a vector of ranges or indices into a vector of ranges that fit
+   within a sequence.
+resolve_ranges : Vector (Integer | Range) -> Integer -> Vector Range
+resolve_ranges ranges length =
+    ## Ensures that a descriptor fits within the range of the current
+       vector, trimming it or reporting an error if it is invalid.
+    trim descriptor = case descriptor of
+        Integer ->
+            actual_index = if descriptor < 0 then length + descriptor else descriptor
+            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor length) else
+                actual_index
+        Range start end step ->
+            if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
+                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error start length) else
+                        actual_end = Math.min end length
+                        if actual_end < start then Range start start step else
+                            Range start actual_end step
+    ranges.map trim
+
+## PRIVATE
+   Takes a list of descriptors and returns a new one where ranges with
+   non-unitary step have been replaced with series of ranges covering the same
+   set of indices with step equal to 1, and indices have been replaced with
+   single-element ranges.
+normalize_ranges descriptors =
+    normalize descriptor = case descriptor of
+        Integer -> [Range descriptor descriptor+1]
+        Range _ _ _ ->
+            if descriptor.step == 1 then [descriptor] else
+                descriptor.to_vector.map ix->
+                    Range ix ix+1
+    descriptors.flat_map normalize
+
+## PRIVATE
+   Inverts the selection determined by the input list of ranges.
+
+   The input ranges are assumed to be normalized (i.e. all of them have step
+   equal to 1).
+
+   Arguments:
+   - ranges: The list of ranges determining indices which are selected. The
+     result will be a list of ranges containing all the indices which were not
+     originally selected here.
+   - length: Length of the related sequence.
+   - needs_sorting: Determines if `ranges` need to be sorted and merged or if it
+     can be assumed that they are sorted already.
+invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
+invert_range_selection ranges length needs_sorting =
+    sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
+    ranges_with_sentinels = [Range 0 0] + sorted + [Range length length]
+    ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+        Range prev.end next.start
+
+## PRIVATE
+   Returns a new sorted list of ranges where intersecting ranges have been
+   merged.
+
+   Empty subranges are discarded.
+sort_and_merge_ranges ranges =
+    sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
+    if sorted.is_empty then [] else
+        current_ref = Ref.new sorted.first
+        builder = Vector.new_builder
+        sorted.tail.each range->
+            current = current_ref.get
+            case range.start <= current.end of
+                True -> current_ref.put (Range current.start (Math.max current.end range.end))
+                False ->
+                    builder.append current
+                    current_ref.put range
+        builder.append current_ref.get
+        builder.to_vector
+
+## PRIVATE
+   A helper that implements taking from an arbitrary collection using a set of
+   callbacks.
+
+   Arguments:
+   - length: The length of the collection.
+   - at: An accessor returning ith element of the collection. Used only for
+     `While`.
+   - single_slice: A two argument function that returns a slice of the
+     collection starting from the index `start` (inclusive) and continuing until
+     the `end` (exclusive). The slice operation should be robust to negative
+     indices - if `start` is less than 0 it should just start slicing from the
+     beginning of the collection. If `end` is less than `start`, an empty
+     collection should be returned. If `end` is greater than `length`, the
+     collection should be sliced until the end of the collection. It should
+     avoid copying and just return the original collection if the whole
+     collection is included in the slice. It should never throw out of bounds
+     errors (these are handled at a higher level), but always return some
+     collection, possibly empty.
+   - slice_ranges: A function that takes a vector of ranges and indices and
+     constructs a new collection containing the provided subranges and indices
+     in the provided order. The input ranges do not need to be normalized, so if
+     the method wants to work only with normalized ranges, it must perform
+     normalization on its own.
+   - range: The `Index_Sub_Range` to take from the collection.
+take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
+take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+    Range _ _ _ -> take_helper length at single_slice slice_ranges (By_Index index_sub_range)
+    First count -> single_slice 0 (Math.min length count)
+    Last count -> single_slice length-count length
+    While predicate ->
+        end = 0.up_to length . find i-> (predicate (at i)).not
+        true_end = if end.is_nothing then length else end
+        single_slice 0 true_end
+    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+        indices = case one_or_many_descriptors of
+            Vector.Vector _ -> one_or_many_descriptors
+            _ -> [one_or_many_descriptors]
+        trimmed = resolve_ranges indices length
+        slice_ranges trimmed
+    Sample count seed ->
+        rng = Random.new seed
+        indices_to_take = Random.random_indices length count rng
+        take_helper length at single_slice slice_ranges (By_Index indices_to_take)
+    Every step start ->
+        if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            if start >= length then single_slice 0 0 else
+                range = Range start length step
+                take_helper length at single_slice slice_ranges (By_Index range)
+
+## PRIVATE
+   A helper that implements dropping from an arbitrary collection using a set of
+   callbacks.
+
+   Arguments:
+   - length: The length of the collection.
+   - at: An accessor returning ith element of the collection. Used only for
+     `While`.
+   - single_slice: A two argument function that returns a slice of the
+     collection starting from the index `start` (inclusive) and continuing until
+     the `end` (exclusive). The slice operation should be robust to negative
+     indices - if `start` is less than 0 it should just start slicing from the
+     beginning of the collection. If `end` is less than `start`, an empty
+     collection should be returned. If `end` is greater than `length`, the
+     collection should be sliced until the end of the collection. It should
+     avoid copying and just return the original collection if the whole
+     collection is included in the slice. It should never throw out of bounds
+     errors (these are handled at a higher level), but always return some
+     collection, possibly empty.
+   - slice_ranges: A function that takes a vector of ranges and indices and
+     constructs a new collection containing the provided subranges and indices
+     in the provided order. The function may assume that the ranges have been
+     normalized.
+   - range: The `Index_Sub_Range` to drop from the collection.
+drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
+drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+    Range _ _ _ -> drop_helper length at single_slice slice_ranges (By_Index index_sub_range)
+    First count -> single_slice count length
+    Last count -> single_slice 0 length-count
+    While predicate ->
+        end = 0.up_to length . find i-> (predicate (at i)).not
+        true_end = if end.is_nothing then length else end
+        single_slice true_end length
+    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+        indices = case one_or_many_descriptors of
+            Vector.Vector _ -> one_or_many_descriptors
+            _ -> [one_or_many_descriptors]
+        trimmed = resolve_ranges indices length
+        normalized = normalize_ranges trimmed
+        inverted = invert_range_selection normalized length needs_sorting=True
+        slice_ranges inverted
+    Sample count seed ->
+        rng = Random.new seed
+        indices_to_drop = Random.random_indices length count rng
+        drop_helper length at single_slice slice_ranges (By_Index indices_to_drop)
+    Every step start ->
+        if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            if start >= length then single_slice 0 length else
+                range = Range start length step
+                drop_helper length at single_slice slice_ranges (By_Index range)

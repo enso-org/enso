@@ -2,6 +2,7 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.Column;
 
 import java.util.*;
@@ -98,6 +99,12 @@ public class HashIndex extends Index {
   @Override
   public HashIndex slice(int offset, int limit) {
     var newStorage = items.slice(offset, limit);
+    return new HashIndex(name, newStorage, newStorage.size());
+  }
+
+  @Override
+  public HashIndex slice(List<SliceRange> ranges) {
+    var newStorage = items.slice(ranges);
     return new HashIndex(name, newStorage, newStorage.size());
   }
 }
