@@ -322,7 +322,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONE"
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_ZONE"
       })
   Stateful doConvertZone(
       VirtualFrame frame,
@@ -336,7 +336,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     var ctx = Context.get(this);
     try {
       var hostZone = interop.asTimeZone(self);
-      var dateTime = new EnsoZone(hostZone);
+      var dateTime = new EnsoTimeZone(hostZone);
       Function function = dateDispatch.getFunctionalDispatch(dateTime, symbol);
       arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);

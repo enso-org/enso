@@ -45,7 +45,7 @@ public record TypeWithKind(String baseType, TypeKind kind) {
                     "org.enso.interpreter.runtime.data.EnsoDate",
                     "org.enso.interpreter.runtime.data.EnsoDateTime",
                     "org.enso.interpreter.runtime.data.EnsoTimeOfDay",
-                    "org.enso.interpreter.runtime.data.EnsoZone",
+                    "org.enso.interpreter.runtime.data.EnsoTimeZone",
                     "org.enso.interpreter.runtime.data.ManagedResource",
                     "org.enso.interpreter.runtime.data.Ref",
                     "org.enso.interpreter.runtime.data.text.Text",

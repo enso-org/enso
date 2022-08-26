@@ -1,7 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time
+from Standard.Base.Error.Common import Time_Error
+
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
@@ -658,7 +659,7 @@ type Http
     internal_http_client self =
         builder = HttpClient.newBuilder
         # timeout
-        if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
+        if self.timeout.is_date then Panic.throw (Time_Error "Connection timeout does not support date intervals") else
             builder.connectTimeout self.timeout.internal_duration
         # redirect
         redirect = HttpClient.Redirect
