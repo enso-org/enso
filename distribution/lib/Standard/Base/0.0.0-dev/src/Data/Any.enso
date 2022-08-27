@@ -89,7 +89,7 @@ type Any
                 if langs_match.not then False else o_1.equals o_2
             Pair_Data (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
                 (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
-            ## Pair_Datatructor comparison is covered by the identity equality.
+            ## Constructor comparison is covered by the identity equality.
                Primitive objects should define their own equality.
                Therefore, there are no more cases to handle in self method.
             _ -> False
