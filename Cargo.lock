@@ -1858,7 +1858,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#a961db4c0b33e858b02c05ffdb8a399d401c4b50"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#57d318d149f7da2f7fb9dfd8137ca59ff58f0de9"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1934,7 +1934,7 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#a961db4c0b33e858b02c05ffdb8a399d401c4b50"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#57d318d149f7da2f7fb9dfd8137ca59ff58f0de9"
 dependencies = [
  "anyhow",
  "byte-unit",
@@ -3858,7 +3858,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#a961db4c0b33e858b02c05ffdb8a399d401c4b50"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#57d318d149f7da2f7fb9dfd8137ca59ff58f0de9"
 dependencies = [
  "anyhow",
  "async-compression",
