@@ -1,6 +1,5 @@
----
 name: Engine CI
-"on":
+on:
   push:
     branches:
       - develop
@@ -15,7 +14,7 @@ jobs:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
         with:
-          access_token: "${{ github.token }}"
+          access_token: ${{ github.token }}
   enso-build-cli-ci-gen-job-ci-check-backend-linux:
     name: Engine (linux)
     runs-on:
@@ -25,50 +24,62 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           update-conda: false
-          conda-channels: "anaconda, conda-forge"
+          conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
-        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
-        if: "runner.os == 'Windows'"
+          script: |-
+            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
+            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
+            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+      - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run:
+          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
+          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
+          || :"'
+        if: runner.os == 'Windows'
         shell: cmd
-      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        if: "runner.os != 'Windows'"
+      - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run:
+          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
+          hash-object -t tree /dev/null) < /dev/null) || :"
+        if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
           clean: false
       - name: Build Script Setup
-        run: "./run --help"
+        run: ./run --help
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - run: "./run backend ci-check"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend ci-check
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
-        if: "failure() && runner.os == 'Windows'"
+        if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
-        if: "failure() && runner.os != 'Windows'"
+        if: failure() && runner.os != 'Windows'
       - name: Stdlib test report
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (linux)
-          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
@@ -78,50 +89,62 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           update-conda: false
-          conda-channels: "anaconda, conda-forge"
+          conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
-        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
-        if: "runner.os == 'Windows'"
+          script: |-
+            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
+            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
+            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+      - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run:
+          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
+          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
+          || :"'
+        if: runner.os == 'Windows'
         shell: cmd
-      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        if: "runner.os != 'Windows'"
+      - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run:
+          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
+          hash-object -t tree /dev/null) < /dev/null) || :"
+        if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
           clean: false
       - name: Build Script Setup
-        run: "./run --help"
+        run: ./run --help
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - run: "./run backend ci-check"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend ci-check
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
-        if: "failure() && runner.os == 'Windows'"
+        if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
-        if: "failure() && runner.os != 'Windows'"
+        if: failure() && runner.os != 'Windows'
       - name: Stdlib test report
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (macos)
-          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
@@ -133,50 +156,62 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           update-conda: false
-          conda-channels: "anaconda, conda-forge"
+          conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        if:
+          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
+          Agent')
         with:
           version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: "Workaround for https://github.com/actions/checkout/issues/590 (Windows)"
-        run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
-        if: "runner.os == 'Windows'"
+          script: |-
+            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
+            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
+            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+      - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run:
+          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
+          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
+          || :"'
+        if: runner.os == 'Windows'
         shell: cmd
-      - name: "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)"
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        if: "runner.os != 'Windows'"
+      - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run:
+          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
+          hash-object -t tree /dev/null) < /dev/null) || :"
+        if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
           clean: false
       - name: Build Script Setup
-        run: "./run --help"
+        run: ./run --help
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - run: "./run backend ci-check"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run backend ci-check
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
-        if: "failure() && runner.os == 'Windows'"
+        if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
-        if: "failure() && runner.os != 'Windows'"
+        if: failure() && runner.os != 'Windows'
       - name: Stdlib test report
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (windows)
-          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
 env:
