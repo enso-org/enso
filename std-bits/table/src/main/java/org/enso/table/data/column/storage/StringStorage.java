@@ -1,11 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
-import org.enso.table.data.mask.OrderMask;
+
+import java.util.BitSet;
 
 /** A column storing strings. */
 public class StringStorage extends SpecializedStorage<String> {

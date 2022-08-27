@@ -1,11 +1,12 @@
 package org.enso.table.data.column.builder.object;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.BitSet;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.BitSet;
 
 /** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {

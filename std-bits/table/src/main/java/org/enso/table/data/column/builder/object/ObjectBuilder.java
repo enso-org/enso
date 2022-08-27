@@ -1,8 +1,9 @@
 package org.enso.table.data.column.builder.object;
 
-import java.util.Arrays;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.Arrays;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {

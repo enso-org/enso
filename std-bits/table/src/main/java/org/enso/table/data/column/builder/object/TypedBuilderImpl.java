@@ -16,9 +16,7 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
 
   @Override
   public void writeTo(Object[] items) {
-    for (int i = 0; i < currentSize; i++) {
-      items[i] = data[i];
-    }
+    if (currentSize >= 0) System.arraycopy(data, 0, items, 0, currentSize);
   }
 
   @Override

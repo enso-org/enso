@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.map.text;
 
-import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.error.UnexpectedTypeException;
+
+import java.util.BitSet;
 
 public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
@@ -26,8 +27,7 @@ public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<St
       BitSet newMissing = new BitSet();
       newMissing.set(0, storage.size());
       return new BoolStorage(newVals, newMissing, storage.size(), false);
-    } else if (arg instanceof String) {
-      String argString = (String) arg;
+    } else if (arg instanceof String argString) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -54,8 +54,7 @@ public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<St
 
   @Override
   public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
-    if (arg instanceof StringStorage) {
-      StringStorage v = (StringStorage) arg;
+    if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {

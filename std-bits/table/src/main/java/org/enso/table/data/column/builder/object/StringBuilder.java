@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder.object;
 
-import java.util.Arrays;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 

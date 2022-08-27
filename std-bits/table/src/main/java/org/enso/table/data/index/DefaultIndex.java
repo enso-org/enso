@@ -1,6 +1,5 @@
 package org.enso.table.data.index;
 
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.Column;

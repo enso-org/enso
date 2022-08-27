@@ -1,8 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -11,6 +8,9 @@ import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+
+import java.util.BitSet;
+import java.util.List;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends NumericStorage {
