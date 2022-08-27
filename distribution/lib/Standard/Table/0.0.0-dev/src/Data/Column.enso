@@ -782,7 +782,7 @@ type Column
     storage_type self =
         tp = self.java_column.getStorage.getType
         storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
-            Panic.throw (Illegal_State_Error "Unknown storage type.")
+            Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE
 
