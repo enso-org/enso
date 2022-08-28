@@ -167,11 +167,14 @@ fn split_long_lines(
     max_line_size: usize,
     process_line: &mut impl FnMut(&str) -> Result<(), DataError>,
 ) -> Result<(), DataError> {
-    let it = data_str.char_indices().chunks(max_line_size);
-    for mut index in &it {
-        let first = index.next().expect("first").0;
-        let end = index.last().expect("end").0 + 1;
-        process_line(&data_str[first..end])?;
+    let chunks = data_str.char_indices().chunks(max_line_size);
+    let chunk_boundaries = chunks
+        .into_iter()
+        .filter_map(|mut chunk| {
+            chunk.next().map(|(ix, _)| ix)
+        }).chain(std::iter::once(data_str.len()));
+    for (start, end) in chunk_boundaries.into_iter().tuple_windows() {
+        process_line(&data_str[start..end])?;
     }
     Ok(())
 }
@@ -224,4 +227,15 @@ mod tests {
         assert!(res.is_err());
         assert_eq!(cnt, 4);
     }
+
+    #[test]
+    fn test_emoticons() {
+        let str = "👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧".to_string().repeat(1024);
+        let res = super::split_long_lines(&str, 512, &mut |l| {
+            assert_eq!(l.chars().count(), 512);
+            Ok(())
+        });
+        assert!(res.is_ok());
+    }
+
 }
