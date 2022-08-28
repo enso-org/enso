@@ -1,6 +1,4 @@
 from Standard.Base import all
-
-import Standard.Base.Data.Time
 import Standard.Base.System
 
 polyglot java import java.time.Duration as Java_Duration
@@ -17,8 +15,8 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      An hour interval between two points in time.
 
+         from Standard.Base import Date_Time
          import Standard.Base.Data.Time.Duration
-         import Standard.Base.Data.Time.Date_Time
 
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
 between : Date_Time -> Date_Time -> Duration

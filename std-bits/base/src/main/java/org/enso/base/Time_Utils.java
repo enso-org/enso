@@ -4,6 +4,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
@@ -95,6 +96,22 @@ public class Time_Utils {
       default:
         throw new DateTimeException("Unknown adjust operation");
     }
+  }
+
+  public static int get_field_as_localdate(LocalDate date, TemporalField field) {
+    return date.get(field);
+  }
+
+  public static int get_field_as_zoneddatetime(ZonedDateTime date, TemporalField field) {
+    return date.get(field);
+  }
+
+  public static boolean is_leap_year(LocalDate date) {
+    return date.isLeapYear();
+  }
+
+  public static int length_of_month(LocalDate date) {
+    return date.lengthOfMonth();
   }
 
   public static long week_of_year_localdate(LocalDate date, Locale locale) {

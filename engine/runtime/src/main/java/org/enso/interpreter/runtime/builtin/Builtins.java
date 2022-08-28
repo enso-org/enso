@@ -78,7 +78,7 @@ public class Builtins {
   private final BuiltinAtomConstructor date;
   private final BuiltinAtomConstructor dateTime;
   private final BuiltinAtomConstructor timeOfDay;
-  private final BuiltinAtomConstructor zone;
+  private final BuiltinAtomConstructor timeZone;
   private final BuiltinAtomConstructor warning;
 
   /**
@@ -126,9 +126,9 @@ public class Builtins {
     timeOfDay =
         new BuiltinAtomConstructor(
             this, org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
-    zone =
+    timeZone =
         new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.date.Zone.class);
+            this, org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     special = new Special(language);
     warning = new BuiltinAtomConstructor(this, Warning.class);
   }
@@ -452,21 +452,21 @@ public class Builtins {
   }
 
   /**
-   * Returns the {@code Zone} atom constructor.
+   * Returns the {@code TimeOfDay} atom constructor.
    *
-   * @return the {@code Zone} atom constructor
+   * @return the {@code TimeOfDay} atom constructor
    */
   public AtomConstructor timeOfDay() {
     return timeOfDay.constructor();
   }
 
   /**
-   * Returns the {@code Zone} atom constructor.
+   * Returns the {@code TimeZone} atom constructor.
    *
-   * @return the {@code Zone} atom constructor
+   * @return the {@code TimeZone} atom constructor
    */
-  public AtomConstructor zone() {
-    return zone.constructor();
+  public AtomConstructor timeZone() {
+    return timeZone.constructor();
   }
 
   /**

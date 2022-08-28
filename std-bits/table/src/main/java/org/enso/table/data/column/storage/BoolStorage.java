@@ -1,12 +1,14 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.List;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 
@@ -307,5 +309,23 @@ public class BoolStorage extends Storage {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
+  }
+
+  @Override
+  public BoolStorage slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    BitSet newValues = new BitSet(newSize);
+    BitSet newMissing = new BitSet(newSize);
+    int offset = 0;
+    for (SliceRange range : ranges) {
+      int length = range.end() - range.start();
+      for (int i = 0; i < length; ++i) {
+        newValues.set(offset + i, values.get(range.start() + i));
+        newMissing.set(offset + i, isMissing.get(range.start() + i));
+      }
+      offset += length;
+    }
+
+    return new BoolStorage(newValues, newMissing, newSize, negated);
   }
 }

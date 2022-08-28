@@ -482,15 +482,15 @@ spec =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
-            t_1.take_start 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
-            t_2 = t_1.take_start 2
+            t_2 = t_1.take (First 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
             t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
-            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -499,63 +499,15 @@ spec =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
-            t_1.take_end 10 . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
+            t_1.take (Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
-            t_2 = t_1.take_end 2
+            t_2 = t_1.take (Last 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (Last 2))
             t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
 
-        Test.specify "should allow getting the first / head row" <|
-            i_1 = ['ix', [1, 2, 3]]
-            c_1 = ['col1', [5, 6, 7]]
-            c_2 = ['col2', ["a", Nothing, "c"]]
-            c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
-            expected_i_1 = ['ix', [1]]
-            expected_c_1 = ['col1', [5]]
-            expected_c_2 = ['col2', ["a"]]
-            expected_c_3 = ['col3', [False]]
-            expected_head = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3] . set_index 'ix'
-
-            t_2 = t_1.first
-
-            t_2.index.to_vector . should_equal expected_head.index.to_vector
-            t_2.at 'col1' . to_vector . should_equal (expected_head.at 'col1' . to_vector)
-            t_2.at 'col2' . to_vector . should_equal (expected_head.at 'col2' . to_vector)
-            t_2.at 'col3' . to_vector . should_equal (expected_head.at 'col3' . to_vector)
-
-            empty_ix = ['ix', []]
-            empty_col = ['col_1', []]
-            empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
-
-            empty_table.first.should_fail_with Empty_Error
-
-        Test.specify "should allow getting the last row" <|
-            i_1 = ['ix', [1, 2, 3]]
-            c_1 = ['col1', [5, 6, 7]]
-            c_2 = ['col2', ["a", Nothing, "c"]]
-            c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
-            expected_i_1 = ['ix', [3]]
-            expected_c_1 = ['col1', [7]]
-            expected_c_2 = ['col2', ["c"]]
-            expected_c_3 = ['col3', [Nothing]]
-            expected_last = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3] . set_index 'ix'
-
-            t_2 = t_1.last
-
-            t_2.index.to_vector . should_equal expected_last.index.to_vector
-            t_2.at 'col1' . to_vector . should_equal (expected_last.at 'col1' . to_vector)
-            t_2.at 'col2' . to_vector . should_equal (expected_last.at 'col2' . to_vector)
-            t_2.at 'col3' . to_vector . should_equal (expected_last.at 'col3' . to_vector)
-
-            empty_ix = ['ix', []]
-            empty_col = ['col_1', []]
-            empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
-
-            empty_table.last.should_fail_with Empty_Error
+            t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
 
         Test.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]

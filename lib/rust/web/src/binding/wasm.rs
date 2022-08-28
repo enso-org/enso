@@ -1,6 +1,6 @@
 //! Native bindings to the web-api.
 
-use enso_prelude::*;
+use crate::prelude::*;
 
 
 // ==============

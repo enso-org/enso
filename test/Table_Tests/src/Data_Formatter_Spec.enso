@@ -1,8 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date_Time
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
 
 import Standard.Table
 from Standard.Table import Column, Data_Formatter, Quote_Style
@@ -88,6 +84,36 @@ spec =
             formatter.parse "000" . should_equal 0
             formatter.parse "000.0" . should_equal 0.0
 
+        Test.specify "should parse booleans" <|
+            formatter = Data_Formatter
+            formatter.parse "True" . should_equal True
+            formatter.parse "False" . should_equal False
+
+        Test.specify "should allow custom boolean formats" <|
+            formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
+            formatter.parse "YES" . should_equal True
+            formatter.parse "NO" . should_equal False
+            (Data_Formatter true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
+
+        Test.specify "should parse dates" <|
+            formatter = Data_Formatter
+            formatter.parse "2022-01-01" . should_equal (Date.new 2022)
+            formatter.parse "2020-05-07" . should_equal (Date.new 2020 5 7)
+            formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
+            formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-02-03 04:05" . should_equal (Date_Time.new 1999 2 3 4 5 0)
+            formatter.parse "00:00:00" . should_equal (Time_Of_Day.new)
+            formatter.parse "17:34:59" . should_equal (Time_Of_Day.new 17 34 59)
+            formatter.parse "00:00" . should_equal (Time_Of_Day.new)
+            formatter.parse "17:34" datatype=Time_Of_Day . should_equal (Time_Of_Day.new 17 34)
+
+            formatter.parse "00:00:65" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "30:00:65" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" datatype=Time_Of_Day . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" datatype=Date . should_equal Nothing
+            formatter.parse "30:00:65" . should_equal "30:00:65"
+
         Test.specify "should fallback to Text" <|
             formatter = Data_Formatter
             formatter.parse "Text" . should_equal "Text"
@@ -140,15 +166,15 @@ spec =
             formatter = Data_Formatter
             formatter.format (Date.new 2022) . should_equal "2022-01-01"
             formatter.format (Date_Time.new 1999) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=Zone.utc) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=(Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999 zone=Time_Zone.utc) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00"
             formatter.format (Time_Of_Day.new) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
             formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [z]"] time_formats=["h:mma"] datetime_locale=Locale.uk
             formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
-            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Zone.utc) . should_equal "03/02/1999 04:56 UTC"
-            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
+            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Time_Zone.utc) . should_equal "03/02/1999 04:56 UTC"
+            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
             formatter.format (Time_Of_Day.new 13 55) . should_equal "1:55pm"
 
         Test.specify "should act as identity on Text" <|
