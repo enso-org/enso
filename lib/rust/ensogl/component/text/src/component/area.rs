@@ -11,12 +11,9 @@ use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
-#[cfg(target_arch = "wasm32")]
 use crate::font;
-#[cfg(target_arch = "wasm32")]
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
-#[cfg(target_arch = "wasm32")]
 use crate::font::pen;
 
 use enso_frp as frp;
@@ -29,6 +26,8 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
+use owned_ttf_parser::AsFaceRef;
+use rustybuzz;
 use std::ops::Not;
 
 
@@ -159,7 +158,7 @@ impl Lines {
 // ===========
 
 ensogl_core::define_endpoints! {
-    Input {
+    Input {[TRACE_ALL]
         /// Insert character of the last pressed key at every cursor.
         insert_char_of_last_pressed_key(),
         /// Increase the indentation of all lines containing cursors.
@@ -306,8 +305,8 @@ pub const LINE_HEIGHT: f32 = 14.0;
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Area {
-    data:    Rc<AreaModel>,
-    pub frp: Rc<Frp>,
+    pub data: Rc<AreaModel>,
+    pub frp:  Rc<Frp>,
 }
 
 impl Deref for Area {
@@ -375,18 +374,14 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                        // FIXME: added for undo redo. Should not be needed.
-                        //        See https://github.com/enso-org/ide/issues/1031
-                        m.redraw(true);
+                        event!(WARN, ">> 1");
                         m.on_modified_selection(selections,*time,true)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    // FIXME: added for undo redo. Should not be needed.
-                    //        See https://github.com/enso-org/ide/issues/1031
-                    m.redraw(true);
+                    event!(WARN, ">> 2");
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
@@ -433,7 +428,7 @@ impl Area {
             eval input.paste_string((s) m.paste_string(s));
 
 
-            eval_ m.buffer.frp.text_change (m.redraw(true));
+            // eval_ m.buffer.frp.text_change (m.redraw(true));
 
             eval_ input.remove_all_cursors (m.buffer.frp.remove_all_cursors());
 
@@ -528,7 +523,7 @@ impl Area {
             // === Style ===
 
             m.buffer.frp.set_sdf_bold <+ input.set_sdf_bold;
-            eval_ input.set_sdf_bold (m.redraw(false));
+            // eval_ input.set_sdf_bold (m.redraw(false));
 
 
             // === Changes ===
@@ -591,7 +586,6 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    #[cfg(target_arch = "wasm32")]
     glyph_system:   Rc<RefCell<glyph::System>>,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
@@ -606,7 +600,6 @@ impl AreaModel {
         let logger = Logger::new("text_area");
         let selection_map = default();
         let display_object = display::object::Instance::new(&logger);
-        #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<font::Registry>();
             let font = fonts.load(font::DEFAULT_FONT_MONO);
@@ -636,7 +629,6 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
-            #[cfg(target_arch = "wasm32")]
             glyph_system,
             lines,
             single_line,
@@ -645,10 +637,6 @@ impl AreaModel {
         .init()
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
-
-    #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
@@ -656,83 +644,84 @@ impl AreaModel {
         time: f32,
         do_edit: bool,
     ) {
-        {
-            let mut selection_map = self.selection_map.borrow_mut();
-            let mut new_selection_map = SelectionMap::default();
-            for sel in selections {
-                let sel = self.snap_selection(*sel);
-                let id = sel.id;
-                let start_line = sel.start.line.as_usize();
-                let end_line = sel.end.line.as_usize();
-                let pos_x = |line: usize, column: Column| {
-                    if line >= self.lines.len() {
-                        self.lines
-                            .rc
-                            .borrow()
-                            .last()
-                            .and_then(|l| l.divs.last().cloned())
-                            .unwrap_or(0.0)
-                    } else {
-                        self.lines.rc.borrow()[line].div_by_column(column)
-                    }
-                };
-                let min_pos_x = pos_x(start_line, sel.start.column);
-                let max_pos_x = pos_x(end_line, sel.end.column);
-                let logger = Logger::new_sub(&self.logger, "cursor");
-                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
-                let pos = Vector2(min_pos_x, min_pos_y);
-                let width = max_pos_x - min_pos_x;
-                let selection = match selection_map.id_map.remove(&id) {
-                    Some(selection) => {
-                        let select_left = selection.width.simulator.target_value() < 0.0;
-                        let select_right = selection.width.simulator.target_value() > 0.0;
-                        let tgt_pos_x = selection.position.simulator.target_value().x;
-                        let tgt_width = selection.width.simulator.target_value();
-                        let mid_point = tgt_pos_x + tgt_width / 2.0;
-                        let go_left = pos.x < mid_point;
-                        let go_right = pos.x > mid_point;
-                        let need_flip = (select_left && go_left) || (select_right && go_right);
-                        if width == 0.0 && need_flip {
-                            selection.flip_sides()
-                        }
-                        selection.position.set_target_value(pos);
-                        selection
-                    }
-                    None => {
-                        let selection = Selection::new(&logger, do_edit);
-                        selection.letter_width.set(7.0); // FIXME hardcoded values
-                        self.add_child(&selection);
-                        selection.position.set_target_value(pos);
-                        selection.position.skip();
-                        let selection_network = &selection.network;
-                        // FIXME[wd]: memory leak. To be fixed with the below note as a part of
-                        //            https://github.com/enso-org/ide/issues/670 . Once fixed,
-                        //            delete code removing all cursors on Area drop.
-                        let model = self.clone_ref();
-                        frp::extend! { selection_network
-                            // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
-                            //            animation frame. Multiple times, once per cursor.
-                            //            https://github.com/enso-org/ide/issues/1031
-                            eval_ selection.position.value (model.redraw(true));
-                            selection.frp.set_color <+ self.frp_endpoints.selection_color;
-                        }
-                        selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
-                        selection
-                    }
-                };
-                selection.width.set_target_value(width);
-                selection.edit_mode.set(do_edit);
-                selection.start_time.set(time);
-                new_selection_map.id_map.insert(id, selection);
-                new_selection_map
-                    .location_map
-                    .entry(start_line)
-                    .or_default()
-                    .insert(sel.start.column, id);
-            }
-            *selection_map = new_selection_map;
-        }
-        self.redraw(true)
+        // event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
+        // {
+        //     let mut selection_map = self.selection_map.borrow_mut();
+        //     let mut new_selection_map = SelectionMap::default();
+        //     for sel in selections {
+        //         let sel = self.snap_selection(*sel);
+        //         let id = sel.id;
+        //         let start_line = sel.start.line.as_usize();
+        //         let end_line = sel.end.line.as_usize();
+        //         let pos_x = |line: usize, column: Column| {
+        //             if line >= self.lines.len() {
+        //                 self.lines
+        //                     .rc
+        //                     .borrow()
+        //                     .last()
+        //                     .and_then(|l| l.divs.last().cloned())
+        //                     .unwrap_or(0.0)
+        //             } else {
+        //                 self.lines.rc.borrow()[line].div_by_column(column)
+        //             }
+        //         };
+        //         let min_pos_x = pos_x(start_line, sel.start.column);
+        //         let max_pos_x = pos_x(end_line, sel.end.column);
+        //         let logger = Logger::new_sub(&self.logger, "cursor");
+        //         let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
+        //         let pos = Vector2(min_pos_x, min_pos_y);
+        //         let width = max_pos_x - min_pos_x;
+        //         let selection = match selection_map.id_map.remove(&id) {
+        //             Some(selection) => {
+        //                 let select_left = selection.width.simulator.target_value() < 0.0;
+        //                 let select_right = selection.width.simulator.target_value() > 0.0;
+        //                 let tgt_pos_x = selection.position.simulator.target_value().x;
+        //                 let tgt_width = selection.width.simulator.target_value();
+        //                 let mid_point = tgt_pos_x + tgt_width / 2.0;
+        //                 let go_left = pos.x < mid_point;
+        //                 let go_right = pos.x > mid_point;
+        //                 let need_flip = (select_left && go_left) || (select_right && go_right);
+        //                 if width == 0.0 && need_flip {
+        //                     selection.flip_sides()
+        //                 }
+        //                 selection.position.set_target_value(pos);
+        //                 selection
+        //             }
+        //             None => {
+        //                 let selection = Selection::new(&logger, do_edit);
+        //                 selection.letter_width.set(7.0); // FIXME hardcoded values
+        //                 self.add_child(&selection);
+        //                 selection.position.set_target_value(pos);
+        //                 selection.position.skip();
+        //                 let selection_network = &selection.network;
+        //                 // FIXME[wd]: memory leak. To be fixed with the below note as a part of
+        //                 //            https://github.com/enso-org/ide/issues/670 . Once fixed,
+        //                 //            delete code removing all cursors on Area drop.
+        //                 let model = self.clone_ref();
+        //                 frp::extend! { selection_network
+        //                     // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
+        //                     //            animation frame. Multiple times, once per cursor.
+        //                     //            https://github.com/enso-org/ide/issues/1031
+        //                     eval_ selection.position.value (model.redraw(true));
+        //                     selection.frp.set_color <+ self.frp_endpoints.selection_color;
+        //                 }
+        //                 selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
+        //                 selection
+        //             }
+        //         };
+        //         selection.width.set_target_value(width);
+        //         selection.edit_mode.set(do_edit);
+        //         selection.start_time.set(time);
+        //         new_selection_map.id_map.insert(id, selection);
+        //         new_selection_map
+        //             .location_map
+        //             .entry(start_line)
+        //             .or_default()
+        //             .insert(sel.start.column, id);
+        //     }
+        //     *selection_map = new_selection_map;
+        // }
+        // self.redraw(true)
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -763,13 +752,14 @@ impl AreaModel {
 
     #[profile(Debug)]
     fn init(self) -> Self {
-        self.redraw(true);
+        // self.redraw(true);
         self
     }
 
     /// Redraw the text.
     #[profile(Debug)]
-    fn redraw(&self, size_may_change: bool) {
+    pub fn redraw(&self, size_may_change: bool) {
+        event!(DEBUG, "redraw {:?}", size_may_change);
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
         self.lines.resize_with(line_count, |ix| self.new_line(ix));
@@ -790,13 +780,9 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn redraw_line(&self, _: usize, _: String) -> f32 {
-        0.0
-    }
-
-    #[cfg(target_arch = "wasm32")]
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
+        event!(DEBUG, "redraw_line {:?} {:?}", view_line_index, content);
+
         let cursor_map = self
             .selection_map
             .borrow()
@@ -804,21 +790,50 @@ impl AreaModel {
             .get(&view_line_index)
             .cloned()
             .unwrap_or_default();
+        event!(DEBUG, "cursor_map {:?}", cursor_map);
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
+        event!(DEBUG, "line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
         let glyph_system = self.glyph_system.borrow();
+        // pub fn shape(
+        //     face: &Face<'_>,
+        //     features: &[Feature],
+        //     buffer: UnicodeBuffer
+        // ) -> GlyphBuffer
+
+        match &glyph_system.font {
+            font::Font::NonVariable(font) => {
+                let faces = font.family.faces.borrow();
+                let face = faces.get(&default()).unwrap();
+                let ttf_face = face.ttf.as_face_ref();
+                let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap(); // FIXME: clone
+
+                let size: f32 = 12.0;
+                let units_per_em = ttf_face.units_per_em();
+                let harfbuzz_scale = units_per_em as f32 / size * 1.0;
+                let mut buffer = rustybuzz::UnicodeBuffer::new();
+                buffer.push_str(&content);
+                let out = rustybuzz::shape(&buzz_face, &[], buffer);
+                event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
+                event!(WARN, "{:#?}", out);
+            }
+            _ => panic!(),
+        }
+
         let mut pen = pen::Pen::new(&glyph_system.font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
         line.resize_with(content.chars().count(), || glyph_system.new_glyph());
+
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
             let style = line_style.next().unwrap_or_default();
+            event!(WARN, "style {:#?}", style);
             let chr_size = style.size.raw;
             let char_info = next.as_ref().map(|(glyph, ch)| {
                 pen::CharInfo::new(
@@ -829,6 +844,8 @@ impl AreaModel {
                 )
             });
             let info = pen.advance(char_info);
+            event!(WARN, "pen info {:#?}", info);
+
 
             cursor_map.get(&column).for_each(|id| {
                 self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
@@ -845,6 +862,8 @@ impl AreaModel {
             match opt_glyph.zip(info.char) {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
+                    event!(WARN, "chr_bytes {:#?}", chr_bytes);
+
                     line_style.drop(chr_bytes - 1.bytes());
                     let glyph_id = glyph_system
                         .font
@@ -899,7 +918,6 @@ impl AreaModel {
     ///
     /// The truncation point is chosen such that the resulting string with ellipsis will fit in
     /// `max_width_px` if possible. The `line` must not contain newline characters.
-    #[cfg(target_arch = "wasm32")]
     fn line_truncated_with_ellipsis(
         &self,
         line: &str,
@@ -1039,7 +1057,6 @@ impl AreaModel {
         selection.with_start(start).with_end(end)
     }
 
-    #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
@@ -1072,12 +1089,6 @@ impl AreaModel {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        default()
-    }
-
-    #[cfg(target_arch = "wasm32")]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
         let shapes = &self.app.display.default_scene.shapes;

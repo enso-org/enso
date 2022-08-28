@@ -35,9 +35,9 @@ use ensogl_text_msdf::run_once_initialized;
 
 
 /// Main example runner.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_text_area() {
+pub fn main() {
     run_once_initialized(|| {
         init(Application::new("root"));
     });
@@ -54,20 +54,20 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content(text.clone() + "\n" + text.as_str());
-    area.set_font("default");
-    area.focus();
-    area.hover();
-    area.set_cursor_at_end();
-
+    area.set_content("foo\n1234");
+    // area.set_font("default");
+    // area.focus();
+    // area.hover();
+    // area.set_cursor_at_end();
+    //
     area.set_sdf_bold(Range::new(4.bytes(), 6.bytes()), style::SdfBold(0.02));
-    area.set_sdf_bold(Range::new(7.bytes(), 15.bytes()), style::SdfBold(0.04));
-    area.set_sdf_bold(Range::new(24.bytes(), 26.bytes()), style::SdfBold(0.02));
-    area.set_sdf_bold(Range::new(37.bytes(), 41.bytes()), style::SdfBold(0.05));
-    area.set_sdf_bold(Range::new(55.bytes(), 56.bytes()), style::SdfBold(0.03));
-    let quote_length = Bytes::from(quote.len());
-    let text_length = Bytes::from(text.len());
-    area.set_sdf_bold(Range::new(quote_length, text_length), style::SdfBold(0.02));
+    // area.set_sdf_bold(Range::new(7.bytes(), 15.bytes()), style::SdfBold(0.04));
+    // area.set_sdf_bold(Range::new(24.bytes(), 26.bytes()), style::SdfBold(0.02));
+    // area.set_sdf_bold(Range::new(37.bytes(), 41.bytes()), style::SdfBold(0.05));
+    // area.set_sdf_bold(Range::new(55.bytes(), 56.bytes()), style::SdfBold(0.03));
+    // let quote_length = Bytes::from(quote.len());
+    // let text_length = Bytes::from(text.len());
+    // area.set_sdf_bold(Range::new(quote_length, text_length), style::SdfBold(0.02));
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
@@ -75,23 +75,26 @@ fn init(app: Application) {
     app.display.default_scene.add_child(&area);
 
 
-    let text = "red green blue";
-    let colored_area = app.new_view::<Area>();
-    app.display.default_scene.add_child(&colored_area);
-    colored_area.set_font("DejaVuSans");
-    colored_area.set_position_xy(Vector2::new(200.0, 200.0));
+    area.data.redraw(true); // fixme: make private and auto
 
-    colored_area.set_default_color(color::Rgba::black());
-    colored_area.set_content(text);
-    let range_green = buffer::Range::from(Bytes(4)..Bytes(9));
-    colored_area.set_color_bytes(range_green, color::Rgba::green());
-    let range_blue = buffer::Range::from(Bytes(10)..Bytes(14));
-    colored_area.set_color_bytes(range_blue, color::Rgba::blue());
-    colored_area.set_default_color(color::Rgba::red());
+
+    // let text = "red green blue";
+    // let colored_area = app.new_view::<Area>();
+    // app.display.default_scene.add_child(&colored_area);
+    // colored_area.set_font("DejaVuSans");
+    // colored_area.set_position_xy(Vector2::new(200.0, 200.0));
+    //
+    // colored_area.set_default_color(color::Rgba::black());
+    // colored_area.set_content(text);
+    // let range_green = buffer::Range::from(Bytes(4)..Bytes(9));
+    // colored_area.set_color_bytes(range_green, color::Rgba::green());
+    // let range_blue = buffer::Range::from(Bytes(10)..Bytes(14));
+    // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
+    // colored_area.set_default_color(color::Rgba::red());
 
 
     mem::forget(navigator);
     mem::forget(app);
     mem::forget(area);
-    mem::forget(colored_area);
+    // mem::forget(colored_area);
 }
