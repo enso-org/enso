@@ -9,7 +9,7 @@ polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
 polyglot java import org.enso.table.parsing.DateParser
-polyglot java import org.enso.table.parsing.TimeParser
+polyglot java import org.enso.table.parsing.TimeOfDayParser
 polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
@@ -161,7 +161,7 @@ type Data_Formatter
 
     ## PRIVATE
     make_time_parser self = self.wrap_base_parser <|
-        TimeParser.new self.time_formats.to_array self.datetime_locale.java_locale
+        TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -234,4 +234,7 @@ type Data_Formatter
         Storage.Integer -> self.make_integer_formatter
         Storage.Decimal -> self.make_decimal_formatter
         Storage.Boolean -> self.make_boolean_formatter
+        Storage.Date -> self.make_date_formatter
+        Storage.Time_Of_Day -> self.make_time_formatter
+        Storage.Date_Time -> self.make_datetime_formatter
         Storage.Any -> self.make_auto_formatter
