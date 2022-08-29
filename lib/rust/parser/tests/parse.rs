@@ -418,7 +418,7 @@ fn minus_unary() {
 }
 
 
-// === Import ===
+// === Import/Export ===
 
 #[test]
 fn import() {
@@ -443,8 +443,7 @@ fn import() {
              ()
              ((Ident import) (Ident all))
              ()
-             ((Ident hiding)
-              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean))))]),
+             ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
         ("from Standard.Table as Column_Module import Column", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
@@ -468,6 +467,37 @@ fn import() {
               (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
              ((Ident as) (Ident Java_URI))
              ())]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn export() {
+    #[rustfmt::skip]
+    let cases = [
+        ("export Foo", block![(Export () () ((Ident export) (Ident Foo)) () ())]),
+        ("export Foo as Bar", block![
+            (Export () () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)) ())]),
+        ("from Foo export Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (OprApp (Ident Bar) (Ok ",") (Ident Baz)))
+             () ())]),
+        ("from Foo export all hiding Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (Ident all))
+             ()
+             ((Ident hiding) (OprApp (Ident Bar) (Ok ",") (Ident Baz))))]),
+        ("from Foo as Bar export Baz, Quux", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ((Ident as) (Ident Bar))
+             ((Ident export) (OprApp (Ident Baz) (Ok ",") (Ident Quux)))
+             () ())
+        ]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }

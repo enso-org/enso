@@ -17,6 +17,7 @@ pub fn all() -> resolver::SegmentMap<'static> {
     macro_map.register(if_then());
     macro_map.register(if_then_else());
     register_import_macros(&mut macro_map);
+    register_export_macros(&mut macro_map);
     macro_map.register(group());
     macro_map.register(type_def());
     macro_map
@@ -68,6 +69,46 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     }
     let import = import.unwrap();
     syntax::Tree::import(polyglot, from, from_as, import, import_as, hiding)
+}
+
+fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
+    use crate::macro_definition;
+    let defs = [
+        macro_definition! {("export", everything()) export_body},
+        macro_definition! {("export", everything(), "as", everything()) export_body},
+        macro_definition! {("from", everything(), "export", everything()) export_body},
+        macro_definition! {
+        ("from", everything(), "export", everything(), "hiding", everything()) export_body},
+        macro_definition! {
+        ("from", everything(), "as", everything(), "export", everything()) export_body},
+    ];
+    for def in defs {
+        macros.register(def);
+    }
+}
+
+fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    let mut from = None;
+    let mut from_as = None;
+    let mut export = None;
+    let mut export_as = None;
+    let mut hiding = None;
+    for segment in segments {
+        let header = segment.header;
+        let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let field = match header.code.as_ref() {
+            "from" => &mut from,
+            "as" if export.is_none() => &mut from_as,
+            "export" => &mut export,
+            "as" => &mut export_as,
+            "hiding" => &mut hiding,
+            _ => unreachable!(),
+        };
+        *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
+    }
+    let export = export.unwrap();
+    syntax::Tree::export(from, from_as, export, export_as, hiding)
 }
 
 /// If-then-else macro definition.
