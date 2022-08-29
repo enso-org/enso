@@ -150,7 +150,8 @@ bound_data bounds data = case bounds of
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
-type Extreme min_x max_x min_y max_y
+type Extreme
+    Extreme_Data min_x max_x min_y max_y
 
 ## PRIVATE
 limit_data limit data = case limit of
@@ -164,11 +165,11 @@ limit_data limit data = case limit of
             new_min_y = if y current.min_y.second > y point then [idx, point] else current.min_y
             new_max_x = if x current.max_x.second < x point then [idx, point] else current.max_x
             new_max_y = if y current.max_y.second < y point then [idx, point] else current.max_y
-            Extreme new_min_x new_max_x new_min_y new_max_y
+            Extreme_Data new_min_x new_max_x new_min_y new_max_y
 
         first = [0, data.first]
-        bounds = case data.fold_with_index (Extreme first first first first) update_extreme of
-            Extreme min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
+        bounds = case data.fold_with_index (Extreme_Data first first first first) update_extreme of
+            Extreme_Data min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
             _ -> []
         extreme = Map.from_vector bounds . values
 
