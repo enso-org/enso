@@ -170,9 +170,8 @@ fn split_long_lines(
     let chunks = data_str.char_indices().chunks(max_line_size);
     let chunk_boundaries = chunks
         .into_iter()
-        .filter_map(|mut chunk| {
-            chunk.next().map(|(ix, _)| ix)
-        }).chain(std::iter::once(data_str.len()));
+        .filter_map(|mut chunk| chunk.next().map(|(ix, _)| ix))
+        .chain(std::iter::once(data_str.len()));
     for (start, end) in chunk_boundaries.into_iter().tuple_windows() {
         process_line(&data_str[start..end])?;
     }
@@ -230,12 +229,13 @@ mod tests {
 
     #[test]
     fn test_emoticons() {
-        let str = "👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧".to_string().repeat(1024);
+        let str = "👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧"
+            .to_string()
+            .repeat(1024);
         let res = super::split_long_lines(&str, 512, &mut |l| {
             assert_eq!(l.chars().count(), 512);
             Ok(())
         });
         assert!(res.is_ok());
     }
-
 }
