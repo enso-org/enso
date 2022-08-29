@@ -100,6 +100,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
 ///
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
     _env: JNIEnv,
@@ -153,6 +154,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
 /// The `metadata` pointer MUST be 0, or a value returned by `Parser.getMetadata`. If it is the
 /// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
 /// returned the value.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidHigh(
     _env: JNIEnv,
@@ -171,6 +173,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidHigh(
 /// The `metadata` pointer MUST be 0, or a value returned by `Parser.getMetadata`. If it is the
 /// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
 /// returned the value.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidLow(
     _env: JNIEnv,
@@ -182,6 +185,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidLow(
     get_uuid(metadata, code_offset, code_length).1
 }
 
+#[allow(unsafe_code)]
 fn get_uuid(metadata: u64, code_offset: u64, code_length: u64) -> (u64, u64) {
     if metadata == 0 {
         return (0, 0);
