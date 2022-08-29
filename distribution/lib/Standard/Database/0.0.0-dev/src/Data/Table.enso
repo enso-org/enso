@@ -355,6 +355,31 @@ type Table
                 self.updated_context new_ctx
 
     ## UNSTABLE
+       Creates a new Table with the specified range of rows from the input
+       Table.
+
+       Arguments:
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Table
+    take self range=(First 1) =
+        _ = range
+        msg = "`Table.take` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
+       Creates a new Table from the input with the specified range of rows
+       removed.
+
+
+       Arguments:
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Table
+    drop self range=(First 1) =
+        _ = range
+        msg = "`Table.drop` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.

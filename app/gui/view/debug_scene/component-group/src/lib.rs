@@ -27,7 +27,7 @@ use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_selector as selector;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view_component_group as component_group;
 use ide_view_component_group::entry;
 use ide_view_component_group::icon;

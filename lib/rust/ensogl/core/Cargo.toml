@@ -27,8 +27,8 @@ enso-shapely = { path = "../../shapely" }
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
-ensogl-text-embedded-fonts = { path = "../component/text/embedded-fonts" }
-ensogl-text-msdf-sys = { path = "../component/text/msdf-sys" }
+ensogl-text-embedded-fonts = { path = "../component/text/src/font/embedded" }
+ensogl-text-msdf = { path = "../component/text/src/font/msdf" }
 bit_field = { version = "0.10.0" }
 console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }

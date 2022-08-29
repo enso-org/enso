@@ -13,8 +13,10 @@ Table.Table.should_equal self expected =
     self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
 
 Column.Column.should_equal self expected =
-    self.name.should_equal expected.name
-    self.length.should_equal expected.length
+    if self.name != expected.name then
+        Test.fail "Expected column name "+expected.name+", but got "+self.name+"."
+    if self.length != expected.length then
+        Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+"."
     self.to_vector.should_equal expected.to_vector
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =

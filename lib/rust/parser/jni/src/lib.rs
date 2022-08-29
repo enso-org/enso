@@ -1,8 +1,8 @@
 //! Java interface to [`enso_parser`].
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -38,6 +38,7 @@ use jni::JNIEnv;
 /// The input buffer contents MUST be valid UTF-8.
 /// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
 /// a call to `freeState`.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     env: JNIEnv,
@@ -75,6 +76,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
 ///
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
     _env: JNIEnv,
@@ -87,6 +89,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
 
 /// Allocate a new parser state object. The returned value should be passed to `freeState` when no
 /// longer needed.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
     _env: JNIEnv,
@@ -101,6 +104,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
 ///
 /// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
 /// `freeState`.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
     _env: JNIEnv,

@@ -24,7 +24,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-use enso_frp::web::forward_panic_hook_to_console;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -33,7 +32,7 @@ use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -46,8 +45,6 @@ use ensogl_text_msdf_sys::run_once_initialized;
 #[allow(dead_code)]
 pub fn main() {
     run_once_initialized(|| {
-        init_tracing(TRACE);
-        forward_panic_hook_to_console();
         let app = Application::new("root");
         init(&app);
         mem::forget(app);

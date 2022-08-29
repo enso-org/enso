@@ -195,8 +195,7 @@ fn init_local_scope_section(searcher_list_panel: &ComponentBrowserPanel) {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
-    init_tracing(WARN);
-    ensogl_text_msdf_sys::run_once_initialized(|| {
+    ensogl_text_msdf::run_once_initialized(|| {
         let app = &Application::new("root");
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);

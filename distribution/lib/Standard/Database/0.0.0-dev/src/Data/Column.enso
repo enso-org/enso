@@ -467,6 +467,30 @@ type Column
         self.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column self order]) . at self.name
 
     ## UNSTABLE
+       Creates a new Column with the specified range of rows from the input
+       Column.
+
+       Arguments:
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Column
+    take self range=(First 1) =
+        _ = range
+        msg = "`Column.take` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
+       Creates a new Column from the input with the specified range of rows
+       removed.
+
+       Arguments:
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Column
+    drop self range=(First 1) =
+        _ = range
+        msg = "`Column.drop` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
 
        Checks for each element of the column if it starts with `other`.
 
