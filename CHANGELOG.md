@@ -59,7 +59,7 @@
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened  
-  and a new node is created.][5250]
+  and a new node is created.][3645]
 
 #### EnsoGL (rendering engine)
 
@@ -184,6 +184,9 @@
 - [Short-hand syntax for `order_by` added.][3643]
 - [Expanded `Table.at` to support index access and added `Table.column_count`
   method.][3644]
+- [Removed `Array.set_at`.][3634]
+- [Added various date part functions to `Date` and `Date_Time`.][3669]
+- [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -286,10 +289,14 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3641]: https://github.com/enso-org/enso/pull/3641
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
+[3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
-[5250]: https://github.com/enso-org/enso/pull/5250
+[3634]: https://github.com/enso-org/enso/pull/3634
+[3669]: https://github.com/enso-org/enso/pull/3669
+[3647]: https://github.com/enso-org/enso/pull/3647
 
 #### Enso Compiler
 
@@ -327,6 +334,8 @@
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
 - [Support pattern matching on constants][3641]
+- [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
+  support][3658]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -368,7 +377,8 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3633]: https://github.com/enso-org/enso/pull/3641
+[3641]: https://github.com/enso-org/enso/pull/3641
+[3658]: https://github.com/enso-org/enso/pull/3658
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

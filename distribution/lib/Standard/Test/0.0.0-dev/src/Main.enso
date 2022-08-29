@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
 import Standard.Base.Runtime.State
 import Standard.Base.System
 
@@ -346,22 +345,10 @@ Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
-Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
-    matches = case that of
-        Number -> self.equals that epsilon
-        _ -> False
-    case matches of
-        True -> Success
-        False ->
-            loc = Meta.get_source_location 2+frames_to_skip
-            msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-            Panic.throw (Failure msg)
-
 Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
-        Number-> self.equals that
+        Number -> self.equals that epsilon
         _ -> False
     case matches of
         True -> Success
@@ -781,7 +768,7 @@ wrap_junit_testsuites config builder ~action =
 report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 report_pending_group name reason config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
         builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
         builder.append '    </testsuite>\n'
 
@@ -794,7 +781,7 @@ report_pending_group name reason config builder =
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report self config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')

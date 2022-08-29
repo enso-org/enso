@@ -131,6 +131,7 @@ use crate::processor::Processor;
 
 use enso_shapely::CloneRef;
 
+pub use ifmt::iformat;
 
 
 // ==============

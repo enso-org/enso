@@ -117,6 +117,12 @@ impl Model {
         }
     }
 
+    /// Should be called if an entry is selected but not used yet. Only used for the old searcher
+    /// API.
+    fn entry_selected_as_suggestion(&self, entry_id: view::searcher::entry::Id) {
+        self.controller.preview_entry_as_suggestion(entry_id);
+    }
+
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
@@ -132,9 +138,25 @@ impl Model {
         provider::create_providers_from_controller(&self.logger, &self.controller)
     }
 
+    fn suggestion_for_entry_id(&self, id: list_panel::EntryId) -> FallibleResult<Suggestion> {
+        let component: FallibleResult<_> =
+            self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
+        Ok(match component?.data {
+            component::Data::FromDatabase { entry, .. } =>
+                Suggestion::FromDatabase(entry.clone_ref()),
+            component::Data::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
+        })
+    }
+
+    /// Should be called if a suggestion is selected but not used yet.
+    fn suggestion_selected(&self, entry_id: list_panel::EntryId) {
+        let suggestion = self.suggestion_for_entry_id(entry_id).unwrap();
+        self.controller.preview_suggestion(suggestion);
+    }
+
     fn suggestion_accepted(
         &self,
-        id: view::component_browser::list_panel::EntryId,
+        id: list_panel::EntryId,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
         let component: FallibleResult<_> =
             self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
@@ -321,6 +343,7 @@ impl Searcher {
                     trace documentation.frp.display_documentation;
 
                     eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
+                    eval list_view.suggestion_selected((entry) model.suggestion_selected(*entry));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
@@ -333,6 +356,8 @@ impl Searcher {
                     used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
                     new_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
                     graph.set_node_expression <+ new_input;
+                    eval searcher.selected_entry([model](entry)
+                        if let Some(id) = entry { model.entry_selected_as_suggestion(*id)});
 
                     eval_ searcher.used_as_suggestion([]analytics::remote_log_event("searcher::used_as_suggestion"));
                 }

@@ -12,7 +12,7 @@ ast = { path = "../../../language/ast/impl" }
 enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
-ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view = { path = "../.." }
 parser = { path = "../../../language/parser" }
 span-tree = { path = "../../../language/span-tree" }

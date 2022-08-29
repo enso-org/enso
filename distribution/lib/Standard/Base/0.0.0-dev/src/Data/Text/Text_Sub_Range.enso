@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Error.Common import Index_Out_Of_Bounds_Error
 from Standard.Base.Data.Text.Span import Span, range_to_char_indices
+import Standard.Base.Data.Index_Sub_Range
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
 import Standard.Base.Random
 
@@ -117,7 +118,7 @@ type Codepoint_Ranges
        Empty subranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        Vector.sort_and_merge_ranges self.ranges
+        Index_Sub_Range.sort_and_merge_ranges self.ranges
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.

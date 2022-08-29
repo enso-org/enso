@@ -36,7 +36,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
 use ensogl_core::frp;
-use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 use ensogl_flame_graph::COLOR_BLOCK_ACTIVE;
 use ensogl_flame_graph::COLOR_BLOCK_PAUSED;
@@ -67,9 +66,6 @@ const SHOW_BACKEND_MESSAGE_MARKS: bool = true;
 #[entry_point]
 #[allow(dead_code)]
 pub async fn main() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-
     let app = &Application::new("root");
     let world = &app.display;
     let scene = &world.default_scene;

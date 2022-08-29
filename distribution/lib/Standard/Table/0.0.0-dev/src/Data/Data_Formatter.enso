@@ -1,7 +1,4 @@
 from Standard.Base import all
-
-from Standard.Base.Data.Time import Time
-from Standard.Base.Data.Time.Time_Of_Day import Time_Of_Day
 import Standard.Base.Error.Common as Errors
 
 from Standard.Table.Data.Column_Type_Selection import Auto
@@ -56,7 +53,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 
@@ -67,7 +64,7 @@ type Data_Formatter
          By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Problem_Behavior -> Any
+    parse : Text -> (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Problem_Behavior -> Any
     parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
         parser = case datatype of
             Auto -> self.make_auto_parser
@@ -171,14 +168,13 @@ type Data_Formatter
 
     ## PRIVATE
     make_datatype_parser self datatype = case datatype of
-        Integer -> self.make_integer_parser
-        Decimal -> self.make_decimal_parser
-        Boolean -> self.make_boolean_parser
-        _ ->
-            if datatype == Date then self.make_date_parser else
-                if datatype == Time then self.make_datetime_parser else
-                    if datatype == Time_Of_Day then self.make_time_parser else
-                        Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+        Integer     -> self.make_integer_parser
+        Decimal     -> self.make_decimal_parser
+        Boolean     -> self.make_boolean_parser
+        Date        -> self.make_date_parser
+        Date_Time   -> self.make_datetime_parser
+        Time_Of_Day -> self.make_time_parser
+        _           -> Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
 
     ## PRIVATE
     get_specific_type_parsers self =

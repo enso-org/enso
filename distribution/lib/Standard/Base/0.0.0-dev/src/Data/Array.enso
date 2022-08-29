@@ -23,22 +23,6 @@ type Array
     at : Integer -> Any
     at self index = @Builtin_Method "Array.at"
 
-    ## Set the cell at the specified index to the provided value, returning
-       the array.
-
-       Arguments:
-       - index: The position in the array to set.
-       - value: The value to set at position index.
-
-       The array is mutated in place, and only returned to facilitate a natural
-       programming style in Enso.
-
-       ? Safety
-         If index < 0 or index >= self.length, then this operation will result
-         in an Invalid_Array_Index_Error exception.
-    set_at : Integer -> Any -> Array
-    set_at self index value = @Builtin_Method "Array.set_at"
-
     ## Gets the length of the array this.
 
        > Example

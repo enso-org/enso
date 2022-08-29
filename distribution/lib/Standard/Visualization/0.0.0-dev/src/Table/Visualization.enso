@@ -21,7 +21,7 @@ import Standard.Visualization.Helpers
 prepare_visualization : Any -> Integer -> Json
 prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     Dataframe_Table.Table _ ->
-        dataframe = x.take_start max_rows
+        dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
         index = dataframe.index.catch Any _->

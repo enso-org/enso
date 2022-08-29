@@ -2,6 +2,7 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.Column;
 
 import java.util.BitSet;
@@ -78,5 +79,10 @@ public class DefaultIndex extends Index {
   @Override
   public DefaultIndex slice(int offset, int limit) {
     return new DefaultIndex(Math.min(size, limit));
+  }
+
+  @Override
+  public DefaultIndex slice(List<SliceRange> ranges) {
+    return new DefaultIndex(SliceRange.totalLength(ranges));
   }
 }

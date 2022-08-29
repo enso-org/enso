@@ -1,8 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Data.Ordering.Comparator
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.System.Platform
 import Standard.Base.Error.Common as Errors
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
 import Standard.Table.IO.File_Format
@@ -30,6 +31,7 @@ import Standard.Visualization
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.data.mask.OrderMask
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -508,7 +510,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.take_end (self.row_count - 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
+        self.drop (First 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
 
     ## ALIAS group, summarize
 
@@ -745,6 +747,28 @@ type Table
     where self indexes =
         Table (self.java_table.mask indexes.java_column)
 
+    ## UNSTABLE
+       Creates a new Table with the specified range of rows from the input
+       Table.
+
+       Arguments:
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Table
+    take self range=(First 1) =
+        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
+        Index_Sub_Range.take_helper self.row_count at self.slice (slice_ranges self) range
+
+    ## UNSTABLE
+       Creates a new Table from the input with the specified range of rows
+       removed.
+
+       Arguments:
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Table
+    drop self range=(First 1) =
+        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
+        Index_Sub_Range.drop_helper self.row_count at self.slice (slice_ranges self) range
+
     ## ALIAS Add Column
 
        Sets the column value at the given name.
@@ -941,101 +965,14 @@ type Table
     concat : Table -> Table
     concat self other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
 
-    ## ALIAS First N Rows
-       UNSTABLE
-
-       Returns a table containing the first `count` elements in this table.
-
-       Arguments:
-       - count: The number of elements to take from the start of this table.
-
-       If `self` has a number of rows in it less than `count`, the entire table
-       will be returned.
-
-       > Example
-         Get the first four rows from the table.
-
-             import Standard.Examples
-
-             example_take_start = Examples.inventory_table.take_start 4
-    take_start : Integer -> Table
-    take_start self count = Table (self.java_table.slice 0 count)
-
-    ## ALIAS Last N Rows
-       UNSTABLE
-
-       Returns a table containing the last `count` elements in this table.
-
-       Arguments:
-       - count: The number of elements to take from the end of this table.
-
-       If `self` has a number of rows in it less than `count`, the entire table
-       will be returned.
-
-       > Example
-         Get the last four rows from the table.
-
-             import Standard.Examples
-
-             example_take_end = Examples.inventory_table.take_end 4
-    take_end : Integer -> Table
-    take_end self count =
-        start_point = Math.max (self.row_count - count) 0
-        Table (self.java_table.slice start_point count)
-
-    ## ALIAS First Row
-       UNSTABLE
-
-       Returns the first row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first row from the table.
-
-             import Standard.Examples
-
-             example_first = Examples.inventory_table.first
-    first : Table ! Empty_Error
-    first self =
-        table = self.take_start 1
-        if table.row_count != 1 then Error.throw Empty_Error else table
-
-    ## UNSTABLE
-
-       Returns the first row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first row from the table.
-
-             import Standard.Examples
-
-             example_head = Examples.inventory_table.head
-    head : Table ! Empty_Error
-    head self = self.first
-
-    ## ALIAS Last Row
-       UNSTABLE
-
-       Returns the last row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the last row from the table.
-
-             import Standard.Examples
-
-             example_last = Examples.inventory_table.last
-    last : Table ! Empty_Error
-    last self =
-        table = self.take_end 1
-        if table.row_count != 1 then Error.throw Empty_Error else table
+    ## PRIVATE
+       Returns a table with a continuous sub-range of rows taken.
+    slice : Integer -> Integer -> Table
+    slice self start end =
+        length = self.row_count
+        offset = Math.max (Math.min start length) 0
+        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        Table (self.java_table.slice offset limit)
 
     ## UNSTABLE
 
@@ -1204,8 +1141,8 @@ print_table header rows indices_count format_term =
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = r.zip content_lengths pad
-        ixes = x.take_start indices_count . map (ansi_bold format_term)
-        with_bold_ix = ixes + x.drop_start indices_count
+        ixes = x.take (First indices_count) . map (ansi_bold format_term)
+        with_bold_ix = ixes + x.drop (First indices_count)
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
@@ -1217,3 +1154,9 @@ Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width =
 Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') =
     if format.is_a File_Format.Delimited then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
+
+## PRIVATE
+   A helper to create a new table consisting of slices of the original table.
+slice_ranges table ranges =
+    normalized = Index_Sub_Range.normalize_ranges ranges
+    Table (table.java_table.slice normalized.to_array)

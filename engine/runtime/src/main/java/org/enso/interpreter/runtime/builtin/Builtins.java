@@ -82,6 +82,9 @@ public class Builtins {
   private final BuiltinAtomConstructor projectDescription;
   private final BuiltinAtomConstructor file;
   private final BuiltinAtomConstructor date;
+  private final BuiltinAtomConstructor dateTime;
+  private final BuiltinAtomConstructor timeOfDay;
+  private final BuiltinAtomConstructor timeZone;
   private final BuiltinAtomConstructor warning;
 
   /**
@@ -124,6 +127,15 @@ public class Builtins {
     date =
         new BuiltinAtomConstructor(
             this, org.enso.interpreter.node.expression.builtin.date.Date.class);
+    dateTime =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    timeOfDay =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
+    timeZone =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     special = new Special(language);
     warning = new BuiltinAtomConstructor(this, Warning.class);
   }
@@ -435,6 +447,33 @@ public class Builtins {
    */
   public AtomConstructor date() {
     return date.constructor();
+  }
+
+  /**
+   * Returns the {@code DateTime} atom constructor.
+   *
+   * @return the {@code DateTime} atom constructor
+   */
+  public AtomConstructor dateTime() {
+    return dateTime.constructor();
+  }
+
+  /**
+   * Returns the {@code TimeOfDay} atom constructor.
+   *
+   * @return the {@code TimeOfDay} atom constructor
+   */
+  public AtomConstructor timeOfDay() {
+    return timeOfDay.constructor();
+  }
+
+  /**
+   * Returns the {@code TimeZone} atom constructor.
+   *
+   * @return the {@code TimeZone} atom constructor
+   */
+  public AtomConstructor timeZone() {
+    return timeZone.constructor();
   }
 
   /**

@@ -5,6 +5,12 @@
 
 use ensogl_core::prelude::*;
 
+use crate::layout::Group;
+use crate::layout::Layout;
+use crate::layout::HEADER_HEIGHT_IN_ROWS;
+
+use ensogl_grid_view::Col;
+
 
 
 // =================
@@ -17,25 +23,14 @@ const COLUMNS: usize = 3;
 const LEFT: usize = 0;
 const CENTER: usize = 1;
 const RIGHT: usize = 2;
-/// Height of the header of the component group. This value is added to the group's number of
-/// entries to get the total height.
-const HEADER_HEIGHT: GroupHeight = 1;
-type Column = usize;
 
 
 
-// =============
-// === Group ===
-// =============
+// ===============
+// === Aliases ===
+// ===============
 
-type GroupIndex = usize;
 type GroupHeight = usize;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Group {
-    pub index:  GroupIndex,
-    pub height: GroupHeight,
-}
 
 
 
@@ -58,8 +53,8 @@ pub struct Group {
 ///
 /// [design doc]: https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#layouting-algorithm
 pub struct Layouter<I: Iterator<Item = Group>> {
-    columns:        [Vec<GroupIndex>; COLUMNS],
-    groups_heights: [GroupHeight; COLUMNS],
+    columns:        [Vec<Group>; COLUMNS],
+    column_heights: [GroupHeight; COLUMNS],
     iter:           iter::Peekable<I>,
 }
 
@@ -68,13 +63,13 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     pub fn new(iter: I) -> Self {
         Self {
             columns:        default(),
-            groups_heights: default(),
+            column_heights: default(),
             iter:           iter.peekable(),
         }
     }
 
-    /// Calculate the layouting of the groups. See struct documentation for more information.
-    pub fn arrange(mut self) -> [Vec<GroupIndex>; COLUMNS] {
+    /// Calculate the layout of the groups. See struct documentation for more information.
+    pub fn arrange(mut self) -> [Vec<Group>; COLUMNS] {
         let mut max_height = self.push_next_group_to(CENTER, None);
         while self.iter.peek().is_some() {
             self.push_next_group_to(LEFT, Some(max_height));
@@ -89,17 +84,21 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
         self.columns
     }
 
+    /// Calculate the layout of the groups, and return it as a [`Layout`] structure.
+    ///
+    /// See struct documentation for more information.
+    pub fn create_layout(self, local_scope_entry_count: usize) -> Layout {
+        let arranged_groups = self.arrange();
+        Layout::create_from_arranged_groups(arranged_groups, local_scope_entry_count)
+    }
+
     /// Push the next group to the given column. Returns the size of the added group, 0 if no group
     /// was added. If [`max_height`] is supplied, the group is pushed only if the column's height
     /// is less than [`max_height`] before adding new group.
-    fn push_next_group_to(
-        &mut self,
-        column: Column,
-        max_height: Option<GroupHeight>,
-    ) -> GroupHeight {
+    fn push_next_group_to(&mut self, column: Col, max_height: Option<GroupHeight>) -> GroupHeight {
         if let Some(group) = self.iter.next() {
             if let Some(max_height) = max_height {
-                if self.groups_heights[column] >= max_height {
+                if self.column_heights[column] >= max_height {
                     return 0;
                 }
             }
@@ -110,8 +109,8 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     }
 
     /// Fill the given column until it reaches the given height.
-    fn fill_till_height(&mut self, column: Column, max_height: GroupHeight) {
-        while self.groups_heights[column] < max_height {
+    fn fill_till_height(&mut self, column: Col, max_height: GroupHeight) {
+        while self.column_heights[column] < max_height {
             if let Some(group) = self.iter.next() {
                 self.push(column, group);
             } else {
@@ -122,10 +121,10 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
 
     /// Push a a group to the given column. Returns a height of the added group. (including the
     /// [`HEADER_HEIGHT`])
-    fn push(&mut self, column: Column, group: Group) -> GroupHeight {
-        self.columns[column].push(group.index);
-        let group_height = group.height + HEADER_HEIGHT;
-        self.groups_heights[column] += group_height;
+    fn push(&mut self, column: Col, group: Group) -> GroupHeight {
+        self.columns[column].push(group);
+        let group_height = group.original_height + HEADER_HEIGHT_IN_ROWS;
+        self.column_heights[column] += group_height;
         group_height
     }
 }
@@ -139,37 +138,61 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ide_view_component_group::set::GroupId;
+    use ide_view_component_group::set::SectionId;
 
     /// Test that the algorithm doesn't panic even with a small count of component groups.
     #[test]
     fn test_small_count_of_groups() {
         for count in 0..4 {
-            let groups = (0..count).map(|index| Group { index, height: 1 });
+            let group_ids =
+                (0..count).map(|index| GroupId { section: SectionId::Favorites, index });
+            let groups = group_ids.map(|id| Group { id, height: 1, original_height: 1 });
             let arranged = Layouter::new(groups).arrange();
             let total_count = arranged[LEFT].len() + arranged[CENTER].len() + arranged[RIGHT].len();
             assert_eq!(total_count, count);
         }
     }
 
+    fn make_groups(index_height_pairs: Vec<(usize, usize)>) -> impl Iterator<Item = Group> {
+        index_height_pairs.into_iter().map(|(index, height)| Group {
+            id: GroupId { section: SectionId::Favorites, index },
+            height,
+            original_height: height,
+        })
+    }
+
+    fn check_groups_indices(result: [Vec<Group>; COLUMNS], expected: [Vec<usize>; COLUMNS]) {
+        let result_ids = result.map(|groups| groups.into_iter().map(|g| g.id.index).collect_vec());
+        assert_eq!(result_ids, expected);
+    }
+
     /// See [design doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#layouting-algorithm).
     #[test]
     fn test_case_from_design_doc() {
-        let groups: Vec<(usize, usize)> =
-            vec![(1, 4), (2, 4), (3, 3), (4, 3), (5, 2), (6, 3), (7, 2)];
-        let groups = groups.into_iter().map(|(index, size)| Group { index, height: size });
+        let groups = make_groups(vec![(1, 4), (2, 4), (3, 3), (4, 3), (5, 2), (6, 3), (7, 2)]);
         let arranged = Layouter::new(groups).arrange();
-        let expected: &[Vec<usize>] = &[vec![2, 6], vec![1, 4], vec![3, 5, 7]];
-        assert_eq!(&arranged, expected);
+        let expected = [vec![2, 6], vec![1, 4], vec![3, 5, 7]];
+        check_groups_indices(arranged, expected);
     }
 
     /// See [task #181431035](https://www.pivotaltracker.com/story/show/181431035).
     #[test]
     fn test_case_from_acceptance_criteria() {
-        let groups: Vec<(usize, usize)> =
-            vec![(1, 3), (2, 1), (3, 3), (4, 4), (5, 1), (6, 1), (7, 4), (8, 1), (9, 2), (10, 1)];
-        let groups = groups.into_iter().map(|(index, size)| Group { index, height: size });
+        let groups = make_groups(vec![
+            (1, 3),
+            (2, 1),
+            (3, 3),
+            (4, 4),
+            (5, 1),
+            (6, 1),
+            (7, 4),
+            (8, 1),
+            (9, 2),
+            (10, 1),
+        ]);
         let arranged = Layouter::new(groups).arrange();
-        let expected: &[Vec<usize>] = &[vec![2, 5, 6, 9, 10], vec![1, 4, 8], vec![3, 7]];
-        assert_eq!(&arranged, expected);
+        let expected = [vec![2, 5, 6, 9, 10], vec![1, 4, 8], vec![3, 7]];
+        check_groups_indices(arranged, expected);
     }
 }
