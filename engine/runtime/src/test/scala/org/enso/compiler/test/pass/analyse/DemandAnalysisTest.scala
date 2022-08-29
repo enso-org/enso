@@ -151,7 +151,7 @@ class DemandAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
+        .arguments(1)
         .value
         .asInstanceOf[IR.Application.Literal.Sequence]
 

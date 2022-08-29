@@ -72,7 +72,13 @@ class VectorLiteralsTest extends CompilerTest {
       arg shouldBe an[IR.Application.Prefix]
       arg
         .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
+        .function
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldBe "from_array"
+
+      arg
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(1)
         .value shouldBe an[IR.Application.Literal.Sequence]
 
       val bodyLiteral = fun.body
@@ -84,7 +90,7 @@ class VectorLiteralsTest extends CompilerTest {
       bodyLiteral shouldBe an[IR.Application.Prefix]
 
       val outerVec =
-        bodyLiteral.asInstanceOf[IR.Application.Prefix].arguments(0).value
+        bodyLiteral.asInstanceOf[IR.Application.Prefix].arguments(1).value
 
       outerVec shouldBe an[IR.Application.Literal.Sequence]
 
@@ -95,7 +101,7 @@ class VectorLiteralsTest extends CompilerTest {
 
       innerLiteral
         .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
+        .arguments(1)
         .value shouldBe an[IR.Application.Literal.Sequence]
     }
   }

@@ -1262,7 +1262,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val callArg = ir.body
         .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
+        .arguments(1)
       val vector = callArg.value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
