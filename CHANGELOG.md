@@ -60,6 +60,7 @@
   could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened  
   and a new node is created.][3645]
+- [Proper Polyglot Vector and Array Support][3667]
 
 #### EnsoGL (rendering engine)
 
@@ -295,6 +296,7 @@
 [3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
 [3634]: https://github.com/enso-org/enso/pull/3634
+[3667]: https://github.com/enso-org/enso/pull/3667
 [3669]: https://github.com/enso-org/enso/pull/3669
 [3647]: https://github.com/enso-org/enso/pull/3647
 
