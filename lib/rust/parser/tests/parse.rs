@@ -15,6 +15,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+mod metadata;
+
 use lexpr::sexp;
 use lexpr::Value;
 
@@ -473,6 +475,7 @@ fn import() {
 
 // === Metadata ===
 
+
 #[test]
 fn metadata_raw() {
     let code = [
@@ -491,33 +494,7 @@ fn metadata_raw() {
 
 #[test]
 fn metadata_parsing() {
-    let code = r#"
-import Standard.Base.Data.Any
-import Standard.Base.Data.Boolean
-import Standard.Base.IO
-import Standard.Table.Io.File_Format
-import Standard.Table.Io.File_Read
-import Standard.Visualization
-
-main =
-    number1 = 7
-    number2 = 6
-    operator1 = 2 + number2
-    delimited1 = File_Format.Delimited 123
-    operator2 = Enso_Project.data
-    operator3 = operator2.list
-    operator4 = operator3.at 0
-    operator5 = operator4.read delimited1
-
-    operator6 = operator4.read_text
-
-
-
-
-
-#### METADATA ####
-[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"],[{"index":{"value":15},"size":{"value":1}},"b803f0a9-51bf-4473-8dc0-5163340feb0a"],[{"index":{"value":16},"size":{"value":4}},"e48f96d6-8349-4c28-8c2a-3ac3c447a53c"],[{"index":{"value":20},"size":{"value":1}},"8adaadf0-443a-4598-bc61-4f85e6b518c2"],[{"index":{"value":21},"size":{"value":4}},"4e3ab45b-4333-4cf3-abb7-ced5b26b5d64"],[{"index":{"value":25},"size":{"value":1}},"a450dc37-ed96-470d-a12a-0a98e43a4002"],[{"index":{"value":26},"size":{"value":3}},"379322e5-b4b6-4c96-8404-348cdec4f2e9"],[{"index":{"value":0},"size":{"value":29}},"1db87a0f-3de5-41bc-bd0f-a4d6738dace9"],[{"index":{"value":37},"size":{"value":8}},"b8d0dcc9-298a-448e-b235-59ad71e2ef68"],[{"index":{"value":45},"size":{"value":1}},"1a8db951-33b6-41f7-b84c-2fda9d34dca2"],[{"index":{"value":46},"size":{"value":4}},"d53a8336-5125-48cb-adc0-99b8f6208fa6"],[{"index":{"value":50},"size":{"value":1}},"26032102-59e8-4e30-84f7-04d6410478bc"],[{"index":{"value":51},"size":{"value":4}},"1f5d99d1-680b-47e9-8599-061289a41201"],[{"index":{"value":55},"size":{"value":1}},"c2fe225b-9fe9-4f10-abb0-d83accd42336"],[{"index":{"value":56},"size":{"value":7}},"64907631-01f4-4a02-acab-a0f55e86eed4"],[{"index":{"value":30},"size":{"value":33}},"836d67f0-b0df-421f-8ac3-099e952d0050"],[{"index":{"value":71},"size":{"value":8}},"f7d49db0-6a18-45a0-9279-ac04cb25740b"],[{"index":{"value":79},"size":{"value":1}},"73ade9b0-f3a0-4483-9cfb-a355541cbf6b"],[{"index":{"value":80},"size":{"value":4}},"5d3b79ef-7d37-4a46-8e73-b0c01f8463a9"],[{"index":{"value":84},"size":{"value":1}},"0097b595-7d58-4ebf-bc1a-9252ee7ea4e0"]]
-"#;
+    let code = metadata::ORDERS_WITH_METADATA;
     let (meta, code) = enso_parser::metadata::parse(code).unwrap();
     let _ast = enso_parser::Parser::new().run(code);
     let _meta: enso_parser::metadata::Metadata = meta.unwrap();
