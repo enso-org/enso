@@ -85,18 +85,18 @@ spec =
             formatter.parse "000.0" . should_equal 0.0
 
         Test.specify "should parse booleans" <|
-            formatter = Data_Formatter
+            formatter = Data_Formatter_Data
             formatter.parse "True" . should_equal True
             formatter.parse "False" . should_equal False
 
         Test.specify "should allow custom boolean formats" <|
-            formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
+            formatter = Data_Formatter_Data true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.parse "YES" . should_equal True
             formatter.parse "NO" . should_equal False
-            (Data_Formatter true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
+            (Data_Formatter_Data true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
 
         Test.specify "should parse dates" <|
-            formatter = Data_Formatter
+            formatter = Data_Formatter_Data
             formatter.parse "2022-01-01" . should_equal (Date.new 2022)
             formatter.parse "2020-05-07" . should_equal (Date.new 2020 5 7)
             formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)

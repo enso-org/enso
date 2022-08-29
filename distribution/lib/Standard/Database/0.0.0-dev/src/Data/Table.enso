@@ -364,7 +364,7 @@ type Table
     take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -377,7 +377,7 @@ type Table
     drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
 

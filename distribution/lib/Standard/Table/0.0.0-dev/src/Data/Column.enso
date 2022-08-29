@@ -1380,4 +1380,4 @@ get_item_string column ix =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = Index_Sub_Range.normalize_ranges ranges
-    Column (column.java_column.slice normalized.to_array)
+    Column_Data (column.java_column.slice normalized.to_array)

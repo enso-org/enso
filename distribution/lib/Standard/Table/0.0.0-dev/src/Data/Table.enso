@@ -1159,4 +1159,4 @@ Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range.normalize_ranges ranges
-    Table (table.java_table.slice normalized.to_array)
+    Table_Data (table.java_table.slice normalized.to_array)
