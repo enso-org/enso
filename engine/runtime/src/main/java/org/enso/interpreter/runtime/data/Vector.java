@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -27,20 +28,25 @@ public class Vector implements TruffleObject {
 
   @Builtin.Method(name = "new_builtin", description = "Returns the length of this Vector.")
   @Builtin.Specialize
-  public static Vector newFromFunction(long length, Function fun, InteropLibrary interop) {
+  public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
     Object[] target = new Object[(int) length];
     for (int i = 0; i < length; i++) {
       try {
-        target[i] = interop.execute(fun, (long) i);
-      } catch (ArityException e) {
-        e.printStackTrace(); // todo propagate
-      } catch (UnsupportedTypeException e) {
-        e.printStackTrace(); // todo propagate
-      } catch (UnsupportedMessageException e) {
-        e.printStackTrace(); // todo propagate
+        final Object value = interop.execute(fun, (long) i);
+        if (value instanceof DataflowError) {
+          return value;
+        }
+        target[i] = value;
+      } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
+        throw raise(RuntimeException.class, e);
       }
     }
     return new Vector(new Array(target));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 
   /**
