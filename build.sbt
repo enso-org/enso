@@ -1296,8 +1296,12 @@ lazy val runtime = (project in file("engine/runtime"))
     )
   )
   .settings(
+    (Compile / compile / streams) := (Compile / compile / streams).dependsOn(
+      Def.taskDyn { Def.task { (Runtime/clean).value } }
+    ).value// CI HACK: REMOVE IT ASAP
+  )
+  .settings(
     (Compile / compile) := (Compile / compile)
-      .dependsOn(clean) // CI HACK: REMOVE IT ASAP
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
       .value
   )
