@@ -5,8 +5,11 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -14,9 +17,9 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.8"
-val graalVersion = "21.3.0"
-val javaVersion = "11"
+val scalacVersion         = "2.13.8"
+val graalVersion          = "21.3.0"
+val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -713,11 +716,11 @@ lazy val `profiling-utils` = project
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       exclude ("org.netbeans.api", "org-openide-loaders")
       exclude ("org.netbeans.api", "org-openide-nodes")
-      exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
-      exclude("org.netbeans.api", "org-netbeans-api-progress")
-      exclude("org.netbeans.api", "org-openide-util-lookup")
-      exclude("org.netbeans.api", "org-openide-util")
-      exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude ("org.netbeans.api", "org-netbeans-api-progress-nb")
+      exclude ("org.netbeans.api", "org-netbeans-api-progress")
+      exclude ("org.netbeans.api", "org-openide-util-lookup")
+      exclude ("org.netbeans.api", "org-openide-util")
+      exclude ("org.netbeans.api", "org-openide-dialogs")
       exclude ("org.netbeans.api", "org-openide-filesystems")
       exclude ("org.netbeans.api", "org-openide-util-ui")
       exclude ("org.netbeans.api", "org-openide-awt")
@@ -1003,10 +1006,10 @@ val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
 } else {
   Seq(
     "-Dpolyglot.engine.IterativePartialEscape=true",
-    "-Dpolyglot.engine.BackgroundCompilation=false"
+    "-Dpolyglot.engine.BackgroundCompilation=false",
+    "-Dbench.compileOnly=true"
   )
 }
-
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
@@ -1294,6 +1297,7 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     (Compile / compile) := (Compile / compile)
+      .dependsOn(Compile / clean)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
       .value
   )
