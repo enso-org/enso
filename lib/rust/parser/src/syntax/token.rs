@@ -266,6 +266,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub binary_infix_precedence: Option<Precedence>,
             pub unary_prefix_precedence: Option<Precedence>,
             pub is_type_annotation: bool,
+            pub can_form_section: bool,
         },
         Modifier,
         DocComment,

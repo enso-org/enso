@@ -529,10 +529,11 @@ impl<'s> Lexer<'s> {
                 let (left, right) = token.split_at_(Bytes(1));
                 let (binary, unary) = compute_precedence(&left.code);
                 self.submit_token(
-                    left.with_variant(token::Variant::operator(binary, unary, false)),
+                    left.with_variant(token::Variant::operator(binary, unary, false, true)),
                 );
                 let (_, unary) = compute_precedence(&right.code);
-                self.submit_token(right.with_variant(token::Variant::operator(None, unary, false)));
+                let rhs = token::Variant::operator(None, unary, false, true);
+                self.submit_token(right.with_variant(rhs));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
@@ -540,7 +541,7 @@ impl<'s> Lexer<'s> {
                     token::Variant::modifier()
                 } else {
                     let (binary, unary) = compute_precedence(&token.code);
-                    token::Variant::operator(binary, unary, token.code == ":")
+                    token::Variant::operator(binary, unary, token.code == ":", token.code != ",")
                 };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
@@ -877,7 +878,7 @@ pub mod test {
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let (binary, unary) = compute_precedence(code);
-        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":"))
+        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":", code != ","))
     }
 }
 
@@ -1026,7 +1027,7 @@ mod tests {
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
         let (_, unary) = compute_precedence("-");
-        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false));
+        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false, true));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 

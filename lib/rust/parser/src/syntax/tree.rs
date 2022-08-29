@@ -204,6 +204,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub import_as: Option<MultiSegmentAppSegment<'s>>,
             pub hiding:    Option<MultiSegmentAppSegment<'s>>,
         },
+        /// An export statement.
+        Export {
+            pub from:      Option<MultiSegmentAppSegment<'s>>,
+            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
+            pub export:    MultiSegmentAppSegment<'s>,
+            pub export_as: Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+        },
         /// An expression grouped by matched parentheses.
         Group {
             pub open:  token::Symbol<'s>,
@@ -413,9 +421,17 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 
 /// Join two nodes with a new node appropriate for their types.
 ///
-/// For most input types, this simply constructs an `App`; however, for some block type operands
+/// For most input types, this simply constructs an `App`; however, for some operand types
 /// application has special semantics.
-pub fn apply<'s>(func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+    match &mut *func.variant {
+        Variant::OprApp(app)
+        if let Ok(opr) = &app.opr && !opr.can_form_section && app.rhs.is_none() => {
+            app.rhs = Some(arg);
+            return func;
+        }
+        _ => (),
+    }
     match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
             block.lhs = Some(func);
