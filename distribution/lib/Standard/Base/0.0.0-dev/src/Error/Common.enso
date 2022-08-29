@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Json
 import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
@@ -646,3 +645,13 @@ Unimplemented_Error.to_display_text self = "An implementation is missing: " + se
          example_unimplemented = Errors.unimplemented
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error message)
+
+type Time_Error
+
+    ## UNSTABLE
+
+       An error produced while working with time- and date-related methods.
+
+       Arguments:
+       - error_message: The message for the error.
+    type Time_Error error_message

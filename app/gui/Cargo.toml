@@ -25,7 +25,7 @@ enso-web = { path = "../../lib/rust/web" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/example" }
 ensogl-component = { path = "../../lib/rust/ensogl/component" }
-ensogl-text-msdf-sys = { path = "../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
 fuzzly = { path = "../../lib/rust/fuzzly" }
@@ -38,6 +38,7 @@ parser = { path = "language/parser" }
 span-tree = { path = "language/span-tree" }
 bimap = { version = "0.4.0" }
 console_error_panic_hook = { version = "0.1.6" }
+const_format = { version = "0.2.22" }
 convert_case = { version = "0.5.0" }
 failure = { version = "0.1.6" }
 flo_stream = { version = "0.4.0" }

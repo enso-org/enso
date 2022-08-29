@@ -14,7 +14,7 @@ macro_rules! log_template {
     };
 
     ($expand:ident, $level:path, $logger:expr, $msg:tt) => {
-        $crate::LoggerOps::<$level>::log(&$logger,$level,||iformat!($msg))
+        $crate::LoggerOps::<$level>::log(&$logger,$level,||$crate::iformat!($msg))
     };
 
     ($expand:ident, $level:path, $logger:expr, || $msg:expr) => {
@@ -34,7 +34,7 @@ macro_rules! log_template {
     };
 
     ($expand:ident, $level:path, $logger:expr, $msg:tt, || $($body:tt)*) => {
-        $crate::log_template_group!($expand,$level,$logger,[||iformat!($msg)],||$($body)*)
+        $crate::log_template_group!($expand,$level,$logger,[||$crate::iformat!($msg)],||$($body)*)
     };
 
     ($expand:ident, $level:path, $logger:expr, || $msg:expr, || $($body:tt)*) => {

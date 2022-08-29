@@ -25,7 +25,7 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::DEPRECATED_Animation;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use logger::TraceLogger as Logger;
 
 

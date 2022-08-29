@@ -1,5 +1,7 @@
 package org.enso.table.data.table;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Function;
@@ -12,6 +14,7 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
@@ -120,9 +123,28 @@ public class Column {
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     for (var item : items) {
-      builder.appendNoGrow(item.isDate() ? item.asDate() : item.as(Object.class));
+      builder.appendNoGrow(convertDateOrTime(item));
     }
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
+  }
+
+  private static Object convertDateOrTime(Value item) {
+    if (item.isDate()) {
+      LocalDate d = item.asDate();
+      if (item.isTime()) {
+        LocalDateTime dtime = d.atTime(item.asTime());
+        if (item.isTimeZone()) {
+          return dtime.atZone(item.asTimeZone());
+        } else {
+          return dtime;
+        }
+      } else {
+        return d;
+      }
+    } else if (item.isTime()) {
+      return item.asTime();
+    }
+    return item.as(Object.class);
   }
 
   /**
@@ -184,6 +206,11 @@ public class Column {
   /** @return a copy of the Column containing a slice of the original data */
   public Column slice(int offset, int limit) {
     return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
+  }
+
+  /** @return a copy of the Column consisting of slices of the original data */
+  public Column slice(List<SliceRange> ranges) {
+    return new Column(name, index.slice(ranges), storage.slice(ranges));
   }
 
   /** @return a column counting value repetitions in this column. */

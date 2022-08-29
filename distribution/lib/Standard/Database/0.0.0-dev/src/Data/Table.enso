@@ -1,26 +1,26 @@
 from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 import Standard.Database.Data.Internal.Helpers
 import Standard.Database.Data.Internal.Aggregate_Helper
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
+
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.IO.File_Format
+
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-import Standard.Table.IO.File_Format
-import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
-from Standard.Table.Data.Table import No_Such_Column_Error
+from Standard.Table.Errors import No_Such_Column_Error
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Database.Error import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
@@ -86,12 +86,18 @@ type Table
        Returns the column with the given name.
 
        Arguments:
-       - name: The name of the column to get.
-    at : Text -> Column ! No_Such_Column_Error
-    at self name =
-        candidates = self.internal_columns + self.context.meta_index
-        internal = candidates.find (p -> p.name == name)
-        self.make_column internal . map_error (_ -> No_Such_Column_Error name)
+       - selector: The name or index of the column to get.
+    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at self selector=0 = case selector of
+        Integer -> self.make_column (self.internal_columns.at selector)
+        Text ->
+            candidates = self.internal_columns + self.context.meta_index
+            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error selector)
+            self.make_column internal_column
+
+    ## Returns the number of columns in the table.
+    column_count : Integer
+    column_count self = self.internal_columns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -349,6 +355,31 @@ type Table
                 self.updated_context new_ctx
 
     ## UNSTABLE
+       Creates a new Table with the specified range of rows from the input
+       Table.
+
+       Arguments:
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Table
+    take self range=(First 1) =
+        _ = range
+        msg = "`Table.take` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
+       Creates a new Table from the input with the specified range of rows
+       removed.
+
+
+       Arguments:
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Table
+    drop self range=(First 1) =
+        _ = range
+        msg = "`Table.drop` is not yet implemented."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
+    ## UNSTABLE
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
@@ -423,7 +454,7 @@ type Table
        - index: The column to use as the index of the table.
     set_index : Text | Column | Vector Text -> Table
     set_index self index = Panic.recover Any <|
-        new_index = (Helpers.unify_vector_singleton index).map (self.at >> .as_internal)
+        new_index = (Helpers.unify_vector_singleton index).map ((self.at _) >> .as_internal)
         new_ctx = self.context.set_index new_index
         new_cols = self.internal_columns.filter col->
             turned_into_index = new_index.exists i-> i.name == col.name
@@ -473,20 +504,9 @@ type Table
        Missing (`Nothing`) values are sorted as less than any other object.
 
        > Example
-         Order the table by the column "alpha" in ascending order.
-
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
-
-       > Example
-         Order the table by the second column in ascending order. In case of any
-         ties, break them based on the 7th column from the end of the table in
-         descending order.
-
-             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
-       > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
@@ -497,7 +517,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -505,6 +525,12 @@ type Table
          ties.
 
              table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
+       > Example
+         Order the table by the second column in ascending order. In case of any
+         ties, break them based on the 7th column from the end of the table in
+         descending order.
+
+             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new

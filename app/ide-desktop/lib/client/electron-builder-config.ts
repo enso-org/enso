@@ -1,15 +1,64 @@
+/**
+ * This module defines a TS script that is responsible for invoking the Electron Builder process to
+ * bundle the entire IDE distribution.
+ *
+ * There are two areas to this:
+ * - Parsing CLI options as per our needs.
+ * - The default configuration of the build process.
+ *
+ * @module
+ */
+
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import { Configuration } from 'electron-builder'
+import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 'electron-builder'
+import builder from 'electron-builder'
 
 import { require_env } from '../../utils.js'
 import { project_manager_bundle } from './paths.js'
 import build from '../../build.json' assert { type: 'json' }
+import yargs from 'yargs'
+import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
 
-const dist = require_env('ENSO_BUILD_IDE')
-const gui = require_env('ENSO_BUILD_GUI')
-const icons = require_env('ENSO_BUILD_ICONS')
-const project_manager = require_env('ENSO_BUILD_PROJECT_MANAGER')
+const args = await yargs(process.argv.slice(2))
+    .env('ENSO_BUILD')
+    .option({
+        ideDist: {
+            // Alias here (and subsequent occurrences) are for the environment variable name.
+            alias: 'ide',
+            type: 'string',
+            description: 'Output directory for IDE',
+            demandOption: true,
+        },
+        guiDist: {
+            alias: 'gui',
+            type: 'string',
+            description: 'Output directory with GUI',
+            demandOption: true,
+        },
+        iconsDist: {
+            alias: 'icons',
+            type: 'string',
+            description: 'Output directory with icons',
+            demandOption: true,
+        },
+        projectManagerDist: {
+            alias: 'project-manager',
+            type: 'string',
+            description: 'Output directory with project manager',
+            demandOption: true,
+        },
+        platform: {
+            type: 'string',
+            description: 'Platform that Electron Builder should target',
+            default: Platform.current().toString(),
+            coerce: (p: string) => Platform.fromString(p),
+        },
+        targetOverride: {
+            type: 'string',
+            description: 'Overwrite the platform-default target',
+        },
+    }).argv
 
 const config: Configuration = {
     appId: 'org.enso',
@@ -21,8 +70,8 @@ const config: Configuration = {
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: ['dmg'],
-        icon: `${icons}/icon.icns`,
+        target: (args.targetOverride as MacOsTargetName) ?? 'dmg',
+        icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
         type: 'distribution',
@@ -39,23 +88,23 @@ const config: Configuration = {
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: ['nsis'],
-        icon: `${icons}/icon.ico`,
+        target: args.targetOverride ?? 'nsis',
+        icon: `${args.iconsDist}/icon.ico`,
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: ['AppImage'],
-        icon: `${icons}/png`,
+        target: args.targetOverride ?? 'AppImage',
+        icon: `${args.iconsDist}/png`,
         category: 'Development',
     },
     files: [
         '!**/node_modules/**/*',
-        { from: `${gui}/`, to: '.' },
-        { from: `${dist}/client`, to: '.' },
+        { from: `${args.guiDist}/`, to: '.' },
+        { from: `${args.ideDist}/client`, to: '.' },
     ],
     extraResources: [
         {
-            from: `${project_manager}/`,
+            from: `${args.projectManagerDist}/`,
             to: project_manager_bundle,
             filter: ['!**.tar.gz', '!**.zip'],
         },
@@ -68,7 +117,7 @@ const config: Configuration = {
         },
     ],
     directories: {
-        output: `${dist}`,
+        output: `${args.ideDist}`,
     },
     nsis: {
         // Disables "block map" generation during electron building. Block maps
@@ -101,6 +150,8 @@ const config: Configuration = {
     // TODO [mwu]: Temporarily disabled, signing should be revised.
     //             In particular, engine should handle signing of its artifacts.
     // afterPack: 'tasks/prepareToSign.js',
+
+    publish: null,
 }
 
 // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it will
@@ -110,4 +161,13 @@ const config: Configuration = {
 // Without this workaround, `electron-builder` will end up erasing its own dependencies and failing
 // because of that.
 await fs.mkdir('node_modules', { recursive: true })
-await fs.writeFile('electron-builder-config.json', JSON.stringify(config, null, 2))
+
+const cli_opts: CliOptions = {
+    config: config,
+    targets: args.platform.createTarget(),
+}
+
+console.log('Building with configuration:', cli_opts)
+
+const result = await builder.build(cli_opts)
+console.log('Electron Builder is done. Result:', result)

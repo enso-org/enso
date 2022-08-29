@@ -31,6 +31,6 @@ public class DateFormatter implements DataFormatter {
 
   @Override
   public boolean canFormat(Object value) {
-    return value instanceof LocalDate || (value instanceof Value v && v.isDate());
+    return value instanceof LocalDate || (value instanceof Value v && v.isDate() && !v.isTime());
   }
 }

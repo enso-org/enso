@@ -91,15 +91,17 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
-  public ZonedDateTime getCreationTime() throws IOException {
-    return ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC);
+  public EnsoDateTime getCreationTime() throws IOException {
+    return new EnsoDateTime(
+        ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
-  public ZonedDateTime getLastModifiedTime() throws IOException {
-    return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
+  public EnsoDateTime getLastModifiedTime() throws IOException {
+    return new EnsoDateTime(
+        ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")
