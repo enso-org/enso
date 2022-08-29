@@ -61,6 +61,7 @@
 - [New nodes are created in the project source when the searcher is opened  
   and a new node is created.][3645]
 - [Proper Polyglot Vector and Array Support][3667]
+- [Visualization of long textual values improved][3665]
 
 #### EnsoGL (rendering engine)
 
@@ -295,6 +296,7 @@
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
+[3665]: https://github.com/enso-org/enso/pull/3665
 [3634]: https://github.com/enso-org/enso/pull/3634
 [3667]: https://github.com/enso-org/enso/pull/3667
 [3669]: https://github.com/enso-org/enso/pull/3669
