@@ -27,6 +27,11 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return o instanceof ZonedDateTime;
+  }
+
+  @Override
   public Storage seal() {
     return new DateTimeStorage(data, currentSize);
   }

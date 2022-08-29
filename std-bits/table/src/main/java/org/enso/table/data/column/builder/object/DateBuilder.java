@@ -27,6 +27,11 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return o instanceof LocalDate;
+  }
+
+  @Override
   public Storage seal() {
     return new DateStorage(data, currentSize);
   }

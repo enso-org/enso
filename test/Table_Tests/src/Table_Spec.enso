@@ -93,8 +93,9 @@ spec =
             times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
             datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
             mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+            just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
 
-            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed]
+            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, just_nulls]
             table.at "strs" . storage_type . should_equal Storage.Text
             table.at "ints" . storage_type . should_equal Storage.Integer
             table.at "doubles" . storage_type . should_equal Storage.Decimal
@@ -104,6 +105,7 @@ spec =
             table.at "dates" . storage_type . should_equal Storage.Date
             table.at "times" . storage_type . should_equal Storage.Time_Of_Day
             table.at "datetimes" . storage_type . should_equal Storage.Date_Time
+            table.at "just_nulls" . storage_type . should_equal Storage.Any
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|

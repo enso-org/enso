@@ -122,10 +122,12 @@ public class Column {
    */
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
-    for (var item : items) {
-      builder.appendNoGrow(convertDateOrTime(item));
+    for (Value item : items) {
+      Object converted = convertDateOrTime(item);
+      builder.appendNoGrow(converted);
     }
-    return new Column(name, new DefaultIndex(items.size()), builder.seal());
+    var storage = builder.seal();
+    return new Column(name, new DefaultIndex(items.size()), storage);
   }
 
   private static Object convertDateOrTime(Value item) {

@@ -38,40 +38,10 @@ public class InferredBuilder extends Builder {
     if (o == null) {
       currentBuilder.appendNoGrow(o);
     } else {
-      switch (currentBuilder.getType()) {
-        case Storage.Type.BOOL:
-          if (o instanceof Boolean) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.LONG:
-          if (o instanceof Long) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.DOUBLE:
-          if (o instanceof Double || o instanceof BigDecimal) {
-            currentBuilder.appendNoGrow(o);
-          } else if (o instanceof Long) {
-            currentBuilder.appendNoGrow(((Long) o).doubleValue());
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.STRING:
-          if (o instanceof String) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.OBJECT:
-          currentBuilder.appendNoGrow(o);
-          break;
+      if (currentBuilder.accepts(o)) {
+        currentBuilder.appendNoGrow(o);
+      } else {
+        retypeAndAppend(o);
       }
     }
     currentSize++;
@@ -196,7 +166,7 @@ public class InferredBuilder extends Builder {
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
       if (info.clazz.isInstance(o) && currentBuilder.canRetypeTo(info.type)) {
-        currentBuilder.retypeTo(info.type);
+        currentBuilder = currentBuilder.retypeTo(info.type);
         currentBuilder.append(o);
         return;
       }

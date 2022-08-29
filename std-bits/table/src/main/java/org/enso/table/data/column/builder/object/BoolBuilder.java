@@ -34,6 +34,11 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return o instanceof Boolean;
+  }
+
+  @Override
   public void append(Object o) {
     appendNoGrow(o);
   }

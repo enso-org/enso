@@ -27,6 +27,11 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return o instanceof LocalTime;
+  }
+
+  @Override
   public Storage seal() {
     return new TimeOfDayStorage(data, currentSize);
   }

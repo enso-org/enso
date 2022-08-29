@@ -25,6 +25,11 @@ public class StringBuilder extends TypedBuilderImpl<String> {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return o instanceof String;
+  }
+
+  @Override
   public Storage seal() {
     return new StringStorage(data, currentSize);
   }

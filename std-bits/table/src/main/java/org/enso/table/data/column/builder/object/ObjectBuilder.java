@@ -44,6 +44,11 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return true;
+  }
+
+  @Override
   public void append(Object o) {
     if (currentSize + 1 > data.length) {
       grow();
