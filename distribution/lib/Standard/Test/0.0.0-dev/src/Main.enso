@@ -358,6 +358,18 @@ Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Panic.throw (Failure msg)
 
+Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
+Number.should_equal self that epsilon=0 frames_to_skip=0 =
+    matches = case that of
+        Number-> self.equals that
+        _ -> False
+    case matches of
+        True -> Success
+        False ->
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+            Panic.throw (Failure msg)
+
 ## Asserts that `self` value is not an error.
 
    It returns the original value, so that it can be inspected further.
