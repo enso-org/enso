@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Uri.Internal
+import Standard.Base.Network.URI.Internal
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
