@@ -17,7 +17,6 @@ type Custom_Type_With_To_Text
     to_text self = "[CUSTOM = " + self.field.to_text + "]"
 
 type Custom_Type_With_Error
-    Custom_Type_With_Error_Data
 
     to_text : Text
     to_text self = Error.throw (Illegal_State_Error_Data "foo_error")
