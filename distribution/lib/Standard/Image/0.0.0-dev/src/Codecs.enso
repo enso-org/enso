@@ -132,7 +132,7 @@ type Write_Flag
        Sets the compression level used when writing a PNG.
 
        Arguments:
-       - value: A compression level from 0 to 9. A higher value means a smaller
+       - val: A compression level from 0 to 9. A higher value means a smaller
          size but a longer compression time.
     Write_Png_Compression val=3
 
