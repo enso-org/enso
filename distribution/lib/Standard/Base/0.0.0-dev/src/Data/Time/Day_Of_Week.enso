@@ -1,19 +1,19 @@
 from Standard.Base import all
 
 type Day_Of_Week
-    type Sunday
+    Sunday
 
-    type Monday
+    Monday
 
-    type Tuesday
+    Tuesday
 
-    type Wednesday
+    Wednesday
 
-    type Thursday
+    Thursday
 
-    type Friday
+    Friday
 
-    type Saturday
+    Saturday
 
     ## Convert the Day_Of_Week to an Integer
 
@@ -31,7 +31,7 @@ type Day_Of_Week
             Friday -> 5
             Saturday -> 6
 
-        shifted = if first_day == Day_Of_Week.Sunday then day_number else
+        shifted = if first_day == Sunday then day_number else
             (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
 
         shifted + if start_at_zero then 0 else 1
@@ -42,7 +42,7 @@ type Day_Of_Week
    - `that`: The first day of the week.
    - `first_day`: The first day of the week.
    - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
-Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Sunday) (start_at_zero:Boolean=False) =
+from (that : Integer) (first_day:Day_Of_Week=Sunday) (start_at_zero:Boolean=False) =
     shifted = if start_at_zero then that else that - 1
 
     case (shifted < 0) || (shifted > 6) of
@@ -51,7 +51,7 @@ Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Sunday) (start_at_zero:
             message = "Invalid day of week (must be " + valid_range + ")."
             Error.throw (Illegal_Argument_Error message)
         False ->
-            day_number = if first_day == Day_Of_Week.Sunday then shifted else
+            day_number = if first_day == Sunday then shifted else
                 (shifted + (first_day.to_integer start_at_zero=True)) % 7
 
             [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday].at day_number

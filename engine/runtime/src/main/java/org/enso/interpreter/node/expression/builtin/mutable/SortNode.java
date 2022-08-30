@@ -46,13 +46,13 @@ public abstract class SortNode extends Node {
 
   @Specialization
   Object doAtomThis(VirtualFrame frame, Atom self, Object that) {
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   Object runSort(Comparator<Object> compare, Array self, Context context) {
     doSort(self.getItems(), compare);
     LoopNode.reportLoopCount(this, (int) self.length());
-    return context.getBuiltins().nothing().newInstance();
+    return context.getBuiltins().nothing();
   }
 
   @TruffleBoundary
@@ -98,7 +98,7 @@ public abstract class SortNode extends Node {
         return 1;
       } else {
         resultProfile.enter();
-        var ordering = context.getBuiltins().ordering().ordering();
+        var ordering = context.getBuiltins().ordering().getType();
         throw new PanicException(
             context.getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
       }

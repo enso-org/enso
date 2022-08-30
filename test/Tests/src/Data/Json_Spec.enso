@@ -2,15 +2,17 @@ from Standard.Base import all
 
 import Standard.Test
 
-type Author name year_of_birth
+type Author
+    Author_Data name year_of_birth
 
-type Book title author
+type Book
+    Book_Data title author
 
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Test.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
-        Json.Parse_Error msg ->
+        Json.Parse_Error_Data msg ->
             if msg.contains expected then Test.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
                 Test.Failure fail_msg
@@ -69,17 +71,17 @@ spec =
             "123 4".should_fail_parsing_with "Expected end of input"
 
         Test.specify "should parse and convert JSON into domain model" <|
-            book_1 = Book "Lord of the Rings" <|
-                Author "J. R. R. Tolkien" 1892
-            book_2 = Book "The Little Prince" <|
-                Author "Antoine de Saint-Exupéry" 1900
-            book_3 = Book "And Then There Were None" <|
-                Author "Agatha Christie" 1890
+            book_1 = Book_Data "Lord of the Rings" <|
+                Author_Data "J. R. R. Tolkien" 1892
+            book_2 = Book_Data "The Little Prince" <|
+                Author_Data "Antoine de Saint-Exupéry" 1900
+            book_3 = Book_Data "And Then There Were None" <|
+                Author_Data "Agatha Christie" 1890
             books = [book_1, book_2, book_3]
 
             json_string = (enso_project.data / "books.json").read_text
             parsed = Json.parse json_string
-            domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+            domain = parsed.into (Vector.Vector_Data (Book_Data title=Text (Author_Data name=Text year_of_birth=Number)))
             domain.should_equal books
 
     Test.group "JSON Serialization" <|
@@ -105,10 +107,10 @@ spec =
             1.54.to_json.should_equal (Json.Number 1.54)
             ["foo", "bar", "baz"].to_json.should_equal <|
                 (Json.Array [Json.String "foo", Json.String "bar", Json.String "baz"])
-            Author "Tolkien" 1892 . to_json . should_equal <|
+            Author_Data "Tolkien" 1892 . to_json . should_equal <|
                 n = Json.String "Tolkien"
                 y = Json.Number 1892
-                t = Json.String "Author"
+                t = Json.String "Author_Data"
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
 
@@ -121,6 +123,6 @@ spec =
                   "y": {"z": null, "w": null} }
 
             object.get "foo" . should_equal (Json.String "bar")
-            object.get "bar" . should_fail_with Json.No_Such_Field_Error
+            object.get "bar" . should_fail_with Json.No_Such_Field_Error_Data
 
 main = Test.Suite.run_main spec

@@ -7,7 +7,7 @@ import org.enso.compiler.pass.resolve.TypeFunctions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class TypeFunctionsTest extends CompilerTest {
+class SugaredTypeFunctionsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 

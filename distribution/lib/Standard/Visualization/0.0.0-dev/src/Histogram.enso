@@ -24,7 +24,7 @@ Table.Table.value_column self =
 type Update
 
     ## PRIVATE
-    type Update values label
+    Update_Data values label
 
     ## PRIVATE
 
@@ -44,20 +44,20 @@ from_table table =
     col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
-    Update values label
+    Update_Data values label
 
 ## PRIVATE
 from_vector : Vector -> Update
 from_vector vector =
-    Update vector Nothing
+    Update_Data vector Nothing
 
 ## PRIVATE
 from_value : Any -> Update
 from_value value =
     case value of
-        Table.Table _   -> from_table value
-        Vector.Vector _ -> from_vector value
-        Column.Column _ -> from_table value.to_table
+        Table.Table_Data _   -> from_table value
+        Vector.Vector_Data _ -> from_vector value
+        Column.Column_Data _ -> from_table value.to_table
         _               -> from_vector value.to_vector
 
 ## PRIVATE

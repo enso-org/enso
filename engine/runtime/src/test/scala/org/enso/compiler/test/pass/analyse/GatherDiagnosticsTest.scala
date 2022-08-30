@@ -86,12 +86,13 @@ class GatherDiagnosticsTest extends CompilerTest {
         List(),
         List(),
         List(
-          IR.Module.Scope.Definition.Atom(
+          IR.Module.Scope.Definition.Type(
             typeName,
             List(
               IR.DefinitionArgument
                 .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
+            List(),
             None
           ),
           IR.Module.Scope.Definition.Method
@@ -120,8 +121,8 @@ class GatherDiagnosticsTest extends CompilerTest {
       val ir =
         """
           |type Foo
-          |    type Bar1
-          |    type Bar2
+          |    Bar1
+          |    Bar2
           |
           |    foo x =
           |        unused = 0

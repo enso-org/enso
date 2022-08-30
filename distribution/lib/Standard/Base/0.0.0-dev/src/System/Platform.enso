@@ -4,16 +4,16 @@ import Standard.Base.System
 type Os
 
     ## The Linux operating system.
-    type Linux
+    Linux
 
     ## The macOS operating system.
-    type Mac_OS
+    Mac_OS
 
     ## The Windows operating system.
-    type Windows
+    Windows
 
     ## An unknown operating system.
-    type Unknown
+    Unknown
 
 ## Return the type of operating system.
 

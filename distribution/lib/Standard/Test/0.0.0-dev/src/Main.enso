@@ -50,7 +50,7 @@ find_caller_script stack =
 
     find_caller idx =
         source = stack.at idx . source_location
-        if source.is_a Source_Location then stack.at idx . source_location . file else
+        if source.is_a Source_Location_Data then stack.at idx . source_location . file else
             if (idx + 1 == stack.length) then Nothing else
                 @Tail_Call find_caller (idx + 1)
 
@@ -62,7 +62,7 @@ find_caller_script stack =
 config_from_env : Suite_Config
 config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
-
+    print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
     junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
     results_path = if junit_folder.is_nothing then Nothing else
         caller_script = find_caller_script Runtime.get_stack_trace
@@ -74,7 +74,7 @@ config_from_env =
             False ->
                 (File.new junit_folder) / project_root.name / "JUnit.xml"
 
-    Suite_Config only_group_regexp results_path
+    Suite_Config_Data only_group_regexp print_only_failures results_path
 
 
 ## Creates a new test group, describing properties of the object
@@ -98,7 +98,7 @@ Suite.run : Any -> Suite_Config -> Any
 Suite.run ~specs config =
     builder = if config.should_output_junit then StringBuilder.new else Nothing
     wrap_junit_testsuites config builder <|
-        State.run Suite (Suite config Nil builder) <|
+        State.run Suite (Suite_Data config Nil builder) <|
             specs
             State.get Suite
 
@@ -126,11 +126,11 @@ group name ~behaviors pending=Nothing =
     if config.should_run_group name then
         case pending of
             Nothing ->
-                r = State.run Spec (Spec name  Nil) <|
+                r = State.run Spec (Spec_Data name  Nil) <|
                     behaviors
                     State.get Spec
                 r.print_report config suite.builder
-                new_suite = Suite suite.config (Cons r suite.specs) suite.builder
+                new_suite = Suite_Data suite.config (Cons r suite.specs) suite.builder
                 State.put Suite new_suite
             reason ->
                 report_pending_group name reason config suite.builder
@@ -167,7 +167,7 @@ specify label ~behavior pending=Nothing =
         Nothing -> run_spec behavior
         reason -> Pending reason
     spec = State.get Spec
-    new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
+    new_spec = Spec_Data spec.name (Cons (Behavior_Data label result) spec.behaviors)
     State.put Spec new_spec
 
 ## PRIVATE
@@ -471,7 +471,7 @@ Error.should_be_false self = fail_match_on_unexpected_error self 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Assertion
-Any.should_be_a self typ = if self.is_a typ then Success else
+Any.should_be_a self typ = if self.is_a typ || self==typ then Success else
     loc = Meta.get_source_location 0
     expected_type = Meta.get_qualified_type_name typ
     actual_type = Meta.get_qualified_type_name self
@@ -551,12 +551,6 @@ Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = fail_match_o
 
 
 type Verbs
-
-    ## PRIVATE
-
-       Verbs that describe how tests should execute.
-    type Verbs
-
     ## PRIVATE
 
        Checks if the `subject` starts with `argument`.
@@ -611,7 +605,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config only_group_regexp output_path
+    Suite_Config_Data only_group_regexp print_only_failures output_path
 
     should_run_group self name =
         regexp = self.only_group_regexp
@@ -631,7 +625,8 @@ type Suite_Config
    - config: Suite_Config controlloing the test run.
    - specs: The specs contained within the test suite.
    - builder: StringBuilder for JUnit output.
-type Suite config specs builder
+type Suite
+    Suite_Data config specs builder
 
 ## PRIVATE
 
@@ -640,7 +635,8 @@ type Suite config specs builder
    Arguments:
    - name: The name of the spec.
    - behaviors: The results of the behaviors encapsulated in that spec.
-type Spec name behaviors
+type Spec
+    Spec_Data name behaviors
 
 ## PRIVATE
 
@@ -649,7 +645,8 @@ type Spec name behaviors
    Arguments:
    - name: The name of the behavior.
    - result: The result of the behavior.
-type Behavior name result
+type Behavior
+    Behavior_Data name result
 
 ## PRIVATE
 
@@ -677,7 +674,8 @@ Suite.is_fail self = self.specs.any .is_fail
    - err: The payload of the error that triggered this error.
    - stack_trace_text: A textual representation of the stack trace for the
      error.
-type Finished_With_Error err stack_trace_text
+type Finished_With_Error
+    Finished_With_Error_Data err stack_trace_text
 
 ## PRIVATE
 type Assertion
@@ -685,7 +683,7 @@ type Assertion
     ## PRIVATE
 
        Represents a successful behavioral test.
-    type Success
+    Success
 
     ## PRIVATE
 
@@ -693,7 +691,7 @@ type Assertion
 
        Arguments:
        - message: The reason why the test failed.
-    type Failure message
+    Failure message
 
     ## PRIVATE
 
@@ -701,7 +699,7 @@ type Assertion
 
        Arguments:
        - reason: Text describing why the test is pending.
-    type Pending reason
+    Pending reason
 
     ## PRIVATE
 
@@ -723,14 +721,14 @@ run_spec ~behavior =
     recovery = Panic.recover Any <|
         result = behavior
         result.catch Any err->
-            Panic.throw (Finished_With_Error err result.get_stack_trace_text)
+            Panic.throw (Finished_With_Error_Data err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch Any ex->
         case ex of
             Failure _ -> ex
-            Finished_With_Error err stack_trace_text ->
+            Finished_With_Error_Data err stack_trace_text ->
                 Failure ("An unexpected error was returned: " + err.to_display_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_display_text + '\n' + maybeExc.get_stack_trace_text)
     result
@@ -796,17 +794,21 @@ Spec.print_report self config builder =
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 
-    IO.println (self.name + ":")
-    self.behaviors.reverse.each behavior->
-        case behavior.result of
-            Success ->
-                IO.println ("    - " + behavior.name)
-            Failure msg ->
-                IO.println ("    - [FAILED] " + behavior.name)
-                IO.println ("        Reason: " + msg)
-            Pending reason ->
-                IO.println ("    - [PENDING] " + behavior.name)
-                IO.println ("        Reason: " + reason)
+    should_print_behavior = config.print_only_failures.not || self.behaviors.any (b -> b.result.is_a Failure)
+    if should_print_behavior then
+        IO.println (self.name + ":")
+        self.behaviors.reverse.each behavior->
+            case behavior.result of
+                Success ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - " + behavior.name)
+                Failure msg ->
+                    IO.println ("    - [FAILED] " + behavior.name)
+                    IO.println ("        Reason: " + msg)
+                Pending reason ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - [PENDING] " + behavior.name)
+                        IO.println ("        Reason: " + reason)
 
 
 ## PRIVATE

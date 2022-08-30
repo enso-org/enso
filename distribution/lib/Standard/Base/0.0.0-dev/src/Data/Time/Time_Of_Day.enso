@@ -46,7 +46,7 @@ now = @Builtin_Method "Time_Of_Day.now"
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Panic.catch_java Any (Time_Of_Day.new_builtin hour minute second nanosecond) java_exception->
-        Error.throw (Time_Error java_exception.getMessage)
+        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -111,22 +111,20 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
          example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
 parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Time_Of_Day.parse_builtin text
             Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
+## PRIVATE
+
+   This type is a date-time object that represents a time, often viewed
+   as hour-minute-second.
+
+   Time is represented to nanosecond precision. For example, the value
+   "13:45.30.123456789" can be stored in a `Time_Of_Day`.
+@Builtin_Type
 type Time_Of_Day
-
-    ## PRIVATE
-
-       This type is a date-time object that represents a time, often viewed
-       as hour-minute-second.
-
-       Time is represented to nanosecond precision. For example, the value
-       "13:45.30.123456789" can be stored in a `Time_Of_Day`.
-    @Builtin_Type
-    type Time_Of_Day
 
     ## Get the hour portion of the time of day.
 
@@ -210,7 +208,7 @@ type Time_Of_Day
 
              example_plus = Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + self amount = if amount.is_date then Error.throw (Time_Error "Time_Of_Day does not support date intervals") else
+    + self amount = if amount.is_date then Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals") else
         Time_Utils.time_adjust self Time_Utils.AdjustOp.PLUS amount.internal_duration
 
     ## Subtract the  specified amount of time from this instant to get a new
@@ -227,7 +225,7 @@ type Time_Of_Day
 
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
-    - self amount = if amount.is_date then Error.throw (Time_Error "Time_Of_Day does not support date intervals") else
+    - self amount = if amount.is_date then Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals") else
         Time_Utils.time_adjust self Time_Utils.AdjustOp.MINUS amount.internal_duration
 
     ## Format this time of day as text using the default formatter.

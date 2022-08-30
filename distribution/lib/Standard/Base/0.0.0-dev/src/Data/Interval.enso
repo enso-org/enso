@@ -13,7 +13,7 @@ export Standard.Base.Data.Interval.Bound
 
          example_exclusive = Interval.exclusive 0.1 0.5
 exclusive : Number -> Number -> Interval
-exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
+exclusive start end = Interval_Data (Bound.Exclusive start) (Bound.Exclusive end)
 
 ## Creates an interval that excludes its lower bound.
 
@@ -24,7 +24,7 @@ exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
 
          example_start_exclusive = Interval.start_exclusive 1 5
 start_exclusive : Number -> Number -> Interval
-start_exclusive start end = Interval (Bound.Exclusive start) (Bound.Inclusive end)
+start_exclusive start end = Interval_Data (Bound.Exclusive start) (Bound.Inclusive end)
 
 ## Creates an interval that excludes its upper bound.
 
@@ -35,7 +35,7 @@ start_exclusive start end = Interval (Bound.Exclusive start) (Bound.Inclusive en
 
          example_end_exclusive = Interval.end_exclusive 1 5
 end_exclusive : Number -> Number -> Interval
-end_exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
+end_exclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Exclusive end)
 
 ## Creates an interval that includes both of its bounds.
 
@@ -46,7 +46,7 @@ end_exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
 
          example_inclusive = Interval.inclusive 0 0
 inclusive : Number -> Number -> Interval
-inclusive start end = Interval (Bound.Inclusive start) (Bound.Inclusive end)
+inclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Inclusive end)
 
 ## A type representing an interval over real numbers.
 type Interval
@@ -58,7 +58,7 @@ type Interval
        Arguments:
        - start: The start of the interval.
        - end: The end of the interval.
-    type Interval (start : Number) (end : Number)
+    Interval_Data (start : Bound.Bound) (end : Bound.Bound)
 
     ## Checks if the interval contains `that`.
 

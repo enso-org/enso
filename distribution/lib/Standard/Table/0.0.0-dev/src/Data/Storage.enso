@@ -2,16 +2,16 @@
 type Type
 
     ## A column storing text data.
-    type Text
+    Text
 
     ## A column storing integer data.
-    type Integer
+    Integer
 
     ## A column storing decimal data.
-    type Decimal
+    Decimal
 
     ## A column storing boolean data.
-    type Boolean
+    Boolean
 
     ## A column storing arbitrary data.
-    type Any
+    Any

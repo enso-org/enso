@@ -15,10 +15,10 @@ type Option
          the ASCII character set, you may be able to obtain a performance boost
          by specifying this flag. This may not be the case on all engines or all
          regexes.
-    type Ascii_Matching
+    Ascii_Matching
 
     ## Specifies that matching should be performed in a case-insensitive manner.
-    type Case_Insensitive
+    Case_Insensitive
 
     ## Specifies that the regular expression should be interpreted in comments
        mode.
@@ -31,16 +31,16 @@ type Option
          preceeded by an unescaped backslash, all characters from the leftmost
          such `#` to the end of the line are ignored. That is to say, they act
          as _comments_ in the regex.
-    type Comments
+    Comments
 
     ## Specifies that the `.` special character should match everything
        _including_ newline characters. Without this flag, it will match all
        characters _except_ newlines.
-    type Dot_Matches_Newline
+    Dot_Matches_Newline
 
     ## Specifies that the pattern character `^` matches at both the beginning of
        the string and at the beginning of each line (immediately following a
        newline), and that the pattern character `$` matches at the end of each
        line _and_ at the end of the string.
-    type Multiline
+    Multiline
 

@@ -37,6 +37,7 @@ import org.enso.polyglot.data.TypeGraph;
   Function.class,
   Atom.class,
   AtomConstructor.class,
+  Type.class,
   DataflowError.class,
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
@@ -122,10 +123,12 @@ public class Types {
       return ConstantsGen.TEXT;
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
-    } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
-    } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
+    } else if (value instanceof Atom atom) {
+      return atom.getConstructor().getQualifiedName().toString();
+    } else if (value instanceof AtomConstructor cons) {
+      return cons.getQualifiedName().toString();
+    } else if (value instanceof Type t) {
+      return t.getQualifiedName().toString();
     } else if (TypesGen.isDataflowError(value)) {
       return ConstantsGen.ERROR;
     } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
@@ -205,7 +208,9 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /** @return the language type hierarchy */
+  /**
+   * @return the language type hierarchy
+   */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
   }

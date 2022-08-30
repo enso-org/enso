@@ -53,7 +53,7 @@ now = @Builtin_Method "Date_Time.now"
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
     Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
-        Error.throw (Time_Error java_exception.getMessage)
+        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## ALIAS Time from Text
 
@@ -135,27 +135,26 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
             Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Date_Time.parse_builtin text
             Text    -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
+
+## PRIVATE
+
+   A date-time with a timezone in the ISO-8601 calendar system, such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Time is a representation of a date-time with a timezone. This class
+   stores all date and time fields, to a precision of nanoseconds, and a
+   timezone, with a zone offset used to handle ambiguous local
+   date-times.
+
+   For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
+   the Europe/Paris timezone" can be stored as `Time`.
+@Builtin_Type
 type Date_Time
-
-    ## PRIVATE
-
-       A date-time with a timezone in the ISO-8601 calendar system, such as
-       "2007-12-03T10:15:30+01:00 Europe/Paris".
-
-       Time is a representation of a date-time with a timezone. This class
-       stores all date and time fields, to a precision of nanoseconds, and a
-       timezone, with a zone offset used to handle ambiguous local
-       date-times.
-
-       For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
-       the Europe/Paris timezone" can be stored as `Time`.
-    @Builtin_Type
-    type Date_Time
 
     ## Get the year portion of the time.
 

@@ -17,9 +17,8 @@ public class SpecializationClassGenerator extends MethodNodeClassGenerator {
       List<ExecutableElement> methodElements,
       ClassName builtinNode,
       ClassName ownerClazz,
-      ClassName stdlibOwner,
-      Map<String, Integer> parameterCounts) {
-    super(builtinNode, ownerClazz, stdlibOwner, parameterCounts);
+      ClassName stdlibOwner) {
+    super(builtinNode, ownerClazz, stdlibOwner);
     this.elements = methodElements;
   }
 

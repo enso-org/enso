@@ -338,6 +338,8 @@
 - [Support pattern matching on constants][3641]
 - [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
   support][3658]
+- [Implement new specification of data types: `type` has a runtime
+  representation, every atom has a type][3671]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -381,6 +383,7 @@
 [3637]: https://github.com/enso-org/enso/pull/3637
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
+[3671]: https://github.com/enso-org/enso/pull/3671
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

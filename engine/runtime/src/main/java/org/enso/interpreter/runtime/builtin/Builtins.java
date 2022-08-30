@@ -1,16 +1,6 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -18,24 +8,35 @@ import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
+import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
@@ -51,35 +52,36 @@ public class Builtins {
   }
 
   private final Map<String, Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
-  private final Map<String, AtomConstructor> builtins;
+  private final Map<Class<? extends Builtin>, Builtin> builtins;
+  private final Map<String, Builtin> builtinsByName;
 
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
-  public final Number number;
-  private final Bool bool;
+  private final Number number;
+  private final Boolean bool;
   private final Ordering ordering;
   private final System system;
   private final Special special;
 
   // Builtin types
-  private final BuiltinAtomConstructor any;
-  private final BuiltinAtomConstructor nothing;
-  private final BuiltinAtomConstructor function;
-  private final BuiltinAtomConstructor polyglot;
-  private final BuiltinAtomConstructor text;
-  private final BuiltinAtomConstructor array;
-  private final BuiltinAtomConstructor dataflowError;
-  private final BuiltinAtomConstructor ref;
-  private final BuiltinAtomConstructor managedResource;
-  private final BuiltinAtomConstructor debug;
-  private final BuiltinAtomConstructor projectDescription;
-  private final BuiltinAtomConstructor file;
-  private final BuiltinAtomConstructor date;
-  private final BuiltinAtomConstructor dateTime;
-  private final BuiltinAtomConstructor timeOfDay;
-  private final BuiltinAtomConstructor timeZone;
-  private final BuiltinAtomConstructor warning;
+  private final Builtin any;
+  private final Builtin nothing;
+  private final Builtin function;
+  private final Builtin polyglot;
+  private final Builtin text;
+  private final Builtin array;
+  private final Builtin dataflowError;
+  private final Builtin ref;
+  private final Builtin managedResource;
+  private final Builtin debug;
+  private final ProjectDescription projectDescription;
+  private final Builtin file;
+  private final Builtin date;
+  private final Builtin dateTime;
+  private final Builtin timeOfDay;
+  private final Builtin timeZone;
+  private final Builtin warning;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -88,49 +90,39 @@ public class Builtins {
    */
   public Builtins(Context context) {
     Language language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
 
-    builtins = new HashMap<>();
-    List<AtomConstructor> builtinTypes = readBuiltinTypesMetadata(scope);
+    builtins = readBuiltinTypesMetadata(language, scope);
+    builtinsByName =
+        builtins.values().stream().collect(Collectors.toMap(v -> v.getType().getName(), v -> v));
     builtinMethodNodes = readBuiltinMethodsMetadata(scope);
-    registerBuiltinMethods(builtinTypes, scope, language);
+    registerBuiltinMethods(scope, language);
 
     error = new Error(this, context);
-    ordering = new Ordering(this);
+    ordering = getBuiltinType(Ordering.class);
     system = new System(this);
     number = new Number(this);
-    bool = new Bool(this);
+    bool = this.getBuiltinType(Boolean.class);
 
-    any = new BuiltinAtomConstructor(this, Any.class);
-    nothing = new BuiltinAtomConstructor(this, Nothing.class);
-    function =
-        new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.function.Function.class);
-    polyglot = new BuiltinAtomConstructor(this, Polyglot.class);
-    text = new BuiltinAtomConstructor(this, Text.class);
-    array = new BuiltinAtomConstructor(this, Array.class);
-    dataflowError =
-        new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.Error.class);
-    ref = new BuiltinAtomConstructor(this, Ref.class);
-    managedResource = new BuiltinAtomConstructor(this, ManagedResource.class);
-    debug = new BuiltinAtomConstructor(this, Debug.class);
-    projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
-    file = new BuiltinAtomConstructor(this, File.class);
-    date =
-        new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.date.Date.class);
-    dateTime =
-        new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.date.DateTime.class);
-    timeOfDay =
-        new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
-    timeZone =
-        new BuiltinAtomConstructor(
-            this, org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
+    any = builtins.get(Any.class);
+    nothing = builtins.get(Nothing.class);
+    function = builtins.get(org.enso.interpreter.node.expression.builtin.function.Function.class);
+    polyglot = builtins.get(Polyglot.class);
+    text = builtins.get(Text.class);
+    array = builtins.get(Array.class);
+    dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
+    ref = builtins.get(Ref.class);
+    managedResource = builtins.get(ManagedResource.class);
+    debug = builtins.get(Debug.class);
+    projectDescription = getBuiltinType(ProjectDescription.class);
+    file = builtins.get(File.class);
+    date = builtins.get(org.enso.interpreter.node.expression.builtin.date.Date.class);
+    dateTime = builtins.get(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
+    timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     special = new Special(language);
-    warning = new BuiltinAtomConstructor(this, Warning.class);
+    warning = builtins.get(Warning.class);
   }
 
   /**
@@ -138,15 +130,13 @@ public class Builtins {
    * "special" builtin types have builtin methods in the scope without requiring everyone to always
    * import full stdlib
    *
-   * @param builtins List of Builtin Types
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(
-      List<AtomConstructor> builtins, ModuleScope scope, Language language) {
-    for (AtomConstructor atom : builtins) {
-      String tpeName = atom.getName();
-      this.builtins.put(tpeName, atom);
+  private void registerBuiltinMethods(ModuleScope scope, Language language) {
+    for (Builtin builtin : builtins.values()) {
+      var type = builtin.getType();
+      String tpeName = type.getName();
       Map<String, Class<BuiltinRootNode>> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
         methods.forEach(
@@ -159,7 +149,7 @@ public class Builtins {
                 e.printStackTrace();
                 fun = Optional.empty();
               }
-              fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
+              fun.ifPresent(f -> scope.registerMethod(type, methodName, f));
             });
       }
     }
@@ -204,7 +194,8 @@ public class Builtins {
    *
    * @param scope Builtins scope
    */
-  private List<AtomConstructor> readBuiltinTypesMetadata(ModuleScope scope) {
+  private Map<Class<? extends Builtin>, Builtin> readBuiltinTypesMetadata(
+      Language language, ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
@@ -217,34 +208,31 @@ public class Builtins {
       ioe.printStackTrace();
     }
 
-    return lines.stream()
-        .map(
-            line -> {
-              String[] builtinMeta = line.split(":");
-              if (builtinMeta.length < 2 || builtinMeta.length > 4) {
-                throw new CompilerError("Invalid builtin metadata in: " + line);
-              }
-
-              AtomConstructor builtin;
-              builtin = new AtomConstructor(builtinMeta[0], scope, true);
-
-              if (builtinMeta.length < 3 || builtinMeta[2].isEmpty()) {
-                builtin = builtin.initializeFields();
-              } else {
-                // there are some type params
-                String[] paramNames = builtinMeta[2].split(",");
-                ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
-                for (int i = 0; i < paramNames.length; i++) {
-                  args[i] =
-                      new ArgumentDefinition(
-                          i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
-                }
-                builtin = builtin.initializeFields(args);
-              }
-              return builtin;
-            })
-        .filter(b -> b != null)
-        .collect(Collectors.toList());
+    Map<Class<? extends Builtin>, Builtin> builtins =
+        lines.stream()
+            .map(
+                line -> {
+                  String[] builtinMeta = line.split(":");
+                  if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+                    java.lang.System.out.println(Arrays.toString(builtinMeta));
+                    throw new CompilerError("Invalid builtin metadata in: " + line);
+                  }
+                  try {
+                    @SuppressWarnings("unchecked")
+                    var cls = (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
+                    return cls.getConstructor().newInstance();
+                  } catch (NoSuchMethodException
+                      | InstantiationException
+                      | IllegalAccessException
+                      | InvocationTargetException
+                      | ClassNotFoundException e) {
+                    e.printStackTrace();
+                    throw new CompilerError("Invalid builtin type entry: " + builtinMeta[1]);
+                  }
+                })
+            .collect(Collectors.toMap(Builtin::getClass, b -> b));
+    builtins.values().forEach(b -> b.initialize(language, scope, builtins));
+    return builtins;
   }
 
   /**
@@ -320,20 +308,15 @@ public class Builtins {
   /**
    * Returns a builtin method for the provided Atom Constructor and the name, if it exists.
    *
-   * @param atom Atom Constructor owner of the function
+   * @param type Atom Constructor owner of the function
    * @param methodName Name of the method
    * @param language The language the resulting function nodes should be associated with
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<Function> getBuiltinFunction(
-      AtomConstructor atom, String methodName, Language language) {
-    return getBuiltinFunction(atom.getName(), methodName, language);
-  }
-
-  public Optional<Function> getBuiltinFunction(
-      String methodOwner, String methodName, Language language) {
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(methodOwner);
+  public Optional<Function> getBuiltinFunction(String type, String methodName, Language language) {
+    // TODO: move away from String mapping once Builtins is gone
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
     if (clazz == null) return Optional.empty();
@@ -346,13 +329,18 @@ public class Builtins {
     }
   }
 
-  public AtomConstructor getBuiltinType(Class<? extends Builtin> clazz) {
-    String snakeCaseName = clazz.getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
-    return getBuiltinType(snakeCaseName);
+  public Optional<Function> getBuiltinFunction(Type type, String methodName, Language language) {
+    return getBuiltinFunction(type.getName(), methodName, language);
   }
 
-  public AtomConstructor getBuiltinType(String name) {
-    return builtins.get(name);
+  public <T extends Builtin> T getBuiltinType(Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    T t = (T) builtins.get(clazz);
+    return t;
+  }
+
+  public Builtin getBuiltinType(String name) {
+    return builtinsByName.get(name);
   }
 
   /**
@@ -360,8 +348,8 @@ public class Builtins {
    *
    * @return the {@code Nothing} atom constructor
    */
-  public AtomConstructor nothing() {
-    return nothing.constructor();
+  public Type nothing() {
+    return nothing.getType();
   }
 
   /**
@@ -369,8 +357,8 @@ public class Builtins {
    *
    * @return the {@code Text} part of builtins.
    */
-  public AtomConstructor text() {
-    return text.constructor();
+  public Type text() {
+    return text.getType();
   }
 
   /**
@@ -378,8 +366,8 @@ public class Builtins {
    *
    * @return the {@code Function} atom constructor
    */
-  public AtomConstructor function() {
-    return function.constructor();
+  public Type function() {
+    return function.getType();
   }
 
   /**
@@ -392,13 +380,13 @@ public class Builtins {
   }
 
   /** @return the container for boolean constructors. */
-  public Bool bool() {
+  public Boolean bool() {
     return bool;
   }
 
   /** @return the ManagedResource constructor. */
-  public AtomConstructor managedResource() {
-    return managedResource.constructor();
+  public Type managedResource() {
+    return managedResource.getType();
   }
 
   /** @return the builtin Error types container. */
@@ -411,8 +399,8 @@ public class Builtins {
    *
    * @return the {@code Any} atom constructor
    */
-  public AtomConstructor any() {
-    return any.constructor();
+  public Type any() {
+    return any.getType();
   }
 
   /**
@@ -420,8 +408,8 @@ public class Builtins {
    *
    * @return the {@code Warning} atom constructor
    */
-  public AtomConstructor warning() {
-    return warning.constructor();
+  public Type warning() {
+    return warning.getType();
   }
 
   /**
@@ -429,8 +417,8 @@ public class Builtins {
    *
    * @return the {@code File} atom constructor
    */
-  public AtomConstructor file() {
-    return file.constructor();
+  public Type file() {
+    return file.getType();
   }
 
   /**
@@ -438,8 +426,8 @@ public class Builtins {
    *
    * @return the {@code Date} atom constructor
    */
-  public AtomConstructor date() {
-    return date.constructor();
+  public Type date() {
+    return date.getType();
   }
 
   /**
@@ -447,8 +435,8 @@ public class Builtins {
    *
    * @return the {@code DateTime} atom constructor
    */
-  public AtomConstructor dateTime() {
-    return dateTime.constructor();
+  public Type dateTime() {
+    return dateTime.getType();
   }
 
   /**
@@ -456,8 +444,8 @@ public class Builtins {
    *
    * @return the {@code TimeOfDay} atom constructor
    */
-  public AtomConstructor timeOfDay() {
-    return timeOfDay.constructor();
+  public Type timeOfDay() {
+    return timeOfDay.getType();
   }
 
   /**
@@ -465,8 +453,8 @@ public class Builtins {
    *
    * @return the {@code TimeZone} atom constructor
    */
-  public AtomConstructor timeZone() {
-    return timeZone.constructor();
+  public Type timeZone() {
+    return timeZone.getType();
   }
 
   /**
@@ -475,13 +463,13 @@ public class Builtins {
    *
    * @return the {@code Debug} atom constructor
    */
-  public AtomConstructor debug() {
-    return debug.constructor();
+  public Type debug() {
+    return debug.getType();
   }
 
   /** @return the {@code Project_Description} atom constructor */
-  public AtomConstructor getProjectDescription() {
-    return projectDescription.constructor();
+  public ProjectDescription getProjectDescription() {
+    return projectDescription;
   }
 
   /** @return the {@code System} atom constructor. */
@@ -490,27 +478,27 @@ public class Builtins {
   }
 
   /** @return the Array constructor. */
-  public AtomConstructor array() {
-    return array.constructor();
+  public Type array() {
+    return array.getType();
   }
 
   /** @return the Ref constructor. */
-  public AtomConstructor ref() {
-    return ref.constructor();
+  public Type ref() {
+    return ref.getType();
   }
 
   /** @return the container for polyglot-related builtins. */
-  public AtomConstructor polyglot() {
-    return polyglot.constructor();
+  public Type polyglot() {
+    return polyglot.getType();
   }
 
   /** @return the {@code Caught_Panic} atom constructor */
-  public AtomConstructor caughtPanic() {
+  public CaughtPanic caughtPanic() {
     return this.error.caughtPanic();
   }
 
   /** @return the {@code Panic} atom constructor */
-  public AtomConstructor panic() {
+  public Type panic() {
     return this.error.panic();
   }
 
@@ -520,8 +508,8 @@ public class Builtins {
   }
 
   /** @return the container for the dataflow error-related builtins */
-  public AtomConstructor dataflowError() {
-    return dataflowError.constructor();
+  public Type dataflowError() {
+    return dataflowError.getType();
   }
 
   public Special special() {
@@ -542,13 +530,13 @@ public class Builtins {
   }
 
   /**
-   * Convert from type-system type names to atoms.
+   * Convert from type-system type names to types.
    *
    * @param typeName the fully qualified type name of a builtin
    * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
    *     and {@code null} otherwise
    */
-  public Atom fromTypeSystem(String typeName) {
+  public Type fromTypeSystem(String typeName) {
     return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 }

@@ -8,20 +8,19 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
 import java.util.UUID;
@@ -30,8 +29,6 @@ import java.util.concurrent.locks.Lock;
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private @Child InvokeConversionNode childDispatch;
-  private final ConditionProfile atomProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile atomConstructorProfile = ConditionProfile.createCountingProfile();
   private final int thatArgumentPosition;
 
   /**
@@ -75,15 +72,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments);
 
-  static AtomConstructor extractConstructor(
-      Node thisNode,
-      Object self,
-      ConditionProfile atomConstructorProfile,
-      ConditionProfile atomProfile) {
-    if (atomConstructorProfile.profile(self instanceof AtomConstructor)) {
-      return (AtomConstructor) self;
-    } else if (atomProfile.profile(self instanceof Atom)) {
-      return ((Atom) self).getConstructor();
+  static Type extractConstructor(Node thisNode, Object self) {
+    if (self instanceof Type) {
+      return (Type) self;
     } else {
       throw new PanicException(
           Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
@@ -91,11 +82,11 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
   }
 
-  AtomConstructor extractConstructor(Object self) {
-    return extractConstructor(this, self, atomConstructorProfile, atomProfile);
+  Type extractConstructor(Object self) {
+    return extractConstructor(this, self);
   }
 
-  @Specialization(guards = "dispatch.canConvertFrom(that)")
+  @Specialization(guards = {"dispatch.hasType(that)", "!dispatch.hasSpecialDispatch(that)"})
   Stateful doConvertFrom(
       VirtualFrame frame,
       Object state,
@@ -103,16 +94,12 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
-    try {
-      Function function =
-          dispatch.getConversionFunction(that, extractConstructor(self), conversion);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
-          this);
-    }
+      @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.expectNonNull(
+            that, extractConstructor(self), dispatch.getType(that), conversion);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization
@@ -123,14 +110,14 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       DataflowError that,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @Cached BranchProfile profile) {
-    try {
-      Function function =
-          dispatch.getConversionFunction(that, extractConstructor(self), conversion);
+      @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Cached ConversionResolverNode conversionResolverNode) {
+    Function function =
+        conversionResolverNode.execute(
+            extractConstructor(self), Context.get(this).getBuiltins().dataflowError(), conversion);
+    if (function != null) {
       return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
-      profile.enter();
+    } else {
       return new Stateful(state, that);
     }
   }
@@ -190,29 +177,26 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached ConversionResolverNode conversionResolverNode) {
     try {
       String str = interop.asString(that);
       Text txt = Text.create(str);
       Function function =
-          textDispatch.getConversionFunction(txt, extractConstructor(self), conversion);
+          conversionResolverNode.expectNonNull(
+              txt, extractConstructor(self), Context.get(this).getBuiltins().text(), conversion);
       arguments[0] = txt;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
-    } catch (MethodDispatchLibrary.NoSuchConversionException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
-          this);
     }
   }
 
   @Specialization(
       guards = {
-        "!methods.canConvertFrom(that)",
+        "!methods.hasType(that)",
         "!interop.isString(that)",
-        "!methods.hasSpecialConversion(that)"
+        "!methods.hasSpecialDispatch(that)"
       })
   Stateful doFallback(
       VirtualFrame frame,
@@ -221,7 +205,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
         Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),

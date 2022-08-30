@@ -22,20 +22,8 @@ public abstract class EqualsNode extends Node {
     return self == that;
   }
 
-  @Specialization
-  boolean doAtom(
-      Atom self, Atom that, @Cached("getBooleanConstructor()") AtomConstructor boolCons) {
-    var thisCons = self.getConstructor();
-    var thatCons = that.getConstructor();
-    return (thatCons == boolCons) && (thisCons == thatCons);
-  }
-
   @Fallback
   boolean doOther(Object self, Object that) {
-    return false;
-  }
-
-  AtomConstructor getBooleanConstructor() {
-    return Context.get(this).getBuiltins().bool().getBool();
+    return self == that;
   }
 }

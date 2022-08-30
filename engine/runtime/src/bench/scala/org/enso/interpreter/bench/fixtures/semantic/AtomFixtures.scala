@@ -52,10 +52,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Cons.rev self = acc -> case self of
+      |List.List.rev self acc = case self of
       |    Cons h t -> @Tail_Call t.rev (Cons h acc)
-      |
-      |Nil.rev self = acc -> acc
+      |    _ -> acc
       |
       |main = list ->
       |    res = list.rev Nil
@@ -105,9 +104,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.sum self = acc -> acc
-      |Cons.sum self = acc -> case self of
+      |List.List.sum self acc = case self of
       |    Cons h t -> @Tail_Call t.sum h+acc
+      |    _ -> acc
       |
       |main = list ->
       |    res = list.sum 0
@@ -118,9 +117,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseListCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.mapReverse self = f -> acc -> acc
-      |Cons.mapReverse self = f -> acc -> case self of
+      |List.List.mapReverse self f acc = case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+      |    _ -> acc
       |
       |main = list ->
       |    res = list.mapReverse (x -> x + 1) Nil
@@ -131,9 +130,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseListCurryCode =
     """from Standard.Base.Data.List import all
       |
-      |Nil.mapReverse self = f -> acc -> acc
-      |Cons.mapReverse self = f -> acc -> case self of
+      |List.List.mapReverse self f acc = case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+      |    _ -> acc
       |
       |main = list ->
       |    adder = x -> y -> x + y

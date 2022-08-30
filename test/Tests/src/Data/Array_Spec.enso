@@ -29,8 +29,8 @@ test_arrays array_from_vector =
 
     Test.specify "should panic on out of bounds access" <|
         arr = array_from_vector [1, 2, 3]
-        Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
-        Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
+        Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error_Data
+        Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error_Data
 
 spec =
     Test.group "Enso Arrays" <|
@@ -41,15 +41,15 @@ spec =
             arr.method . should_equal 0
 
         Test.specify "should propagate dataflow errors" <|
-            err = Error.throw (Illegal_State_Error "Foo")
+            err = Error.throw (Illegal_State_Error_Data "Foo")
             res = Array.new err
-            res . should_fail_with Illegal_State_Error
+            res . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should be able to be converted to a visualization rep" <|
             arr = make_enso_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.Vector Number)
+            as_vec = json.into (Vector.Vector_Data Number)
             as_vec.should_equal <| Vector.fill 100 0
 
     Test.group "Polyglot Arrays" <|
@@ -59,7 +59,7 @@ spec =
             arr = make_java_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.Vector Number)
+            as_vec = json.into (Vector.Vector_Data Number)
             as_vec.should_equal <| Vector.fill 100 0
 
 main = Test.Suite.run_main spec

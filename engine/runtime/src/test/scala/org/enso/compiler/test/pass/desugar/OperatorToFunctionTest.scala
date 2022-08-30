@@ -60,12 +60,12 @@ class OperatorToFunctionTest extends CompilerTest {
       OperatorToFunction.runExpression(operator, ctx) shouldEqual operatorFn
     }
 
-    "be translated in module contexts" in {
-      val moduleInput  = operator.asModuleDefs
-      val moduleOutput = operatorFn.asModuleDefs
-
-      OperatorToFunction.runModule(moduleInput, modCtx) shouldEqual moduleOutput
-    }
+//    "be translated in module contexts" in {
+//      val moduleInput  = operator.asModuleDefs
+//      val moduleOutput = operatorFn.asModuleDefs
+//
+//      OperatorToFunction.runModule(moduleInput, modCtx) shouldEqual moduleOutput
+//    }
 
     "be translated recursively" in {
       val recursiveIR =

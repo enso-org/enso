@@ -32,7 +32,7 @@ spec =
                 Json.from_pairs [["type", "Time_Zone"], ["id", "UTC"]]
         Test.specify "should throw error when parsing invalid zone id" <|
             case Time_Zone.parse "foo" . catch of
-                Time_Error msg ->
+                Time_Error_Data msg ->
                     msg . should_equal "Unknown time-zone ID: foo"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

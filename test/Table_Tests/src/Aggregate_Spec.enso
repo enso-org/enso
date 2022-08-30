@@ -4,18 +4,18 @@ import Standard.Table
 from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
-
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
+from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
 
 polyglot java import java.lang.Double
 
-type Test_Selection problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True
+type Test_Selection
+    Test_Selection_Data problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True
 
-all_tests = Test_Selection True True True True True True True True True True
+all_tests = Test_Selection_Data True True True True True True True True True True
 
 spec =
     table = (enso_project.data / "data.csv") . read
@@ -1161,7 +1161,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling pending) <|
@@ -1178,49 +1178,49 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
         Test.specify "should raise a warning when can't find a column by name" <|
             action = table.aggregate [Group_By "Missing", Group_By "Index"] on_problems=_
-            problems = [Missing_Input_Columns ["Missing"]]
+            problems = [Missing_Input_Columns_Data ["Missing"]]
             tester = expect_column_names ["Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when an invalid column index" <|
             action = table.aggregate [Group_By -3, Group_By "Index"] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range [-3]]
+            problems = [Column_Indexes_Out_Of_Range_Data [-3]]
             tester = expect_column_names ["Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise warnings when an invalid column index and no valid output" <|
             action = table.aggregate [Group_By -3] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range [-3], No_Output_Columns]
+            problems = [Column_Indexes_Out_Of_Range_Data [-3], No_Output_Columns]
             tester = expect_column_names []
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names_Data [""]]
             tester = expect_column_names ["Column_1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when a duplicate column name" <|
             action = table.aggregate [Group_By "Index", Group_By 0] on_problems=_
-            problems = [Duplicate_Output_Column_Names ["Index"]]
+            problems = [Duplicate_Output_Column_Names_Data ["Index"]]
             tester = expect_column_names ["Index", "Index_1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when a duplicate column name and rename default names first" <|
             action = table.aggregate [Group_By "Value", Group_By "Index" "Value"] on_problems=_
-            problems = [Duplicate_Output_Column_Names ["Value"]]
+            problems = [Duplicate_Output_Column_Names_Data ["Value"]]
             tester = expect_column_names ["Value_1", "Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow partial matches on Count_Distinct" <|
             action = table.aggregate [Count_Distinct (By_Name ["Missing", "Value"])] on_problems=_
-            problems = [Missing_Input_Columns ["Missing"]]
+            problems = [Missing_Input_Columns_Data ["Missing"]]
             tester = expect_column_names ["Count Distinct Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should ignore Count_Distinct if no columns matched" <|
             action = table.aggregate [Count_Distinct (By_Index [-100])] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range [-100], No_Output_Columns]
+            problems = [Column_Indexes_Out_Of_Range_Data [-100], No_Output_Columns]
             tester = expect_column_names []
             Problems.test_problem_handling action problems tester
 
@@ -1234,62 +1234,62 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
-            problems = [Floating_Point_Grouping "GroupBy" [2]]
+            problems = [Floating_Point_Grouping_Data "GroupBy" [2]]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if totaling on a non number" <|
             action = table.aggregate [Sum "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Sum Text" [0] "Cannot convert to a number."]
+            problems = [Invalid_Aggregation_Data "Sum Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Sum Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if averaging on a non number" <|
             action = table.aggregate [Average "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Average Text" [0] "Cannot convert to a number."]
+            problems = [Invalid_Aggregation_Data "Average Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Average Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if calculating standard deviation on a non number" <|
             action = table.aggregate [Standard_Deviation "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Standard Deviation Text" [0] "Cannot convert to a number."]
+            problems = [Invalid_Aggregation_Data "Standard Deviation Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Standard Deviation Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if median on a non number" <|
             action = table.aggregate [Median "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Median Text" [0] "Cannot convert to a number."]
+            problems = [Invalid_Aggregation_Data "Median Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Median Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying shortest on a non text" <|
             action = table.aggregate [Shortest "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Shortest Index" [0] "Not a text value."]
+            problems = [Invalid_Aggregation_Data "Shortest Index" [0] "Not a text value."]
             tester = expect_column_names ["Shortest Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying count empties on a non text" <|
             action = table.aggregate [Count_Empty "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Count Empty Index" [0] "Not a text value."]
+            problems = [Invalid_Aggregation_Data "Count Empty Index" [0] "Not a text value."]
             tester = expect_column_names ["Count Empty Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying concatenate on a non text" <|
             action = table.aggregate [Concatenate "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Concatenate Index" [0] "Not a text value."]
+            problems = [Invalid_Aggregation_Data "Concatenate Index" [0] "Not a text value."]
             tester = expect_column_names ["Concatenate Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying concatenate unquoted delimiters" <|
             column = Concatenate "Text" separator=","
             action = table.aggregate [column] on_problems=_
-            problems = [Unquoted_Delimiter "Concatenate Text" [1]]
+            problems = [Unquoted_Delimiter_Data "Concatenate Text" [1]]
             tester = expect_column_names ["Concatenate Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if can't compare value for Min or Max" <|
             action = table.aggregate [Maximum "Mixed"] on_problems=_
-            problems = [Invalid_Aggregation "Maximum Mixed" [1] "Cannot compare values."]
+            problems = [Invalid_Aggregation_Data "Maximum Mixed" [1] "Cannot compare values."]
             tester = expect_column_names ["Maximum Mixed"]
             Problems.test_problem_handling action problems tester
 
@@ -1304,14 +1304,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
-            problems.at 0 . is_an Invalid_Aggregation . should_be_true
+            problems.at 0 . is_an Invalid_Aggregation_Data . should_be_true
             problems.at 0 . rows . length . should_equal 15
 
         Test.specify "should merge Floating Point Grouping warnings" <|
             new_table = table.aggregate [Group_By "Float", Count Nothing]
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
-            problems.at 0 . is_an Floating_Point_Grouping . should_be_true
+            problems.at 0 . is_an Floating_Point_Grouping_Data . should_be_true
             problems.at 0 . rows . length . should_equal 9
 
     if is_database then
@@ -1323,7 +1323,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                 warnings = Warning.get_all result . map .value
                 warnings.length . should_equal error_count
                 warnings.each warning->
-                    warning.should_be_an Unsupported_Database_Operation_Error
+                    warning.should_be_an Unsupported_Database_Operation_Error_Data
 
             if test_selection.first_last_row_order.not then
                 Test.specify "with First and Last in row order" <|

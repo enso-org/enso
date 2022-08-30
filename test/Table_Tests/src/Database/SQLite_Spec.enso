@@ -4,7 +4,7 @@ import Standard.Base.Runtime.Ref
 import Standard.Table as Materialized_Table
 
 from Standard.Database import all
-from Standard.Database.Connection.Connection import Sql_Error
+from Standard.Database.Connection.Connection import Sql_Error_Data
 
 import Standard.Test
 
@@ -16,11 +16,11 @@ import project.Aggregate_Spec
 sqlite_specific_spec connection =
     Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.execute_query "foobar" . should_fail_with Sql_Error
-            connection.execute_update "foobar" . should_fail_with Sql_Error
+            connection.execute_query "foobar" . should_fail_with Sql_Error_Data
+            connection.execute_update "foobar" . should_fail_with Sql_Error_Data
 
             action = connection.execute_query "SELECT A FROM undefined_table"
-            action . should_fail_with Sql_Error
+            action . should_fail_with Sql_Error_Data
             action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
 
     Test.group "[SQLite] Metadata" <|
@@ -59,7 +59,7 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
-    common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False
+    common_selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
@@ -70,7 +70,7 @@ sqlite_spec connection prefix =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    selection = Aggregate_Spec.Test_Selection advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False
+    selection = Aggregate_Spec.Test_Selection_Data advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
@@ -82,9 +82,9 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
+    sqlite_spec (Database.connect (SQLite_Data file)) "[SQLite] "
     file.delete
 
-    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
+    sqlite_spec (Database.connect (SQLite_Data In_Memory)) "[SQLite Memory] "
 
 main = Test.Suite.run_main spec

@@ -53,7 +53,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+    Data_Formatter_Data trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 
@@ -128,7 +128,7 @@ type Data_Formatter
        Clone the instance with some properties overridden.
     clone : Boolean->Boolean->Text->Text->Boolean->[Text]->[Text]->[Text]->Locale->[Text]->[Text]->Data_Formatter
     clone self (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (datetime_locale=self.datetime_locale) (true_values=self.true_values) (false_values=self.false_values) =
-        Data_Formatter trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
+        Data_Formatter_Data trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
 
     ## PRIVATE
     get_thousand_separator self =
@@ -174,7 +174,7 @@ type Data_Formatter
         Date        -> self.make_date_parser
         Date_Time   -> self.make_datetime_parser
         Time_Of_Day -> self.make_time_parser
-        _           -> Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+        _           -> Error.throw (Illegal_Argument_Error_Data "Unsupported datatype: "+datatype.to_text)
 
     ## PRIVATE
     get_specific_type_parsers self =
@@ -195,23 +195,23 @@ type Data_Formatter
 
     ## PRIVATE
     make_date_formatter self =
-        if self.date_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
+        if self.date_formats.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting dates requires at least one entry in the `date_formats` parameter") else
             DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_time_formatter self =
-        if self.time_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting times requires at least one entry in the `time_formats` parameter") else
+        if self.time_formats.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting times requires at least one entry in the `time_formats` parameter") else
             TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_datetime_formatter self =
-        if self.datetime_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
+        if self.datetime_formats.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
             DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
     make_boolean_formatter self =
-        if self.true_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `true_values` parameter") else
-            if self.false_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `false_values` parameter") else
+        if self.true_values.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting booleans requires at least one entry in the `true_values` parameter") else
+            if self.false_values.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting booleans requires at least one entry in the `false_values` parameter") else
                 BooleanFormatter.new self.true_values.first self.false_values.first
 
     ## PRIVATE
@@ -225,7 +225,7 @@ type Data_Formatter
     ## PRIVATE
     make_auto_formatter self =
         # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
-        formatters = Panic.recover Illegal_Argument_Error (self.get_specific_type_formatters.map Panic.rethrow)
+        formatters = Panic.recover Illegal_Argument_Error_Data (self.get_specific_type_formatters.map Panic.rethrow)
         AnyObjectFormatter.new formatters.to_array
 
     ## PRIVATE

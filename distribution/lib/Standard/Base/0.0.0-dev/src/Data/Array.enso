@@ -1,12 +1,8 @@
 import Standard.Base.Data.Vector
 
-## Utilities for working with primitive arrays.
+## The type of primitive mutable arrays.
+@Builtin_Type
 type Array
-
-    ## The type of primitive mutable arrays.
-    @Builtin_Type
-    type Array
-
     ## Gets the element at index in the array this.
 
        Arguments:
@@ -68,7 +64,7 @@ type Array
              [1, 2, 3, 4].to_array.to_default_visualization_data
     to_default_visualization_data : Text
     to_default_visualization_data self =
-        Vector.Vector self . to_default_visualization_data
+        Vector.Vector_Data self . to_default_visualization_data
 
 ## Creates an array with length 0.
 

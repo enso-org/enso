@@ -98,23 +98,23 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
          example_parse = Time_Zone.parse "+03:02:01"
 parse : Text -> Time_Zone
 parse text =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         Time_Zone.parse_builtin text
 
+## PRIVATE
+
+   A type representing a time zone.
+
+   Arguments:
+   - internal_zone_id: The identifier for the internal zone of the
+     representation.
+
+   A time zone can be eiter offset-based like "-06:00" or id-based like
+   "Europe/Paris".
+@Builtin_Type
 type Time_Zone
 
-    ## PRIVATE
 
-       A type representing a time zone.
-
-       Arguments:
-       - internal_zone_id: The identifier for the internal zone of the
-         representation.
-
-       A time zone can be eiter offset-based like "-06:00" or id-based like
-       "Europe/Paris".
-    @Builtin_Type
-    type Time_Zone
 
     ## Get the unique timezone ID.
 

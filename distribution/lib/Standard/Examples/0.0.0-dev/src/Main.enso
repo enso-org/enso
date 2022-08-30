@@ -16,7 +16,8 @@ import Standard.Image.Data.Matrix
 
    Arguments:
    - message: The message contained in the error type.
-type Example_Error_Type message
+type Example_Error_Type
+    Example_Error_Type_Data message
 
 ## The standard library data directory.
 data_dir : File
@@ -122,15 +123,16 @@ no_such_method : No_Such_Method_Error
 no_such_method = Panic.recover Any No_Methods.frobnicate . catch
 
 ## A simple error type for example purposes.
-type My_Error message
+type My_Error
+    My_Error_Data message
 
 ## Throws an error.
 throw_error : Nothing ! My_Error
-throw_error = Error.throw <| My_Error "Example error."
+throw_error = Error.throw <| My_Error_Data "Example error."
 
 ## Throws a panic.
 throw_panic : Nothing
-throw_panic = Panic.throw <| My_Error "Example panic."
+throw_panic = Panic.throw <| My_Error_Data "Example panic."
 
 ## A URL for open-source geographic data about the locations of bus-stop ads in
    Los Angeles.

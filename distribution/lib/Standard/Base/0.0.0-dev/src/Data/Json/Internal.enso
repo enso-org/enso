@@ -23,7 +23,7 @@ type Consumer
        - value: The value being consumed.
 
        Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
-    type Consumer child_consumer value
+    Consumer_Data child_consumer value
 
     ## PRIVATE
 
@@ -144,7 +144,7 @@ type Array_Consumer
        Arguments:
        - builder: The builder for array values.
        - parent: The parent consumer.
-    type Array_Consumer builder parent
+    Array_Consumer_Data builder parent
 
     ## PRIVATE
 
@@ -175,7 +175,7 @@ type Object_Consumer
        - last_key: The last object key that has been seen.
        - map: The map representing the object.
        - parent: The parent consumer.
-    type Object_Consumer last_key map parent
+    Object_Consumer_Data last_key map parent
 
     ## PRIVATE
 
@@ -217,7 +217,7 @@ mk_object_consumer : Any -> Object_Consumer
 mk_object_consumer parent =
     k = Ref.new ""
     m = Ref.new Map.empty
-    Object_Consumer k m parent
+    Object_Consumer_Data k m parent
 
 ## PRIVATE
 
@@ -228,7 +228,7 @@ mk_object_consumer parent =
 mk_array_consumer : Any -> Array_Consumer
 mk_array_consumer parent =
     bldr = Vector.new_builder
-    Array_Consumer bldr parent
+    Array_Consumer_Data bldr parent
 
 ## PRIVATE
 
@@ -237,7 +237,7 @@ mk_consumer : Consumer
 mk_consumer =
     child = Ref.new Nil
     val = Ref.new Nothing
-    Consumer child val
+    Consumer_Data child val
 
 ## PRIVATE
 
@@ -287,7 +287,7 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    Base.Vector.Vector field -> case json of
+    Base.Vector.Vector_Data field -> case json of
         Array items -> items.map (into_helper field)
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base.Boolean -> case json of
@@ -302,9 +302,9 @@ into_helper fmt json = case fmt of
     _ ->
         m = Meta.meta fmt
         case m of
-            Meta.Atom _ -> case json of
+            Meta.Atom_Data _ -> case json of
                 Object json_fields ->
-                    cons = Meta.Constructor m.constructor
+                    cons = Meta.Constructor_Data m.constructor
                     fnames = cons.fields
                     ffmts = m.fields
                     field_values = fnames.zip ffmts n-> inner_fmt->

@@ -3,19 +3,17 @@ import Standard.Base.Meta
 
 polyglot java import org.enso.base.Text_Utils
 
+
 ## Enso's text type.
+
+   Enso's text type is natively unicode aware, and will handle arbitrary
+   textual data.
+
+   ? Concatenation
+     Enso's text type uses a rope-based structure under the hood to provide
+     users with efficient concatenation operations.
+@Builtin_Type
 type Text
-
-    ## Enso's text type.
-
-       Enso's text type is natively unicode aware, and will handle arbitrary
-       textual data.
-
-       ? Concatenation
-         Enso's text type uses a rope-based structure under the hood to provide
-         users with efficient concatenation operations.
-    @Builtin_Type
-    type Text
 
     ## Concatenates the text that to the right side of this.
 

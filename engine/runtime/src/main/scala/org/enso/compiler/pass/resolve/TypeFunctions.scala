@@ -2,7 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Application
+import org.enso.compiler.core.IR.{Application, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -55,10 +55,7 @@ case object TypeFunctions extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    val new_bindings = ir.bindings.map {
-      case asc: IR.Type.Ascription => asc
-      case a                       => a.mapExpressions(resolveExpression)
-    }
+    val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
     ir.copy(bindings = new_bindings)
   }
 
@@ -125,8 +122,11 @@ case object TypeFunctions extends IRPass {
     app match {
       case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
         fn match {
+          case name: IR.Name if name.name == IR.Type.Set.Union.name =>
+            val members = flattenUnion(app).map(resolveExpression)
+            IR.Type.Set.Union(members, app.location)
           case name: IR.Name if knownTypingFunctions.contains(name.name) =>
-            resolveKnownFunction(pre)
+            resolveKnownFunction(name, pre.arguments, pre.location, pre)
           case _ =>
             pre.copy(
               function  = resolveExpression(fn),
@@ -150,42 +150,54 @@ case object TypeFunctions extends IRPass {
     }
   }
 
+  def flattenUnion(expr: IR.Expression): List[IR.Expression] = {
+    expr match {
+      case Application.Prefix(n: IR.Name, args, _, _, _, _)
+          if n.name == IR.Type.Set.Union.name =>
+        args.flatMap(arg => flattenUnion(arg.value))
+      case _ => List(expr)
+    }
+  }
+
   /** Resolves a known typing function to its IR node.
     *
     * @param prefix the application to resolve
     * @return the IR node representing `prefix`
     */
-  def resolveKnownFunction(prefix: IR.Application.Prefix): IR.Expression = {
+  def resolveKnownFunction(
+    name: IR.Name,
+    arguments: List[IR.CallArgument],
+    location: Option[IdentifiedLocation],
+    originalIR: IR
+  ): IR.Expression = {
     val expectedNumArgs = 2
-    val lengthIsValid   = prefix.arguments.length == expectedNumArgs
-    val argsAreValid    = prefix.arguments.forall(isValidCallArg)
+    val lengthIsValid   = arguments.length == expectedNumArgs
+    val argsAreValid    = arguments.forall(isValidCallArg)
 
     if (lengthIsValid && argsAreValid) {
-      val leftArg  = resolveExpression(prefix.arguments.head.value)
-      val rightArg = resolveExpression(prefix.arguments.last.value)
+      val leftArg  = resolveExpression(arguments.head.value)
+      val rightArg = resolveExpression(arguments.last.value)
 
-      prefix.function.asInstanceOf[IR.Name].name match {
+      name.name match {
         case IR.Type.Ascription.name =>
-          IR.Type.Ascription(leftArg, rightArg, prefix.location)
+          IR.Type.Ascription(leftArg, rightArg, location)
         case IR.Type.Context.name =>
-          IR.Type.Context(leftArg, rightArg, prefix.location)
+          IR.Type.Context(leftArg, rightArg, location)
         case IR.Type.Error.name =>
-          IR.Type.Error(leftArg, rightArg, prefix.location)
+          IR.Type.Error(leftArg, rightArg, location)
         case IR.Type.Set.Concat.name =>
-          IR.Type.Set.Concat(leftArg, rightArg, prefix.location)
+          IR.Type.Set.Concat(leftArg, rightArg, location)
         case IR.Type.Set.Subsumption.name =>
-          IR.Type.Set.Subsumption(leftArg, rightArg, prefix.location)
+          IR.Type.Set.Subsumption(leftArg, rightArg, location)
         case IR.Type.Set.Equality.name =>
-          IR.Type.Set.Equality(leftArg, rightArg, prefix.location)
-        case IR.Type.Set.Union.name =>
-          IR.Type.Set.Union(leftArg, rightArg, prefix.location)
+          IR.Type.Set.Equality(leftArg, rightArg, location)
         case IR.Type.Set.Intersection.name =>
-          IR.Type.Set.Intersection(leftArg, rightArg, prefix.location)
+          IR.Type.Set.Intersection(leftArg, rightArg, location)
         case IR.Type.Set.Subtraction.name =>
-          IR.Type.Set.Subtraction(leftArg, rightArg, prefix.location)
+          IR.Type.Set.Subtraction(leftArg, rightArg, location)
       }
     } else {
-      IR.Error.InvalidIR(prefix)
+      IR.Error.InvalidIR(originalIR)
     }
   }
 

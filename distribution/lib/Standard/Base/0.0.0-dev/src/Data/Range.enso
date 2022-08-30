@@ -11,7 +11,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    type Range (start : Integer) (end : Integer) (step : Integer = 1)
+    Range_Data (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -28,10 +28,10 @@ type Range
     with_step self new_step = case new_step of
         Integer ->
             if new_step == 0 then throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range self.start self.end self.step.signum*new_step
+                if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range_Data self.start self.end self.step.signum*new_step
         _ ->
-            Error.throw (Illegal_Argument_Error "Range step should be an integer.")
+            Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
 
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
@@ -270,7 +270,7 @@ type Range
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
         _ ->
-            Error.throw (Illegal_Argument_Error "`Range.contains` only accepts Integers.")
+            Error.throw (Illegal_Argument_Error_Data "`Range.contains` only accepts Integers.")
 
 ## ALIAS Range
 
@@ -285,8 +285,8 @@ type Range
          0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to self n = case n of
-    Integer -> Range self n
-    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+    Integer -> Range_Data self n
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## ALIAS Range
 
@@ -301,8 +301,8 @@ Integer.up_to self n = case n of
          5.down_to 0
 Integer.down_to : Integer -> Range
 Integer.down_to self n = case n of
-    Integer -> Range self n -1
-    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+    Integer -> Range_Data self n -1
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## PRIVATE
-throw_zero_step_error = Error.throw (Illegal_State_Error "A range with step = 0 is ill-formed.")
+throw_zero_step_error = Error.throw (Illegal_State_Error_Data "A range with step = 0 is ill-formed.")

@@ -1,15 +1,17 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
+from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error_Data
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Base.Data.Text.Text_Sub_Range import all
 
 import Standard.Test
 
-type Auto a
+type Auto
+    Auto_Data a
 
-type Manual b
+type Manual
+    Manual_Data b
 
 Manual.to_text self = "[[[MyREP " + self.b.to_text + "]]]"
 
@@ -152,10 +154,10 @@ spec =
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
-            str.at -5 . should_fail_with Index_Out_Of_Bounds_Error
-            str.at -5 . catch . should_equal (Index_Out_Of_Bounds_Error -5 4)
-            str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
-            str.at 4 . catch . should_equal (Index_Out_Of_Bounds_Error 4 4)
+            str.at -5 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            str.at -5 . catch . should_equal (Index_Out_Of_Bounds_Error_Data -5 4)
+            str.at 4 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            str.at 4 . catch . should_equal (Index_Out_Of_Bounds_Error_Data 4 4)
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -201,37 +203,37 @@ spec =
             "".split "." . should_equal [""]
             "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
-            'abc'.split '' . should_fail_with Illegal_Argument_Error
+            'abc'.split '' . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
-            matcher = Text_Matcher Case_Insensitive
+            matcher = Text_Matcher_Data Case_Insensitive_Data
             "AbCdABCDabDCba" . split "ab" matcher . should_equal ["", "Cd", "CD", "DCba"]
             "abc".split "d" matcher . should_equal ["abc"]
             "AAA".split "a" matcher . should_equal ["", "", "", ""]
             "baB".split "b" matcher . should_equal ["", "a", ""]
             "".split "a" matcher . should_equal [""]
             'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
-            'abc'.split '' matcher . should_fail_with Illegal_Argument_Error
+            'abc'.split '' matcher . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should be able to split the text on Regex patterns" <|
-            "cababdabe" . split "ab" Regex_Matcher . should_equal ["c", "", "d", "e"]
-            "cababdabe" . split "(ab)+" Regex_Matcher . should_equal ["c", "d", "e"]
-            "abc" . split "[a-z]" Regex_Matcher . should_equal ["", "", "", ""]
-            "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
-            "abc".split "." Regex_Matcher . should_equal ["", "", "", ""]
-            "abc".split "d" Regex_Matcher . should_equal ["abc"]
-            ".a.".split "\." Regex_Matcher . should_equal ["", "a", ""]
-            "".split "a" Regex_Matcher . should_equal [""]
-            'aśbs\u{301}c'.split 'ś' Regex_Matcher . should_equal ['a', 'b', 'c']
-            'abc'.split '' Regex_Matcher . should_fail_with Illegal_Argument_Error
+            "cababdabe" . split "ab" Regex_Matcher_Data . should_equal ["c", "", "d", "e"]
+            "cababdabe" . split "(ab)+" Regex_Matcher_Data . should_equal ["c", "d", "e"]
+            "abc" . split "[a-z]" Regex_Matcher_Data . should_equal ["", "", "", ""]
+            "abc--def==>ghi".split "[-=>]+" Regex_Matcher_Data == ["abc", "def", "ghi"]
+            "abc".split "." Regex_Matcher_Data . should_equal ["", "", "", ""]
+            "abc".split "d" Regex_Matcher_Data . should_equal ["abc"]
+            ".a.".split "\." Regex_Matcher_Data . should_equal ["", "a", ""]
+            "".split "a" Regex_Matcher_Data . should_equal [""]
+            'aśbs\u{301}c'.split 'ś' Regex_Matcher_Data . should_equal ['a', 'b', 'c']
+            'abc'.split '' Regex_Matcher_Data . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
-            utf_8_whitespace.split "\s+" Regex_Matcher . should_equal utf_8_whitespace_split
-            'abc  def\tghi'.split '\\s+' Regex_Matcher . should_equal ["abc", "def", "ghi"]
+            utf_8_whitespace.split "\s+" Regex_Matcher_Data . should_equal utf_8_whitespace_split
+            'abc  def\tghi'.split '\\s+' Regex_Matcher_Data . should_equal ["abc", "def", "ghi"]
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
-            t = Auto (Manual 123) . to_text
-            t.should_equal "(Auto [[[MyREP 123]]])"
+            t = Auto_Data (Manual_Data 123) . to_text
+            t.should_equal "(Auto_Data [[[MyREP 123]]])"
 
         Test.specify "should escape special characters when debug-printing text" <|
             text_1 = '''
@@ -295,29 +297,29 @@ spec =
         Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
-            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range 6*ix+1 6*ix+3)) . should_equal "23"*100
-            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range ix+1 ix+5)) . should_equal "BABAABAB"*50
+            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range_Data 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range_Data ix+1 ix+5)) . should_equal "BABAABAB"*50
 
             "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
             "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
-            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ACDABCD"
+            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range_Data 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range_Data ix+1 ix+5)) . should_equal "ACDABCD"
 
-            "ABCD"*1000 . take (Range 0 4000 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (Range_Data 0 4000 4) . should_equal "A"*1000
             "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
-            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal ("A"*1000 + "B"*1000)
-            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal ("A"*1000 + "C"*1000)
+            "ABCD"*1000 . take (By_Index [Range_Data 0 4000 4, Range_Data 1 4000 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (By_Index [Range_Data 0 4000 4, Range_Data 2 4000 4]) . should_equal ("A"*1000 + "C"*1000)
 
-            "ABCD"*1000 . drop (Range 0 4000 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (Range_Data 0 4000 4) . should_equal "BCD"*1000
             "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
-            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal "CD"*1000
-            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal "BD"*1000
+            "ABCD"*1000 . drop (By_Index [Range_Data 0 4000 4, Range_Data 1 4000 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (By_Index [Range_Data 0 4000 4, Range_Data 2 4000 4]) . should_equal "BD"*1000
 
-            "0123456789".take (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "0123458"
-            "0123456789".take (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "45012300"
-            "0123456789".drop (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "679"
-            "0123456789".drop (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "6789"
-            "0123456789".drop (By_Index [Range 2 5, Range 0 3, 0, 0]) . should_equal "56789"
+            "0123456789".take (By_Index [Range_Data 0 4, Range_Data 4 6, Range_Data 8 9]) . should_equal "0123458"
+            "0123456789".take (By_Index [Range_Data 4 6, Range_Data 0 4, 0, 0]) . should_equal "45012300"
+            "0123456789".drop (By_Index [Range_Data 0 4, Range_Data 4 6, Range_Data 8 9]) . should_equal "679"
+            "0123456789".drop (By_Index [Range_Data 4 6, Range_Data 0 4, 0, 0]) . should_equal "6789"
+            "0123456789".drop (By_Index [Range_Data 2 5, Range_Data 0 3, 0, 0]) . should_equal "56789"
 
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
@@ -325,15 +327,15 @@ spec =
             txt.drop (First 2) . should_equal (accent_1 + accent_2)
             txt.take (Last 2) . should_equal (accent_1 + accent_2)
             txt.drop (Last 2) . should_equal (kshi + facepalm)
-            txt.take (Range 0 2) . should_equal (kshi + facepalm)
-            txt.take (By_Index (Range 0 2)) . should_equal (kshi + facepalm)
-            txt.drop (Range 0 2) . should_equal (accent_1 + accent_2)
-            txt.take (Range 2 4) . should_equal (accent_1 + accent_2)
-            txt.drop (Range 2 4) . should_equal (kshi + facepalm)
+            txt.take (Range_Data 0 2) . should_equal (kshi + facepalm)
+            txt.take (By_Index (Range_Data 0 2)) . should_equal (kshi + facepalm)
+            txt.drop (Range_Data 0 2) . should_equal (accent_1 + accent_2)
+            txt.take (Range_Data 2 4) . should_equal (accent_1 + accent_2)
+            txt.drop (Range_Data 2 4) . should_equal (kshi + facepalm)
             txt.take (Every 2) . should_equal (kshi + accent_1)
             txt.take (Every 2 first=1) . should_equal (facepalm + accent_2)
             txt.drop (Every 2) . should_equal (facepalm + accent_2)
-            txt.take (Range 0 4 2) . should_equal (kshi + accent_1)
+            txt.take (Range_Data 0 4 2) . should_equal (kshi + accent_1)
             txt.take (By_Index [0, 3]) . should_equal (kshi + accent_2)
             txt.take (By_Index 0) . should_equal kshi
             txt.take (By_Index 1) . should_equal facepalm
@@ -343,8 +345,8 @@ spec =
             txt.drop (By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
             txt.drop (By_Index [0, 3, 0, 2, 1]) . should_equal ""
             txt.take (By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
-            txt.take (By_Index [0, 0, Range 0 2]) . should_equal (kshi + kshi + kshi + facepalm)
-            txt.drop (By_Index [Range 2 4, Range 0 2]) . should_equal ""
+            txt.take (By_Index [0, 0, Range_Data 0 2]) . should_equal (kshi + kshi + kshi + facepalm)
+            txt.drop (By_Index [Range_Data 2 4, Range_Data 0 2]) . should_equal ""
 
         Test.specify "take should work as in the examples" <|
             "Hello World!".take First . should_equal "H"
@@ -365,45 +367,45 @@ spec =
             "Hello World!".take (After_Last "z") . should_equal ""
             "Hello World!".take (While c->c!=" ") . should_equal "Hello"
             "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
-            "Hello World!".take (Range 3 5) . should_equal "lo"
-            "Hello World!".take (Range 5 12) . should_equal " World!"
-            "Hello World!".take (Range 6 12 2) . should_equal "Wrd"
+            "Hello World!".take (Range_Data 3 5) . should_equal "lo"
+            "Hello World!".take (Range_Data 5 12) . should_equal " World!"
+            "Hello World!".take (Range_Data 6 12 2) . should_equal "Wrd"
             "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
             "Hello World!".take (Every 3) . should_equal "HlWl"
             "Hello World!".take (By_Index 0) . should_equal "H"
             "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
-            "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "HelWWrd"
+            "Hello World!".take (By_Index [Range_Data 0 3, 6, Range_Data 6 12 2]) . should_equal "HelWWrd"
             "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
         Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
-            txt.take (Range 0 14) . should_equal txt
-            txt.take (Range 6 100) . should_equal "World!"
-            txt.take (Range txt.length-1 txt.length) . should_equal "!"
-            txt.take (Range txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (Range txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error txt.length txt.length)
-            txt.take (Range txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (Range_Data 0 14) . should_equal txt
+            txt.take (Range_Data 6 100) . should_equal "World!"
+            txt.take (Range_Data txt.length-1 txt.length) . should_equal "!"
+            txt.take (Range_Data txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (Range_Data txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error_Data txt.length txt.length)
+            txt.take (Range_Data txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (First 100) . should_equal txt
             txt.take (Last 100) . should_equal txt
-            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [0, 1, Range 6 100]) . should_equal "HeWorld!"
-            txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
-            txt.take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
-            "".take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "".take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (Range 13 20) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (Range 13 20 2) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [Range 0 2, Range 13 20]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [Range 0 0, Range 13 10, Range 2 2 2]) . should_equal ""
-            txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error 13 12)
-            txt.take (By_Index [Range 0 2 2, Range txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0, Range_Data 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0, 1, Range_Data 6 100]) . should_equal "HeWorld!"
+            txt.take (By_Index [0, 1, Range_Data 6 100 2]) . should_equal "HeWrd"
+            txt.take (Range_Data 13 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (Range_Data 13 20) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (Range_Data 13 20 2) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [Range_Data 0 2, Range_Data 13 20]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [Range_Data 0 0, Range_Data 13 10, Range_Data 2 2 2]) . should_equal ""
+            txt.take (By_Index [Range_Data 0 2 2, Range_Data 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [Range_Data 0 2 2, Range_Data 13 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 13 12)
+            txt.take (By_Index [Range_Data 0 2 2, Range_Data txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -429,8 +431,8 @@ spec =
             txt_2.take (While c->c!='e\u{302}') . should_equal 'H'
             txt_2.take (While c->c!='ê') . should_equal 'H'
             txt_2.take (While c->c!='e') . should_equal txt_2
-            txt_2.take (Range 3 5) . should_equal 'lo\u{308}'
-            txt_2.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
+            txt_2.take (Range_Data 3 5) . should_equal 'lo\u{308}'
+            txt_2.take (Range_Data 5 12) . should_equal ' Wo\u{308}rld!'
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
@@ -443,7 +445,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range_Data 3 6) . should_equal '😍😃😍'
 
         Test.specify "take should correctly handle edge cases" <|
             "ABC".take . should_equal "A"
@@ -463,7 +465,7 @@ spec =
 
             "".take (While _->True) . should_equal ""
 
-            'ABC\u{301}'.take (Range 0 0) . should_equal ""
+            'ABC\u{301}'.take (Range_Data 0 0) . should_equal ""
 
             'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
             'ABC\u{301}'.take (After_Last "") . should_equal ""
@@ -473,7 +475,7 @@ spec =
             "ABC".take (By_Index -1) . should_equal "C"
             "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
             "ABC".take (By_Index []) . should_equal ""
-            "ABC".take (By_Index (Range -2 -1)) . should_fail_with Illegal_Argument_Error
+            "ABC".take (By_Index (Range_Data -2 -1)) . should_fail_with Illegal_Argument_Error_Data
             "".take (Every 2) . should_equal ""
             "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
@@ -500,36 +502,36 @@ spec =
             "Hello World!".drop (After_Last "z") . should_equal "Hello World!"
             "Hello World!".drop (While c->c!=" ") . should_equal " World!"
             "Hello World!".drop (While c->c!="z") . should_equal ""
-            "Hello World!".drop (Range 3 5) . should_equal "Hel World!"
-            "Hello World!".drop (Range 5 12) . should_equal "Hello"
-            "Hello World!".drop (Range 6 12 2) . should_equal "Hello ol!"
+            "Hello World!".drop (Range_Data 3 5) . should_equal "Hel World!"
+            "Hello World!".drop (Range_Data 5 12) . should_equal "Hello"
+            "Hello World!".drop (Range_Data 6 12 2) . should_equal "Hello ol!"
             "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
             "Hello World!".drop (Every 3) . should_equal "elo ord!"
             "Hello World!".drop (By_Index 0) . should_equal "ello World!"
             "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
-            "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "lo ol!"
+            "Hello World!".drop (By_Index [Range_Data 0 3, 6, Range_Data 6 12 2]) . should_equal "lo ol!"
             "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
         Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
-            txt.drop (Range 0 14) . should_equal ""
+            txt.drop (Range_Data 0 14) . should_equal ""
             txt.drop (First 100) . should_equal ""
             txt.drop (Last 100) . should_equal ""
-            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 12)
-            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.drop (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.drop (By_Index [0, 1, Range 6 100]) . should_equal "llo "
-            txt.drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.drop (Range 14 15) . should_fail_with Index_Out_Of_Bounds_Error
-            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "".drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            txt.drop (Range 0 0) . should_equal txt
-            txt.drop (Range 5 100) . should_equal "Hello"
-            txt.drop (Range 5 100 2) . should_equal "HelloWrd"
-            txt.drop (By_Index [0, 1, 0, Range 5 100 2]) . should_equal "lloWrd"
+            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 12)
+            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index [0, Range_Data 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index [0, 1, Range_Data 6 100]) . should_equal "llo "
+            txt.drop (Range_Data 13 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (Range_Data 14 15) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            txt.drop (Range_Data 0 0) . should_equal txt
+            txt.drop (Range_Data 5 100) . should_equal "Hello"
+            txt.drop (Range_Data 5 100 2) . should_equal "HelloWrd"
+            txt.drop (By_Index [0, 1, 0, Range_Data 5 100 2]) . should_equal "lloWrd"
 
         Test.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -555,8 +557,8 @@ spec =
             txt_2.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             txt_2.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             txt_2.drop (While c->c!='e') . should_equal ''
-            txt_2.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
-            txt_2.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
+            txt_2.drop (Range_Data 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            txt_2.drop (Range_Data 5 12) . should_equal 'He\u{302}llo\u{308}'
 
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
@@ -568,7 +570,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range_Data 3 6) . should_equal '✨🚀🚧😎😙😉☺'
 
         Test.specify "drop should correctly handle edge cases" <|
             "ABC".drop . should_equal "BC"
@@ -588,8 +590,8 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            'ABC\u{301}'.drop (Range 0 0) . should_equal 'ABC\u{301}'
+            "".drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            'ABC\u{301}'.drop (Range_Data 0 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
             'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
@@ -655,9 +657,9 @@ spec =
             txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
             txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
 
-        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid non-negative index position" <|
-            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error
-            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error
+        Test.specify "should report Index_Out_Of_Bounds_Error_Data when inserting text at an invalid non-negative index position" <|
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error_Data
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should insert text at a negative index position" <|
             "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
@@ -668,10 +670,10 @@ spec =
             txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
             txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
 
-        Test.specify "should report Index_Out_Of_Bounds_Error when inserting text at an invalid negative index position" <|
-            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+        Test.specify "should report Index_Out_Of_Bounds_Error_Data when inserting text at an invalid negative index position" <|
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt = kshi + facepalm + accent_1
-            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -680,7 +682,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
-            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -689,7 +691,7 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
-            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should be able to check if a text consists only of whitespace" <|
             '  \t\n'.is_whitespace . should_be_true
@@ -702,8 +704,8 @@ spec =
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
-            str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
-            str.at 5 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at -6 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            str.at 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should be able to reverse characters" <|
             "Hello World!".reverse . should_equal "!dlroW olleH"
@@ -751,25 +753,25 @@ spec =
             "Hello!".contains "Lo" . should_be_false
 
         Test.specify "should allow for case-insensitive contains checks" <|
-            "Hello!".contains 'LO' (Text_Matcher Case_Insensitive) . should_be_true
-            "FoObar" . contains "foo" (Text_Matcher Case_Insensitive) . should_be_true
-            "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive) . should_be_true
-            "Foo" . contains "bar" (Text_Matcher Case_Insensitive) . should_be_false
-            "Ściana" . contains "ś" (Text_Matcher Case_Insensitive) . should_be_true
-            "Ściana" . contains "s" (Text_Matcher Case_Insensitive) . should_be_false
+            "Hello!".contains 'LO' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "FoObar" . contains "foo" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "aaaIAAA" . contains "i" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Foo" . contains "bar" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            "Ściana" . contains "ś" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Ściana" . contains "s" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
 
             "Straße" . contains "ss" . should_be_false
             "Strasse" . contains "ß" . should_be_false
-            "Straße" . contains "ss" (Text_Matcher Case_Insensitive) . should_be_true
-            "Strasse" . contains "ß" (Text_Matcher Case_Insensitive) . should_be_true
+            "Straße" . contains "ss" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Strasse" . contains "ß" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
         Test.specify "should allow for Regex contains checks" <|
-            "Hello!".contains "[a-z]" Regex_Matcher . should_be_true
-            "foobar" . contains "b.." Regex_Matcher . should_be_true
-            "foob" . contains "b.." Regex_Matcher . should_be_false
+            "Hello!".contains "[a-z]" Regex_Matcher_Data . should_be_true
+            "foobar" . contains "b.." Regex_Matcher_Data . should_be_true
+            "foob" . contains "b.." Regex_Matcher_Data . should_be_false
 
-            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher . should_be_true
-            "foo" . contains "[0-9]+" Regex_Matcher . should_be_false
+            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher_Data . should_be_true
+            "foo" . contains "[0-9]+" Regex_Matcher_Data . should_be_false
 
             'ś' . contains 's' . should_be_false
             's\u{301}' . contains 's' . should_be_false
@@ -780,28 +782,28 @@ spec =
                documenting here what is the current behaviour.
             ## This shows what regex is doing by default and we cannot easily fix
                that.
-            's\u{301}' . contains 's' Regex_Matcher . should_be_true
-            'ś' . contains 's' Regex_Matcher . should_be_false
-            's\u{301}' . contains 'ś' Regex_Matcher . should_be_true
-            'ś' . contains 's\u{301}' Regex_Matcher . should_be_true
+            's\u{301}' . contains 's' Regex_Matcher_Data . should_be_true
+            'ś' . contains 's' Regex_Matcher_Data . should_be_false
+            's\u{301}' . contains 'ś' Regex_Matcher_Data . should_be_true
+            'ś' . contains 's\u{301}' Regex_Matcher_Data . should_be_true
 
-            "Cześć" . contains "ś" Regex_Matcher . should_be_true
-            "Cześć" . contains 's\u{301}' Regex_Matcher . should_be_true
-            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher . should_be_true
-            'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher . should_be_true
+            "Cześć" . contains "ś" Regex_Matcher_Data . should_be_true
+            "Cześć" . contains 's\u{301}' Regex_Matcher_Data . should_be_true
+            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher_Data . should_be_true
+            'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher_Data . should_be_true
             ## These two tests below are disabled due to how regex is handling
                letters with accents. See the tests above for explanation.
-            #"Cześć" . contains "s" Regex_Matcher . should_be_false
-            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher . should_be_false
+            #"Cześć" . contains "s" Regex_Matcher_Data . should_be_false
+            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher_Data . should_be_false
 
-            "fooBar" . contains "b.." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
-            "foar" . contains "b.." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
+            "fooBar" . contains "b.." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_true
+            "foar" . contains "b.." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_false
 
             long_text = """
                 Hello from a long text. EOL
                 SOL Hmm...
-            long_text . contains "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
-            long_text . contains "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
+            long_text . contains "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=False) . should_be_false
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
@@ -825,36 +827,36 @@ spec =
         Test.specify "starts_with should work as shown in the examples" <|
             "Hello!".starts_with "Hello" . should_be_true
             "Hello!".starts_with "hello" . should_be_false
-            "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) . should_be_true
-            "Hello!".starts_with "[a-z]" Regex_Matcher . should_be_false
-            "Hello!".starts_with "[A-Z]" Regex_Matcher . should_be_true
+            "Hello!".starts_with "hello" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Hello!".starts_with "[a-z]" Regex_Matcher_Data . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher_Data . should_be_true
 
         Test.specify "should allow for case-insensitive starts_with checks" <|
-            "Hello".starts_with "he" (Text_Matcher Case_Insensitive) . should_be_true
+            "Hello".starts_with "he" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
-            "Ściana".starts_with 's\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
-            "Ściana".starts_with 's' (Text_Matcher Case_Insensitive) . should_be_false
-            'S\u{301}ciana'.starts_with 'ś' (Text_Matcher Case_Insensitive) . should_be_true
-            'S\u{301}ciana'.starts_with 's\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
-            'S\u{301}ciana'.starts_with 's' (Text_Matcher Case_Insensitive) . should_be_false
+            "Ściana".starts_with 's\u{301}' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Ściana".starts_with 's' (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            'S\u{301}ciana'.starts_with 'ś' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            'S\u{301}ciana'.starts_with 's\u{301}' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            'S\u{301}ciana'.starts_with 's' (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
 
-            "ABC" . starts_with "A" (Text_Matcher Case_Insensitive) . should_be_true
-            "ABC" . starts_with "a" (Text_Matcher Case_Insensitive) . should_be_true
-            "ABC" . starts_with "C" (Text_Matcher Case_Insensitive) . should_be_false
-            "" . starts_with "foo" (Text_Matcher Case_Insensitive) . should_be_false
-            "abc" . starts_with "" (Text_Matcher Case_Insensitive) . should_be_true
-            "" . starts_with "" (Text_Matcher Case_Insensitive) . should_be_true
-            "fOo FOO foo" . starts_with "FoO" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . starts_with "A" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "ABC" . starts_with "a" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "ABC" . starts_with "C" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            "" . starts_with "foo" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            "abc" . starts_with "" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "" . starts_with "" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "fOo FOO foo" . starts_with "FoO" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
-            "Hello!".starts_with "he" (Text_Matcher Case_Insensitive) . should_be_true
+            "Hello!".starts_with "he" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
         Test.specify "should allow for Regex starts_with checks" <|
-            "Hello!".starts_with "[A-Z]" Regex_Matcher . should_be_true
-            "foobar" . starts_with ".o." Regex_Matcher . should_be_true
-            "foob" . starts_with ".f." Regex_Matcher . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher_Data . should_be_true
+            "foobar" . starts_with ".o." Regex_Matcher_Data . should_be_true
+            "foob" . starts_with ".f." Regex_Matcher_Data . should_be_false
 
-            "123 meters and 4 centimeters" . starts_with "[0-9]+" Regex_Matcher . should_be_true
-            "foo 123" . starts_with "[0-9]+" Regex_Matcher . should_be_false
+            "123 meters and 4 centimeters" . starts_with "[0-9]+" Regex_Matcher_Data . should_be_true
+            "foo 123" . starts_with "[0-9]+" Regex_Matcher_Data . should_be_false
 
             # Correct non-regex behaviour for reference.
             'ś' . starts_with 's' == False
@@ -863,44 +865,44 @@ spec =
             'ś' . starts_with 's\u{301}' == True
 
             # These two behave as expected.
-            's\u{301}' . starts_with 'ś' Regex_Matcher == True
-            'ś' . starts_with 's\u{301}' Regex_Matcher == True
+            's\u{301}' . starts_with 'ś' Regex_Matcher_Data == True
+            'ś' . starts_with 's\u{301}' Regex_Matcher_Data == True
 
             ## These two are included to document the current behaviour
                (even though ideally, we would want them to return False).
-            'ś' . starts_with 's' Regex_Matcher == True
-            's\u{301}' . starts_with 's' Regex_Matcher == True
+            'ś' . starts_with 's' Regex_Matcher_Data == True
+            's\u{301}' . starts_with 's' Regex_Matcher_Data == True
 
-            "ściana" . starts_with "ś" Regex_Matcher . should_be_true
-            "ściana" . starts_with 's\u{301}' Regex_Matcher . should_be_true
-            's\u{301}ciana' . starts_with 's\u{301}' Regex_Matcher . should_be_true
-            's\u{301}ciana' . starts_with 'ś' Regex_Matcher . should_be_true
+            "ściana" . starts_with "ś" Regex_Matcher_Data . should_be_true
+            "ściana" . starts_with 's\u{301}' Regex_Matcher_Data . should_be_true
+            's\u{301}ciana' . starts_with 's\u{301}' Regex_Matcher_Data . should_be_true
+            's\u{301}ciana' . starts_with 'ś' Regex_Matcher_Data . should_be_true
 
             ## These two tests below are disabled due to how regex is handling
                letters with accents. See the tests above for explanation.
-            #"ściana" . starts_with "s" Regex_Matcher . should_be_false
-            # 's\u{301}ciana' . starts_with 's' Regex_Matcher . should_be_false
+            #"ściana" . starts_with "s" Regex_Matcher_Data . should_be_false
+            # 's\u{301}ciana' . starts_with 's' Regex_Matcher_Data . should_be_false
 
-            "fOOBar" . starts_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
-            "faaaar" . starts_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
+            "fOOBar" . starts_with ".o." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_true
+            "faaaar" . starts_with ".o." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_false
 
             long_text = """
                 EOL
                 SOL Hmm...
-            long_text . starts_with "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
-            long_text . starts_with "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
+            long_text . starts_with "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=True) . should_be_true
+            long_text . starts_with "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=False) . should_be_false
 
-            "aaazzz" . starts_with "a|b" Regex_Matcher . should_be_true
-            "bbbzzz" . starts_with "a|b" Regex_Matcher . should_be_true
-            "zzzaaa" . starts_with "a|b" Regex_Matcher . should_be_false
-            "zzzbbb" . starts_with "a|b" Regex_Matcher . should_be_false
-            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher . should_be_true
-            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher . should_be_true
-            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher . should_be_false
-            "ABC" . starts_with "\AA" Regex_Matcher . should_be_true
-            "ABC" . starts_with "\AA\z" Regex_Matcher . should_be_false
-            "foobar" . starts_with "" Regex_Matcher . should_be_true
-            "" . starts_with "" Regex_Matcher . should_be_true
+            "aaazzz" . starts_with "a|b" Regex_Matcher_Data . should_be_true
+            "bbbzzz" . starts_with "a|b" Regex_Matcher_Data . should_be_true
+            "zzzaaa" . starts_with "a|b" Regex_Matcher_Data . should_be_false
+            "zzzbbb" . starts_with "a|b" Regex_Matcher_Data . should_be_false
+            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher_Data . should_be_true
+            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher_Data . should_be_true
+            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher_Data . should_be_false
+            "ABC" . starts_with "\AA" Regex_Matcher_Data . should_be_true
+            "ABC" . starts_with "\AA\z" Regex_Matcher_Data . should_be_false
+            "foobar" . starts_with "" Regex_Matcher_Data . should_be_true
+            "" . starts_with "" Regex_Matcher_Data . should_be_true
 
         Test.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
@@ -923,64 +925,64 @@ spec =
         Test.specify "ends_with should work as shown in the examples" <|
             "Hello World".ends_with "World" . should_be_true
             "Hello World".ends_with "world" . should_be_false
-            "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) . should_be_true
-            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher . should_be_true
+            "Hello World".ends_with "world" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher_Data . should_be_true
 
         Test.specify "should allow for case-insensitive ends_with checks" <|
-            "Hello".ends_with "LO" (Text_Matcher Case_Insensitive) . should_be_true
+            "Hello".ends_with "LO" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
-            "rzeczywistość".ends_with 'C\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
-            "rzeczywistość".ends_with 'C' (Text_Matcher Case_Insensitive) . should_be_false
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'Ć' (Text_Matcher Case_Insensitive) . should_be_true
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'C\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'C' (Text_Matcher Case_Insensitive) . should_be_false
+            "rzeczywistość".ends_with 'C\u{301}' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "rzeczywistość".ends_with 'C' (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'Ć' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C\u{301}' (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C' (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
 
-            "ABC" . ends_with "C" (Text_Matcher Case_Insensitive) . should_be_true
-            "ABC" . ends_with "c" (Text_Matcher Case_Insensitive) . should_be_true
-            "ABC" . ends_with "A" (Text_Matcher Case_Insensitive) . should_be_false
-            "" . ends_with "foo" (Text_Matcher Case_Insensitive) . should_be_false
-            "abc" . ends_with "" (Text_Matcher Case_Insensitive) . should_be_true
-            "" . ends_with "" (Text_Matcher Case_Insensitive) . should_be_true
-            "fOo FOO fOo" . ends_with "FoO" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . ends_with "C" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "ABC" . ends_with "c" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "ABC" . ends_with "A" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            "" . ends_with "foo" (Text_Matcher_Data Case_Insensitive_Data) . should_be_false
+            "abc" . ends_with "" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "" . ends_with "" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
+            "fOo FOO fOo" . ends_with "FoO" (Text_Matcher_Data Case_Insensitive_Data) . should_be_true
 
         Test.specify "should allow for Regex ends_with checks" <|
-            "Hello".ends_with "[a-z]" Regex_Matcher . should_be_true
-            "Hello!".ends_with "[a-z]" Regex_Matcher . should_be_false
+            "Hello".ends_with "[a-z]" Regex_Matcher_Data . should_be_true
+            "Hello!".ends_with "[a-z]" Regex_Matcher_Data . should_be_false
 
-            "foobar" . ends_with ".o." Regex_Matcher . should_be_false
-            "foobar" . ends_with ".a." Regex_Matcher . should_be_true
+            "foobar" . ends_with ".o." Regex_Matcher_Data . should_be_false
+            "foobar" . ends_with ".a." Regex_Matcher_Data . should_be_true
 
-            "123 meters and 4 centimeters" . ends_with "[0-9]+" Regex_Matcher . should_be_false
-            "foo 123" . ends_with "[0-9]+" Regex_Matcher . should_be_true
+            "123 meters and 4 centimeters" . ends_with "[0-9]+" Regex_Matcher_Data . should_be_false
+            "foo 123" . ends_with "[0-9]+" Regex_Matcher_Data . should_be_true
 
-            "rzeczywistość" . ends_with "ć" Regex_Matcher . should_be_true
-            "rzeczywistość" . ends_with 'c\u{301}' Regex_Matcher . should_be_true
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'c\u{301}' Regex_Matcher . should_be_true
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'ć' Regex_Matcher . should_be_true
-            "rzeczywistość" . ends_with "c" Regex_Matcher . should_be_false
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'c' Regex_Matcher . should_be_false
+            "rzeczywistość" . ends_with "ć" Regex_Matcher_Data . should_be_true
+            "rzeczywistość" . ends_with 'c\u{301}' Regex_Matcher_Data . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c\u{301}' Regex_Matcher_Data . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'ć' Regex_Matcher_Data . should_be_true
+            "rzeczywistość" . ends_with "c" Regex_Matcher_Data . should_be_false
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c' Regex_Matcher_Data . should_be_false
 
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'Ć' (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
-            "fOOBar" . ends_with ".A." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
-            "faaaar" . ends_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'Ć' (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_true
+            "fOOBar" . ends_with ".A." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_true
+            "faaaar" . ends_with ".o." (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data) . should_be_false
 
             long_text = """
                 Hnnnn EOL
                 SOL
-            long_text . ends_with "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
-            long_text . ends_with "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
+            long_text . ends_with "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=True) . should_be_true
+            long_text . ends_with "EOL.SOL" (Regex_Matcher_Data dot_matches_newline=False) . should_be_false
 
-            "zzzaaa" . ends_with "a|b" Regex_Matcher . should_be_true
-            "zzzbbb" . ends_with "a|b" Regex_Matcher . should_be_true
-            "aaazzz" . ends_with "a|b" Regex_Matcher . should_be_false
-            "bbbzzz" . ends_with "a|b" Regex_Matcher . should_be_false
-            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher . should_be_true
-            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher . should_be_true
-            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher . should_be_false
-            "ABC" . ends_with "C\z" Regex_Matcher . should_be_true
-            "ABC" . ends_with "\AC\z" Regex_Matcher . should_be_false
-            "foobar" . ends_with "" Regex_Matcher . should_be_true
-            "" . ends_with "" Regex_Matcher . should_be_true
+            "zzzaaa" . ends_with "a|b" Regex_Matcher_Data . should_be_true
+            "zzzbbb" . ends_with "a|b" Regex_Matcher_Data . should_be_true
+            "aaazzz" . ends_with "a|b" Regex_Matcher_Data . should_be_false
+            "bbbzzz" . ends_with "a|b" Regex_Matcher_Data . should_be_false
+            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher_Data . should_be_true
+            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher_Data . should_be_true
+            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher_Data . should_be_false
+            "ABC" . ends_with "C\z" Regex_Matcher_Data . should_be_true
+            "ABC" . ends_with "\AC\z" Regex_Matcher_Data . should_be_false
+            "foobar" . ends_with "" Regex_Matcher_Data . should_be_true
+            "" . ends_with "" Regex_Matcher_Data . should_be_true
 
         Test.specify "should allow to pad a text" <|
             "Hello World!".pad 15 . should_equal "Hello World!   "
@@ -988,9 +990,9 @@ spec =
             "HELLO".pad 8 "AB" . should_equal "HELLOABA"
             "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
             "".pad 4 . should_equal "    "
-            "A".pad 3 "" . should_fail_with Illegal_Argument_Error
-            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error
-            "".pad 0 "" . should_fail_with Illegal_Argument_Error
+            "A".pad 3 "" . should_fail_with Illegal_Argument_Error_Data
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error_Data
+            "".pad 0 "" . should_fail_with Illegal_Argument_Error_Data
 
             "".pad 0 . should_equal ""
             "ABC".pad 3 . should_equal "ABC"
@@ -1083,13 +1085,13 @@ spec =
         Test.specify "location_of should work as shown in examples" <|
             example_1 =
                 "Hello World!".location_of "J" == Nothing
-                "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
-                "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 4 5) "Hello World!"
+                "Hello World!".location_of "o" == Span_Data (Range_Data 4 5) "Hello World!"
+                "Hello World!".location_of "o" mode=Matching_Mode.Last == Span_Data (Range_Data 4 5) "Hello World!"
 
             example_2 =
                 term = "straße"
                 text = "MONUMENTENSTRASSE 42"
-                match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
+                match = text . location_of term matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 term.length . should_equal 6
                 match.length . should_equal 7
 
@@ -1097,11 +1099,11 @@ spec =
                 ligatures = "ﬃﬄ"
                 ligatures.length . should_equal 2
                 term_1 = "IFF"
-                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
+                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 term_1.length . should_equal 3
                 match_1.length . should_equal 2
                 term_2 = "ffiffl"
-                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
+                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 term_2.length . should_equal 6
                 match_2.length . should_equal 2
                 match_1 . should_equal match_2
@@ -1113,16 +1115,16 @@ spec =
             example_5 =
                 term = "strasse"
                 text = "MONUMENTENSTRASSE ist eine große Straße."
-                match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
+                match = text . location_of_all term matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 term.length . should_equal 7
                 match . map .length . should_equal [7, 6]
 
             example_6 =
                 ligatures = "ﬃﬄFFIFF"
                 ligatures.length . should_equal 7
-                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
+                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 match_1 . map .length . should_equal [2, 3]
-                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
+                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher_Data Case_Insensitive_Data)
                 match_2 . map .length . should_equal [2, 5]
 
             # Put them in blocks to avoid name clashes.
@@ -1138,115 +1140,115 @@ spec =
             "Hello World!".location_of_all "o" . map .start . should_equal [4, 7]
 
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.location_of accent_1 . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 . should_equal (Span_Data (Range_Data 1 2) accents)
 
             "".location_of "foo" . should_equal Nothing
             "".location_of "foo" mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" . should_equal []
-            "".location_of "" . should_equal (Span (Range 0 0) "")
-            "".location_of "" mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
-            "".location_of_all "" . should_equal [Span (Range 0 0) ""]
+            "".location_of "" . should_equal (Span_Data (Range_Data 0 0) "")
+            "".location_of "" mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
+            "".location_of_all "" . should_equal [Span_Data (Range_Data 0 0) ""]
             abc = 'A\u{301}ßC'
-            abc.location_of "" . should_equal (Span (Range 0 0) abc)
-            abc.location_of "" mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
-            abc.location_of_all "" . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
+            abc.location_of "" . should_equal (Span_Data (Range_Data 0 0) abc)
+            abc.location_of "" mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
+            abc.location_of_all "" . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
 
         Test.specify "should allow case-insensitive matching in location_of" <|
             hello = "Hello WORLD!"
-            case_insensitive = Text_Matcher Case_Insensitive
+            case_insensitive = Text_Matcher_Data Case_Insensitive_Data
             hello.location_of "world" . should_equal Nothing
-            hello.location_of "world" matcher=case_insensitive . should_equal (Span (Range 6 11) hello)
+            hello.location_of "world" matcher=case_insensitive . should_equal (Span_Data (Range_Data 6 11) hello)
 
-            hello.location_of "o" mode=Regex_Mode.First matcher=case_insensitive . should_equal (Span (Range 4 5) hello)
-            hello.location_of "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 7 8) hello)
+            hello.location_of "o" mode=Regex_Mode.First matcher=case_insensitive . should_equal (Span_Data (Range_Data 4 5) hello)
+            hello.location_of "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (Range_Data 7 8) hello)
 
             accents = 'A\u{301}E\u{301}O\u{301}'
-            accents.location_of accent_1 matcher=case_insensitive . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 2) accents)
 
-            "Strasse".location_of "ß" matcher=case_insensitive . should_equal (Span (Range 4 6) "Strasse")
-            "Monumentenstraße 42".location_of "STRASSE" matcher=case_insensitive . should_equal (Span (Range 10 16) "Monumentenstraße 42")
+            "Strasse".location_of "ß" matcher=case_insensitive . should_equal (Span_Data (Range_Data 4 6) "Strasse")
+            "Monumentenstraße 42".location_of "STRASSE" matcher=case_insensitive . should_equal (Span_Data (Range_Data 10 16) "Monumentenstraße 42")
 
-            '\u0390'.location_of '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span (Range 0 1) '\u0390')
+            '\u0390'.location_of '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 1) '\u0390')
             'ԵՒ'.location_of 'և' . should_equal Nothing
-            'ԵՒ'.location_of 'և' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ԵՒ')
-            'և'.location_of 'ԵՒ' matcher=case_insensitive . should_equal (Span (Range 0 1) 'և')
+            'ԵՒ'.location_of 'և' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) 'ԵՒ')
+            'և'.location_of 'ԵՒ' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 1) 'և')
 
             ligatures = 'ffaﬀﬁﬂﬃﬄﬅﬆZ'
-            ligatures.location_of 'FFI' matcher=case_insensitive . should_equal (Span (Range 3 5) ligatures)
-            ligatures.location_of 'FF' matcher=case_insensitive . should_equal (Span (Range 0 2) ligatures)
-            ligatures.location_of 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 7 8) ligatures)
-            ligatures.location_of_all 'ff' . should_equal [Span (Range 0 2) ligatures]
-            ligatures.location_of_all 'FF' matcher=case_insensitive . should_equal [Span (Range 0 2) ligatures, Span (Range 3 4) ligatures, Span (Range 6 7) ligatures, Span (Range 7 8) ligatures]
-            ligatures.location_of_all 'ffi' matcher=case_insensitive . should_equal [Span (Range 3 5) ligatures, Span (Range 6 7) ligatures]
-            'fffi'.location_of_all 'ﬀ' matcher=case_insensitive . should_equal [Span (Range 0 2) 'fffi']
+            ligatures.location_of 'FFI' matcher=case_insensitive . should_equal (Span_Data (Range_Data 3 5) ligatures)
+            ligatures.location_of 'FF' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) ligatures)
+            ligatures.location_of 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 7 8) ligatures)
+            ligatures.location_of_all 'ff' . should_equal [Span_Data (Range_Data 0 2) ligatures]
+            ligatures.location_of_all 'FF' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 2) ligatures, Span_Data (Range_Data 3 4) ligatures, Span_Data (Range_Data 6 7) ligatures, Span_Data (Range_Data 7 8) ligatures]
+            ligatures.location_of_all 'ffi' matcher=case_insensitive . should_equal [Span_Data (Range_Data 3 5) ligatures, Span_Data (Range_Data 6 7) ligatures]
+            'fffi'.location_of_all 'ﬀ' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 2) 'fffi']
             'fffi'.location_of_all 'ﬃ' . should_equal []
-            'fffi'.location_of_all 'ﬃ' matcher=case_insensitive . should_equal [Span (Range 1 4) 'fffi']
-            'FFFI'.location_of 'ﬃ' matcher=case_insensitive . should_equal (Span (Range 1 4) 'FFFI')
+            'fffi'.location_of_all 'ﬃ' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 4) 'fffi']
+            'FFFI'.location_of 'ﬃ' matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 4) 'FFFI')
 
-            'ﬃﬄ'.location_of 'IF' matcher=case_insensitive . should_equal (Span (Range 0 2) 'ﬃﬄ')
-            'ﬃﬄ'.location_of 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 1 2) 'ﬃﬄ')
-            'ﬃﬄ'.location_of_all 'F' matcher=case_insensitive . should_equal [Span (Range 0 1) 'ﬃﬄ', Span (Range 0 1) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ', Span (Range 1 2) 'ﬃﬄ']
-            'aaﬃbb'.location_of_all 'af' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
-            'aaﬃbb'.location_of_all 'affi' matcher=case_insensitive . should_equal [Span (Range 1 3) 'aaﬃbb']
-            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
-            'aaﬃbb'.location_of_all 'ffib' matcher=case_insensitive . should_equal [Span (Range 2 4) 'aaﬃbb']
+            'ﬃﬄ'.location_of 'IF' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 2) 'ﬃﬄ')
+            'ﬃﬄ'.location_of_all 'F' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 1) 'ﬃﬄ', Span_Data (Range_Data 0 1) 'ﬃﬄ', Span_Data (Range_Data 1 2) 'ﬃﬄ', Span_Data (Range_Data 1 2) 'ﬃﬄ']
+            'aaﬃbb'.location_of_all 'af' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'affi' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 3) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ib' matcher=case_insensitive . should_equal [Span_Data (Range_Data 2 4) 'aaﬃbb']
+            'aaﬃbb'.location_of_all 'ffib' matcher=case_insensitive . should_equal [Span_Data (Range_Data 2 4) 'aaﬃbb']
 
             "".location_of "foo" matcher=case_insensitive . should_equal Nothing
             "".location_of "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" matcher=case_insensitive . should_equal []
-            "".location_of "" matcher=case_insensitive . should_equal (Span (Range 0 0) "")
-            "".location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
-            "".location_of_all "" matcher=case_insensitive . should_equal [Span (Range 0 0) ""]
+            "".location_of "" matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 0) "")
+            "".location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
+            "".location_of_all "" matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 0) ""]
             abc = 'A\u{301}ßC'
-            abc.location_of "" matcher=case_insensitive . should_equal (Span (Range 0 0) abc)
-            abc.location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
-            abc.location_of_all "" matcher=case_insensitive . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
+            abc.location_of "" matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 0) abc)
+            abc.location_of "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
+            abc.location_of_all "" matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
 
         Test.specify "should allow regexes in location_of" <|
             hello = "Hello World!"
-            regex = Regex_Matcher
-            regex_insensitive = Regex_Matcher case_sensitive=Case_Insensitive
-            hello.location_of ".o" Matching_Mode.First matcher=regex . should_equal (Span (Range 3 5) hello)
-            hello.location_of ".o" Matching_Mode.Last matcher=regex . should_equal (Span (Range 6 8) hello)
+            regex = Regex_Matcher_Data
+            regex_insensitive = Regex_Matcher_Data case_sensitive=Case_Insensitive_Data
+            hello.location_of ".o" Matching_Mode.First matcher=regex . should_equal (Span_Data (Range_Data 3 5) hello)
+            hello.location_of ".o" Matching_Mode.Last matcher=regex . should_equal (Span_Data (Range_Data 6 8) hello)
             hello.location_of_all ".o" matcher=regex . map .start . should_equal [3, 6]
 
-            "foobar".location_of "BAR" Regex_Mode.First matcher=regex_insensitive . should_equal (Span (Range 3 6) "foobar")
+            "foobar".location_of "BAR" Regex_Mode.First matcher=regex_insensitive . should_equal (Span_Data (Range_Data 3 6) "foobar")
 
             ## Regex matching does not do case folding
             "Strasse".location_of "ß" Regex_Mode.First matcher=regex_insensitive . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.location_of accent_1 Regex_Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 Regex_Mode.First matcher=regex . should_equal (Span_Data (Range_Data 1 2) accents)
         Test.specify "should correctly handle regex edge cases in location_of" pending="Figure out how to make Regex correctly handle empty patterns." <|
-            regex = Regex_Matcher
+            regex = Regex_Matcher_Data
             "".location_of "foo" matcher=regex . should_equal Nothing
             "".location_of "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" matcher=regex . should_equal []
-            "".location_of "" matcher=regex . should_equal (Span (Range 0 0) "")
-            "".location_of_all "" matcher=regex . should_equal [Span (Range 0 0) ""]
-            "".location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 0 0) "")
+            "".location_of "" matcher=regex . should_equal (Span_Data (Range_Data 0 0) "")
+            "".location_of_all "" matcher=regex . should_equal [Span_Data (Range_Data 0 0) ""]
+            "".location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
             abc = 'A\u{301}ßC'
-            abc.location_of "" matcher=regex . should_equal (Span (Range 0 0) abc)
-            abc.location_of_all "" matcher=regex . should_equal [Span (Range 0 0) abc, Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
-            abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
+            abc.location_of "" matcher=regex . should_equal (Span_Data (Range_Data 0 0) abc)
+            abc.location_of_all "" matcher=regex . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
+            abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
 
         Test.specify "should handle overlapping matches as shown in the examples"
-            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal (Span (Range 1 3) "aaa")
-            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal (Span (Range 0 2) "aaa")
+            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal (Span_Data (Range_Data 1 3) "aaa")
+            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal (Span_Data (Range_Data 0 2) "aaa")
 
-            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal (Span (Range 5 7) "aaa aaa")
-            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal (Span (Range 4 6) "aaa aaa")
+            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal (Span_Data (Range_Data 5 7) "aaa aaa")
+            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal (Span_Data (Range_Data 4 6) "aaa aaa")
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match
+            match . should_be_a Default_Engine.Match_Data
             match.group 1 . should_equal "Goes Here"
 
         Test.specify "should be possible on unicode text" <|
             match = "Korean: 건반".match "^Korean: (.+)$" mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match
+            match . should_be_a Default_Engine.Match_Data
             match.group 1 . should_equal "건반"
 
         Test.specify "should be possible in ascii mode" <|
@@ -1255,12 +1257,12 @@ spec =
 
         Test.specify "should be possible in case-insensitive mode" <|
             match = "MY".match "my" mode=Regex_Mode.First case_insensitive=True
-            match . should_be_a Default_Engine.Match
+            match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal "MY"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
             match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dot_matches_newline=True
-            match . should_be_a Default_Engine.Match
+            match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal 'Foo\n'
 
         Test.specify "should be possible in multiline mode" <|
@@ -1274,7 +1276,7 @@ spec =
 
         Test.specify "should be possible in comments mode" <|
             match = "abcde".match "(..) # Match two of any character" comments=True mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match
+            match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal "ab"
 
     Test.group "Regex matches" <|
@@ -1348,34 +1350,34 @@ spec =
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
-            splits = "abcde".split "[bd]" Regex_Matcher
+            splits = "abcde".split "[bd]" Regex_Matcher_Data
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반 (hangul)".split " " Regex_Matcher
+            match = "Korean: 건반 (hangul)".split " " Regex_Matcher_Data
             match.length . should_equal 3
             match.at 0 . should_equal "Korean:"
             match.at 1 . should_equal "건반"
             match.at 2 . should_equal "(hangul)"
 
         Test.specify "should be possible in ascii mode" <|
-            splits = "İiİ".split "\w" (Regex_Matcher match_ascii=True)
+            splits = "İiİ".split "\w" (Regex_Matcher_Data match_ascii=True)
             splits.length . should_equal 2
             splits.at 0 . should_equal "İ"
             splits.at 1 . should_equal "İ"
 
         Test.specify "should be possible in case-insensitive mode" <|
-            splits = "abaBa".split "b" (Regex_Matcher case_sensitive=Case_Insensitive)
+            splits = "abaBa".split "b" (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            splits = 'ab\nabcd'.split "b." (Regex_Matcher dot_matches_newline=True)
+            splits = 'ab\nabcd'.split "b." (Regex_Matcher_Data dot_matches_newline=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
@@ -1385,11 +1387,11 @@ spec =
             text = """
                 Foo
                 bar
-            match = text.split "$" (Regex_Matcher multiline=True)
+            match = text.split "$" (Regex_Matcher_Data multiline=True)
             match.length . should_equal 3
 
         Test.specify "should be possible in comments mode" <|
-            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" (Regex_Matcher comments=True)
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" (Regex_Matcher_Data comments=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
@@ -1398,11 +1400,11 @@ spec =
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
             'aaa'.replace 'aa' 'b' . should_equal 'ba'
-            "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
+            "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher_Data . should_equal "He### W#r#d!"
             "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
-            '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
-            'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
-            'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+            '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher_Data . should_equal '(abc) foo (bar) baz'
+            'ß'.replace 'S' 'A' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'AA'
+            'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'aXb'
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [Regex_Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
@@ -1422,22 +1424,22 @@ spec =
             "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last . should_equal "aaa ac"
 
         Test.specify "should correctly handle case-insensitive matches" <|
-            'AaąĄ' . replace "A" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal '--ąĄ'
+            'AaąĄ' . replace "A" "-" matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal '--ąĄ'
             'AaąĄ' . replace "A" "-" . should_equal '-aąĄ'
-            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher True) . should_equal 'HeLlO wOrLd'
-            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher Case_Insensitive) . should_equal 'Hey, wOrLd'
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher_Data True) . should_equal 'HeLlO wOrLd'
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'Hey, wOrLd'
 
             "Iiİı" . replace "i" "-" . should_equal "I-İı"
             "Iiİı" . replace "I" "-" . should_equal "-iİı"
             "Iiİı" . replace "İ" "-" . should_equal "Ii-ı"
             "Iiİı" . replace "ı" "-" . should_equal "Iiİ-"
 
-            "Iiİı" . replace "i" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "--İı"
-            "Iiİı" . replace "I" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "--İı"
-            "Iiİı" . replace "İ" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "Ii-ı"
-            "Iiİı" . replace "ı" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "Iiİ-"
+            "Iiİı" . replace "i" "-" matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal "--İı"
+            "Iiİı" . replace "I" "-" matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal "--İı"
+            "Iiİı" . replace "İ" "-" matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal "Ii-ı"
+            "Iiİı" . replace "ı" "-" matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal "Iiİ-"
 
-            tr_insensitive = Text_Matcher (Case_Insensitive (Locale.new "tr"))
+            tr_insensitive = Text_Matcher_Data (Case_Insensitive_Data (Locale.new "tr"))
             "Iiİı" . replace "i" "-" matcher=tr_insensitive . should_equal "I--ı"
             "Iiİı" . replace "I" "-" matcher=tr_insensitive . should_equal "-iİ-"
             "Iiİı" . replace "İ" "-" matcher=tr_insensitive . should_equal "I--ı"
@@ -1458,12 +1460,12 @@ spec =
             'SŚS\u{301}' . replace 'ś' 'O' . should_equal 'SŚS\u{301}'
             'SŚS\u{301}' . replace 's\u{301}' 'O' . should_equal 'SŚS\u{301}'
 
-            'SŚS\u{301}' . replace 's' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
-            'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
-            'ŚS\u{301}S' . replace 's' 'O' Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'ŚS\u{301}O'
+            'SŚS\u{301}' . replace 's' 'O' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'OŚS\u{301}'
+            'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'OŚS\u{301}'
+            'ŚS\u{301}S' . replace 's' 'O' Matching_Mode.First matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'ŚS\u{301}O'
 
-            'SŚS\u{301}' . replace 'ś' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'SOO'
-            'SŚS\u{301}' . replace 's\u{301}' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'SOO'
+            'SŚS\u{301}' . replace 'ś' 'O' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'SOO'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'SOO'
 
             '✨🚀🚧😍😃😍😎😙😉☺' . replace '🚧😍' '|-|:)' . should_equal '✨🚀|-|:)😃😍😎😙😉☺'
             'Rocket Science' . replace 'Rocket' '🚀' . should_equal '🚀 Science'
@@ -1475,64 +1477,64 @@ spec =
             ## Currently we lack 'resolution' to extract a partial match from
                the ligature to keep it, probably would need some special
                mapping.
-            'ﬃﬃ'.replace 'ff' 'aa' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaaa'
-            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaﬃ'
-            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'ﬃaa'
-            'aﬃﬃb'.replace 'IF' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
-            'aiﬃffz' . replace 'if' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'a--fz'
-            'AFFIB'.replace 'ﬃ' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A-B'
+            'ﬃﬃ'.replace 'ff' 'aa' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'aaaa'
+            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.First matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'aaﬃ'
+            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.Last matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'ﬃaa'
+            'aﬃﬃb'.replace 'IF' 'X' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'aXb'
+            'aiﬃffz' . replace 'if' '-' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'a--fz'
+            'AFFIB'.replace 'ﬃ' '-' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'A-B'
 
-            'ß'.replace 'SS' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
-            'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
-            'ß'.replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
-            'ß'.replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
-            'STRASSE'.replace 'ß' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'STRA-E'
+            'ß'.replace 'SS' 'A' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'A'
+            'ß'.replace 'S' 'A' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'AA'
+            'ß'.replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'A'
+            'ß'.replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'A'
+            'STRASSE'.replace 'ß' '-' matcher=(Text_Matcher_Data Case_Insensitive_Data) . should_equal 'STRA-E'
 
         Test.specify "should perform simple replacement in Regex mode" <|
-            "ababab".replace "b" "a" matcher=Regex_Matcher . should_equal "aaaaaa"
-            "ababab".replace "b" "a" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "aaabab"
-            "ababab".replace "b" "a" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ababaa"
+            "ababab".replace "b" "a" matcher=Regex_Matcher_Data . should_equal "aaaaaa"
+            "ababab".replace "b" "a" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "aaabab"
+            "ababab".replace "b" "a" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "ababaa"
 
-            "aaaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "cc"
-            "aaaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "caa"
-            "aaaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aac"
+            "aaaa".replace "aa" "c" matcher=Regex_Matcher_Data . should_equal "cc"
+            "aaaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "caa"
+            "aaaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "aac"
 
-            "aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca"
-            "aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca"
-            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "ac"
-            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ca"
+            "aaa".replace "aa" "c" matcher=Regex_Matcher_Data . should_equal "ca"
+            "aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "ca"
+            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal "ac"
+            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "ca"
 
-            "aaa aaa".replace "aa" "c" matcher=Text_Matcher . should_equal "ca ca"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher . should_equal "ca aaa"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "aaa ac"
-            "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
+            "aaa aaa".replace "aa" "c" matcher=Text_Matcher_Data . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher_Data . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal "aaa ac"
+            "aaa aaa".replace "aa" "c" matcher=Regex_Matcher_Data . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "aaa ca"
 
         Test.specify "in Regex mode should work with Unicode" <|
-            "Korean: 건반".replace "건반" "keyboard" matcher=Regex_Matcher . should_equal "Korean: keyboard"
-            'sśs\u{301}'.replace 'ś' '-' matcher=Regex_Matcher . should_equal 's--'
-            'sśs\u{301}'.replace 's\u{301}' '-' matcher=Regex_Matcher . should_equal 's--'
+            "Korean: 건반".replace "건반" "keyboard" matcher=Regex_Matcher_Data . should_equal "Korean: keyboard"
+            'sśs\u{301}'.replace 'ś' '-' matcher=Regex_Matcher_Data . should_equal 's--'
+            'sśs\u{301}'.replace 's\u{301}' '-' matcher=Regex_Matcher_Data . should_equal 's--'
 
         Test.specify "in Regex mode should support various Regex options" <|
-            r1 = "İiİ".replace "\w" "a" matcher=(Regex_Matcher match_ascii=True)
+            r1 = "İiİ".replace "\w" "a" matcher=(Regex_Matcher_Data match_ascii=True)
             r1 . should_equal "İaİ"
-            r2 = "abaBa".replace "b" "a" matcher=(Regex_Matcher case_sensitive=Case_Insensitive)
+            r2 = "abaBa".replace "b" "a" matcher=(Regex_Matcher_Data case_sensitive=Case_Insensitive_Data)
             r2 . should_equal "aaaaa"
-            r3 = 'ab\na'.replace "b." "a"  matcher=(Regex_Matcher dot_matches_newline=True)
+            r3 = 'ab\na'.replace "b." "a"  matcher=(Regex_Matcher_Data dot_matches_newline=True)
             r3 . should_equal "aaa"
 
             text = """
                 Foo
                 bar
-            r4 = text.replace '\n' ""  matcher=(Regex_Matcher multiline=True)
+            r4 = text.replace '\n' ""  matcher=(Regex_Matcher_Data multiline=True)
             r4 . should_equal "Foobar"
 
-            r5 = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher comments=True)
+            r5 = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher_Data comments=True)
             r5 . should_equal "aaa"
 
         Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
-            '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' matcher=Regex_Matcher . should_equal 'content is at url'
-            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' matcher=Regex_Matcher . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' matcher=Regex_Matcher_Data . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' matcher=Regex_Matcher_Data . should_equal 'content is at url'
 
 main = Test.Suite.run_main spec

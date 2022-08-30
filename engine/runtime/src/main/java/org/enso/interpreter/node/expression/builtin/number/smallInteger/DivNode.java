@@ -38,7 +38,7 @@ public abstract class DivNode extends Node {
   @Fallback
   Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

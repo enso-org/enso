@@ -4,17 +4,17 @@ polyglot java import java.nio.file.attribute.PosixFilePermission
 
 type Permission
     ## Permission for read access for a given entity.
-    type Read
+    Read
 
     ## Permission for write access for a given entity.
-    type Write
+    Write
 
     ## Permission for execute access for a given entity.
-    type Execute
+    Execute
 
 type File_Permissions
     ## Access permissions for a file.
-    type File_Permissions (owner : Vector Permission) (group : Vector Permission) (others : Vector Permission)
+    File_Permissions_Data (owner : Vector Permission) (group : Vector Permission) (others : Vector Permission)
 
     ## Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
@@ -101,4 +101,4 @@ from_java_set java_set =
     if java_set.contains PosixFilePermission.OTHERS_EXECUTE then
         others.append Execute
 
-    File_Permissions owner.to_vector group.to_vector others.to_vector
+    File_Permissions_Data owner.to_vector group.to_vector others.to_vector
