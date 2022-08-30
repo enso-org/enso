@@ -26,9 +26,9 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |foo = x -> x + 1
         |bar = x -> foo x + 1
         |""".stripMargin
-    val module                = executionContext.evalModule(code, "Test")
+    val module         = executionContext.evalModule(code, "Test")
     val associatedType = module.getAssociatedType
-    val barFunction           = module.getMethod(associatedType, "bar").get
+    val barFunction    = module.getMethod(associatedType, "bar").get
     val result = barFunction.execute(
       associatedType,
       10L.asInstanceOf[AnyRef]
