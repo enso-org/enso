@@ -14,13 +14,13 @@ type Type
     Boolean
 
     ## A column storing dates.
-    type Date
+    Date
 
     ## A column storing date-times.
-    type Date_Time
+    Date_Time
 
     ## A column storing time-of-day.
-    type Time_Of_Day
+    Time_Of_Day
 
     ## A column storing arbitrary data.
     Any

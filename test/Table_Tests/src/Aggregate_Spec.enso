@@ -39,7 +39,7 @@ spec =
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
-aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection pending=Nothing =
+aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection_Data pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
