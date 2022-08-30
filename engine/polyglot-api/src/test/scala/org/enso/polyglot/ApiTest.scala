@@ -27,10 +27,10 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |bar = x -> foo x + 1
         |""".stripMargin
     val module                = executionContext.evalModule(code, "Test")
-    val associatedConstructor = module.getAssociatedType
-    val barFunction           = module.getMethod(associatedConstructor, "bar").get
+    val associatedType = module.getAssociatedType
+    val barFunction           = module.getMethod(associatedType, "bar").get
     val result = barFunction.execute(
-      associatedConstructor,
+      associatedType,
       10L.asInstanceOf[AnyRef]
     )
     result.asLong shouldEqual 12
