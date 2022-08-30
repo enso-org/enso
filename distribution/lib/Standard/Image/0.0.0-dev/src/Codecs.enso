@@ -116,7 +116,7 @@ type Write_Flag
        Sets the luma quality level used when writing a JPEG.
 
        Arguments:
-       - value: A quality value from 0 to 100 (the higher, the better).
+       - val: A quality value from 0 to 100 (the higher, the better).
     Write_Jpeg_Luma_Quality val=0
 
     ## UNSTABLE
