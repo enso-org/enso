@@ -25,37 +25,27 @@ public class Number {
     decimal = builtins.getBuiltinType(Decimal.class);
   }
 
-  /**
-   * @return the Int64 atom constructor.
-   */
+  /** @return the Int64 atom constructor. */
   public Type getSmallInteger() {
     return smallInteger.getType();
   }
 
-  /**
-   * @return the Big_Integer atom constructor.
-   */
+  /** @return the Big_Integer atom constructor. */
   public Type getBigInteger() {
     return bigInteger.getType();
   }
 
-  /**
-   * @return the Integer atom constructor
-   */
+  /** @return the Integer atom constructor */
   public Type getInteger() {
     return integer.getType();
   }
 
-  /**
-   * @return the Number atom constructor
-   */
+  /** @return the Number atom constructor */
   public Type getNumber() {
     return number.getType();
   }
 
-  /**
-   * @return the Decimal atom constructor
-   */
+  /** @return the Decimal atom constructor */
   public Type getDecimal() {
     return decimal.getType();
   }

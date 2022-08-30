@@ -31,9 +31,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeMethodNode extends Node {
 
-  /**
-   * @return a new indirect method invocation node
-   */
+  /** @return a new indirect method invocation node */
   public static IndirectInvokeMethodNode build() {
     return IndirectInvokeMethodNodeGen.create();
   }

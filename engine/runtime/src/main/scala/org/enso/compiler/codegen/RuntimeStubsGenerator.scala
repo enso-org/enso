@@ -31,7 +31,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           throw new CompilerError("Unknown @Builtin_Type " + tp.name)
         }
         if (
-          Set(tp.members: _*) != Set(builtinType.getConstructors.toIndexedSeq: _*)
+          Set(tp.members: _*) != Set(
+            builtinType.getConstructors.toIndexedSeq: _*
+          )
             .map(_.getName)
         ) {
           throw new CompilerError(

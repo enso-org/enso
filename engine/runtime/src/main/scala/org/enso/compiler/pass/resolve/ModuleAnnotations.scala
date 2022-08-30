@@ -72,7 +72,9 @@ case object ModuleAnnotations extends IRPass {
     * @param typ the type in which to resolve annotations
     * @return `typ` with all top-level annotations resolved
     */
-  def resolveComplexType(typ: Definition.SugaredType): Definition.SugaredType = {
+  def resolveComplexType(
+    typ: Definition.SugaredType
+  ): Definition.SugaredType = {
     var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
     val newBodyElems = typ.body.flatMap {
       case ann: Name.Annotation =>

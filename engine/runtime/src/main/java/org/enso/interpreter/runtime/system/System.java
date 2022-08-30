@@ -51,9 +51,7 @@ public class System {
   @Builtin.Specialize
   @Builtin.Method(description = "Create a system process, returning the exit code.")
   @Builtin.WrapException(from = IOException.class, to = PanicException.class)
-  @Builtin.WrapException(
-      from = InterruptedException.class,
-      to = PanicException.class)
+  @Builtin.WrapException(from = InterruptedException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
   public static Atom createProcess(
       Context ctx,

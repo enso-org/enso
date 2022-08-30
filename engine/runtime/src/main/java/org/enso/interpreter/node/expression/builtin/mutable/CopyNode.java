@@ -61,7 +61,6 @@ public abstract class CopyNode extends Node {
   @Fallback
   Object doOther(Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = Context.get(this).getBuiltins();
-    throw new PanicException(
-        builtins.error().makeTypeError(builtins.array(), src, "src"), this);
+    throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
   }
 }

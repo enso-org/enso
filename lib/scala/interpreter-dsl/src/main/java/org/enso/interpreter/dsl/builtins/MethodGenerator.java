@@ -229,8 +229,7 @@ public abstract class MethodGenerator {
                   }
                 }
                 if (valueFrom != null && valueTo != null) {
-                  SafeWrapException converted =
-                      new SafeWrapException(valueFrom, valueTo);
+                  SafeWrapException converted = new SafeWrapException(valueFrom, valueTo);
                   wrappedExceptions.add(converted);
                 }
               }

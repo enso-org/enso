@@ -97,7 +97,6 @@ class ComplexTypeTest extends CompilerTest {
       f.typeName.get.name shouldEqual "Maybe"
     }
 
-
     "have type signatures copied to above each method" in {
       ir.bindings(2) shouldBe an[IR.Type.Ascription]
       ir.bindings(4) shouldBe an[IR.Type.Ascription]

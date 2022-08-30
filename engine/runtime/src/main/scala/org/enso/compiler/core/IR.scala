@@ -6706,7 +6706,8 @@ object IR {
       override def diagnosticKeys(): Array[Any] = Array(ir.showCode(), reason)
     }
 
-    case class NonUnitTypeUsedOnValueLevel(ir: IR.Name, context: String) extends Warning {
+    case class NonUnitTypeUsedOnValueLevel(ir: IR.Name, context: String)
+        extends Warning {
 
       /** @return a human-readable description of this error condition.
         */
@@ -7010,7 +7011,7 @@ object IR {
           s"but polyglot symbols are not allowed in $context."
       }
 
-       /** An error coming from an unexpected occurence of a constructor.
+      /** An error coming from an unexpected occurence of a constructor.
         *
         * @param context the description of a context in which the error
         *                happened.
@@ -7018,10 +7019,8 @@ object IR {
       case class UnexpectedConstructor(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a constructor, " +
-            s"but constructors are not allowed in $context."
+          s"but constructors are not allowed in $context."
       }
-
-
 
       /** An error coming from an unexpected occurence of a static method.
         *

@@ -191,7 +191,8 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+      val tp =
+        ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.SugaredType]
       getDoc(tp) shouldEqual DocParserWrapper.runOnPureDoc(
         " the type Foo"
       )

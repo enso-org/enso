@@ -28,9 +28,7 @@ public class EnsoBigInteger implements TruffleObject {
     this.value = value;
   }
 
-  /**
-   * @return the contained {@link BigInteger}.
-   */
+  /** @return the contained {@link BigInteger}. */
   public BigInteger getValue() {
     return value;
   }

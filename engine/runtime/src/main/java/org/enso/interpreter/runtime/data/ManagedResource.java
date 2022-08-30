@@ -28,16 +28,12 @@ public class ManagedResource implements TruffleObject {
     this.phantomReference = null;
   }
 
-  /**
-   * @return the underlying resource
-   */
+  /** @return the underlying resource */
   public Object getResource() {
     return resource;
   }
 
-  /**
-   * @return the phantom reference tracking this managed resource
-   */
+  /** @return the phantom reference tracking this managed resource */
   public PhantomReference<ManagedResource> getPhantomReference() {
     return phantomReference;
   }

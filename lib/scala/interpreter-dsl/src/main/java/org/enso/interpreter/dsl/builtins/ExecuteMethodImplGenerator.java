@@ -136,10 +136,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
   }
 
-  public List<String> generate(
-      ProcessingEnvironment processingEnv,
-      String name,
-      String owner) {
+  public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
 
     SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;

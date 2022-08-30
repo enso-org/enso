@@ -32,9 +32,7 @@ public class EnsoTimeOfDay implements TruffleObject {
       name = "parse_builtin",
       description = "Constructs a new DateTime from text with optional pattern")
   @Builtin.Specialize
-  @Builtin.WrapException(
-      from = DateTimeParseException.class,
-      to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   public static EnsoTimeOfDay parse(String text) {
     return new EnsoTimeOfDay(LocalTime.parse(text));
   }

@@ -44,7 +44,9 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main = Panic.catch_primitive foo caught_panic->caught_panic.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Compile_Error_Data 'Variable x is being redefined.')"
+      eval(
+        code
+      ) shouldEqual "(Compile_Error_Data 'Variable x is being redefined.')"
     }
 
     "surface non-existent variable errors in the language" in {

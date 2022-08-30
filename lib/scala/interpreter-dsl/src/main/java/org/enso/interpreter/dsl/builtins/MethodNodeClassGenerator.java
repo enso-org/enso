@@ -19,9 +19,7 @@ public abstract class MethodNodeClassGenerator {
   ClassName stdlibOwner;
 
   public MethodNodeClassGenerator(
-      ClassName builtinNode,
-      ClassName ownerClazz,
-      ClassName stdlibOwner) {
+      ClassName builtinNode, ClassName ownerClazz, ClassName stdlibOwner) {
     this.builtinNode = builtinNode;
     this.ownerClazz = ownerClazz;
     this.stdlibOwner = stdlibOwner;
@@ -76,10 +74,7 @@ public abstract class MethodNodeClassGenerator {
         out.println("public class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
       }
-      for (String line :
-          methodsGen()
-              .generate(
-                  processingEnv, ownerMethodName, ownerClazz.name())) {
+      for (String line : methodsGen().generate(processingEnv, ownerMethodName, ownerClazz.name())) {
         out.println("  " + line);
       }
       out.println();

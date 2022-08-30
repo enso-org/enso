@@ -204,7 +204,9 @@ case object ComplexType extends IRPass {
 
     val withDoc = typ
       .getMetadata(DocumentationComments)
-      .map(ann => withAnnotations.updateMetadata(DocumentationComments -->> ann))
+      .map(ann =>
+        withAnnotations.updateMetadata(DocumentationComments -->> ann)
+      )
       .getOrElse(sumType)
 
     withDoc :: allEntities

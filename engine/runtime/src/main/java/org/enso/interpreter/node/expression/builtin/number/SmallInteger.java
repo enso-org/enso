@@ -5,8 +5,8 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
 public class SmallInteger extends Builtin {
-    @Override
-    protected Class<? extends Builtin> getSuperType() {
-        return Integer.class;
-    }
+  @Override
+  protected Class<? extends Builtin> getSuperType() {
+    return Integer.class;
+  }
 }

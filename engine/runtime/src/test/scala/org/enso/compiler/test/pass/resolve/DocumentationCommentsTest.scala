@@ -279,7 +279,8 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+      val tp =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"

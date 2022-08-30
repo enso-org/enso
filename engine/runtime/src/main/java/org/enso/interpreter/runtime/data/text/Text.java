@@ -135,23 +135,17 @@ public class Text implements TruffleObject {
     return "'" + replaced + "'";
   }
 
-  /**
-   * @return true if this text wraps a string literal and does not require any optimization.
-   */
+  /** @return true if this text wraps a string literal and does not require any optimization. */
   public boolean isFlat() {
     return isFlat;
   }
 
-  /**
-   * @param flat the new value of the isFlat flag.
-   */
+  /** @param flat the new value of the isFlat flag. */
   public void setFlat(boolean flat) {
     isFlat = flat;
   }
 
-  /**
-   * @return the contents of this text.
-   */
+  /** @return the contents of this text. */
   public Object getContents() {
     return contents;
   }
@@ -165,9 +159,7 @@ public class Text implements TruffleObject {
     this.contents = contents;
   }
 
-  /**
-   * @return the lock required for modification of this text.
-   */
+  /** @return the lock required for modification of this text. */
   public Lock getLock() {
     return lock;
   }

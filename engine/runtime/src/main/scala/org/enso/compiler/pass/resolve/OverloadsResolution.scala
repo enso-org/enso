@@ -47,7 +47,7 @@ case object OverloadsResolution extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    var seenTypes: Set[String]                = Set()
+    var seenTypes: Set[String]                        = Set()
     var seenMethods: Map[Option[String], Set[String]] = Map()
 
     val types = ir.bindings.collect {

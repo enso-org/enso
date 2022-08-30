@@ -492,7 +492,8 @@ class IrToTruffle(
           definitionModule
             .unsafeAsModule()
             .getScope
-            .getTypes.get(tp.name)
+            .getTypes
+            .get(tp.name)
         case BindingsMap.ResolvedModule(module) =>
           module.unsafeAsModule().getScope.getAssociatedType
         case BindingsMap.ResolvedConstructor(_, _) =>
@@ -1185,7 +1186,8 @@ class IrToTruffle(
                 if (c == null) {
                   throw new CompilerError(s"Constructor for $cons is null")
                 }
-                ConstructorNode.build(c
+                ConstructorNode.build(
+                  c
 //                  definitionModule
 //                    .unsafeAsModule()
 //                    .getScope

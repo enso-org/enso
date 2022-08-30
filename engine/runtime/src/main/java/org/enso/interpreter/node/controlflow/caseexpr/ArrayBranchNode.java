@@ -31,7 +31,7 @@ public abstract class ArrayBranchNode extends BranchNode {
    * @return an array branch node
    */
   public static ArrayBranchNode build(Type array, RootCallTarget branch) {
-     return ArrayBranchNodeGen.create(array, branch);
+    return ArrayBranchNodeGen.create(array, branch);
   }
 
   @Specialization

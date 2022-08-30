@@ -58,9 +58,7 @@ public class Array implements TruffleObject {
     this.items = new Object[(int) size];
   }
 
-  /**
-   * @return the elements of this array as a java array.
-   */
+  /** @return the elements of this array as a java array. */
   public Object[] getItems() {
     return items;
   }
@@ -90,25 +88,19 @@ public class Array implements TruffleObject {
     return items[(int) index];
   }
 
-  /**
-   * @return the size of this array
-   */
+  /** @return the size of this array */
   @Builtin.Method(description = "Returns the size of this array.")
   public long length() {
     return this.getItems().length;
   }
 
-  /**
-   * @return an empty array
-   */
+  /** @return an empty array */
   @Builtin.Method(description = "Creates an empty Array")
   public static Object empty() {
     return new Array();
   }
 
-  /**
-   * @return an identity array
-   */
+  /** @return an identity array */
   @Builtin.Method(description = "Identity on arrays, implemented for protocol completeness.")
   public Object toArray() {
     return this;

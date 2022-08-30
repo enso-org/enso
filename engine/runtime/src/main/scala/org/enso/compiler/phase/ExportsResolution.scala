@@ -167,7 +167,7 @@ class ExportsResolution {
     modules.foreach { module =>
       val bindings = getBindings(module)
       val ownTypes = bindings.types.map { tp =>
-        val sym  = List(ResolvedType(ModuleReference.Concrete(module), tp))
+        val sym = List(ResolvedType(ModuleReference.Concrete(module), tp))
         (tp.name, sym)
       }
       val ownMethods = bindings.moduleMethods.map { method =>

@@ -57,7 +57,7 @@ object StubIrBuilder {
       moduleMethods,
       ModuleReference.Concrete(module)
     )
-    meta.exportedSymbols    = exportedBindings.toMap
+    meta.exportedSymbols = exportedBindings.toMap
     ir.updateMetadata(BindingAnalysis -->> meta)
   }
 }

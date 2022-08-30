@@ -31,10 +31,10 @@ import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.service.error.{
-  TypeNotFoundException,
   MethodNotFoundException,
   ModuleNotFoundForExpressionIdException,
   ServiceException,
+  TypeNotFoundException,
   VisualisationException
 }
 import org.enso.polyglot.LanguageInfo

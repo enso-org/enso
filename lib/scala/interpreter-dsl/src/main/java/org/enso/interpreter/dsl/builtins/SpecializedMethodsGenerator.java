@@ -280,8 +280,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
         specializationDeclaration.add("  " + line);
       }
       for (int i = 0; i < methodInfo.exceptionWrappers.length; i++) {
-        specializationDeclaration.addAll(
-            methodInfo.exceptionWrappers[i].toCatchClause());
+        specializationDeclaration.addAll(methodInfo.exceptionWrappers[i].toCatchClause());
       }
       specializationDeclaration.add("  }");
     } else {
