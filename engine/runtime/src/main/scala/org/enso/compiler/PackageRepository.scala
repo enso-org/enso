@@ -94,6 +94,12 @@ trait PackageRepository {
     */
   def registerModuleCreatedInRuntime(module: Module): Unit
 
+  /** Register an empty package with the given name. Used for populating artificially,
+    * e.g. in tests.
+    *
+    * @param namespace the namespace of the created package.
+    * @param name the name of the created package.
+    */
   def registerSyntheticPackage(namespace: String, name: String): Unit
 
   /** Removes a module with the given name from the list of loaded modules. */
