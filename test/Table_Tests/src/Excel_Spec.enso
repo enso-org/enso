@@ -371,7 +371,7 @@ spec_write suffix test_sheet_name =
         out_bak.delete_if_exists
 
 spec =
-    Test.group 'Excel_Data Range' <|
+    Test.group 'Excel Range' <|
         check_range excel_range sheet_name tlbr_vector single_cell=False =
             excel_range.sheet_name . should_equal sheet_name
             excel_range.top_row . should_equal (tlbr_vector.at 0)
