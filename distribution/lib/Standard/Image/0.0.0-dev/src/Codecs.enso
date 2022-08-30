@@ -141,7 +141,7 @@ type Write_Flag
        Sets the quality used when writing a WEBP image.
 
        Arguments:
-       - value: A quality from 0 to 100 (the higher, the better). A quality
+       - val: A quality from 0 to 100 (the higher, the better). A quality
          above 100 indicates that the encoder should use lossless compression.
     Write_Webp_Quality val=101
 
