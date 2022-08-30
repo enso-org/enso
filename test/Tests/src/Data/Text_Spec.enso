@@ -45,7 +45,7 @@ Manual.to_text self = "[[[MyREP " + self.b.to_text + "]]]"
      - Casing is locale-dependent. The pair of `i - I` is handled differently in
        Turkish and Azerbaijani - instead there are two separate pairs: 'İ - i'
        and 'I - ı'.
-     - Handling of out of range_Data indices should be checked. In particular, often
+     - Handling of out of range indices should be checked. In particular, often
        the index `text.length` should still be valid to point just right at the
        end of the text. Moreover, negative indices are usually allowed to index
        from the back.
