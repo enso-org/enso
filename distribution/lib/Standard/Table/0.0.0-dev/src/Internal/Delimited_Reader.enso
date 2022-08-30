@@ -104,7 +104,6 @@ prepare_delimited_reader java_reader format max_columns on_problems newline_over
         Nothing -> -1
         Integer -> format.row_limit
         _ ->
-            IO.println format.row_limit
             Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
     warnings_as_errors = on_problems == Report_Error
     quote_characters = case format.quote_style of

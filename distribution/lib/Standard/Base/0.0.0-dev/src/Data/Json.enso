@@ -155,9 +155,11 @@ type Json
 
              example_get = Examples.json_object.get "title"
     get : Text -> Json ! No_Such_Field_Error
-    get self field = self.fields.get field . map_error case _ of
-        Map.No_Value_For_Key_Error_Data _ -> No_Such_Field_Error_Data field
-        x -> x
+    get self field = case self of
+        Object _ -> self.fields.get field . map_error case _ of
+            Map.No_Value_For_Key_Error_Data _ -> No_Such_Field_Error_Data field
+            x -> x
+        _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
 
 ## UNSTABLE
 
