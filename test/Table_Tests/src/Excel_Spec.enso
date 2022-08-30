@@ -4,7 +4,7 @@ from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-from Standard.Table import File_Format, Match_Columns, Column_Name_Mapping, Data_Formatter, Excel_Range, Data_Formatter_Data
+from Standard.Table import File_Format, Match_Columns, Column_Name_Mapping, Excel_Range, Data_Formatter_Data
 
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 from Standard.Table.IO.Excel import Sheet_Names, Range_Names, Sheet, Cell_Range
