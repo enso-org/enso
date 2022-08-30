@@ -146,9 +146,7 @@ public class Error {
     return arithmeticError.newInstance(reason);
   }
 
-  /**
-   * @return An arithmetic error representing a too-large shift for the bit shift.
-   */
+  /** @return An arithmetic error representing a too-large shift for the bit shift. */
   public Atom getShiftAmountTooLargeError() {
     if (arithmeticErrorShiftTooBig == null) {
       transferToInterpreterAndInvalidate();
@@ -157,9 +155,7 @@ public class Error {
     return arithmeticErrorShiftTooBig;
   }
 
-  /**
-   * @return An Arithmetic error representing a division by zero.
-   */
+  /** @return An Arithmetic error representing a division by zero. */
   public Atom getDivideByZeroError() {
     if (arithmeticErrorDivideByZero == null) {
       transferToInterpreterAndInvalidate();

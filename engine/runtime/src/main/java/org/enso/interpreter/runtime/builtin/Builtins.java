@@ -155,9 +155,7 @@ public class Builtins {
     }
   }
 
-  /**
-   * @return {@code true} if the IR has been initialized, otherwise {@code false}
-   */
+  /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
   public boolean isIrInitialized() {
     return this.module.getIr() != null;
   }
@@ -381,23 +379,17 @@ public class Builtins {
     return number;
   }
 
-  /**
-   * @return the container for boolean constructors.
-   */
+  /** @return the container for boolean constructors. */
   public Boolean bool() {
     return bool;
   }
 
-  /**
-   * @return the ManagedResource constructor.
-   */
+  /** @return the ManagedResource constructor. */
   public Type managedResource() {
     return managedResource.getType();
   }
 
-  /**
-   * @return the builtin Error types container.
-   */
+  /** @return the builtin Error types container. */
   public Error error() {
     return error;
   }
@@ -475,65 +467,47 @@ public class Builtins {
     return debug.getType();
   }
 
-  /**
-   * @return the {@code Project_Description} atom constructor
-   */
+  /** @return the {@code Project_Description} atom constructor */
   public ProjectDescription getProjectDescription() {
     return projectDescription;
   }
 
-  /**
-   * @return the {@code System} atom constructor.
-   */
+  /** @return the {@code System} atom constructor. */
   public System system() {
     return system;
   }
 
-  /**
-   * @return the Array constructor.
-   */
+  /** @return the Array constructor. */
   public Type array() {
     return array.getType();
   }
 
-  /**
-   * @return the Ref constructor.
-   */
+  /** @return the Ref constructor. */
   public Type ref() {
     return ref.getType();
   }
 
-  /**
-   * @return the container for polyglot-related builtins.
-   */
+  /** @return the container for polyglot-related builtins. */
   public Type polyglot() {
     return polyglot.getType();
   }
 
-  /**
-   * @return the {@code Caught_Panic} atom constructor
-   */
+  /** @return the {@code Caught_Panic} atom constructor */
   public CaughtPanic caughtPanic() {
     return this.error.caughtPanic();
   }
 
-  /**
-   * @return the {@code Panic} atom constructor
-   */
+  /** @return the {@code Panic} atom constructor */
   public Type panic() {
     return this.error.panic();
   }
 
-  /**
-   * @return the container for ordering-related builtins
-   */
+  /** @return the container for ordering-related builtins */
   public Ordering ordering() {
     return ordering;
   }
 
-  /**
-   * @return the container for the dataflow error-related builtins
-   */
+  /** @return the container for the dataflow error-related builtins */
   public Type dataflowError() {
     return dataflowError.getType();
   }
