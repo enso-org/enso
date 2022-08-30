@@ -192,7 +192,7 @@ spec =
 
         Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
             formatter = Data_Formatter_Data
-            formatter.format Custom_Type_With_Error_Data . should_fail_with Illegal_State_Error_Data
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State_Error_Data
             Test.expect_panic_with (formatter.format Custom_Type_With_Panic_Data) Illegal_State_Error_Data
 
     Test.group "DataFormatter builders" <|
