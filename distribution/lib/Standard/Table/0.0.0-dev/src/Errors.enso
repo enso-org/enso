@@ -5,7 +5,8 @@ polyglot java import org.enso.table.error.ColumnNameMismatchException
 
 ## One or more columns not found in the input table.
    Can occur when using By_Name or By_Column.
-type Missing_Input_Columns (criteria : [Text])
+type Missing_Input_Columns
+    Missing_Input_Columns_Data (criteria : [Text])
 
 Missing_Input_Columns.to_display_text : Text
 Missing_Input_Columns.to_display_text self =
@@ -13,7 +14,8 @@ Missing_Input_Columns.to_display_text self =
 
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
-type Column_Indexes_Out_Of_Range (indexes : [Integer])
+type Column_Indexes_Out_Of_Range
+    Column_Indexes_Out_Of_Range_Data (indexes : [Integer])
 
 Column_Indexes_Out_Of_Range.to_display_text : Text
 Column_Indexes_Out_Of_Range.to_display_text self = case self.indexes.length == 1 of
@@ -22,14 +24,16 @@ Column_Indexes_Out_Of_Range.to_display_text self = case self.indexes.length == 1
 
 ## More names than the column count provided to the function.
    Can occur when using By_Position.
-type Too_Many_Column_Names_Provided (column_names : [Text])
+type Too_Many_Column_Names_Provided
+    Too_Many_Column_Names_Provided_Data (column_names : [Text])
 
 Too_Many_Column_Names_Provided.to_display_text : Text
 Too_Many_Column_Names_Provided.to_display_text self =
     "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
 
 ## One or more column names were invalid during a rename operation.
-type Invalid_Output_Column_Names (column_names : [Text])
+type Invalid_Output_Column_Names
+    Invalid_Output_Column_Names_Data (column_names : [Text])
 
 Invalid_Output_Column_Names.to_display_text : Text
 Invalid_Output_Column_Names.to_display_text self = case self.column_names.length == 1 of
@@ -37,7 +41,8 @@ Invalid_Output_Column_Names.to_display_text self = case self.column_names.length
     False -> "The names "+self.column_names.short_display_text+" are invalid."
 
 ## One or more column names clashed during a rename operation.
-type Duplicate_Output_Column_Names (column_names : [Text])
+type Duplicate_Output_Column_Names
+    Duplicate_Output_Column_Names_Data (column_names : [Text])
 
 Duplicate_Output_Column_Names.to_display_text : Text
 Duplicate_Output_Column_Names.to_display_text self = case self.column_names.length == 1 of
@@ -52,7 +57,8 @@ No_Output_Columns.to_display_text self =
     "The result contains no columns."
 
 ## Indicates that the provided Column_Selector has duplicate entries.
-type Duplicate_Column_Selectors (duplicate_selectors : [(Text | Integer)])
+type Duplicate_Column_Selectors
+    Duplicate_Column_Selectors_Data (duplicate_selectors : [(Text | Integer)])
 
 Duplicate_Column_Selectors.to_display_text : Text
 Duplicate_Column_Selectors.to_display_text self =
@@ -62,7 +68,8 @@ Duplicate_Column_Selectors.to_display_text self =
 
    In case the selectors have differing metadata and the error does not prevent
    the operation from continuing, the first selector on the list is used.
-type Column_Matched_By_Multiple_Selectors (column_name : Text) (selectors : [Any])
+type Column_Matched_By_Multiple_Selectors
+    Column_Matched_By_Multiple_Selectors_Data (column_name : Text) (selectors : [Any])
 
 Column_Matched_By_Multiple_Selectors.to_display_text : Text
 Column_Matched_By_Multiple_Selectors.to_display_text self =
@@ -74,7 +81,8 @@ Column_Matched_By_Multiple_Selectors.to_display_text self =
   For example, if the table has only one column, then selecting
   `By_Index [0, -1]` will only yield this single column and
   `Input_Indices_Already_Matched [-1]` will be raised.
-type Input_Indices_Already_Matched (indices : [Integer])
+type Input_Indices_Already_Matched
+    Input_Indices_Already_Matched_Data (indices : [Integer])
 
 Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text self =
@@ -90,28 +98,32 @@ No_Input_Columns_Selected.to_display_text self =
 
 
 ## Indicates that an aggregation calculation could not be completed.
-type Invalid_Aggregation (column:Text) (rows:[Integer]) (message:Text)
+type Invalid_Aggregation
+    Invalid_Aggregation_Data (column:Text) (rows:[Integer]) (message:Text)
 
 Invalid_Aggregation.to_display_text : Text
 Invalid_Aggregation.to_display_text self =
     "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
 
 ## Indicates that a floating point number was used in a grouping.
-type Floating_Point_Grouping (column:Text) (rows:[Integer])
+type Floating_Point_Grouping
+    Floating_Point_Grouping_Data (column:Text) (rows:[Integer])
 
 Floating_Point_Grouping.to_display_text : Text
 Floating_Point_Grouping.to_display_text self =
     "Grouping on floating points is not recommended within "+self.column+" at row "+self.row.to_text+"."
 
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
-type Unquoted_Delimiter (column:Text) (rows:[Integer])
+type Unquoted_Delimiter
+    Unquoted_Delimiter_Data (column:Text) (rows:[Integer])
 
 Unquoted_Delimiter.to_display_text : Text
 Unquoted_Delimiter.to_display_text self =
     "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
-type Additional_Warnings (count:Integer)
+type Additional_Warnings
+    Additional_Warnings_Data (count:Integer)
 
 Additional_Warnings.to_display_text : Text
 Additional_Warnings.to_display_text self =
@@ -122,20 +134,24 @@ Additional_Warnings.to_display_text self =
 
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
-type Invalid_Row (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
+type Invalid_Row
+    Invalid_Row_Data (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
-type Additional_Invalid_Rows (count : Integer)
+type Additional_Invalid_Rows
+    Additional_Invalid_Rows_Data (count : Integer)
 
 ## Indicates that a quote inside of a delimited file cell has been opened but
    never closed.
 type Mismatched_Quote
 
 ## Indicates an unexpected parser error.
-type Parser_Error cause
+type Parser_Error
+    Parser_Error_Data cause
 
 ## Indicates that a specified location was not valid.
-type Invalid_Location (location:Text)
+type Invalid_Location
+    Invalid_Location_Data (location:Text)
 
 Invalid_Location.to_display_text : Text
 Invalid_Location.to_display_text self =
@@ -149,7 +165,8 @@ Invalid_Location.to_display_text self =
    - datatype: The expected datatype.
    - cells: Contents of the cells that did not match the expected datatype
      format.
-type Invalid_Format column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+type Invalid_Format
+    Invalid_Format_Data column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 Invalid_Format.to_display_text : Text
 Invalid_Format.to_display_text self =
@@ -162,17 +179,20 @@ Invalid_Format.to_display_text self =
      It may be empty if the value is parsed outside of a context of a column.
    - datatype: The expected datatype.
    - cells: Contents of the cells that contained leading zeros.
-type Leading_Zeros column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+type Leading_Zeros
+    Leading_Zeros_Data column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 ## Indicates that multiple `Column_Type_Selector` match the same column.
 
    If all matching selectors indicate the same type, the warning is reported but
    a parse is attempted anyway. If mixed types are requested, the column is not
    parsed due to ambiguity.
-type Duplicate_Type_Selector column:Text ambiguous:Boolean
+type Duplicate_Type_Selector
+    Duplicate_Type_Selector_Data column:Text ambiguous:Boolean
 
 ## Indicates that the given file type is not supported by the `Auto` format.
-type Unsupported_File_Type filename
+type Unsupported_File_Type
+    Unsupported_File_Type_Data filename
 
 Unsupported_File_Type.to_display_text : Text
 Unsupported_File_Type.to_display_text self =
@@ -180,20 +200,23 @@ Unsupported_File_Type.to_display_text self =
 
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
-type Existing_Data message
+type Existing_Data
+    Existing_Data_Data message
 
 Existing_Data.to_display_text : Text
 Existing_Data.to_display_text self = self.message
 
 ## Indicates that the specified range is not large enough to fit the data.
-type Range_Exceeded message
+type Range_Exceeded
+    Range_Exceeded_Data message
 
 Range_Exceeded.to_display_text : Text
 Range_Exceeded.to_display_text self = self.message
 
 ## Indicates that the existing table has a different number of columns to the
    new table.
-type Column_Count_Mismatch expected actual
+type Column_Count_Mismatch
+    Column_Count_Mismatch_Data expected actual
 
 Column_Count_Mismatch.to_display_text : Text
 Column_Count_Mismatch.to_display_text self =
@@ -203,12 +226,13 @@ Column_Count_Mismatch.to_display_text self =
 Column_Count_Mismatch.handle_java_exception self =
     throw_column_count_mismatch caught_panic =
         cause = caught_panic.payload.cause
-        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
+        Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
     Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
 
 ## Indicates that the existing table has a different set of column names to the
    new table.
-type Column_Name_Mismatch missing extras message
+type Column_Name_Mismatch
+    Column_Name_Mismatch_Data missing extras message
 
 Column_Name_Mismatch.to_display_text : Text
 Column_Name_Mismatch.to_display_text self = self.message
@@ -217,7 +241,7 @@ Column_Name_Mismatch.to_display_text self = self.message
 Column_Name_Mismatch.handle_java_exception =
     throw_column_name_mismatch caught_panic =
         cause = caught_panic.payload.cause
-        Error.throw (Column_Name_Mismatch (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
+        Error.throw (Column_Name_Mismatch_Data (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
     Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 
 ## UNSTABLE
@@ -226,7 +250,8 @@ Column_Name_Mismatch.handle_java_exception =
 
    Arguments:
    - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error column_name
+type No_Such_Column_Error
+    No_Such_Column_Error_Data column_name
 
 ## UNSTABLE
 

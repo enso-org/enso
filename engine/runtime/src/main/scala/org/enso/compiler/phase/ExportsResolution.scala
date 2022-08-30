@@ -8,6 +8,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedMethod,
   ResolvedModule,
   ResolvedPolyglotSymbol,
+  ResolvedType,
   SymbolRestriction
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -165,6 +166,10 @@ class ExportsResolution {
   private def resolveExportedSymbols(modules: List[Module]): Unit = {
     modules.foreach { module =>
       val bindings = getBindings(module)
+      val ownTypes = bindings.types.map { tp =>
+        val sym = List(ResolvedType(ModuleReference.Concrete(module), tp))
+        (tp.name, sym)
+      }
       val ownMethods = bindings.moduleMethods.map { method =>
         val name = method.name
         val syms =
@@ -197,6 +202,7 @@ class ExportsResolution {
           }
       }
       bindings.exportedSymbols = List(
+        ownTypes,
         ownMethods,
         ownConstructors,
         ownPolyglotBindings,

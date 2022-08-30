@@ -94,6 +94,14 @@ trait PackageRepository {
     */
   def registerModuleCreatedInRuntime(module: Module): Unit
 
+  /** Register an empty package with the given name. Used for populating artificially,
+    * e.g. in tests.
+    *
+    * @param namespace the namespace of the created package.
+    * @param name the name of the created package.
+    */
+  def registerSyntheticPackage(namespace: String, name: String): Unit
+
   /** Removes a module with the given name from the list of loaded modules. */
   def deregisterModule(qualifiedName: String): Unit
 
@@ -300,7 +308,8 @@ object PackageRepository {
             Module.synthetic(
               qName,
               pkg,
-              Rope(source)
+              Rope(source),
+              context
             ),
             modulesWithSources.map(_._1)
           )
@@ -536,6 +545,12 @@ object PackageRepository {
     private def registerModule(module: Module): Unit = {
       loadedModules.put(module.getName.toString, module)
     }
+
+    override def registerSyntheticPackage(
+      namespace: String,
+      name: String
+    ): Unit =
+      loadedPackages.put(LibraryName(namespace, name), None)
 
     /** Registering synthetic module, unlike the non-compiler generated one, is conditional
       * in a sense that if a module already exists with a given name we only update its

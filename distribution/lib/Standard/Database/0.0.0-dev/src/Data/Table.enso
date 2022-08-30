@@ -16,12 +16,12 @@ import Standard.Table.Internal.Problem_Builder
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
-from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
-from Standard.Database.Data.Internal.IR import Internal_Column
-from Standard.Table.Errors import No_Such_Column_Error
+from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
+from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
+from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
@@ -45,7 +45,7 @@ type Table
     # type Table (name : Text) (connection : Connection)
     #            (internal_columns : Vector Internal_Column)
     #            (context : IR.Context)
-    type Table name connection internal_columns context
+    Table_Data name connection internal_columns context
 
     ## UNSTABLE
 
@@ -92,7 +92,7 @@ type Table
         Integer -> self.make_column (self.internal_columns.at selector)
         Text ->
             candidates = self.internal_columns + self.context.meta_index
-            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error selector)
+            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error_Data selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.
@@ -272,14 +272,14 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+             table.sort_columns text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering_Data =
         new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns direction text_ordering
         self.updated_columns new_columns
 
@@ -327,7 +327,7 @@ type Table
         Text -> Panic.rethrow (self.at column)
         _ ->
             if Helpers.check_integrity self column then column else
-                Panic.throw (Integrity_Error "Column "+column.name)
+                Panic.throw (Integrity_Error_Data "Column "+column.name)
 
     ## UNSTABLE
 
@@ -348,7 +348,7 @@ type Table
     where self filter =
         case Helpers.check_integrity self filter of
             False ->
-                Error.throw (Integrity_Error "Column "+filter.name)
+                Error.throw (Integrity_Error_Data "Column "+filter.name)
             True ->
                 new_filters = self.context.where_filters + [filter.expression]
                 new_ctx = self.context.set_where_filters new_filters
@@ -364,7 +364,7 @@ type Table
     take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -377,7 +377,7 @@ type Table
     drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
 
@@ -429,9 +429,9 @@ type Table
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                 False ->
-                    new_col = Internal_Column name column.sql_type column.expression
+                    new_col = Internal_Column_Data name column.sql_type column.expression
                     replace = self.internal_columns.exists (c -> c.name == name)
                     case replace of
                         True ->
@@ -532,7 +532,7 @@ type Table
 
              table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering_Data on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -570,11 +570,11 @@ type Table
        Icon: join
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
-        Column _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
-        Table _ _ _ _ -> Panic.recover Any <|
+        Column_Data _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
+        Table_Data _ _ _ _ -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
-                Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
+                Panic.throw <| Illegal_State_Error_Data "left_suffix must be different from right_suffix"
             kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
 
             # Prepare the left and right pairs of indices along which the join will be performed.
@@ -585,7 +585,7 @@ type Table
                     (Helpers.unify_vector_singleton on).map (self.resolve >> .as_internal)
             right_join_index = other.context.meta_index
             if left_join_index.length != right_join_index.length then
-                Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
+                Panic.throw <| Illegal_State_Error_Data "Cannot join with multi-indexes of different lengths."
 
             # TODO [RW] We may be able to avoid creating subqueries if there are no groups, orders or wheres,
             #  so it may be worth optimizing that here (#1515).
@@ -638,9 +638,9 @@ type Table
                 IR.Operation "=" [l.expression, r.expression]
             new_from = IR.Join kind left_subquery right_subquery on_exprs
             new_limit = Nothing
-            new_ctx = IR.Context new_from [] [] [] new_index new_limit
+            new_ctx = IR.Context_Data new_from [] [] [] new_index new_limit
 
-            Table new_table_name self.connection new_columns new_ctx
+            Table_Data new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -679,7 +679,7 @@ type Table
                 agg = p.second
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
-            partitioned = results.partition (_.is_an Internal_Column)
+            partitioned = results.partition (_.is_an Internal_Column_Data)
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
                the `lift_aggregate` method to push the aggregates into a
@@ -697,7 +697,7 @@ type Table
            because we need to keep the API consistent with the in-memory table.
         _ = [value_formatter, column_types, on_problems]
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
 
@@ -753,13 +753,13 @@ type Table
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
-            True -> Error.throw <| Illegal_State_Error "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
+            True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
                 preprocessed = self.reset_index.limit max_rows
                 case preprocessed.internal_columns.is_empty of
                     True ->
                         internal_table = Java_Exports.make_table_without_columns self.row_count
-                        Materialized_Table.Table internal_table
+                        Materialized_Table.Table_Data internal_table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
@@ -786,7 +786,7 @@ type Table
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
-            True -> Error.throw <| Unsupported_Database_Operation_Error "Cannot generate SQL for a table with no columns."
+            True -> Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot generate SQL for a table with no columns."
             False ->
                 query = IR.Select cols self.context
                 self.connection.dialect.generate_sql query
@@ -827,7 +827,7 @@ type Table
         # these distinctness assumptions, to avoid this renaming.
         ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
-        Column internal.name self.connection internal.sql_type internal.expression new_ctx
+        Column_Data internal.name self.connection internal.sql_type internal.expression new_ctx
 
     ## PRIVATE
 
@@ -836,7 +836,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = Table_Data self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -845,7 +845,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context self ctx = Table self.name self.connection self.internal_columns ctx
+    updated_context self ctx = Table_Data self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -855,7 +855,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns = Table_Data self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -880,14 +880,14 @@ type Table
     insert self values =
         table_name = case self.context.from_spec of
             IR.From_Table name _ -> name
-            _ -> Error.throw <| Illegal_State_Error "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
         query = self.connection.dialect.generate_sql <| IR.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
-            False -> Error.throw <| Illegal_State_Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
+            False -> Error.throw <| Illegal_State_Error_Data "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
 
     ## This function writes the table into a file.
@@ -959,7 +959,7 @@ type Integrity_Error
        contexts.
 
        To use columns from different tables, you must first join them.
-    type Integrity_Error object_description
+    Integrity_Error_Data object_description
 
     # Return a readable description of this error.
     to_text : Text
@@ -980,8 +980,8 @@ type Integrity_Error
 make_table : Connection -> Text -> Vector -> Table
 make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
-    cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
-    Table table_name connection cols ctx
+    cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
+    Table_Data table_name connection cols ctx
 
 ## PRIVATE
 
@@ -1047,7 +1047,7 @@ combine_names left_names right_names left_suffix right_suffix =
         new_name = pair.second
         case new_name!=original_name && (new_names_count new_name > 1) of
             True ->
-                Panic.throw <| Illegal_State_Error "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
+                Panic.throw <| Illegal_State_Error_Data "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
             False -> Nothing
     catch_ambiguity left_pairs
     catch_ambiguity right_pairs

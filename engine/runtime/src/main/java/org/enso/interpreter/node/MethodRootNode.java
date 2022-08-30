@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Supplier;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
 public class MethodRootNode extends ClosureRootNode {
 
-  private final AtomConstructor atomConstructor;
+  private final Type type;
   private final String methodName;
 
   private MethodRootNode(
@@ -24,15 +24,15 @@ public class MethodRootNode extends ClosureRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      AtomConstructor atomConstructor,
+      Type type,
       String methodName) {
     super(language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName), null, false);
-    this.atomConstructor = atomConstructor;
+        shortName(type.getName(), methodName), null, false);
+    this.type = type;
     this.methodName = methodName;
   }
 
@@ -48,7 +48,7 @@ public class MethodRootNode extends ClosureRootNode {
    * @param moduleScope a description of the module scope
    * @param body the program provider to be executed
    * @param section a mapping from {@code provider} to the program source
-   * @param atomConstructor the constructor this method is defined for
+   * @param type the type this method is defined for
    * @param methodName the name of this method
    * @return a node representing the specified closure
    */
@@ -58,7 +58,7 @@ public class MethodRootNode extends ClosureRootNode {
       ModuleScope moduleScope,
       Supplier<ExpressionNode> body,
       SourceSection section,
-      AtomConstructor atomConstructor,
+      Type type,
       String methodName) {
     return build(
         language,
@@ -66,7 +66,7 @@ public class MethodRootNode extends ClosureRootNode {
         moduleScope,
         new LazyBodyNode(body),
         section,
-        atomConstructor,
+        type,
         methodName);
   }
 
@@ -76,10 +76,10 @@ public class MethodRootNode extends ClosureRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      AtomConstructor atomConstructor,
+      Type type,
       String methodName) {
     return new MethodRootNode(
-        language, localScope, moduleScope, body, section, atomConstructor, methodName);
+        language, localScope, moduleScope, body, section, type, methodName);
   }
 
   /**
@@ -93,14 +93,14 @@ public class MethodRootNode extends ClosureRootNode {
   public String getQualifiedName() {
     return getModuleScope().getModule().getName().toString()
         + "::"
-        + atomConstructor.getQualifiedName().toString()
+        + type.getQualifiedName().toString()
         + "::"
         + methodName;
   }
 
   /** @return the constructor this method was defined for */
-  public AtomConstructor getAtomConstructor() {
-    return atomConstructor;
+  public Type getType() {
+    return type;
   }
 
   /** @return the method name */

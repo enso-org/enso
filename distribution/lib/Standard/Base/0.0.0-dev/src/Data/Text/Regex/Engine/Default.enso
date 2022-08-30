@@ -66,7 +66,7 @@ polyglot java import org.enso.base.Text_Utils
              engine_opts = [Default_Engine.Literal_Pattern]
              Default_Engine.new engine_opts
 new : Vector.Vector Option -> Engine
-new opts=[] = Engine opts
+new opts=[] = Engine_Data opts
 
 ## The default implementation of the `Data.Text.Regex.Engine.Engine` interface.
 type Engine
@@ -78,7 +78,7 @@ type Engine
        Arguments:
        - engine_opts: Options for regex matching that are specific to this
          engine.
-    type Engine (engine_opts : Vector.Vector Option)
+    Engine_Data (engine_opts : Vector.Vector Option)
 
     ## ADVANCED
 
@@ -119,12 +119,12 @@ type Engine
             Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
 
         internal_pattern = maybe_java_pattern.map_error case _ of
-            Polyglot_Error err ->
+            Polyglot_Error_Data err ->
                 if err.is_a PatternSyntaxException . not then err else
-                    Syntax_Error ("The regex could not be compiled: " + err.getMessage)
+                    Syntax_Error_Data ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
-        Pattern internal_pattern all_options self
+        Pattern_Data internal_pattern all_options self
 
     ## ADVANCED
 
@@ -158,7 +158,7 @@ type Pattern
        - internal_pattern: The internal representation of the compiled pattern.
        - options: The vector of options with which this pattern was built.
        - engine: A handle to the engine that built this pattern.
-    type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
+    Pattern_Data (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
 
     ## PRIVATE
 
@@ -262,10 +262,10 @@ type Pattern
                 internal_matcher = self.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
-                    Match internal_matcher start end input
+                    Match_Data internal_matcher start end input
             Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error "Cannot match a negative number of times."
+                    Mode_Error_Data "Cannot match a negative number of times."
 
                 builder = Vector.new_builder
 
@@ -277,7 +277,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end input)
+                            builder.append (Match_Data internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -297,7 +297,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end input)
+                            builder.append (Match_Data internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -310,9 +310,9 @@ type Pattern
             Mode.Full ->
                 internal_matcher = self.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
-                    Match internal_matcher start end input
+                    Match_Data internal_matcher start end input
             Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error "Modes cannot be recursive."
+                Mode_Error_Data "Modes cannot be recursive."
 
         case mode of
             Mode.Bounded start end sub_mode ->
@@ -340,8 +340,8 @@ type Pattern
                  pattern.matches input
     matches : Text -> Boolean
     matches self input = case self.match input mode=Mode.Full of
-        Match _ _ _ _ -> True
-        Vector.Vector _ -> True
+        Match_Data _ _ _ _ -> True
+        Vector.Vector_Data _ -> True
         _ -> False
 
     ## ADVANCED
@@ -411,8 +411,8 @@ type Pattern
     find self input mode=Mode.All =
         matches = self.match input mode
         case matches of
-            Match _ _ _ _ -> matches.group 0
-            Vector.Vector _ -> matches.map (_.group 0)
+            Match_Data _ _ _ _ -> matches.group 0
+            Vector.Vector_Data _ -> matches.map (_.group 0)
             _ -> matches
 
     ## ADVANCED
@@ -467,14 +467,14 @@ type Pattern
             Mode.First -> 2
             Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error "Cannot match a negative number of times."
+                    Mode_Error_Data "Cannot match a negative number of times."
 
                 mode + 1
             Mode.All -> -1
             Mode.Full -> Panic.throw <|
-                Mode_Error "Splitting on a full match yields an empty text."
+                Mode_Error_Data "Splitting on a full match yields an empty text."
             Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error "Splitting on a bounded region is not well-defined."
+                Mode_Error_Data "Splitting on a bounded region is not well-defined."
 
         splits = self.internal_pattern.split input limit
         Vector.from_polyglot_array splits
@@ -536,7 +536,7 @@ type Pattern
                 internal_matcher.replaceFirst replacement
             Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error "Cannot replace a negative number of times."
+                    Mode_Error_Data "Cannot replace a negative number of times."
 
                 internal_matcher = self.build_matcher input start end
                 buffer = StringBuffer.new
@@ -554,7 +554,7 @@ type Pattern
                 internal_matcher.replaceAll replacement
             Mode.Full ->
                 case self.match input mode=Mode.Full of
-                    Match _ _ _ _ -> self.replace input replacement Mode.First
+                    Match_Data _ _ _ _ -> self.replace input replacement Mode.First
                     Nothing -> input
             Matching_Mode.Last ->
                 all_matches = self.match input
@@ -575,11 +575,11 @@ type Pattern
                     internal_matcher.appendTail buffer
                     buffer.to_text
             Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error "Modes cannot be recursive."
+                Mode_Error_Data "Modes cannot be recursive."
 
         case mode of
             Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error "Bounded replacements are not well-formed."
+                Mode_Error_Data "Bounded replacements are not well-formed."
             _ -> do_replace_mode mode 0 (Text_Utils.char_length input)
 
 ## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
@@ -595,7 +595,7 @@ type Match
        - region_start: The start of the region over which the match was made.
        - region_end: The end of the region over which the match was made.
        - input: The input text that was being matched.
-    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
+    Match_Data (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
 
     ## Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
@@ -771,7 +771,7 @@ type Match
     span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
     span self id = case self.group id of
         Nothing -> Nothing
-        _ -> Utf_16_Span (Range (self.start id) (self.end id)) self.input
+        _ -> Utf_16_Span_Data (Range_Data (self.start id) (self.end id)) self.input
 
     ## Returns the start character index of the match's region.
 
@@ -820,13 +820,13 @@ type Match
    - id: The group identifier with which the error is associated.
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
-    Polyglot_Error err ->
+    Polyglot_Error_Data err ->
         is_ioob = err.is_a IndexOutOfBoundsException
         is_iae = err.is_a IllegalArgumentException
         maps_to_no_such_group = is_ioob || is_iae
 
         if maps_to_no_such_group.not then err else
-            Regex.No_Such_Group_Error id
+            Regex.No_Such_Group_Error_Data id
     other -> other
 
 ## Options specific to the `Default` regular expression engine.
@@ -835,14 +835,14 @@ type Option
     ## Specifies that the input expression to the pattern be treated as a
        sequence of literal characters. Metacharacters and escape sequences have
        no special meaning in this mode.
-    type Literal_Pattern
+    Literal_Pattern
 
     ## Disables anchoring to the region's boundaries.
 
        By default, the regex engine will allow `^` and `$` to match the
        boundaries of a restricted region. With this option specified, they will
        only match the start and end of the input.
-    type No_Anchoring_Bounds
+    No_Anchoring_Bounds
 
     ## Enables transparent bounds.
 
@@ -852,11 +852,11 @@ type Option
 
        Without this flag, the region boundaries are treated as opaque, meaning
        that the above constructs will fail to match anything outside the region.
-    type Transparent_Bounds
+    Transparent_Bounds
 
     ## Specifies that only the unix line ending `''\n'` be considered in the
        behaviour of the `^` and `$` special characters.
-    type Unix_Lines
+    Unix_Lines
 
 ## PRIVATE
 
@@ -877,7 +877,7 @@ from_enso_options opts =
         Global_Option.Ascii_Matching -> []
         No_Anchoring_Bounds -> []
         Transparent_Bounds -> []
-        other -> Panic.throw (Invalid_Option_Error other)
+        other -> Panic.throw (Invalid_Option_Error_Data other)
 
     options_bitmask = java_flags.fold 0 .bit_or
 
@@ -904,7 +904,8 @@ Invalid_Bounds_Error.to_display_text =
 
    Arguments:
    - message: The text of the message to display to users.
-type Mode_Error (message : Text)
+type Mode_Error
+    Mode_Error_Data (message : Text)
 
 ## PRIVATE
 
@@ -918,7 +919,8 @@ Mode_Error.to_display_text self = self.message.to_text
 
    Arguments:
    - opt: The option that was not valid for this regex engine.
-type Invalid_Option_Error (opt : Any)
+type Invalid_Option_Error
+    Invalid_Option_Error_Data (opt : Any)
 
 ## PRIVATE
 

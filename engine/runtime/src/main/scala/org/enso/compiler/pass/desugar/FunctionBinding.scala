@@ -129,9 +129,7 @@ case object FunctionBinding extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
-      case a @ Definition.Atom(_, arguments, _, _, _) =>
-        a.copy(arguments = arguments.map(_.mapExpressions(desugarExpression)))
-      case _: Definition.UnionType => definition
+      case _: Definition.Type => definition.mapExpressions(desugarExpression)
       case _: Method.Explicit =>
         throw new CompilerError(
           "Explicit method definitions should not exist during function " +
@@ -311,7 +309,7 @@ case object FunctionBinding extends IRPass {
               .fold(identity, identity)
           }
         }
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "function binding desugaring."

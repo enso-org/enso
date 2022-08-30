@@ -1,29 +1,34 @@
 from project.Data.Any import Any
 
+@Builtin_Type
 type Panic
-    @Builtin_Type
-    type Panic
     throw payload = @Builtin_Method "Panic.throw"
     catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
 @Builtin_Type
-type Syntax_Error message
+type Syntax_Error
+    Syntax_Error_Data message
 @Builtin_Type
-type Polyglot_Error cause
+type Polyglot_Error
+    Polyglot_Error_Data cause
 @Builtin_Type
-type Arithmetic_Error message
+type Arithmetic_Error
+    Arithmetic_Error_Data message
 @Builtin_Type
-type Type_Error expected actual name
+type Type_Error
+    Type_Error_Data expected actual name
 @Builtin_Type
-type Compile_Error message
+type Compile_Error
+    Compile_Error_Data message
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error scrutinee
+type Inexhaustive_Pattern_Match_Error
+    Inexhaustive_Pattern_Match_Error_Data scrutinee
 @Builtin_Type
-type Arity_Error expected_min expected_max actual
+type Arity_Error
+    Arity_Error_Data expected_min expected_max actual
 
+@Builtin_Type
 type Error
-    @Builtin_Type
-    type Error
     throw payload = @Builtin_Method "Error.throw"
     catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
     catch self (error_type = Any) (handler = x->x) =

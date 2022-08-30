@@ -4,10 +4,10 @@ import Standard.Base.Runtime.Ref
 
 import Standard.Table.Internal.Vector_Builder
 
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors
+from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Column_Selectors_Data, Input_Indices_Already_Matched_Data, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors_Data
 
 type Problem_Builder
-    type Problem_Builder oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
+    Problem_Builder_Data oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
@@ -22,7 +22,7 @@ type Problem_Builder
         append_to_ref self.missing_input_columns columns
 
     report_column_matched_by_multiple_selectors self column_name selectors =
-        self.report_other_warning (Column_Matched_By_Multiple_Selectors column_name selectors)
+        self.report_other_warning (Column_Matched_By_Multiple_Selectors_Data column_name selectors)
 
     report_other_warning self warning =
         self.other.append warning
@@ -36,10 +36,10 @@ type Problem_Builder
             if vec.not_empty then
                 problems.append (problem_creator vec)
 
-        build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range
-        build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors
-        build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched
-        build_vector_and_append self.missing_input_columns Missing_Input_Columns
+        build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range_Data
+        build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors_Data
+        build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched_Data
+        build_vector_and_append self.missing_input_columns Missing_Input_Columns_Data
         self.other.to_vector.each problems.append
 
         problems.to_vector
@@ -62,7 +62,7 @@ type Problem_Builder
    Creates a new helper object for aggregating problems to report.
 new : Problem_Builder
 new =
-    Problem_Builder (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+    Problem_Builder_Data (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.

@@ -1,7 +1,5 @@
+@Builtin_Type
 type Number
-    @Builtin_Type
-    type Number
 
+@Builtin_Type
 type Integer
-    @Builtin_Type
-    type Integer

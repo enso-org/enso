@@ -33,11 +33,11 @@ read location flags=[] =
         File.File -> location.path
         _ -> location
     read_flags = case flags of
-        Vector.Vector _ ->
+        Vector.Vector_Data _ ->
             if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                 flags.map .to_integer . reduce (_.bit_or _)
         _ -> flags.to_integer
-    Panic.catch_java Any (Image.Image (Java_Codecs.read path read_flags)) _->
+    Panic.catch_java Any (Image.Image_Data (Java_Codecs.read path read_flags)) _->
         Error.throw (File.IO_Error (File.new path) 'Failed to read the file')
 
 ## UNSTABLE
@@ -65,7 +65,7 @@ Image.Image.write self location flags=[] =
         File.File -> location.path
         _ -> location
     write_flags = case flags of
-        Vector.Vector _ -> flags
+        Vector.Vector_Data _ -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
     Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
@@ -77,18 +77,18 @@ type Read_Flag
     ## UNSTABLE
 
        Read the image with its alpha channel, otherwise the channel gets cropped.
-    type Read_Alpha_Channel
+    Read_Alpha_Channel
 
     ## UNSTABLE
 
        Always convert the image to a single channel grayscale image.
-    type Read_Grayscale
+    Read_Grayscale
 
     ## UNSTABLE
 
        Use Geographic Data Abstraction Library (GDAL) driver to load images in
        geospatial raster data formats.
-    type Read_Gdal
+    Read_Gdal
 
 ## UNSTABLE
 type Write_Flag
@@ -98,50 +98,56 @@ type Write_Flag
        Sets the quality used when writing a JPEG.
 
        Arguments:
-       - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Quality value=95
+       - val: A quality value from 0 to 100 (the higher, the better).
+    Write_Jpeg_Quality val=95
 
     ## UNSTABLE
 
        Enable progressive JPEG compression format. Disabled by default.
-    type Write_Jpeg_Progressive
+    Write_Jpeg_Progressive
 
     ## UNSTABLE
 
        Enable optimized JPEG encoding algorithms. Disabled by default.
-    type Write_Jpeg_Optimize
+    Write_Jpeg_Optimize
 
     ## UNSTABLE
 
        Sets the luma quality level used when writing a JPEG.
 
        Arguments:
-       - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Luma_Quality value=0
+       - val: A quality value from 0 to 100 (the higher, the better).
+    Write_Jpeg_Luma_Quality val=0
 
     ## UNSTABLE
 
        Sets the chroma quality level used when writing a JPEG.
 
        Arguments:
-       - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Chroma_Quality value=0
+       - val: A quality value from 0 to 100 (the higher, the better).
+    Write_Jpeg_Chroma_Quality val=0
 
     ## UNSTABLE
 
        Sets the compression level used when writing a PNG.
 
        Arguments:
-       - value: A compression level from 0 to 9. A higher value means a smaller
+       - val: A compression level from 0 to 9. A higher value means a smaller
          size but a longer compression time.
-    type Write_Png_Compression value=3
+    Write_Png_Compression val=3
 
     ## UNSTABLE
 
        Sets the quality used when writing a WEBP image.
 
        Arguments:
-       - value: A quality from 0 to 100 (the higher, the better). A quality
+       - val: A quality from 0 to 100 (the higher, the better). A quality
          above 100 indicates that the encoder should use lossless compression.
-    type Write_Webp_Quality value=101
+    Write_Webp_Quality val=101
+
+    ## PRIVATE
+    value self = case self of
+        Write_Jpeg_Progressive -> 1
+        Write_Jpeg_Optimize -> 1
+        _ -> self.val
 

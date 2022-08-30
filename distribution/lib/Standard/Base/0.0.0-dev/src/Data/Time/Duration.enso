@@ -23,7 +23,7 @@ between : Date_Time -> Date_Time -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
     period = Java_Period.ofDays 0 . normalized
     duration = Time_Utils.duration_between start_inclusive end_exclusive timezone_aware
-    Duration period duration
+    Duration_Data period duration
 
 
 ## ADVANCED
@@ -37,8 +37,8 @@ time_execution ~function =
     start = System.nano_time
     result = Runtime.no_inline function
     end = System.nano_time
-    duration = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
-    Pair duration result
+    duration = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
+    Pair_Data duration result
 
 
 type Duration
@@ -50,7 +50,7 @@ type Duration
        - internal_period: The internal representation of the time as a period.
        - internal_duration: The internal representation of the time as a
          duration.
-    type Duration internal_period internal_duration
+    Duration_Data internal_period internal_duration
 
     ## Add the specified amount of time to this duration.
 
@@ -74,7 +74,7 @@ type Duration
     + self that =
         period = self.internal_period . plus that.internal_period . normalized
         duration = self.internal_duration . plus that.internal_duration
-        Duration period duration
+        Duration_Data period duration
 
     ## Subtract the specified amount of time from this duration.
 
@@ -98,7 +98,7 @@ type Duration
     - self that =
         period = self.internal_period . minus that.internal_period . normalized
         duration = self.internal_duration . minus that.internal_duration
-        Duration period duration
+        Duration_Data period duration
 
     ## Get the portion of the duration expressed in nanoseconds.
 
@@ -311,7 +311,7 @@ type Duration
 
          example_nano = 1.nanosecond
 Integer.nanosecond : Duration
-Integer.nanosecond self = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos self)
+Integer.nanosecond self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofNanos self)
 
 ## Create a duration of `self` nanoseconds.
 
@@ -333,7 +333,7 @@ Integer.nanoseconds self = self.nanosecond
 
          example_milli = 1.millisecond
 Integer.millisecond : Duration
-Integer.millisecond self = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis self)
+Integer.millisecond self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofMillis self)
 
 ## Create a duration of `self` milliseconds.
 
@@ -355,7 +355,7 @@ Integer.milliseconds self = self.millisecond
 
          example_second = 1.second
 Integer.second : Duration
-Integer.second self = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
+Integer.second self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
 
 ## Create a duration of `self` seconds.
 
@@ -377,7 +377,7 @@ Integer.seconds self = self.second
 
          example_min = 1.minute
 Integer.minute : Duration
-Integer.minute self = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
+Integer.minute self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
 
 ## Create a duration of `self` minutes.
 
@@ -399,7 +399,7 @@ Integer.minutes self = self.minute
 
          example_hour = 1.hour
 Integer.hour : Duration
-Integer.hour self = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours self)
+Integer.hour self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofHours self)
 
 ## Create a duration of `self` hours.
 
@@ -421,7 +421,7 @@ Integer.hours self = self.hour
 
          example_day = 1.day
 Integer.day : Duration
-Integer.day self = Duration (Java_Period.ofDays self . normalized) (Java_Duration.ofSeconds 0)
+Integer.day self = Duration_Data (Java_Period.ofDays self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` days.
 
@@ -443,7 +443,7 @@ Integer.days self = self.day
 
          example_month = 1.month
 Integer.month : Duration
-Integer.month self = Duration (Java_Period.ofMonths self . normalized) (Java_Duration.ofSeconds 0)
+Integer.month self = Duration_Data (Java_Period.ofMonths self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` months.
 
@@ -465,7 +465,7 @@ Integer.months self = self.month
 
          example_year = 1.year
 Integer.year : Duration
-Integer.year self = Duration (Java_Period.ofYears self . normalized) (Java_Duration.ofSeconds 0)
+Integer.year self = Duration_Data (Java_Period.ofYears self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` years.
 

@@ -2,7 +2,7 @@ from Standard.Base import all
 
 type Connection_Options
     ## Hold a set of key value pairs used to configure the connection.
-    type Connection_Options options:Vector=[]
+    Connection_Options_Data options:Vector=[]
 
     ## Merge the base set of options with the overrides in this object.
     merge :  Vector -> Vector

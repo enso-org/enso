@@ -60,11 +60,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   }
 
   @Override
-  public List<String> generate(
-      ProcessingEnvironment processingEnv,
-      String name,
-      String owner,
-      Map<String, Integer> builtinTypesParameterCounts) {
+  public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
     SpecializationMeta meta = inferExecuteParameters();
     List<String> result = new ArrayList<>();
 
@@ -74,9 +70,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
         paramsOfSpecializedMethods(processingEnv, meta.diffParam)
             .flatMap(
                 specializeMethod ->
-                    specialize(
-                        owner, name, specializeMethod, meta.diffParam, builtinTypesParameterCounts)
-                        .stream())
+                    specialize(owner, name, specializeMethod, meta.diffParam).stream())
             .collect(Collectors.toList()));
     return result;
   }
@@ -221,8 +215,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       String owner,
       String name,
       SpecializeMethodInfo methodInfo,
-      Optional<Integer> specializedParam,
-      Map<String, Integer> builtinTypesParameterCounts) {
+      Optional<Integer> specializedParam) {
     List<SpecializedMethodParameter> params1 =
         methodInfo.params().stream()
             .map(p -> SpecializedMethodParameter.paramOfSpecializedMethod(p, specializedParam))
@@ -267,7 +260,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       switch (returnTpe.kind()) {
         case VOID:
           methodBody.add("  " + qual + "." + name + "(" + paramsApplied + ");");
-          methodBody.add("  return Context.get(this).getBuiltins().nothing().newInstance();");
+          methodBody.add("  return Context.get(this).getBuiltins().nothing();");
           break;
         case ARRAY:
           methodBody.add(
@@ -287,9 +280,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
         specializationDeclaration.add("  " + line);
       }
       for (int i = 0; i < methodInfo.exceptionWrappers.length; i++) {
-        specializationDeclaration.addAll(
-            methodInfo.exceptionWrappers[i].toCatchClause(
-                methodInfo.params, builtinTypesParameterCounts));
+        specializationDeclaration.addAll(methodInfo.exceptionWrappers[i].toCatchClause());
       }
       specializationDeclaration.add("  }");
     } else {

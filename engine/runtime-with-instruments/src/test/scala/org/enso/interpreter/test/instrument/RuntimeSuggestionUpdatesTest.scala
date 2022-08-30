@@ -873,7 +873,7 @@ class RuntimeSuggestionUpdatesTest
       """from Standard.Base.Data.Numbers import Integer
         |
         |type MyType
-        |    type MkA a
+        |    MkA a
         |
         |Integer.fortytwo self = 42
         |
@@ -943,7 +943,7 @@ class RuntimeSuggestionUpdatesTest
                       Suggestion
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
-                    "Enso_Test.Test.A.MkA",
+                    "Enso_Test.Test.A.MyType",
                     None,
                     None,
                     None
@@ -962,13 +962,13 @@ class RuntimeSuggestionUpdatesTest
                       Suggestion
                         .Argument(
                           "self",
-                          "Enso_Test.Test.A.MkA",
+                          "Enso_Test.Test.A.MyType",
                           false,
                           false,
                           None
                         )
                     ),
-                    "Enso_Test.Test.A.MkA",
+                    "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
                     None,
                     None,

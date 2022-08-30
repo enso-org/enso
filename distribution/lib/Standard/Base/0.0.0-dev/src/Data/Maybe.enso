@@ -4,7 +4,7 @@ from Standard.Base import all
 type Maybe
 
     ## No contained value.
-    Nothing
+    None
 
     ## A value.
 
@@ -17,13 +17,13 @@ type Maybe
              import Standard.Base.Data.Maybe
 
              example_some = Maybe.Some "yes!"
-    type Some value
+    Some value
 
     ## Applies the provided function to the contained value if it exists,
        otherwise returning the provided default value.
 
        Arguments:
-       - default: The value to return if `self` is Nothing. This value is lazy
+       - default: The value to return if `self` is None. This value is lazy
          and hence will not execute any provided computation unless it is used.
        - function: The function to execute on the value inside the `Some`, if it
          is a just.
@@ -36,16 +36,21 @@ type Maybe
              example_maybe = Maybe.Some 2 . maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
     maybe self ~default function = case self of
-        Nothing -> default
+        None -> default
         Some val -> function val
 
     ## Check if the maybe value is `Some`.
 
        > Example
-         Check if `Nothing` is `Some`.
+         Check if `None` is `Some`.
 
              import Standard.Base.Data.Maybe
 
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
-    is_some self = self.is_nothing.not
+    is_some self = case self of
+        None -> False
+        Some _ -> True
+
+    is_none : Boolean
+    is_none self = self.is_some.not

@@ -1,18 +1,14 @@
 package org.enso.interpreter.runtime.data;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +27,7 @@ import java.util.Set;
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
  * please refer to {@link TruffleFile}.
  */
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
 public class EnsoFile implements TruffleObject {
   private final TruffleFile truffleFile;
@@ -41,21 +37,21 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public OutputStream outputStream(OpenOption[] opts) throws IOException {
     return this.truffleFile.newOutputStream(opts);
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public InputStream inputStream(OpenOption[] opts) throws IOException {
     return this.truffleFile.newInputStream(opts);
   }
 
   @Builtin.Method(name = "read_last_bytes_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public ArrayOverBuffer readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
@@ -89,7 +85,7 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "creation_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
@@ -97,7 +93,7 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
@@ -105,7 +101,7 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public Set<PosixFilePermission> getPosixPermissions() throws IOException {
     return truffleFile.getPosixPermissions();
@@ -146,7 +142,7 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "list_immediate_children_array")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public EnsoFile[] list() throws IOException {
     return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
   }
@@ -180,19 +176,19 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "delete_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void delete() throws IOException {
     truffleFile.delete();
   }
 
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void copy(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.copy(target.truffleFile, options);
   }
 
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void move(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.move(target.truffleFile, options);
   }
@@ -233,48 +229,12 @@ public class EnsoFile implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(UnresolvedSymbol symbol) {
-      Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().file(), context.getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        EnsoFile self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(EnsoFile self, UnresolvedSymbol symbol)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().file();
   }
 }

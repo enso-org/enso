@@ -40,7 +40,7 @@ run command arguments=[] =
 
          example_new_builder = Process.new_builder "echo"
 new_builder : Text -> Vector Text -> Text -> Builder
-new_builder command arguments=[] stdin="" = Builder command arguments stdin
+new_builder command arguments=[] stdin="" = Builder_Data command arguments stdin
 
 ## UNSTABLE
 
@@ -60,7 +60,7 @@ type Builder
          We recommend that you use this type with its builder interface. Start
          by creating a `Builder "command"` and then call functions on it to
          set arguments and standard output. It results in much clearer code.
-    type Builder command arguments stdin
+    Builder_Data command arguments stdin
 
     ## UNSTABLE
 
@@ -78,7 +78,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
     set_arguments : Vector.Vector Text -> Builder
-    set_arguments self arguments = Builder self.command arguments self.stdin
+    set_arguments self arguments = Builder_Data self.command arguments self.stdin
 
     ## UNSTABLE
 
@@ -97,7 +97,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
     set_stdin : Text -> Builder
-    set_stdin self stdin = Builder self.command self.arguments stdin
+    set_stdin self stdin = Builder_Data self.command self.arguments stdin
 
     ## UNSTABLE
 
@@ -115,7 +115,7 @@ type Builder
     create : Result
     create self =
         result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
-        Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
+        Result_Data (Exit_Code.from_number result.exit_code) result.stdout result.stderr
 
 ## UNSTABLE
 
@@ -125,4 +125,5 @@ type Builder
    - exit_code: The exit code for the process.
    - stdout: The contents of the process' standard output.
    - stderr: The contents of the process' standard error.
-type Result exit_code stdout stderr
+type Result
+    Result_Data exit_code stdout stderr

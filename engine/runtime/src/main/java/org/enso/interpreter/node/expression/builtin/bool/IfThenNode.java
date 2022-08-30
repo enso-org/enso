@@ -30,7 +30,7 @@ public abstract class IfThenNode extends Node {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
-      return new Stateful(state, Context.get(this).getNothing().newInstance());
+      return new Stateful(state, Context.get(this).getNothing());
     }
   }
 }

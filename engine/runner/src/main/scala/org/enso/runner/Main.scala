@@ -704,6 +704,7 @@ object Main {
       .dropWhile(_.getLanguage.getId != LanguageInfo.ID)
       .reverse
     println(s"Execution finished with an error: ${exception.getMessage}")
+    exception.printStackTrace()
     dropInitJava.foreach { frame =>
       val langId =
         if (frame.isHostFrame) "java" else frame.getLanguage.getId
@@ -753,11 +754,11 @@ object Main {
     mainMethodName: String = "main"
   ): Unit = {
     try {
-      val mainCons = mainModule.getAssociatedConstructor
-      val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
+      val mainType = mainModule.getAssociatedType
+      val mainFun  = mainModule.getMethod(mainType, mainMethodName)
       mainFun match {
         case Some(main) if mainMethodName != "main" =>
-          main.execute(mainCons.newInstance())
+          main.execute(mainType.newInstance())
         case Some(main) =>
           main.execute()
         case None =>

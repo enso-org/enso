@@ -1,11 +1,12 @@
 from Standard.Base import all
 
 from Standard.Base.Error.Problem_Behavior import Report_Warning
-from Standard.Base.Error.Common import Wrapped_Dataflow_Error
+from Standard.Base.Error.Common import Wrapped_Dataflow_Error_Data
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
-type No_Matches_Found (criteria : Vector Text)
+type No_Matches_Found
+    No_Matches_Found_Data (criteria : Vector Text)
 
 No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text self =
@@ -16,14 +17,16 @@ No_Matches_Found.to_display_text self =
 
    Arguments:
    - locale: The locale used for the comparison.
-type Case_Insensitive locale=Locale.default
+type Case_Insensitive
+    Case_Insensitive_Data locale=Locale.default
 
 ## Represents exact text matching mode.
 
    Arguments:
    - case_sensitive: Case Sensitive if True. Otherwise, the comparison is case
      insensitive using the specified locale.
-type Text_Matcher (case_sensitive : (True | Case_Insensitive) = True)
+type Text_Matcher
+    Text_Matcher_Data (case_sensitive : (True | Case_Insensitive) = True)
 
 ## Represents regex matching mode.
 
@@ -50,7 +53,8 @@ type Text_Matcher (case_sensitive : (True | Case_Insensitive) = True)
        preceded by an unescaped backslash, all characters from the leftmost such
        `#` to the end of the line are ignored. That is to say; they act as
        'comments' in the regex.
-type Regex_Matcher (case_sensitive : (True | Case_Insensitive) = True) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
+type Regex_Matcher
+    Regex_Matcher_Data (case_sensitive : (True | Case_Insensitive) = True) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
 
 ## UNSTABLE
    Compiles a provided pattern according to the rules defined in this
@@ -62,7 +66,7 @@ Regex_Matcher.compile self pattern =
         ## TODO [RW] Currently locale is not supported in case-insensitive
            Regex matching. There are plans to revisit it:
            https://www.pivotaltracker.com/story/show/181313576
-        Case_Insensitive _ -> True
+        Case_Insensitive_Data _ -> True
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=self.match_ascii dot_matches_newline=self.dot_matches_newline multiline=self.multiline comments=self.comments
     compiled_pattern
 
@@ -82,7 +86,7 @@ Text_Matcher.match_single_criterion : Text -> Text -> Boolean
 Text_Matcher.match_single_criterion self name criterion =
     case self.case_sensitive of
         True -> name == criterion
-        Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
+        Case_Insensitive_Data locale -> name.equals_ignore_case criterion locale=locale
 
 ## UNSTABLE
    Checks if a name matches the provided criterion according to the specified
@@ -138,7 +142,7 @@ Regex_Matcher.match_single_criterion self name criterion =
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair_Data "foo" 42, Pair_Data "bar" 33, Pair_Data "baz" 10, Pair_Data "foo" 0, Pair_Data 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair_Data "bar" 33, Pair_Data "foo" 42, Pair_Data "foo" 0]
 Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Text_Matcher.match_criteria self = match_criteria_implementation self
 
@@ -179,21 +183,16 @@ Text_Matcher.match_criteria self = match_criteria_implementation self
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair_Data "foo" 42, Pair_Data "bar" 33, Pair_Data "baz" 10, Pair_Data "foo" 0, Pair_Data 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair_Data "bar" 33, Pair_Data "foo" 42, Pair_Data "foo" 0]
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Regex_Matcher.match_criteria self = match_criteria_implementation self
-
-## A common supertype representing a matching strategy.
-type Matcher
-    Text_Matcher
-    Regex_Matcher
 
 ## PRIVATE
 match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning =
     result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
     problems = if unmatched_criteria.is_empty then [] else
-        [No_Matches_Found unmatched_criteria]
+        [No_Matches_Found_Data unmatched_criteria]
     on_problems.attach_problems_after result.first problems
 
 ## PRIVATE
@@ -206,7 +205,7 @@ match_criteria_callback matcher objects criteria problem_callback reorder=False 
 type Match_Matrix
     ## PRIVATE
        A helper type holding a matrix of matches.
-    type Match_Matrix matrix criteria objects
+    Match_Matrix_Data matrix criteria objects
 
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean
@@ -223,7 +222,7 @@ type Match_Matrix
     unmatched_criteria self =
         checked_criteria = self.criteria.map_with_index j-> criterion->
             has_matches = self.does_criterion_match_anything j
-            Pair has_matches criterion
+            Pair_Data has_matches criterion
         checked_criteria.filter (p -> p.first.not) . map .second
 
     ## PRIVATE
@@ -250,13 +249,13 @@ make_match_matrix matcher objects criteria object_name_mapper=(x->x) criterion_m
     matrix = objects.map obj->
         criteria.map criterion->
             matcher.match_single_criterion (object_name_mapper obj) (criterion_mapper criterion)
-    Match_Matrix matrix criteria objects
+    Match_Matrix_Data matrix criteria objects
 
 ## PRIVATE
-internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error (handler = x-> x.payload.unwrap) <|
+internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error_Data (handler = x-> x.payload.unwrap) <|
     ## TODO [RW] discuss: this line of code also shows an issue we had with ensuring input dataflow-errors are correctly propagated, later on we stopped doing that and testing for that as it was too cumbersome. Maybe it could be helped with an @Accepts_Error annotation similar to the one from the interpreter???
     [matcher, objects, criteria, reorder, name_mapper] . each v->
-        Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
+        Panic.rethrow (v.map_error Wrapped_Dataflow_Error_Data)
 
     match_matrix = make_match_matrix matcher objects criteria name_mapper
     unmatched_criteria = match_matrix.unmatched_criteria
@@ -277,4 +276,4 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
             select_matching_indices match_matrix.is_object_matched_by_anything
 
     result = selected_indices.map objects.at
-    Pair result unmatched_criteria
+    Pair_Data result unmatched_criteria

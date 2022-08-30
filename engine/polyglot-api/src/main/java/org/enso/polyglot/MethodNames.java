@@ -13,8 +13,11 @@ public class MethodNames {
 
   public static class Module {
     public static final String EVAL_EXPRESSION = "eval_expression";
-    public static final String GET_ASSOCIATED_CONSTRUCTOR = "get_associated_constructor";
+    public static final String GET_ASSOCIATED_TYPE = "get_associated_type";
     public static final String GET_CONSTRUCTOR = "get_constructor";
+
+    public static final String GET_TYPE = "get_type";
+
     public static final String GET_METHOD = "get_method";
     public static final String GET_NAME = "get_name";
     public static final String REPARSE = "reparse";

@@ -16,8 +16,8 @@ import Standard.Table.Internal.Problem_Builder
 
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
+from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
@@ -51,8 +51,8 @@ new : Vector (Vector | Column) -> Table
 new columns =
     cols = columns.map c->
         case c of
-            Vector.Vector _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
-            Column.Column java_col -> java_col
+            Vector.Vector_Data _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
+            Column.Column_Data java_col -> java_col
     from_columns cols
 
 ## Creates a new table from a vector of column names and a vector of vectors
@@ -128,7 +128,7 @@ join tables =
              Table.concat [table_1, table_2]
 concat : Vector -> Table
 concat tables =
-    Table (Java_Table.concat (tables.map .java_table).to_array)
+    Table_Data (Java_Table.concat (tables.map .java_table).to_array)
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -139,7 +139,7 @@ type Table
 
        Arguments:
        - java_table: The internal java representation of the table.
-    type Table java_table
+    Table_Data java_table
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -255,12 +255,12 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         Integer ->
-            java_columns = Vector.Vector self.java_table.getColumns
-            Column.Column (java_columns.at selector)
+            java_columns = Vector.Vector_Data self.java_table.getColumns
+            Column.Column_Data (java_columns.at selector)
         Text ->
             case self.java_table.getColumnOrIndexByName selector of
-                Nothing -> Error.throw (No_Such_Column_Error selector)
-                c -> Column.Column c
+                Nothing -> Error.throw (No_Such_Column_Error_Data selector)
+                c -> Column.Column_Data c
 
     ## Returns the number of columns in the table.
     column_count : Integer
@@ -439,14 +439,14 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+             table.sort_columns text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering_Data =
         new_columns = Table_Helpers.sort_columns internal_columns=self.columns direction text_ordering
         new new_columns
 
@@ -548,7 +548,7 @@ type Table
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
             java_table = index.makeTable new_columns.to_array
-            new_table = Table java_table
+            new_table = Table_Data java_table
 
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
@@ -643,7 +643,7 @@ type Table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
+    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering_Data on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -651,7 +651,7 @@ type Table
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
             java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
-            Table java_table
+            Table_Data java_table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
@@ -664,7 +664,7 @@ type Table
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+    parse_values self value_formatter=Data_Formatter_Data column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
 
@@ -714,7 +714,7 @@ type Table
                 new_storage = new_storage_and_problems.value
                 problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
-                Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
+                Column.Column_Data (Java_Column.new column.name column.java_column.getIndex new_storage)
 
         ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
            https://github.com/enso-org/enso/pull/3400
@@ -745,7 +745,7 @@ type Table
                  table.where mask
     where : Column -> Table
     where self indexes =
-        Table (self.java_table.mask indexes.java_column)
+        Table_Data (self.java_table.mask indexes.java_column)
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
@@ -792,10 +792,10 @@ type Table
                  table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
     set self name column = case column of
-        Vector.Vector _ ->
+        Vector.Vector_Data _ ->
             self.set name (Column.from_vector name column)
-        Column.Column _ ->
-            Table (self.java_table.addOrReplaceColumn (column.rename name . java_column))
+        Column.Column_Data _ ->
+            Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## Returns the vector of columns contained in this table.
 
@@ -806,7 +806,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column
+    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
 
     ## Sets the index of this table, using the column with the provided name.
 
@@ -822,8 +822,8 @@ type Table
              example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text | Column -> Table
     set_index self index = case index of
-        Text -> Table (self.java_table.indexFromColumn index)
-        Column.Column c -> Table (self.java_table.indexFromColumn c)
+        Text -> Table_Data (self.java_table.indexFromColumn index)
+        Column.Column_Data c -> Table_Data (self.java_table.indexFromColumn c)
 
     ## Returns the index of this table, as a column that is indexed by itself.
 
@@ -839,7 +839,7 @@ type Table
     index : Column.Column ! No_Index_Set_Error
     index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Column i
+        i -> Column.Column_Data i
 
     ## ALIAS Join Table
 
@@ -875,9 +875,9 @@ type Table
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
-            Column.Column _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
-            Table t ->
-                Table (self.java_table.join t drop_unmatched on left_suffix right_suffix)
+            Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
+            Table_Data t ->
+                Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
 
     ## ALIAS Clean Rows
 
@@ -916,7 +916,7 @@ type Table
     drop_missing_columns self =
         non_missing = self.columns . filter (col -> col.count_missing == 0)
         index = self.java_table.getIndex
-        Table (Java_Table.new (non_missing.map .java_column . to_array) index)
+        Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the number of rows in this table.
 
@@ -963,7 +963,7 @@ type Table
              example_concat =
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table -> Table
-    concat self other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
+    concat self other = Table_Data (Java_Table.concat [self.java_table, other.java_table].to_array)
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
@@ -972,7 +972,7 @@ type Table
         length = self.row_count
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
-        Table (self.java_table.slice offset limit)
+        Table_Data (self.java_table.slice offset limit)
 
     ## UNSTABLE
 
@@ -988,7 +988,7 @@ type Table
     reverse : Table
     reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
-        Table <| self.java_table.applyMask mask
+        Table_Data <| self.java_table.applyMask mask
 
     ## ALIAS Write JSON
        UNSTABLE
@@ -1062,7 +1062,7 @@ type Table
              import Standard.Examples
              import Standard.Table
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (File_Format.Delimited delimiter="," headers=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (File_Format.Delimited_Data delimiter="," headers=False)
 
        > Example
          Write a table to an XLSX file.
@@ -1077,7 +1077,7 @@ type Table
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (File_Format.Delimited delimiter=",")
+    to_csv self = Text.from self (File_Format.Delimited_Data delimiter=",")
 
 ## UNSTABLE
 
@@ -1091,7 +1091,7 @@ Empty_Error.to_display_text : Text
 Empty_Error.to_display_text self = "The table is empty."
 
 ## PRIVATE
-from_columns cols = Table (Java_Table.new cols.to_array)
+from_columns cols = Table_Data (Java_Table.new cols.to_array)
 
 ## PRIVATE
 
@@ -1147,16 +1147,16 @@ print_table header rows indices_count format_term =
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
 
-Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a File_Format.Delimited then Delimited_Reader.read_text that format on_problems else
+Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    if format.is_a File_Format.Delimited_Data then Delimited_Reader.read_text that format on_problems else
         Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
-Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') =
-    if format.is_a File_Format.Delimited then Delimited_Writer.write_text that format else
+Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') =
+    if format.is_a File_Format.Delimited_Data then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range.normalize_ranges ranges
-    Table (table.java_table.slice normalized.to_array)
+    Table_Data (table.java_table.slice normalized.to_array)

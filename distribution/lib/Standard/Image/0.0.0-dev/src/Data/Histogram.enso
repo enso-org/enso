@@ -15,7 +15,7 @@ type Histogram
        Arguments:
        - channel: The channel in the image for which this is a histogram.
        - data: The histogram data.
-    type Histogram channel data
+    Histogram_Data channel data
 
     ## UNSTABLE
 
@@ -52,4 +52,4 @@ type Histogram
 Image.Image.histogram : Integer -> Histogram
 Image.Image.histogram self channel =
     hist = Java_Histogram.calculate self.opencv_mat channel
-    Histogram channel (Vector.from_polyglot_array hist.get_data)
+    Histogram_Data channel (Vector.from_polyglot_array hist.get_data)

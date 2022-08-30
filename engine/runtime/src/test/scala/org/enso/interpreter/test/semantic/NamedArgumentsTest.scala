@@ -194,7 +194,8 @@ class NamedArgumentsTest extends InterpreterTest {
     "be usable with constructors" in {
       val code =
         """
-          |type Cons2 head rest
+          |type C2
+          |    Cons2 head rest
           |type Nil2
           |
           |main =
@@ -214,7 +215,8 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """
           |type Nil2
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |
           |main =
           |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
@@ -232,7 +234,8 @@ class NamedArgumentsTest extends InterpreterTest {
     "be resolved dynamically in constructors" in {
       val code =
         """
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |type Nil2
           |
           |main = Cons2 5
@@ -245,7 +248,8 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """import Standard.Base.Nothing
           |
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |type Nil2
           |
           |Nothing.sum_list = list -> case list of
@@ -263,12 +267,13 @@ class NamedArgumentsTest extends InterpreterTest {
         """
           |import Standard.Base.IO
           |
-          |type My_Tp a=10 b="hello"
+          |type My_Tp
+          |    Mk_My_Tp a=10 b="hello"
           |
-          |main = IO.println My_Tp
+          |main = IO.println Mk_My_Tp
           |""".stripMargin
       eval(code)
-      consumeOut should equal(List("(My_Tp 10 'hello')"))
+      consumeOut should equal(List("(Mk_My_Tp 10 'hello')"))
     }
   }
 }

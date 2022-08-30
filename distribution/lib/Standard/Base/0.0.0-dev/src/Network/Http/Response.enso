@@ -15,7 +15,7 @@ type Response
        Arguments:
        - internal_http_response: The internal represnetation of the HTTP
          response.
-    type Response internal_http_response
+    Response_Data internal_http_response
 
     ## Get the response headers.
 
@@ -41,7 +41,7 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = Response_Body.Body (Vector.from_polyglot_array self.internal_http_response.body)
+    body self = Response_Body.Body_Data (Vector.from_polyglot_array self.internal_http_response.body)
 
     ## Get the response status code.
 
@@ -53,7 +53,7 @@ type Response
 
              example_code = Examples.get_response.code
     code : Status_Code
-    code self = Status_Code.Status_Code self.internal_http_response.statusCode
+    code self = Status_Code.Status_Code_Data self.internal_http_response.statusCode
 
     ## Convert the response to JSON.
 

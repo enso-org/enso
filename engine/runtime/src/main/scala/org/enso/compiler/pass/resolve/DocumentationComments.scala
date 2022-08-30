@@ -148,7 +148,7 @@ case object DocumentationComments extends IRPass {
           "Conversion methods should not yet be present in the compiler " +
           "pipeline."
         )
-      case _: IR.Module.Scope.Definition.UnionType =>
+      case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Union types should not yet be present in the compiler pipeline."
         )
@@ -156,12 +156,11 @@ case object DocumentationComments extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case method: IR.Module.Scope.Definition.Method.Explicit =>
         method.copy(body = resolveExpression(method.body))
-      case tpe: IR.Module.Scope.Definition.Type =>
+      case tpe: IR.Module.Scope.Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case d: IR.Module.Scope.Definition.Atom => d
-      case doc: IR.Comment.Documentation      => doc
-      case tySig: IR.Type.Ascription          => tySig
-      case err: IR.Error                      => err
+      case doc: IR.Comment.Documentation => doc
+      case tySig: IR.Type.Ascription     => tySig
+      case err: IR.Error                 => err
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
@@ -208,14 +207,15 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: IR.Module                  => resolveModule(module)
-      case expr: IR.Expression                => resolveExpression(expr)
-      case df: IR.Module.Scope.Definition     => resolveDefinition(df)
-      case imp: IR.Module.Scope.Import        => imp
-      case exp: IR.Module.Scope.Export.Module => exp
-      case arg: IR.CallArgument               => arg
-      case arg: IR.DefinitionArgument         => arg
-      case pat: IR.Pattern                    => pat
+      case module: IR.Module                     => resolveModule(module)
+      case expr: IR.Expression                   => resolveExpression(expr)
+      case df: IR.Module.Scope.Definition        => resolveDefinition(df)
+      case data: IR.Module.Scope.Definition.Data => data
+      case imp: IR.Module.Scope.Import           => imp
+      case exp: IR.Module.Scope.Export.Module    => exp
+      case arg: IR.CallArgument                  => arg
+      case arg: IR.DefinitionArgument            => arg
+      case pat: IR.Pattern                       => pat
     }
 
   // === Metadata =============================================================

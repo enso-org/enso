@@ -7,15 +7,15 @@ spec = Test.group "Vector Slicing Helpers" <|
     Test.specify "should be able to sort correctly merge neighboring sequences" <|
         merge = Index_Sub_Range.sort_and_merge_ranges
         merge [] . should_equal []
-        merge [Range 0 0] . should_equal []
-        merge [Range 0 10] . should_equal [Range 0 10]
-        merge [Range 0 10, Range 2 4] . should_equal [Range 0 10]
-        merge [Range 0 5, Range 5 10] . should_equal [Range 0 10]
-        merge [Range 5 10, Range 0 0, Range 0 1, Range 1 5] . should_equal [Range 0 10]
-        merge [Range 0 1, Range 1 2] . should_equal [Range 0 2]
-        merge [Range 6 7, Range 7 8, Range 5 5, Range 0 1, Range 2 3] . should_equal [Range 0 1, Range 2 3, Range 6 8]
-        merge [Range 5 10, Range 3 6, Range 3 6, Range 3 5, Range 3 7, Range 0 1] . should_equal [Range 0 1, Range 3 10]
-        merge [Range 0 1, Range 0 1] . should_equal [Range 0 1]
-        merge [Range 0 1, Range 1 2] . should_equal [Range 0 2]
+        merge [Range_Data 0 0] . should_equal []
+        merge [Range_Data 0 10] . should_equal [Range_Data 0 10]
+        merge [Range_Data 0 10, Range_Data 2 4] . should_equal [Range_Data 0 10]
+        merge [Range_Data 0 5, Range_Data 5 10] . should_equal [Range_Data 0 10]
+        merge [Range_Data 5 10, Range_Data 0 0, Range_Data 0 1, Range_Data 1 5] . should_equal [Range_Data 0 10]
+        merge [Range_Data 0 1, Range_Data 1 2] . should_equal [Range_Data 0 2]
+        merge [Range_Data 6 7, Range_Data 7 8, Range_Data 5 5, Range_Data 0 1, Range_Data 2 3] . should_equal [Range_Data 0 1, Range_Data 2 3, Range_Data 6 8]
+        merge [Range_Data 5 10, Range_Data 3 6, Range_Data 3 6, Range_Data 3 5, Range_Data 3 7, Range_Data 0 1] . should_equal [Range_Data 0 1, Range_Data 3 10]
+        merge [Range_Data 0 1, Range_Data 0 1] . should_equal [Range_Data 0 1]
+        merge [Range_Data 0 1, Range_Data 1 2] . should_equal [Range_Data 0 2]
 
 main = Test.Suite.run_main spec

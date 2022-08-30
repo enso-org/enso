@@ -40,7 +40,7 @@ new path =
   case path of
     Text -> get_file path
     File -> path
-    _    -> Error.throw (Illegal_Argument_Error "new file should be either a File or a Text")
+    _    -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -169,13 +169,8 @@ list : (File | Text) -> Text -> Boolean -> Vector.Vector File
 list directory name_filter=Nothing recursive=False =
     new directory . list name_filter=name_filter recursive=recursive
 
+@Builtin_Type
 type File
-
-    ## PRIVATE
-
-       A type representing a file.
-    @Builtin_Type
-    type File
 
     ## Creates a new output stream for this file and runs the specified action
        on it.
@@ -616,7 +611,7 @@ type File
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream close_stream
-        Input_Stream self resource
+        Input_Stream_Data self resource
 
     ## ADVANCED
 
@@ -634,7 +629,7 @@ type File
         stream = handle_java_exceptions self <|
             self.output_stream opts
         resource = Managed_Resource.register stream close_stream
-        Output_Stream self resource
+        Output_Stream_Data self resource
 
     ## PRIVATE
 
@@ -733,7 +728,7 @@ type File
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children self = Vector.Vector (self.list_immediate_children_array)
+    list_immediate_children self = Vector.Vector_Data (self.list_immediate_children_array)
 
     ## PRIVATE
 
@@ -760,7 +755,7 @@ type Output_Stream
        - file: The file which the output stream will write into.
        - stream_resource: The internal resource that represents the underlying
          stream.
-    type Output_Stream file stream_resource
+    Output_Stream_Data file stream_resource
 
     ## ADVANCED
 
@@ -834,7 +829,7 @@ type Output_Stream
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
-        problems = Vector.from_polyglot_array results.problems . map Encoding_Error
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
         on_problems.attach_problems_after results.result problems
 
 ## An input stream, allowing for interactive reading of contents from an open
@@ -850,7 +845,7 @@ type Input_Stream
        - file: The file from which the stream will read.
        - stream_resource: The internal resource that represents the underlying
          stream.
-    type Input_Stream file stream_resource
+    Input_Stream_Data file stream_resource
 
     ## ADVANCED
 
@@ -902,7 +897,7 @@ type Input_Stream
     read_n_bytes self n = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
-            Vector.Vector bytes
+            Vector.Vector_Data bytes
 
     ## ADVANCED
 
@@ -968,7 +963,7 @@ type Input_Stream
     with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.Vector results.problems . map Encoding_Error
+        problems = Vector.Vector_Data results.problems . map Encoding_Error_Data
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
@@ -1002,17 +997,17 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    type File_Not_Found file
+    File_Not_Found file
 
     ## Indicates that a destination file already exists.
-    type File_Already_Exists_Error file
+    File_Already_Exists_Error file
 
     ## A generic IO error.
 
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    type IO_Error file message
+    IO_Error file message
 
     ## UNSTABLE
 
@@ -1113,7 +1108,7 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
 Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
 Vector.Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
-    Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
+    Panic.catch Unsupported_Argument_Types_Data handler=(Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Utils.ensureByteArray self.to_array
 

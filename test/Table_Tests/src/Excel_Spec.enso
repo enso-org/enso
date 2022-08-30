@@ -4,10 +4,11 @@ from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-from Standard.Table import File_Format, Match_Columns, Column_Name_Mapping, Data_Formatter, Excel_Range
+from Standard.Table import File_Format, Match_Columns, Column_Name_Mapping, Excel_Range, Data_Formatter_Data
+
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 from Standard.Table.IO.Excel import Sheet_Names, Range_Names, Sheet, Cell_Range
-from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch_Data, Column_Name_Mismatch_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -26,7 +27,7 @@ spec_fmt header file read_method =
             t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
         Test.specify "should read the specified sheet by index and properly format a table" <|
-            t = read_method file (File_Format.Excel (Sheet 2) headers=False)
+            t = read_method file (File_Format.Excel_Data (Sheet 2) headers=False)
             t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
             t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
@@ -35,32 +36,32 @@ spec_fmt header file read_method =
             t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         Test.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file (File_Format.Excel (Sheet 'Dates'))
+            t = read_method file (File_Format.Excel_Data (Sheet 'Dates'))
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         Test.specify "should read an empty table" <|
-            t = read_method file (File_Format.Excel (Sheet "Empty"))
+            t = read_method file (File_Format.Excel_Data (Sheet "Empty"))
             t.column_count.should_equal 0
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file (File_Format.Excel (Sheet "Duplicate Columns"))
+            t = read_method file (File_Format.Excel_Data (Sheet "Duplicate Columns"))
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
             t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         Test.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file (File_Format.Excel (Cell_Range "Simple!B:C"))
+            t_1 = read_method file (File_Format.Excel_Data (Cell_Range "Simple!B:C"))
             t_1.columns.map .name . should_equal ['Quantity', 'Price']
             t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
-            t_2 = read_method file (File_Format.Excel (Cell_Range "Simple!3:5") headers=False)
+            t_2 = read_method file (File_Format.Excel_Data (Cell_Range "Simple!3:5") headers=False)
             t_2.column_count.should_equal 3
             t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
             t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
 
-            t_3 = read_method file (File_Format.Excel (Cell_Range "Simple!B4:C5") headers=False)
+            t_3 = read_method file (File_Format.Excel_Data (Cell_Range "Simple!B4:C5") headers=False)
             t_3.column_count.should_equal 2
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
@@ -71,7 +72,7 @@ spec_write suffix test_sheet_name =
            for these tests. This should ideally be re-enabled with the
            completion of the following story:
            https://www.pivotaltracker.com/story/show/181755990
-        no_dates = File_Format.Delimited "," value_formatter=(Data_Formatter date_formats=[] time_formats=[] datetime_formats=[])
+        no_dates = File_Format.Delimited_Data "," value_formatter=(Data_Formatter_Data date_formats=[] time_formats=[] datetime_formats=[])
         out = enso_project.data / ('out.' + suffix)
         out_bak = enso_project.data / ('out.' + suffix + '.bak')
         table = enso_project.data/'varied_column.csv' . read (format = no_dates)
@@ -95,77 +96,77 @@ spec_write suffix test_sheet_name =
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another"))
+            table.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another"))
             written.should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet without headers' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "NoHeaders"))
+            table.write out (File_Format.Excel_Data (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "NoHeaders"))
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
 
         Test.specify 'should create new sheets at the start if index is 0' <|
             out.delete_if_exists
-            table.write out (File_Format.Excel (Sheet 0)) on_problems=Report_Error . should_succeed
-            clothes.write out (File_Format.Excel (Sheet 0)) on_problems=Report_Error . should_succeed
-            read_1 = out.read (File_Format.Excel (Sheet "Sheet1"))
+            table.write out (File_Format.Excel_Data (Sheet 0)) on_problems=Report_Error . should_succeed
+            clothes.write out (File_Format.Excel_Data (Sheet 0)) on_problems=Report_Error . should_succeed
+            read_1 = out.read (File_Format.Excel_Data (Sheet "Sheet1"))
             read_1 . should_equal table
-            read_2 = out.read (File_Format.Excel (Sheet "Sheet2"))
+            read_2 = out.read (File_Format.Excel_Data (Sheet "Sheet2"))
             read_2 . should_equal clothes
-            read_3 = out.read (File_Format.Excel (Sheet_Names))
+            read_3 = out.read (File_Format.Excel_Data (Sheet_Names))
             read_3 . should_equal ["Sheet2", "Sheet1"]
             out.delete_if_exists
 
         Test.specify 'should write a table to specific single cell location of an existing sheet' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Cell_Range "Another!G1")) on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Another!G1"))
+            table.write out (File_Format.Excel_Data (Cell_Range "Another!G1")) on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Another!G1"))
             written.should_equal table
             out.delete_if_exists
 
         Test.specify 'should clear out an existing fixed range and replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:D20")) on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "Another!A1:D20")) on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
             out.delete_if_exists
 
         Test.specify 'should clear out an existing range and replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1")) on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "Another!A1")) on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
             out.delete_if_exists
 
         Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location
-            sub_clothes.write out (File_Format.Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location
-            sub_clothes.write out (File_Format.Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location_Data
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location_Data
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location_Data
             out.delete_if_exists
 
         Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded_Data
             out.delete_if_exists
 
         Test.specify 'should result in Existing_Data error if in Error mode and trying to replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            sub_clothes.write out (File_Format.Excel (Sheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
-            sub_clothes.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (File_Format.Excel_Data (Sheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
+            sub_clothes.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
+            sub_clothes.write out (File_Format.Excel_Data (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -173,13 +174,13 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            sub_clothes.write out (File_Format.Excel (Sheet "Testing")) on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
+            sub_clothes.write out (File_Format.Excel_Data (Sheet "Testing")) on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
         Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
             out.delete_if_exists
-            table.write out (File_Format.Excel (Sheet "Sheet1") headers=False) on_problems=Report_Error . should_succeed
+            table.write out (File_Format.Excel_Data (Sheet "Sheet1") headers=False) on_problems=Report_Error . should_succeed
             written = out.read
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
@@ -189,8 +190,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -199,8 +200,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -209,8 +210,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -219,8 +220,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -229,8 +230,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -239,8 +240,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -249,8 +250,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB', [4, 5]], ['CC', [True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a', 'b', 'c', 'd', 'e']], ['BB', [1, 2, 3, 4, 5]], ['CC', [True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -259,8 +260,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -269,8 +270,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -279,8 +280,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA_1',[True, False]], ['BB_1', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA_1',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Random!S3")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Random!S3")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -289,8 +290,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -299,8 +300,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            written = out.read (File_Format.Excel_Data (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -308,7 +309,7 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch_Data
             out.delete_if_exists
 
         Test.specify 'should fail to append to a sheet by name if extra columns' <|
@@ -316,7 +317,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -325,8 +326,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (File_Format.Excel (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
-            extra_another.write out (File_Format.Excel (Sheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
+            extra_another.write out (File_Format.Excel_Data (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -335,7 +336,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -344,7 +345,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch
+            extra_another.write out (File_Format.Excel_Data (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -353,7 +354,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -362,7 +363,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data
+            extra_another.write out (File_Format.Excel_Data (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -399,66 +400,66 @@ spec =
             check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
 
         Test.specify 'should fail gracefully for invalid patterns' <|
-            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument_Error
-            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error
+            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for a cell' <|
             check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123] True
             check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123] True
             Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
             Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
-            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for a range' <|
             check_range (Excel_Range.for_range "Hello World" 55 120 123 14) 'Hello World' [14, 55, 120, 123]
             check_range (Excel_Range.for_range "Hello World" "BC" 120 "DS" 14) 'Hello World' [14, 55, 120, 123]
             Excel_Range.for_range "Test" 55 120 123 14 . address . should_equal "Test!BC14:DS120"
             Excel_Range.for_range "Hello World" 55 120 123 14 . address . should_equal "'Hello World'!BC14:DS120"
-            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for a column' <|
             check_range (Excel_Range.for_columns "Hello World" 123) 'Hello World' [Nothing, 123, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" "DS") 'Hello World' [Nothing, 123, Nothing, 123]
             Excel_Range.for_columns "Test" 123 . address . should_equal "Test!DS"
             Excel_Range.for_columns "Hello World" 123 . address . should_equal "'Hello World'!DS"
-            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for columns' <|
             check_range (Excel_Range.for_columns "Hello World" "BC" 123) 'Hello World' [Nothing, 55, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" 55 "DS") 'Hello World' [Nothing, 55, Nothing, 123]
             Excel_Range.for_columns "Test" 55 123 . address . should_equal "Test!BC:DS"
             Excel_Range.for_columns "Hello World" "BC" "DS" . address . should_equal "'Hello World'!BC:DS"
-            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for a row' <|
             check_range (Excel_Range.for_rows "Hello World" 123) 'Hello World' [123, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 123 . address . should_equal "Test!123"
             Excel_Range.for_rows "Hello World" 123 . address . should_equal "'Hello World'!123"
-            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify 'should allow Range creation for rows' <|
             check_range (Excel_Range.for_rows "Hello World" 55 123) 'Hello World' [55, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 55 123 . address . should_equal "Test!55:123"
             Excel_Range.for_rows "Hello World" 55 123 . address . should_equal "'Hello World'!55:123"
-            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error
-            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error_Data
 
     xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path
@@ -492,90 +493,90 @@ spec =
             check_table <| File.read xls_sheet
             check_table <| File.read xls_path
 
-        Test.specify "should let you read the first sheet with File_Format.Excel" <|
-            check_table <| xlsx_sheet.read File_Format.Excel
-            check_table <| File.read xlsx_sheet File_Format.Excel
-            check_table <| File.read xlsx_path File_Format.Excel
-            check_table <| xls_sheet.read File_Format.Excel
-            check_table <| File.read xls_sheet File_Format.Excel
-            check_table <| File.read xls_path File_Format.Excel
+        Test.specify "should let you read the first sheet with File_Format.Excel_Data" <|
+            check_table <| xlsx_sheet.read File_Format.Excel_Data
+            check_table <| File.read xlsx_sheet File_Format.Excel_Data
+            check_table <| File.read xlsx_path File_Format.Excel_Data
+            check_table <| xls_sheet.read File_Format.Excel_Data
+            check_table <| File.read xls_sheet File_Format.Excel_Data
+            check_table <| File.read xls_path File_Format.Excel_Data
 
         Test.specify "should let you read the sheet names" <|
             sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
-            xlsx_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
-            xls_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
+            xlsx_sheet.read (File_Format.Excel_Data Sheet_Names) . should_equal sheet_names
+            xls_sheet.read (File_Format.Excel_Data Sheet_Names) . should_equal sheet_names
 
         Test.specify "should let you read the range names" <|
             range_names = ["myData"]
-            xlsx_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
-            xls_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
+            xlsx_sheet.read (File_Format.Excel_Data Range_Names) . should_equal range_names
+            xls_sheet.read (File_Format.Excel_Data Range_Names) . should_equal range_names
 
         Test.specify "should let you read by sheet index" <|
-            table = xlsx_sheet.read (File_Format.Excel (Sheet 1))
+            table = xlsx_sheet.read (File_Format.Excel_Data (Sheet 1))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel_Data (Sheet 1 (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read by sheet name" <|
-            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            table = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet index" <|
-            table = xls_sheet.read (File_Format.Excel (Sheet 1))
+            table = xls_sheet.read (File_Format.Excel_Data (Sheet 1))
             check_table table
 
-            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2 = xls_sheet.read (File_Format.Excel_Data (Sheet 1 (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet name" <|
-            table = xls_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            table = xls_sheet.read (File_Format.Excel_Data (Sheet "Sheet1"))
             check_table table
 
         Test.specify "should let you read by range" <|
-            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C"))
+            table = xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!A:C"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.row_count - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!A:C" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
-            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!10:13"))
-            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A10:C13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!10:13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!A10:C13"))
 
         Test.specify "should let you read by range name" <|
-            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "myData"))
+            table = xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "myData"))
             table.row_count . should_equal col_a.length
             check_table <| table
 
         Test.specify "should let you restrict number of rows read and skip rows" <|
-            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            table = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
-            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length) 2))
+            table_3 = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1" (table.row_count - col_a.length) 2))
             table_3.row_count . should_equal 2
 
-            table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
+            table_4 = xlsx_sheet.read (File_Format.Excel_Data (Sheet "Sheet1" row_limit=6))
             table_4.row_count . should_equal 6
 
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"
-            bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
+            bad_file.read (File_Format.Excel_Data (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.IO_Error
-            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.IO_Error
+            xlsx_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.IO_Error
+            xls_sheet.read (File_Format.Excel_Data (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.IO_Error
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
@@ -591,42 +592,42 @@ spec =
                 table.at (col_names.at idx) . to_vector . should_equal values
 
         Test.specify "Simple table" <|
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1"))) ["AA", "BB"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A2"))) ["A", "B"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1:A1"))) ["A"] [["AA"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1"))) ["B"] [["BB", "A","B","C","D","E","F"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1") headers=True)) ["BB"] [["A","B","C","D","E","F"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!A1"))) ["AA", "BB"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!A2"))) ["A", "B"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!A1:A1"))) ["A"] [["AA"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!B1"))) ["B"] [["BB", "A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!B1") headers=True)) ["BB"] [["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
 
         Test.specify "Patchy table" <|
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E1"))) ["B", "Column_1"] [[4,4,Nothing], [6,Nothing,6]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!D1"))) ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!E1"))) ["B", "Column_1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Single cell" <|
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H1"))) ["H"] [["Single Cell"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H2"))) ["H"] [[]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!H1"))) ["H"] [["Single Cell"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!H2"))) ["H"] [[]]
 
         Test.specify "Single line" <|
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
 
         Test.specify "Growing table" <|
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column_1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column_1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
-            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column_1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column_1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel_Data (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
 
         Test.specify "Should handle invalid headers with warnings" <|
-            action = file.read (File_Format.Excel (Cell_Range "Sheet1!D1")) on_problems=_
+            action = file.read (File_Format.Excel_Data (Cell_Range "Sheet1!D1")) on_problems=_
             tester = check_table _ ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names_Data [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "Should handle duplicate headers with warnings" <|
-            action = file.read (File_Format.Excel (Cell_Range "Sheet1!S1")) on_problems=_
+            action = file.read (File_Format.Excel_Data (Cell_Range "Sheet1!S1")) on_problems=_
             tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
-            problems = [Duplicate_Output_Column_Names ["DD"]]
+            problems = [Duplicate_Output_Column_Names_Data ["DD"]]
             Problems.test_problem_handling action problems tester
 
     spec_write "xlsx" 'TestSheet.xlsx'

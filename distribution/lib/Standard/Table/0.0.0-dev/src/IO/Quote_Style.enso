@@ -6,7 +6,7 @@ type Quote_Style
        No quote parsing is done when reading the file.
        In write mode, values are not quoted even if this would result in an
        invalid file.
-    type No_Quotes
+    No_Quotes
 
     ## Specifies the style of quotes when reading or writing a `Delimited` file.
 
@@ -30,4 +30,4 @@ type Quote_Style
          The quote and escape characters must consist of exactly one code-point
          (i.e. it can be only one character and complex characters like emojis
          may not be used).
-    type With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = '"')
+    With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = '"')

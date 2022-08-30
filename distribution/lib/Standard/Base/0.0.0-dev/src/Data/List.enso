@@ -18,14 +18,14 @@ import Standard.Base.Runtime.Unsafe
 type List
 
     ## The type that indicates the end of a cons list.
-    type Nil
+    Nil
 
     ## A cons cell for a cons list.
 
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    type Cons x xs
+    Cons x xs
 
     ## Computes the number of elements in the list.
 

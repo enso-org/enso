@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Time.Duration
 
 import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Time_Error
+from Standard.Base.Error.Common import Time_Error_Data
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -60,7 +60,7 @@ new year (month = 1) (day = 1) =
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
     Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
-        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
+        Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
         ex -> ex
 
 ## ALIAS Date from Text
@@ -130,26 +130,25 @@ parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
         Nothing -> Date.internal_parse text 0
         Text -> Date.internal_parse text pattern
-        _ -> Panic.throw (Time_Error "An invalid pattern was provided.")
+        _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
     result . map_error <| case _ of
-        Polyglot_Error err -> Time_Error err.getMessage
+        Polyglot_Error_Data err -> Time_Error_Data err.getMessage
         ex -> ex
 
+
+## This type represents a date, often viewed as year-month-day.
+
+   Arguments:
+   - internal_local_date: The internal date representation.
+
+   For example, the value "2nd October 2007" can be stored in a `Date`.
+
+   This class does not store or represent a time or timezone. Instead, it
+   is a description of the date, as used for birthdays. It cannot represent
+   an instant on the time-line without additional information such as an
+   offset or timezone.
+@Builtin_Type
 type Date
-
-    ## This type represents a date, often viewed as year-month-day.
-
-       Arguments:
-       - internal_local_date: The internal date representation.
-
-       For example, the value "2nd October 2007" can be stored in a `Date`.
-
-       This class does not store or represent a time or timezone. Instead, it
-       is a description of the date, as used for birthdays. It cannot represent
-       an instant on the time-line without additional information such as an
-       offset or timezone.
-    @Builtin_Type
-    type Date
 
     ## Get the year field.
 
@@ -260,7 +259,7 @@ type Date
 
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
-    + self amount = if amount.is_time then Error.throw (Time_Error "Date does not support time intervals") else
+    + self amount = if amount.is_time then Error.throw (Time_Error_Data "Date does not support time intervals") else
         (Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period) . internal_local_date
 
     ## Subtract the specified amount of time from this instant to get another
@@ -277,7 +276,7 @@ type Date
 
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
-    - self amount = if amount.is_time then Error.throw (Time_Error "Date does not support time intervals") else
+    - self amount = if amount.is_time then Error.throw (Time_Error_Data "Date does not support time intervals") else
         (Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS amount.internal_period) . internal_local_date
 
 

@@ -1,5 +1,5 @@
 type Meh
-    type Foo a
-    type Bar b
+    Foo a
+    Bar b
 
     create a = Bar a

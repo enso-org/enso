@@ -12,7 +12,7 @@ from Standard.Base import all
 
          example_form_new = Form.new (Form.text_field "foo" "bar")
 new : Vector.Vector -> Form
-new parts = Form parts
+new parts = Form_Data parts
 
 # Helpers for creating different parts of the form.
 
@@ -29,7 +29,7 @@ new parts = Form parts
 
          example_text_field = Form.text_field "Foo" "bar"
 text_field : Text -> Text -> Part
-text_field key val = Part key (Part_Text val)
+text_field key val = Part_Data key (Part_Text val)
 
 ## Create a file field of a Form.
 
@@ -44,7 +44,7 @@ text_field key val = Part key (Part_Text val)
 
          example_text_field = Form.file_field "Foo" "My file contents"
 file_field : Text -> Text -> Part
-file_field key file = Part key (Part_File file)
+file_field key file = Part_Data key (Part_File file)
 
 ## The HTTP form containing a vector of parts.
 type Form
@@ -55,7 +55,7 @@ type Form
 
        Arguments:
        - parts: A vector of form segments.
-    type Form parts
+    Form_Data parts
 
     ## Convert this to a Form.
 
@@ -79,7 +79,7 @@ type Form
              part_1 = Form.text_field "Foo" "bar"
              part_2 = Form.text_field "Baz" "quux"
              [part_1, part_2].to_form
-Vector.Vector.to_form self = Form self
+Vector.Vector.to_form self = Form_Data self
 
 ## The key-value element of the form.
 type Part
@@ -89,7 +89,7 @@ type Part
        Arguments:
        - key: The key for the form section.
        - value: The value of the form section.
-    type Part key value
+    Part_Data key value
 
 ## The value of the form element.
 type Part_Value
@@ -98,10 +98,10 @@ type Part_Value
 
        Arguments:
        - part_text: The text for the form part.
-    type Part_Text part_text
+    Part_Text part_text
 
     ## A file value for a form part.
 
        Arguments:
        - part_file: The file for the form part.
-    type Part_File part_file
+    Part_File part_file

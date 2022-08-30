@@ -20,7 +20,7 @@ import Standard.Visualization.Helpers
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Json
 prepare_visualization x max_rows = Helpers.recover_errors <| case x of
-    Dataframe_Table.Table _ ->
+    Dataframe_Table.Table_Data _ ->
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
@@ -28,7 +28,7 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
             Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
         make_json dataframe [index] all_rows_count
 
-    Database_Table.Table _ _ _ _ ->
+    Database_Table.Table_Data _ _ _ _ ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
         df = x.reset_index.to_dataframe max_rows
         # Then split into actual columns and indices.
@@ -38,25 +38,25 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
         make_json vis_df indices all_rows_count
 
     # We display columns as 1-column tables.
-    Dataframe_Column.Column _ ->
+    Dataframe_Column.Column_Data _ ->
         prepare_visualization x.to_table max_rows
-    Database_Column.Column _ _ _ _ _ ->
+    Database_Column.Column_Data _ _ _ _ _ ->
         prepare_visualization x.to_table max_rows
 
     # We display aggregates as their ungrouped counterparts.
-    Dataframe_Column.Aggregate_Column _ ->
-        ungrouped = Dataframe_Column.Column x.java_column.getColumn
+    Dataframe_Column.Aggregate_Column_Data _ ->
+        ungrouped = Dataframe_Column.Column_Data x.java_column.getColumn
         prepare_visualization ungrouped.to_table max_rows
-    Database_Column.Aggregate_Column_Builder _ _ _ _ _ ->
+    Database_Column.Aggregate_Column_Builder_Data _ _ _ _ _ ->
         prepare_visualization x.ungrouped.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays
-    Vector.Vector _ ->
+    Vector.Vector_Data _ ->
         truncated = x.take (First max_rows)
         Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     Array ->
-        prepare_visualization (Vector.Vector x) max_rows
+        prepare_visualization (Vector.Vector_Data x) max_rows
 
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->

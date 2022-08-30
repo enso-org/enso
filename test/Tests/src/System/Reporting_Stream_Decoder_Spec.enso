@@ -89,7 +89,7 @@ spec =
         Test.specify "should raise warnings when reading invalid characters" <|
             encoding = Encoding.ascii
             expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            expected_problems = [Encoding_Error "Encoding issues at bytes 14, 15, 16."]
+            expected_problems = [Encoding_Error_Data "Encoding issues at bytes 14, 15, 16."]
             contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
             contents_1.should_equal expected_contents
             Warning.get_all contents_1 . map .value . should_equal expected_problems

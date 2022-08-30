@@ -1,8 +1,9 @@
 import Standard.Base.Nothing
 import local.TestNonImportedOwnMethods.Util
 
-type X a
+type X
+    Mk_X a
 
 X.method self = 10
 
-main = Nothing.util (X 1)
+main = Nothing.util (Mk_X 1)

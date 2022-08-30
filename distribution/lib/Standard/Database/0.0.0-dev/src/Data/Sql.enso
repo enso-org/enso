@@ -8,7 +8,7 @@ polyglot java import java.sql.Types
 
    Creates a Builder representing and empty code fragment.
 empty : Builder
-empty = Builder (Vector_Builder.empty)
+empty = Builder_Data (Vector_Builder.empty)
 
 ## UNSTABLE
 
@@ -20,7 +20,7 @@ empty = Builder (Vector_Builder.empty)
 code : Text -> Builder
 code text =
     vec = if text.is_empty then [] else [Sql_Code_Part text]
-    Builder (Vector_Builder.from_vector vec)
+    Builder_Data (Vector_Builder.from_vector vec)
 
 ## UNSTABLE
 
@@ -31,7 +31,7 @@ code text =
    - object: The object to be interpolated into the query as if it has the type
      given by `sql_type`.
 interpolation : Sql_Type -> Any -> Builder
-interpolation sql_type object = Builder (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
+interpolation sql_type object = Builder_Data (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
 
 ## UNSTABLE
 
@@ -43,7 +43,7 @@ interpolation sql_type object = Builder (Vector_Builder.from_vector [Sql_Interpo
 join : Builder | Text -> Vector Builder -> Builder
 join separator statements =
     sep = case separator of
-        Builder _ -> separator
+        Builder_Data _ -> separator
         _ -> code separator
 
     if statements.length == 0 then empty else
@@ -57,59 +57,59 @@ type Sql_Type
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
        - name: a database-specific type name, used for pretty printing.
-    type Sql_Type typeid name
+    Sql_Type_Data typeid name
 
     == self that = case that of
-        Sql_Type that_id _ ->
+        Sql_Type_Data that_id _ ->
             self.typeid == that_id
         _ -> False
 
     ## The SQL representation of `Boolean` type.
     boolean : Sql_Type
-    boolean = Sql_Type Types.BOOLEAN "BOOLEAN"
+    boolean = Sql_Type_Data Types.BOOLEAN "BOOLEAN"
 
     ## The SQL representation of `Integer` type.
     integer : Sql_Type
-    integer = Sql_Type Types.INTEGER "INTEGER"
+    integer = Sql_Type_Data Types.INTEGER "INTEGER"
 
     ## The SQL representation of the `BIGINT` type.
     bigint : Sql_Type
-    bigint = Sql_Type Types.BIGINT "BIGINT"
+    bigint = Sql_Type_Data Types.BIGINT "BIGINT"
 
     ## The SQL representation of the `SMALLINT` type.
     smallint : Sql_Type
-    smallint = Sql_Type Types.SMALLINT "SMALLINT"
+    smallint = Sql_Type_Data Types.SMALLINT "SMALLINT"
 
     ## The SQL type representing decimal numbers.
     decimal : Sql_Type
-    decimal = Sql_Type Types.DECIMAL "DECIMAL"
+    decimal = Sql_Type_Data Types.DECIMAL "DECIMAL"
 
     ## The SQL type representing decimal numbers.
     real : Sql_Type
-    real = Sql_Type Types.REAL "REAL"
+    real = Sql_Type_Data Types.REAL "REAL"
 
     ## The SQL type representing double-precision floating-point numbers.
     double : Sql_Type
-    double = Sql_Type Types.DOUBLE "DOUBLE PRECISION"
+    double = Sql_Type_Data Types.DOUBLE "DOUBLE PRECISION"
 
     ## The SQL type representing a general numeric type.
     numeric : Sql_Type
-    numeric = Sql_Type Types.NUMERIC "NUMERIC"
+    numeric = Sql_Type_Data Types.NUMERIC "NUMERIC"
 
     ## The SQL type representing one of the suppported textual types.
     varchar : Sql_Type
-    varchar = Sql_Type Types.VARCHAR "VARCHAR"
+    varchar = Sql_Type_Data Types.VARCHAR "VARCHAR"
 
     ## UNSTABLE
        The SQL type representing one of the suppported textual types.
 
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
     text : Sql_Type
-    text = Sql_Type Types.VARCHAR "VARCHAR"
+    text = Sql_Type_Data Types.VARCHAR "VARCHAR"
 
     ## The SQL type representing a binary object.
     blob : Sql_Type
-    blob = Sql_Type Types.BLOB "BLOB"
+    blob = Sql_Type_Data Types.BLOB "BLOB"
 
     ## PRIVATE
 
@@ -152,7 +152,7 @@ type Sql_Type
        match more possible types.
     is_likely_text : Boolean
     is_likely_text self =
-       self.is_definitely_text || self.name.contains "text" (Text_Matcher Case_Insensitive)
+       self.is_definitely_text || self.name.contains "text" (Text_Matcher_Data Case_Insensitive_Data)
 
 
 ## UNSTABLE
@@ -171,7 +171,7 @@ type Sql_Fragment
        Arguments:
        - code: A fragment of SQL code.
     # type Sql_Code_Part (code : Text)
-    type Sql_Code_Part code
+    Sql_Code_Part code
 
     ## UNSTABLE
 
@@ -183,7 +183,7 @@ type Sql_Fragment
        - object: A value that will be interpolated into the query, interpreted
          as having the type `sql_type`.
     # type Sql_Interpolation (sql_type : Sql_Type) (object : Any)
-    type Sql_Interpolation sql_type object
+    Sql_Interpolation sql_type object
 
 type Statement
 
@@ -197,7 +197,7 @@ type Statement
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
     # type Statement (internal_fragments : Vector Sql_Fragment)
-    type Statement internal_fragments
+    Statement_Data internal_fragments
 
     ## UNSTABLE
 
@@ -273,7 +273,7 @@ type Builder
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
     # type Builder (fragments : Vector_Builder.Vector_Builder Sql_Fragment)
-    type Builder fragments
+    Builder_Data fragments
 
     ## UNSTABLE
 
@@ -282,7 +282,7 @@ type Builder
        Arguments:
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
-    ++ self other = Builder (self.fragments ++ other.fragments)
+    ++ self other = Builder_Data (self.fragments ++ other.fragments)
 
     ## UNSTABLE
 
@@ -296,7 +296,7 @@ type Builder
     build : Statement
     build self =
         fragments = optimize_fragments self.fragments.build
-        Statement fragments
+        Statement_Data fragments
 
     ## UNSTABLE
 
@@ -318,7 +318,7 @@ type Builder
     prefix_if_present : Text | Builder -> Builder
     prefix_if_present self prefix =
         pref = case prefix of
-            Builder _ -> prefix
+            Builder_Data _ -> prefix
             _ -> code prefix
         if self.is_empty then self else pref++self
 

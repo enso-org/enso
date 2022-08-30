@@ -80,12 +80,13 @@ class RuntimeManagementTest extends InterpreterTest {
           |from Standard.Base.Runtime.Resource import Managed_Resource
           |from Standard.Base.IO import all
           |
-          |type Mock_File i
+          |type Mock_File
+          |    Mk_Mock_File i
           |
           |free_resource r = IO.println ("Freeing: " + r.to_text)
           |
           |create_resource i =
-          |    c = Mock_File i
+          |    c = Mk_Mock_File i
           |    r = Managed_Resource.register c free_resource
           |    r . with f-> IO.println ("Accessing: " + f.to_text)
           |
@@ -107,8 +108,8 @@ class RuntimeManagementTest extends InterpreterTest {
         totalOut ++= consumeOut
       }
 
-      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def mkAccessStr(i: Int): String = s"Accessing: (Mk_Mock_File $i)"
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mk_Mock_File $i)"
       def all                         = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
@@ -120,12 +121,13 @@ class RuntimeManagementTest extends InterpreterTest {
           |from Standard.Base.IO import all
           |import Standard.Base.Nothing
           |
-          |type Mock_File i
+          |type Mock_File
+          |    Mk_Mock_File i
           |
           |free_resource r = IO.println ("Freeing: " + r.to_text)
           |
           |create_resource i =
-          |    c = Mock_File i
+          |    c = Mk_Mock_File i
           |    r = Managed_Resource.register c free_resource
           |    r . with f-> IO.println ("Accessing: " + f.to_text)
           |    if i % 2 == 0 then r.finalize else Nothing
@@ -148,8 +150,8 @@ class RuntimeManagementTest extends InterpreterTest {
         totalOut ++= consumeOut
       }
 
-      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def mkAccessStr(i: Int): String = s"Accessing: (Mk_Mock_File $i)"
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mk_Mock_File $i)"
       def all                         = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
@@ -161,12 +163,13 @@ class RuntimeManagementTest extends InterpreterTest {
           |from Standard.Base.IO import all
           |import Standard.Base.Nothing
           |
-          |type Mock_File i
+          |type Mock_File
+          |    Mk_Mock_File i
           |
           |free_resource r = IO.println ("Freeing: " + r.to_text)
           |
           |create_resource i =
-          |    c = Mock_File i
+          |    c = Mk_Mock_File i
           |    r = Managed_Resource.register c free_resource
           |    r . with f-> IO.println ("Accessing: " + f.to_text)
           |    if i % 2 == 0 then r.take else Nothing
@@ -189,8 +192,8 @@ class RuntimeManagementTest extends InterpreterTest {
         totalOut ++= consumeOut
       }
 
-      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def mkAccessStr(i: Int): String = s"Accessing: (Mk_Mock_File $i)"
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mk_Mock_File $i)"
       def all                         = 0.to(4).map(mkAccessStr) ++ List(1, 3).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }

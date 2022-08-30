@@ -7,7 +7,8 @@ import org.enso.compiler.data.BindingsMap.{
   Cons,
   ModuleMethod,
   ModuleReference,
-  PolyglotSymbol
+  PolyglotSymbol,
+  Type
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -57,7 +58,8 @@ class BindingAnalysisTest extends CompilerTest {
           |polyglot java import foo.bar.baz.MyClass
           |polyglot java import foo.bar.baz.OtherClass as Renamed_Class
           |
-          |type Foo a b c
+          |type Foo
+          |    Mk_Foo a b c
           |type Bar
           |type Baz x y
           |
@@ -74,11 +76,14 @@ class BindingAnalysisTest extends CompilerTest {
 
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
-      metadata.constructors shouldEqual List(
-        Cons("Foo", 3, false),
-        Cons("Bar", 0, true),
-        Cons("Baz", 2, false)
+      metadata.types shouldEqual List(
+        Type("Foo", List("Mk_Foo"), false),
+        Type("Bar", List(), false),
+        Type("Baz", List(), false)
       )
+
+      metadata.constructors shouldEqual List(Cons("Mk_Foo", 3, false))
+
       metadata.polyglotSymbols shouldEqual List(
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class")

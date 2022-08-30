@@ -100,20 +100,6 @@ class MethodsTest extends InterpreterTest {
       eval(code) shouldEqual 19
     }
 
-    "be dispatched to the proper constructor" in {
-      val code =
-        """from Standard.Base.Data.List import all
-          |
-          |Nil.sum self = acc -> acc
-          |Cons.sum self = acc -> case self of
-          |  Cons h t -> t.sum (h + acc)
-          |
-          |main = Cons 1 (Cons 2 Nil) . sum 0
-          |""".stripMargin
-
-      eval(code) shouldEqual 3
-    }
-
     "throw an exception when non-existent" in {
       val code =
         """
@@ -135,10 +121,10 @@ class MethodsTest extends InterpreterTest {
           |type Baz
           |
           |Any.Any.method self = case self of
-          |  Foo -> 1
-          |  Bar -> 2
-          |  Baz -> 3
-          |  _ -> 0
+          |    Foo -> 1
+          |    Bar -> 2
+          |    Baz -> 3
+          |    _ -> 0
           |
           |main =
           |    IO.println Foo.method
@@ -164,22 +150,6 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       //eval(code) shouldEqual 1
       pending
-    }
-
-    "work as expected when defined across different constructors" in {
-      val code =
-        """from Standard.Base.Data.List import all
-          |
-          |Nil.sum self = 0
-          |Cons.sum self = case self of
-          |  Cons h t -> h + t.sum
-          |
-          |main =
-          |    myList = Cons 1 (Cons 2 (Cons 3 Nil))
-          |    myList.sum
-          |""".stripMargin
-
-      eval(code) shouldEqual 6
     }
   }
 }

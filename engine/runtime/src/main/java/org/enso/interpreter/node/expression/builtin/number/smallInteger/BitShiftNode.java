@@ -30,7 +30,7 @@ public abstract class BitShiftNode extends Node {
   private final ConditionProfile rightShiftExceedsLongWidth =
       ConditionProfile.createCountingProfile();
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(long self, Object that);
 
   static BitShiftNode build() {
     return BitShiftNodeGen.create();
@@ -82,23 +82,10 @@ public abstract class BitShiftNode extends Node {
     }
   }
 
-  /* Note [Well-Formed BigIntegers]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * As EnsoBigInteger should only be encountered when the integral value cannot be represented in
-   * a standard `long`, we can safely rule out that the shift width is zero.
-   */
-
-  @Specialization
-  Object doAtomThis(Atom self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, that, "this"), this);
-  }
-
   @Fallback
-  Object doOther(Object self, Object that) {
+  Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 

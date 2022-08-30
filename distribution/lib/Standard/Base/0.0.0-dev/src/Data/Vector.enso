@@ -91,10 +91,10 @@ new_builder (capacity=10) = Builder.new capacity
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
 from_polyglot_array : Any -> Vector Any
-from_polyglot_array arr = Vector (Proxy_Polyglot_Array.Proxy_Polyglot_Array arr)
+from_polyglot_array arr = Vector_Data (Proxy_Polyglot_Array.Proxy_Polyglot_Array_Data arr)
 
 ## The basic, immutable, vector type.
-type Vector
+type Vector a
 
     ## ADVANCED
 
@@ -114,13 +114,13 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    type Vector storage
+    Vector_Data storage
 
     ## PRIVATE
     to_array self =
         arr = self.storage.to_array
         case Meta.meta arr of
-            Meta.Primitive _ -> arr
+            Meta.Primitive_Data _ -> arr
             _ ->
                 len = self.storage.length
                 a = Array.new len
@@ -156,8 +156,8 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error (self.unsafe_at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index self.length)
+        Panic.catch Invalid_Array_Index_Error_Data (self.unsafe_at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## ADVANCED
        UNSTABLE
@@ -240,7 +240,7 @@ type Vector
     sum self =
         result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error _ _ -> x
+            No_Such_Method_Error_Data _ _ -> x
             Empty_Error -> x
             _ -> Panic.throw x
 
@@ -393,12 +393,12 @@ type Vector
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition self predicate =
-        pair = self.fold (Pair new_builder new_builder) acc-> elem->
+        pair = self.fold (Pair_Data new_builder new_builder) acc-> elem->
             case predicate elem of
                 True ->
-                    Pair (acc.first.append elem) acc.second
+                    Pair_Data (acc.first.append elem) acc.second
                 False ->
-                    Pair acc.first (acc.second.append elem)
+                    Pair_Data acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
@@ -421,10 +421,10 @@ type Vector
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair new_builder new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair_Data new_builder new_builder) acc-> ix-> elem->
             case predicate ix elem of
-                True -> Pair (acc.first.append elem) acc.second
-                False -> Pair acc.first (acc.second.append elem)
+                True -> Pair_Data (acc.first.append elem) acc.second
+                False -> Pair_Data acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Applies a function to each element of the vector, returning the vector of
@@ -471,7 +471,7 @@ type Vector
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        Vector arr
+        Vector_Data arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -561,7 +561,7 @@ type Vector
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument_Error "The `max_entries` parameter must be positive." else
+        if max_entries < 1 then Error.throw <| Illegal_Argument_Error_Data "The `max_entries` parameter must be positive." else
             prefix = self.take (First max_entries)
             if prefix.length == self.length then self.to_text else
                 remaining_count = self.length - prefix.length
@@ -602,7 +602,7 @@ type Vector
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        Vector arr
+        Vector_Data arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -667,7 +667,7 @@ type Vector
                 len = slice_end - slice_start
                 arr = Array.new len
                 Array.copy self.to_array slice_start arr 0 len
-                Vector arr
+                Vector_Data arr
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -820,7 +820,7 @@ type Vector
              [1, 2, 3, 4].second
     second : Vector ! Singleton_Error
     second self = if self.length >= 2 then self.unsafe_at 1 else
-        Error.throw (Singleton_Error self)
+        Error.throw (Singleton_Error_Data self)
 
     ## Get all elements in the vector except the first.
 
@@ -889,7 +889,7 @@ type Vector
 
         new_vec_arr.sort compare
 
-        Vector new_vec_arr
+        Vector_Data new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
@@ -982,7 +982,7 @@ type Builder
          and get wrong error propagation. Instead we may want to have a `Ref`
          inside of the Builder. Any error detected during `append` could set
          that `Ref` and then `to_vector` could propagate that error.
-    type Builder java_builder
+    Builder_Data java_builder
 
     ## Creates a new builder.
 
@@ -994,7 +994,7 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=10) = Builder (ArrayList.new capacity)
+    new (capacity=10) = Builder_Data (ArrayList.new capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
@@ -1073,7 +1073,7 @@ type Builder
     at self index =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index self.length)
+            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
@@ -1120,7 +1120,8 @@ Empty_Error.to_display_text self = "The vector is empty."
 
    Arguments:
    - vec: The vector that only has one element.
-type Singleton_Error vec
+type Singleton_Error
+    Singleton_Error_Data vec
 
 ## UNSTABLE
 
@@ -1130,7 +1131,8 @@ Singleton_Error.to_display_text self =
     "The vector " + self.vec.to_text  + " has only one element."
 
 ## PRIVATE
-type Partition_Accumulator true_builder false_builder ix
+type Partition_Accumulator
+    Partition_Accumulator_Data true_builder false_builder ix
 
 ## UNSTABLE
 
@@ -1143,7 +1145,7 @@ type Incomparable_Values_Error
    Incomparable_Values_Error if any occur.
 handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
-    handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
+    handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <| function
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the
@@ -1156,7 +1158,7 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 Integer -> [vector.unsafe_at ranges.first]
-                Range start end step -> case step == 1 of
+                Range_Data start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
@@ -1165,12 +1167,12 @@ slice_ranges vector ranges =
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         Integer -> acc+1
-        Range _ _ _ -> acc+descriptor.length
+        Range_Data _ _ _ -> acc+descriptor.length
     builder = new_builder new_length
     ranges.each descriptor-> case descriptor of
         Integer ->
             builder.append (vector.unsafe_at descriptor)
-        Range start end step -> case step == 1 of
+        Range_Data start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->

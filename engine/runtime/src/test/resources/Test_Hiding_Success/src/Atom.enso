@@ -1,5 +1,7 @@
-type X a
+type X
+    Mk_X a
 
-type Y b
+type Y
+    Mk_Y b
 
 X.method self = 20

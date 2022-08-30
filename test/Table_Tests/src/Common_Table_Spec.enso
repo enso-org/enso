@@ -12,7 +12,8 @@ import Standard.Test.Problems
 
 from project.Util import all
 
-type Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
+type Test_Selection
+    Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
 
 ## A common test suite for shared operations on the Table API.
 
@@ -52,7 +53,7 @@ spec prefix table_builder test_selection pending=Nothing =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error
+            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error_Data
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
             column_1.name . should_equal "foo"
@@ -66,7 +67,7 @@ spec prefix table_builder test_selection pending=Nothing =
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error
+            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
     Test.group prefix+"Table.column_count" pending=pending <|
         Test.specify "should allow getting the column count" <|
@@ -75,7 +76,7 @@ spec prefix table_builder test_selection pending=Nothing =
     Test.group prefix+"Table.select_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"])
-            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data))
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
 
             column1 = table.at "foo_1"
@@ -89,11 +90,11 @@ spec prefix table_builder test_selection pending=Nothing =
             table_2 . at "foo" . to_vector . should_equal [1,2,3]
 
         Test.specify "should correctly handle regex matching" <|
-            expect_column_names ["foo"] <| table.select_columns (By_Name ["foo"] Regex_Matcher)
-            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["a.*"] Regex_Matcher)
-            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["ab.+123"] Regex_Matcher)
+            expect_column_names ["foo"] <| table.select_columns (By_Name ["foo"] Regex_Matcher_Data)
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["a.*"] Regex_Matcher_Data)
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns (By_Name ["ab.+123"] Regex_Matcher_Data)
             expect_column_names ["ab.+123"] <| table.select_columns (By_Name ["ab.+123"])
-            expect_column_names ["abcd123"] <| table.select_columns (By_Name ["abcd123"] Regex_Matcher)
+            expect_column_names ["abcd123"] <| table.select_columns (By_Name ["abcd123"] Regex_Matcher_Data)
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["foo", "bar", "foo_2"] <| table.select_columns (By_Index [-3, 0, 1])
@@ -105,52 +106,52 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
+                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] Regex_Matcher)
-            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] Regex_Matcher) reorder=True
+            expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] Regex_Matcher_Data)
+            expect_column_names ["bar", "foo", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] Regex_Matcher_Data) reorder=True
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo", "bar"]
-            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors [0, 0]]
+            problems = [Duplicate_Column_Selectors_Data [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo", "bar"]
-            problems = [Input_Indices_Already_Matched [-7, 1]]
+            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name ["foo", "foo"]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            selector = By_Name ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -158,7 +159,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Name ["foo", "hmm", weird_name]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Missing_Input_Columns ["hmm", weird_name]]
+            problems = [Missing_Input_Columns_Data ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate columns" <|
@@ -166,7 +167,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [foo, foo]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -178,7 +179,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [bar, weird_column, foo]
             action = table.select_columns selector reorder=True on_problems=_
             tester = expect_column_names ["bar", "foo"]
-            problems = [Missing_Input_Columns ["weird_column"]]
+            problems = [Missing_Input_Columns_Data ["weird_column"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: no columns in the output" <|
@@ -192,18 +193,18 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Name ["hmmm"]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names []
-            problems = [Missing_Input_Columns ["hmmm"], No_Output_Columns]
+            problems = [Missing_Input_Columns_Data ["hmmm"], No_Output_Columns]
             Problems.test_problem_handling action problems tester
 
             action_2 = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
             tester_2 = expect_column_names ["foo"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
     Test.group prefix+"Table.remove_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["bar", "foo"])
-            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
+            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data))
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123"] <| table.remove_columns (By_Index [-1, 0, 1])
 
             column1 = table.at "foo_1"
@@ -212,12 +213,12 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should correctly handle regex matching" <|
             last_ones = table.columns.tail.map .name
-            expect_column_names last_ones <| table.remove_columns (By_Name ["foo"] Regex_Matcher)
+            expect_column_names last_ones <| table.remove_columns (By_Name ["foo"] Regex_Matcher_Data)
             first_ones = ["foo", "bar", "Baz", "foo_1", "foo_2"]
-            expect_column_names first_ones <| table.remove_columns (By_Name ["a.*"] Regex_Matcher)
-            expect_column_names first_ones <| table.remove_columns (By_Name ["ab.+123"] Regex_Matcher)
+            expect_column_names first_ones <| table.remove_columns (By_Name ["a.*"] Regex_Matcher_Data)
+            expect_column_names first_ones <| table.remove_columns (By_Name ["ab.+123"] Regex_Matcher_Data)
             expect_column_names first_ones+["abcd123"] <| table.remove_columns (By_Name ["ab.+123"])
-            expect_column_names first_ones+["ab.+123"] <| table.remove_columns (By_Name ["abcd123"] Regex_Matcher)
+            expect_column_names first_ones+["ab.+123"] <| table.remove_columns (By_Name ["abcd123"] Regex_Matcher_Data)
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["Baz", "foo_1", "ab.+123"] <| table.remove_columns (By_Index [-1, -3, 0, 1])
@@ -229,51 +230,51 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
+                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["b.*", "f.+"] Regex_Matcher)
+            expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["b.*", "f.+"] Regex_Matcher_Data)
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors [0, 0]]
+            problems = [Duplicate_Column_Selectors_Data [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Input_Indices_Already_Matched [-7, 1]]
+            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name ["foo", "foo"]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            selector = By_Name ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -281,7 +282,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Name ["foo", "hmm", weird_name]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Missing_Input_Columns ["hmm", weird_name]]
+            problems = [Missing_Input_Columns_Data ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate columns" <|
@@ -289,7 +290,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [foo, foo]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -301,32 +302,32 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [bar, weird_column, foo]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Missing_Input_Columns ["weird_column"]]
+            problems = [Missing_Input_Columns_Data ["weird_column"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: no columns in the output" <|
-            selector = By_Name [".*"] Regex_Matcher
+            selector = By_Name [".*"] Regex_Matcher_Data
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names []
             problems = [No_Output_Columns]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle multiple problems" <|
-            selector = By_Name [".*", "hmmm"] Regex_Matcher
+            selector = By_Name [".*", "hmmm"] Regex_Matcher_Data
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names []
-            problems = [Missing_Input_Columns ["hmmm"], No_Output_Columns]
+            problems = [Missing_Input_Columns_Data ["hmmm"], No_Output_Columns]
             Problems.test_problem_handling action problems tester
 
             action_2 = table.remove_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
             tester_2 = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
     Test.group prefix+"Table.reorder_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
-            expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
+            expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitive=Case_Insensitive_Data))
             expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Index [0]) position=After_Other_Columns
 
@@ -335,12 +336,12 @@ spec prefix table_builder test_selection pending=Nothing =
             expect_column_names ["foo_1", "Baz", "foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Column [column1, column2])
 
         Test.specify "should correctly handle regex matching" <|
-            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"] Regex_Matcher) position=After_Other_Columns
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"] Regex_Matcher_Data) position=After_Other_Columns
             rest = ["foo", "bar", "Baz", "foo_1", "foo_2"]
-            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["a.*"] Regex_Matcher)
-            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["ab.+123"] Regex_Matcher)
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["a.*"] Regex_Matcher_Data)
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns (By_Name ["ab.+123"] Regex_Matcher_Data)
             expect_column_names ["ab.+123"]+rest+["abcd123"] <| table.reorder_columns (By_Name ["ab.+123"])
-            expect_column_names ["abcd123"]+rest+["ab.+123"] <| table.reorder_columns (By_Name ["abcd123"] Regex_Matcher)
+            expect_column_names ["abcd123"]+rest+["ab.+123"] <| table.reorder_columns (By_Name ["abcd123"] Regex_Matcher_Data)
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["abcd123", "foo_2", "foo", "bar", "Baz", "foo_1", "ab.+123"] <| table.reorder_columns (By_Index [-1, -3, 0, 1])
@@ -352,37 +353,37 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["bar", "foo", "foo_1", "foo_2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["b.*", "f.+"] Regex_Matcher)
+            expect_column_names ["bar", "foo", "foo_1", "foo_2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["b.*", "f.+"] Regex_Matcher_Data)
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.reorder_columns selector on_problems=_
             tester = expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors [0, 0]]
+            problems = [Duplicate_Column_Selectors_Data [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"]
-            problems = [Input_Indices_Already_Matched [-7, 1]]
+            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name ["foo", "foo"]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -390,7 +391,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Name ["foo", "hmm", weird_name]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Missing_Input_Columns ["hmm", weird_name]]
+            problems = [Missing_Input_Columns_Data ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate columns" <|
@@ -398,7 +399,7 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [foo, foo]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors ["foo"]]
+            problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -410,12 +411,12 @@ spec prefix table_builder test_selection pending=Nothing =
             selector = By_Column [bar, weird_column, foo]
             action = table.reorder_columns selector position=After_Other_Columns on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar", "foo"]
-            problems = [Missing_Input_Columns ["weird_column"]]
+            problems = [Missing_Input_Columns_Data ["weird_column"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle multiple problems" <|
             action = table.reorder_columns (By_Index [0, -7, 0, 100]) position=After_Other_Columns on_problems=_
-            problems = [Column_Indexes_Out_Of_Range [100], Duplicate_Column_Selectors [0], Input_Indices_Already_Matched [-7]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
 
@@ -435,17 +436,17 @@ spec prefix table_builder test_selection pending=Nothing =
             expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_100", "foo_21", "foo_3"] sorted
             sorted.columns.first.to_vector . should_equal [10,11,12]
 
-            expect_column_names ["bar", "foo_001", "foo_1", "Foo_2", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+            expect_column_names ["bar", "foo_001", "foo_1", "Foo_2", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive_Data)
             expect_column_names ["foo_3", "foo_21", "foo_100", "foo_1", "foo_001", "bar", "Foo_2"] <| table.sort_columns Sort_Direction.Descending
 
         Test.specify "should correctly handle case-insensitive sorting" <|
-            expect_column_names ["bar", "foo_001", "foo_1", "foo_100", "Foo_2", "foo_21", "foo_3"] <| table.sort_columns text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+            expect_column_names ["bar", "foo_001", "foo_1", "foo_100", "Foo_2", "foo_21", "foo_3"] <| table.sort_columns text_ordering=(Text_Ordering_Data case_sensitive=Case_Insensitive_Data)
 
         Test.specify "should correctly handle natural order sorting" <|
-            expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True)
+            expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True)
 
         Test.specify "should correctly handle various combinations of options" <|
-            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns direction=Sort_Direction.Descending text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns direction=Sort_Direction.Descending text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive_Data)
 
     Test.group prefix+"Table.rename_columns" pending=pending <|
         table =
@@ -472,22 +473,22 @@ spec prefix table_builder test_selection pending=Nothing =
         Test.specify "should work by name" <|
             map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher True))
+                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher_Data True))
 
         Test.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher Case_Insensitive))
+                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher_Data Case_Insensitive_Data))
 
         Test.specify "should work by name using regex" <|
             map = Map.from_vector [["a.*", "FirstColumn"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map Regex_Matcher)
+                table.rename_columns (Column_Name_Mapping.By_Name map Regex_Matcher_Data)
 
         Test.specify "should work by name using regex substitution" <|
             map = Map.from_vector [["a(.*)", "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map Regex_Matcher)
+                table.rename_columns (Column_Name_Mapping.By_Name map Regex_Matcher_Data)
 
         Test.specify "should work by column" <|
             vec = [[table.at "alpha", "FirstColumn"], [table.at "delta", "Another"]]
@@ -498,7 +499,7 @@ spec prefix table_builder test_selection pending=Nothing =
             map = Column_Name_Mapping.By_Column [[table.at "alpha", "FirstColumn"], [table.at "alpha", "Another"]]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
-            problems = [Duplicate_Column_Selectors ["alpha"]]
+            problems = [Duplicate_Column_Selectors_Data ["alpha"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -506,49 +507,49 @@ spec prefix table_builder test_selection pending=Nothing =
             map = Column_Name_Mapping.By_Name (Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
-            problems = [Missing_Input_Columns [weird_name, "omicron"]]
+            problems = [Missing_Input_Columns_Data [weird_name, "omicron"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
-            problems = [Column_Indexes_Out_Of_Range [-200, 100, 300]]
+            problems = [Column_Indexes_Out_Of_Range_Data [-200, 100, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "Another"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Another", "gamma", "delta"]
-            problems = [Input_Indices_Already_Matched [1]]
+            problems = [Input_Indices_Already_Matched_Data [1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, ""]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names_Data [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             map = Column_Name_Mapping.By_Position ["alpha", Nothing]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
-            problems = [Invalid_Output_Column_Names [Nothing]]
+            problems = [Invalid_Output_Column_Names_Data [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             map = Column_Name_Mapping.By_Position ["Test", "Test", "Test", "Test"]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["Test", "Test_1", "Test_2", "Test_3"]
-            problems = [Duplicate_Output_Column_Names ["Test", "Test", "Test"]]
+            problems = [Duplicate_Output_Column_Names_Data ["Test", "Test", "Test"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: too many input names" <|
             map = Column_Name_Mapping.By_Position ["A", "B", "C", "D", "E", "F"]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["A", "B", "C", "D"]
-            problems = [Too_Many_Column_Names_Provided ["E", "F"]]
+            problems = [Too_Many_Column_Names_Provided_Data ["E", "F"]]
             Problems.test_problem_handling action problems tester
 
     order_by_pending = if pending.is_nothing.not then pending else
@@ -579,7 +580,7 @@ spec prefix table_builder test_selection pending=Nothing =
             t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] Regex_Matcher)
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] Regex_Matcher_Data)
             t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
             t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
             t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
@@ -590,7 +591,7 @@ spec prefix table_builder test_selection pending=Nothing =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Indexes_Out_Of_Range [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
@@ -599,7 +600,7 @@ spec prefix table_builder test_selection pending=Nothing =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Duplicate_Column_Selectors [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
+            problems = [Duplicate_Column_Selectors_Data [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -609,7 +610,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 table.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
                 table.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
                 table.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-            problems = [Input_Indices_Already_Matched [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
+            problems = [Input_Indices_Already_Matched_Data [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -618,16 +619,16 @@ spec prefix table_builder test_selection pending=Nothing =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" <|
-            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] (Text_Matcher case_sensitive=Case_Insensitive)
+            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
             action = table.order_by selector on_problems=_
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -637,7 +638,7 @@ spec prefix table_builder test_selection pending=Nothing =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Missing_Input_Columns [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
+            problems = [Missing_Input_Columns_Data [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -648,7 +649,7 @@ spec prefix table_builder test_selection pending=Nothing =
 
             selector = Sort_Column_Selector.By_Column [bar, weird_column, Sort_Column.Column foo]
             problem = table.order_by selector on_problems=Problem_Behavior.Report_Error . catch
-            problem.should_be_a Missing_Input_Columns
+            problem.should_be_a Missing_Input_Columns_Data
             problem.criteria.map (selector-> selector.column.name) . should_equal ["weird_column"]
 
             t2 = table.order_by selector on_problems=Problem_Behavior.Ignore
@@ -735,45 +736,45 @@ spec prefix table_builder test_selection pending=Nothing =
                     t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
         Test.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True)
             t1.at "delta" . to_vector . should_equal ["a1", "a2", "a03", "a10"]
             t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
-            t2 = table.order_by (Sort_Column_Selector.By_Name ["delta"]) text_ordering=(Text_Ordering sort_digits_as_numbers=False)
+            t2 = table.order_by (Sort_Column_Selector.By_Name ["delta"]) text_ordering=(Text_Ordering_Data sort_digits_as_numbers=False)
             t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
             t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
 
         Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering_Data case_sensitive=Case_Insensitive_Data)
             expected = case test_selection.case_insensitive_ascii_only of
                 True -> ["Aleph", "alpha", "Beta", "bądź"]
                 False -> ["Aleph", "alpha", "bądź", "Beta"]
             t1.at "eta" . to_vector . should_equal expected
 
-            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering case_sensitive=True)
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering_Data case_sensitive=True)
             t2.at "eta" . to_vector . should_equal ["Aleph", "Beta", "alpha", "bądź"]
 
-            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering_Data case_sensitive=Case_Insensitive_Data)
             t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
 
-            t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi" Sort_Direction.Descending]) text_ordering=(Text_Ordering case_sensitive=True)
+            t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi" Sort_Direction.Descending]) text_ordering=(Text_Ordering_Data case_sensitive=True)
             t4.at "psi" . to_vector . should_equal ["c10", "c01", "C2", Nothing]
 
         Test.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive_Data)
             t1.at "psi" . to_vector . should_equal [Nothing, "c01", "C2", "c10"]
 
-            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True)
             t2.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
-            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering_Data case_sensitive=Case_Insensitive_Data)
             t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
 
             t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"])
             t4.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
         Test.specify "text ordering settings should not affect numeric columns" <|
-            ordering = Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive
+            ordering = Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive_Data
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"]) text_ordering=ordering
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
@@ -814,48 +815,48 @@ spec prefix table_builder test_selection pending=Nothing =
             table.drop (Last 100) . should_equal empty
 
         Test.specify "should allow selecting rows by ranges or indices" <|
-            table.take (Range 2 4) . at "beta" . to_vector . should_equal ["C", "D"]
-            table.take (Range 0 0) . should_equal empty
-            table.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
-            table.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
-            table.take (Range 0 100) . should_equal table
-            table.take (Range 0 table.row_count) . should_equal table
-            empty.take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            empty.take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            table.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+            table.take (Range_Data 2 4) . at "beta" . to_vector . should_equal ["C", "D"]
+            table.take (Range_Data 0 0) . should_equal empty
+            table.take (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.take (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            table.take (Range_Data 0 100) . should_equal table
+            table.take (Range_Data 0 table.row_count) . should_equal table
+            empty.take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty.take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            table.take (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
-            table.drop (Range 2 4) . at "alpha" . to_vector . should_equal [1, 2, 5, 6, 7, 8]
-            table.drop (Range 0 0) . should_equal table
-            table.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
-            table.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
-            table.drop (Range 0 100) . should_equal empty
-            table.drop (Range 0 table.row_count) . should_equal empty
-            empty.drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            empty.drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            table.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+            table.drop (Range_Data 2 4) . at "alpha" . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            table.drop (Range_Data 0 0) . should_equal table
+            table.drop (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.drop (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            table.drop (Range_Data 0 100) . should_equal empty
+            table.drop (Range_Data 0 table.row_count) . should_equal empty
+            empty.drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty.drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            table.drop (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             table.take (Index_Sub_Range.By_Index 0) . at "beta" . to_vector . should_equal ["A"]
-            empty.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.take (Index_Sub_Range.By_Index []) . should_equal empty
             table.take (Index_Sub_Range.By_Index [-1, -1]) . at "beta" . to_vector . should_equal ["H", "H"]
-            table.take (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . at "alpha" . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
-            table.take (Range 0 100 2) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
-            table.take (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . at "alpha" . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
-            table.take (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . at "alpha" . to_vector . should_equal [2, 3, 3, 4, 5]
-            table.take (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . at "alpha" . to_vector . should_equal [3, 4, 5, 2, 3]
-            table.take (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
-            table.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            table.take (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . at "alpha" . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            table.take (Range_Data 0 100 2) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
+            table.take (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . at "alpha" . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            table.take (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . at "alpha" . to_vector . should_equal [2, 3, 3, 4, 5]
+            table.take (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . at "alpha" . to_vector . should_equal [3, 4, 5, 2, 3]
+            table.take (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             table.drop (Index_Sub_Range.By_Index 0) . at "alpha" . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
             table.drop (Index_Sub_Range.By_Index []) . should_equal table
             table.drop (Index_Sub_Range.By_Index [-1, -1]) . at "alpha" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            table.drop (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . at "alpha" . to_vector . should_equal [2, 3]
-            table.drop (Range 0 100 2) . at "alpha" . to_vector . should_equal [2, 4, 6, 8]
-            table.drop (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . at "alpha" . to_vector . should_equal [8]
-            table.drop (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
-            table.drop (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
-            table.drop (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
-            table.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            table.drop (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . at "alpha" . to_vector . should_equal [2, 3]
+            table.drop (Range_Data 0 100 2) . at "alpha" . to_vector . should_equal [2, 4, 6, 8]
+            table.drop (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . at "alpha" . to_vector . should_equal [8]
+            table.drop (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should allow selecting every Nth row" <|
             table.take (Every 1) . should_equal table
@@ -865,8 +866,8 @@ spec prefix table_builder test_selection pending=Nothing =
             table.take (Every 2 first=100) . at "alpha" . to_vector . should_equal []
             table.take (Every 200) . at "alpha" . to_vector . should_equal [1]
             empty.take (Every 2) . should_equal empty
-            table.take (Every 0) . should_fail_with Illegal_Argument_Error
-            empty.take (Every 0) . should_fail_with Illegal_Argument_Error
+            table.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            empty.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
 
             table.drop (Every 1) . should_equal empty
             table.drop (Every 3) . at "alpha" . to_vector . should_equal [2, 3, 5, 6, 8]
@@ -875,8 +876,8 @@ spec prefix table_builder test_selection pending=Nothing =
             table.drop (Every 2 first=100) . should_equal table
             table.drop (Every 200) . at "beta" . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
             empty.drop (Every 2) . should_equal empty
-            table.drop (Every 0) . should_fail_with Illegal_Argument_Error
-            empty.drop (Every 0) . should_fail_with Illegal_Argument_Error
+            table.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            empty.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should allow sampling rows" <|
             empty = table_builder [["X", []]]
@@ -944,48 +945,48 @@ spec prefix table_builder test_selection pending=Nothing =
             alpha.drop (Last 100) . should_equal empty_alpha
 
         Test.specify "should allow selecting rows by ranges or indices" <|
-            beta.take (Range 2 4) . to_vector . should_equal ["C", "D"]
-            beta.take (Range 0 0) . should_equal empty_beta
-            beta.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
-            beta.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
-            beta.take (Range 0 100) . should_equal beta
-            beta.take (Range 0 table.row_count) . should_equal beta
-            empty_beta.take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            empty_beta.take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            beta.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+            beta.take (Range_Data 2 4) . to_vector . should_equal ["C", "D"]
+            beta.take (Range_Data 0 0) . should_equal empty_beta
+            beta.take (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            beta.take (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            beta.take (Range_Data 0 100) . should_equal beta
+            beta.take (Range_Data 0 table.row_count) . should_equal beta
+            empty_beta.take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty_beta.take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            beta.take (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
-            alpha.drop (Range 2 4) . to_vector . should_equal [1, 2, 5, 6, 7, 8]
-            alpha.drop (Range 0 0) . should_equal alpha
-            alpha.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
-            alpha.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 8)
-            alpha.drop (Range 0 100) . should_equal empty_alpha
-            alpha.drop (Range 0 table.row_count) . should_equal empty_alpha
-            empty_alpha.drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
-            empty_alpha.drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
-            alpha.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.drop (Range_Data 2 4) . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            alpha.drop (Range_Data 0 0) . should_equal alpha
+            alpha.drop (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.drop (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            alpha.drop (Range_Data 0 100) . should_equal empty_alpha
+            alpha.drop (Range_Data 0 table.row_count) . should_equal empty_alpha
+            empty_alpha.drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty_alpha.drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            alpha.drop (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             beta.take (Index_Sub_Range.By_Index 0) . to_vector . should_equal ["A"]
-            empty_beta.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            empty_beta.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             beta.take (Index_Sub_Range.By_Index []) . should_equal empty_beta
             beta.take (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal ["H", "H"]
-            alpha.take (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
-            alpha.take (Range 0 100 2) . to_vector . should_equal [1, 3, 5, 7]
-            alpha.take (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
-            alpha.take (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . to_vector . should_equal [2, 3, 3, 4, 5]
-            alpha.take (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . to_vector . should_equal [3, 4, 5, 2, 3]
-            alpha.take (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
-            alpha.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.take (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            alpha.take (Range_Data 0 100 2) . to_vector . should_equal [1, 3, 5, 7]
+            alpha.take (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            alpha.take (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . to_vector . should_equal [2, 3, 3, 4, 5]
+            alpha.take (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . to_vector . should_equal [3, 4, 5, 2, 3]
+            alpha.take (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             alpha.drop (Index_Sub_Range.By_Index 0) . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
             alpha.drop (Index_Sub_Range.By_Index []) . should_equal alpha
             alpha.drop (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            alpha.drop (Index_Sub_Range.By_Index [0, 0, Range 3 100]) . to_vector . should_equal [2, 3]
-            alpha.drop (Range 0 100 2) . to_vector . should_equal [2, 4, 6, 8]
-            alpha.drop (Index_Sub_Range.By_Index [Range 0 100 2, Range 1 6 2]) . to_vector . should_equal [8]
-            alpha.drop (Index_Sub_Range.By_Index [Range 1 3, Range 2 5]) . to_vector . should_equal [1, 6, 7, 8]
-            alpha.drop (Index_Sub_Range.By_Index [Range 2 5, Range 1 3]) . to_vector . should_equal [1, 6, 7, 8]
-            alpha.drop (Index_Sub_Range.By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
-            alpha.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            alpha.drop (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . to_vector . should_equal [2, 3]
+            alpha.drop (Range_Data 0 100 2) . to_vector . should_equal [2, 4, 6, 8]
+            alpha.drop (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . to_vector . should_equal [8]
+            alpha.drop (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should allow selecting every Nth row" <|
             alpha.take (Every 1) . should_equal alpha
@@ -995,8 +996,8 @@ spec prefix table_builder test_selection pending=Nothing =
             alpha.take (Every 2 first=100) . to_vector . should_equal []
             alpha.take (Every 200) . to_vector . should_equal [1]
             empty_beta.take (Every 2) . should_equal empty_beta
-            beta.take (Every 0) . should_fail_with Illegal_Argument_Error
-            empty_beta.take (Every 0) . should_fail_with Illegal_Argument_Error
+            beta.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            empty_beta.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
 
             alpha.drop (Every 1) . should_equal empty_alpha
             alpha.drop (Every 3) . to_vector . should_equal [2, 3, 5, 6, 8]
@@ -1005,8 +1006,8 @@ spec prefix table_builder test_selection pending=Nothing =
             alpha.drop (Every 2 first=100) . should_equal alpha
             beta.drop (Every 200) . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
             empty_beta.drop (Every 2) . should_equal empty_beta
-            beta.drop (Every 0) . should_fail_with Illegal_Argument_Error
-            empty_beta.drop (Every 0) . should_fail_with Illegal_Argument_Error
+            beta.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            empty_beta.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should allow sampling rows" <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"

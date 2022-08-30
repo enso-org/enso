@@ -11,7 +11,7 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Data.Storage
 import Standard.Table.Internal.Java_Exports
 import Standard.Database.Data.Internal.Base_Generator
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.ArrayList
@@ -35,7 +35,7 @@ type Connection
        - dialect: the dialect associated with the database we are connected to.
 
        Allows accessing tables from a database.
-    type Connection connection_resource dialect
+    Connection_Data connection_resource dialect
 
     ## UNSTABLE
 
@@ -95,7 +95,7 @@ type Connection
                 Vector.new ncols ix->
                     typeid = metadata.getColumnType ix+1
                     name = metadata.getColumnTypeName ix+1
-                    Sql_Type typeid name
+                    Sql_Type_Data typeid name
             column_builders = column_types.map typ->
                 create_builder typ
             go has_next = if has_next.not then Nothing else
@@ -141,7 +141,7 @@ type Connection
 
         case query of
             Text -> go query []
-            Sql.Statement _ ->
+            Sql.Statement_Data _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second
 
@@ -165,7 +165,7 @@ type Connection
                 name = metadata.getColumnName ix+1
                 typeid = metadata.getColumnType ix+1
                 typename = metadata.getColumnTypeName ix+1
-                [name, Sql_Type typeid typename]
+                [name, Sql_Type_Data typeid typename]
             Vector.new ncols resolve_column
 
     ## PRIVATE
@@ -186,7 +186,7 @@ type Connection
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <| handle_sql_errors <|
+    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <| handle_sql_errors <|
         column_types = table.columns.map col-> default_storage_type col.storage_type
         column_names = table.columns.map .name
         col_makers = column_names.zip column_types name-> typ->
@@ -210,10 +210,10 @@ type Connection
                     columns = table.columns
                     check_rows updates_polyglot_array expected_size =
                         updates = Vector.from_polyglot_array updates_polyglot_array
-                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error_Data "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then
-                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                                    Panic.throw <| Illegal_State_Error_Data "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
                         holes = values.zip db_types
@@ -248,7 +248,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Inferred java_builder
+    Builder_Inferred java_builder
 
     ## PRIVATE
 
@@ -256,7 +256,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Double java_builder
+    Builder_Double java_builder
 
     ## PRIVATE
 
@@ -264,7 +264,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Long java_builder
+    Builder_Long java_builder
 
     ## PRIVATE
 
@@ -272,7 +272,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Boolean java_builder
+    Builder_Boolean java_builder
 
     ## PRIVATE
 
@@ -321,7 +321,8 @@ type Builder
 
    Argument:
    - url: The URL for which the dialect could not be deduced.
-type Unsupported_Dialect url
+type Unsupported_Dialect
+    Unsupported_Dialect_Data url
 
 ## Pretty print the error about unsupported SQL dialects.
 Unsupported_Dialect.to_display_text : Text
@@ -344,7 +345,7 @@ create_jdbc_connection url properties dialect = handle_sql_errors <|
         java_props.setProperty pair.first pair.second
     java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection close_connection
-    Connection resource dialect
+    Connection_Data resource dialect
 
 ## PRIVATE
 
@@ -367,7 +368,7 @@ type Sql_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    type Sql_Error java_exception related_query=Nothing
+    Sql_Error_Data java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -393,7 +394,7 @@ type Sql_Timeout_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    type Sql_Timeout_Error java_exception related_query=Nothing
+    Sql_Timeout_Error_Data java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -419,7 +420,7 @@ type Sql_Timeout_Error
    - action: The computation to execute. This computation may throw SQL errors.
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
 handle_sql_errors ~action related_query=Nothing =
-    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+    Panic.recover [Sql_Error_Data, Sql_Timeout_Error_Data] <|
         wrap_sql_errors action related_query
 
 ## PRIVATE
@@ -436,8 +437,8 @@ wrap_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Panic.throw (Sql_Timeout_Error exc related_query)
-            False -> Panic.throw (Sql_Error exc related_query)
+            True -> Panic.throw (Sql_Timeout_Error_Data exc related_query)
+            False -> Panic.throw (Sql_Error_Data exc related_query)
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage

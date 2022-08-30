@@ -8,16 +8,16 @@ type Index_Sub_Range
 
        Selects no items if `count` is less than or equal to 0.
        Selects all items  if `count` is greater than the length of the input.
-    type First (count : Integer = 1)
+    First (count : Integer = 1)
 
     ## Select the last `count` characters.
 
        Selects no items if `count` is less than or equal to 0.
        Selects all items  if `count` is greater than the length of the input.
-    type Last (count : Integer = 1)
+    Last (count : Integer = 1)
 
     ## Select elements from the start while the predicate returns `True`.
-    type While (predicate : (Any -> Boolean))
+    While (predicate : (Any -> Boolean))
 
     ## Selects specific indexes (starting from 0) either as an `Integer` or a
        `Range`.
@@ -29,13 +29,13 @@ type Index_Sub_Range
        Only ranges with positive step and positive indices are supported.
        Individual integer indices can be negative which allows for indexing
        from the end of the collection.
-    type By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
+    By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
 
     ## Gets a random sample of entries, without repetitions.
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    type Sample (count:Integer) (seed:Integer=Random.get_default_seed)
+    Sample (count:Integer) (seed:Integer=Random.get_default_seed)
 
     ## Gets every Nth entry.
 
@@ -43,7 +43,7 @@ type Index_Sub_Range
        - step: The step between consecutive entries that are included.
        - first: The first entry to include. If it is outside of bounds of the
          input, an error is raised.
-    type Every (step:Integer) (first:Integer=0)
+    Every (step:Integer) (first:Integer=0)
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit
@@ -55,15 +55,15 @@ resolve_ranges ranges length =
     trim descriptor = case descriptor of
         Integer ->
             actual_index = if descriptor < 0 then length + descriptor else descriptor
-            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor length) else
+            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error_Data descriptor length) else
                 actual_index
-        Range start end step ->
-            if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
-                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
-                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error start length) else
+        Range_Data start end step ->
+            if step <= 0 then Panic.throw (Illegal_Argument_Error_Data "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error_Data "Range start and end must not be negative.") else
+                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error_Data start length) else
                         actual_end = Math.min end length
-                        if actual_end < start then Range start start step else
-                            Range start actual_end step
+                        if actual_end < start then Range_Data start start step else
+                            Range_Data start actual_end step
     ranges.map trim
 
 ## PRIVATE
@@ -73,11 +73,11 @@ resolve_ranges ranges length =
    single-element ranges.
 normalize_ranges descriptors =
     normalize descriptor = case descriptor of
-        Integer -> [Range descriptor descriptor+1]
-        Range _ _ _ ->
+        Integer -> [Range_Data descriptor descriptor+1]
+        Range_Data _ _ _ ->
             if descriptor.step == 1 then [descriptor] else
                 descriptor.to_vector.map ix->
-                    Range ix ix+1
+                    Range_Data ix ix+1
     descriptors.flat_map normalize
 
 ## PRIVATE
@@ -96,9 +96,9 @@ normalize_ranges descriptors =
 invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
 invert_range_selection ranges length needs_sorting =
     sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
-    ranges_with_sentinels = [Range 0 0] + sorted + [Range length length]
+    ranges_with_sentinels = [Range_Data 0 0] + sorted + [Range_Data length length]
     ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
-        Range prev.end next.start
+        Range_Data prev.end next.start
 
 ## PRIVATE
    Returns a new sorted list of ranges where intersecting ranges have been
@@ -113,7 +113,7 @@ sort_and_merge_ranges ranges =
         sorted.tail.each range->
             current = current_ref.get
             case range.start <= current.end of
-                True -> current_ref.put (Range current.start (Math.max current.end range.end))
+                True -> current_ref.put (Range_Data current.start (Math.max current.end range.end))
                 False ->
                     builder.append current
                     current_ref.put range
@@ -147,16 +147,16 @@ sort_and_merge_ranges ranges =
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
 take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
-    Range _ _ _ -> take_helper length at single_slice slice_ranges (By_Index index_sub_range)
+    Range_Data _ _ _ -> take_helper length at single_slice slice_ranges (By_Index index_sub_range)
     First count -> single_slice 0 (Math.min length count)
     Last count -> single_slice length-count length
     While predicate ->
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice 0 true_end
-    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
         indices = case one_or_many_descriptors of
-            Vector.Vector _ -> one_or_many_descriptors
+            Vector.Vector_Data _ -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
         trimmed = resolve_ranges indices length
         slice_ranges trimmed
@@ -165,9 +165,9 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
         indices_to_take = Random.random_indices length count rng
         take_helper length at single_slice slice_ranges (By_Index indices_to_take)
     Every step start ->
-        if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+        if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 0 else
-                range = Range start length step
+                range = Range_Data start length step
                 take_helper length at single_slice slice_ranges (By_Index range)
 
 ## PRIVATE
@@ -196,16 +196,16 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
    - range: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
 drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
-    Range _ _ _ -> drop_helper length at single_slice slice_ranges (By_Index index_sub_range)
+    Range_Data _ _ _ -> drop_helper length at single_slice slice_ranges (By_Index index_sub_range)
     First count -> single_slice count length
     Last count -> single_slice 0 length-count
     While predicate ->
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice true_end length
-    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+    By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
         indices = case one_or_many_descriptors of
-            Vector.Vector _ -> one_or_many_descriptors
+            Vector.Vector_Data _ -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
         trimmed = resolve_ranges indices length
         normalized = normalize_ranges trimmed
@@ -216,7 +216,7 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
         indices_to_drop = Random.random_indices length count rng
         drop_helper length at single_slice slice_ranges (By_Index indices_to_drop)
     Every step start ->
-        if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+        if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 length else
-                range = Range start length step
+                range = Range_Data start length step
                 drop_helper length at single_slice slice_ranges (By_Index range)
