@@ -93,18 +93,18 @@ impl BufferData {
         self.text.set(text);
     }
 
-    /// Style getter.
-    pub fn style(&self) -> Style {
+    /// FormatSpan getter.
+    pub fn style(&self) -> FormatSpan {
         self.style.get()
     }
 
-    /// Style setter.
-    pub(crate) fn set_style(&self, style: Style) {
+    /// FormatSpan setter.
+    pub(crate) fn set_style(&self, style: FormatSpan) {
         self.style.set(style)
     }
 
     /// Query style information for the provided range.
-    pub fn sub_style(&self, range: impl enso_text::RangeBounds) -> Style {
+    pub fn sub_style(&self, range: impl enso_text::RangeBounds) -> FormatSpan {
         let range = self.crop_byte_range(range);
         self.style.sub(range)
     }

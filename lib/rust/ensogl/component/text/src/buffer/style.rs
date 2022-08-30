@@ -1,9 +1,15 @@
 //! Text style definition (color, bold, italics, etc.).
 
 use super::*;
+use enso_text::spans::RangedValue;
 
 use crate::buffer::Range;
-use crate::data::color;
+use crate::font;
+
+pub use crate::data::color;
+pub use font::Style;
+pub use font::Weight;
+pub use font::Width;
 
 
 
@@ -14,7 +20,7 @@ use crate::data::color;
 /// Defines a newtype for a primitive style property, like `Bold`. See usage below to learn more.
 macro_rules! def_style_property {
     ($name:ident($field_type:ty)) => {
-        /// Style property.
+        /// FormatSpan property.
         #[derive(Clone, Copy, Debug, From, PartialEq, PartialOrd)]
         #[allow(missing_docs)]
         pub struct $name {
@@ -40,21 +46,42 @@ macro_rules! def_style_property {
 
 /// Defines struct containing all styles information. Also defines many utils, like iterator for it.
 /// See the usage below to learn more.
-macro_rules! define_styles {
+macro_rules! define_format {
     ($($field:ident : $field_type:ty),* $(,)?) => {
 
-        // === StyleValue ===
+        // === Format ===
+
+        paste! {
+            #[derive(Clone, Copy, Debug, From)]
+            pub enum FormatOption {
+                $([<$field:camel>] ($field_type)),*
+            }
+
+            impl Setter<Option<FormatOption>> for Buffer {
+                fn replace(&self, range:impl enso_text::RangeBounds, data:Option<FormatOption>) {
+                    if let Some(data) = data { match data {
+                        $(FormatOption::[<$field:camel>] (t) => self.replace(range,Some(t))),*
+                    }}
+                }
+            }
+        }
+
+
+        #[derive(Clone, Copy, Debug, Default, From)]
+        pub struct Format {
+            $($field : $field_type),*
+        }
 
         /// The value of a style at some point in the buffer.
         #[derive(Clone,Copy,Debug,Default)]
         #[allow(missing_docs)]
-        pub struct StyleValue {
+        pub struct StyleValueForByte {
             $(pub $field : $field_type),*
         }
 
         #[derive(Debug)]
         struct StyleIteratorComponents {
-            $($field : std::vec::IntoIter<(Range<Bytes>,$field_type)>),*
+            $($field : std::vec::IntoIter<RangedValue<Bytes ,$field_type>>),*
         }
 
 
@@ -62,35 +89,35 @@ macro_rules! define_styles {
 
         #[derive(Debug,Default)]
         struct StyleIteratorValue {
-            $($field : Option<(Range<Bytes>,$field_type)>),*
+            $($field : Option<RangedValue<Bytes, $field_type>>),*
         }
 
         impl Iterator for StyleIterator {
-            type Item = StyleValue;
+            type Item = StyleValueForByte;
             fn next(&mut self) -> Option<Self::Item> {
                 $(
-                    if self.value.$field.map(|t| self.offset < t.0.end) != Some(true) {
+                    if self.value.$field.map(|t| self.offset < t.range.end) != Some(true) {
                         self.value.$field = self.component.$field.next()
                     }
-                    let $field = self.value.$field?.1;
+                    let $field = self.value.$field?.value;
                 )*
                 self.offset += 1.bytes();
-                Some(StyleValue {$($field),*})
+                Some(StyleValueForByte {$($field),*})
             }
         }
 
 
-        // === Style ===
+        // === FormatSpan ===
 
         /// Definition of possible text styles, like `color`, or `bold`. Each style is encoded as
         /// `Property` for some spans in the buffer.
         #[derive(Clone,Debug,Default)]
         #[allow(missing_docs)]
-        pub struct Style {
+        pub struct FormatSpan {
             $(pub $field : Property<$field_type>),*
         }
 
-        impl Style {
+        impl FormatSpan {
             /// Constructor.
             pub fn new() -> Self {
                 Self::default()
@@ -139,7 +166,16 @@ macro_rules! define_styles {
     };
 }
 
-/// Byte-based iterator for the `Style`.
+// FIXME: TODO: make it working for other types, not owned by this crate.
+impl ensogl_core::frp::IntoParam<Option<FormatOption>> for SdfWeight {
+    fn into_param(self) -> Option<FormatOption> {
+        Some(self.into())
+    }
+}
+
+
+
+/// Byte-based iterator for the `FormatSpan`.
 #[derive(Debug)]
 pub struct StyleIterator {
     offset:    Bytes,
@@ -168,18 +204,18 @@ impl StyleIterator {
 // === Property ===
 // ================
 
-/// Style property, like `color` or `bold`. Records text spans it is applied to and a default value
-/// used for places not covered by spans. Please note that the default value can be changed at
+/// FormatSpan property, like `color` or `bold`. Records text spans it is applied to and a default
+/// value used for places not covered by spans. Please note that the default value can be changed at
 /// runtime, which is useful when defining text field which should use white letters by default
 /// (when new letter is written).
 #[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
-pub struct Property<T: Clone> {
+pub struct Property<T: Copy> {
     pub spans: enso_text::Spans<Option<T>>,
     default:   T,
 }
 
-impl<T: Clone> Property<T> {
+impl<T: Copy> Property<T> {
     /// Return new property narrowed to the given range.
     pub fn sub(&self, range: Range<Bytes>) -> Self {
         let spans = self.spans.sub(range);
@@ -188,9 +224,9 @@ impl<T: Clone> Property<T> {
     }
 
     /// Convert the property to a vector of spans.
-    pub fn to_vector(&self) -> Vec<(Range<Bytes>, T)> {
+    pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
-        spans_iter.map(|t| (t.0, t.1.unwrap_or_else(|| self.default.clone()))).collect_vec()
+        spans_iter.map(|t| t.map_value(|v| v.unwrap_or_else(|| self.default.clone()))).collect_vec()
     }
 
     /// The default value of this property.
@@ -202,14 +238,14 @@ impl<T: Clone> Property<T> {
 
 // === Deref ===
 
-impl<T: Clone> Deref for Property<T> {
+impl<T: Copy> Deref for Property<T> {
     type Target = enso_text::Spans<Option<T>>;
     fn deref(&self) -> &Self::Target {
         &self.spans
     }
 }
 
-impl<T: Clone> DerefMut for Property<T> {
+impl<T: Copy> DerefMut for Property<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.spans
     }
@@ -218,49 +254,39 @@ impl<T: Clone> DerefMut for Property<T> {
 
 
 // =============
-// === Style ===
+// === FormatSpan ===
 // =============
 
 def_style_property!(Size(f32));
-def_style_property!(Bold(bool));
-def_style_property!(Italic(bool));
 def_style_property!(Underline(bool));
-def_style_property!(SdfBold(f32));
+def_style_property!(SdfWeight(f32));
 
 impl Default for Size {
     fn default() -> Self {
         Self::new(12.0)
     }
 }
-impl Default for Bold {
-    fn default() -> Self {
-        Self::new(false)
-    }
-}
-impl Default for Italic {
-    fn default() -> Self {
-        Self::new(false)
-    }
-}
+
 impl Default for Underline {
     fn default() -> Self {
         Self::new(false)
     }
 }
 
-impl Default for SdfBold {
+impl Default for SdfWeight {
     fn default() -> Self {
         Self::new(0.0)
     }
 }
 
-define_styles! {
-    size      : Size,
-    color     : color::Rgba,
-    bold      : Bold,
-    italics   : Italic,
-    underline : Underline,
-    sdf_bold  : SdfBold,
+define_format! {
+    size       : Size,
+    color      : color::Rgba,
+    weight     : font::Weight,
+    width      : font::Width,
+    style      : font::Style,
+    underline  : Underline,
+    sdf_weight : SdfWeight,
 }
 
 
@@ -269,10 +295,10 @@ define_styles! {
 // === StyleCell ===
 // =================
 
-/// Internally mutable version of `Style`.
+/// Internally mutable version of `FormatSpan`.
 #[derive(Clone, Debug, Default)]
 pub struct StyleCell {
-    cell: RefCell<Style>,
+    cell: RefCell<FormatSpan>,
 }
 
 impl StyleCell {
@@ -282,17 +308,17 @@ impl StyleCell {
     }
 
     /// Getter of the current style value.
-    pub fn get(&self) -> Style {
+    pub fn get(&self) -> FormatSpan {
         self.cell.borrow().clone()
     }
 
     /// Setter of the style value.
-    pub fn set(&self, style: Style) {
+    pub fn set(&self, style: FormatSpan) {
         *self.cell.borrow_mut() = style;
     }
 
     /// Return style narrowed to the given range.
-    pub fn sub(&self, range: Range<Bytes>) -> Style {
+    pub fn sub(&self, range: Range<Bytes>) -> FormatSpan {
         self.cell.borrow().sub(range)
     }
 

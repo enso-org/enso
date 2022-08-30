@@ -23,7 +23,7 @@ highp vec2 get_texture_coord() {
 highp float get_fatting() {
     highp vec2  local_to_px_ratio = 1.0 / fwidth(input_local.xy);
     highp float font_size_px      = input_font_size * (local_to_px_ratio.x + local_to_px_ratio.y) / 2.0;
-    highp float fatting           = input_sdf_bold;
+    highp float fatting           = input_sdf_weight;
     return font_size_px * fatting;
 }
 

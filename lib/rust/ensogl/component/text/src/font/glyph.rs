@@ -48,7 +48,7 @@ pub struct GlyphData {
     pub variations:  RefCell<VariationAxes>,
     pub font_size:   Attribute<f32>,
     pub color:       Attribute<Vector4<f32>>,
-    pub sdf_bold:    Attribute<f32>,
+    pub sdf_weight:  Attribute<f32>,
     pub atlas_index: Attribute<f32>,
     pub atlas:       Uniform<Texture>,
 }
@@ -120,13 +120,13 @@ impl Glyph {
 
     /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
     /// values lower than 0 makes it thinner.
-    pub fn sdf_bold(&self) -> f32 {
-        self.sdf_bold.get()
+    pub fn sdf_weight(&self) -> f32 {
+        self.sdf_weight.get()
     }
 
     /// SDF-based glyph thickness getter.
-    pub fn set_sdf_bold(&self, value: f32) {
-        self.sdf_bold.set(value);
+    pub fn set_sdf_weight(&self, value: f32) {
+        self.sdf_weight.set(value);
     }
 
     /// Size getter.
@@ -215,7 +215,7 @@ pub struct System {
     pub font:      Font,
     font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
-    sdf_bold:      Buffer<f32>,
+    sdf_weight:    Buffer<f32>,
     atlas_index:   Buffer<f32>,
     atlas:         Uniform<Texture>,
 }
@@ -247,7 +247,7 @@ impl System {
             atlas: symbol.variables().add_or_panic("atlas", texture),
             font_size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
-            sdf_bold: mesh.instance_scope().add_buffer("sdf_bold"),
+            sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
         }
     }
@@ -260,7 +260,7 @@ impl System {
         let instance_id = sprite.instance_id;
         let font_size = self.font_size.at(instance_id);
         let color = self.color.at(instance_id);
-        let sdf_bold = self.sdf_bold.at(instance_id);
+        let sdf_weight = self.sdf_weight.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
@@ -276,7 +276,7 @@ impl System {
                 font,
                 font_size,
                 color,
-                sdf_bold,
+                sdf_weight,
                 atlas_index,
                 atlas,
                 glyph_id,
@@ -319,7 +319,7 @@ impl System {
         material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
-        material.add_input("sdf_bold", 0.0);
+        material.add_input("sdf_weight", 0.0);
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more
         // FIXME intelligent. For example, we could allow defining output shader fragments,

@@ -49,14 +49,183 @@ impl<T: Clone> Spans<T> {
     }
 
     /// Convert the span tree to vector of non-overlapping ranges and their values.
-    pub fn to_vector(&self) -> Vec<(Range<Bytes>, T)> {
+    pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
         self.raw
             .iter()
             .map(|t| {
                 let start: Bytes = t.0.start.into();
                 let end: Bytes = t.0.end.into();
-                ((start..end).into(), t.1.clone())
+                RangedValue::new((start..end).into(), t.1.clone())
             })
             .collect()
+    }
+}
+
+
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RangedValue<I, A> {
+    pub range: Range<I>,
+    pub value: A,
+}
+
+impl<I, A> RangedValue<I, A> {
+    pub fn new(range: Range<I>, value: A) -> Self {
+        Self { range, value }
+    }
+
+    pub fn zip_seq<B, C>(
+        a_vec: &[RangedValue<I, A>],
+        b_vec: &[RangedValue<I, B>],
+        f: impl Fn(Option<A>, Option<B>) -> C,
+    ) -> Vec<RangedValue<I, C>>
+    where
+        I: Copy + Ord,
+        A: Copy,
+        B: Copy,
+    {
+        let mut a_iter = a_vec.iter();
+        let mut b_iter = b_vec.iter();
+        let mut opt_a = a_iter.next();
+        let mut opt_b = b_iter.next();
+        let mut result = default();
+
+        let mut start = match (&opt_a, &opt_b) {
+            (Some(a), Some(b)) => std::cmp::min(a.range.start, b.range.start),
+            (Some(a), None) => a.range.start,
+            (None, Some(b)) => b.range.start,
+            (None, None) => return result,
+        };
+
+        loop {
+            let val = match (opt_a.as_ref(), opt_b.as_ref()) {
+                (None, None) => break,
+                (Some(a), Some(b)) => {
+                    let sparse_a = start < a.range.start;
+                    let sparse_b = start < b.range.start;
+                    if sparse_a && sparse_b {
+                        let end = std::cmp::min(a.range.start, b.range.start);
+                        RangedValue::new(Range::new(start, end), f(None, None))
+                    } else if sparse_a {
+                        RangedValue::new(Range::new(start, a.range.start), f(None, Some(b.value)))
+                    } else if sparse_b {
+                        RangedValue::new(Range::new(start, b.range.start), f(Some(a.value), None))
+                    } else if a.range.end < b.range.end {
+                        let range = Range::new(start, a.range.end);
+                        let val = RangedValue::new(range, f(Some(a.value), Some(b.value)));
+                        opt_a = a_iter.next();
+                        val
+                    } else if a.range.end > b.range.end {
+                        let range = Range::new(start, b.range.end);
+                        let val = RangedValue::new(range, f(Some(a.value), Some(b.value)));
+                        opt_b = b_iter.next();
+                        val
+                    } else {
+                        let range = Range::new(start, a.range.end);
+                        let val = RangedValue::new(range, f(Some(a.value), Some(b.value)));
+                        opt_a = a_iter.next();
+                        opt_b = b_iter.next();
+                        val
+                    }
+                }
+                (Some(a), None) =>
+                    if start < a.range.start {
+                        RangedValue::new(Range::new(start, a.range.start), f(None, None))
+                    } else {
+                        let range = Range::new(start, a.range.end);
+                        let val = RangedValue::new(range, f(Some(a.value), None));
+                        opt_a = a_iter.next();
+                        val
+                    },
+                (None, Some(b)) =>
+                    if start < b.range.start {
+                        RangedValue::new(Range::new(start, b.range.start), f(None, None))
+                    } else {
+                        let range = Range::new(start, b.range.end);
+                        let val = RangedValue::new(range, f(None, Some(b.value)));
+                        opt_b = b_iter.next();
+                        val
+                    },
+            };
+            start = val.range.end;
+            result.push(val);
+        }
+
+        result
+    }
+}
+
+impl<I, A> RangedValue<I, A> {
+    pub fn map_range<J>(mut self, f: impl Fn(Range<I>) -> Range<J>) -> RangedValue<J, A> {
+        let range = f(self.range);
+        let value = self.value;
+        RangedValue { range, value }
+    }
+
+    pub fn map_value<B>(mut self, f: impl Fn(A) -> B) -> RangedValue<I, B> {
+        let range = self.range;
+        let value = f(self.value);
+        RangedValue { range, value }
+    }
+}
+
+impl<I, A> RangedValue<I, A> {
+    pub fn zip_def_seq<B, C>(
+        a_vec: &[RangedValue<I, A>],
+        b_vec: &[RangedValue<I, B>],
+        f: impl Fn(A, B) -> C,
+    ) -> Vec<RangedValue<I, C>>
+    where
+        I: Copy + Ord,
+        A: Copy + Default,
+        B: Copy + Default,
+    {
+        Self::zip_seq(a_vec, b_vec, |a, b| f(a.unwrap_or_default(), b.unwrap_or_default()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type V1 = Vec<RangedValue<usize, usize>>;
+    type V2 = Vec<RangedValue<usize, char>>;
+
+    #[test]
+    fn test_zip_ranged_values() {
+        let v1: V1 = vec![RangedValue::new(0..2, 0), RangedValue::new(2..4, 1)];
+        let v2: V2 = vec![RangedValue::new(0..1, 'a'), RangedValue::new(1..4, 'b')];
+        assert_eq!(RangedValue::zip_seq(&v1, &v2, |a, b| (a, b)), vec![
+            RangedValue::new(0..1, (Some(0), Some('a'))),
+            RangedValue::new(1..2, (Some(0), Some('b'))),
+            RangedValue::new(2..4, (Some(1), Some('b'))),
+        ]);
+
+        let v1: V1 = vec![RangedValue::new(0..2, 0), RangedValue::new(2..4, 1)];
+        let v2: V2 = vec![RangedValue::new(0..1, 'a'), RangedValue::new(1..5, 'b')];
+        assert_eq!(RangedValue::zip_seq(&v1, &v2, |a, b| (a, b)), vec![
+            RangedValue::new(0..1, (Some(0), Some('a'))),
+            RangedValue::new(1..2, (Some(0), Some('b'))),
+            RangedValue::new(2..4, (Some(1), Some('b'))),
+            RangedValue::new(4..5, (None, Some('b'))),
+        ]);
+
+        let v1: V1 = vec![RangedValue::new(0..1, 0), RangedValue::new(2..4, 1)];
+        let v2: V2 = vec![];
+        assert_eq!(RangedValue::zip_seq(&v1, &v2, |a, b| (a, b)), vec![
+            RangedValue::new(0..1, (Some(0), None)),
+            RangedValue::new(1..2, (None, None)),
+            RangedValue::new(2..4, (Some(1), None)),
+        ]);
+
+        let v1: V1 = vec![RangedValue::new(0..2, 0), RangedValue::new(3..4, 1)];
+        let v2: V2 = vec![RangedValue::new(0..1, 'a'), RangedValue::new(1..5, 'b')];
+        assert_eq!(RangedValue::zip_seq(&v1, &v2, |a, b| (a, b)), vec![
+            RangedValue::new(0..1, (Some(0), Some('a'))),
+            RangedValue::new(1..2, (Some(0), Some('b'))),
+            RangedValue::new(2..3, (None, Some('b'))),
+            RangedValue::new(3..4, (Some(1), Some('b'))),
+            RangedValue::new(4..5, (None, Some('b'))),
+        ]);
     }
 }
