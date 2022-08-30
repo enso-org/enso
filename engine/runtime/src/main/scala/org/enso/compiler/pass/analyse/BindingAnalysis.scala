@@ -64,7 +64,6 @@ case object BindingAnalysis extends IRPass {
 
     val definedConstructors = ir.bindings.flatMap {
       case tp: IR.Module.Scope.Definition.Type =>
-        // FIXME: move to a different pass
         tp.members.map { cons =>
           BindingsMap.Cons(
             cons.name.name,

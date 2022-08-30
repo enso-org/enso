@@ -59,12 +59,10 @@ public abstract class TypesLibrary extends Library {
   }
 
   /**
-   * Looks up the method definition for the given receiver and symbol
+   * Returns the receiver Type.
    *
-   * @param receiver the method call receiver
-   * @param symbol the symbol being dispatched
-   * @return the corresponding function definition
-   * @throws NoSuchMethodException if the function definition could not be found
+   * @param receiver the typed object
+   * @return the corresponding type
    */
   @GenerateLibrary.Abstract(ifExported = {"hasType"})
   public Type getType(Object receiver) {

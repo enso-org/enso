@@ -10,6 +10,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -35,6 +36,7 @@ public class GetFieldWithMatchNode extends RootNode {
   }
 
   private final String name;
+  private final Text nameText;
   private final Type type;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) GetterPair[] getterPairs;
 
@@ -49,6 +51,7 @@ public class GetFieldWithMatchNode extends RootNode {
     super(language);
     this.name = name;
     this.type = type;
+    this.nameText = Text.create(name);
     this.getterPairs = getterPairs;
   }
 
@@ -64,7 +67,8 @@ public class GetFieldWithMatchNode extends RootNode {
       }
     }
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(atom), this);
+        Context.get(this).getBuiltins().error().getNoSuchFieldError().newInstance(atom, nameText),
+        this);
   }
 
   @Override

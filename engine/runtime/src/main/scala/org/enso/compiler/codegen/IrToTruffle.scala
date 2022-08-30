@@ -248,7 +248,7 @@ class IrToTruffle(
           }
         }
       val tp = moduleScope.getTypes.get(tpDef.name.name)
-      tp.generateGetters(atomConstructors.asJava)
+      tp.generateGetters(language, atomConstructors.asJava)
     }
 
     // Register the method definitions in scope
@@ -1186,14 +1186,7 @@ class IrToTruffle(
                 if (c == null) {
                   throw new CompilerError(s"Constructor for $cons is null")
                 }
-                ConstructorNode.build(
-                  c
-//                  definitionModule
-//                    .unsafeAsModule()
-//                    .getScope
-//                    .getConstructors
-//                    .get(cons.name)
-                )
+                ConstructorNode.build(c)
               case BindingsMap.ResolvedModule(module) =>
                 ConstantObjectNode.build(
                   module.unsafeAsModule().getScope.getAssociatedType

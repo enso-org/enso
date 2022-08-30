@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -32,6 +33,7 @@ public class Error {
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokableError notInvokableError;
   private final InvalidConversionTargetError invalidConversionTargetError;
+  private final NoSuchFieldError noSuchFieldError;
   private final Panic panic;
   private final CaughtPanic caughtPanic;
 
@@ -61,6 +63,7 @@ public class Error {
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokableError = builtins.getBuiltinType(NotInvokableError.class);
     invalidConversionTargetError = builtins.getBuiltinType(InvalidConversionTargetError.class);
+    noSuchFieldError = builtins.getBuiltinType(NoSuchFieldError.class);
     panic = builtins.getBuiltinType(Panic.class);
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
   }
@@ -104,6 +107,10 @@ public class Error {
     return noSuchMethodError.newInstance(target, symbol);
   }
 
+  public NoSuchFieldError getNoSuchFieldError() {
+    return noSuchFieldError;
+  }
+
   public Atom makeNoSuchConversionError(
       Object target, Object that, UnresolvedConversion conversion) {
     return noSuchConversionError.newInstance(target, that, conversion);
@@ -139,7 +146,9 @@ public class Error {
     return arithmeticError.newInstance(reason);
   }
 
-  /** @return An arithmetic error representing a too-large shift for the bit shift. */
+  /**
+   * @return An arithmetic error representing a too-large shift for the bit shift.
+   */
   public Atom getShiftAmountTooLargeError() {
     if (arithmeticErrorShiftTooBig == null) {
       transferToInterpreterAndInvalidate();
@@ -148,7 +157,9 @@ public class Error {
     return arithmeticErrorShiftTooBig;
   }
 
-  /** @return An Arithmetic error representing a division by zero. */
+  /**
+   * @return An Arithmetic error representing a division by zero.
+   */
   public Atom getDivideByZeroError() {
     if (arithmeticErrorDivideByZero == null) {
       transferToInterpreterAndInvalidate();
