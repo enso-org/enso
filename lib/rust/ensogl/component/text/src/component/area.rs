@@ -858,8 +858,7 @@ impl AreaModel {
 
                 let mut line_style_iter = line_style.iter();
 
-                let mut glyph_x = 0.0;
-                let mut glyph_y = 0.0; // TODO
+                let mut glyph_offset_x = 0.0;
                 let mut glyph_index = 0;
                 for (range, font_face_header) in generator {
                     event!(DEBUG, ">>> {:#?} {:#?}", range, font_face_header);
@@ -888,9 +887,19 @@ impl AreaModel {
                         let size: f32 = 12.0; // FIXME
                         let units_per_em = ttf_face.units_per_em();
                         let harfbuzz_scale = units_per_em as f32 / size * 1.0;
-                        glyph_x += glyph_position.x_advance as f32 / harfbuzz_scale;
+
+                        if glyph_index != 0 {
+                            glyph_offset_x += glyph_position.x_advance as f32 / harfbuzz_scale;
+                        }
                         // event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
 
+                        let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
+                        let glyph_render_info =
+                            font.glyph_info(&font_face_header, glyph_id).unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
+
+                        let glyph_render_offset = glyph_render_info.offset.scale(size);
+                        let glyph_x = glyph_render_offset.x + glyph_offset_x;
+                        let glyph_y = glyph_render_offset.y;
                         event!(
                             WARN,
                             "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
@@ -900,7 +909,7 @@ impl AreaModel {
                         );
 
                         glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                        glyph.set_glyph_id(font::GlyphId(glyph_info.glyph_id as u16));
+                        glyph.set_glyph_id(glyph_id);
                         glyph.set_color(style.color);
                         glyph.set_sdf_weight(style.sdf_weight.raw);
                         glyph.set_font_size(size);
