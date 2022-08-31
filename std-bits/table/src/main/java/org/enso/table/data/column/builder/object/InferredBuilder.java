@@ -60,61 +60,10 @@ public class InferredBuilder extends Builder {
     if (o == null) {
       currentBuilder.append(o);
     } else {
-      switch (currentBuilder.getType()) {
-        case Storage.Type.BOOL -> {
-          if (o instanceof Boolean) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.LONG -> {
-          if (o instanceof Long) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.DOUBLE -> {
-          if (o instanceof Double || o instanceof BigDecimal) {
-            currentBuilder.append(o);
-          } else if (o instanceof Long) {
-            currentBuilder.append(((Long) o).doubleValue());
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.STRING -> {
-          if (o instanceof String) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.DATE -> {
-          if (o instanceof LocalDate) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.DATE_TIME -> {
-          if (o instanceof ZonedDateTime) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.TIME_OF_DAY -> {
-          if (o instanceof LocalTime) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-        }
-        case Storage.Type.OBJECT ->
-          currentBuilder.append(o);
-        default -> throw new IllegalStateException("Unexpected type: " + currentBuilder.getType());
+      if (currentBuilder.accepts(o)) {
+        currentBuilder.append(o);
+      } else {
+        retypeAndAppend(o);
       }
     }
     currentSize++;
