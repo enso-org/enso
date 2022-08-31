@@ -12,7 +12,7 @@ import Standard.Database.Data.Internal.Base_Generator
    The dialect for Redshift connections.
 redshift : Dialect
 redshift =
-    Redshift_Dialect Postgres.make_internal_generator_dialect
+    Redshift_Dialect_Data Postgres.make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -21,7 +21,7 @@ type Redshift_Dialect
     ## PRIVATE
 
        The dialect for Redshift connections.
-    type Redshift_Dialect internal_generator_dialect
+    Redshift_Dialect_Data internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.

@@ -10,13 +10,14 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Text type.")
 public abstract class TextBranchNode extends BranchNode {
-  private final AtomConstructor text;
+  private final Type text;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  TextBranchNode(AtomConstructor text, RootCallTarget branch) {
+  TextBranchNode(Type text, RootCallTarget branch) {
     super(branch);
     this.text = text;
   }
@@ -28,14 +29,14 @@ public abstract class TextBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching on text in a case expression
    */
-  public static TextBranchNode build(AtomConstructor text, RootCallTarget branch) {
+  public static TextBranchNode build(Type text, RootCallTarget branch) {
     return TextBranchNodeGen.create(text, branch);
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(text == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doConstructor(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(text == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

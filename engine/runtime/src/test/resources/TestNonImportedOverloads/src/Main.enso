@@ -3,4 +3,4 @@ from local.TestNonImportedOverloads.Util import all
 
 X.method self = 10
 
-main = Nothing.util (X 1)
+main = Nothing.util (Mk_X 1)

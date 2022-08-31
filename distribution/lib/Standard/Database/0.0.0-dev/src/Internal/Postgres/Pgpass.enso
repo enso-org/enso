@@ -33,11 +33,11 @@ read host port database username=Nothing =
             entry.matches host port database username
         case found.catch Nothing of
             Nothing -> []
-            entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
+            entry -> [Pair_Data 'user' entry.username, Pair_Data 'password' entry.password]
 
 type Pgpass_Entry
     ## PRIVATE
-    type Pgpass_Entry host port database username password
+    Pgpass_Entry_Data host port database username password
 
     ## PRIVATE
     matches : Text -> Text|Integer -> Text -> Text -> Boolean
@@ -84,7 +84,7 @@ parse_file file =
         if line.starts_with "#" || line.is_empty then Nothing else
             elements = parse_line line
             if elements.length != 5 then Nothing else
-                Pgpass_Entry (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
+                Pgpass_Entry_Data (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
 
     File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
 

@@ -11,13 +11,14 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "ArrayMatch", description = "Allows matching on the Array type.")
 public abstract class ArrayBranchNode extends BranchNode {
-  private final AtomConstructor array;
+  private final Type array;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  ArrayBranchNode(AtomConstructor array, RootCallTarget branch) {
+  ArrayBranchNode(Type array, RootCallTarget branch) {
     super(branch);
     this.array = array;
   }
@@ -29,14 +30,14 @@ public abstract class ArrayBranchNode extends BranchNode {
    * @param branch the code to execute in this case
    * @return an array branch node
    */
-  public static ArrayBranchNode build(AtomConstructor array, RootCallTarget branch) {
+  public static ArrayBranchNode build(Type array, RootCallTarget branch) {
     return ArrayBranchNodeGen.create(array, branch);
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(array == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(array == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

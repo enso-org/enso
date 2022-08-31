@@ -5,8 +5,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Ordering;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -53,7 +53,7 @@ public abstract class CompareToNode extends Node {
   @Specialization
   Atom doOther(long self, Object that) {
     CompilerDirectives.transferToInterpreter();
-    var number = Context.get(this).getBuiltins().number().getNumber().newInstance();
+    var number = Context.get(this).getBuiltins().number().getNumber();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
     throw new PanicException(typeError, this);
   }

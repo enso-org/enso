@@ -17,7 +17,7 @@ polyglot java import org.enso.base.Http_Utils
 
          example_new = Header.new "My_Header" "my header's value"
 new : Text -> Text -> Header
-new name value = Header name value
+new name value = Header_Data name value
 
 # Accept
 
@@ -33,7 +33,7 @@ new name value = Header name value
 
          example_accept = Header.accept "my_field"
 accept : Text -> Header
-accept value = Header "Accept" value
+accept value = Header_Data "Accept" value
 
 ## Create a header that accepts all (`"*/*"`).
 
@@ -60,7 +60,7 @@ accept_all = accept "*/*"
 
          example_auth = Header.authorization "foo"
 authorization : Text -> Header
-authorization value = Header "Authorization" value
+authorization value = Header_Data "Authorization" value
 
 ## Create HTTP basic auth header.
 
@@ -92,7 +92,7 @@ authorization_basic user pass =
 
          example_content_type = Header.content_type "my_type"
 content_type : Text -> Header
-content_type value = Header "Content-Type" value
+content_type value = Header_Data "Content-Type" value
 
 ## Header "Content-Type: application/json".
 
@@ -163,7 +163,7 @@ type Header
        Arguments:
        - name: The header name.
        - value: The header value.
-    type Header name value
+    Header_Data name value
 
     ## Header equality.
 

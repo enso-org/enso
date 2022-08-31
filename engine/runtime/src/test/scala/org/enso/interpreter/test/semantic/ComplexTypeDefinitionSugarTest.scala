@@ -14,8 +14,8 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type Atom_One
-          |    type Atom_Two
+          |    Atom_One
+          |    Atom_Two
           |
           |    is_atom_one self = case self of
           |        Atom_One -> 10
@@ -34,8 +34,8 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type Atom_One
-          |    type Atom_Two
+          |    Atom_One
+          |    Atom_Two
           |
           |    is_atom_one self n = case self of
           |        Atom_One -> 10 + n
@@ -54,7 +54,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type My_Atom a
+          |    My_Atom a
           |
           |    is_equal self n = case self of
           |        My_Atom a -> n - a
@@ -71,7 +71,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
         """import Standard.Base.IO
           |
           |type Foo
-          |    type Bar
+          |    Bar
           |    x =
           |        IO.println "foobar"
           |

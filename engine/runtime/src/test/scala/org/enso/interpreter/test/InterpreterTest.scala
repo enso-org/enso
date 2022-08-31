@@ -66,7 +66,8 @@ case class IdsInstrumenter(instrument: CodeIdsTestInstrument) {
       val listener = binding.getElement
       if (!listener.isSuccessful) {
         Assertions.fail(
-          s"Node with id ${listener.getId} does not exist or did not return the correct value."
+          s"Node with id ${listener.getId} does not exist or did not return the" +
+          s" correct value (expected ${listener.getExpectedResult}."
         )
       }
     }
@@ -170,7 +171,7 @@ trait InterpreterRunner {
     val module = InterpreterException.rethrowPolyglot(
       interpreterContext.executionContext.evalModule(code, "Test")
     )
-    val assocCons    = module.getAssociatedConstructor
+    val assocCons    = module.getAssociatedType
     val mainFunction = module.getMethod(assocCons, "main").get
     MainMethod(mainFunction)
   }

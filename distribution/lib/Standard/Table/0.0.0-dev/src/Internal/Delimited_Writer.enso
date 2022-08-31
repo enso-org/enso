@@ -47,7 +47,7 @@ write_file table format file on_existing_file match_columns on_problems =
    If the file does not exist or is empty, it acts like a regular overwrite.
 append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
-    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument_Error <|
+    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument_Error_Data <|
         inferring_format = format.with_line_endings Infer
         metadata = Delimited_Reader.detect_metadata file inferring_format
         preexisting_headers = metadata.headers
@@ -57,7 +57,7 @@ append_to_file table format file match_columns on_problems =
                 selected_separator = other_ending_style.to_text
                 existing_separator = metadata.line_separator
                 if existing_separator.is_nothing.not && (selected_separator != existing_separator) then
-                    Panic.throw <| Illegal_Argument_Error <|
+                    Panic.throw <| Illegal_Argument_Error_Data <|
                         # Ensure that these are properly escaped once `to_text` meaning is changed.
                         "The explicitly provided line endings (" + selected_separator.to_text + ") do not match the line endings in the file (" + existing_separator.to_text + ")."
                 other_ending_style.to_text
@@ -72,10 +72,10 @@ append_to_file table format file match_columns on_problems =
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
             No_Headers column_count -> case match_columns of
                 Match_Columns.By_Name ->
-                    Error.throw (Illegal_Argument_Error "Cannot append by name when headers are not present in the existing data.")
+                    Error.throw (Illegal_Argument_Error_Data "Cannot append by name when headers are not present in the existing data.")
                 Match_Columns.By_Position ->
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
-        reordered_table = Table.Table reordered_java_table
+        reordered_table = Table.Table_Data reordered_java_table
         writing_new_file = preexisting_headers == Nothing
         amended_format = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
@@ -131,11 +131,11 @@ write_to_stream table format stream on_problems related_file=Nothing separator_o
      instead of the one from `format`.
 write_to_writer : Table -> File_Format.Delimited -> Writer -> Text | Nothing -> Boolean -> Any
 write_to_writer table format java_writer separator_override=Nothing needs_leading_newline=False =
-    column_formatters = Panic.recover Illegal_Argument_Error <| case format.value_formatter of
+    column_formatters = Panic.recover Illegal_Argument_Error_Data <| case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
             Storage.Text -> TextFormatter.new
             _ ->
-                Panic.throw (Illegal_Argument_Error "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
+                Panic.throw (Illegal_Argument_Error_Data "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
         value_formatter -> table.columns.map column->
             storage_type = column.storage_type
             value_formatter.make_formatter_for_column_type storage_type
@@ -144,8 +144,8 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         Quote_Style.With_Quotes always _ _ ->
             if always then WriteQuoteBehavior.ALWAYS else WriteQuoteBehavior.NECESSARY
     quote_characters = case format.quote_style of
-        Quote_Style.No_Quotes -> Pair Nothing Nothing
-        Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+        Quote_Style.No_Quotes -> Pair_Data Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair_Data quote quote_escape
     write_headers = should_write_headers format.headers
     newline = separator_override.if_nothing <|
         case format.line_endings of

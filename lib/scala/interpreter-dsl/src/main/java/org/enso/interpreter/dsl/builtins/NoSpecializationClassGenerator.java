@@ -15,9 +15,8 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
       ClassName builtinNode,
       ClassName ownerClazz,
       ClassName stdlibOwner,
-      int varArgExpansion,
-      Map<String, Integer> builtinTypesParamCount) {
-    super(builtinNode, ownerClazz, stdlibOwner, builtinTypesParamCount);
+      int varArgExpansion) {
+    super(builtinNode, ownerClazz, stdlibOwner);
     this.origin = origin;
     this.varArgExpansion = varArgExpansion;
   }
@@ -26,9 +25,8 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
       ExecutableElement origin,
       ClassName builtinNode,
       ClassName ownerClazz,
-      ClassName stdlibOwner,
-      Map<String, Integer> builtinTypesParamCount) {
-    this(origin, builtinNode, ownerClazz, stdlibOwner, 0, builtinTypesParamCount);
+      ClassName stdlibOwner) {
+    this(origin, builtinNode, ownerClazz, stdlibOwner, 0);
   }
 
   @Override

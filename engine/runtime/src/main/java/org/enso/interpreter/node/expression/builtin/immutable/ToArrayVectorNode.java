@@ -39,8 +39,9 @@ public class ToArrayVectorNode extends Node {
       }
       return new Array(target);
     } catch (com.oracle.truffle.api.interop.UnsupportedMessageException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
-      throw new PanicException(builtins.error().makePolyglotError(e), this);
+      final Context ctx = Context.get(this);
+      final Builtins builtins = ctx.getBuiltins();
+      throw new PanicException(builtins.error().getPolyglotError().wrap(ctx, e), this);
     }
   }
 }

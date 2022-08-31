@@ -39,7 +39,7 @@ from_pairs contents =
 parse : Text -> Json ! Parse_Error
 parse json_text =
     Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
-        Error.throw (Parse_Error java_exception.getMessage)
+        Error.throw (Parse_Error_Data java_exception.getMessage)
 
 ## Represents a JSON structure.
 type Json
@@ -48,34 +48,34 @@ type Json
 
        Arguments:
        - fields: The fields of the JSON object.
-    type Object fields
+    Object fields
 
     ## A representation of a JSON array.
 
        Arguments:
        - items: The items in the JSON array.
-    type Array items
+    Array items
 
     ## A representation of a JSON string.
 
        Arguments:
        - value: The text contained in the JSON string.
-    type String value
+    String value
 
     ## A representation of a JSON number.
 
        Arguments:
        - value: The number contained in the JSON number.
-    type Number value
+    Number value
 
     ## A representation of a JSON boolean.
 
        Arguments:
        - value: The boolean contained in a JSON boolean.
-    type Boolean value
+    Boolean value
 
     ## A representation of a JSON null.
-    type Null
+    Null
 
     ## Marshalls this JSON into an arbitrary value described by
        `type_descriptor`.
@@ -133,19 +133,41 @@ type Json
              example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
     unwrap self = case self of
-        Json.Array its -> its.map .unwrap
-        Json.Boolean b -> b
-        Json.Number n -> n
-        Json.String t -> t
-        Json.Null -> Nothing
-        Json.Object f -> f.map .unwrap
+        Array its -> its.map .unwrap
+        Boolean b -> b
+        Number n -> n
+        String t -> t
+        Null -> Nothing
+        Object f -> f.map .unwrap
+
+    ## Gets the value associated with the given key in this object.
+
+       Arguments:
+       - field: The name of the field from which to get the value.
+
+       Throws `Nothing` if the associated key is not defined.
+
+       > Example
+         Get the "title" field from this JSON representing a book.
+
+             import Standard.Base.Data.Json
+             import Standard.Examples
+
+             example_get = Examples.json_object.get "title"
+    get : Text -> Json ! No_Such_Field_Error
+    get self field = case self of
+        Object _ -> self.fields.get field . map_error case _ of
+            Map.No_Value_For_Key_Error_Data _ -> No_Such_Field_Error_Data field
+            x -> x
+        _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
 
 ## UNSTABLE
 
    A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
-type Parse_Error message
+type Parse_Error
+    Parse_Error_Data message
 
 ## UNSTABLE
 
@@ -154,29 +176,11 @@ Parse_Error.to_display_text : Text
 Parse_Error.to_display_text self =
     "Parse error in parsing JSON: " + self.message.to_text + "."
 
-## Gets the value associated with the given key in this object.
-
-   Arguments:
-   - field: The name of the field from which to get the value.
-
-   Throws `Nothing` if the associated key is not defined.
-
-   > Example
-     Get the "title" field from this JSON representing a book.
-
-         import Standard.Base.Data.Json
-         import Standard.Examples
-
-         example_get = Examples.json_object.get "title"
-Object.get : Text -> Json ! No_Such_Field_Error
-Object.get self field = self.fields.get field . map_error case _ of
-    Map.No_Value_For_Key_Error _ -> No_Such_Field_Error field
-    x -> x
-
 ## UNSTABLE
 
    An error indicating that there is no such field in the JSON object.
-type No_Such_Field_Error field_name
+type No_Such_Field_Error
+    No_Such_Field_Error_Data field_name
 
 ## UNSTABLE
 
@@ -201,7 +205,7 @@ type Marshalling_Error
        - format: The type format that did not match.
 
        This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
-    type Type_Mismatch_Error json format
+    Type_Mismatch_Error json format
 
     ## UNSTABLE
 
@@ -215,7 +219,7 @@ type Marshalling_Error
 
        This can occure when trying to reinterpret a JSON object into an atom,
        when the JSON does not contain all the fields required by the atom.
-    type Missing_Field_Error json field format
+    Missing_Field_Error json field format
 
     ## UNSTABLE
 
@@ -243,21 +247,21 @@ type Marshalling_Error
 Any.to_json self =
     m = Meta.meta self
     case m of
-        Meta.Atom _ ->
-            cons = Meta.Constructor m.constructor
+        Meta.Atom_Data _ ->
+            cons = Meta.Constructor_Data m.constructor
             fs = m.fields
             fnames = cons.fields
             json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
                 m.insert (fnames.at i) (fs.at i . to_json)
             with_tp = json_fs . insert "type" (String cons.name)
             Object with_tp
-        Meta.Constructor _ ->
+        Meta.Constructor_Data _ ->
             Object (Map.empty . insert "type" (String m.name))
 
         ## The following two cases cannot be handled generically and should
            instead define their own `to_json` implementations.
-        Meta.Polyglot _ -> Null
-        Meta.Primitive _ -> Null
+        Meta.Polyglot_Data _ -> Null
+        Meta.Primitive_Data _ -> Null
 
 ## Method used by object builders to convert a value into a valid JSON key.
 

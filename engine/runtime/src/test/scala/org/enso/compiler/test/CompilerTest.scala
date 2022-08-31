@@ -191,8 +191,8 @@ trait CompilerRunner {
       *
       * @return an atom with one argument `arg` with default value `ir`
       */
-    def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
-      IR.Module.Scope.Definition.Atom(
+    def asAtomDefaultArg: IR.Module.Scope.Definition.Data = {
+      IR.Module.Scope.Definition.Data(
         IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
@@ -209,18 +209,18 @@ trait CompilerRunner {
       )
     }
 
-    /** Creates a module containing both an atom and a method that use the
-      * provided expression.
-      *
-      * The expression is used in the default for an atom argument, as in
-      * [[asAtomDefaultArg()]], and in the body of a method, as in
-      * [[asMethod()]].
-      *
-      * @return a module containing an atom def and method def using `expr`
-      */
-    def asModuleDefs: IR.Module = {
-      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
-    }
+//    /** Creates a module containing both an atom and a method that use the
+//      * provided expression.
+//      *
+//      * The expression is used in the default for an atom argument, as in
+//      * [[asAtomDefaultArg()]], and in the body of a method, as in
+//      * [[asMethod()]].
+//      *
+//      * @return a module containing an atom def and method def using `expr`
+//      */
+//    def asModuleDefs: IR.Module = {
+//      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
+//    }
   }
 
   /** Builds a module context with a mocked module for testing purposes.
@@ -238,7 +238,7 @@ trait CompilerRunner {
     isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName, null),
+      module            = Module.empty(moduleName, null, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -262,7 +262,7 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null, null)
     mod.unsafeBuildIrStub()
     InlineContext(
       module            = mod,

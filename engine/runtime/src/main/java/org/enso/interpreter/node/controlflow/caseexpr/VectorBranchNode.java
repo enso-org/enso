@@ -8,15 +8,16 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.Vector;
 
 /** An implementation of the case expression specialised to working on vectors. */
 @NodeInfo(shortName = "VectorMatch")
 public abstract class VectorBranchNode extends BranchNode {
-  private final AtomConstructor vector;
+  private final Type vector;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  VectorBranchNode(AtomConstructor vector, RootCallTarget branch) {
+  VectorBranchNode(Type vector, RootCallTarget branch) {
     super(branch);
     this.vector = vector;
   }
@@ -28,14 +29,14 @@ public abstract class VectorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static VectorBranchNode build(AtomConstructor vector, RootCallTarget branch) {
+  public static VectorBranchNode build(Type vector, RootCallTarget branch) {
     return VectorBranchNodeGen.create(vector, branch);
   }
 
   @Specialization
-  void doAtom(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(vector == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(vector == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

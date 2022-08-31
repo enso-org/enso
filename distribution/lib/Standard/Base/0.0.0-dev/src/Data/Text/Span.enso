@@ -7,7 +7,7 @@
 
          example_span =
              text = "Hello!"
-             Span 0 3 text
+             Span_Data 0 3 text
 
 from Standard.Base import all
 
@@ -38,8 +38,8 @@ type Span
              example_span =
                  text = "Hello!"
                  range = 0.up_to 3
-                 Span.Span range text
-    type Span (range : Range.Range) (text : Text)
+                 Span.Span_Data range text
+    Span_Data (range : Range.Range) (text : Text)
 
     ## The index of the first character included in the span.
 
@@ -76,10 +76,10 @@ type Span
          Find the span of code units corresponding to the span of extended grapheme clusters.
 
          text = 'ae\u{301}fz'
-         (Span (Range 1 3) text).to_utf_16_span == (Utf_16_Span (Range 1 4) text)
+         (Span_Data (Range 1 3) text).to_utf_16_span == (Utf_16_Span_Data (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
     to_utf_16_span self =
-        Utf_16_Span (range_to_char_indices self.text self.range) self.text
+        Utf_16_Span_Data (range_to_char_indices self.text self.range) self.text
 
 type Utf_16_Span
 
@@ -97,8 +97,8 @@ type Utf_16_Span
 
              example_span =
                  text = 'a\u{301}bc'
-                 Span.Utf_16_Span (Range 0 3) text
-    type Utf_16_Span (range : Range.Range) (text : Text)
+                 Span.Utf_16_Span_Data (Range 0 3) text
+    Utf_16_Span_Data (range : Range.Range) (text : Text)
 
     ## The index of the first code unit included in the span.
     start : Integer
@@ -126,17 +126,17 @@ type Utf_16_Span
          Convert a codepoint span to graphemes and back.
 
          text = 'a\u{301}e\u{302}o\u{303}'
-         span = Utf_16_Span (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
+         span = Utf_16_Span_Data (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
          extended = span.to_grapheme_span
-         extended == Span (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
-         extended.to_utf_16_span == Utf_16_Span (Range 0 6) text
+         extended == Span_Data (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
+         extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
     to_grapheme_span : Span
     to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->
                     grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.text self.start
-                    Span (Range grapheme_ix grapheme_ix) self.text
+                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.text
                 False ->
                     grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.text [self.start, self.end - 1].to_array
                     grapheme_first = grapheme_ixes.at 0
@@ -146,7 +146,7 @@ type Utf_16_Span
                        only a part of a grapheme were contained in our original span, the resulting span will be
                        extended to contain this whole grapheme.
                     grapheme_end = grapheme_last + 1
-                    Span (Range grapheme_first grapheme_end) self.text
+                    Span_Data (Range_Data grapheme_first grapheme_end) self.text
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
@@ -156,19 +156,19 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
-    is_valid = (Range 0 len+1).contains
+    is_valid = (Range_Data 0 len+1).contains
 
-    case (Pair (is_valid start) (is_valid end)) of
-        Pair False _ -> Error.throw (Index_Out_Of_Bounds_Error range.start len)
-        Pair True False -> Error.throw (Index_Out_Of_Bounds_Error range.end len)
-        Pair True True ->
-            if start>=end then (Range 0 0) else
+    case (Pair_Data (is_valid start) (is_valid end)) of
+        Pair_Data False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
+        Pair_Data True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
+        Pair_Data True True ->
+            if start>=end then (Range_Data 0 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
 
                 start_index = iterator.next start
                 end_index = iterator.next (end - start)
-                Range start_index end_index
+                Range_Data start_index end_index
 
 Span.from (that:Utf_16_Span) = that.to_grapheme_span
 Utf_16_Span.from (that:Span) = that.to_utf_16_span

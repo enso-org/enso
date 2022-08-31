@@ -11,14 +11,17 @@ class ConversionMethodsTest extends InterpreterTest {
     "be defined in the global scope and dispatched to" in {
       val code =
         """
-          |type Foo foo
-          |type Bar bar
-          |type Baz baz
+          |type Foo
+          |    Mk_Foo foo
+          |type Bar
+          |    Mk_Bar bar
+          |type Baz
+          |    Mk_Baz baz
           |
-          |Foo.from (that:Bar) = Foo that.bar
-          |Foo.from (that:Baz) = Foo that.baz
+          |Foo.from (that:Bar) = Mk_Foo that.bar
+          |Foo.from (that:Baz) = Mk_Foo that.baz
           |
-          |main = (Foo.from (Baz 10)).foo + (Foo.from (Bar 20)).foo
+          |main = (Foo.from (Mk_Baz 10)).foo + (Foo.from (Mk_Bar 20)).foo
           |""".stripMargin
       eval(code) shouldEqual 30
     }

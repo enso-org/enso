@@ -9,7 +9,7 @@ foreign js debug = """
     debugger;
 
 type My_Type
-    type My_Type a b
+    My_Type_Data a b
 
     foreign js my_method this = """
         return this.a + this.b;
@@ -86,7 +86,7 @@ spec = Test.group "Polyglot JS" <|
         m 2 . should_equal 3
 
     Test.specify "should allow mutual calling of instance-level methods" <|
-        My_Type 3 4 . my_method_3 5 . should_equal 36
+        My_Type_Data 3 4 . my_method_3 5 . should_equal 36
 
     Test.specify "should expose methods and fields of JS objects" <|
         obj = make_object
@@ -158,14 +158,14 @@ spec = Test.group "Polyglot JS" <|
         num_double_match.should_be_true
 
     Test.specify "should allow Enso to catch JS exceptions" <|
-        value = My_Type 1 2
+        value = My_Type_Data 1 2
         result = Panic.recover Any <| value.my_throw
         err = result.catch
         err.cause.message . should_equal "JS Exc"
         err.cause.name . should_equal "Error"
 
     Test.specify "should allow JS to catch Enso exceptions" <|
-        value = My_Type 7 2
+        value = My_Type_Data 7 2
         result = value.do_catch
         result . should_equal 7
 

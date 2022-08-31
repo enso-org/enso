@@ -4,13 +4,13 @@ from Standard.Base import all
 type Proxy
 
     ## The proxy is disabled.
-    type None
+    None
 
     ## Use the system proxy settings.
-    type System
+    System
 
     ## Use the provided proxy server.
-    type Proxy_Addr proxy_host proxy_port
+    Proxy_Addr proxy_host proxy_port
 
 ## Create new proxy settings from a host and port.
 

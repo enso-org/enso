@@ -22,20 +22,20 @@ spec = Test.group "Range" <|
         range_3.step  . should_equal -1
 
     Test.specify "should allow setting a new step magnitude" <|
-        1.up_to 2 . with_step 3 . should_equal (Range 1 2 3)
+        1.up_to 2 . with_step 3 . should_equal (Range_Data 1 2 3)
 
-        0.up_to 10 . with_step 2 . should_equal (Range 0 10 2)
+        0.up_to 10 . with_step 2 . should_equal (Range_Data 0 10 2)
         0.up_to 10 . with_step 2 . to_vector . should_equal [0, 2, 4, 6, 8]
 
-        10.down_to 0 . with_step 2 . should_equal (Range 10 0 -2)
+        10.down_to 0 . with_step 2 . should_equal (Range_Data 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
-        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error
-        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error
-        0.up_to 2.0 . should_fail_with Illegal_Argument_Error
-        0.down_to 2.0 . should_fail_with Illegal_Argument_Error
-        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error
-        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error
+        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error_Data
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error_Data
+        0.up_to 2.0 . should_fail_with Illegal_Argument_Error_Data
+        0.down_to 2.0 . should_fail_with Illegal_Argument_Error_Data
+        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error_Data
+        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error_Data
 
     Test.specify "should have a length" <|
         0.up_to 100 . length . should_equal 100
@@ -80,13 +80,13 @@ spec = Test.group "Range" <|
     Test.specify "should allow iteration with index" <|
         vec_mut = Vector.new_builder
         5.up_to 8 . each_with_index ix-> elem->
-            vec_mut.append (Pair ix elem)
-        vec_mut.to_vector . should_equal [Pair 0 5, Pair 1 6, Pair 2 7]
+            vec_mut.append (Pair_Data ix elem)
+        vec_mut.to_vector . should_equal [Pair_Data 0 5, Pair_Data 1 6, Pair_Data 2 7]
 
         vec_mut_2 = Vector.new_builder
         5.up_to 10 . with_step 2 . each_with_index ix-> elem->
-            vec_mut_2.append (Pair ix elem)
-        vec_mut_2.to_vector . should_equal [Pair 0 5, Pair 1 7, Pair 2 9]
+            vec_mut_2.append (Pair_Data ix elem)
+        vec_mut_2.to_vector . should_equal [Pair_Data 0 5, Pair_Data 1 7, Pair_Data 2 9]
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
     Test.specify "should check all" <|
@@ -114,11 +114,11 @@ spec = Test.group "Range" <|
         3.up_to 5 . contains 2 . should_be_false
         0.up_to 10 . contains -3 . should_be_false
 
-        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument_Error
-        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument_Error
+        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
+        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
 
-        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument_Error
-        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument_Error
+        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
+        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
 
 
     verify_contains range expected unexpected =
@@ -148,17 +148,17 @@ spec = Test.group "Range" <|
             verify_contains r [] [-1, 0, 1, 2, 10]
 
         check_empty_range (0.up_to 0)
-        check_empty_range (Range 1 1)
-        check_empty_range (Range 2 2 4)
-        check_empty_range (Range 0 -1 2)
-        check_empty_range (Range 0 -10 2)
-        check_empty_range (Range 10 0 2)
-        check_empty_range (Range -1 0 -1)
-        check_empty_range (Range 0 10 -1)
-        check_empty_range (Range -1 0 -2)
+        check_empty_range (Range_Data 1 1)
+        check_empty_range (Range_Data 2 2 4)
+        check_empty_range (Range_Data 0 -1 2)
+        check_empty_range (Range_Data 0 -10 2)
+        check_empty_range (Range_Data 10 0 2)
+        check_empty_range (Range_Data -1 0 -1)
+        check_empty_range (Range_Data 0 10 -1)
+        check_empty_range (Range_Data -1 0 -2)
 
     Test.specify "should behave correctly when containing exactly one element" <|
-        r1 = Range 10 11
+        r1 = Range_Data 10 11
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 1
@@ -175,7 +175,7 @@ spec = Test.group "Range" <|
         verify_contains r1 [10] [-1, 0, 1, 2, 9, 11, 12]
 
     Test.specify "should behave correctly with step greater than 1" <|
-        r1 = Range 0 10 2
+        r1 = Range_Data 0 10 2
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 5
@@ -191,7 +191,7 @@ spec = Test.group "Range" <|
         r1.find (x-> x*x == 25) . should_equal Nothing
         verify_contains r1 [0, 2, 4, 6, 8] [-3, -2, -1, 1, 3, 5, 7, 11, 12, 13, 14]
 
-        r2 = Range 0 3 2
+        r2 = Range_Data 0 3 2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
         r2.length . should_equal 2
@@ -207,7 +207,7 @@ spec = Test.group "Range" <|
         r2.find (x-> x*x == 4) . should_equal 2
         verify_contains r2 [0, 2] [-3, -2, -1, 1, 3, 4, 5]
 
-        r3 = Range 5 6 200
+        r3 = Range_Data 5 6 200
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
         r3.length . should_equal 1
@@ -223,7 +223,7 @@ spec = Test.group "Range" <|
         r3.find (x-> x*x == 25) . should_equal 5
         verify_contains r3 [5] [0, 1, 4, 6, 7, 10]
 
-        r4 = Range 5 8 2
+        r4 = Range_Data 5 8 2
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
         r4.length . should_equal 2
@@ -239,7 +239,7 @@ spec = Test.group "Range" <|
         r4.find (x-> x*x == 4) . should_equal Nothing
         verify_contains r4 [5, 7] [0, 1, 4, 6, 8, 10]
 
-        r5 = Range 5 7 2
+        r5 = Range_Data 5 7 2
         r5.is_empty . should_be_false
         r5.not_empty . should_be_true
         r5.length . should_equal 1
@@ -255,7 +255,7 @@ spec = Test.group "Range" <|
         r5.find (x-> x*x == 4) . should_equal Nothing
         verify_contains r5 [5] [0, 1, 4, 6, 7, 10]
 
-        r6 = Range 0 10 3
+        r6 = Range_Data 0 10 3
         r6.is_empty . should_be_false
         r6.not_empty . should_be_true
         r6.length . should_equal 4
@@ -273,7 +273,7 @@ spec = Test.group "Range" <|
         verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
 
     Test.specify "should behave correctly with negative step" <|
-        r1 = Range 4 0 -1
+        r1 = Range_Data 4 0 -1
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 4
@@ -289,7 +289,7 @@ spec = Test.group "Range" <|
         r1.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r1 [4, 3, 2, 1] [-2, -1, 0, 5, 6, 7, 10]
 
-        r2 = Range 4 0 -2
+        r2 = Range_Data 4 0 -2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
         r2.length . should_equal 2
@@ -305,7 +305,7 @@ spec = Test.group "Range" <|
         r2.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r2 [4, 2] [-2, -1, 0, 1, 3, 5, 6, 7, 10]
 
-        r3 = Range 4 0 -10
+        r3 = Range_Data 4 0 -10
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
         r3.length . should_equal 1
@@ -321,7 +321,7 @@ spec = Test.group "Range" <|
         r3.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r3 [4] [-2, -1, 0, 1, 2, 3, 5, 6, 7, 10]
 
-        r4 = Range 3 0 -3
+        r4 = Range_Data 3 0 -3
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
         r4.length . should_equal 1
@@ -338,22 +338,22 @@ spec = Test.group "Range" <|
         verify_contains r4 [3] [-3, -2, -1, 0, 1, 2, 4, 5, 6, 7, 10]
 
     Test.specify "should report errors if trying to set step to 0" <|
-        0.up_to 0 . with_step 0 . should_fail_with Illegal_State_Error
-        invalid_range = Range 0 0 0
-        invalid_range . length . should_fail_with Illegal_State_Error
-        invalid_range . is_empty . should_fail_with Illegal_State_Error
-        invalid_range . not_empty . should_fail_with Illegal_State_Error
-        invalid_range . each x->x . should_fail_with Illegal_State_Error
-        invalid_range . fold 0 (+) . should_fail_with Illegal_State_Error
+        0.up_to 0 . with_step 0 . should_fail_with Illegal_State_Error_Data
+        invalid_range = Range_Data 0 0 0
+        invalid_range . length . should_fail_with Illegal_State_Error_Data
+        invalid_range . is_empty . should_fail_with Illegal_State_Error_Data
+        invalid_range . not_empty . should_fail_with Illegal_State_Error_Data
+        invalid_range . each x->x . should_fail_with Illegal_State_Error_Data
+        invalid_range . fold 0 (+) . should_fail_with Illegal_State_Error_Data
         ## FIXME [RW] These tests are disabled because they fail in an
            unexpected way due to a codegen issue (noted below). They should be
            enabled once that is resolved.
            See: https://www.pivotaltracker.com/story/show/181652841
         #invalid_range . map x->x . should_fail_with Illegal_State_Error
         #invalid_range . to_vector . should_fail_with Illegal_State_Error
-        invalid_range . any _->True . should_fail_with Illegal_State_Error
-        invalid_range . all _->True . should_fail_with Illegal_State_Error
-        invalid_range . find _->True . should_fail_with Illegal_State_Error
-        invalid_range . contains 0 . should_fail_with Illegal_State_Error
+        invalid_range . any _->True . should_fail_with Illegal_State_Error_Data
+        invalid_range . all _->True . should_fail_with Illegal_State_Error_Data
+        invalid_range . find _->True . should_fail_with Illegal_State_Error_Data
+        invalid_range . contains 0 . should_fail_with Illegal_State_Error_Data
 
 main = Test.Suite.run_main spec

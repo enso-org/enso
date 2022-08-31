@@ -70,6 +70,12 @@ public class TopLevelScope implements TruffleObject {
     return module;
   }
 
+  public Module createModule(QualifiedName name, Package<TruffleFile> pkg, String source) {
+    Module module = new Module(name, pkg, source);
+    packageRepository.registerModuleCreatedInRuntime(module);
+    return module;
+  }
+
   /**
    * Returns the builtins module.
    *
@@ -125,7 +131,7 @@ public class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName), null);
+      return Module.empty(QualifiedName.simpleName(moduleName), null, context);
     }
 
     private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
@@ -143,7 +149,7 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
       scope.packageRepository.deregisterModule(name);
-      return context.getNothing().newInstance();
+      return context.getNothing();
     }
 
     private static Object leakContext(Context context) {

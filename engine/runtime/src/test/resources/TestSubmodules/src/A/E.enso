@@ -1,2 +1,2 @@
 type E
-    type E a
+    Mk_E a

@@ -1,15 +1,10 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import While
-from Standard.Base.Runtime import Stack_Trace_Element
+from Standard.Base.Runtime import Stack_Trace_Element_Data
 
 ## A representation of a dataflow warning attached to a value.
+@Builtin_Type
 type Warning
-    ## PRIVATE
-
-       The constructor to wrap primitive warnings.
-    @Builtin_Type
-    type Warning
-
     ## UNSTABLE
 
        Returns the warning value – usually its explanation or other contents.
@@ -44,8 +39,8 @@ type Warning
         Vector.from_array self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
-                True -> Source_Location (Polyglot.get_source_location r)
-            Stack_Trace_Element (Polyglot.get_executable_name r) loc
+                True -> Source_Location_Data (Polyglot.get_source_location r)
+            Stack_Trace_Element_Data (Polyglot.get_executable_name r) loc
 
     ## PRIVATE
 
@@ -206,7 +201,7 @@ detach_selected_warnings value predicate =
     result = warnings.partition w-> predicate w.value
     matched = result.first
     remaining = result.second
-    Pair (set remaining value) matched
+    Pair_Data (set remaining value) matched
 
 ## UNSTABLE
    A helper function which gathers warnings matching some predicate and passes

@@ -3,6 +3,6 @@ from Standard.Base import all
 import Standard.Table.Data.Sort_Column
 
 type Sort_Column_Selector
-    type By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher)
-    type By_Index (columns : Vector (Sort_Column.Index | Integer))
-    type By_Column (columns : Vector (Sort_Column.Column | Column))
+    By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher_Data)
+    By_Index (columns : Vector (Sort_Column.Index | Integer))
+    By_Column (columns : Vector (Sort_Column.Column | Column))

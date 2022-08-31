@@ -1,4 +1,4 @@
-from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data
 
 from Standard.Base.Data.Vector import Empty_Error
 
@@ -28,62 +28,62 @@ type Statistic
         _ -> Nothing
 
     ## Count the number of non-Nothing and non-NaN values.
-    type Count
+    Count
 
     ## The minimum value.
-    type Minimum
+    Minimum
 
     ## The maximum value.
-    type Maximum
+    Maximum
 
     ## Sum the non-Nothing and non-NaN values.
-    type Sum
+    Sum
 
     ## The sample mean of the values.
-    type Mean
+    Mean
 
     ## The variance of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Variance (population:Boolean=False)
+    Variance (population:Boolean=False)
 
     ## The standard deviation of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Standard_Deviation (population:Boolean=False)
+    Standard_Deviation (population:Boolean=False)
 
     ## The skewness of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Skew (population:Boolean=False)
+    Skew (population:Boolean=False)
 
     ## The sample kurtosis of the values.
-    type Kurtosis
+    Kurtosis
 
     ## Calculate the Covariance between data and series.
 
        Arguments:
        - series: the series to compute the covariance with.
-    type Covariance (series:Vector)
+    Covariance (series:Vector)
 
     ## Calculate the Pearson Correlation between data and series.
 
        Arguments:
        - series: the series to compute the correlation with.
-    type Pearson (series:Vector)
+    Pearson (series:Vector)
 
     ## Calculate the Spearman Rank Correlation between data and series.
 
        Arguments:
        - series: the series to compute the correlation with.
-    type Spearman (series:Vector)
+    Spearman (series:Vector)
 
     ## Calculate the coefficient of determination between data and predicted
        series.
 
        Arguments:
        - predicted: the series to compute the r_squared with.
-    type R_Squared (predicted:Vector)
+    R_Squared (predicted:Vector)
 
 
 ## Compute a single statistic on a vector like object.
@@ -111,8 +111,8 @@ compute_bulk data statistics=[Count, Sum] =
     report_invalid _ =
         statistics.map_with_index i->v->
             if java_stats.at i . is_nothing then Nothing else
-                Error.throw (Illegal_Argument_Error ("Can only compute " + v.to_text + " on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_invalid
+                Error.throw (Illegal_Argument_Error_Data ("Can only compute " + v.to_text + " on numerical data sets."))
+    handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
 
     empty_map s = if (s == Count) || (s == Sum) then 0 else
         if (s == Minimum) || (s == Maximum) then Error.throw Empty_Error else
@@ -181,8 +181,8 @@ spearman_correlation data =
 ## PRIVATE
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
-    report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
+    report_unsupported _ = Error.throw (Illegal_Argument_Error_Data ("Can only compute correlations on numerical data sets."))
+    handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_unsupported
 
     handle_unsupported <| Illegal_Argument_Error.handle_java_exception <| function
 
@@ -242,7 +242,7 @@ rank_data input method=Rank_Method.Average =
         Rank_Method.Ordinal -> Rank.Method.ORDINAL
         Rank_Method.Dense -> Rank.Method.DENSE
 
-    report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
     handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
     handle_classcast = Panic.catch ClassCastException handler=(Error.throw Vector.Incomparable_Values_Error)
 

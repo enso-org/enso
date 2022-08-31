@@ -120,14 +120,14 @@ Text.at self index =
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index length) else
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error_Data index length) else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index self.length)) else
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)) else
                 Text_Utils.substring self first next
 
 ## ALIAS Get Characters
@@ -362,13 +362,13 @@ Text.find self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothin
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
-Text.split self delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
+Text.split self delimiter="," matcher=Text_Matcher_Data = if delimiter.is_empty then Error.throw (Illegal_Argument_Error_Data "The delimiter cannot be empty.") else
     case matcher of
-        Text_Matcher case_sensitivity ->
+        Text_Matcher_Data case_sensitivity ->
             delimiters = Vector.from_polyglot_array <| case case_sensitivity of
                 True ->
                     Text_Utils.span_of_all self delimiter
-                Case_Insensitive locale ->
+                Case_Insensitive_Data locale ->
                     Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
             Vector.new delimiters.length+1 i->
                 start = if i == 0 then 0 else
@@ -376,7 +376,7 @@ Text.split self delimiter="," matcher=Text_Matcher = if delimiter.is_empty then 
                 end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
-        Regex_Matcher _ _ _ _ _ ->
+        Regex_Matcher_Data _ _ _ _ _ ->
             compiled_pattern = matcher.compile delimiter
             compiled_pattern.split self mode=Mode.All
 
@@ -457,9 +457,9 @@ Text.split self delimiter="," matcher=Text_Matcher = if delimiter.is_empty then 
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
-Text.replace self term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then self else
+Text.replace self term="" new_text="" mode=Mode.All matcher=Text_Matcher_Data = if term.is_empty then self else
     case matcher of
-        Text_Matcher case_sensitivity ->
+        Text_Matcher_Data case_sensitivity ->
             array_from_single_result result = case result of
                 Nothing -> Array.empty
                 _ -> Array.new_1 result
@@ -471,7 +471,7 @@ Text.replace self term="" new_text="" mode=Mode.All matcher=Text_Matcher = if te
                         array_from_single_result <| Text_Utils.span_of self term
                     Matching_Mode.Last ->
                         array_from_single_result <| Text_Utils.last_span_of self term
-                Case_Insensitive locale -> case mode of
+                Case_Insensitive_Data locale -> case mode of
                     Mode.All ->
                         Text_Utils.span_of_all_case_insensitive self term locale.java_locale
                     Matching_Mode.First ->
@@ -481,7 +481,7 @@ Text.replace self term="" new_text="" mode=Mode.All matcher=Text_Matcher = if te
                         array_from_single_result <|
                             Text_Utils.span_of_case_insensitive self term locale.java_locale True
             Text_Utils.replace_spans self spans_array new_text
-        Regex_Matcher _ _ _ _ _ ->
+        Regex_Matcher_Data _ _ _ _ _ ->
             compiled_pattern = matcher.compile term
             compiled_pattern.replace self new_text mode=mode
 
@@ -675,11 +675,11 @@ Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
 Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
-    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error index len) else
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
-                pre = self.take (Range 0 idx)
-                post = self.take (Range idx len)
+                pre = self.take (Range_Data 0 idx)
+                post = self.take (Range_Data idx len)
                 pre + that + post
 
 ## Returns if a character from the text at the specified index (0-based) is a
@@ -742,7 +742,7 @@ Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
-        on_problems.attach_problems_after vector [Encoding_Error result.warnings]
+        on_problems.attach_problems_after vector [Encoding_Error_Data result.warnings]
 
 ## Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
@@ -764,7 +764,7 @@ Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error result.warnings]
+        on_problems.attach_problems_after result.result [Encoding_Error_Data result.warnings]
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
@@ -894,13 +894,13 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "[a-z]" Regex_Matcher == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher == True
 Text.starts_with : Text -> Matcher -> Boolean
-Text.starts_with self prefix matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitivity -> case case_sensitivity of
+Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
+    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
         True ->
             self.take (Text_Sub_Range.First prefix.length) == prefix
-        Case_Insensitive locale ->
+        Case_Insensitive_Data locale ->
             self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    Regex_Matcher _ _ _ _ _ ->
+    Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Mode.First
@@ -931,13 +931,13 @@ Text.starts_with self prefix matcher=Text_Matcher = case matcher of
          "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
 Text.ends_with : Text -> Matcher -> Boolean
-Text.ends_with self suffix matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitivity -> case case_sensitivity of
+Text.ends_with self suffix matcher=Text_Matcher_Data = case matcher of
+    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
         True ->
             self.take (Text_Sub_Range.Last suffix.length) == suffix
-        Case_Insensitive locale ->
+        Case_Insensitive_Data locale ->
             self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    Regex_Matcher _ _ _ _ _ ->
+    Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Mode.First
@@ -995,12 +995,12 @@ Text.ends_with self suffix matcher=Text_Matcher = case matcher of
 
          "Hello!".contains "[a-z]" Regex_Matcher
 Text.contains : Text -> Matcher -> Boolean
-Text.contains self term="" matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitivity -> case case_sensitivity of
+Text.contains self term="" matcher=Text_Matcher_Data = case matcher of
+    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
         True -> Text_Utils.contains self term
-        Case_Insensitive locale ->
+        Case_Insensitive_Data locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
-    Regex_Matcher _ _ _ _ _ ->
+    Regex_Matcher_Data _ _ _ _ _ ->
         compiled_pattern = matcher.compile term
         match = compiled_pattern.match self Mode.First
         match.is_nothing.not
@@ -1097,9 +1097,9 @@ Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bo
 Text.take self range=(First 1) =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
     case ranges of
-        Range start end _ ->
+        Range_Data start end _ ->
             Text_Utils.substring self start end
-        Text_Sub_Range.Codepoint_Ranges char_ranges _ ->
+        Text_Sub_Range.Codepoint_Ranges_Data char_ranges _ ->
             slice_text self char_ranges
 
 ## ALIAS skip, remove
@@ -1143,12 +1143,12 @@ Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bo
 Text.drop self range=(First 1) =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
     case ranges of
-        Range start end _ ->
+        Range_Data start end _ ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else
                     prefix + Text_Utils.drop_first self end
-        Text_Sub_Range.Codepoint_Ranges _ _ ->
+        Text_Sub_Range.Codepoint_Ranges_Data _ _ ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
             inverted = Index_Sub_Range.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
@@ -1218,7 +1218,7 @@ Text.to_case self case_option=Case.Lower locale=Locale.default = case case_optio
 Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
 Text.pad self length=0 with_pad=' ' at=Location.End =
     with_pad_length = with_pad.length
-    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
+    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error_Data "`with_pad` must not be an empty string.") else
         pad_size = length - self.length
         if pad_size <= 0 then self else
             full_repetitions = pad_size.div with_pad_length
@@ -1376,8 +1376,8 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitive -> case case_sensitive of
+Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher_Data = case matcher of
+    Text_Matcher_Data case_sensitive -> case case_sensitive of
         True ->
             codepoint_span = case mode of
                 Matching_Mode.First -> Text_Utils.span_of self term
@@ -1388,13 +1388,13 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher = ca
                    from our term, the `length` counted in grapheme clusters is
                    guaranteed to be the same.
                 end = start + term.length
-                Span (Range start end) self
-        Case_Insensitive locale -> case term.is_empty of
+                Span_Data (Range_Data start end) self
+        Case_Insensitive_Data locale -> case term.is_empty of
             True -> case mode of
-                Matching_Mode.First -> Span (Range 0 0) self
+                Matching_Mode.First -> Span_Data (Range_Data 0 0) self
                 Matching_Mode.Last ->
                     end = self.length
-                    Span (Range end end) self
+                    Span_Data (Range_Data end end) self
             False ->
                 search_for_last = case mode of
                     Matching_Mode.First -> False
@@ -1402,8 +1402,8 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher = ca
                 case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                     Nothing -> Nothing
                     grapheme_span ->
-                        Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) self
-    Regex_Matcher _ _ _ _ _ -> case mode of
+                        Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+    Regex_Matcher_Data _ _ _ _ _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match self Mode.First of
                 Nothing -> Nothing
@@ -1479,8 +1479,8 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher = ca
          match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all self term="" matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span (Range ix ix) self) else case case_sensitive of
+Text.location_of_all self term="" matcher=Text_Matcher_Data = case matcher of
+    Text_Matcher_Data case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case case_sensitive of
         True ->
             codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
             grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
@@ -1490,12 +1490,12 @@ Text.location_of_all self term="" matcher=Text_Matcher = case matcher of
             offset = term.length
             grahpeme_ixes . map start->
                 end = start+offset
-                Span (Range start end) self
-        Case_Insensitive locale ->
+                Span_Data (Range_Data start end) self
+        Case_Insensitive_Data locale ->
             grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
             grapheme_spans.map grapheme_span->
-                Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) self
-    Regex_Matcher _ _ _ _ _ ->
+                Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+    Regex_Matcher_Data _ _ _ _ _ ->
         case matcher.compile term . match self Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span

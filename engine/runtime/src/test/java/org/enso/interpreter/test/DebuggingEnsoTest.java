@@ -91,8 +91,8 @@ public class DebuggingEnsoTest {
         import Standard.Base.Runtime.Unsafe
 
         type Gen
-            type Empty
-            type Generator a:Int tail:Gen
+            Empty
+            Generator a:Int tail:Gen
 
         ones : Gen
         ones =

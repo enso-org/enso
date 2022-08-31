@@ -41,15 +41,16 @@ class EvalTest extends InterpreterTest {
         s"""import Standard.Base.Runtime.Debug
            |import Standard.Base.IO
            |
-           |type MyType x
+           |type My_Type
+           |    Mk_My_Type x
            |
            |main =
            |    x = 10
            |    Debug.eval $rawTQ
-           |        IO.println (MyType x)
+           |        IO.println (Mk_My_Type x)
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyType 10)")
+      consumeOut shouldEqual List("(Mk_My_Type 10)")
     }
 
     "return a value usable in the caller scope" in {

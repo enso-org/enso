@@ -33,7 +33,7 @@ type Column
     # type Column (name : Text) (connection : Connection)
     #             (sql_type : Sql_Type) (expression : IR.Expression)
     #             (context : IR.Context)
-    type Column name connection sql_type expression context
+    Column_Data name connection sql_type expression context
 
     ## UNSTABLE
 
@@ -68,7 +68,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table self =
-        Table.Table self.name self.connection [self.as_internal] self.context
+        Table.Table_Data self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 
@@ -118,18 +118,18 @@ type Column
     make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         case operand of
-            Column _ _ _ other_expr _ ->
+            Column_Data _ _ _ other_expr _ ->
                 case Helpers.check_integrity self operand of
                     False ->
                         Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
                         new_expr = IR.Operation op_kind [self.expression, other_expr]
-                        Column self.name self.connection actual_new_type new_expr self.context
+                        Column_Data self.name self.connection actual_new_type new_expr self.context
             _ ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 other = IR.make_constant actual_operand_type operand
                 new_expr = IR.Operation op_kind [self.expression, other]
-                Column self.name self.connection actual_new_type new_expr self.context
+                Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
 
@@ -143,7 +143,7 @@ type Column
     make_unary_op self op_kind new_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         new_expr = IR.Operation op_kind [self.expression]
-        Column self.name self.connection actual_new_type new_expr self.context
+        Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## UNSTABLE
 
@@ -421,7 +421,7 @@ type Column
             True ->
                 new_filters = self.context.where_filters + [filter.expression]
                 new_ctx = self.context.set_where_filters new_filters
-                Column self.name self.connection self.sql_type self.expression new_ctx
+                Column_Data self.name self.connection self.sql_type self.expression new_ctx
 
     ## UNSTABLE
 
@@ -440,9 +440,9 @@ type Column
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
-                    Column new_name self.connection self.sql_type self.expression self.context
+                    Column_Data new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -534,7 +534,7 @@ type Column
 
     ## PRIVATE
     as_internal : IR.Internal_Column
-    as_internal self = IR.Internal_Column self.name self.sql_type self.expression
+    as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
 
 type Aggregate_Column_Builder
 
@@ -553,7 +553,7 @@ type Aggregate_Column_Builder
     # type Aggregate_Column_Builder (name : Text) (connection : Connection)
     #                       (sql_type : Sql_Type) (expression : IR.Expression)
     #                       (context : IR.Context)
-    type Aggregate_Column_Builder name connection sql_type expression context
+    Aggregate_Column_Builder_Data name connection sql_type expression context
 
     ## UNSTABLE
 
@@ -616,7 +616,7 @@ type Aggregate_Column_Builder
     ungrouped : Column
     ungrouped self =
         new_ctx = self.context.set_groups []
-        Column self.name self.connection self.sql_type self.expression new_ctx
+        Column_Data self.name self.connection self.sql_type self.expression new_ctx
 
 ## PRIVATE
 
@@ -654,12 +654,12 @@ lift_aggregate new_name connection expected_type expr context =
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
     ixes = Table.freshen_columns [new_name] context.meta_index
-    col = IR.Internal_Column new_name expected_type expr
+    col = IR.Internal_Column_Data new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first
     cols = setup.second
     new_col = cols.first.first
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
-    Column new_name connection new_col.sql_type new_col.expression new_ctx
+    Column_Data new_name connection new_col.sql_type new_col.expression new_ctx
 
