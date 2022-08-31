@@ -34,7 +34,7 @@ public class ModuleScope implements TruffleObject {
   public ModuleScope(Module module, Context context) {
     this.module = module;
     this.associatedType =
-        new Type(
+        Type.createSingleton(
             module.getName().item(),
             this,
             context == null ? null : context.getBuiltins().any(),
@@ -54,17 +54,23 @@ public class ModuleScope implements TruffleObject {
     types.put(type.getName(), type);
   }
 
-  /** @return the associated type of this module. */
+  /**
+   * @return the associated type of this module.
+   */
   public Type getAssociatedType() {
     return associatedType;
   }
 
-  /** @return the module associated with this scope. */
+  /**
+   * @return the module associated with this scope.
+   */
   public Module getModule() {
     return module;
   }
 
-  /** @return the set of modules imported by this module. */
+  /**
+   * @return the set of modules imported by this module.
+   */
   public Set<ModuleScope> getImports() {
     return imports;
   }
@@ -290,17 +296,23 @@ public class ModuleScope implements TruffleObject {
     return Optional.ofNullable(types.get(name));
   }
 
-  /** @return the raw method map held by this module */
+  /**
+   * @return the raw method map held by this module
+   */
   public Map<Type, Map<String, Function>> getMethods() {
     return methods;
   }
 
-  /** @return the raw conversions map held by this module */
+  /**
+   * @return the raw conversions map held by this module
+   */
   public Map<Type, Map<Type, Function>> getConversions() {
     return conversions;
   }
 
-  /** @return the polyglot symbols imported into this scope. */
+  /**
+   * @return the polyglot symbols imported into this scope.
+   */
   public Map<String, Object> getPolyglotSymbols() {
     return polyglotSymbols;
   }

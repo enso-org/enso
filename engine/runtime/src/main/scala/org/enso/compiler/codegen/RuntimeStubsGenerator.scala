@@ -42,9 +42,13 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         }
         builtinType.getConstructors.foreach(scope.registerConstructor)
         scope.registerType(builtinType.getType)
-        builtinType.getType.setShadowDefinitions(scope)
+        builtinType.getType.setShadowDefinitions(scope, true)
       } else {
-        val rtp = new Type(tp.name, scope, builtins.any(), false)
+        val rtp = if (tp.members.nonEmpty) {
+          Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
+        } else {
+          Type.createSingleton(tp.name, scope, builtins.any(), false)
+        }
         scope.registerType(rtp)
         tp.members.foreach { name =>
           val constructor = new AtomConstructor(name, scope, rtp)

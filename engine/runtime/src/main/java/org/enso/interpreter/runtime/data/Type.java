@@ -15,6 +15,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
+import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -33,14 +34,36 @@ public class Type implements TruffleObject {
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
   private final boolean builtin;
   private final Type supertype;
+  private final Type eigentype;
+
   private boolean gettersGenerated;
 
-  public Type(String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
+  private Type(
+      String name, ModuleScope definitionScope, Type supertype, Type eigentype, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
     this.builtin = builtin;
-    generateQualifiedAccessor();
+    if (eigentype != null) {
+      this.eigentype = eigentype;
+    } else {
+      this.eigentype = this;
+    }
+  }
+
+  public static Type createSingleton(
+      String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
+    var result = new Type(name, definitionScope, supertype, null, builtin);
+    result.generateQualifiedAccessor();
+    return result;
+  }
+
+  public static Type create(
+      String name, ModuleScope definitionScope, Type supertype, Type any, boolean builtin) {
+    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin);
+    var result = new Type(name, definitionScope, supertype, eigentype, builtin);
+    result.generateQualifiedAccessor();
+    return result;
   }
 
   private void generateQualifiedAccessor() {
@@ -63,7 +86,7 @@ public class Type implements TruffleObject {
     }
   }
 
-  public void setShadowDefinitions(ModuleScope scope) {
+  public void setShadowDefinitions(ModuleScope scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
@@ -74,7 +97,12 @@ public class Type implements TruffleObject {
         methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
       }
       this.definitionScope = scope;
-      generateQualifiedAccessor();
+      if (generateAccessorsInTarget) {
+        generateQualifiedAccessor();
+      }
+      if (getEigentype() != this) {
+        getEigentype().setShadowDefinitions(scope, false);
+      }
     } else {
       throw new RuntimeException(
           "Attempting to modify scope of a non-builtin type post-construction is not allowed");
@@ -152,8 +180,7 @@ public class Type implements TruffleObject {
 
   @ExportMessage
   Type getType() {
-    // TODO[MK] make this the eigentype when implementing statics
-    return this;
+    return eigentype;
   }
 
   @ExportMessage
@@ -169,5 +196,9 @@ public class Type implements TruffleObject {
   @Override
   public String toString() {
     return toDisplayString(true);
+  }
+
+  public Type getEigentype() {
+    return eigentype;
   }
 }
