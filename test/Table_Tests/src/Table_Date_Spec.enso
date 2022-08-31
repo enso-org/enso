@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import Standard.Table
 from Standard.Table import Column, File_Format, Data_Formatter_Data
+import Standard.Table.Data.Storage
 
 import Standard.Test
-
 from project.Util import all
 
 spec =
@@ -19,8 +19,9 @@ spec =
         table = (enso_project.data / "prime_ministers.csv").read
         Test.specify "should be able to read in a table with dates" <|
             table.column_count.should_equal 5
-            table.columns.map (.name) . should_equal ['Number','Party', 'Title', 'From', 'To']
             table.row_count.should_equal 7
+            table.info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Integer, Storage.Text, Storage.Text, Storage.Date, Storage.Date]
 
         Test.specify "should be able to treat a single value as a Date" <|
             from_column = table.at 'From'

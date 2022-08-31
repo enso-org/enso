@@ -83,6 +83,30 @@ spec =
             r.at 'foo' . to_vector . should_equal [1, 2, 3]
             r.at 'bar' . to_vector . should_equal [False, True, False]
 
+        Test.specify "should correctly infer storage types" <|
+            strs = ["strs", ["a", "b", "c", Nothing]]
+            ints = ["ints", [Nothing, 1, 2, 4]]
+            doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
+            doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
+            custom_objects = ["custom_objects", [My_Data 1 2, My_Data 3 4, Nothing, Nothing]]
+            dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
+            times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
+            datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
+            mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+            just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
+
+            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, just_nulls]
+            table.at "strs" . storage_type . should_equal Storage.Text
+            table.at "ints" . storage_type . should_equal Storage.Integer
+            table.at "doubles" . storage_type . should_equal Storage.Decimal
+            table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
+            table.at "custom_objects" . storage_type . should_equal Storage.Any
+            table.at "mixed" . storage_type . should_equal Storage.Any
+            table.at "dates" . storage_type . should_equal Storage.Date
+            table.at "times" . storage_type . should_equal Storage.Time_Of_Day
+            table.at "datetimes" . storage_type . should_equal Storage.Date_Time
+            table.at "just_nulls" . storage_type . should_equal Storage.Any
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]

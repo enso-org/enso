@@ -2,18 +2,18 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
-
-import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.Column;
+
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -45,16 +45,19 @@ public abstract class Storage {
   /**
    * Enumerating possible storage types.
    *
-   * <p>Keep in sync with variables in {@code Table.Table}. These variables are copied between Enso
-   * and Java code, in order to make them trivially constant on the Enso side, without invoking the
-   * polyglot machinery to access them.
+   * <p>Keep in sync with variables in {@code Standard.Table.Data.Column}. These variables are
+   * copied between Enso and Java code, in order to make them trivially constant on the Enso side,
+   * without invoking the polyglot machinery to access them.
    */
   public static final class Type {
+    public static final int OBJECT = 0;
     public static final int LONG = 1;
     public static final int DOUBLE = 2;
     public static final int STRING = 3;
     public static final int BOOL = 4;
-    public static final int OBJECT = 5;
+    public static final int DATE = 5;
+    public static final int TIME_OF_DAY = 6;
+    public static final int DATE_TIME = 7;
   }
 
   /** A container for names of vectorizable operation. */

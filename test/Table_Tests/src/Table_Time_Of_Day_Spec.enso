@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table
 import Standard.Table.Data.Column
+import Standard.Table.Data.Storage
 import Standard.Table.IO.File_Format
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
@@ -19,7 +20,8 @@ spec =
         table = (enso_project.data / "time_of_day_sample.csv").read
         Test.specify "should be able to read in a table with dates" <|
             table.column_count.should_equal 3
-            table.columns.map (.name) . should_equal ['Serial number','Movement type', 'Posting time']
+            table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting time']
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Time_Of_Day]
             table.row_count.should_equal 6
 
         Test.specify "should be able to treat a single value as a Time_Of_Days" <|
