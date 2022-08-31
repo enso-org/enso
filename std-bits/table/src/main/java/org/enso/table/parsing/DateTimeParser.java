@@ -15,7 +15,8 @@ public class DateTimeParser extends BaseTimeParser {
     super(formats, locale, DateTimeParser::parse);
   }
 
-  private static ZonedDateTime parse(String text, DateTimeFormatter formatter) throws DateTimeParseException {
+  private static ZonedDateTime parse(String text, DateTimeFormatter formatter)
+      throws DateTimeParseException {
     try {
       return ZonedDateTime.parse(text, formatter);
     } catch (DateTimeParseException ignored) {
