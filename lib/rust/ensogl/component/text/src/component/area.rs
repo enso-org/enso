@@ -14,7 +14,6 @@ use crate::component::Selection;
 use crate::font;
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
-use crate::font::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -811,11 +810,10 @@ impl AreaModel {
 
 
         let glyph_system = self.glyph_system.borrow();
-        // pub fn shape(
-        //     face: &Face<'_>,
-        //     features: &[Feature],
-        //     buffer: UnicodeBuffer
-        // ) -> GlyphBuffer
+
+        let mut divs = vec![];
+        let mut last_cursor = None;
+        let mut last_cursor_target = default();
 
         match &glyph_system.font {
             font::Font::NonVariable(font) => {
@@ -859,7 +857,7 @@ impl AreaModel {
                 let mut line_style_iter = line_style.iter();
 
                 let mut glyph_offset_x = 0.0;
-                let mut glyph_index = 0;
+                let mut column = 0.column();
                 for (range, font_face_header) in generator {
                     event!(DEBUG, ">>> {:#?} {:#?}", range, font_face_header);
                     let faces = font.family.faces.borrow();
@@ -879,18 +877,19 @@ impl AreaModel {
                         let style = line_style_iter.next().unwrap_or_default();
                         line_style_iter.drop(Bytes(glyph_info.cluster as i32 - 1));
                         event!(WARN, "G >>>: {:#?} {:#?} {:#?}", glyph_position, glyph_info, style);
-                        if (glyph_index >= line.glyphs.len()) {
+                        if (column.value >= line.glyphs.len() as i32) {
                             line.push_glyph(|| glyph_system.new_glyph());
                         }
-                        let glyph = &line.glyphs[glyph_index];
+                        let glyph = &line.glyphs[column.value as usize];
 
                         let size: f32 = 12.0; // FIXME
                         let units_per_em = ttf_face.units_per_em();
                         let harfbuzz_scale = units_per_em as f32 / size * 1.0;
 
-                        if glyph_index != 0 {
+                        if column != 0.column() {
                             glyph_offset_x += glyph_position.x_advance as f32 / harfbuzz_scale;
                         }
+                        divs.push(glyph_offset_x);
                         // event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
 
                         let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
@@ -900,10 +899,12 @@ impl AreaModel {
                         let glyph_render_offset = glyph_render_info.offset.scale(size);
                         let glyph_x = glyph_render_offset.x + glyph_offset_x;
                         let glyph_y = glyph_render_offset.y;
+
+
                         event!(
                             WARN,
                             "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
-                            glyph_index,
+                            column,
                             glyph_x,
                             glyph_y
                         );
@@ -913,7 +914,27 @@ impl AreaModel {
                         glyph.set_color(style.color);
                         glyph.set_sdf_weight(style.sdf_weight.raw);
                         glyph.set_font_size(size);
-                        glyph_index += 1;
+
+
+                        cursor_map.get(&column).for_each(|id| {
+                            self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
+                                if cursor.edit_mode.get() {
+                                    let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
+                                    last_cursor = Some(cursor.clone_ref());
+                                    last_cursor_target = Vector2(glyph_offset_x, pos_y);
+                                }
+                            });
+                        });
+
+                        match &last_cursor {
+                            None => line_object.add_child(glyph),
+                            Some(cursor) => {
+                                cursor.right_side.add_child(glyph);
+                                glyph.mod_position_xy(|p| p - last_cursor_target);
+                            }
+                        }
+
+                        column += 1.column();
                     }
                     // TODO truncate unused glyphs
                 }
@@ -921,88 +942,6 @@ impl AreaModel {
             _ => panic!(),
         }
 
-
-        let mut line_style_iter = line_style.iter();
-
-
-        let mut pen = pen::Pen::new(&glyph_system.font);
-        let mut divs = vec![];
-        let mut column = 0.column();
-        let mut last_cursor = None;
-        let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || glyph_system.new_glyph());
-
-        let mut iter = line.glyphs.iter_mut().zip(content.chars());
-        loop {
-            let next = iter.next();
-            let style = line_style_iter.next().unwrap_or_default();
-            event!(WARN, "style {:#?}", style);
-            let chr_size = style.size.raw;
-            let char_info = next.as_ref().map(|(glyph, ch)| {
-                pen::CharInfo::new(
-                    *ch,
-                    chr_size,
-                    glyph.properties.get(),
-                    glyph.variations.borrow().clone(),
-                )
-            });
-            let info = pen.advance(char_info);
-            event!(WARN, "pen info {:#?}", info);
-
-
-            cursor_map.get(&column).for_each(|id| {
-                self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
-                    if cursor.edit_mode.get() {
-                        let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
-                        last_cursor = Some(cursor.clone_ref());
-                        last_cursor_target = Vector2(info.offset, pos_y);
-                    }
-                });
-            });
-
-            divs.push(info.offset);
-            let opt_glyph = next.map(|t| t.0);
-            match opt_glyph.zip(info.char) {
-                Some((glyph, chr)) => {
-                    let chr_bytes: Bytes = chr.len_utf8().into();
-                    event!(WARN, "chr_bytes {:#?}", chr_bytes);
-
-                    line_style_iter.drop(chr_bytes - 1.bytes());
-                    let glyph_id = glyph_system
-                        .font
-                        .glyph_id_of_code_point(
-                            glyph.properties.get(),
-                            &glyph.variations.borrow(),
-                            chr,
-                        )
-                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-                    let glyph_info = glyph_system
-                        .font
-                        .glyph_info(glyph.properties.get(), &glyph.variations.borrow(), glyph_id)
-                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-                    let glyph_offset = glyph_info.offset.scale(chr_size);
-                    let glyph_x = info.offset + glyph_offset.x;
-                    let glyph_y = glyph_offset.y;
-                    event!(WARN, "SETTING GLYPH OLD: {:#?} {:#?}", glyph_x, glyph_y);
-
-                    // glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                    // glyph.set_char(chr);
-                    // glyph.set_color(style.color);
-                    // // glyph.set_bold(style.bold.raw); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-                    // glyph.set_sdf_weight(style.sdf_weight.raw);
-                    // glyph.set_font_size(chr_size);
-                    match &last_cursor {
-                        None => line_object.add_child(glyph),
-                        Some(cursor) => {
-                            cursor.right_side.add_child(glyph);
-                            glyph.mod_position_xy(|p| p - last_cursor_target);
-                        }
-                    }
-                }
-                None => break,
-            }
-            column += 1.column();
-        }
 
         let last_offset = divs.last().cloned().unwrap_or_default();
         let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x - cursor.position().x);

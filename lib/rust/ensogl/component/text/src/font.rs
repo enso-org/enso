@@ -19,7 +19,6 @@ use ttf::AsFaceRef;
 
 pub mod glyph;
 pub mod glyph_render_info;
-pub mod pen;
 
 pub use ensogl_text_font_family as family;
 pub use family::Name;
