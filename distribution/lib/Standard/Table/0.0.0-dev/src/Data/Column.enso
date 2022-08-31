@@ -1359,8 +1359,14 @@ storage_to_json storage factory =
    - ix: The index in the column from which to get the item.
 get_item_string : Column -> Integer -> Text
 get_item_string column ix =
-    tp = column.getType
-    if tp == storage_type_string then column.getItem ix else
+    item = column.getItem ix
+    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
+       to "'a'" and not just "a". The code can be simplified once the following
+       task is implemented:
+       https://www.pivotaltracker.com/story/show/181499256
+    case item of
+        Text -> item
+        _ -> item.to_text
         column.getItem ix . to_text
 
 ## PRIVATE

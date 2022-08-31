@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Runtime.State
-import Standard.Base.Runtime.Debug
 import Standard.Base.System
 
 polyglot java import java.lang.NullPointerException

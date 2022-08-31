@@ -15,8 +15,6 @@ polyglot java import java.lang.Double
 type Test_Selection
     Test_Selection_Data problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
-all_tests = Test_Selection_Data
-
 spec =
     table = (enso_project.data / "data.csv") . read
     empty_table = Table.new <| table.columns.map c->[c.name, []]

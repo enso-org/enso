@@ -18,7 +18,7 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
 
   @Override
   public int getType() {
-    return Storage.Type.DATE;
+    return Storage.Type.TIME_OF_DAY;
   }
 
   @Override
