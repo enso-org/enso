@@ -426,7 +426,7 @@ spec = Test.group "Vectors" <|
         vec = Vector.fill 1000 0
         text = vec.to_default_visualization_data
         json = Json.parse text
-        as_vec = json.into (Vector.of Number)
+        as_vec = json.into (Vector.fill 1 Number)
         as_vec.should_equal <| Vector.fill 100 0
 
     Test.specify "should pad elements" <|

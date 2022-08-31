@@ -11,4 +11,3 @@ public class Vector extends Builtin {
     return List.of(new Cons("Vector_Data"));
   }
 }
-

@@ -72,10 +72,7 @@ public class Vector implements TruffleObject {
 
   @Builtin.Method(description = "Returns the length of this Vector.")
   @Builtin.Specialize
-  @Builtin.WrapException(
-      from = UnsupportedMessageException.class,
-      to = PolyglotError.class
-  )
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PolyglotError.class)
   public long length(InteropLibrary interop) throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }

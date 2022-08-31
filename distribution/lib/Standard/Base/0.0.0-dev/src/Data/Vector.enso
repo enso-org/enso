@@ -29,20 +29,6 @@ polyglot java import org.enso.base.Array_Utils
 new : Number -> (Number -> Any) -> Vector Any
 new length constructor = @Builtin_Method "Vector.new_builtin"
 
-## Creates a new vector of a single element.
-
-   Arguments:
-   - element: the element to be wrapper in a vector.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-
-   > Example
-     Create a vector containing a single number 42.
-         Vector.of 42
-of : Any -> Vector Any
-of element = new 1 (_->element)
-
 ## ADVANCED
 
    Converts an array into a vector.
@@ -134,7 +120,7 @@ type Vector a
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    Vector_Data storage
+    Vector_Data
 
     to_array self = @Builtin_Method "Vector.to_array"
 
