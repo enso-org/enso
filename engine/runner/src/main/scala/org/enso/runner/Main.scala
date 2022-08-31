@@ -704,7 +704,6 @@ object Main {
       .dropWhile(_.getLanguage.getId != LanguageInfo.ID)
       .reverse
     println(s"Execution finished with an error: ${exception.getMessage}")
-    exception.printStackTrace()
     dropInitJava.foreach { frame =>
       val langId =
         if (frame.isHostFrame) "java" else frame.getLanguage.getId
