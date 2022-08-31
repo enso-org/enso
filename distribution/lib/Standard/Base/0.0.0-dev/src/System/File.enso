@@ -963,7 +963,7 @@ type Input_Stream
     with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.from_polyglot_array results.problems . map Encoding_Error
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
