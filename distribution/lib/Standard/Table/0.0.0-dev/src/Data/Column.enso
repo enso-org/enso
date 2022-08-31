@@ -1367,7 +1367,6 @@ get_item_string column ix =
     case item of
         Text -> item
         _ -> item.to_text
-        column.getItem ix . to_text
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
