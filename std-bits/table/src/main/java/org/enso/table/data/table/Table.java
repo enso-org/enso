@@ -232,6 +232,19 @@ public class Table {
   }
 
   /**
+   * Creates a new table keeping only rows with distinct key columns
+   *
+   * @param columns set of columns to use as an Index
+   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
+   * @return a table where duplicate rows with the same key are removed
+   */
+  public Table distinct(Column[] columns, Comparator<Object> objectComparator) {
+    MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
+    OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
+    return this.applyMask(mask);
+  }
+
+  /**
    * Selects a subset of columns of this table, by names.
    *
    * @param colNames the column names to select

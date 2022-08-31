@@ -682,7 +682,11 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
     distinct self (columns = By_Name [this.columns.first . name]) case_sensitive=True on_problems=Report_Warning =
-        Error.throw "TODO"
+        key_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
+        java_columns = key_columns.map .java_column
+        #comparator = Comparator.for_text_ordering text_ordering
+        java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+        Table_Data java_table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
