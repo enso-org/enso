@@ -1,10 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
-
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
@@ -15,6 +10,11 @@ import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends NumericStorage {

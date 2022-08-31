@@ -13,5 +13,14 @@ type Type
     ## A column storing boolean data.
     Boolean
 
+    ## A column storing dates.
+    Date
+
+    ## A column storing date-times.
+    Date_Time
+
+    ## A column storing time-of-day.
+    Time_Of_Day
+
     ## A column storing arbitrary data.
     Any
