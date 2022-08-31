@@ -19,7 +19,6 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
 public class Vector implements TruffleObject {
   private final Object storage;
 
