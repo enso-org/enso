@@ -30,7 +30,7 @@ public class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.TIME_OF_DAY;
   }
 }

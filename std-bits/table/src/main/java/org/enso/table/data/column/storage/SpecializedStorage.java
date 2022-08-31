@@ -15,7 +15,7 @@ public abstract class SpecializedStorage<T> extends Storage {
   protected abstract T[] newUnderlyingArray(int size);
 
   @Override
-  public abstract long getType();
+  public abstract int getType();
 
   /**
    * @param data the underlying data
