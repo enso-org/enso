@@ -48,6 +48,7 @@ impl<T: Clone> Spans<T> {
         Self { raw: self.raw.subseq(range.into_rope_interval()) }
     }
 
+    // FIXME: convert to iterator
     /// Convert the span tree to vector of non-overlapping ranges and their values.
     pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
         self.raw
@@ -75,8 +76,8 @@ impl<I, A> RangedValue<I, A> {
     }
 
     pub fn zip_seq<B, C>(
-        a_vec: &[RangedValue<I, A>],
-        b_vec: &[RangedValue<I, B>],
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
         f: impl Fn(Option<A>, Option<B>) -> C,
     ) -> Vec<RangedValue<I, C>>
     where
@@ -84,8 +85,8 @@ impl<I, A> RangedValue<I, A> {
         A: Copy,
         B: Copy,
     {
-        let mut a_iter = a_vec.iter();
-        let mut b_iter = b_vec.iter();
+        let mut a_iter = a_seq.iter();
+        let mut b_iter = b_seq.iter();
         let mut opt_a = a_iter.next();
         let mut opt_b = b_iter.next();
         let mut result = default();
@@ -153,6 +154,49 @@ impl<I, A> RangedValue<I, A> {
 
         result
     }
+
+    pub fn zip3_seq<B, C, X>(
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
+        c_seq: &[RangedValue<I, C>],
+        f: impl Fn(Option<A>, Option<B>, Option<C>) -> X,
+    ) -> Vec<RangedValue<I, X>>
+    where
+        I: Copy + Ord,
+        A: Copy,
+        B: Copy,
+        C: Copy,
+    {
+        let ab_seq = RangedValue::zip_seq(a_seq, b_seq, |a, b| (a, b));
+        RangedValue::zip_seq(&ab_seq, c_seq, |ab, c| {
+            let a = ab.and_then(|t| t.0);
+            let b = ab.and_then(|t| t.1);
+            f(a, b, c)
+        })
+    }
+
+    pub fn zip4_seq<B, C, D, X>(
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
+        c_seq: &[RangedValue<I, C>],
+        d_seq: &[RangedValue<I, D>],
+        f: impl Fn(Option<A>, Option<B>, Option<C>, Option<D>) -> X,
+    ) -> Vec<RangedValue<I, X>>
+    where
+        I: Copy + Ord,
+        A: Copy,
+        B: Copy,
+        C: Copy,
+        D: Copy,
+    {
+        let abc_seq = RangedValue::zip3_seq(a_seq, b_seq, c_seq, |a, b, c| (a, b, c));
+        RangedValue::zip_seq(&abc_seq, d_seq, |abc, d| {
+            let a = abc.and_then(|t| t.0);
+            let b = abc.and_then(|t| t.1);
+            let c = abc.and_then(|t| t.2);
+            f(a, b, c, d)
+        })
+    }
 }
 
 impl<I, A> RangedValue<I, A> {
@@ -171,8 +215,8 @@ impl<I, A> RangedValue<I, A> {
 
 impl<I, A> RangedValue<I, A> {
     pub fn zip_def_seq<B, C>(
-        a_vec: &[RangedValue<I, A>],
-        b_vec: &[RangedValue<I, B>],
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
         f: impl Fn(A, B) -> C,
     ) -> Vec<RangedValue<I, C>>
     where
@@ -180,7 +224,48 @@ impl<I, A> RangedValue<I, A> {
         A: Copy + Default,
         B: Copy + Default,
     {
-        Self::zip_seq(a_vec, b_vec, |a, b| f(a.unwrap_or_default(), b.unwrap_or_default()))
+        Self::zip_seq(a_seq, b_seq, |a, b| f(a.unwrap_or_default(), b.unwrap_or_default()))
+    }
+
+    pub fn zip3_def_seq<B, C, X>(
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
+        c_seq: &[RangedValue<I, C>],
+        f: impl Fn(A, B, C) -> X,
+    ) -> Vec<RangedValue<I, X>>
+    where
+        I: Copy + Ord,
+        A: Copy + Default,
+        B: Copy + Default,
+        C: Copy + Default,
+    {
+        Self::zip3_seq(a_seq, b_seq, c_seq, |a, b, c| {
+            f(a.unwrap_or_default(), b.unwrap_or_default(), c.unwrap_or_default())
+        })
+    }
+
+    pub fn zip4_def_seq<B, C, D, X>(
+        a_seq: &[RangedValue<I, A>],
+        b_seq: &[RangedValue<I, B>],
+        c_seq: &[RangedValue<I, C>],
+        d_seq: &[RangedValue<I, D>],
+        f: impl Fn(A, B, C, D) -> X,
+    ) -> Vec<RangedValue<I, X>>
+    where
+        I: Copy + Ord,
+        A: Copy + Default,
+        B: Copy + Default,
+        C: Copy + Default,
+        D: Copy + Default,
+    {
+        Self::zip4_seq(a_seq, b_seq, c_seq, d_seq, |a, b, c, d| {
+            f(
+                a.unwrap_or_default(),
+                b.unwrap_or_default(),
+                c.unwrap_or_default(),
+                d.unwrap_or_default(),
+            )
+        })
     }
 }
 

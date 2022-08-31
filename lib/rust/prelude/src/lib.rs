@@ -87,6 +87,7 @@ pub use weak_table::traits::WeakKey;
 pub use weak_table::WeakKeyHashMap;
 pub use weak_table::WeakValueHashMap;
 
+pub use gen_iter::gen_iter;
 pub use std::collections::hash_map::DefaultHasher;
 pub use std::hash::Hash;
 pub use std::hash::Hasher;

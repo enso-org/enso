@@ -18,6 +18,7 @@ use crate::font::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
+use enso_text::spans::RangedValue;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
@@ -29,7 +30,6 @@ use ensogl_core::DEPRECATED_Animation;
 use owned_ttf_parser::AsFaceRef;
 use rustybuzz;
 use std::ops::Not;
-
 
 
 // =================
@@ -112,6 +112,13 @@ impl Line {
             display_object.add_child(&glyph);
             glyph
         });
+    }
+
+    fn push_glyph(&mut self, cons: impl Fn() -> Glyph) {
+        let display_object = self.display_object().clone_ref();
+        let glyph = cons();
+        display_object.add_child(&glyph);
+        self.glyphs.push(glyph);
     }
 }
 
@@ -798,7 +805,11 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         event!(DEBUG, "line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
-        let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
+
+        let line_style = self.buffer.sub_style(line_range.start..line_range.end);
+
+
+
         let glyph_system = self.glyph_system.borrow();
         // pub fn shape(
         //     face: &Face<'_>,
@@ -808,22 +819,102 @@ impl AreaModel {
 
         match &glyph_system.font {
             font::Font::NonVariable(font) => {
-                let faces = font.family.faces.borrow();
-                let face = faces.get(&default()).unwrap();
-                let ttf_face = face.ttf.as_face_ref();
-                let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap(); // FIXME: clone
+                let seq_width = line_style.width.to_vector();
+                let seq_weight = line_style.weight.to_vector();
+                let seq_style = line_style.style.to_vector();
 
-                let size: f32 = 12.0;
-                let units_per_em = ttf_face.units_per_em();
-                let harfbuzz_scale = units_per_em as f32 / size * 1.0;
-                let mut buffer = rustybuzz::UnicodeBuffer::new();
-                buffer.push_str(&content);
-                let out = rustybuzz::shape(&buzz_face, &[], buffer);
-                event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
-                event!(WARN, "{:#?}", out);
+                let seq_font_header = RangedValue::zip3_def_seq(
+                    &seq_width,
+                    &seq_weight,
+                    &seq_style,
+                    font::NonVariableFaceHeader::new,
+                );
+
+                event!(DEBUG, "Headers {:#?}", seq_font_header);
+
+                let mut header_iter = seq_font_header.into_iter();
+                let mut opt_header = header_iter.next();
+                let mut start_byte = Bytes(0);
+                let mut end_byte = Bytes(0);
+
+                let mut generator = gen_iter!({
+                    for chr in content.chars() {
+                        end_byte += Bytes(chr.len_utf8() as i32);
+                        if let Some(header) = opt_header {
+                            let next_byte = end_byte + Bytes(1);
+                            if next_byte == header.range.end {
+                                yield (start_byte..next_byte, header.value);
+                                start_byte = next_byte;
+                                opt_header = header_iter.next();
+                            }
+                        }
+                    }
+                    if start_byte != end_byte {
+                        event!(WARN, "Misaligned bytes found when shaping text.");
+                        let next_byte = end_byte + Bytes(1);
+                        yield (start_byte..next_byte, default());
+                    }
+                });
+
+                let mut line_style_iter = line_style.iter();
+
+                let mut glyph_x = 0.0;
+                let mut glyph_y = 0.0; // TODO
+                let mut glyph_index = 0;
+                for (range, font_face_header) in generator {
+                    event!(DEBUG, ">>> {:#?} {:#?}", range, font_face_header);
+                    let faces = font.family.faces.borrow();
+                    let face = faces.get(&font_face_header).unwrap(); // FIXME
+                    let ttf_face = face.ttf.as_face_ref();
+                    let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap(); // FIXME: clone
+
+
+                    let mut buffer = rustybuzz::UnicodeBuffer::new();
+                    buffer.push_str(&content[range.start.value as usize..range.end.value as usize]);
+                    let out = rustybuzz::shape(&buzz_face, &[], buffer);
+                    event!(WARN, "out: {:#?}", out);
+
+                    for (glyph_position, glyph_info) in
+                        out.glyph_positions().iter().zip(out.glyph_infos())
+                    {
+                        let style = line_style_iter.next().unwrap_or_default();
+                        line_style_iter.drop(Bytes(glyph_info.cluster as i32 - 1));
+                        event!(WARN, "G >>>: {:#?} {:#?} {:#?}", glyph_position, glyph_info, style);
+                        if (glyph_index >= line.glyphs.len()) {
+                            line.push_glyph(|| glyph_system.new_glyph());
+                        }
+                        let glyph = &line.glyphs[glyph_index];
+
+                        let size: f32 = 12.0; // FIXME
+                        let units_per_em = ttf_face.units_per_em();
+                        let harfbuzz_scale = units_per_em as f32 / size * 1.0;
+                        glyph_x += glyph_position.x_advance as f32 / harfbuzz_scale;
+                        // event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
+
+                        event!(
+                            WARN,
+                            "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
+                            glyph_index,
+                            glyph_x,
+                            glyph_y
+                        );
+
+                        glyph.set_position_xy(Vector2(glyph_x, glyph_y));
+                        glyph.set_glyph_id(font::GlyphId(glyph_info.glyph_id as u16));
+                        glyph.set_color(style.color);
+                        glyph.set_sdf_weight(style.sdf_weight.raw);
+                        glyph.set_font_size(size);
+                        glyph_index += 1;
+                    }
+                    // TODO truncate unused glyphs
+                }
             }
             _ => panic!(),
         }
+
+
+        let mut line_style_iter = line_style.iter();
+
 
         let mut pen = pen::Pen::new(&glyph_system.font);
         let mut divs = vec![];
@@ -835,7 +926,7 @@ impl AreaModel {
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
-            let style = line_style.next().unwrap_or_default();
+            let style = line_style_iter.next().unwrap_or_default();
             event!(WARN, "style {:#?}", style);
             let chr_size = style.size.raw;
             let char_info = next.as_ref().map(|(glyph, ch)| {
@@ -867,7 +958,7 @@ impl AreaModel {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     event!(WARN, "chr_bytes {:#?}", chr_bytes);
 
-                    line_style.drop(chr_bytes - 1.bytes());
+                    line_style_iter.drop(chr_bytes - 1.bytes());
                     let glyph_id = glyph_system
                         .font
                         .glyph_id_of_code_point(
@@ -883,12 +974,14 @@ impl AreaModel {
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
-                    glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                    glyph.set_char(chr);
-                    glyph.set_color(style.color);
-                    // glyph.set_bold(style.bold.raw); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-                    glyph.set_sdf_weight(style.sdf_weight.raw);
-                    glyph.set_font_size(chr_size);
+                    event!(WARN, "SETTING GLYPH OLD: {:#?} {:#?}", glyph_x, glyph_y);
+
+                    // glyph.set_position_xy(Vector2(glyph_x, glyph_y));
+                    // glyph.set_char(chr);
+                    // glyph.set_color(style.color);
+                    // // glyph.set_bold(style.bold.raw); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
+                    // glyph.set_sdf_weight(style.sdf_weight.raw);
+                    // glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
                         Some(cursor) => {

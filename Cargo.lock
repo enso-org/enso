@@ -2260,6 +2260,7 @@ dependencies = [
  "enso-web",
  "failure",
  "futures 0.3.21",
+ "gen-iter",
  "ifmt",
  "itertools 0.10.3",
  "lazy_static",
@@ -3350,6 +3351,12 @@ version = "0.1.0"
 dependencies = [
  "enso-prelude",
 ]
+
+[[package]]
+name = "gen-iter"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1668ac3c7b8cc5f1e31565ed509d8d70aa1a81bd7f508b620725b78c6e1d7049"
 
 [[package]]
 name = "generic-array"
