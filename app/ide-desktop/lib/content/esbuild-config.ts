@@ -94,7 +94,7 @@ const config: esbuild.BuildOptions = {
     plugins: [
         plugin_yaml.yamlPlugin({}),
         NodeModulesPolyfillPlugin(),
-        NodeGlobalsPolyfillPlugin({buffer: true, process: true}),
+        NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
         aliasPlugin({ wasm_rust_glue: js_glue_path }),
         timePlugin(),
         copy_plugin.create(files_to_copy_provider),
