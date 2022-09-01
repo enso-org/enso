@@ -255,7 +255,7 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         Integer ->
-            java_columns = Vector.Vector_Data self.java_table.getColumns
+            java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Column_Data (java_columns.at selector)
         Text ->
             case self.java_table.getColumnOrIndexByName selector of
