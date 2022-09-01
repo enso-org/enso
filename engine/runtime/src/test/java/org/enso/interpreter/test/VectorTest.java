@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.List;
@@ -23,6 +24,7 @@ public class VectorTest {
   public void prepareCtx() {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
+      .logHandler(new ByteArrayOutputStream())
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
@@ -91,5 +93,30 @@ public class VectorTest {
     var res = callback.execute(consumeList);
     assertTrue("No result", res.isNull());
     assertTrue("Callback called", consumeList.called);
+  }
+
+  @Test
+  public void passingListOrArrayToEnsoAsArray() throws Exception {
+    final URI uri = new URI("memory://how_long.enso");
+    final Source src = Source.newBuilder("enso", """
+    import Standard.Base.Data.Array
+
+    how_long array = case array of
+        Array.Array -> array.length
+        _ -> -1
+    """, "how_long.enso")
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+
+    var callback = module.invokeMember("eval_expression", "how_long");
+
+    var four = callback.execute(List.of("a", "b", "c", "d"));
+    assertEquals("Four elements", 4, four.asInt());
+
+    var hundred = callback.execute((Object) new String[100]);
+    assertEquals("Hundred elements", 100, hundred.asInt());
   }
 }
