@@ -8,7 +8,6 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Vector;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConstructorMatch")
@@ -28,7 +27,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static BranchNode build(AtomConstructor matcher, RootCallTarget branch) {
+  public static ConstructorBranchNode build(AtomConstructor matcher, RootCallTarget branch) {
     return ConstructorBranchNodeGen.create(matcher, branch);
   }
 
