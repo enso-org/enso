@@ -200,11 +200,12 @@ In particular:
   as visualizations. The superclass defines a default constructor and a set of
   utilities:
 
-  - #### Method `setPreprocessor(module,method,arguments)`
+  - #### Method `setPreprocessor(module,method,...arguments)`
     Set an Enso method which will be evaluated on the server-side before sending
-    data to visualization. If not called, a default unspecified method is used
-    that will provide some JSON representation of the value. See
-    [Lazy visualizations](#lazy-visualizations) section for details.
+    data to visualization. Note that `arguments` is a vararg. If not called, a
+    default unspecified method is used that will provide some JSON
+    representation of the value. See [Lazy visualizations](#lazy-visualizations)
+    section for details.
   - #### Field `dom`
     It is initialized in the constructor to the DOM symbol used to host the
     visualization content. Users are free to modify the DOM element, including

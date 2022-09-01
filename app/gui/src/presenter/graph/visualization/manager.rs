@@ -507,6 +507,7 @@ mod tests {
 
     use crate::model::module;
 
+    use double_representation::identifier::Identifier;
     use futures::future::ready;
     use ide_view::graph_editor::component::visualization::instance::PreprocessorConfiguration;
     use std::assert_matches::assert_matches;
@@ -569,7 +570,7 @@ mod tests {
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
                 defined_on_type: qualified_module.into(),
-                name:            "faux".to_string(),
+                name:            Identifier::from_text("faux").unwrap(),
             };
             let arguments = vec!["foo".to_owned()];
             let faux_vis = Visualization {
@@ -624,7 +625,7 @@ mod tests {
         let PreprocessorConfiguration { module, method, .. } = &metadata.preprocessor;
         let qualified_module: module::QualifiedName = module.deref().try_into().unwrap();
         visualization.method_pointer.module == qualified_module
-            && visualization.method_pointer.name == method.deref()
+            && visualization.method_pointer.name.name() == method.deref()
     }
 
     #[wasm_bindgen_test]

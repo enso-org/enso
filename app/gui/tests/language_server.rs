@@ -18,6 +18,7 @@ use engine_protocol::language_server::*;
 use engine_protocol::types::*;
 use enso_gui::prelude::*;
 
+use double_representation::identifier::Identifier;
 use enso_gui::model::execution_context::QualifiedMethodPointer;
 use enso_gui::model::execution_context::Visualization;
 use enso_gui::model::module;
@@ -26,7 +27,6 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
-
 
 
 /// The endpoint at which the Language Server should be accepting WS connections.
@@ -371,8 +371,10 @@ async fn binary_visualization_updates_test_hlp() {
     info!(logger, "The code is: {module.ast().repr():?}");
     info!(logger, "Main node: {the_node:?} with {the_node.expression().repr()}");
 
-    let method_pointer =
-        QualifiedMethodPointer::module_method(module_qualified_name, "quux".to_string());
+    let method_pointer = QualifiedMethodPointer::module_method(
+        module_qualified_name,
+        Identifier::from_text("quux").unwrap(),
+    );
     let visualization = Visualization::new(the_node.id(), method_pointer, vec![]);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
     info!(logger, "Attached the visualization {visualization.id}");

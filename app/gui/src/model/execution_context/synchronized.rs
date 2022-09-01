@@ -315,6 +315,7 @@ impl Drop for ExecutionContext {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use double_representation::identifier::Identifier;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
@@ -451,7 +452,7 @@ pub mod test {
     fn attaching_visualizations_and_notifying() {
         let method_pointer = QualifiedMethodPointer::module_method(
             MockData::new().module_qualified_name(),
-            "".to_string(),
+            Identifier::from_text("foo").unwrap(),
         );
         let arguments = vec![];
         let vis = Visualization {
@@ -500,7 +501,7 @@ pub mod test {
     fn detaching_all_visualizations() {
         let method_pointer = QualifiedMethodPointer::module_method(
             MockData::new().module_qualified_name(),
-            "".to_string(),
+            Identifier::from_text("foo").unwrap(),
         );
         let arguments = vec!["foo".to_owned()];
         let vis = Visualization {
@@ -537,7 +538,7 @@ pub mod test {
     fn modifying_visualizations() {
         let method_pointer = QualifiedMethodPointer::module_method(
             MockData::new().module_qualified_name(),
-            "".to_string(),
+            Identifier::from_text("foo").unwrap(),
         );
         let arguments = vec!["bar".to_owned()];
         let vis = Visualization {
@@ -549,7 +550,7 @@ pub mod test {
         let vis_id = vis.id;
         let new_expression = QualifiedMethodPointer::module_method(
             MockData::new().module_qualified_name(),
-            "quux".to_string(),
+            Identifier::from_text("quux").unwrap(),
         );
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;

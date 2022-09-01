@@ -1,11 +1,14 @@
 //! This module consists of all structures describing Execution Context.
 
-use crate::prelude::*;
+use std::collections::HashMap;
 
-use crate::model::module;
-use crate::model::suggestion_database::entry as suggestion;
-use crate::notification::Publisher;
+use flo_stream::Subscriber;
+use mockall::automock;
+use serde::Deserialize;
+use serde::Serialize;
+use uuid::Uuid;
 
+use double_representation::identifier::Identifier;
 use double_representation::project;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -15,13 +18,11 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
-use flo_stream::Subscriber;
-use mockall::automock;
-use serde::Deserialize;
-use serde::Serialize;
-use std::collections::HashMap;
-use uuid::Uuid;
 
+use crate::model::module;
+use crate::model::suggestion_database::entry as suggestion;
+use crate::notification::Publisher;
+use crate::prelude::*;
 
 // ==============
 // === Export ===
@@ -229,12 +230,15 @@ pub struct QualifiedMethodPointer {
     /// A type on which the method is defined.
     pub defined_on_type: tp::QualifiedName,
     /// A method name.
-    pub name:            String,
+    pub name:            Identifier,
 }
 
 impl QualifiedMethodPointer {
     /// Create a method pointer representing a module method.
-    pub fn module_method(module: module::QualifiedName, name: String) -> QualifiedMethodPointer {
+    pub fn module_method(
+        module: module::QualifiedName,
+        name: Identifier,
+    ) -> QualifiedMethodPointer {
         QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
     }
     /// Tries to create a new method pointer from string components.
@@ -245,10 +249,11 @@ impl QualifiedMethodPointer {
     ) -> FallibleResult<QualifiedMethodPointer> {
         let resolved_module = module.try_into()?;
         let resolved_type = defined_on_type.try_into()?;
+        let name_identifier = Identifier::from_text(name)?;
         Ok(QualifiedMethodPointer {
             module:          resolved_module,
             defined_on_type: resolved_type,
-            name:            name.to_owned(),
+            name:            name_identifier,
         })
     }
 }
@@ -267,7 +272,7 @@ impl TryFrom<&MethodPointer> for QualifiedMethodPointer {
     fn try_from(method_pointer: &MethodPointer) -> Result<Self, Self::Error> {
         let module = method_pointer.module.as_str().try_into()?;
         let defined_on_type = method_pointer.defined_on_type.as_str().try_into()?;
-        let name = method_pointer.name.clone();
+        let name = Identifier::from_text(method_pointer.name.clone())?;
         Ok(QualifiedMethodPointer { module, defined_on_type, name })
     }
 }
@@ -282,7 +287,7 @@ impl From<&QualifiedMethodPointer> for MethodPointer {
     fn from(qualified_method_pointer: &QualifiedMethodPointer) -> Self {
         let module = qualified_method_pointer.module.clone().into();
         let defined_on_type = qualified_method_pointer.defined_on_type.clone().into();
-        let name = qualified_method_pointer.name.clone();
+        let name = qualified_method_pointer.name.name().to_owned();
         MethodPointer { module, defined_on_type, name }
     }
 }
@@ -519,13 +524,13 @@ pub type Synchronized = synchronized::ExecutionContext;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
-
     use engine_protocol::language_server::types::test::value_update_with_dataflow_error;
     use engine_protocol::language_server::types::test::value_update_with_dataflow_panic;
     use engine_protocol::language_server::types::test::value_update_with_type;
+
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
+    use super::*;
 
     #[test]
     fn getting_future_type_from_registry() {

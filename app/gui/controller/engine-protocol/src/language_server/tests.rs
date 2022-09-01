@@ -1,14 +1,14 @@
-use super::*;
+use std::future::Future;
 
 use futures::task::LocalSpawnExt;
+use serde_json::json;
+use serde_json::Value;
+
 use json_rpc::messages::Message;
 use json_rpc::messages::RequestMessage;
 use json_rpc::test_util::transport::mock::MockTransport;
-use serde_json::json;
-use serde_json::Value;
-use std::future::Future;
 
-
+use super::*;
 
 // ===============
 // === Fixture ===
@@ -431,7 +431,7 @@ fn test_execution_context() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function.to_string(),
     };
-    let positional_arguments_expressions = vec![];
+    let positional_arguments_expressions = vec![1, 2, 3].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
@@ -452,7 +452,7 @@ fn test_execution_context() {
                     "definedOnType" : "[Foo.Bar.Baz]",
                     "name"          : "foo"
                 },
-                "positionalArgumentsExpressions" : []
+                "positionalArgumentsExpressions" : ["1", "2", "3"]
             }
         }),
         unit_json.clone(),
@@ -476,7 +476,7 @@ fn test_execution_context() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function.to_string(),
     };
-    let positional_arguments_expressions = vec![];
+    let positional_arguments_expressions = vec!["foo"].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
@@ -494,7 +494,7 @@ fn test_execution_context() {
                     "definedOnType" : "[Foo.Bar.Baz]",
                     "name"          : "foo"
                 },
-                "positionalArgumentsExpressions" : []
+                "positionalArgumentsExpressions" : ["foo"]
             }
         }),
         unit_json.clone(),
