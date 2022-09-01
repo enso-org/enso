@@ -58,8 +58,9 @@
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
-- [New nodes are created in the project source when the searcher is opened  
-  and a new node is created.][3645]
+- [New nodes are created in the project source when the searcher is opened and a
+  new node is created.][3645]
+- [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
 
 #### EnsoGL (rendering engine)
@@ -188,6 +189,7 @@
 - [Removed `Array.set_at`.][3634]
 - [Added various date part functions to `Date` and `Date_Time`.][3669]
 - [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
+- [Implemented specialized storage for the in-memory Table.][3673]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -295,10 +297,12 @@
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
+[3661]: https://github.com/enso-org/enso/pull/3661
 [3665]: https://github.com/enso-org/enso/pull/3665
 [3634]: https://github.com/enso-org/enso/pull/3634
 [3669]: https://github.com/enso-org/enso/pull/3669
 [3647]: https://github.com/enso-org/enso/pull/3647
+[3673]: https://github.com/enso-org/enso/pull/3673
 
 #### Enso Compiler
 

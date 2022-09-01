@@ -781,11 +781,8 @@ type Column
     storage_type : Storage.Type
     storage_type self =
         tp = self.java_column.getStorage.getType
-        if tp == storage_type_string then Storage.Text else
-            if tp == storage_type_long then Storage.Integer else
-                if tp == storage_type_double then Storage.Decimal else
-                    if tp == storage_type_bool then Storage.Boolean else
-                        Storage.Any
+        storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
+            Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE
 
@@ -1327,28 +1324,18 @@ run_vectorized_unary_op column name fallback_fn =
     Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
-storage_type_long : Integer
-storage_type_long = 1
-
-## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.DOUBLE`
-storage_type_double : Integer
-storage_type_double = 2
+   Enumerates storage types in a way that is consistent with
+   `org.enso.table.data.Storage.Type`, i.e.
+   `storage_type.at org.enso.table.data.Storage.Type.LONG` will yield the
+   corresponding `Storage.Integer`.
+storage_types : Vector Storage.Type
+storage_types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
 
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
 storage_type_string : Integer
 storage_type_string = 3
-
-## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.BOOL`
-storage_type_bool : Integer
-storage_type_bool = 4
 
 ## PRIVATE
 
@@ -1372,9 +1359,14 @@ storage_to_json storage factory =
    - ix: The index in the column from which to get the item.
 get_item_string : Column -> Integer -> Text
 get_item_string column ix =
-    tp = column.getType
-    if tp == storage_type_string then column.getItem ix else
-        column.getItem ix . to_text
+    item = column.getItem ix
+    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
+       to "'a'" and not just "a". The code can be simplified once the following
+       task is implemented:
+       https://www.pivotaltracker.com/story/show/181499256
+    case item of
+        Text -> item
+        _ -> item.to_text
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -142,10 +143,10 @@ impl Handle {
     pub fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<model::module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        self.execution_ctx.modify_visualization(id, expression, module)
+        self.execution_ctx.modify_visualization(id, method_pointer, arguments)
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].
@@ -163,18 +164,6 @@ impl Handle {
     /// See [`model::ExecutionContext::expression_info_registry`].
     pub fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
         self.execution_ctx.computed_value_info_registry()
-    }
-
-    /// Modify preprocessor code in visualization. See also
-    /// [`model::ExecutionContext::modify_visualization`].
-    #[profile(Detail)]
-    pub async fn set_visualization_preprocessor(
-        &self,
-        id: VisualizationId,
-        code: String,
-        module: model::module::QualifiedName,
-    ) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
     }
 
     /// See [`model::ExecutionContext::component_groups`].

@@ -58,7 +58,7 @@ run_tests connection pending=Nothing =
     common_selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by=False take_drop=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
-    selection = Aggregate_Spec.Test_Selection_Data text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False
+    selection = Aggregate_Spec.Test_Selection_Data text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name

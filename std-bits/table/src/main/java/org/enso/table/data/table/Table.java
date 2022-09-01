@@ -1,7 +1,5 @@
 package org.enso.table.data.table;
 
-import java.util.*;
-import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -14,6 +12,9 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** A representation of a table structure. */
 public class Table {

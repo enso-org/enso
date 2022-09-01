@@ -97,7 +97,7 @@ spec =
         Test.specify "should parse dates" <|
             formatter = Data_Formatter_Data
             formatter.parse "2022-01-01" . should_equal (Date.new 2022)
-            formatter.parse "2020-05-07" . should_equal (Date.new 2020 5 7)
+            formatter.parse "2020-05-07" datatype=Date . should_equal (Date.new 2020 5 7)
             formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
             formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)

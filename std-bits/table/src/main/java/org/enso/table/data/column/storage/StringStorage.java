@@ -1,38 +1,39 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
-import org.enso.table.data.mask.OrderMask;
+
+import java.util.BitSet;
 
 /** A column storing strings. */
-public class StringStorage extends ObjectStorage {
-
-  private static final MapOpStorage<StringStorage> ops = buildOps();
+public class StringStorage extends SpecializedStorage<String> {
 
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public StringStorage(Object[] data, int size) {
-    super(data, size);
+  public StringStorage(String[] data, int size) {
+    super(data, size, ops);
   }
 
-  /**
-   * @param idx an index
-   * @return the data item contained at the given index.
-   */
-  public String getItem(long idx) {
-    return (String) super.getItem(idx);
+  @Override
+  protected SpecializedStorage<String> newInstance(String[] data, int size) {
+    return new StringStorage(data, size);
   }
 
-  /** @inheritDoc */
+  @Override
+  protected String[] newUnderlyingArray(int size) {
+    return new String[size];
+  }
+
   @Override
   public long getType() {
     return Type.STRING;
   }
+
+  private static final MapOpStorage<SpecializedStorage<String>> ops = buildOps();
 
   @Override
   protected boolean isOpVectorized(String name) {
@@ -58,30 +59,12 @@ public class StringStorage extends ObjectStorage {
     }
   }
 
-  @Override
-  public StringStorage mask(BitSet mask, int cardinality) {
-    ObjectStorage storage = super.mask(mask, cardinality);
-    return new StringStorage(storage.getData(), cardinality);
-  }
-
-  @Override
-  public StringStorage applyMask(OrderMask mask) {
-    ObjectStorage storage = super.applyMask(mask);
-    return new StringStorage(storage.getData(), storage.size());
-  }
-
-  @Override
-  public StringStorage countMask(int[] counts, int total) {
-    ObjectStorage storage = super.countMask(counts, total);
-    return new StringStorage(storage.getData(), total);
-  }
-
-  private static MapOpStorage<StringStorage> buildOps() {
-    MapOpStorage<StringStorage> t = ObjectStorage.ops.makeChild();
+  private static MapOpStorage<SpecializedStorage<String>> buildOps() {
+    MapOpStorage<SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
         new MapOperation<>(Maps.EQ) {
           @Override
-          public Storage runMap(StringStorage storage, Object arg) {
+          public Storage runMap(SpecializedStorage<String> storage, Object arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -95,7 +78,7 @@ public class StringStorage extends ObjectStorage {
           }
 
           @Override
-          public Storage runZip(StringStorage storage, Storage arg) {
+          public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -130,11 +113,5 @@ public class StringStorage extends ObjectStorage {
           }
         });
     return t;
-  }
-
-  @Override
-  public StringStorage slice(int offset, int limit) {
-    ObjectStorage storage = super.slice(offset, limit);
-    return new StringStorage(storage.getData(), storage.size());
   }
 }

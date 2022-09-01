@@ -1,14 +1,14 @@
-use super::*;
+use std::future::Future;
 
 use futures::task::LocalSpawnExt;
+use serde_json::json;
+use serde_json::Value;
+
 use json_rpc::messages::Message;
 use json_rpc::messages::RequestMessage;
 use json_rpc::test_util::transport::mock::MockTransport;
-use serde_json::json;
-use serde_json::Value;
-use std::future::Future;
 
-
+use super::*;
 
 // ===============
 // === Fixture ===
@@ -424,12 +424,18 @@ fn test_execution_context() {
     );
     let visualisation_id = uuid::Uuid::default();
     let expression_id = uuid::Uuid::default();
-    let expression = "1 + 1".to_string();
-    let visualisation_module = "[Foo.Bar.Baz]".to_string();
+    let visualization_function = "foo";
+    let visualization_module = "[Foo.Bar.Baz]";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function.to_string(),
+    };
+    let positional_arguments_expressions = vec![1, 2, 3].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
-        visualisation_module,
+        positional_arguments_expressions,
     };
     test_request(
         |client| {
@@ -441,8 +447,12 @@ fn test_execution_context() {
             "expressionId"        : "00000000-0000-0000-0000-000000000000",
             "visualisationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
-                "visualisationModule" : "[Foo.Bar.Baz]",
-                "expression"          : "1 + 1"
+                "expression"          : {
+                    "module"        : "[Foo.Bar.Baz]",
+                    "definedOnType" : "[Foo.Bar.Baz]",
+                    "name"          : "foo"
+                },
+                "positionalArgumentsExpressions" : ["1", "2", "3"]
             }
         }),
         unit_json.clone(),
@@ -459,12 +469,18 @@ fn test_execution_context() {
         unit_json.clone(),
         (),
     );
-    let expression = "1 + 1".to_string();
-    let visualisation_module = "[Foo.Bar.Baz]".to_string();
+    let visualization_function = "foo";
+    let visualization_module = "[Foo.Bar.Baz]";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function.to_string(),
+    };
+    let positional_arguments_expressions = vec!["foo"].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
-        visualisation_module,
+        positional_arguments_expressions,
     };
     test_request(
         |client| client.modify_visualisation(&visualisation_id, &visualisation_config),
@@ -473,8 +489,12 @@ fn test_execution_context() {
             "visualisationId"     : "00000000-0000-0000-0000-000000000000",
             "visualisationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
-                "visualisationModule" : "[Foo.Bar.Baz]",
-                "expression"          : "1 + 1"
+                "expression"          : {
+                    "module"        : "[Foo.Bar.Baz]",
+                    "definedOnType" : "[Foo.Bar.Baz]",
+                    "name"          : "foo"
+                },
+                "positionalArgumentsExpressions" : ["foo"]
             }
         }),
         unit_json.clone(),
