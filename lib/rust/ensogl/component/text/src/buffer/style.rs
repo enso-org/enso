@@ -316,7 +316,7 @@ impl FormatSpan {
             let mut header_iter = seq_font_header.into_iter();
             let mut opt_header = header_iter.next();
             for chr in content.chars() {
-                end_byte += Bytes(chr.len_utf8() as i32);
+                end_byte += Bytes(chr.len_utf8());
                 if let Some(header) = opt_header {
                     let next_byte = end_byte + Bytes(1);
                     if next_byte == header.range.end {

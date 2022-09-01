@@ -516,7 +516,7 @@ impl Area {
                 m.redraw(true);
             });
             eval input.set_color_all         ([input](color) {
-                let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(i32::max_value()));
+                let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(usize::max_value()));
                 input.set_color_bytes.emit((all_bytes,*color));
             });
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
@@ -835,18 +835,16 @@ impl AreaModel {
                         let out = rustybuzz::shape(&buzz_face, &[], buffer);
                         event!(WARN, "out: {:#?}", out);
 
+                        let mut prev_cluster = Bytes(0);
                         for (glyph_position, glyph_info) in
                             out.glyph_positions().iter().zip(out.glyph_infos())
                         {
+                            let current_cluster = Bytes(glyph_info.cluster as usize);
+                            let cluster_diff = current_cluster.saturating_sub(prev_cluster);
+                            line_style_iter.drop(cluster_diff.saturating_sub(Bytes(1)));
+                            prev_cluster = current_cluster;
                             let style = line_style_iter.next().unwrap_or_default();
-                            line_style_iter.drop(Bytes(glyph_info.cluster as i32 - 1));
-                            event!(
-                                WARN,
-                                "G >>>: {:#?} {:#?} {:#?}",
-                                glyph_position,
-                                glyph_info,
-                                style
-                            );
+
                             if (column.value >= line.glyphs.len() as i32) {
                                 line.push_glyph(|| glyph_system.new_glyph());
                             }
@@ -869,6 +867,7 @@ impl AreaModel {
                             let glyph_render_offset = glyph_render_info.offset.scale(size);
                             let glyph_x = glyph_render_offset.x + glyph_offset_x;
                             let glyph_y = glyph_render_offset.y;
+                            event!(WARN, ">> 4");
 
 
                             event!(

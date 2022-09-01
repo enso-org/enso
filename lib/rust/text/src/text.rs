@@ -83,7 +83,7 @@ impl Text {
 
     /// Return the len of the text in bytes.
     pub fn byte_size(&self) -> Bytes {
-        Bytes(self.rope.len() as i32)
+        Bytes(self.rope.len())
     }
 
     /// Range of the text in bytes.
@@ -114,25 +114,25 @@ impl Text {
     /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
     /// more about codepoints.
     pub fn next_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
-        self.rope.next_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+        self.rope.next_codepoint_offset(offset.as_usize()).map(Bytes)
     }
 
     /// Return the offset to the previous codepoint if any. See the [`crate`] documentation to learn
     /// more about codepoints.
     pub fn prev_codepoint_offset(&self, offset: Bytes) -> Option<Bytes> {
-        self.rope.prev_codepoint_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+        self.rope.prev_codepoint_offset(offset.as_usize()).map(Bytes)
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
     pub fn next_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
-        self.rope.next_grapheme_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+        self.rope.next_grapheme_offset(offset.as_usize()).map(Bytes)
     }
 
     /// Return the offset to the previous grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
     pub fn prev_grapheme_offset(&self, offset: Bytes) -> Option<Bytes> {
-        self.rope.prev_grapheme_offset(offset.as_usize()).map(|t| Bytes(t as i32))
+        self.rope.prev_grapheme_offset(offset.as_usize()).map(Bytes)
     }
 
     /// An iterator over the lines of a rope.
