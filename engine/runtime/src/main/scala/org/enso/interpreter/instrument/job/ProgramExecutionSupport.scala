@@ -433,10 +433,10 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
+            visualisation.cache,
             visualisation.module,
             visualisation.callback,
-            expressionValue,
-            visualisation.cache
+            expressionValue +: visualisation.arguments: _*
           )
         }
         .flatMap {

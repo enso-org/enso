@@ -15,8 +15,9 @@ export class Visualization {
         // These go before `api` assignment so the `undefined` is not emitted to IDE.
         // First we will give deriving type a chance to overwrite them, then IDE will
         // invoke `__emitPreprocessorChange__()` on this.
-        this.__preprocessorCode__ = null
         this.__preprocessorModule__ = null
+        this.__preprocessorMethod__ = null
+        this.__preprocessorArguments__ = null
 
         this.dom = api.root()
         this.theme = api.theme()
@@ -29,56 +30,26 @@ export class Visualization {
      */
     __emitPreprocessorChange__() {
         this.__api__.emit_preprocessor_change(
-            this.__preprocessorCode__,
-            this.__preprocessorModule__
+            this.__preprocessorModule__,
+            this.__preprocessorMethod__,
+            this.__preprocessorArguments__
         )
     }
 
     /**
-     * Get the current preprocessor code. See {@link setPreprocessorCode} for
-     * more information about purpose of setting preprocessor code.
+     * Get the current preprocessor method. See {@link setPreprocessor} for
+     * more information about purpose of setting the preprocessor.
      *
-     * @returns {string} Preprocessor code or `null` if no code was set.
+     * @returns {string} Preprocessor method or `null` if no method was set.
      */
-    getPreprocessorCode() {
-        return this.__preprocessorCode__
-    }
-
-    /**
-     * Set new preprocessor code.
-     *
-     * When visualization is attached to a node, each time a new value is produced from node,
-     * the preprocessor shall be invoked with it. Result such call shall be serialized and
-     * transported to visualization by invoking onDataReceived(data) method.
-     *
-     * Typically the preprocessor is a lambda, like the example below:
-     *
-     * `x -> x.to_default_visualization_data`
-     *
-     *
-     * The code by default runs in the context of the current project's `Main` module.
-     * If other context is needed (e.g. due to required import or other module-specific
-     * context dependency), the {@link setPreprocessorModule} should be used to provide
-     * the module's name.
-     *
-     * Please refer to [documentation]{@link https://dev.enso.org/docs/ide/product/visualizations.html#lazy-visualizations}
-     * for details.
-     *
-     * @param {string} code text code in Enso. It must be invokable with one argument and return
-     *                 JSON-compatible result. For example:
-     *                 <pre><code>x -> x.to_default_visualization_data</code></pre>
-     */
-    setPreprocessorCode(code) {
-        if (code !== this.__preprocessorCode__) {
-            this.__preprocessorCode__ = code
-            this.__emitPreprocessorChange__()
-        }
+    getPreprocessorMethod() {
+        return this.__preprocessorMethod__
     }
 
     /**
      * Get the current preprocessor's context module.
      *
-     * See the [setter documentation]{@link setPreprocessorModule} for more information.
+     * See the [setter documentation]{@link setPreprocessor} for more information.
      *
      * @returns {string} Qualified name to preprocessor's context module.
      */
@@ -87,43 +58,77 @@ export class Visualization {
     }
 
     /**
-     * Set preprocessor's context module.
+     * Get the current preprocessor's arguments.
      *
-     * [Preprocessor code]{@link setPreprocessorCode} is executed in the context of
-     * certain Enso module. This decides what symbols are visible and available to
-     * preprocessor, as everything that preprocessor uses must defined or imported
-     * in the context module.
+     * See the [setter documentation]{@link setPreprocessor} for more information.
      *
-     * If never set, Engine will use the current project's `Main` module as the context.
-     *
-     * @param module
+     * @returns {Array} The list of preprocessor arguments or `null` if none were set.
      */
-    setPreprocessorModule(module) {
-        if (module !== this.__preprocessorModule__) {
-            this.__preprocessorModule__ = module
+    getPreprocessorArguments() {
+        return this.__preprocessorArguments__
+    }
+
+    /**
+     * Set the arguments of the preprocessor function.
+     *
+     * Arguments should be strings representing valid Enso expressions that can
+     * be evaluated in the preprocessor module. See the
+     * [setter documentation]{@link setPreprocessor} for more information.
+     *
+     * @param arguments the arguments passed to the preprocessor function.
+     */
+    setPreprocessorArguments(...args) {
+        if (args !== this.__preprocessorArguments__) {
+            this.__preprocessorArguments__ = args
             this.__emitPreprocessorChange__()
-        } else {
-            console.error('skipping, as', module, ' === ', this.__preprocessorModule__)
         }
     }
 
     /**
-     * Set both preprocessor's code and context module.
+     * Set the preprocessor.
      *
-     * This is like calling both {@link setPreprocessorModule} and
-     * {@link setPreprocessorCode}, however may be more efficient, as it will emit
-     * only one update request.
+     * Sets the preprocessor method by providing the method pointer consisting of a
+     * method name and a module name defining the preprocessor method.
      *
-     * During the visualization construction phase no partial updates are emitted,
-     * so using this method gives no additional benefit.
+     * An example of setting a preprocessor without arguments.
+     * @example
+     * this.setPreprocessor('Standard.Visualization.Preprocessor', 'default_preprocessor')
      *
-     * @param code preprocessor code to be set.
-     * @param module context module for the preprocessor execution.
+     * The arguments should be strings representing Enso expressions. These
+     * expressions will be evaluated in the context of preprocessor module and
+     * passed to the visualization function in the same order.
+     *
+     * For example, given the `prepare_visualization` Enso method defined as
+     * @example
+     * prepare_visualization data param_1=10 param_2=True param_3=Nothing = ...
+     *
+     * the `setPreprocessor` method call can look like
+     * @example
+     * this.setPreprocessor('Foo.Bar.Baz', 'prepare_visualization', '42', 'False')
+     *
+     * First argument of the visualization function is always the node value
+     * (`data`), followed by the configuration parameters. In this example
+     * `setPreprocessor` call passes the number `42` as `param_1` and boolean
+     * `False` as `param_2`. `param_3` has been left unchanged with the default
+     * value `Nothing` since it was not specified in the example
+     * `setPreprocessor` call.
+     *
+     * @param module The qualified module containing the preprocessor method.
+     * @param method The preprocessor method name. The method must be invocable
+     *               with one argument and return JSON-compatible result.
+     * @param arguments Positional arguments passed to the preprocessor function.
+     *                  Arguments should be strings representing valid Enso
+     *                  expressions that can be evaluated in the preprocessor module.
      */
-    setPreprocessor(code, module) {
-        if (code !== this.__preprocessorCode__ || code !== this.__preprocessorModule__) {
-            this.__preprocessorCode__ = code
+    setPreprocessor(module, method, ...args) {
+        if (
+            module !== this.__preprocessorModule__ ||
+            method !== this.__preprocessorMethod__ ||
+            args !== this.__preprocessorArguments__
+        ) {
             this.__preprocessorModule__ = module
+            this.__preprocessorMethod__ = method
+            this.__preprocessorArguments__ = args
             this.__emitPreprocessorChange__()
         }
     }
