@@ -9,7 +9,7 @@ polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
 polyglot java import org.enso.table.parsing.DateParser
-polyglot java import org.enso.table.parsing.TimeParser
+polyglot java import org.enso.table.parsing.TimeOfDayParser
 polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
@@ -156,12 +156,12 @@ type Data_Formatter
         DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
-    make_datetime_parser self = self.wrap_base_parser <|
+    make_date_time_parser self = self.wrap_base_parser <|
         DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
-    make_time_parser self = self.wrap_base_parser <|
-        TimeParser.new self.time_formats.to_array self.datetime_locale.java_locale
+    make_time_of_day_parser self = self.wrap_base_parser <|
+        TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -172,13 +172,13 @@ type Data_Formatter
         Decimal     -> self.make_decimal_parser
         Boolean     -> self.make_boolean_parser
         Date        -> self.make_date_parser
-        Date_Time   -> self.make_datetime_parser
-        Time_Of_Day -> self.make_time_parser
+        Date_Time   -> self.make_date_time_parser
+        Time_Of_Day -> self.make_time_of_day_parser
         _           -> Error.throw (Illegal_Argument_Error_Data "Unsupported datatype: "+datatype.to_text)
 
     ## PRIVATE
     get_specific_type_parsers self =
-        [self.make_integer_parser, self.make_decimal_parser, self.make_datetime_parser, self.make_date_parser, self.make_time_parser, self.make_boolean_parser]
+        [self.make_integer_parser, self.make_decimal_parser, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
 
     ## PRIVATE
     make_auto_parser self =
@@ -199,12 +199,12 @@ type Data_Formatter
             DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
-    make_time_formatter self =
+    make_time_of_day_formatter self =
         if self.time_formats.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting times requires at least one entry in the `time_formats` parameter") else
             TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
 
     ## PRIVATE
-    make_datetime_formatter self =
+    make_date_time_formatter self =
         if self.datetime_formats.is_empty then Error.throw (Illegal_Argument_Error_Data "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
             DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
 
@@ -220,7 +220,7 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_formatters self =
-        [self.make_integer_formatter, self.make_decimal_formatter, self.make_boolean_formatter, self.make_datetime_formatter, self.make_date_formatter, self.make_time_formatter, self.make_text_formatter]
+        [self.make_integer_formatter, self.make_decimal_formatter, self.make_boolean_formatter, self.make_date_time_formatter, self.make_date_formatter, self.make_time_of_day_formatter, self.make_text_formatter]
 
     ## PRIVATE
     make_auto_formatter self =
@@ -234,4 +234,7 @@ type Data_Formatter
         Storage.Integer -> self.make_integer_formatter
         Storage.Decimal -> self.make_decimal_formatter
         Storage.Boolean -> self.make_boolean_formatter
+        Storage.Date -> self.make_date_formatter
+        Storage.Time_Of_Day -> self.make_time_of_day_formatter
+        Storage.Date_Time -> self.make_date_time_formatter
         Storage.Any -> self.make_auto_formatter

@@ -70,7 +70,7 @@ sqlite_spec connection prefix =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    selection = Aggregate_Spec.Test_Selection_Data advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False
+    selection = Aggregate_Spec.Test_Selection_Data advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))

@@ -1,11 +1,12 @@
 package org.enso.table.data.column.builder.object;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.BitSet;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.BitSet;
 
 /** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {
@@ -67,19 +68,38 @@ public class NumericBuilder extends TypedBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else if (isDouble && o instanceof Double) {
-      data[currentSize++] = Double.doubleToRawLongBits((Double) o);
-    } else if (!isDouble && o instanceof Long) {
-      data[currentSize++] = (Long) o;
-    } else if (!isDouble && o instanceof Integer) {
-      data[currentSize++] = ((Integer) o).longValue();
-    } else if (!isDouble && o instanceof Byte) {
-      data[currentSize++] = ((Byte) o).longValue();
-    } else if (isDouble && o instanceof BigDecimal) {
-      data[currentSize++] = Double.doubleToRawLongBits(((BigDecimal) o).doubleValue());
+    } else if (isDouble) {
+      double value = toDouble(o);
+      data[currentSize++] = Double.doubleToRawLongBits(value);
     } else {
-      throw new UnsupportedOperationException();
+      data[currentSize++] = toLong(o);
     }
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    if (isDouble && (o instanceof Double || o instanceof BigDecimal)) {
+      return true;
+    }
+
+    return o instanceof Long || o instanceof Integer || o instanceof Byte;
+  }
+
+  private static double toDouble(Object o) {
+    return switch (o) {
+      case Double x -> x;
+      case BigDecimal x -> x.doubleValue();
+      default -> (double) toLong(o);
+    };
+  }
+
+  private static long toLong(Object o) {
+    return switch (o) {
+      case Long x -> x;
+      case Integer x -> x.longValue();
+      case Byte x -> x.longValue();
+      default -> throw new UnsupportedOperationException();
+    };
   }
 
   @Override
@@ -136,11 +156,6 @@ public class NumericBuilder extends TypedBuilder {
   @Override
   public int getCurrentSize() {
     return currentSize;
-  }
-
-  @Override
-  public int getCurrentCapacity() {
-    return data.length;
   }
 
   @Override

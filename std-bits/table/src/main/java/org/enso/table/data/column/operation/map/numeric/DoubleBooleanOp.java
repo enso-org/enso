@@ -60,8 +60,7 @@ public abstract class DoubleBooleanOp extends MapOperation<DoubleStorage> {
 
   @Override
   public Storage runZip(DoubleStorage storage, Storage arg) {
-    if (arg instanceof DoubleStorage) {
-      DoubleStorage v = (DoubleStorage) arg;
+    if (arg instanceof DoubleStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -74,8 +73,7 @@ public abstract class DoubleBooleanOp extends MapOperation<DoubleStorage> {
         }
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
-    } else if (arg instanceof LongStorage) {
-      LongStorage v = (LongStorage) arg;
+    } else if (arg instanceof LongStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
