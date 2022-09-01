@@ -26,7 +26,7 @@ public class Vector implements TruffleObject {
     this.storage = storage;
   }
 
-  @Builtin.Method(name = "new_builtin", description = "Returns the length of this Vector.")
+  @Builtin.Method(name = "new_builtin", description = "Creates new Vector with given length and provided elements.")
   @Builtin.Specialize
   public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
     Object[] target = new Object[(int) length];
