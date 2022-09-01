@@ -833,14 +833,15 @@ impl AreaModel {
                     buffer.push_str(&content[range.start.value..range.end.value]);
                     let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
                     let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
-                    let mut prev_cluster = UBytes(0);
+                    let mut prev_cluster_byte_off = UBytes(0);
                     for (glyph_position, glyph_info) in shaped_iter {
-                        let current_cluster = UBytes(glyph_info.cluster as usize);
-                        let cluster_diff = current_cluster.saturating_sub(prev_cluster);
-                        // Drop styles assigned to skipped bytes.
+                        let cluster_byte_off = UBytes(glyph_info.cluster as usize);
+                        let cluster_diff = cluster_byte_off.saturating_sub(prev_cluster_byte_off);
+                        // Drop styles assigned to skipped bytes. One byte will be skipped during
+                        // the call to `line_style_iter.next()`.
                         line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
-                        prev_cluster = current_cluster;
                         let style = line_style_iter.next().unwrap_or_default();
+                        prev_cluster_byte_off = cluster_byte_off;
                         if column >= Column::from(line.glyphs.len()) {
                             line.push_glyph(|| glyph_system.new_glyph());
                         }
@@ -856,21 +857,11 @@ impl AreaModel {
                         divs.push(glyph_offset_x);
 
                         let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
-                        let glyph_render_info = font.glyph_info(&variation, glyph_id).unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-
+                        let glyph_render_info =
+                            font.glyph_info_of_known_face(&variation, glyph_id, face);
                         let glyph_render_offset = glyph_render_info.offset.scale(size);
                         let glyph_x = glyph_render_offset.x + glyph_offset_x;
                         let glyph_y = glyph_render_offset.y;
-                        event!(WARN, ">> 4");
-
-
-                        event!(
-                            WARN,
-                            "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
-                            column,
-                            glyph_x,
-                            glyph_y
-                        );
 
                         glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                         glyph.set_color(style.color);
@@ -878,7 +869,6 @@ impl AreaModel {
                         glyph.set_font_size(size);
                         glyph.set_properties(variation);
                         glyph.set_glyph_id(glyph_id);
-
 
                         cursor_map.get(&column).for_each(|id| {
                             self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
@@ -900,8 +890,8 @@ impl AreaModel {
 
                         column += 1.column();
                     }
-                    // TODO truncate unused glyphs
                 }
+                line.glyphs.truncate(column.value as usize);
             }
             _ => panic!(),
         }

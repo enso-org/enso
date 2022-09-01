@@ -561,18 +561,42 @@ impl<F: Family> FontTemplate<F> {
         if opt_render_info.is_some() {
             opt_render_info
         } else {
-            self.family.update_msdfgen_variations(variations);
             self.family.with_borrowed_face(variations, |face| {
-                let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
-                if !self.cache.borrow().contains_key(variations) {
-                    self.cache.borrow_mut().insert(variations.clone(), default());
-                }
-                let mut borrowed_cache = self.cache.borrow_mut();
-                let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
-                font_data_cache.glyphs.insert(glyph_id, render_info);
-                render_info
+                self.non_cached_glyph_info_of_known_face(variations, glyph_id, face)
             })
         }
+    }
+
+    pub fn glyph_info_of_known_face(
+        &self,
+        variations: &F::Variations,
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
+        let opt_render_info =
+            self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
+        if let Some(render_info) = opt_render_info {
+            render_info
+        } else {
+            self.non_cached_glyph_info_of_known_face(variations, glyph_id, face)
+        }
+    }
+
+    fn non_cached_glyph_info_of_known_face(
+        &self,
+        variations: &F::Variations,
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
+        self.family.update_msdfgen_variations(variations);
+        let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
+        if !self.cache.borrow().contains_key(variations) {
+            self.cache.borrow_mut().insert(variations.clone(), default());
+        }
+        let mut borrowed_cache = self.cache.borrow_mut();
+        let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
+        font_data_cache.glyphs.insert(glyph_id, render_info);
+        render_info
     }
 
     /// Get kerning between two characters.
