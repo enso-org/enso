@@ -630,25 +630,20 @@ spec =
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
             t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
-            t1.info.print
-            t2 = table.aggregate [Mode "dates", Count_Distinct "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
-            t2.info.print
-            t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
-            t3.info.print
-            t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
-            t4.info.print
-
-            t1.info.at "Columns" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
+            t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
             t1.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Text, Storage.Text, Storage.Any, Storage.Integer, Storage.Any]
 
-            t2.info.at "Columns" . to_vector . should_equal ["Mode dates", "Count Distinct objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
+            t2 = table.aggregate [Mode "dates", Count_Distinct "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
+            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Distinct objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
             t2.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Integer, Storage.Integer, Storage.Integer, Storage.Decimal]
 
-            t3.info.at "Columns" . to_vector . should_equal ["texts", "ints", "Last floats"]
+            t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
+            t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
             t3.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Decimal]
 
-            t4.info.at "Columns" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
-            t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Integer, Storage.Decimal]
+            t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
+            t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
+            t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
 
 
 main = Test.Suite.run_main spec
