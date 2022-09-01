@@ -24,21 +24,21 @@ macro_rules! def_style_property {
         #[derive(Clone, Copy, Debug, From, PartialEq, PartialOrd)]
         #[allow(missing_docs)]
         pub struct $name {
-            /// The raw, weakly typed value.
-            pub raw: $field_type,
+            /// The value, weakly typed value.
+            pub value: $field_type,
         }
 
         impl $name {
             /// Constructor.
-            pub const fn new(raw: $field_type) -> $name {
-                $name { raw }
+            pub const fn new(value: $field_type) -> $name {
+                $name { value }
             }
         }
 
         /// Smart constructor.
         #[allow(non_snake_case)]
-        pub fn $name(raw: $field_type) -> $name {
-            $name { raw }
+        pub fn $name(value: $field_type) -> $name {
+            $name { value }
         }
     };
 }
@@ -289,6 +289,51 @@ define_format! {
     sdf_weight : SdfWeight,
 }
 
+impl FormatSpan {
+    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<Bytes, font::NonVariableFaceHeader>> {
+        let seq_width = self.width.to_vector();
+        let seq_weight = self.weight.to_vector();
+        let seq_style = self.style.to_vector();
+        RangedValue::zip3_def_seq(
+            &seq_width,
+            &seq_weight,
+            &seq_style,
+            font::NonVariableFaceHeader::new,
+        )
+    }
+
+    pub fn chunks_per_font_face<'a>(
+        &self,
+        content: &'a str,
+    ) -> impl Iterator<Item = (std::ops::Range<Bytes>, font::NonVariableFaceHeader)> + 'a {
+        let seq_font_header = self.non_variable_font_spans();
+
+        gen_iter!(move {
+            let mut start_byte = Bytes(0);
+            let mut end_byte = Bytes(0);
+
+
+            let mut header_iter = seq_font_header.into_iter();
+            let mut opt_header = header_iter.next();
+            for chr in content.chars() {
+                end_byte += Bytes(chr.len_utf8() as i32);
+                if let Some(header) = opt_header {
+                    let next_byte = end_byte + Bytes(1);
+                    if next_byte == header.range.end {
+                        yield (start_byte..next_byte, header.value);
+                        start_byte = next_byte;
+                        opt_header = header_iter.next();
+                    }
+                }
+            }
+            if start_byte != end_byte {
+                event!(WARN, "Misaligned bytes found when shaping text.");
+                let next_byte = end_byte + Bytes(1);
+                yield (start_byte..next_byte, default());
+            }
+        })
+    }
+}
 
 
 // =================

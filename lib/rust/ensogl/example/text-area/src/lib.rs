@@ -54,7 +54,7 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content("foo\n1234");
+    area.set_content("test sentence showing a longer text\n1234");
     // area.set_font("default");
     // area.focus();
     // area.hover();

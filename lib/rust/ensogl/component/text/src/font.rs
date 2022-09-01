@@ -294,6 +294,38 @@ impl NonVariableFamily {
             }
         }
     }
+
+    pub fn with_borrowed_closest_face<T>(
+        &self,
+        header: NonVariableFaceHeader,
+        mut f: impl FnMut(&Face) -> T,
+    ) -> Option<T> {
+        let faces = self.faces.borrow();
+        match faces.get(&header) {
+            Some(face) => Some(f(face)),
+            None => {
+                let mut closest = None;
+                let mut closest_distance = usize::MAX;
+                for (known_header, face) in faces.iter() {
+                    let distance = known_header.distance(header);
+                    if distance < closest_distance {
+                        closest_distance = distance;
+                        closest = Some(face);
+                    }
+                }
+                closest.map(f)
+            }
+        }
+    }
+
+    pub fn with_borrowed_closest_face_or_panic<T>(
+        &self,
+        header: NonVariableFaceHeader,
+        f: impl FnMut(&Face) -> T,
+    ) -> T {
+        self.with_borrowed_closest_face(header, f)
+            .unwrap_or_else(|| panic!("Trying to use a font with no faces registered."))
+    }
 }
 
 impl VariableFamily {

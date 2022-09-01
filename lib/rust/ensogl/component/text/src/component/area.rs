@@ -817,126 +817,97 @@ impl AreaModel {
 
         match &glyph_system.font {
             font::Font::NonVariable(font) => {
-                let seq_width = line_style.width.to_vector();
-                let seq_weight = line_style.weight.to_vector();
-                let seq_style = line_style.style.to_vector();
-
-                let seq_font_header = RangedValue::zip3_def_seq(
-                    &seq_width,
-                    &seq_weight,
-                    &seq_style,
-                    font::NonVariableFaceHeader::new,
-                );
-
-                event!(DEBUG, "Headers {:#?}", seq_font_header);
-
-                let mut header_iter = seq_font_header.into_iter();
-                let mut opt_header = header_iter.next();
-                let mut start_byte = Bytes(0);
-                let mut end_byte = Bytes(0);
-
-                let mut generator = gen_iter!({
-                    for chr in content.chars() {
-                        end_byte += Bytes(chr.len_utf8() as i32);
-                        if let Some(header) = opt_header {
-                            let next_byte = end_byte + Bytes(1);
-                            if next_byte == header.range.end {
-                                yield (start_byte..next_byte, header.value);
-                                start_byte = next_byte;
-                                opt_header = header_iter.next();
-                            }
-                        }
-                    }
-                    if start_byte != end_byte {
-                        event!(WARN, "Misaligned bytes found when shaping text.");
-                        let next_byte = end_byte + Bytes(1);
-                        yield (start_byte..next_byte, default());
-                    }
-                });
-
                 let mut line_style_iter = line_style.iter();
-
                 let mut glyph_offset_x = 0.0;
                 let mut column = 0.column();
-                for (range, font_face_header) in generator {
+                for (range, font_face_header) in line_style.chunks_per_font_face(&content) {
                     event!(DEBUG, ">>> {:#?} {:#?}", range, font_face_header);
-                    let faces = font.family.faces.borrow();
-                    let face = faces.get(&font_face_header).unwrap(); // FIXME
-                    let ttf_face = face.ttf.as_face_ref();
-                    let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap(); // FIXME: clone
+                    // FIXME: use default font if no faces are found.
+                    font.family.with_borrowed_closest_face_or_panic(font_face_header, |face| {
+                        let ttf_face = face.ttf.as_face_ref();
+                        let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap(); // FIXME: clone
 
 
-                    let mut buffer = rustybuzz::UnicodeBuffer::new();
-                    buffer.push_str(&content[range.start.value as usize..range.end.value as usize]);
-                    let out = rustybuzz::shape(&buzz_face, &[], buffer);
-                    event!(WARN, "out: {:#?}", out);
-
-                    for (glyph_position, glyph_info) in
-                        out.glyph_positions().iter().zip(out.glyph_infos())
-                    {
-                        let style = line_style_iter.next().unwrap_or_default();
-                        line_style_iter.drop(Bytes(glyph_info.cluster as i32 - 1));
-                        event!(WARN, "G >>>: {:#?} {:#?} {:#?}", glyph_position, glyph_info, style);
-                        if (column.value >= line.glyphs.len() as i32) {
-                            line.push_glyph(|| glyph_system.new_glyph());
-                        }
-                        let glyph = &line.glyphs[column.value as usize];
-
-                        let size: f32 = 12.0; // FIXME
-                        let units_per_em = ttf_face.units_per_em();
-                        let harfbuzz_scale = units_per_em as f32 / size * 1.0;
-
-                        if column != 0.column() {
-                            glyph_offset_x += glyph_position.x_advance as f32 / harfbuzz_scale;
-                        }
-                        divs.push(glyph_offset_x);
-                        // event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
-
-                        let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
-                        let glyph_render_info =
-                            font.glyph_info(&font_face_header, glyph_id).unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
-
-                        let glyph_render_offset = glyph_render_info.offset.scale(size);
-                        let glyph_x = glyph_render_offset.x + glyph_offset_x;
-                        let glyph_y = glyph_render_offset.y;
-
-
-                        event!(
-                            WARN,
-                            "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
-                            column,
-                            glyph_x,
-                            glyph_y
+                        let mut buffer = rustybuzz::UnicodeBuffer::new();
+                        buffer.push_str(
+                            &content[range.start.value as usize..range.end.value as usize],
                         );
+                        let out = rustybuzz::shape(&buzz_face, &[], buffer);
+                        event!(WARN, "out: {:#?}", out);
 
-                        glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                        glyph.set_glyph_id(glyph_id);
-                        glyph.set_color(style.color);
-                        glyph.set_sdf_weight(style.sdf_weight.raw);
-                        glyph.set_font_size(size);
-
-
-                        cursor_map.get(&column).for_each(|id| {
-                            self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
-                                if cursor.edit_mode.get() {
-                                    let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
-                                    last_cursor = Some(cursor.clone_ref());
-                                    last_cursor_target = Vector2(glyph_offset_x, pos_y);
-                                }
-                            });
-                        });
-
-                        match &last_cursor {
-                            None => line_object.add_child(glyph),
-                            Some(cursor) => {
-                                cursor.right_side.add_child(glyph);
-                                glyph.mod_position_xy(|p| p - last_cursor_target);
+                        for (glyph_position, glyph_info) in
+                            out.glyph_positions().iter().zip(out.glyph_infos())
+                        {
+                            let style = line_style_iter.next().unwrap_or_default();
+                            line_style_iter.drop(Bytes(glyph_info.cluster as i32 - 1));
+                            event!(
+                                WARN,
+                                "G >>>: {:#?} {:#?} {:#?}",
+                                glyph_position,
+                                glyph_info,
+                                style
+                            );
+                            if (column.value >= line.glyphs.len() as i32) {
+                                line.push_glyph(|| glyph_system.new_glyph());
                             }
-                        }
+                            let glyph = &line.glyphs[column.value as usize];
 
-                        column += 1.column();
-                    }
-                    // TODO truncate unused glyphs
+                            let size: f32 = 12.0; // FIXME
+                            let units_per_em = ttf_face.units_per_em();
+                            let harfbuzz_scale = units_per_em as f32 / size * 1.0;
+
+                            if column != 0.column() {
+                                glyph_offset_x += glyph_position.x_advance as f32 / harfbuzz_scale;
+                            }
+                            divs.push(glyph_offset_x);
+                            // event!(WARN, "harfbuzz_scale {:#?}", harfbuzz_scale);
+
+                            let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
+                            let glyph_render_info =
+                                font.glyph_info(&font_face_header, glyph_id).unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
+
+                            let glyph_render_offset = glyph_render_info.offset.scale(size);
+                            let glyph_x = glyph_render_offset.x + glyph_offset_x;
+                            let glyph_y = glyph_render_offset.y;
+
+
+                            event!(
+                                WARN,
+                                "SETTING GLYPH NEW: {:#?} {:#?} {:#?}",
+                                column,
+                                glyph_x,
+                                glyph_y
+                            );
+
+                            glyph.set_position_xy(Vector2(glyph_x, glyph_y));
+                            glyph.set_glyph_id(glyph_id);
+                            glyph.set_color(style.color);
+                            glyph.set_sdf_weight(style.sdf_weight.value);
+                            glyph.set_font_size(size);
+
+
+                            cursor_map.get(&column).for_each(|id| {
+                                self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
+                                    if cursor.edit_mode.get() {
+                                        let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
+                                        last_cursor = Some(cursor.clone_ref());
+                                        last_cursor_target = Vector2(glyph_offset_x, pos_y);
+                                    }
+                                });
+                            });
+
+                            match &last_cursor {
+                                None => line_object.add_child(glyph),
+                                Some(cursor) => {
+                                    cursor.right_side.add_child(glyph);
+                                    glyph.mod_position_xy(|p| p - last_cursor_target);
+                                }
+                            }
+
+                            column += 1.column();
+                        }
+                        // TODO truncate unused glyphs
+                    })
                 }
             }
             _ => panic!(),
@@ -967,13 +938,13 @@ impl AreaModel {
         // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         // let mut truncation_point = 0.bytes();
         // let truncate = line.char_indices().any(|(i, ch)| {
-        //     let char_info = pen::CharInfo::new(ch, font_size.raw);
+        //     let char_info = pen::CharInfo::new(ch, font_size.value);
         //     let pen_info = pen.advance(Some(char_info));
         //     let next_width = pen_info.offset + char_info.size;
         //     if next_width > max_width_px {
         //         return true;
         //     }
-        //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+        //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.value).size;
         //     let char_length: Bytes = ch.len_utf8().into();
         //     if next_width + width_of_ellipsis <= max_width_px {
         //         truncation_point = Bytes::from(i) + char_length;

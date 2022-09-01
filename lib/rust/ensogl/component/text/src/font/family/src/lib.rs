@@ -190,4 +190,31 @@ impl NonVariableFaceHeader {
     pub fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
     }
+
+    pub fn distance(&self, other: NonVariableFaceHeader) -> usize {
+        let width_weight = 10;
+        let weight_weight = 100;
+        let style_weight = 1;
+
+        let self_width = self.width.to_number() as usize;
+        let self_weight = self.weight.to_number() as usize;
+        let self_style: usize = match self.style {
+            Style::Normal => 0,
+            Style::Italic => 1,
+            Style::Oblique => 2,
+        };
+
+        let other_width = other.width.to_number() as usize;
+        let other_weight = other.weight.to_number() as usize;
+        let other_style: usize = match other.style {
+            Style::Normal => 0,
+            Style::Italic => 1,
+            Style::Oblique => 2,
+        };
+
+        let width = self_width.abs_diff(other_width) * width_weight;
+        let weight = self_weight.abs_diff(other_weight) * weight_weight;
+        let style = self_style.abs_diff(other_style) * style_weight;
+        width + weight + style
+    }
 }
