@@ -295,35 +295,32 @@ impl NonVariableFamily {
         }
     }
 
-    pub fn with_borrowed_closest_face<T>(
+    pub fn closest_variation(
         &self,
-        header: NonVariableFaceHeader,
-        mut f: impl FnMut(&Face) -> T,
-    ) -> Option<T> {
+        variation: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeader> {
         let faces = self.faces.borrow();
-        match faces.get(&header) {
-            Some(face) => Some(f(face)),
-            None => {
-                let mut closest = None;
-                let mut closest_distance = usize::MAX;
-                for (known_header, face) in faces.iter() {
-                    let distance = known_header.distance(header);
-                    if distance < closest_distance {
-                        closest_distance = distance;
-                        closest = Some(face);
-                    }
+        if faces.contains_key(&variation) {
+            Some(variation)
+        } else {
+            let mut closest = None;
+            let mut closest_distance = usize::MAX;
+            for known_header in faces.keys() {
+                let distance = known_header.distance(variation);
+                if distance < closest_distance {
+                    closest_distance = distance;
+                    closest = Some(*known_header);
                 }
-                closest.map(f)
             }
+            closest
         }
     }
 
-    pub fn with_borrowed_closest_face_or_panic<T>(
+    pub fn closest_variation_or_panic(
         &self,
-        header: NonVariableFaceHeader,
-        f: impl FnMut(&Face) -> T,
-    ) -> T {
-        self.with_borrowed_closest_face(header, f)
+        variation: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeader {
+        self.closest_variation(variation)
             .unwrap_or_else(|| panic!("Trying to use a font with no faces registered."))
     }
 }
