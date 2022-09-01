@@ -57,56 +57,66 @@ pub struct GlyphData {
 // === Properties getters and setters ===
 
 macro_rules! define_prop_setters_and_getters {
-    ($prop:ident ($($variant:ident),* $(,)?)) => { paste! {
-        #[doc = "Setter of the glyph `"]
-        #[doc = stringify!($prop)]
-        #[doc = "` property."]
-        pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
-            self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
-            self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
-            self.refresh();
+    ($($prop:ident ($($variant:ident),* $(,)?)),*$(,)?) => { paste! {
+
+        /// Set `NonVariableFaceHeader` of the glyph.
+        pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
+            self.properties.set(props.clone());
+            $(
+                self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
+            )*
+            // self.refresh();
         }
 
         $(
-            #[doc = "Set the `"]
+            #[doc = "Setter of the glyph `"]
             #[doc = stringify!($prop)]
-            #[doc = "` property to `"]
-            #[doc = stringify!($variant)]
-            #[doc = "`."]
-            pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
-                self.[<set_ $prop:snake:lower>](font::$prop::$variant)
+            #[doc = "` property."]
+            pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
+                self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
+                self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
+                // self.refresh();
             }
 
-            #[doc = "Checks whether the `"]
-            #[doc = stringify!($prop)]
-            #[doc = "` property is set to `"]
-            #[doc = stringify!($variant)]
-            #[doc = "`."]
-            pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
-                self.properties.get().[<$prop:snake:lower>] == font::$prop::$variant
-            }
+            $(
+                #[doc = "Set the `"]
+                #[doc = stringify!($prop)]
+                #[doc = "` property to `"]
+                #[doc = stringify!($variant)]
+                #[doc = "`."]
+                pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
+                    self.[<set_ $prop:snake:lower>](font::$prop::$variant)
+                }
+
+                #[doc = "Checks whether the `"]
+                #[doc = stringify!($prop)]
+                #[doc = "` property is set to `"]
+                #[doc = stringify!($variant)]
+                #[doc = "`."]
+                pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
+                    self.properties.get().[<$prop:snake:lower>] == font::$prop::$variant
+                }
+            )*
         )*
     }};
 }
 
 impl Glyph {
-    define_prop_setters_and_getters![Weight(
-        Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black
-    )];
-
-    define_prop_setters_and_getters![Width(
-        UltraCondensed,
-        ExtraCondensed,
-        Condensed,
-        SemiCondensed,
-        Normal,
-        SemiExpanded,
-        Expanded,
-        ExtraExpanded,
-        UltraExpanded
-    )];
-
-    define_prop_setters_and_getters![Style(Normal, Italic, Oblique)];
+    define_prop_setters_and_getters![
+        Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
+        Style(Normal, Italic, Oblique),
+        Width(
+            UltraCondensed,
+            ExtraCondensed,
+            Condensed,
+            SemiCondensed,
+            Normal,
+            SemiExpanded,
+            Expanded,
+            ExtraExpanded,
+            UltraExpanded
+        )
+    ];
 
     /// Color getter.
     pub fn color(&self) -> Rgba {
@@ -186,11 +196,11 @@ impl Glyph {
         }
     }
 
-    /// Check whether a new glyph should be baked to the atlas and reload the texture if needed.
-    /// This is useful for example after changing the width of the glyph.
-    fn refresh(&self) {
-        self.set_glyph_id(self.glyph_id.get());
-    }
+    // /// Check whether a new glyph should be baked to the atlas and reload the texture if needed.
+    // /// This is useful for example after changing the width of the glyph.
+    // fn refresh(&self) {
+    //     self.set_glyph_id(self.glyph_id.get());
+    // }
 }
 
 impl display::Object for Glyph {

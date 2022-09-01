@@ -61,7 +61,7 @@ fn init(app: Application) {
     // area.set_cursor_at_end();
     //
     area.set_format_option(
-        Range::new(4.bytes(), 6.bytes()),
+        Range::new(5.bytes(), 7.bytes()),
         style::FormatOption::Weight(style::Weight::Bold),
     );
     // area.set_format_option(Range::new(4.bytes(), 6.bytes()), style::SdfWeight(0.02));

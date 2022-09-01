@@ -880,10 +880,11 @@ impl AreaModel {
                             );
 
                             glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                            glyph.set_glyph_id(glyph_id);
                             glyph.set_color(style.color);
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_font_size(size);
+                            glyph.set_properties(font_face_header);
+                            glyph.set_glyph_id(glyph_id);
 
 
                             cursor_map.get(&column).for_each(|id| {
