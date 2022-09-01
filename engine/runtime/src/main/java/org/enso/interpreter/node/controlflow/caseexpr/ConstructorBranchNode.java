@@ -29,9 +29,6 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @return a node for matching in a case expression
    */
   public static BranchNode build(AtomConstructor matcher, RootCallTarget branch) {
-    if ("Standard.Builtins.Main.Vector_Data".equals(matcher.getQualifiedName().toString())) {
-      return ConstructorBranchNodeGen.VectorConstructorNodeGen.create(branch);
-    }
     return ConstructorBranchNodeGen.create(matcher, branch);
   }
 
@@ -44,20 +41,4 @@ public abstract class ConstructorBranchNode extends BranchNode {
 
   @Fallback
   void doFallback(VirtualFrame frame, Object state, Object target) {}
-
-  @NodeInfo(shortName = "VectorConstructorMatch")
-  abstract static class VectorConstructorNode extends BranchNode {
-
-    VectorConstructorNode(RootCallTarget branch) {
-      super(branch);
-    }
-
-    @Specialization
-    void doVector(VirtualFrame frame, Object state, Vector target) {
-      accept(frame, state, new Object[0]);
-    }
-
-    @Fallback
-    void doFallback(VirtualFrame frame, Object state, Object target) {}
-  }
 }

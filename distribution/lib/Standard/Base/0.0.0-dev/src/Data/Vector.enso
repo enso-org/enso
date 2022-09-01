@@ -120,7 +120,6 @@ type Vector a
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    Vector_Data
 
     to_array self = @Builtin_Method "Vector.to_array"
 

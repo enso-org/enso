@@ -34,7 +34,8 @@ public class VectorTest {
     import Standard.Base.Data.Vector
 
     choose x = case x of
-        Vector.Vector_Data -> "is vector"
+        Vector -> "is vector module"
+        Vector.Vector -> "is vector type"
         _ -> "nothing"
 
     check = choose [1, 2, 3]
@@ -44,6 +45,6 @@ public class VectorTest {
 
     var module = ctx.eval(facSrc);
     var res = module.invokeMember("eval_expression", "check");
-    assertEquals("is vector", res.asString());
+    assertEquals("is vector type", res.asString());
   }
 }
