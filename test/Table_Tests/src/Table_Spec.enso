@@ -7,6 +7,8 @@ from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Da
 import Standard.Table.Data.Storage
 import Standard.Table.Data.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column import all hiding First, Last
+from Standard.Table.Data.Column_Selector import By_Name
+from Standard.Table.Errors import Floating_Point_Grouping_Data
 
 import Standard.Visualization
 
@@ -14,6 +16,7 @@ import Standard.Test
 import Standard.Test.Problems
 
 import project.Common_Table_Spec
+from project.Util import all
 
 type My
     My_Data x y
@@ -662,9 +665,9 @@ spec =
             r1.at "C" . to_vector . should_equal [0.1]
 
             r2 = t.distinct (By_Name ["A", "B"])
-            r1.at "A" . to_vector . should_equal ["a", "a"]
-            r1.at "B" . to_vector . should_equal [1, 2]
-            r1.at "C" . to_vector . should_equal [0.1, 0.3]
+            r2.at "A" . to_vector . should_equal ["a", "a"]
+            r2.at "B" . to_vector . should_equal [1, 2]
+            r2.at "C" . to_vector . should_equal [0.1, 0.3]
 
         Test.specify "should handle nulls correctly" <|
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
@@ -673,6 +676,9 @@ spec =
             r = t.distinct (By_Name ["A"])
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should allow to control case-sensitivity of keys" <|
+            Nothing
 
         Test.specify "should report a warning if the key contains floating point values" <|
             t1 = Table.new [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
@@ -691,11 +697,17 @@ spec =
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
             t = Table.new [["A", [1, 2, 1, 1]]]
+            test table = table.should_equal t
+            r = t.distinct (By_Name []) on_problems=Problem_Behavior.Report_Error
+            IO.println r
+            r.print
+            action1 = t.distinct (By_Name []) on_problems=_
             problems1 = [No_Input_Columns_Selected]
-            Problems.test_problem_handling (t.distinct (By_Name []) on_problems=_) (_.should_equal t) problems1
+            Problems.test_problem_handling action1 problems1 test
 
+            action2 = t.distinct (By_Name ["mismatched"]) on_problems=_
             problems2 = [No_Input_Columns_Selected, Missing_Input_Columns_Data ["mismatched"]]
-            Problems.test_problem_handling (t.distinct (By_Name ["mismatched"]) on_problems=_) (_.should_equal t) problems1
+            Problems.test_problem_handling action2 problems2 test
 
         # TODO that is not the original design but I wanted to suggest this, as it seems more natural for a call with defaulted argument: `table.distinct`
         Test.specify "should group by all columns by default" <|

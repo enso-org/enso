@@ -14,7 +14,7 @@ import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
@@ -681,10 +681,11 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
-    distinct self (columns = By_Name [this.columns.first . name]) case_sensitive=True on_problems=Report_Warning =
+    distinct self (columns = By_Name [self.columns.map .name]) case_sensitive=True on_problems=Report_Warning =
+        # TODO case sensitive!
         key_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
-        java_table = self.java_table.distinct selected_columns.to_array Comparator.new
+        java_table = self.java_table.distinct java_columns.to_array Comparator.new
         Table_Data java_table
 
     ## Parses columns within a Table to a specific value type.
