@@ -65,4 +65,5 @@ default_line_separator = Java_System.lineSeparator
    - stdout: Any values printed to standard out by the child process.
    - stderr: Any values printed to standard error by the child process.
 @Builtin_Type
-type System_Process_Result exit_code stdout stderr
+type System_Process_Result
+    System_Process_Result_Data exit_code stdout stderr

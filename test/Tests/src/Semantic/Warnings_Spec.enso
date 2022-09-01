@@ -4,15 +4,18 @@ polyglot java import java.lang.Long
 
 import Standard.Test
 
-type My_Warning reason
+type My_Warning
+    My_Warning_Data reason
 
-type My_Type a b c
+type My_Type
+    My_Type_Data a b c
 My_Type.my_method self = self.a + self.b + self.c
 
-type Wrap foo
+type Wrap
+    Wrap_Data foo
 
 rewrap w = case w of
-    Wrap a -> Wrap a+1
+    Wrap_Data a -> Wrap_Data a+1
 
 poly_sum x y =
     Long.sum x y
@@ -22,10 +25,10 @@ get_foo x = x.foo
 unwrap x = Integer.from x
 
 reassign_test x =
-    consed = Wrap x
+    consed = Wrap_Data x
     reconsed = rewrap consed
     i = unwrap reconsed
-    rereconsed = Wrap i
+    rereconsed = Wrap_Data i
     x1 = get_foo rereconsed
     prim_sum = 1 + x1
     r = poly_sum prim_sum 1
@@ -67,15 +70,15 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
 
     Test.specify "should thread warnings through constructor calls" <|
-        z = Warning.attach (My_Warning "warn!!!") 3
-        y = Warning.attach (My_Warning "warn!!") 2
-        x = Warning.attach (My_Warning "warn!") 1
-        mtp = My_Type x y z
-        mtp.should_equal (My_Type 1 2 3)
-        Warning.get_all mtp . map .value . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
+        z = Warning.attach (My_Warning_Data "warn!!!") 3
+        y = Warning.attach (My_Warning_Data "warn!!") 2
+        x = Warning.attach (My_Warning_Data "warn!") 1
+        mtp = My_Type_Data x y z
+        mtp.should_equal (My_Type_Data 1 2 3)
+        Warning.get_all mtp . map .value . should_equal [My_Warning_Data "warn!", My_Warning_Data "warn!!", My_Warning_Data "warn!!!"]
 
     Test.specify "should thread warnings through method calls"
-        mtp = My_Type 1 2 3
+        mtp = My_Type_Data 1 2 3
         warned = Warning.attach "omgggg" mtp
         r = warned.my_method
         r.should_equal 6
@@ -89,17 +92,17 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
 
     Test.specify "should thread warnings through case expressions" <|
-        z = Warning.attach (My_Warning "warn!!!") 3
-        y = Warning.attach (My_Warning "warn!!") 2
-        x = Warning.attach (My_Warning "warn!") 1
-        mtp = My_Type x y z
+        z = Warning.attach (My_Warning_Data "warn!!!") 3
+        y = Warning.attach (My_Warning_Data "warn!!") 2
+        x = Warning.attach (My_Warning_Data "warn!") 1
+        mtp = My_Type_Data x y z
         r = case mtp of
-            My_Type a b c -> a + b + c
+            My_Type_Data a b c -> a + b + c
         r.should_equal 6
-        Warning.get_all r . map .value . should_equal [My_Warning "warn!", My_Warning "warn!!", My_Warning "warn!!!"]
+        Warning.get_all r . map .value . should_equal [My_Warning_Data "warn!", My_Warning_Data "warn!!", My_Warning_Data "warn!!!"]
 
     Test.specify "should thread warnings through conversions" <|
-        z = Wrap (Warning.attach 'warn!' 1)
+        z = Wrap_Data (Warning.attach 'warn!' 1)
         i = Integer.from z
         Warning.get_all i . map .value . should_equal ['warn!']
 
@@ -115,7 +118,7 @@ spec = Test.group "Dataflow Warnings" <|
         r = reassign_test x
         warn = Warning.get_all r . head
         reassignments = warn.reassignments.map .name
-        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
+        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap_Data', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap_Data']
 
     Test.specify "should allow to set all warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"

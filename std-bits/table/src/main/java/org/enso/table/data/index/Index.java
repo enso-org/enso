@@ -1,9 +1,11 @@
 package org.enso.table.data.index;
 
+import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.Column;
+
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.table.Column;
 
 /** A storage class for ordered multisets. */
 public abstract class Index {
@@ -84,4 +86,7 @@ public abstract class Index {
 
   /** @return a copy of the index containing a slice of the original data */
   public abstract Index slice(int offset, int limit);
+
+  /** @return a copy of the index consisting of slices of the original data */
+  public abstract Index slice(List<SliceRange> ranges);
 }

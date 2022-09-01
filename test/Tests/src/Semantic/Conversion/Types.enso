@@ -1,6 +1,9 @@
 from Standard.Base import all
 
-type Foo a
-type Bar a
+type Foo
+    Foo_Data a
+
+type Bar
+    Bar_Data a
 
 Vector.from (that:Foo) = [that.a]

@@ -2,7 +2,7 @@ import Standard.Base.Data.Vector
 from Standard.Base.Data.Index_Sub_Range import First
 import Standard.Base.Polyglot
 import Standard.Base.Nothing
-from Standard.Base.Runtime.Extensions import Source_Location
+from Standard.Base.Runtime.Extensions import Source_Location, Source_Location_Data
 
 ## Utilities for interacting with the runtime.
 
@@ -21,7 +21,7 @@ primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 get_stack_trace : Vector.Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
-    stack_with_prims = Vector.Vector prim_stack
+    stack_with_prims = Vector.Vector_Data prim_stack
     stack = stack_with_prims.map wrap_primitive_stack_trace_element
     # drop this frame and the one from `Runtime.primitive_get_stack_trace`
     stack.drop (First 2)
@@ -80,9 +80,9 @@ no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 ## PRIVATE
    Converts a primitive stack trace element into the regular one.
 wrap_primitive_stack_trace_element el =
-    loc = if Polyglot.has_source_location el then (Source_Location (Polyglot.get_source_location el)) else Nothing
+    loc = if Polyglot.has_source_location el then Source_Location_Data (Polyglot.get_source_location el) else Nothing
     name = Polyglot.get_executable_name el
-    Stack_Trace_Element name loc
+    Stack_Trace_Element_Data name loc
 
 ## ADVANCED
    UNSTABLE
@@ -90,4 +90,4 @@ wrap_primitive_stack_trace_element el =
    Represents a single stack frame in an Enso stack trace.
 type Stack_Trace_Element
     ## PRIVATE
-    type Stack_Trace_Element name source_location
+    Stack_Trace_Element_Data name source_location

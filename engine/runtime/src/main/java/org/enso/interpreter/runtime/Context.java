@@ -18,6 +18,7 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
@@ -374,7 +375,7 @@ public class Context {
    *
    * @return the builtin {@code Nothing} atom constructor
    */
-  public AtomConstructor getNothing() {
+  public Type getNothing() {
     return getBuiltins().nothing();
   }
 

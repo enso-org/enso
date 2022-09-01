@@ -30,20 +30,8 @@ public abstract class EqualsNode extends Node {
     return BigIntegerOps.toDouble(self.getValue()) == that;
   }
 
-  @Specialization
-  boolean doAtom(
-      Atom self, Atom that, @Cached("getBigIntegerConstructor()") AtomConstructor bigIntCons) {
-    var thisCons = self.getConstructor();
-    var thatCons = that.getConstructor();
-    return (thatCons == bigIntCons) && (thisCons == thatCons);
-  }
-
   @Fallback
   boolean doOther(Object self, Object that) {
-    return false;
-  }
-
-  AtomConstructor getBigIntegerConstructor() {
-    return Context.get(this).getBuiltins().number().getBigInteger();
+    return self == that;
   }
 }

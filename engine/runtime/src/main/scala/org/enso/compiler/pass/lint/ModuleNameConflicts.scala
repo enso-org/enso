@@ -94,7 +94,7 @@ case object ModuleNameConflicts extends IRPass {
     val exports = syntheticExports.map(e => (e.name.parts.last.name, e)).toMap
 
     binding match {
-      case cons: IR.Module.Scope.Definition.Atom
+      case cons: IR.Module.Scope.Definition.Type
           if exports.contains(cons.name.name) =>
         val atomName = cons.name.name
         val `export` = exports(atomName)

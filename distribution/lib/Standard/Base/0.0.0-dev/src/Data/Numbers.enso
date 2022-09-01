@@ -13,15 +13,8 @@ from Standard.Base.Error.Common import Panic,Error,Illegal_Argument_Error
 
    If a Number is expected, then the program can provide either a Decimal or
    an Integer in its place.
+@Builtin_Type
 type Number
-
-    ## The root type of the Enso numeric hierarchy.
-
-       If a Number is expected, then the program can provide either a Decimal or
-       an Integer in its place.
-    @Builtin_Type
-    type Number
-
     ## ALIAS Add
 
        Adds two arbitrary numbers.
@@ -364,16 +357,13 @@ type Number
             if self < 0 then -1 else 0
 
 
-## Decimal numbers.
+## Decimal is the type of decimal numbers in Enso.
+
+   ? Representation
+     Enso's decimal numbers are represented as IEEE754 double-precision
+     floating point numbers.
+@Builtin_Type
 type Decimal
-
-    ## Decimal is the type of decimal numbers in Enso.
-
-       ? Representation
-         Enso's decimal numbers are represented as IEEE754 double-precision
-         floating point numbers.
-    @Builtin_Type
-    type Decimal
 
     ## Adds a deceimal and an arbitrary number.
 
@@ -607,26 +597,23 @@ type Decimal
     parse : Text -> Decimal ! Parse_Error
     parse text =
         Panic.catch NumberFormatException (Double.parseDouble text) _->
-            Error.throw (Parse_Error text)
+            Error.throw (Parse_Error_Data text)
 
-## Integral numbers.
+## Integer is the type of integral numbers in Enso. They are of unbounded
+   size and can grow as large as necessary.
+
+   ? Representation
+     For certain operations (such as bitwise logic), the underlying
+     representation of the number matters. Enso Integers are represented as
+     signed 2's complement numbers.
+
+   ? Performance
+     Integers that fit into 64 bits are represented in memory as 64 bits.
+     This means that operations on them achieve excellent performance. Once
+     the integer grows beyond being able to fit in 64 bits, performance will
+     degrade.
+@Builtin_Type
 type Integer
-
-    ## Integer is the type of integral numbers in Enso. They are of unbounded
-       size and can grow as large as necessary.
-
-       ? Representation
-         For certain operations (such as bitwise logic), the underlying
-         representation of the number matters. Enso Integers are represented as
-         signed 2's complement numbers.
-
-       ? Performance
-         Integers that fit into 64 bits are represented in memory as 64 bits.
-         This means that operations on them achieve excellent performance. Once
-         the integer grows beyond being able to fit in 64 bits, performance will
-         degrade.
-    @Builtin_Type
-    type Integer
 
     ## Adds an integer and an arbitrary number.
 
@@ -988,12 +975,13 @@ type Integer
     parse : Text -> Text -> Integer ! Parse_Error
     parse text (radix=10) =
         Panic.catch NumberFormatException (Long.parseLong text radix) _->
-             Error.throw (Parse_Error text)
+             Error.throw (Parse_Error_Data text)
 
 ## UNSTABLE
 
    A syntax error when parsing a double.
-type Parse_Error text
+type Parse_Error
+    Parse_Error_Data text
 
 ## UNSTABLE
 

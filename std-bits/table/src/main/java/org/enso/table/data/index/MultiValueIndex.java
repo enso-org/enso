@@ -1,8 +1,8 @@
 package org.enso.table.data.index;
 
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;

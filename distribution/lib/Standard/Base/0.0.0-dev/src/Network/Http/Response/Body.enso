@@ -6,7 +6,7 @@ type Body
 
        Arguments:
        - bytes: The body of the response as binary data.
-    type Body bytes
+    Body_Data bytes
 
     ## Convert response body to Text.
 

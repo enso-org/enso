@@ -87,13 +87,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): IR.Module.Scope.Definition =
     binding match {
-      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _) =>
-        atom
-          .copy(arguments =
-            arguments.map(analyseDefinitionArgument(_, weights))
-          )
-          .updateMetadata(this -->> weights)
-      case _: IR.Module.Scope.Definition.UnionType => binding
+      case _: IR.Module.Scope.Definition.Type => binding
       case method: Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))
@@ -108,7 +102,7 @@ case object CachePreferenceAnalysis extends IRPass {
           "Sugared method definitions should not occur during cache " +
           "preference analysis."
         )
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during cache " +
           "preference analysis."

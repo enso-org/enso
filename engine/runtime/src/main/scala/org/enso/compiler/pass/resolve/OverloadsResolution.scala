@@ -47,19 +47,19 @@ case object OverloadsResolution extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    var seenAtoms: Set[String]                        = Set()
+    var seenTypes: Set[String]                        = Set()
     var seenMethods: Map[Option[String], Set[String]] = Map()
 
-    val atoms = ir.bindings.collect {
-      case atom: IR.Module.Scope.Definition.Atom => atom
+    val types = ir.bindings.collect {
+      case tp: IR.Module.Scope.Definition.Type => tp
     }
 
-    val newAtoms: List[IR.Module.Scope.Definition] = atoms.map(atom => {
-      if (seenAtoms.contains(atom.name.name)) {
-        IR.Error.Redefined.Atom(atom.name, atom.location)
+    val newTypes: List[IR.Module.Scope.Definition] = types.map(tp => {
+      if (seenTypes.contains(tp.name.name)) {
+        IR.Error.Redefined.Type(tp.name, tp.location)
       } else {
-        seenAtoms = seenAtoms + atom.name.name
-        atom
+        seenTypes = seenTypes + tp.name.name
+        tp
       }
     })
 
@@ -77,7 +77,7 @@ case object OverloadsResolution extends IRPass {
         IR.Error.Redefined
           .Method(method.typeName, method.methodName, method.location)
       } else {
-        atoms.find(_.name.name.equalsIgnoreCase(method.methodName.name)) match {
+        types.find(_.name.name.equals(method.methodName.name)) match {
           case Some(clashedAtom) if method.typeName.isEmpty =>
             IR.Error.Redefined.MethodClashWithAtom(
               clashedAtom.name,
@@ -122,7 +122,7 @@ case object OverloadsResolution extends IRPass {
     }
 
     ir.copy(
-      bindings = newAtoms ::: newMethods ::: conversions ::: diagnostics
+      bindings = newTypes ::: newMethods ::: conversions ::: diagnostics
     )
   }
 

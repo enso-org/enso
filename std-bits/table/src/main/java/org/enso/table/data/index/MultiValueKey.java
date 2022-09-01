@@ -4,7 +4,6 @@ import org.enso.table.data.column.storage.Storage;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Objects;
 
 public class MultiValueKey implements Comparable<MultiValueKey> {
   private final Storage[] storage;

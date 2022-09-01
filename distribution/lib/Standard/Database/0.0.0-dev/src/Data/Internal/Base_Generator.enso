@@ -24,7 +24,7 @@ type Internal_Dialect
 
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
        #                       (identifier_wrapper : Text -> Sql.Builder)
-    type Internal_Dialect operation_map wrap_identifier
+    Internal_Dialect_Data operation_map wrap_identifier
 
     ## PRIVATE
 
@@ -35,7 +35,7 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect new_map self.wrap_identifier
+        Internal_Dialect_Data new_map self.wrap_identifier
 
 ## PRIVATE
 
@@ -51,7 +51,7 @@ make_binary_op name =
                 op = Sql.code " "+name+" "
                 (arguments.at 0)++op++(arguments.at 1) . paren
             False ->
-                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -66,7 +66,7 @@ make_unary_op name =
             True ->
                 (Sql.code name+" ")++(arguments.at 0) . paren
             False ->
-                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -80,7 +80,7 @@ make_unary_op name =
 lift_unary_op : Text -> (Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
-        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0)
     [name, generator]
 
@@ -96,7 +96,7 @@ lift_unary_op name function =
 lift_binary_op : Text -> (Sql.Builder -> Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
-        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0) (arguments.at 1)
     [name, generator]
 
@@ -136,7 +136,7 @@ make_function name =
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
-        if arguments.not_empty then Error.throw <| Illegal_State_Error "No arguments were expected" else
+        if arguments.not_empty then Error.throw <| Illegal_State_Error_Data "No arguments were expected" else
             Sql.code code
 
 ## PRIVATE
@@ -171,7 +171,7 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
-    Internal_Dialect base_map wrap_in_quotes
+    Internal_Dialect_Data base_map wrap_in_quotes
 
 ## PRIVATE
 
@@ -190,7 +190,7 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
-    IR.Order_Descriptor _ _ _ _ -> generate_order dialect expr
+    IR.Order_Descriptor_Data _ _ _ _ -> generate_order dialect expr
 
 ## PRIVATE
 

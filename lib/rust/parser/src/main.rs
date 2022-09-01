@@ -33,7 +33,7 @@ use enso_parser::prelude::*;
 // =============
 
 fn main() {
-    init_tracing(TRACE);
+    init_wasm();
     let ast = enso_parser::Parser::new().run("foo = 23");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);

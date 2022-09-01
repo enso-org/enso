@@ -45,7 +45,7 @@ public abstract class ModNode extends Node {
   @Fallback
   Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom number = builtins.number().getNumber().newInstance();
+    var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }

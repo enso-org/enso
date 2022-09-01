@@ -26,7 +26,7 @@ polyglot java import org.enso.image.data.Image as Java_Image
              Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
 from_vector : Vector -> Integer -> Integer -> Image
 from_vector values rows=1 channels=1 =
-    Image (Java_Image.from_vector values.to_array rows channels)
+    Image_Data (Java_Image.from_vector values.to_array rows channels)
 
 ## UNSTABLE
 type Image
@@ -41,7 +41,7 @@ type Image
        The image is represented with a matrix of rows x columns. Each
        pixel is represented with a vector of 1 to 4 values (channels).
        Pixel values are normalized in a range [0.0 .. 1.0].
-    type Image opencv_mat
+    Image_Data opencv_mat
 
     ## UNSTABLE
 

@@ -1,7 +1,5 @@
 //! Helpers for the Web Streaming API in Rust, mostly the missing bindings in the [`web_sys`] crate.
 
-use crate::prelude::*;
-
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;

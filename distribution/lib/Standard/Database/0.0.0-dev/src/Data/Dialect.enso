@@ -19,7 +19,7 @@ type Dialect
        This is a fake constructor to make the compiler accept this type
        definition. It can and should be removed once interface definitions are
        allowed.
-    type Dialect
+    Dialect_Data
     ## PRIVATE
        Name of the dialect.
     name : Text

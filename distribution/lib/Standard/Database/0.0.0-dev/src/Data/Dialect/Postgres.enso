@@ -15,7 +15,7 @@ from Standard.Database.Error import Unsupported_Database_Operation_Error
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres =
-    Postgres_Dialect make_internal_generator_dialect
+    Postgres_Dialect_Data make_internal_generator_dialect
 
 
 ## PRIVATE
@@ -25,7 +25,7 @@ type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    type Postgres_Dialect internal_generator_dialect
+    Postgres_Dialect_Data internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
@@ -150,7 +150,7 @@ first_last_aggregators =
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Error.throw (Illegal_State_Error_Data "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_bys = args.tail
 
@@ -184,7 +184,7 @@ concat_ops =
 
 
 ## PRIVATE
-agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error "COUNT_DISTINCT requires at least one argument.")) else
+agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.
@@ -231,15 +231,15 @@ make_order_descriptor internal_column sort_direction text_ordering =
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitive of
                     Nothing ->
-                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                        IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation=Nothing
                     True ->
-                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
-                    Case_Insensitive locale -> case locale == Locale.default of
+                        IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                    Case_Insensitive_Data locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
                             upper = IR.Operation "UPPER" [internal_column.expression]
                             folded_expression = IR.Operation "LOWER" [upper]
-                            IR.Order_Descriptor folded_expression sort_direction nulls_order=nulls collation=Nothing
+                            IR.Order_Descriptor_Data folded_expression sort_direction nulls_order=nulls collation=Nothing
         False ->
-            IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+            IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation=Nothing

@@ -20,7 +20,11 @@ import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
   LambdaConsolidate
 }
-import org.enso.compiler.pass.resolve.{IgnoredBindings, ModuleAnnotations}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  ModuleAnnotations
+}
 import org.enso.compiler.core.ir.MetadataStorage._
 
 import scala.annotation.unused
@@ -75,8 +79,8 @@ case object ComplexType extends IRPass {
   ): IR.Module =
     ir.copy(
       bindings = ir.bindings.flatMap {
-        case typ: Definition.Type => desugarComplexType(typ)
-        case b                    => List(b)
+        case typ: Definition.SugaredType => desugarComplexType(typ)
+        case b                           => List(b)
       }
     )
 
@@ -107,11 +111,12 @@ case object ComplexType extends IRPass {
     * @return the top-level definitions corresponding to the desugaring of `typ`
     */
   def desugarComplexType(
-    typ: IR.Module.Scope.Definition.Type
+    typ: IR.Module.Scope.Definition.SugaredType
   ): List[IR.Module.Scope.Definition] = {
     val annotations = typ.getMetadata(ModuleAnnotations)
     val atomDefs = typ.body
-      .collect { case d: IR.Module.Scope.Definition.Atom => d }
+      .collect { case d: IR.Module.Scope.Definition.Data => d }
+      // TODO[MK] this is probably removable
       .map(atom =>
         annotations
           .map(ann => {
@@ -125,12 +130,9 @@ case object ComplexType extends IRPass {
           })
           .getOrElse(atom)
       )
-    val atomIncludes           = typ.body.collect { case n: IR.Name => n }
-    val namesToDefineMethodsOn = atomIncludes ++ atomDefs.map(_.name)
 
     val remainingEntities = typ.body.filterNot {
-      case _: IR.Module.Scope.Definition.Atom => true
-      case _: IR.Name                         => true
+      case _: IR.Module.Scope.Definition.Data => true
       case _                                  => false
     }
 
@@ -169,7 +171,7 @@ case object ComplexType extends IRPass {
       val unusedList: List[Definition] = unusedSig.toList
       unusedList ::: genMethodDef(
         defn,
-        namesToDefineMethodsOn,
+        typ.name,
         sig
       )
     }
@@ -189,11 +191,25 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    val includedNames = atomDefs.map(_.name)
-    val sumType = IR.Module.Scope.Definition
-      .UnionType(typ.name, includedNames, typ.location)
+    val sumType = IR.Module.Scope.Definition.Type(
+      typ.name,
+      typ.arguments,
+      atomDefs,
+      typ.location
+    )
 
-    sumType :: atomDefs ::: allEntities
+    val withAnnotations = annotations
+      .map(ann => sumType.updateMetadata(ModuleAnnotations -->> ann))
+      .getOrElse(sumType)
+
+    val withDoc = typ
+      .getMetadata(DocumentationComments)
+      .map(ann =>
+        withAnnotations.updateMetadata(DocumentationComments -->> ann)
+      )
+      .getOrElse(sumType)
+
+    withDoc :: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.
@@ -207,7 +223,7 @@ case object ComplexType extends IRPass {
     */
   def genMethodDef(
     ir: IR,
-    names: List[IR.Name],
+    typeName: IR.Name,
     signature: Option[IR.Type.Ascription]
   ): List[IR.Module.Scope.Definition] = {
     ir match {
@@ -218,17 +234,15 @@ case object ComplexType extends IRPass {
           case _ => expr
         }
 
-        names.flatMap(
-          genForName(
-            _,
-            name,
-            List(),
-            realExpr,
-            location,
-            passData,
-            diagnostics,
-            signature
-          )
+        genForName(
+          typeName,
+          name,
+          List(),
+          realExpr,
+          location,
+          passData,
+          diagnostics,
+          signature
         )
       case IR.Function.Binding(
             name,
@@ -239,17 +253,15 @@ case object ComplexType extends IRPass {
             passData,
             diagnostics
           ) =>
-        names.flatMap(
-          genForName(
-            _,
-            name,
-            args,
-            body,
-            location,
-            passData,
-            diagnostics,
-            signature
-          )
+        genForName(
+          typeName,
+          name,
+          args,
+          body,
+          location,
+          passData,
+          diagnostics,
+          signature
         )
       case _ =>
         throw new CompilerError(

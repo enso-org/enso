@@ -6,7 +6,7 @@ from Standard.Base import all
    source file and code position within it.
 type Source_Location
     ## PRIVATE
-    type Source_Location prim_location
+    Source_Location_Data prim_location
 
     ## UNSTABLE
        Pretty prints the location.

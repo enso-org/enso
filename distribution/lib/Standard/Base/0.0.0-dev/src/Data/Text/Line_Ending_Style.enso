@@ -4,14 +4,14 @@ from Standard.Base import Text
 type Line_Ending_Style
     ## Unix-style endings. Used, among others, on Linux and modern MacOS.
        The text equivalent is `'\n'`.
-    type Unix
+    Unix
 
     ## Windows-style endings. The text equivalent is `'\r\n'`.
-    type Windows
+    Windows
 
     ## Legacy MacOS endings. Only used on very old Mac systems.
        The text equivalent is `'\r\n'`.
-    type Mac_Legacy
+    Mac_Legacy
 
     ## Returns the text equivalent of the line ending.
     to_text : Text

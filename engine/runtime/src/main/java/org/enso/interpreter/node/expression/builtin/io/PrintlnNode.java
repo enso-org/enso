@@ -43,7 +43,7 @@ public abstract class PrintlnNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible. self is guaranteed to be a string");
     }
-    return new Stateful(state, ctx.getNothing().newInstance());
+    return new Stateful(state, ctx.getNothing());
   }
 
   @Specialization(guards = "!strings.isString(message)")
@@ -58,7 +58,7 @@ public abstract class PrintlnNode extends Node {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     Context ctx = Context.get(this);
     print(ctx.getOut(), expectStringNode.execute(str.getValue()));
-    return new Stateful(str.getState(), ctx.getNothing().newInstance());
+    return new Stateful(str.getState(), ctx.getNothing());
   }
 
   boolean isText(Object o) {

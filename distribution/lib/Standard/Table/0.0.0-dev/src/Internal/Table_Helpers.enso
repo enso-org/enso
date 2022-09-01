@@ -5,7 +5,7 @@ from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 import Standard.Table.Data.Position
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
+from Standard.Table.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
@@ -144,10 +144,10 @@ rename_columns internal_columns mapping on_problems =
                 _ ->
                     matched.add index
                     new_name = case ms of
-                        Regex_Matcher _ _ _ _ _ ->
+                        Regex_Matcher_Data _ _ _ _ _ ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        Text_Matcher _ -> (good_names.at index).at 1
+                        Text_Matcher_Data _ -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -156,7 +156,7 @@ rename_columns internal_columns mapping on_problems =
         new_names
 
     mapped = case mapping of
-        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
+        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher_Data case_sensitive=True)
         Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Name_Mapping.By_Index map ->
             good_indices = validate_indices col_count map.keys problem_builder
@@ -171,7 +171,7 @@ rename_columns internal_columns mapping on_problems =
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
-                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop (First col_count)))
+                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided_Data (vec.drop (First col_count)))
                     vec.take (First col_count)
                 False -> vec
 
@@ -183,9 +183,9 @@ rename_columns internal_columns mapping on_problems =
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
 
     problem_builder.attach_problems_before on_problems processed
 
@@ -207,7 +207,7 @@ sort_columns internal_columns direction text_ordering =
     case_sensitive = text_ordering.case_sensitive.if_nothing True
     mapper = case case_sensitive of
         True -> _.name
-        Case_Insensitive locale ->
+        Case_Insensitive_Data locale ->
             col -> col.name.to_case_insensitive_key locale=locale
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
@@ -245,7 +245,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
                 select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names (Text_Matcher case_sensitive=True)
+        new_selector = By_Name column_names (Text_Matcher_Data case_sensitive=True)
         select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
@@ -254,10 +254,10 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
 resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
 resolve_column_helper internal_columns selector problem_builder = case selector of
     Text ->
-        matched_columns = Matching.match_criteria_callback (Text_Matcher case_sensitive=True) internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+        matched_columns = Matching.match_criteria_callback (Text_Matcher_Data case_sensitive=True) internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         if matched_columns.length == 1 then matched_columns.first else
             if matched_columns.length == 0 then Nothing else
-                Panic.throw (Illegal_State_Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
+                Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
     Integer -> case is_index_valid internal_columns.length selector of
         True -> internal_columns.at selector
         False ->
@@ -271,7 +271,7 @@ resolve_column_helper internal_columns selector problem_builder = case selector 
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found criteria -> Maybe.Some <| Missing_Input_Columns criteria
+    Matching.No_Matches_Found_Data criteria -> Maybe.Some <| Missing_Input_Columns_Data criteria
     _ -> Nothing
 
 ## PRIVATE
@@ -356,7 +356,8 @@ validate_unique vector problem_callback on=(x->x) =
 
 ## PRIVATE
    A helper type used by transform helpers.
-type Column_Transform_Element column associated_selector
+type Column_Transform_Element
+    Column_Transform_Element_Data column associated_selector
 
 ## PRIVATE
 prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
@@ -436,7 +437,7 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
     selectors_map = Map.from_vector good_indices
     internal_columns.map_with_index i-> column->
         associated_selector = selectors_map.get_or_else i Nothing
-        Column_Transform_Element column associated_selector
+        Column_Transform_Element_Data column associated_selector
 
 ## PRIVATE
    A helper function which can be used by methods that transform a subset of
@@ -460,7 +461,7 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    transform_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor
+    transform_columns_by_name internal_columns column_selectors (Text_Matcher_Data case_sensitive=True) problem_builder name_extractor
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
@@ -494,8 +495,8 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
                 problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
             associated_selector_index = matching_selector_indices.first
             associated_selector = name_selectors.at associated_selector_index
-            element = Column_Transform_Element column associated_selector
-            results.append (Pair element [associated_selector_index, i])
+            element = Column_Transform_Element_Data column associated_selector
+            results.append (Pair_Data element [associated_selector_index, i])
     # We sort the results by the associated selector index, breaking ties by the column index.
     sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
     sorted.map .first
@@ -521,7 +522,7 @@ select_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer
 select_columns_by_index internal_columns index_selectors problem_builder index_extractor =
     good_selectors = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     good_selectors.map pair->
-        Column_Transform_Element (internal_columns.at pair.first) pair.second
+        Column_Transform_Element_Data (internal_columns.at pair.first) pair.second
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
@@ -546,4 +547,4 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    select_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor
+    select_columns_by_name internal_columns column_selectors (Text_Matcher_Data case_sensitive=True) problem_builder name_extractor

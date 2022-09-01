@@ -40,7 +40,7 @@ singleton key value = Bin 1 key value Tip Tip
 
          example_from_vector = Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector Any -> Map
-from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+from_vector vec = vec.fold empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
@@ -49,7 +49,7 @@ type Map
     ## PRIVATE
        A key-value store. This type assumes all keys are pairwise comparable,
        using the `<`, `>` and `==` operators.
-    type Tip
+    Tip
 
     ## PRIVATE
        A key-value store. This type assumes all keys are pairwise comparable,
@@ -61,7 +61,7 @@ type Map
        - value: The value stored at this node.
        - left: The left subtree.
        - right: The right subtree.
-    type Bin s key value left right
+    Bin s key value left right
 
     ## Checks if the map is empty.
 
@@ -193,7 +193,7 @@ type Map
     get : Any -> Any ! No_Value_For_Key_Error
     get self key =
         go map = case map of
-            Tip -> Error.throw (No_Value_For_Key_Error key)
+            Tip -> Error.throw (No_Value_For_Key_Error_Data key)
             Bin _ k v l r ->
                 if k == key then v else
                     if k > key then @Tail_Call go l else @Tail_Call go r
@@ -217,7 +217,7 @@ type Map
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else self key ~other =
-        self.get key . catch No_Value_For_Key_Error (_ -> other)
+        self.get key . catch No_Value_For_Key_Error_Data (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
 
@@ -445,7 +445,7 @@ type Map
     first : Pair
     first self =
         first p m = case m of
-            Bin _ k v l _ -> @Tail_Call first (Pair k v) l
+            Bin _ k v l _ -> @Tail_Call first (Pair_Data k v) l
             Tip -> p
         first Nothing self
 
@@ -454,7 +454,7 @@ type Map
     last : Pair
     last self =
         last p m = case m of
-            Bin _ k v _ r -> @Tail_Call last (Pair k v) r
+            Bin _ k v _ r -> @Tail_Call last (Pair_Data k v) r
             Tip -> p
         last Nothing self
 
@@ -464,7 +464,8 @@ type Map
 
    Arguments:
    - key: The key that was asked for.
-type No_Value_For_Key_Error key
+type No_Value_For_Key_Error
+    No_Value_For_Key_Error_Data key
 
 ## UNSTABLE
 

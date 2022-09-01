@@ -8,12 +8,12 @@ type Object_Type
     ## PRIVATE
 
        A Geo JSON feature.
-    type Feature
+    Feature
 
     ## PRIVATE
 
        A Geo JSON feature collection.
-    type Feature_Collection
+    Feature_Collection
 
     ## PRIVATE
 
@@ -26,16 +26,16 @@ type Object_Type
 ## PRIVATE
 
    Get the type field of a GeoJSON object.
-Json.Object.get_type : Any
-Json.Object.get_type self = case self of
+Json.Json.get_type : Any
+Json.Json.get_type self = case self of
     Json.Object object ->
         object.get_or_else "type" Nothing.to_json . unwrap
 
 ## PRIVATE
 
    Get key-value pairs of a Feature GeoJSON object.
-Json.Object.get_feature_row : Map
-Json.Object.get_feature_row self =
+Json.Json.get_feature_row : Map
+Json.Json.get_feature_row self =
     properties_row = self.get "properties" . get_properties_row
     geometry_row = self.get "geometry" . get_geometry_row
     geometry_row.fold_with_key properties_row acc-> k-> v->
@@ -44,8 +44,8 @@ Json.Object.get_feature_row self =
 ## PRIVATE
 
    Get column key-value pairs of a feature's "properties" object.
-Json.Object.get_properties_row : Map
-Json.Object.get_properties_row self = case self of
+Json.Json.get_properties_row : Map
+Json.Json.get_properties_row self = case self of
     Json.Object properties -> properties.map p-> case p of
         Json.Object _ -> Nothing.to_json
         _ -> p
@@ -53,8 +53,8 @@ Json.Object.get_properties_row self = case self of
 ## PRIVATE
 
    Get column key-value pairs of a feature's "geometry" object.
-Json.Object.get_geometry_row : Map
-Json.Object.get_geometry_row self = case self of
+Json.Json.get_geometry_row : Map
+Json.Json.get_geometry_row self = case self of
     Json.Object fields ->
           geometry_type = fields.get_or_else "type" Nothing
           if geometry_type == "Point".to_json then self.get_point_row else Map.empty
@@ -62,8 +62,8 @@ Json.Object.get_geometry_row self = case self of
 ## PRIVATE
 
    Get column key-value pairs of a "Point" geometry object.
-Json.Object.get_point_row : Map
-Json.Object.get_point_row self =
+Json.Json.get_point_row : Map
+Json.Json.get_point_row self =
     fields = ["longitude", "latitude", "elevation"]
     case self.get "coordinates" of
         Json.Array coordinates ->

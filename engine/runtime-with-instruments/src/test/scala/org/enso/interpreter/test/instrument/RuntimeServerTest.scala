@@ -546,20 +546,20 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(103, 116)
-    val idMainX  = metadata.addItem(130, 8)
-    val idMainY  = metadata.addItem(147, 3)
-    val idMainM  = metadata.addItem(159, 5)
-    val idMainP  = metadata.addItem(173, 5)
-    val idMainQ  = metadata.addItem(187, 5)
-    val idMainF  = metadata.addItem(209, 9)
+    val idMain   = metadata.addItem(99, 116)
+    val idMainX  = metadata.addItem(126, 8)
+    val idMainY  = metadata.addItem(143, 3)
+    val idMainM  = metadata.addItem(155, 5)
+    val idMainP  = metadata.addItem(169, 5)
+    val idMainQ  = metadata.addItem(183, 5)
+    val idMainF  = metadata.addItem(205, 9)
 
     val code =
       """import Standard.Base.IO
         |import Enso_Test.Test.A
         |
-        |type Quux
-        |    type Quux
+        |type QuuxT
+        |    Quux
         |
         |    foo = 42
         |
@@ -579,8 +579,8 @@ class RuntimeServerTest
 
     val aCode =
       """
-        |type A
-        |    type A un_a
+        |type AT
+        |    A un_a
         |
         |    foo = 11
         |
@@ -624,7 +624,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer(
           "Enso_Test.Test.Main",
-          "Enso_Test.Test.Main.Quux",
+          "Enso_Test.Test.Main.QuuxT",
           "foo"
         )
       ),
@@ -639,7 +639,7 @@ class RuntimeServerTest
         contextId,
         idMainP,
         ConstantsGen.INTEGER,
-        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.A", "foo")
+        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.AT", "foo")
       ),
       TestMessages.update(
         contextId,
@@ -2322,7 +2322,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Failure(
-            "Constructor Unexpected not found in module Enso_Test.Test.Main.",
+            "Type Unexpected not found in module Enso_Test.Test.Main.",
             Some(mainFile)
           )
         )
@@ -2672,66 +2672,6 @@ class RuntimeServerTest
     )
   }
 
-  it should "return error when method name clashes with atom" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
-
-    val code =
-      """type Foo
-        |foo = 0
-        |main = 0
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receiveN(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Method definitions with the same name as atoms are not supported. Method foo clashes with the atom Foo in this module.",
-              Some(mainFile),
-              Some(model.Range(model.Position(1, 0), model.Position(1, 7))),
-              None,
-              Vector()
-            )
-          )
-        )
-      ),
-      context.executionComplete(contextId)
-    )
-  }
-
   it should "return error with a stack trace" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -3073,8 +3013,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error 'Unrecognized token.'))",
-      "(Syntax_Error 'Unrecognized token.')"
+      "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
+      "(Syntax_Error_Data 'Unrecognized token.')"
     )
   }
 

@@ -1,3 +1,2 @@
+@Builtin_Type
 type Any
-    @Builtin_Type
-    type Any

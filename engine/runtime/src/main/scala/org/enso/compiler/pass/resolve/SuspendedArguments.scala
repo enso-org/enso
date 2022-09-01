@@ -182,11 +182,10 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Method.Binding       => throw new CompilerError("")
-      case atom: Definition.Atom   => atom
-      case _: Definition.UnionType => binding
-      case err: IR.Error           => err
-      case _: Definition.Type =>
+      case _: Method.Binding  => throw new CompilerError("")
+      case _: Definition.Type => binding
+      case err: IR.Error      => err
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present."
         )
@@ -247,18 +246,8 @@ case object SuspendedArguments extends IRPass {
     */
   def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
-      case IR.Application.Operator.Binary(
-            l,
-            IR.Name.Literal("->", _, _, _, _),
-            r,
-            _,
-            _,
-            _
-          ) =>
-        l.value :: toSegments(r.value)
-      case IR.Function.Lambda(args, body, _, _, _, _) =>
-        args.map(_.name) ::: toSegments(body)
-      case _ => List(signature)
+      case IR.Type.Function(args, ret, _, _, _) => args :+ ret
+      case _                                    => List(signature)
     }
   }
 

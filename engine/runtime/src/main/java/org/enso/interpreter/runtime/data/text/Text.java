@@ -1,26 +1,22 @@
 package org.enso.interpreter.runtime.data.text;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
@@ -178,103 +174,12 @@ public class Text implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(UnresolvedSymbol symbol) {
-      Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().text(), context.getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Text self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(Text self, UnresolvedSymbol symbol)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
-  }
-
-  @ExportMessage
-  public static boolean canConvertFrom(Text receiver) {
-    return true;
-  }
-
-  @ExportMessage
-  public static boolean hasSpecialConversion(Text receiver) {
-    return false;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
-      Context context = getContext();
-      return conversion.resolveFor(
-          target, context.getBuiltins().text(), context.getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedTarget == target",
-          "cachedConversion == conversion",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Text self,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(Text self, AtomConstructor target, UnresolvedConversion conversion)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().text();
   }
 }

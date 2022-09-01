@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-reflect = { path = "../reflect" }
-enso-shapely = { version = "^0.2.0", path = "../shapely" }
+enso-shapely = { path = "../shapely" }
 anyhow = "1.0.37"
 assert_approx_eq = { version = "1.1.0" }
 backtrace = "0.3.53"
@@ -45,6 +45,7 @@ tracing-wasm = "0.2"
 wasm-bindgen = { version = "0.2.78", features = ["nightly"], optional = true }
 weak-table = "0.3.0"
 nalgebra = { version = "0.26.2", optional = true }
+enso-web = { path = "../web" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

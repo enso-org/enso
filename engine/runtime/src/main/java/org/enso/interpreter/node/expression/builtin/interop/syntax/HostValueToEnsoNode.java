@@ -58,8 +58,8 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization(guards = {"o != null", "nulls.isNull(o)"})
-  Atom doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls) {
-    return Context.get(this).getBuiltins().nothing().newInstance();
+  Object doNull(Object o, @CachedLibrary(limit = "3") InteropLibrary nulls) {
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Fallback

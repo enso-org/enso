@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -12,10 +10,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * A runtime object representing an arbitrary, user-created dataflow error.
@@ -24,7 +20,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
  * they are handled. Another term used to describe these errors is "broken values".
  */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public class DataflowError extends AbstractTruffleException {
   private final Object payload;
 
@@ -99,57 +95,17 @@ public class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
   }
 
   @ExportMessage
-  boolean hasSpecialConversion() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
-      Context context = getContext();
-      return conversion.resolveFor(target, context.getBuiltins().dataflowError());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedTarget == target",
-          "cachedConversion == conversion",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        DataflowError self,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        DataflowError self, AtomConstructor target, UnresolvedConversion conversion)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().dataflowError();
   }
 }

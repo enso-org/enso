@@ -7,11 +7,13 @@ polyglot java import java.util.Locale as JavaLocale
 
 import Standard.Test
 
-type My_Type foo bar baz
+type My_Type
+    My_Type_Data foo bar baz
 
 My_Type.my_method self = self.foo + self.bar + self.baz
 
-type Test_Type x
+type Test_Type
+    Test_Type_Data x
 
 spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should allow manipulating unresolved symbols" <|
@@ -19,26 +21,26 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_sym = Meta.meta sym
         meta_sym.name.should_equal "does_not_exist"
         new_sym = meta_sym . rename "my_method"
-        object = My_Type 1 2 3
+        object = My_Type_Data 1 2 3
         new_sym object . should_equal 6
     Test.specify "should allow manipulating atoms" <|
-        atom = My_Type 1 "foo" Nothing
+        atom = My_Type_Data 1 "foo" Nothing
         meta_atom = Meta.meta atom
-        meta_atom.constructor.should_equal My_Type
+        meta_atom.constructor.should_equal My_Type_Data
         meta_atom.fields.should_equal [1, "foo", Nothing]
         Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
     Test.specify "should correctly return representations of different classes of objects" <|
-        Meta.meta 1 . should_equal (Meta.Primitive 1)
-        Meta.meta "foo" . should_equal (Meta.Primitive "foo")
+        Meta.meta 1 . should_equal (Meta.Primitive_Data 1)
+        Meta.meta "foo" . should_equal (Meta.Primitive_Data "foo")
     Test.specify "should allow manipulation of error values" <|
         err = Error.throw "My Error"
         meta_err = Meta.meta err
-        meta_err.is_a Meta.Error . should_be_true
+        meta_err.is_a Meta.Error_Data . should_be_true
         meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
         1.is_an Any . should_be_true
         1.2.is_an Any . should_be_true
-        (My_Type 1 "foo" Nothing).is_an Any . should_be_true
+        (My_Type_Data 1 "foo" Nothing).is_an Any . should_be_true
 
         Array.is_an Array . should_be_true
         [].to_array.is_an Array . should_be_true
@@ -66,9 +68,9 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.is_a random_gen Polyglot . should_be_true
         Meta.is_an random_gen Integer . should_be_false
 
-        (My_Type 1 "foo" Nothing).is_a My_Type . should_be_true
-        (My_Type 1 "foo" Nothing).is_a Test_Type . should_be_false
-        (My_Type 1 "foo" Nothing).is_a Number . should_be_false
+        (My_Type_Data 1 "foo" Nothing).is_a My_Type_Data . should_be_true
+        (My_Type_Data 1 "foo" Nothing).is_a Test_Type_Data . should_be_false
+        (My_Type_Data 1 "foo" Nothing).is_a Number . should_be_false
 
         err = Error.throw "Error Value"
         1.is_an Error . should_be_false
@@ -82,14 +84,14 @@ spec = Test.group "Meta-Value Manipulation" <|
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:84:15-40"
+        loc = "Meta_Spec.enso:86:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|
         x = 42
-        y = My_Type 1 2 3
+        y = My_Type_Data 1 2 3
         Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Numbers.Integer"
-        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type"
+        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type_Data"
 
     Test.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Tests'
@@ -97,7 +99,7 @@ spec = Test.group "Meta-Value Manipulation" <|
 
     Test.specify "should correctly handle Java values" <|
         java_meta = Meta.meta Random.new
-        java_meta . should_be_a Meta.Polyglot
+        java_meta . should_be_a Meta.Polyglot_Data
         java_meta . get_language . should_equal Meta.Java
 
     Test.specify "should correctly handle equality of Java values" <|
@@ -109,8 +111,8 @@ spec = Test.group "Meta-Value Manipulation" <|
         a==b . should_be_true
         a==c . should_be_false
 
-        (Test_Type a)==(Test_Type a) . should_be_true
-        (Test_Type a)==(Test_Type b) . should_be_true
-        (Test_Type a)==(Test_Type c) . should_be_false
+        (Test_Type_Data a)==(Test_Type_Data a) . should_be_true
+        (Test_Type_Data a)==(Test_Type_Data b) . should_be_true
+        (Test_Type_Data a)==(Test_Type_Data c) . should_be_false
 
 main = Test.Suite.run_main spec

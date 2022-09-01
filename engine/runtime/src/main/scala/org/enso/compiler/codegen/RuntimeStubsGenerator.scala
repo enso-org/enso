@@ -5,6 +5,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.data.Type
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
@@ -23,17 +24,32 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    localBindings.constructors.foreach { tp =>
+    localBindings.types.foreach { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {
-          throw new CompilerError("Unknown @BuiltinType " + tp.name)
+          throw new CompilerError("Unknown @Builtin_Type " + tp.name)
         }
-        scope.registerConstructor(builtinType)
-        builtinType.setShadowDefinitions(scope)
+        if (
+          Set(tp.members: _*) != Set(
+            builtinType.getConstructors.toIndexedSeq: _*
+          )
+            .map(_.getName)
+        ) {
+          throw new CompilerError(
+            s"Wrong constructors declared in the builtin ${tp.name}."
+          )
+        }
+        builtinType.getConstructors.foreach(scope.registerConstructor)
+        scope.registerType(builtinType.getType)
+        builtinType.getType.setShadowDefinitions(scope)
       } else {
-        val constructor = new AtomConstructor(tp.name, scope)
-        scope.registerConstructor(constructor)
+        val rtp = new Type(tp.name, scope, builtins.any(), false)
+        scope.registerType(rtp)
+        tp.members.foreach { name =>
+          val constructor = new AtomConstructor(name, scope, rtp)
+          scope.registerConstructor(constructor)
+        }
       }
     }
   }

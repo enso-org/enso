@@ -6,7 +6,7 @@ import Standard.Database.Data.Table as Database_Table
 type Fake_Test_Connection
     # type Fake_Test_Connection (tables : Map Text (Vector [Text, Sql_Type]))
     #                           (dialect : Text)
-    type Fake_Test_Connection tables dialect
+    Fake_Test_Connection_Data tables dialect
 
     ## PRIVATE
     access_table : Text -> Database_Table
@@ -35,4 +35,4 @@ type Fake_Test_Connection
 
 ## PRIVATE
 make dialect tables =
-    Fake_Test_Connection tables dialect
+    Fake_Test_Connection_Data tables dialect

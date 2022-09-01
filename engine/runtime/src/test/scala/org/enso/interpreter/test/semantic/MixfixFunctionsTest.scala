@@ -12,12 +12,13 @@ class MixfixFunctionsTest extends InterpreterTest {
     "be able to be defined as a method" in {
       val code =
         """
-          |type Foo a
+          |type Foo
+          |    Mk_Foo a
           |
           |Foo.if_then self = x -> case self of
-          |  Foo a -> a + x
+          |    Mk_Foo a -> a + x
           |
-          |main = if Foo 2 then 8
+          |main = if Mk_Foo 2 then 8
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -26,12 +27,13 @@ class MixfixFunctionsTest extends InterpreterTest {
     "easily support multiple arguments" in {
       val code =
         """
-          |type Foo a b
+          |type Foo
+          |    Mk_Foo a b
           |
           |Foo.if_then_else self = a -> b -> case self of
-          |  Foo x y -> x + y + a + b
+          |    Mk_Foo x y -> x + y + a + b
           |
-          |main = if (Foo 1 2) then 3 else 4
+          |main = if (Mk_Foo 1 2) then 3 else 4
           |""".stripMargin
 
       eval(code) shouldEqual 10

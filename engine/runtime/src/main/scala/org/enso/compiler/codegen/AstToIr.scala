@@ -146,33 +146,22 @@ object AstToIr {
             .head
           Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
         } else {
-          Module.Scope.Definition.Atom(
+          Module.Scope.Definition.SugaredType(
             buildName(consName),
             newArgs,
+            List(),
             getIdentifiedLocation(inputAst)
           )
         }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
-        val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom => true
-          case _: IR.Name.Literal                 => true
-          case _                                  => false
-        }
-        val hasArgs = args.nonEmpty
+        Module.Scope.Definition.SugaredType(
+          buildName(typeName),
+          args.map(translateArgumentDefinition(_)),
+          translatedBody,
+          getIdentifiedLocation(inputAst)
+        )
 
-        if (containsAtomDefOrInclude && !hasArgs) {
-          Module.Scope.Definition.Type(
-            buildName(typeName),
-            args.map(translateArgumentDefinition(_)),
-            translatedBody,
-            getIdentifiedLocation(inputAst)
-          )
-        } else if (!containsAtomDefOrInclude) {
-          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
-        } else {
-          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
-        }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name
@@ -315,10 +304,18 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAst match {
+      case AST.Ident.Cons.any(cons) =>
+        IR.Module.Scope.Definition
+          .Data(buildName(cons), List(), getIdentifiedLocation(inputAst))
+      case AstView.SpacedList(AST.Ident.Cons.any(cons) :: args) =>
+        IR.Module.Scope.Definition
+          .Data(
+            buildName(cons),
+            args.map(translateArgumentDefinition(_)),
+            getIdentifiedLocation(inputAst)
+          )
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include) => translateIdent(include)
-      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,
@@ -897,6 +894,11 @@ object AstToIr {
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
         )
+      case AST.App.Infix(l, AST.Ident.Opr("->"), r) if insideTypeAscription =>
+        translateFunctionType(
+          List(translateExpression(l, insideTypeSignature = true)),
+          r
+        )
       case AstView.Lambda(args, body) =>
         if (args.length > 1) {
           Error.Syntax(
@@ -954,6 +956,28 @@ object AstToIr {
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
   }
+
+  @tailrec
+  private def translateFunctionType(
+    argsAcc: List[Expression],
+    next: AST
+  ): Expression =
+    skipParens(next) match {
+      case AST.App.Infix(nextArg, AST.Ident.Opr("->"), next) =>
+        translateFunctionType(
+          argsAcc :+ translateExpression(nextArg, insideTypeSignature = true),
+          next
+        )
+      case other =>
+        IR.Type.Function(
+          argsAcc,
+          translateExpression(other, insideTypeSignature = true),
+          None
+        )
+    }
+
+  private def skipParens(ast: AST): AST =
+    AstView.MaybeManyParensed.unapply(ast).getOrElse(ast)
 
   /** Translates an operator section from its [[AST]] representation into the
     * [[IR]] representation.

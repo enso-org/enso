@@ -35,12 +35,6 @@ public abstract class Builder {
   /** @return the number of appended elements */
   public abstract int getCurrentSize();
 
-  /**
-   * @return how many elements this builder can hold without growing (including already existing
-   *     elements)
-   */
-  public abstract int getCurrentCapacity();
-
   /** @return a storage containing all the items appended so far */
   public abstract Storage seal();
 }

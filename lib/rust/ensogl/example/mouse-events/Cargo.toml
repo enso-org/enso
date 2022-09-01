@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
-ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

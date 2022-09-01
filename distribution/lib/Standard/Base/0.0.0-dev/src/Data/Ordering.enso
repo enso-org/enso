@@ -18,19 +18,17 @@ from_sign sign = if sign == 0 then Equal else
 
    The result should be returned in terms of how `self` orders in comparison to
    `that`. So, if `self` is greater than `that`, you should return `Greater.`
+@Builtin_Type
 type Ordering
 
     ## A representation that the first value orders as less than the second.
-    @Builtin_Type
-    type Less
+    Less
 
     ## A representation that the first value orders as equal to the second.
-    @Builtin_Type
-    type Equal
+    Equal
 
     ## A representation that the first value orders as greater than the second.
-    @Builtin_Type
-    type Greater
+    Greater
 
     ## Converts the ordering to the signed notion of ordering based on integers.
 

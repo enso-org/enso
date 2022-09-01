@@ -97,7 +97,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Type]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
       getDoc(ir.bindings(0)) shouldEqual DocParserWrapper.runOnPureDoc(
@@ -191,7 +191,8 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
+      val tp =
+        ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.SugaredType]
       getDoc(tp) shouldEqual DocParserWrapper.runOnPureDoc(
         " the type Foo"
       )

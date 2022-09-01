@@ -9,4 +9,5 @@ from Standard.Base import all
      set to `Nothing` (the default), it chooses the default ordering for a given
      backend. For the In-memory backend, the default ordering is case sensitive.
      In databases, the default ordering depends on the database configuration.
-type Text_Ordering (sort_digits_as_numbers:Boolean=False) (case_sensitive:(Nothing|True|Case_Insensitive)=Nothing)
+type Text_Ordering
+    Text_Ordering_Data (sort_digits_as_numbers:Boolean=False) (case_sensitive:(Nothing|True|Case_Insensitive)=Nothing)

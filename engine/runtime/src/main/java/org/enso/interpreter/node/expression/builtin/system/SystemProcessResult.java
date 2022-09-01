@@ -2,6 +2,14 @@ package org.enso.interpreter.node.expression.builtin.system;
 
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
-@BuiltinType(params = {"exit_code", "stdout", "stderr"})
-public class SystemProcessResult extends Builtin {}
+import java.util.List;
+
+@BuiltinType
+public class SystemProcessResult extends UniquelyConstructibleBuiltin {
+  @Override
+  protected List<String> getConstructorParamNames() {
+    return List.of("exit_code", "stdout", "stderr");
+  }
+}
