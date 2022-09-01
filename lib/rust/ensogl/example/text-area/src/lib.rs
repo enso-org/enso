@@ -44,8 +44,8 @@ pub fn main() {
 }
 
 fn init(app: Application) {
-    use ensogl_text::Bytes;
     use ensogl_text::Range;
+    use ensogl_text::UBytes;
 
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);
@@ -61,16 +61,16 @@ fn init(app: Application) {
     // area.set_cursor_at_end();
     //
     area.set_format_option(
-        Range::new(5.bytes(), 7.bytes()),
+        Range::new(5.ubytes(), 7.ubytes()),
         style::FormatOption::Weight(style::Weight::Bold),
     );
-    // area.set_format_option(Range::new(4.bytes(), 6.bytes()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(7.bytes(), 15.bytes()), style::SdfWeight(0.04));
-    // area.set_sdf_weight(Range::new(24.bytes(), 26.bytes()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(37.bytes(), 41.bytes()), style::SdfWeight(0.05));
-    // area.set_sdf_weight(Range::new(55.bytes(), 56.bytes()), style::SdfWeight(0.03));
-    // let quote_length = Bytes::from(quote.len());
-    // let text_length = Bytes::from(text.len());
+    // area.set_format_option(Range::new(4.ubytes(), 6.ubytes()), style::SdfWeight(0.02));
+    // area.set_sdf_weight(Range::new(7.ubytes(), 15.ubytes()), style::SdfWeight(0.04));
+    // area.set_sdf_weight(Range::new(24.ubytes(), 26.ubytes()), style::SdfWeight(0.02));
+    // area.set_sdf_weight(Range::new(37.ubytes(), 41.ubytes()), style::SdfWeight(0.05));
+    // area.set_sdf_weight(Range::new(55.ubytes(), 56.ubytes()), style::SdfWeight(0.03));
+    // let quote_length = UBytes::from(quote.len());
+    // let text_length = UBytes::from(text.len());
     // area.set_sdf_weight(Range::new(quote_length, text_length), style::SdfWeight(0.02));
 
     let scene = &app.display.default_scene;
@@ -90,9 +90,9 @@ fn init(app: Application) {
     //
     // colored_area.set_default_color(color::Rgba::black());
     // colored_area.set_content(text);
-    // let range_green = buffer::Range::from(Bytes(4)..Bytes(9));
+    // let range_green = buffer::Range::from(UBytes(4)..UBytes(9));
     // colored_area.set_color_bytes(range_green, color::Rgba::green());
-    // let range_blue = buffer::Range::from(Bytes(10)..Bytes(14));
+    // let range_blue = buffer::Range::from(UBytes(10)..UBytes(14));
     // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
     // colored_area.set_default_color(color::Rgba::red());
 

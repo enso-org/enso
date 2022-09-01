@@ -18,6 +18,7 @@ pub mod traits {
     pub use super::chars::Into as TRAIT_chars_into;
     pub use super::column::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
+    pub use super::ubytes::Into as TRAIT_ubytes_into;
 }
 pub use traits::*;
 
@@ -29,7 +30,7 @@ pub use traits::*;
 
 unit! {
 /// An offset in the buffer in bytes.
-Bytes::bytes(usize)
+Bytes::bytes(i32)
 }
 
 impl Bytes {
@@ -48,17 +49,44 @@ impl<T: Into<Bytes>> bytes::Into for Range<T> {
     }
 }
 
-// impl From<usize> for Bytes {
-//     fn from(t: usize) -> Self {
-//         (t as i32).into()
-//     }
-// }
-//
-// impl From<&usize> for Bytes {
-//     fn from(t: &usize) -> Self {
-//         (*t as i32).into()
-//     }
-// }
+impl From<usize> for Bytes {
+    fn from(t: usize) -> Self {
+        (t as i32).into()
+    }
+}
+
+impl From<&usize> for Bytes {
+    fn from(t: &usize) -> Self {
+        (*t as i32).into()
+    }
+}
+
+
+
+// ==============
+// === UBytes ===
+// ==============
+
+unit! {
+/// Unsigned bytes unit.
+UBytes::ubytes(usize)
+}
+
+impl UBytes {
+    /// Saturating conversion to `usize`.
+    pub fn as_usize(self) -> usize {
+        self.value.max(0) as usize
+    }
+}
+
+impl<T: Into<UBytes>> ubytes::Into for Range<T> {
+    type Output = Range<UBytes>;
+    fn ubytes(self) -> Self::Output {
+        let start = self.start.into();
+        let end = self.end.into();
+        Range { start, end }
+    }
+}
 
 
 
