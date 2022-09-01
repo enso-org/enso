@@ -12,6 +12,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.operations.Distinct;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -232,16 +233,24 @@ public class Table {
   }
 
   /**
-   * Creates a new table keeping only rows with distinct key columns
+   * Creates a new table keeping only rows with distinct key columns.
    *
    * @param columns set of columns to use as an Index
    * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table where duplicate rows with the same key are removed
    */
   public Table distinct(Column[] columns, Comparator<Object> objectComparator) {
-    MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
-    OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
-    return this.applyMask(mask);
+    var problems = new AggregatedProblems();
+    var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), columns, objectComparator, problems);
+    int cardinality = rowsToKeep.cardinality();
+    Column[] newColumns = new Column[columns.length];
+    Index newIx = index.mask(rowsToKeep, cardinality);
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].mask(newIx, rowsToKeep, cardinality);
+    }
+
+    // TODO should we preserve the original problems of the input table too? I don't think so - we don't in the index, and seems that regular Enso dataflow should already handle that
+    return new Table(newColumns, newIx, problems);
   }
 
   /**

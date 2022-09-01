@@ -684,8 +684,7 @@ type Table
     distinct self (columns = By_Name [this.columns.first . name]) case_sensitive=True on_problems=Report_Warning =
         key_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
-        #comparator = Comparator.for_text_ordering text_ordering
-        java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+        java_table = self.java_table.distinct selected_columns.to_array Comparator.new
         Table_Data java_table
 
     ## Parses columns within a Table to a specific value type.
