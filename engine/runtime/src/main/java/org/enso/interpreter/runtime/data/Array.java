@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -85,7 +86,11 @@ public class Array implements TruffleObject {
     if (index >= items.length || index < 0) {
       throw InvalidArrayIndexException.create(index);
     }
-    return items[(int) index];
+    var e = items[(int) index];
+    if (e instanceof WithWarnings w) {
+      return w.getValue();
+    }
+    return e;
   }
 
   /** @return the size of this array */
