@@ -706,7 +706,7 @@ spec =
             Problems.test_problem_handling action1 problems1 test
 
             action2 = t.distinct (By_Name ["mismatched"]) on_problems=_
-            problems2 = [No_Input_Columns_Selected, Missing_Input_Columns_Data ["mismatched"]]
+            problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
             Problems.test_problem_handling action2 problems2 test
 
         # TODO that is not the original design but I wanted to suggest this, as it seems more natural for a call with defaulted argument: `table.distinct`
