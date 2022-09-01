@@ -59,18 +59,26 @@ object VisualisationConfiguration {
     *
     * @param contextId an execution context of the visualisation
     * @param expression a visualisation expression
+    * @param positionalArgumentsExpressions the list of arguments that will
+    * be passed to the visualisation expression
     * @return an instance of [[VisualisationConfiguration]]
     */
   def apply(
     contextId: UUID,
-    expression: MethodPointer
+    expression: MethodPointer,
+    positionalArgumentsExpressions: Vector[String]
   ): VisualisationConfiguration =
     new VisualisationConfiguration(
       contextId,
-      VisualisationExpression.ModuleMethod(expression)
+      VisualisationExpression.ModuleMethod(
+        expression,
+        positionalArgumentsExpressions
+      )
     )
 
   private object CodecField {
+
+    val Arguments = "positionalArgumentsExpressions"
 
     val Expression = "expression"
 
@@ -91,7 +99,14 @@ object VisualisationConfiguration {
             expression <- cursor
               .downField(CodecField.Expression)
               .as[MethodPointer]
-          } yield VisualisationConfiguration(contextId, expression)
+            arguments <- cursor
+              .downField(CodecField.Arguments)
+              .as[Option[Vector[String]]]
+          } yield VisualisationConfiguration(
+            contextId,
+            expression,
+            arguments.getOrElse(Vector())
+          )
 
         case Right(expression) =>
           for {
@@ -144,20 +159,29 @@ object VisualisationExpression {
   /** Visualization expression represented as a module method.
     *
     * @param methodPointer a pointer to a method definition
+    * @param positionalArgumentsExpressions the list of arguments that will
+    * be passed to the method
     */
-  case class ModuleMethod(methodPointer: MethodPointer)
-      extends VisualisationExpression {
+  case class ModuleMethod(
+    methodPointer: MethodPointer,
+    positionalArgumentsExpressions: Vector[String]
+  ) extends VisualisationExpression {
 
     /** @inheritdoc */
     override val module: String = methodPointer.module
 
     /** @inheritdoc */
     override def toApi: Api.VisualisationExpression =
-      Api.VisualisationExpression.ModuleMethod(methodPointer.toApi)
+      Api.VisualisationExpression.ModuleMethod(
+        methodPointer.toApi,
+        positionalArgumentsExpressions
+      )
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      s"ModuleMethod(methodPointer=$methodPointer)"
+      s"ModuleMethod(methodPointer=$methodPointer,positionalArgumentsExpressions=" +
+      (if (shouldMask) STUB else positionalArgumentsExpressions) +
+      s")"
   }
 
   private object CodecField {

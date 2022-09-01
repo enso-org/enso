@@ -62,14 +62,15 @@ class UpsertVisualisationJob(
           replyWithExpressionFailedError(message, result)
           None
 
-        case Right(EvaluationResult(module, callable)) =>
+        case Right(EvaluationResult(module, callable, arguments)) =>
           val visualisation =
             UpsertVisualisationJob.updateVisualisation(
               visualisationId,
               expressionId,
               module,
               config,
-              callable
+              callable,
+              arguments
             )
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
@@ -146,11 +147,23 @@ object UpsertVisualisationJob {
     failure: Option[Api.ExecutionResult.Diagnostic]
   ) extends EvaluationFailure
 
-  case class EvaluationResult(module: Module, callback: AnyRef)
+  /** The result of evaluating the method pointer and positional argument
+    * expressions.
+    *
+    * @param module the resolved module
+    * @param callback the Enso function
+    * @param arguments the list of arguments that will be passed to the callback
+    */
+  case class EvaluationResult(
+    module: Module,
+    callback: AnyRef,
+    arguments: Vector[AnyRef]
+  )
 
   /** Upsert the provided visualisation.
     *
     * @param visualisation the visualisation to update
+    * @param ctx the runtime context
     */
   def upsertVisualisation(
     visualisation: Visualisation
@@ -167,7 +180,8 @@ object UpsertVisualisationJob {
         expressionId,
         result.module,
         visualisationConfig,
-        result.callback
+        result.callback,
+        result.arguments
       )
       val stack =
         ctx.contextManager.getStack(visualisationConfig.executionContextId)
@@ -196,6 +210,7 @@ object UpsertVisualisationJob {
     * @param module the module where to evaluate the expression
     * @param expression the visualisation expression
     * @param retryCount the number of attempted retries
+    * @param ctx the runtime context
     * @return either the evaluation result or an evaluation failure
     */
   private def evaluateModuleExpression(
@@ -207,19 +222,29 @@ object UpsertVisualisationJob {
   ): Either[EvaluationFailure, EvaluationResult] =
     Either
       .catchNonFatal {
-        val callback = expression match {
+        val (callback, arguments) = expression match {
           case Api.VisualisationExpression.Text(_, expression) =>
-            ctx.executionService.evaluateExpression(module, expression)
+            val callback = ctx.executionService.evaluateExpression(
+              module,
+              expression
+            )
+            val arguments = Vector()
+            (callback, arguments)
           case Api.VisualisationExpression.ModuleMethod(
-                Api.MethodPointer(_, definedOnType, name)
+                Api.MethodPointer(_, definedOnType, name),
+                argumentExpressions
               ) =>
-            ctx.executionService.prepareFunctionCall(
+            val callback = ctx.executionService.prepareFunctionCall(
               module,
               QualifiedName.fromString(definedOnType).item,
               name
             )
+            val arguments = argumentExpressions.map(
+              ctx.executionService.evaluateExpression(module, _)
+            )
+            (callback, arguments)
         }
-        EvaluationResult(module, callback)
+        EvaluationResult(module, callback, arguments)
       }
       .leftFlatMap {
         case _: ThreadInterruptedException
@@ -265,6 +290,7 @@ object UpsertVisualisationJob {
   /** Evaluate the visualisation expression.
     *
     * @param expression the visualisation expression to evaluate
+    * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
   private def evaluateVisualisationExpression(
@@ -285,6 +311,7 @@ object UpsertVisualisationJob {
     * @param module the module containing the visualisation
     * @param visualisationConfig the visualisation configuration
     * @param callback the visualisation callback function
+    * @param arguments the list of arugments that will be passed to the callback
     * @param ctx the runtime context
     * @return the re-evaluated visualisation
     */
@@ -293,7 +320,8 @@ object UpsertVisualisationJob {
     expressionId: ExpressionId,
     module: Module,
     visualisationConfig: VisualisationConfiguration,
-    callback: AnyRef
+    callback: AnyRef,
+    arguments: Vector[AnyRef]
   )(implicit ctx: RuntimeContext): Visualisation = {
     val visualisationExpressionId =
       findVisualisationExpressionId(module, visualisationConfig.expression)
@@ -304,7 +332,8 @@ object UpsertVisualisationJob {
       module,
       visualisationConfig,
       visualisationExpressionId,
-      callback
+      callback,
+      arguments
     )
     setCacheWeights(visualisation)
     ctx.contextManager.upsertVisualisation(
@@ -325,14 +354,18 @@ object UpsertVisualisationJob {
     visualisationExpression: VisualisationExpression
   ): Option[ExpressionId] =
     visualisationExpression match {
-      case VisualisationExpression.ModuleMethod(methodPointer) =>
+      case VisualisationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
           .collect { case method: IR.Module.Scope.Definition.Method =>
             val methodReference        = method.methodReference
             val methodReferenceName    = methodReference.methodName.name
             val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
 
-            method.getExternalId.filter { _ =>
+            val externalIdOpt = method.body match {
+              case fun: IR.Function => fun.body.getExternalId
+              case _                => method.getExternalId
+            }
+            externalIdOpt.filter { _ =>
               methodReferenceName == methodPointer.name &&
               methodReferenceTypeOpt.isEmpty
             }

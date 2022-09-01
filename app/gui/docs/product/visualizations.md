@@ -11,22 +11,22 @@ tags: [product]
 
 Visualizations have two main purposes:
 
-- **Display results of nodes**  
-  Each node can be assigned with one or more visualization. After a node
-  computes its new value, the visualization shows it in an understandable way to
-  the user. Please note that a single node can be assigned with multiple
-  visualizations at the same time. For example, a node might want to display a
-  map of locations, and their list at the same time next to each other.
+- **Display results of nodes** Each node can be assigned with one or more
+  visualization. After a node computes its new value, the visualization shows it
+  in an understandable way to the user. Please note that a single node can be
+  assigned with multiple visualizations at the same time. For example, a node
+  might want to display a map of locations, and their list at the same time next
+  to each other.
 
-- **Provide interactive way to generate new data**  
-  In a widget mode (described in detail later), visualizations provide users
-  with an interactive GUI to define data. For example, a map visualization can
-  both display locations, as well as allowing the user to pick locations by
-  clicking with a mouse. Similarly, the histogram can both display a list of
-  numbers, and can be manually draw with the mouse producing such a list.
-  Several numbers can be visualized as a table of sliders, which can also be
-  used to interactively generate a table of numbers. Image visualizations can
-  behave like an image editor, etc.
+- **Provide interactive way to generate new data** In a widget mode (described
+  in detail later), visualizations provide users with an interactive GUI to
+  define data. For example, a map visualization can both display locations, as
+  well as allowing the user to pick locations by clicking with a mouse.
+  Similarly, the histogram can both display a list of numbers, and can be
+  manually draw with the mouse producing such a list. Several numbers can be
+  visualized as a table of sliders, which can also be used to interactively
+  generate a table of numbers. Image visualizations can behave like an image
+  editor, etc.
 
 ## Visualization Display Forms
 
@@ -37,34 +37,33 @@ Visualizations can be displayed in the following ways:
   you move the node, the visualization moves as well. This mode can be toggled
   by tapping the spacebar.
 
-- **Fullscreen**  
-  Visualization attached to node can grow (animate) to ocupy full IDE visual
-  space. This mode can be triggered on the recently selected node (in case many
-  nodes are selected, the last selected node will be used) by either pressing
-  keeping the spacebar pressed for longer than approx 0.5s, or by tapping it
-  twice. In the former case, the visualization shrinks to each original form
-  whenever we release space, in the later, whenever we press space again.
+- **Fullscreen** Visualization attached to node can grow (animate) to occupy
+  full IDE visual space. This mode can be triggered on the recently selected
+  node (in case many nodes are selected, the last selected node will be used) by
+  either pressing keeping the spacebar pressed for longer than approx 0.5s, or
+  by tapping it twice. In the former case, the visualization shrinks to each
+  original form whenever we release space, in the later, whenever we press space
+  again.
 
-- **Detached**  
-  Visualizations attached to nodes can be detached, scaled, and placed freely
-  across the visual canvas (we might introduce a special place where you can put
-  such visualizations). This is useful when defining dashboards or reports. We
-  also plan to provide a notebook-like experience where you can write text mixed
-  with visualizations (including widgets for an interactive experience).
+- **Detached** Visualizations attached to nodes can be detached, scaled, and
+  placed freely across the visual canvas (we might introduce a special place
+  where you can put such visualizations). This is useful when defining
+  dashboards or reports. We also plan to provide a notebook-like experience
+  where you can write text mixed with visualizations (including widgets for an
+  interactive experience).
 
-- **Widgets**  
-  In this mode visualizations behave like nodes but do not display expressions.
-  They have one input and one output port. If the input port is connected, the
-  visualization displays its value and passes its to the output port. In case it
-  is not connected, the visualization becomes an interactive widget allowing the
-  user to specify data. For example, a map visualization will allow the user to
-  manually pick locations. After each change, the new locations will be sent to
-  the output port. Under the hood, widgets are represented as nodes and their
-  code lines are assigned with a dedicated "visualization" metadata.
-  Visualizations generate expressions always in the form of `name = data`, where
-  data is a hardcoded data produced from the visualization. For example, when
-  user clicks the map to define locations, the data could be a string literal
-  containing locations encoded in JSON.
+- **Widgets** In this mode visualizations behave like nodes but do not display
+  expressions. They have one input and one output port. If the input port is
+  connected, the visualization displays its value and passes its to the output
+  port. In case it is not connected, the visualization becomes an interactive
+  widget allowing the user to specify data. For example, a map visualization
+  will allow the user to manually pick locations. After each change, the new
+  locations will be sent to the output port. Under the hood, widgets are
+  represented as nodes and their code lines are assigned with a dedicated
+  "visualization" metadata. Visualizations generate expressions always in the
+  form of `name = data`, where data is a hardcoded data produced from the
+  visualization. For example, when user clicks the map to define locations, the
+  data could be a string literal containing locations encoded in JSON.
 
 ### Choosing a Visualization Type.
 
@@ -201,24 +200,12 @@ In particular:
   as visualizations. The superclass defines a default constructor and a set of
   utilities:
 
-  - #### Method `setPreprocessorCode(code)`
-    Set an Enso code which will be evaluated on the server-side before sending
-    data to visualization. If not called, a default unspecified code is used
-    that will provide some JSON representation of the value. See
-    [Lazy visualizations](#lazy-visualizations) section for details.
-  - #### Method `setPreprocessorModule(module)`
-    Define in which module's context the preprocessor code should be evaluated.
-    If not called, the `Main` module of the project that defines visualization
-    will be used. See [Lazy visualizations](#lazy-visualizations) section for
-    details.
-  - #### Method `setPreprocessor(code,mode)`
-    Set both code and its module context at once. If both need to be updated,
-    using this method can save an update processing and needless evaluation.
-    Note that using both `setPreprocessorCode` and `setPreprocessorModule` from
-    the visualization's custom constructor will not cause any unnecessary
-    updates, as the preprocessor is applied only after visualization is fully
-    constructed. See [Lazy visualizations](#lazy-visualizations) section for
-    details.
+  - #### Method `setPreprocessor(module,method,...arguments)`
+    Set an Enso method which will be evaluated on the server-side before sending
+    data to visualization. Note that `arguments` is a vararg. If not called, a
+    default unspecified method is used that will provide some JSON
+    representation of the value. See [Lazy visualizations](#lazy-visualizations)
+    section for details.
   - #### Field `dom`
     It is initialized in the constructor to the DOM symbol used to host the
     visualization content. Users are free to modify the DOM element, including
@@ -297,9 +284,8 @@ visualization you may use the `setPreprocessor` method). This code defines an
 Enso function, which will be run by the compiler on data the visualization is
 attached to. Only the results of this code will be sent to the GUI. In the case
 of the JSON input format, the result of the call should be a valid JSON string.
-The code will be evaluated in the context of the `Main` module in the project
-where visualization is defined - you may use any symbol defined or imported in
-that module.
+The code will be evaluated in the context of the module where the preprocessor
+method is defined - you may use any symbol defined or imported in that module.
 
 For example, imagine you want to display a heatmap of 10 million points on a
 map, and these points change rapidly. Sending such an amount of information via

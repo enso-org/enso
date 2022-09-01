@@ -16,9 +16,12 @@ use ensogl::display::Scene;
 // === Constants ===
 // =================
 
-/// An invocable language expression that serialize given input into JSON.
-pub const DEFAULT_VISUALIZATION_EXPRESSION: &str = "x -> x.to_default_visualization_data";
-
+/// A module containing the default visualization function.
+pub const DEFAULT_VISUALIZATION_MODULE: &str = "Standard.Visualization.Preprocessor";
+/// A name of the default visualization function.
+pub const DEFAULT_VISUALIZATION_FUNCTION: &str = "default_preprocessor";
+/// A list of arguments passed to the default visualization function.
+const DEFAULT_VISUALIZATION_ARGUMENTS: Vec<enso::Code> = vec![];
 
 
 // ====================
@@ -57,44 +60,55 @@ impl ContextModule {
 /// Information on how the preprocessor should be set up for the visualization.
 #[derive(Clone, CloneRef, Debug, PartialEq, Eq)]
 pub struct PreprocessorConfiguration {
-    /// The code of the preprocessor. Should be a lambda that transforms node value into whatever
-    /// that visualizations expect.
-    pub code:   enso::Code,
-    /// The module that provides context for `code` evaluation.
-    pub module: ContextModule,
+    /// The module containing the `method`.
+    pub module:    enso::Module,
+    /// The method being invoked.
+    pub method:    enso::Method,
+    /// A list of arguments to pass to the visualization expression.
+    pub arguments: Rc<Vec<enso::Code>>,
 }
 
 impl PreprocessorConfiguration {
     /// Like `new` but arguments are optional. If `None` is given, default value will be used.
     pub fn from_options(
-        code: Option<impl Into<enso::Code>>,
         module: Option<impl Into<enso::Module>>,
+        method: Option<impl Into<enso::Method>>,
+        arguments: Option<Vec<impl Into<enso::Code>>>,
     ) -> Self {
         let mut ret = Self::default();
-        if let Some(code) = code {
-            ret.code = code.into()
-        }
         if let Some(module) = module {
-            ret.module = ContextModule::Specific(module.into())
+            ret.module = module.into();
+        }
+        if let Some(method) = method {
+            ret.method = method.into();
+        }
+        if let Some(arguments) = arguments {
+            ret.arguments = Rc::new(arguments.into_iter().map_into().collect());
         }
         ret
     }
 
     /// Create a configuration that runs the given code in the context of the given module.
     pub fn new(
-        code: impl Into<enso::Code>,
         module: impl Into<enso::Module>,
+        method: impl Into<enso::Method>,
+        arguments: Vec<impl Into<enso::Code>>,
     ) -> PreprocessorConfiguration {
         PreprocessorConfiguration {
-            module: ContextModule::Specific(module.into()),
-            code:   code.into(),
+            module:    module.into(),
+            method:    method.into(),
+            arguments: Rc::new(arguments.into_iter().map_into().collect()),
         }
     }
 }
 
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
-        Self { code: DEFAULT_VISUALIZATION_EXPRESSION.into(), module: default() }
+        Self {
+            module:    DEFAULT_VISUALIZATION_MODULE.into(),
+            method:    DEFAULT_VISUALIZATION_FUNCTION.into(),
+            arguments: Rc::new(DEFAULT_VISUALIZATION_ARGUMENTS),
+        }
     }
 }
 
