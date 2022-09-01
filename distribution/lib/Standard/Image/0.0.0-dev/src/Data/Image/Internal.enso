@@ -21,7 +21,7 @@ core_op mat value function =
     scalar = case value of
         Vector.Vector_Data ->
             Scalar.new value.to_array
-        Matrix.Matrix m ->
+        Matrix.Matrix_Data m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix.Dimensions_Not_Equal
         _ ->
             Scalar.all value
