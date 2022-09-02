@@ -258,6 +258,16 @@ pub trait Family {
     /// variable fonts, the function always succeeds.
     fn with_borrowed_face<F, T>(&self, variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T;
+
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeader>;
+
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeader;
 }
 
 /// A non-variable font family.
@@ -295,7 +305,7 @@ impl NonVariableFamily {
         }
     }
 
-    pub fn closest_variation(
+    pub fn closest_variations(
         &self,
         variation: NonVariableFaceHeader,
     ) -> Option<NonVariableFaceHeader> {
@@ -316,11 +326,11 @@ impl NonVariableFamily {
         }
     }
 
-    pub fn closest_variation_or_panic(
+    pub fn closest_variations_or_panic(
         &self,
         variation: NonVariableFaceHeader,
     ) -> NonVariableFaceHeader {
-        self.closest_variation(variation)
+        self.closest_variations(variation)
             .unwrap_or_else(|| panic!("Trying to use a font with no faces registered."))
     }
 }
@@ -348,6 +358,20 @@ impl Family for NonVariableFamily {
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.faces.borrow().get(variations).map(f)
     }
+
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeader> {
+        self.closest_variations(variations)
+    }
+
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeader {
+        self.closest_variations_or_panic(variations)
+    }
 }
 
 impl Family for VariableFamily {
@@ -372,6 +396,22 @@ impl Family for VariableFamily {
     fn with_borrowed_face<F, T>(&self, _variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.face.borrow().as_ref().map(f)
+    }
+
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeader> {
+        // Variable fonts do not depend on non-variable variations.
+        Some(variations)
+    }
+
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeader {
+        // Variable fonts do not depend on non-variable variations.
+        variations
     }
 }
 
@@ -428,6 +468,43 @@ impl Font {
         match self {
             Font::NonVariable(font) => font.glyph_info(&non_variable_font_variations, glyph_id),
             Font::Variable(font) => font.glyph_info(variable_font_variations, glyph_id),
+        }
+    }
+
+    pub fn glyph_info_of_known_face(
+        &self,
+        non_variable_font_variations: NonVariableFaceHeader,
+        variable_font_variations: &VariationAxes,
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
+        match self {
+            Font::NonVariable(font) =>
+                font.glyph_info_of_known_face(&non_variable_font_variations, glyph_id, face),
+            Font::Variable(font) =>
+                font.glyph_info_of_known_face(variable_font_variations, glyph_id, face),
+        }
+    }
+
+    pub fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeader> {
+        match self {
+            Font::NonVariable(font) => font.family.closest_non_variable_variations(variations),
+            Font::Variable(font) => font.family.closest_non_variable_variations(variations),
+        }
+    }
+
+    pub fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeader {
+        match self {
+            Font::NonVariable(font) =>
+                font.family.closest_non_variable_variations_or_panic(variations),
+            Font::Variable(font) =>
+                font.family.closest_non_variable_variations_or_panic(variations),
         }
     }
 

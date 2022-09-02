@@ -789,6 +789,27 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
+    pub fn chunks_per_font_face<'a>(
+        font: &'a font::Font,
+        line_style: &'a style::FormatSpan,
+        content: &'a str,
+    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
+        gen_iter!(move {
+            match font {
+                font::Font::NonVariable(font) =>
+                    for a in line_style.chunks_per_font_face(&content) {
+                        yield a;
+                    }
+                font::Font::Variable(font) => {
+                    let range = UBytes(0)..UBytes(content.len());
+                    // For variable fonts, we do not care about non-variable variations.
+                    let non_variable_variations = font::NonVariableFaceHeader::default();
+                    yield (range, non_variable_variations);
+                }
+            }
+        })
+    }
+
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         event!(DEBUG, "redraw_line {:?} {:?}", view_line_index, content);
 
@@ -815,16 +836,20 @@ impl AreaModel {
         let mut last_cursor = None;
         let mut last_cursor_target = default();
 
-        match &glyph_system.font {
+        let font2 = &glyph_system.font;
+        match font2 {
             font::Font::NonVariable(font) => {
                 let mut line_style_iter = line_style.iter();
                 let mut glyph_offset_x = 0.0;
                 let mut column = 0.column();
-                for (range, variation) in line_style.chunks_per_font_face(&content) {
+                for (range, non_variable_variations) in
+                    Self::chunks_per_font_face(&font2, &line_style, &content)
+                {
                     let faces = font.family.faces.borrow();
-                    let variation = font.family.closest_variation_or_panic(variation);
-                    // Safe because the variation was chosen above.
-                    let face = faces.get(&variation).unwrap();
+                    let non_variable_variations =
+                        font2.closest_non_variable_variations_or_panic(non_variable_variations);
+                    // Safe because the non_variable_variations was chosen above.
+                    let face = faces.get(&non_variable_variations).unwrap();
                     let ttf_face = face.ttf.as_face_ref();
                     // This is safe. Unwrap should be removed after rustybuzz is fixed:
                     // https://github.com/RazrFalcon/rustybuzz/issues/52
@@ -857,18 +882,26 @@ impl AreaModel {
                         divs.push(glyph_offset_x);
 
                         let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
-                        let glyph_render_info =
-                            font.glyph_info_of_known_face(&variation, glyph_id, face);
+                        glyph.set_color(style.color);
+                        glyph.set_sdf_weight(style.sdf_weight.value);
+                        glyph.set_font_size(size);
+                        glyph.set_properties(non_variable_variations);
+                        glyph.set_glyph_id(glyph_id);
+
+                        let variable_variations = glyph.variations.borrow();
+
+                        let glyph_render_info = font2.glyph_info_of_known_face(
+                            non_variable_variations,
+                            &variable_variations,
+                            glyph_id,
+                            face,
+                        );
                         let glyph_render_offset = glyph_render_info.offset.scale(size);
                         let glyph_x = glyph_render_offset.x + glyph_offset_x;
                         let glyph_y = glyph_render_offset.y;
 
                         glyph.set_position_xy(Vector2(glyph_x, glyph_y));
-                        glyph.set_color(style.color);
-                        glyph.set_sdf_weight(style.sdf_weight.value);
-                        glyph.set_font_size(size);
-                        glyph.set_properties(variation);
-                        glyph.set_glyph_id(glyph_id);
+
 
                         cursor_map.get(&column).for_each(|id| {
                             self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
