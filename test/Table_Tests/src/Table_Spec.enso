@@ -678,8 +678,24 @@ spec =
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
+        Test.specify "should handle Unicode normalization of keys correctly" <|
+            t1 = Table.new [["X", ['ś', 's\u0301', 's', 'ś']]]
+            t1.distinct . at "X" . to_vector . should_equal ['ś', 's']
+
         Test.specify "should allow to control case-sensitivity of keys" <|
-            Nothing
+            x = ["X", ["A", "a", "enso", "Enso", "A"]]
+            y = ["Y", [1, 2, 3, 4, 5]]
+            t1 = Table.new [x, y]
+            d1 = t1.distinct (By_Name ["X"]) on_problems=Report_Error
+            d1.at "X" . to_vector . should_equal ["A", "a", "enso", "Enso"]
+            d1.at "Y" . to_vector . should_equal [1, 2, 3, 4]
+
+            d2 = t1.distinct (By_Name ["X"]) case_sensitive=Case_Insensitive_Data on_problems=Report_Error
+            d2.at "X" . to_vector . should_equal ["A", "enso"]
+            d2.at "Y" . to_vector . should_equal [1, 3]
+
+            t2 = Table.new [["X", ["łąka", "STRASSE", "Łąka", "Straße", "ﬃ", "ffi"]]]
+            t2.distinct case_sensitive=Case_Insensitive_Data . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
 
         Test.specify "should report a warning if the key contains floating point values" <|
             t1 = Table.new [["X", [3.1, 1.0, 2.0, 2.0, 1.0]]]
