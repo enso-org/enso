@@ -81,7 +81,7 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, logger: impl AnyLogger, size: Vector2) -> $crate::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::icon::Any {
                 match self {$(
                     Self::$variant => {
                         let view = $name::View::new();

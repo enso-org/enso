@@ -303,7 +303,6 @@ impl Instance {
         let callback = Box::new(callback);
         self.model.preprocessor_change.borrow_mut().replace(callback);
         if let Err(err) = self.model.update_preprocessor() {
-            let logger = self.model.logger.clone();
             error!(
                 "Failed to trigger initial preprocessor update from JS: {}",
                 err.print_to_string()

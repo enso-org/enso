@@ -139,7 +139,6 @@ impl Model {
         if self.controller.model.name() != name.as_ref() {
             let project = self.controller.model.clone_ref();
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
-            let logger = self.logger.clone_ref();
             let name = name.into();
             executor::global::spawn(async move {
                 if let Err(e) = project.rename_project(name).await {

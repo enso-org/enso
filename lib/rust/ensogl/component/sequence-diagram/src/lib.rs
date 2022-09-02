@@ -94,7 +94,7 @@ impl component::Model for Model {
         "SequenceDiagram"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let app = app.clone();
         let display_object = display::object::Instance::new();
         let actor_lines = default();

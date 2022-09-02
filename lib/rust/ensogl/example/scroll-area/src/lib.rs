@@ -85,8 +85,6 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let logger: Logger = app.logger.sub("ScrollAreaDemo");
-
     let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));
 

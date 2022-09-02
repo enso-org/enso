@@ -49,7 +49,6 @@ pub struct InvalidVisualizationId(VisualizationId);
 /// controllers.
 #[derive(Debug)]
 pub struct ExecutionContext {
-    logger: Logger,
     /// A name of definition which is a root call of this context.
     pub entry_point: MethodPointer,
     /// Local call stack.
@@ -66,15 +65,13 @@ pub struct ExecutionContext {
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(logger: impl Into<Logger>, entry_point: MethodPointer) -> Self {
-        let logger = logger.into();
+    pub fn new(entry_point: MethodPointer) -> Self {
         let stack = default();
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
         let component_groups = default();
         Self {
-            logger,
             entry_point,
             stack,
             visualizations,
@@ -320,7 +317,7 @@ pub mod test {
 
         pub fn create(&self) -> ExecutionContext {
             let logger = Logger::new("Mocked Execution Context");
-            let mut ec = ExecutionContext::new(logger, self.main_method_pointer());
+            let mut ec = ExecutionContext::new(self.main_method_pointer());
             ec.component_groups = self.component_groups();
             ec
         }

@@ -29,7 +29,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf::run_once_initialized;
-use logger::TraceLogger as Logger;
 
 
 
@@ -101,10 +100,9 @@ fn init(app: &Application) {
     // FIXME[WD]: This should not be needed after text gets proper depth-handling.
     app.display.default_scene.layers.below_main.add_exclusive(&list_view);
 
-    let logger: Logger = Logger::new("SelectDebugScene");
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
-        eval list_view.chosen_entry([logger](entry) {
+        eval list_view.chosen_entry([](entry) {
             info!("Chosen entry {entry:?}")
         });
     }

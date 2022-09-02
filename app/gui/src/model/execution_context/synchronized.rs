@@ -68,12 +68,11 @@ impl ExecutionContext {
         language_server: Rc<language_server::Connection>,
         root_definition: language_server::MethodPointer,
     ) -> impl Future<Output = FallibleResult<Self>> {
-        let logger = Logger::new_sub(&parent, "ExecutionContext");
         async move {
             info!("Creating.");
             let id = language_server.client.create_execution_context().await?.context_id;
             let logger = Logger::new_sub(&parent, iformat! {"ExecutionContext {id}"});
-            let model = model::execution_context::Plain::new(&logger, root_definition);
+            let model = model::execution_context::Plain::new(root_definition);
             info!("Created. Id: {id}.");
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
@@ -296,7 +295,6 @@ impl Drop for ExecutionContext {
     fn drop(&mut self) {
         let id = self.id;
         let ls = self.language_server.clone_ref();
-        let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {

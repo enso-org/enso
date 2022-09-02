@@ -133,7 +133,6 @@ impl LanguageServerContent {
 pub struct Module {
     model:           model::module::Plain,
     language_server: Rc<language_server::Connection>,
-    logger:          Logger,
 }
 
 
@@ -163,9 +162,8 @@ impl Module {
         let source = parser.parse_with_metadata(opened.content)?;
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-        let model =
-            model::module::Plain::new(&logger, path, source.ast, source.metadata, repository);
-        let this = Rc::new(Module { model, language_server, logger });
+        let model = model::module::Plain::new(path, source.ast, source.metadata, repository);
+        let this = Rc::new(Module { model, language_server });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
         executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
@@ -174,12 +172,11 @@ impl Module {
 
     /// Create a module mock.
     pub fn mock(model: model::module::Plain) -> Rc<Self> {
-        let logger = Logger::new(iformat!("Mocked Module {model.path()}"));
         let client = language_server::MockClient::default();
         client.expect.close_text_file(|_| Ok(()));
         // We don't expect any other call, because we don't execute `runner()`.
         let language_server = language_server::Connection::new_mock_rc(client);
-        Rc::new(Module { model, language_server, logger })
+        Rc::new(Module { model, language_server })
     }
 }
 
@@ -459,7 +456,6 @@ impl Drop for Module {
     fn drop(&mut self) {
         let file_path = self.path().file_path().clone();
         let language_server = self.language_server.clone_ref();
-        let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             let result = language_server.client.close_text_file(&file_path).await;
             if let Err(err) = result {

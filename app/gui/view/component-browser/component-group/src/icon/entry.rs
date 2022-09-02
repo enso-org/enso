@@ -60,7 +60,7 @@ impl list_view::Entry for Entry {
     fn update(&self, model: &Self::Model) {
         if !self.icon_id.get().contains(model) {
             let size = Vector2(icon::SIZE, icon::SIZE);
-            let icon = model.create_shape(&self.logger, size);
+            let icon = model.create_shape(size);
             icon.strong_color.set(self.params.strong_color.value().into());
             icon.weak_color.set(self.params.weak_color.value().into());
             self.display_object.add_child(&icon);

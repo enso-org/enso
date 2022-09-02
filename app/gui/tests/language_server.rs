@@ -285,7 +285,6 @@ async fn file_events() {
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
 async fn setup_ide() -> controller::Ide {
-    let logger = Logger::new("Test");
     let config = enso_gui::config::Startup::default();
     info!("Setting up the project.");
     let initializer = enso_gui::Initializer::new(config);
@@ -297,7 +296,6 @@ async fn setup_ide() -> controller::Ide {
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let logger = Logger::new("Test");
     let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
@@ -326,7 +324,6 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let logger = Logger::new("Test");
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
     info!("Got project: {project:?}");

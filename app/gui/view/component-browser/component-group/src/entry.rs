@@ -172,7 +172,7 @@ impl View {
         let mut icon = icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
-            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
+            let shape = model.icon.create_shape(Vector2(icon::SIZE, icon::SIZE));
             shape.strong_color.set(strong_color.into());
             shape.weak_color.set(weak_color.into());
             shape.set_position_x(icon::SIZE / 2.0);

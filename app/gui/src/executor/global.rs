@@ -29,15 +29,9 @@ use futures::task::LocalSpawnExt;
 
 /// Global spawner container. This structure is kept in the global variable `SPAWNER`. See module
 /// docs for details.
+#[derive(Default)]
 struct GlobalSpawner {
-    logger:  Logger,
     spawner: RefCell<Option<Box<dyn LocalSpawn>>>,
-}
-
-impl Default for GlobalSpawner {
-    fn default() -> Self {
-        Self { logger: Logger::new("GlobalSpawner"), spawner: default() }
-    }
 }
 
 impl GlobalSpawner {

@@ -49,7 +49,6 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let logger = Logger::new("ShapeView");
 
     let view1 = shape::View::new();
     view1.size.set(Vector2::new(300.0, 300.0));

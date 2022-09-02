@@ -96,7 +96,7 @@ pub struct Shape {
 impl Shape {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: &Logger, size: Vector2, hover_height: f32) -> Self {
+    pub fn new(size: Vector2, hover_height: f32) -> Self {
         let root = display::object::Instance::new();
         let hover = hover::View::new();
         let viz = viz::View::new();
@@ -176,15 +176,8 @@ impl Model {
     /// will be skipped, as there is no point in making them ports. The skip algorithm is
     /// implemented as part of the port are initialization.
     #[profile(Debug)]
-    pub fn init_shape(
-        &mut self,
-        logger: impl AnyLogger,
-        size: Vector2,
-        hover_height: f32,
-    ) -> Shape {
-        let logger_name = format!("port({},{})", self.index, self.length);
-        let logger = Logger::new_sub(logger, logger_name);
-        let shape = Shape::new(&logger, size, hover_height);
+    pub fn init_shape(&mut self, size: Vector2, hover_height: f32) -> Shape {
+        let shape = Shape::new(size, hover_height);
         self.shape = Some(shape);
         self.shape.as_ref().unwrap().clone_ref()
     }

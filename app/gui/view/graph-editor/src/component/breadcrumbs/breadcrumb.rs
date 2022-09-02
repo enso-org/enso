@@ -285,7 +285,6 @@ impl BreadcrumbModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new();
-        let view_logger = Logger::new_sub(&logger, "view_logger");
         let view = background::View::new();
         let icon = icon::View::new();
         let separator = separator::View::new();

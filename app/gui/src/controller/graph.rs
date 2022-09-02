@@ -1065,7 +1065,7 @@ pub mod tests {
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();
-            Rc::new(SuggestionDatabase::new_from_entries(Logger::new("Test"), entries))
+            Rc::new(SuggestionDatabase::new_from_entries(entries))
         }
     }
 

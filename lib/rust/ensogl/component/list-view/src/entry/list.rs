@@ -185,7 +185,7 @@ impl<E: Entry> ListData<E, E::Params> {
                     |e: &DisplayedEntry<E>| e.id.get().map_or(true, |i| !range.contains(&i));
                 let outdated = entries.iter().filter(|e| is_outdated(e));
                 for (entry, (id, model)) in outdated.zip(models) {
-                    Self::update_entry(&self.logger, entry, id, &model);
+                    Self::update_entry(entry, id, &model);
                 }
             });
             self.entries_range.set(range);
@@ -205,7 +205,7 @@ impl<E: Entry> ListData<E, E::Params> {
             let new_entry = self.create_new_entry(&style_prefix);
             if let Some(id) = entry.id.get() {
                 let model = provider.get(id);
-                Self::update_entry(&self.logger, &new_entry, id, &model);
+                Self::update_entry(&new_entry, id, &model);
             }
             *entry = new_entry;
         }
@@ -256,7 +256,7 @@ impl<E: Entry> ListData<E, E::Params> {
         };
         entries.resize_with(range.len(), create_new_entry_with_max_width);
         for (entry, (id, model)) in entries.iter().zip(models) {
-            Self::update_entry(&self.logger, entry, id, &model);
+            Self::update_entry(entry, id, &model);
         }
         self.entries_range.set(range);
         self.provider.set(provider);
@@ -278,12 +278,7 @@ impl<E: Entry> ListData<E, E::Params> {
         entry
     }
 
-    fn update_entry(
-        logger: &Logger,
-        entry: &DisplayedEntry<E>,
-        id: entry::Id,
-        model: &Option<E::Model>,
-    ) {
+    fn update_entry(entry: &DisplayedEntry<E>, id: entry::Id, model: &Option<E::Model>) {
         debug!("Setting new model {:?} for entry {}; old entry: {:?}.", model, id, entry.id.get());
         entry.id.set(Some(id));
         match model {

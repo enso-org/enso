@@ -74,8 +74,7 @@ pub struct Line {
 }
 
 impl Line {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "line");
+    fn new() -> Self {
         let display_object = display::object::Instance::new();
         let glyphs = default();
         let divs = default();
@@ -814,7 +813,7 @@ impl AreaModel {
         gen_iter!(move {
             match font {
                 font::Font::NonVariable(_) =>
-                    for a in line_style.chunks_per_font_face(&content) {
+                    for a in line_style.chunks_per_font_face(content) {
                         yield a;
                     }
                 font::Font::Variable(_) => {
@@ -859,7 +858,7 @@ impl AreaModel {
         let mut glyph_offset_x = 0.0;
         let mut column = 0.column();
         for (range, requested_non_variable_variations) in
-            Self::chunks_per_font_face(&font, &line_style, &content)
+            Self::chunks_per_font_face(font, &line_style, &content)
         {
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
@@ -1030,7 +1029,7 @@ impl AreaModel {
     }
 
     fn new_line(&self, index: usize) -> Line {
-        let line = Line::new(&self.logger);
+        let line = Line::new();
         let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
         line.set_position_y(y_offset);
         self.add_child(&line);

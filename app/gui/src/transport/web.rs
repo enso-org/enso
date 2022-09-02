@@ -296,7 +296,6 @@ impl WebSocket {
     /// Generate a callback to be invoked when socket needs reconnecting.
     fn reconnect_trigger(&self) -> impl FnMut(web_sys::CloseEvent) {
         let model = Rc::downgrade(&self.model);
-        let logger = self.logger.clone();
         move |_| {
             if let Some(model) = model.upgrade() {
                 if let Err(e) = model.borrow_mut().reconnect() {
@@ -417,7 +416,6 @@ impl Transport for WebSocket {
     fn set_event_transmitter(&mut self, transmitter: mpsc::UnboundedSender<TransportEvent>) {
         info!("Setting event transmitter.");
         let transmitter_copy = transmitter.clone();
-        let logger_copy = self.logger.clone_ref();
         self.set_on_message(move |e| {
             let data = e.data();
             if let Some(text) = data.as_string() {
@@ -435,13 +433,11 @@ impl Transport for WebSocket {
         });
 
         let transmitter_copy = transmitter.clone();
-        let logger_copy = self.logger.clone_ref();
         self.set_on_close(move |_e| {
             info!("Connection has been closed.");
             channel::emit(&transmitter_copy, TransportEvent::Closed);
         });
 
-        let logger_copy = self.logger.clone_ref();
         self.set_on_open(move |_e| {
             info!("Connection has been opened.");
             channel::emit(&transmitter, TransportEvent::Opened);
@@ -474,7 +470,7 @@ mod tests {
         info!("WebSocket opened: {ws:?}");
 
         // Log events
-        let handler = ws.establish_event_stream().for_each(f!([logger](event) {
+        let handler = ws.establish_event_stream().for_each(f!([](event) {
             info!("Socket emitted event: {event:?}");
             futures::future::ready(())
         }));

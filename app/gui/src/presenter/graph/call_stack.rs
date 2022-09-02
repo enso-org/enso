@@ -19,7 +19,6 @@ use ide_view as view;
 
 #[derive(Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::ExecutedGraph,
     view:       view::graph_editor::GraphEditor,
     state:      Rc<State>,
@@ -27,13 +26,11 @@ struct Model {
 
 impl Model {
     fn new(
-        parent: impl AnyLogger,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
-        let logger = parent.sub("presenter::graph::CallStack");
-        Self { logger, controller, view, state }
+        Self { controller, view, state }
     }
 
     fn expression_entered(&self, local_call: &view::graph_editor::LocalCall) {
@@ -65,7 +62,6 @@ impl Model {
         debug!("Requesting exiting the current node.");
         analytics::remote_log_event("integration::node_exited");
         let controller = self.controller.clone_ref();
-        let logger = self.logger.clone_ref();
         let store_stack = self.store_updated_stack_task();
         executor::global::spawn(async move {
             info!("Exiting node.");
@@ -90,7 +86,6 @@ impl Model {
 
     fn enter_expression(&self, local_call: LocalCall) {
         let controller = self.controller.clone_ref();
-        let logger = self.logger.clone_ref();
         let store_stack = self.store_updated_stack_task();
         executor::global::spawn(async move {
             info!("Entering expression {local_call:?}.");
@@ -148,13 +143,12 @@ pub struct CallStack {
 impl CallStack {
     /// Constructor. The returned presenter works right away.
     pub fn new(
-        parent: impl AnyLogger,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
         let network = frp::Network::new("presenter::graph::CallStack");
-        let model = Rc::new(Model::new(parent, controller, view, state));
+        let model = Rc::new(Model::new(controller, view, state));
         let view = &model.view;
         let breadcrumbs = &view.model.breadcrumbs;
 

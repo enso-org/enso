@@ -12,8 +12,8 @@ use futures::channel::oneshot;
 /// their answer.
 /// `Id` identifies the request.
 /// `Reply` represents the answer.
-#[derive(Debug)]
-#[allow(clippy::new_without_default)]
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct OngoingCalls<Id, Reply>
 where Id: Hash + Eq {
     ongoing_calls: HashMap<Id, oneshot::Sender<Reply>>,
@@ -23,8 +23,9 @@ impl<Id, Reply> OngoingCalls<Id, Reply>
 where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
 {
     /// Creates a new, empty ongoing request storage.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> OngoingCalls<Id, Reply> {
-        OngoingCalls { ongoing_calls: HashMap::new() }
+        default()
     }
 
     /// Removes the request from the storage and returns it (if present).

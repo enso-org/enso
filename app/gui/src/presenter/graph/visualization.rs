@@ -131,7 +131,6 @@ impl Model {
     #[profile(Detail)]
     fn load_visualizations(&self) {
         self.graph_view.reset_visualization_registry();
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         let graph_editor = self.graph_view.clone_ref();
         executor::global::spawn(async move {
@@ -178,10 +177,8 @@ impl Visualization {
         let network = frp::Network::new("presenter::graph::Visualization");
 
         let controller = project.visualization().clone_ref();
-        let (manager, notifications) =
-            Manager::new(&logger, graph.clone_ref(), project.clone_ref());
-        let (error_manager, error_notifications) =
-            Manager::new(&logger, graph.clone_ref(), project);
+        let (manager, notifications) = Manager::new(graph.clone_ref(), project.clone_ref());
+        let (error_manager, error_notifications) = Manager::new(graph.clone_ref(), project);
         let model = Rc::new(Model {
             logger,
             controller,
@@ -230,7 +227,6 @@ impl Visualization {
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifier, move |notification, model| {
-            let logger = &model.logger;
             info!("Received update for visualization: {notification:?}");
             match notification {
                 manager::Notification::ValueUpdate { target, data, .. } => {

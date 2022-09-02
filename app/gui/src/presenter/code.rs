@@ -17,15 +17,13 @@ use ide_view as view;
 
 #[derive(Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::Text,
     view:       view::code_editor::View,
 }
 
 impl Model {
     fn new(controller: controller::Text, view: view::code_editor::View) -> Self {
-        let logger = Logger::new("presenter::code");
-        Self { logger, controller, view }
+        Self { controller, view }
     }
 
     fn apply_change_from_view(&self, change: &enso_text::Change) {
@@ -46,7 +44,6 @@ impl Model {
     }
 
     fn save_module(&self, content: String) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.store_content(content).await {

@@ -189,7 +189,6 @@ pub struct Model<Entry, EntryParams> {
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {
     fn new(entry_creation_ctx: entry::visible::CreationCtx<EntryParams>) -> Self {
-        let logger = Logger::new("GridView");
         let display_object = display::object::Instance::new();
         let visible_entries = default();
         let free_entries = default();

@@ -66,7 +66,7 @@ impl BubbleChartModel {
 
         // Avoid re-creating views, if we have already created some before.
         let mut views = self.views.borrow_mut();
-        views.resize_with(data_inner.len(), || shape::View::new());
+        views.resize_with(data_inner.len(), shape::View::new);
 
         // TODO[mm] this is somewhat inefficient, as the canvas for each bubble is too large.
         // But this ensures that we can get a cropped view area and avoids an issue with the data

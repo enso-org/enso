@@ -653,7 +653,7 @@ impl component::Model for Model {
         "ComponentGroup"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let header_text = default();
         let display_object = display::object::Instance::new();
         let header_overlay = header_overlay::View::new();

@@ -137,6 +137,13 @@ pub struct DirtyFlags<Host> {
     on_dirty:         Rc<RefCell<Box<dyn Fn()>>>,
 }
 
+impl<Host> Default for DirtyFlags<Host> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
 impl<Host> DirtyFlags<Host> {
     #![allow(trivial_casts)]
     fn new() -> Self {
@@ -178,7 +185,7 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 ///
 /// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+#[derivative(Debug(bound = ""), Default(bound = ""))]
 pub struct Model<Host = Scene> {
     host:            PhantomData<Host>,
     /// Layers the object was explicitly assigned to.
@@ -197,26 +204,7 @@ pub struct Model<Host = Scene> {
 impl<Host> Model<Host> {
     /// Constructor.
     pub fn new() -> Self {
-        let parent_bind = default();
-        let children = default();
-        let transform = default();
-        let dirty = DirtyFlags::new();
-        let visible = Cell::new(false);
-        let callbacks = default();
-        let host = default();
-        let assigned_layers = default();
-        let layers = default();
-        Self {
-            host,
-            assigned_layers,
-            layers,
-            dirty,
-            callbacks,
-            parent_bind,
-            children,
-            transform,
-            visible,
-        }
+        default()
     }
 
     /// Checks whether the object is visible.
@@ -623,7 +611,7 @@ pub struct Id(usize);
 /// management.
 #[derive(Derivative)]
 #[derive(CloneRef)]
-#[derivative(Clone(bound = ""))]
+#[derivative(Clone(bound = ""), Default(bound = ""))]
 pub struct Instance<Host = Scene> {
     rc: Rc<Model<Host>>,
 }
@@ -638,7 +626,7 @@ impl<Host> Deref for Instance<Host> {
 impl<Host> Instance<Host> {
     /// Constructor.
     pub fn new() -> Self {
-        Self { rc: Rc::new(Model::new()) }
+        default()
     }
 
     /// Create a new weak pointer to this display object instance.
@@ -1334,7 +1322,7 @@ mod tests {
     }
 
     impl TestedNode {
-        fn new(label: impl Into<ImString>) -> Self {
+        fn new() -> Self {
             let node = Instance::<()>::new();
             let show_counter = Rc::<Cell<usize>>::default();
             let hide_counter = Rc::<Cell<usize>>::default();
@@ -1378,9 +1366,9 @@ mod tests {
 
     #[test]
     fn visibility_test() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node3.check_if_still_hidden();
         node3.update(&());
@@ -1416,8 +1404,8 @@ mod tests {
 
     #[test]
     fn visibility_test2() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
         node1.check_if_still_hidden();
         node1.update(&());
         node1.check_if_still_hidden();
@@ -1433,9 +1421,9 @@ mod tests {
 
     #[test]
     fn visibility_test3() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);
@@ -1452,10 +1440,10 @@ mod tests {
 
     #[test]
     fn visibility_test4() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
-        let node4 = TestedNode::new("node4");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
+        let node4 = TestedNode::new();
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);

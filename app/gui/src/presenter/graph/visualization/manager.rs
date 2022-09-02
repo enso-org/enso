@@ -222,7 +222,6 @@ impl Description {
 /// As this type wraps asynchronous operations, it should be stored using `Rc` pointer.
 #[derive(Debug)]
 pub struct Manager {
-    logger:              Logger,
     visualizations:      SharedHashMap<ast::Id, Description>,
     executed_graph:      ExecutedGraph,
     project:             model::Project,
@@ -235,19 +234,11 @@ impl Manager {
     /// Return a handle to the Manager and the receiver for notifications.
     /// Note that receiver cannot be re-retrieved or changed in the future.
     pub fn new(
-        logger: impl AnyLogger,
         executed_graph: ExecutedGraph,
         project: model::Project,
     ) -> (Rc<Self>, UnboundedReceiver<Notification>) {
-        let logger = logger.sub("visualization::Manager");
         let (notification_sender, notification_receiver) = futures::channel::mpsc::unbounded();
-        let ret = Self {
-            logger,
-            visualizations: default(),
-            executed_graph,
-            project,
-            notification_sender,
-        };
+        let ret = Self { visualizations: default(), executed_graph, project, notification_sender };
         (Rc::new(ret), notification_receiver)
     }
 
@@ -627,7 +618,7 @@ mod tests {
             );
             let logger: Logger = inner.logger.sub("manager");
             let (manager, notifier) =
-                Manager::new(logger, executed_graph.clone_ref(), inner.project.clone_ref());
+                Manager::new(executed_graph.clone_ref(), inner.project.clone_ref());
             Self { inner, is_ready, manager, notifier, requests }
         }
     }

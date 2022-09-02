@@ -28,7 +28,7 @@ pub use crate::display::scene::PointerTarget;
 /// A view for a shape definition. The view manages the lifetime and scene-registration of a shape
 /// instance. In particular, it registers / unregisters callbacks for shape initialization and mouse
 /// events handling.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Default)]
 #[clone_ref(bound = "S:CloneRef")]
 #[allow(missing_docs)]
 pub struct ShapeView<S> {
@@ -45,8 +45,7 @@ impl<S> Deref for ShapeView<S> {
 impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
     /// Constructor.
     pub fn new() -> Self {
-        let model = Rc::new(ShapeViewModel::new());
-        Self { model }.init()
+        default()
     }
 
     fn init(self) -> Self {
@@ -132,11 +131,7 @@ impl<S: DynamicShapeInternals> ShapeViewModel<S> {
 impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new() -> Self {
-        let shape = S::new();
-        let events = PointerTarget::new();
-        let registry = default();
-        let pointer_targets = default();
-        ShapeViewModel { shape, events, registry, pointer_targets }
+        default()
     }
 
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {

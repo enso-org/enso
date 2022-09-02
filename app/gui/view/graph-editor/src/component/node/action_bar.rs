@@ -86,8 +86,7 @@ struct Icons {
 }
 
 impl Icons {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "Icons");
+    fn new() -> Self {
         let display_object = display::object::Instance::new();
         let freeze = ToggleButton::new();
         let visibility = ToggleButton::new();
@@ -135,12 +134,11 @@ struct Model {
 }
 
 impl Model {
-    fn new(logger: impl AnyLogger, app: &Application) -> Self {
+    fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new_sub(logger, "ActionBar");
         let display_object = display::object::Instance::new();
         let hover_area = hover_area::View::new();
-        let icons = Icons::new(&logger);
+        let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
         let size = default();
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -256,8 +254,8 @@ impl Deref for ActionBar {
 
 impl ActionBar {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let model = Rc::new(Model::new(logger, app));
+    pub fn new(app: &Application) -> Self {
+        let model = Rc::new(Model::new(app));
         let frp = Frp::new();
         ActionBar { frp, model }.init_frp()
     }

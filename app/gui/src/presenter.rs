@@ -35,7 +35,6 @@ pub use searcher::Searcher;
 
 #[derive(Debug)]
 struct Model {
-    logger:          Logger,
     current_project: RefCell<Option<Project>>,
     controller:      controller::Ide,
     view:            view::root::View,
@@ -87,7 +86,6 @@ impl Model {
     /// a second one for opening the project.
     #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
@@ -104,7 +102,6 @@ impl Model {
     /// Engine. It makes a call to Project Manager.
     #[profile(Task)]
     fn create_project(&self, template: Option<&str>) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         let template = template.map(ToOwned::to_owned);
         crate::executor::global::spawn(async move {
@@ -145,9 +142,8 @@ impl Presenter {
     /// project will be displayed (if any).
     #[profile(Task)]
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
-        let logger = Logger::new("Presenter");
         let current_project = default();
-        let model = Rc::new(Model { logger, controller, view, current_project });
+        let model = Rc::new(Model { controller, view, current_project });
 
         frp::new_network! { network
             let welcome_view_frp = &model.view.welcome_screen().frp;
@@ -176,7 +172,6 @@ impl Presenter {
         use controller::ide::BackgroundTaskHandle as ControllerHandle;
         use ide_view::status_bar::process::Id as ViewHandle;
 
-        let logger = self.model.logger.clone_ref();
         let process_map = SharedHashMap::<ControllerHandle, ViewHandle>::new();
         let status_bar = self.model.view.status_bar().clone_ref();
         let status_notifications = self.model.controller.status_notifications().subscribe();

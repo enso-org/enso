@@ -57,7 +57,6 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("TooltipModel");
         let tooltip = Label::new(app);
         let root = display::object::Instance::new();
         root.add_child(&tooltip);

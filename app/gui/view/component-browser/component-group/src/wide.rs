@@ -372,7 +372,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         "WideComponentGroupView"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         display_object.add_child(&background);

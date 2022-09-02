@@ -69,7 +69,6 @@ pub struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("ColumnGrid");
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         Self { app, display_object, content: default(), size: default(), layers: default() }
@@ -207,7 +206,7 @@ impl component::Model for Model {
         "ColumnGrid"
     }
 
-    fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
+    fn new(app: &Application) -> Self {
         Self::new(app)
     }
 }

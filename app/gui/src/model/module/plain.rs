@@ -32,7 +32,6 @@ use parser::Parser;
 /// (text and graph).
 #[derive(Debug)]
 pub struct Module {
-    logger:        Logger,
     path:          Path,
     content:       RefCell<Content>,
     notifications: notification::Publisher<Notification>,
@@ -42,14 +41,12 @@ pub struct Module {
 impl Module {
     /// Create state with given content.
     pub fn new(
-        parent: impl AnyLogger,
         path: Path,
         ast: ast::known::Module,
         metadata: Metadata,
         repository: Rc<model::undo_redo::Repository>,
     ) -> Self {
         Module {
-            logger: Logger::new_sub(parent, path.to_string()),
             content: RefCell::new(ParsedSourceFile { ast, metadata }),
             notifications: default(),
             path,

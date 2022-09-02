@@ -409,6 +409,12 @@ impl Camera2d {
     }
 }
 
+impl Default for Camera2d {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 // === Modifiers ===
 

@@ -154,7 +154,6 @@ ensogl::define_endpoints! {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
@@ -170,8 +169,7 @@ pub struct Model {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application, frp: &Frp) -> Self {
-        let logger = Logger::new_sub(&logger, "output_ports");
+    pub fn new(app: &Application, frp: &Frp) -> Self {
         let display_object = display::object::Instance::new();
         let ports = display::object::Instance::new();
         let app = app.clone_ref();
@@ -185,7 +183,6 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
-            logger,
             app,
             display_object,
             ports,
@@ -367,9 +364,8 @@ impl Model {
             if is_a_port {
                 let port   = &mut node;
                 let crumbs = port.crumbs.clone_ref();
-                let logger = &self.logger;
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,&self.app,&self.styles,&self.styles_frp,port_index
+                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index
                     ,port_count);
                 let port_network = &port_frp.network;
 
@@ -466,9 +462,9 @@ impl Deref for Area {
 
 impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::new(logger, app, &frp));
+        let model = Rc::new(Model::new(app, &frp));
         let network = &frp.network;
         let label_color = color::Animation::new(network);
 

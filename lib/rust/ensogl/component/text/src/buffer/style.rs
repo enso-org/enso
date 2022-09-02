@@ -226,7 +226,7 @@ impl<T: Copy> Property<T> {
     /// Convert the property to a vector of spans.
     pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
-        spans_iter.map(|t| t.map_value(|v| v.unwrap_or_else(|| self.default))).collect_vec()
+        spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
     }
 
     /// The default value of this property.

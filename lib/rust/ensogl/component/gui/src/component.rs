@@ -32,7 +32,7 @@ pub trait Model {
     fn label() -> &'static str;
 
     /// Constructor.
-    fn new(app: &Application, logger: &Logger) -> Self;
+    fn new(app: &Application) -> Self;
 }
 
 
@@ -83,7 +83,7 @@ where
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new(M::label());
-        let model = Rc::new(M::new(app, &logger));
+        let model = Rc::new(M::new(app));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         F::init(frp.private(), app, &model, &style);

@@ -669,7 +669,7 @@ impl component::Model for Model {
         "ComponentBrowserPanel"
     }
 
-    fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
+    fn new(app: &Application) -> Self {
         Self::new(app)
     }
 }
@@ -704,7 +704,6 @@ type ColumnSection = LabeledSection<column_grid::ColumnGrid>;
 
 impl<T: CloneRef> LabeledSection<T> {
     pub fn new(content: T, app: &Application) -> Self {
-        let logger = Logger::new("LabeledSection");
         let label = text::Area::new(app);
         let divider = hline::View::new();
         Self { label, divider, content }

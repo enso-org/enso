@@ -169,8 +169,7 @@ pub struct View {
 
 impl View {
     /// Constructor.
-    pub fn new(logger: &Logger, scene: Scene) -> Self {
-        let logger = Logger::new_sub(logger, "view");
+    pub fn new(scene: Scene) -> Self {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let overlay = overlay::View::new();
@@ -269,7 +268,7 @@ impl ContainerModel {
         let drag_root = display::object::Instance::new();
         let visualization = default();
         let vis_frp_connection = default();
-        let view = View::new(&logger, scene.clone_ref());
+        let view = View::new(scene.clone_ref());
         let fullscreen_view = fullscreen::Panel::new(&logger, scene);
         let scene = scene.clone_ref();
         let is_fullscreen = default();

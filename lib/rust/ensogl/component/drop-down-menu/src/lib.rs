@@ -131,7 +131,6 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("drop_down_menu");
         let display_object = display::object::Instance::new();
         let icon = arrow::View::new();
         let icon_overlay = chooser_hover_area::View::new();

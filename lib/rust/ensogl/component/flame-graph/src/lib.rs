@@ -179,18 +179,15 @@ fn align_mark(mut mark: profiler_flame_graph::Mark, origin_x: f64) -> profiler_f
 impl FlameGraph {
     /// Create an empty graph,
     pub fn empty(app: &Application) -> Self {
-        let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new();
         let blocks = default();
         let marks = default();
         let origin_x = default();
         let app = app.clone_ref();
-
         Self { display_object, blocks, marks, origin_x, app }
     }
     /// Create a `FlameGraph` EnsoGL component from the given graph data from the profiler.
     pub fn from_data(data: profiler_flame_graph::Graph, app: &Application) -> Self {
-        let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new();
 
         let activity_blocks =

@@ -701,9 +701,7 @@ pub mod test {
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
             let ast = parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
-            let logger = Logger::new("MockModule");
-            let module =
-                Plain::new(logger, self.path.clone(), ast, self.metadata.clone(), repository);
+            let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
             Rc::new(module)
         }
     }

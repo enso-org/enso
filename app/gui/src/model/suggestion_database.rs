@@ -137,7 +137,6 @@ pub enum Notification {
 /// argument names and types.
 #[derive(Clone, Debug)]
 pub struct SuggestionDatabase {
-    logger:                   Logger,
     entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
     examples:                 RefCell<Vec<Rc<Example>>>,
@@ -147,22 +146,20 @@ pub struct SuggestionDatabase {
 
 impl SuggestionDatabase {
     /// Create a database with no entries.
-    pub fn new_empty(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "SuggestionDatabase");
+    pub fn new_empty() -> Self {
         let entries = default();
         let qualified_name_to_id_map = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, qualified_name_to_id_map, examples, version, notifications }
+        Self { entries, qualified_name_to_id_map, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
     pub fn new_from_entries<'a>(
-        logger: impl AnyLogger,
         entries: impl IntoIterator<Item = (&'a SuggestionId, &'a Entry)>,
     ) -> Self {
-        let ret = Self::new_empty(logger);
+        let ret = Self::new_empty();
         let entries = entries.into_iter().map(|(id, entry)| (*id, Rc::new(entry.clone())));
         ret.entries.borrow_mut().extend(entries);
         ret
@@ -178,7 +175,6 @@ impl SuggestionDatabase {
 
     /// Create a new database model from response received from the Language Server.
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
-        let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
         for ls_entry in response.entries {
@@ -197,12 +193,11 @@ impl SuggestionDatabase {
         //          available modules documentation. (https://github.com/enso-org/ide/issues/1011)
         let examples = example::EXAMPLES.iter().cloned().map(Rc::new).collect_vec();
         Self {
-            logger,
-            entries: RefCell::new(entries),
+            entries:                  RefCell::new(entries),
             qualified_name_to_id_map: RefCell::new(qualified_name_to_id_map),
-            examples: RefCell::new(examples),
-            version: Cell::new(response.current_version),
-            notifications: default(),
+            examples:                 RefCell::new(examples),
+            version:                  Cell::new(response.current_version),
+            notifications:            default(),
         }
     }
 
@@ -863,7 +858,7 @@ mod test {
     // Check that the suggestion database doesn't panic when quering invalid qualified names.
     #[test]
     fn lookup_by_fully_qualified_name_with_invalid_names() {
-        let db = SuggestionDatabase::new_empty(Logger::new("SuggestionDatabase"));
+        let db = SuggestionDatabase::new_empty();
         let _ = db.lookup_by_qualified_name_str("");
         let _ = db.lookup_by_qualified_name_str(".");
         let _ = db.lookup_by_qualified_name_str("..");

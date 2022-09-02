@@ -185,7 +185,7 @@ impl Handle {
         let logger = Logger::new("Mocked Module Controller");
         let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
         let metadata = default();
-        let model = Rc::new(model::module::Plain::new(&logger, path, ast, metadata, repository));
+        let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
         Ok(Handle { model, language_server, parser, logger })
     }
 

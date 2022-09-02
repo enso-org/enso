@@ -559,7 +559,6 @@ main =
 
         let mut fixture = crate::test::mock::Unified::new().fixture();
         let Fixture { executed_graph, graph, project, logger, .. } = &mut fixture;
-        let logger: &Logger = logger;
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();

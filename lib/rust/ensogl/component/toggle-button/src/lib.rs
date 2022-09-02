@@ -70,7 +70,7 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug, Derivative)]
+#[derive(Clone, CloneRef, Debug, Default)]
 #[clone_ref(bound = "Shape:CloneRef")]
 struct Model<Shape> {
     icon: ShapeView<Shape>,
@@ -78,8 +78,7 @@ struct Model<Shape> {
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
     fn new() -> Self {
-        let icon = ShapeView::new();
-        Self { icon }
+        default()
     }
 }
 
@@ -205,12 +204,18 @@ impl<Shape> Deref for ToggleButton<Shape> {
     }
 }
 
-impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
-    /// Constructor.
-    pub fn new() -> Self {
+impl<Shape: ColorableShape + 'static> Default for ToggleButton<Shape> {
+    fn default() -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::<Shape>::new());
         Self { frp, model }.init_frp()
+    }
+}
+
+impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
     }
 
     fn init_frp(self) -> Self {

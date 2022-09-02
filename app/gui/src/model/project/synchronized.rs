@@ -375,7 +375,6 @@ impl Project {
     pub fn binary_event_handler(
         &self,
     ) -> impl Fn(engine_protocol::binary::Event) -> futures::future::Ready<()> {
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         move |event| {
@@ -422,7 +421,6 @@ impl Project {
     pub fn execution_update_handler(
         &self,
     ) -> impl Fn(execution_context::Id, ExecutionUpdate) + Clone {
-        let logger = self.logger.clone_ref();
         let registry = Rc::downgrade(&self.execution_contexts);
         move |id, update| {
             if let Some(registry) = registry.upgrade() {
@@ -450,7 +448,6 @@ impl Project {
         // generalize them, as the  underlying RPC handlers and their types are separate.
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);

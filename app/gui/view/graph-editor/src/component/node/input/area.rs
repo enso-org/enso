@@ -220,7 +220,6 @@ ensogl::define_endpoints! {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
@@ -235,8 +234,7 @@ pub struct Model {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let logger = Logger::new_sub(&logger, "input_ports");
+    pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let ports = display::object::Instance::new();
         let header = display::object::Instance::new();
@@ -250,7 +248,6 @@ impl Model {
         display_object.add_child(&ports);
         ports.add_child(&header);
         Self {
-            logger,
             app,
             display_object,
             ports,
@@ -356,8 +353,8 @@ impl Deref for Area {
 impl Area {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let model = Rc::new(Model::new(logger, app));
+    pub fn new(app: &Application) -> Self {
+        let model = Rc::new(Model::new(app));
         let frp = Frp::new();
         let network = &frp.network;
         let selection_color = Animation::new(network);
@@ -616,8 +613,7 @@ impl Area {
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
-                let logger = &self.model.logger;
-                let port_shape = port.payload_mut().init_shape(logger, size, node::HEIGHT);
+                let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
 
                 port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
                 if DEBUG {

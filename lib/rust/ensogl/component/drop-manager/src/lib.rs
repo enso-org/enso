@@ -132,7 +132,6 @@ pub struct Manager {
 impl Manager {
     /// Constructor, adding listener to the given target.
     pub fn new(target: &enso_web::EventTarget) -> Self {
-        let logger = Logger::new("DropFileManager");
         debug!("Creating.");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network

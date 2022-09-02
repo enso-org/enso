@@ -28,7 +28,6 @@ struct TestOnNewProjectControllersOnly {
 impl TestOnNewProjectControllersOnly {
     async fn set_up() -> Self {
         let executor = setup_global_executor();
-        let logger = Logger::new("Test");
         let config = enso_gui::config::Startup::default();
         info!("Setting up the project.");
         let initializer = enso_gui::Initializer::new(config);

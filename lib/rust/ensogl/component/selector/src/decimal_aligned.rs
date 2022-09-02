@@ -53,7 +53,6 @@ pub struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("DecimalAlignedLabel");
         let root = display::object::Instance::new();
         let label_full = app.new_view::<text::Area>();
         let label_left = app.new_view::<text::Area>();

@@ -383,7 +383,7 @@ macro_rules! fn_multi_only {
 
 impl PortShapeView {
     #[profile(Debug)]
-    fn new(number_of_ports: usize, logger: &Logger) -> Self {
+    fn new(number_of_ports: usize) -> Self {
         if number_of_ports <= 1 {
             Self::Single(SinglePortView::new())
         } else {
@@ -464,16 +464,13 @@ impl Model {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn init_shape(
         &mut self,
-        logger: impl AnyLogger,
         app: &Application,
         styles: &StyleWatch,
         styles_frp: &StyleWatchFrp,
         port_index: usize,
         port_count: usize,
     ) -> (display::object::Instance, Frp) {
-        let logger_name = format!("port({},{})", self.index, self.length);
-        let logger = Logger::new_sub(logger, logger_name);
-        let shape = PortShapeView::new(port_count, &logger);
+        let shape = PortShapeView::new(port_count);
 
         let is_first = port_index == 0;
         let is_last = port_index == port_count.saturating_sub(1);

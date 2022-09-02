@@ -726,7 +726,6 @@ impl Searcher {
                 match self.ide.manage_projects() {
                     Ok(_) => {
                         let ide = self.ide.clone_ref();
-                        let logger = self.logger.clone_ref();
                         executor::global::spawn(async move {
                             // We checked that manage_projects returns Some just a moment ago, so
                             // unwrapping is safe.
@@ -931,7 +930,6 @@ impl Searcher {
     #[profile(Debug)]
     fn this_arg_type_for_next_completion(&self) -> impl Future<Output = Option<String>> {
         let next_id = self.data.borrow().input.next_completion_id();
-        let logger = self.logger.clone_ref();
         let graph = self.graph.clone_ref();
         let this = self.this_arg.clone_ref();
         async move {
@@ -1519,7 +1517,7 @@ pub mod test {
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
-            let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
+            let database = suggestion_database_with_mock_entries(module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1579,11 +1577,10 @@ pub mod test {
     }
 
     fn suggestion_database_with_mock_entries(
-        logger: &Logger,
         module_name: QualifiedName,
         scope: Scope,
     ) -> Rc<SuggestionDatabase> {
-        let database = Rc::new(SuggestionDatabase::new_empty(logger));
+        let database = Rc::new(SuggestionDatabase::new_empty());
         let entry1 = model::suggestion_database::Entry {
             name: "testFunction1".to_string(),
             kind: Kind::Function,

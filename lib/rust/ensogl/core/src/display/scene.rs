@@ -1123,6 +1123,8 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
+    // FIXME:
+    #[allow(unused_assignments)]
     pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
         let animation_count = crate::animation::LOOPS_COUNT.with_borrow(|t| *t);
         let animations_running = animation_count > 1; // Main loop is always running.

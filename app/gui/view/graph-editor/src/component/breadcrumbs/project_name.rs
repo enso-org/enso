@@ -151,7 +151,6 @@ impl ProjectNameModel {
         text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 
-        let view_logger = Logger::new_sub(&logger, "view_logger");
         let view = background::View::new();
 
         scene.layers.panel.add_exclusive(&view);

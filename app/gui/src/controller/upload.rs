@@ -76,7 +76,6 @@ pub struct FileToUpload<DataProvider> {
 /// API.
 #[derive(Clone, Debug)]
 pub struct FileUploadProcess<DataProvider> {
-    logger:          Logger,
     bin_connection:  Rc<binary::Connection>,
     json_connection: Rc<language_server::Connection>,
     file:            FileToUpload<DataProvider>,
@@ -97,24 +96,14 @@ pub enum UploadingState {
 impl<DP: DataProvider> FileUploadProcess<DP> {
     /// Constructor.
     pub fn new(
-        parent: impl AnyLogger,
         file: FileToUpload<DP>,
         bin_connection: Rc<binary::Connection>,
         json_connection: Rc<language_server::Connection>,
         remote_path: Path,
     ) -> Self {
-        let logger = Logger::new_sub(parent, "FileUploadProcess");
         let bytes_uploaded = 0;
         let checksum = sha3::Sha3_224::new();
-        Self {
-            logger,
-            bin_connection,
-            json_connection,
-            file,
-            remote_path,
-            bytes_uploaded,
-            checksum,
-        }
+        Self { bin_connection, json_connection, file, remote_path, bytes_uploaded, checksum }
     }
 
     /// Upload next chunk. Returns information if all data has been uploaded.
@@ -253,13 +242,8 @@ impl NodeFromDroppedFileHandler {
         let remote_path = self.data_path().append_im(&remote_name);
         let bin_connection = self.project.binary_rpc();
         let json_connection = self.project.json_rpc();
-        let mut process = FileUploadProcess::new(
-            &self.logger,
-            file,
-            bin_connection,
-            json_connection,
-            remote_path,
-        );
+        let mut process =
+            FileUploadProcess::new(file, bin_connection, json_connection, remote_path);
 
         while process.upload_chunk().await? == UploadingState::NotFinished {
             self.update_metadata(node, |md| md.bytes_uploaded = process.bytes_uploaded);
@@ -509,7 +493,7 @@ mod test {
     }
 
     impl UploadingFixture {
-        fn new(logger: impl AnyLogger, data: TestData) -> Self {
+        fn new(data: TestData) -> Self {
             let mut binary_cli = binary::MockClient::new();
             let json_cli = language_server::MockClient::default();
             json_cli.require_all_calls();
@@ -521,7 +505,7 @@ mod test {
             Self {
                 test:          TestWithLocalPoolExecutor::set_up(),
                 chunks:        data.chunks.into_iter(),
-                process:       FileUploadProcess::new(logger, file, bin_con, json_con, data.path),
+                process:       FileUploadProcess::new(file, bin_con, json_con, data.path),
                 provider_sink: Some(provider_sink),
             }
         }
@@ -547,9 +531,8 @@ mod test {
 
     #[test]
     fn uploading_file() {
-        let logger = Logger::new("test::uploading_file");
         let data = TestData::new(vec![vec![1, 2, 3, 4, 5], vec![3, 4, 5, 6, 7, 8]]);
-        let mut test = UploadingFixture::new(logger, data);
+        let mut test = UploadingFixture::new(data);
 
         assert_eq!(test.next_chunk_result().unwrap(), UploadingState::NotFinished);
         assert_eq!(test.next_chunk_result().unwrap(), UploadingState::NotFinished);
@@ -558,10 +541,9 @@ mod test {
 
     #[test]
     fn checksum_mismatch_should_cause_an_error() {
-        let logger = Logger::new("test::uploading_file");
         let mut data = TestData::new(vec![vec![1, 2, 3, 4, 5]]);
         data.checksum = Sha3_224::new(&[3, 4, 5, 6, 7, 8]);
-        let mut test = UploadingFixture::new(logger, data);
+        let mut test = UploadingFixture::new(data);
 
         assert_eq!(test.next_chunk_result().unwrap(), UploadingState::NotFinished);
         assert!(test.next_chunk_result().is_err());

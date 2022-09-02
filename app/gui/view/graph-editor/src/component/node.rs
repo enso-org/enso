@@ -477,10 +477,6 @@ impl NodeModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("node");
 
-        let main_logger = Logger::new_sub(&logger, "main_area");
-        let drag_logger = Logger::new_sub(&logger, "drag_area");
-        let error_indicator_logger = Logger::new_sub(&logger, "error_indicator");
-
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
         let backdrop = backdrop::View::new();
@@ -495,7 +491,7 @@ impl NodeModel {
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
-        let input = input::Area::new(&logger, app);
+        let input = input::Area::new(app);
         let visualization = visualization::Container::new(&logger, app, registry);
 
         display_object.add_child(&visualization);
@@ -505,11 +501,11 @@ impl NodeModel {
         let (x, y) = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x, y));
 
-        let action_bar = action_bar::ActionBar::new(&logger, app);
+        let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
         scene.layers.above_nodes.add_exclusive(&action_bar);
 
-        let output = output::Area::new(&logger, app);
+        let output = output::Area::new(app);
         display_object.add_child(&output);
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
