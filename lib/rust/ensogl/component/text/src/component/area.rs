@@ -109,6 +109,10 @@ impl Line {
         }
     }
 
+    fn last_div(&self) -> f32 {
+        self.divs.last().copied().unwrap_or(0.0)
+    }
+
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
@@ -140,7 +144,7 @@ impl display::Object for Line {
 // =============
 
 /// Set of all visible lines.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, Deref)]
 struct Lines {
     rc: Rc<RefCell<Vec<Line>>>,
 }
@@ -675,29 +679,24 @@ impl AreaModel {
             let mut new_selection_map = SelectionMap::default();
             for sel in selections {
                 event!(WARN, ">>1 {:?}", sel);
-                let sel = self.snap_selection(*sel);
+                let sel = self.limit_selection_to_known_values(*sel);
                 event!(WARN, ">>2 {:?}", sel);
                 let id = sel.id;
-                let start_line = sel.start.line.as_usize();
-                let end_line = sel.end.line.as_usize();
-                let pos_x = |line: usize, column: Column| {
+                let selection_start_line = sel.start.line.as_usize();
+                let selection_end_line = sel.end.line.as_usize();
+                let get_pos_x = |line: usize, column: Column| {
                     if line >= self.lines.len() {
-                        self.lines
-                            .rc
-                            .borrow()
-                            .last()
-                            .and_then(|l| l.divs.last().cloned())
-                            .unwrap_or(0.0)
+                        self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
                         self.lines.rc.borrow()[line].div_by_column(column)
                     }
                 };
-                let min_pos_x = pos_x(start_line, sel.start.column);
-                let max_pos_x = pos_x(end_line, sel.end.column);
+                let start_x = get_pos_x(selection_start_line, sel.start.column);
+                let end_x = get_pos_x(selection_end_line, sel.end.column);
                 let logger = Logger::new_sub(&self.logger, "cursor");
-                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
-                let pos = Vector2(min_pos_x, min_pos_y);
-                let width = max_pos_x - min_pos_x;
+                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
+                let pos = Vector2(start_x, min_pos_y);
+                let width = end_x - start_x;
                 let selection = match selection_map.id_map.remove(&id) {
                     Some(selection) => {
                         let select_left = selection.width.simulator.target_value() < 0.0;
@@ -742,7 +741,7 @@ impl AreaModel {
                 new_selection_map.id_map.insert(id, selection);
                 new_selection_map
                     .location_map
-                    .entry(start_line)
+                    .entry(selection_start_line)
                     .or_default()
                     .insert(sel.start.column, id);
             }
@@ -1091,9 +1090,10 @@ impl AreaModel {
         }
     }
 
-    /// Constrain the selection to values fitting inside of the current text buffer.
+    /// Constrain the selection to values fitting inside of the current text buffer. This can be
+    /// needed when using the API and providing invalid values.
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn snap_selection(
+    fn limit_selection_to_known_values(
         &self,
         selection: buffer::selection::Selection,
     ) -> buffer::selection::Selection {
