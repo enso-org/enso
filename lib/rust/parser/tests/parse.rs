@@ -564,26 +564,26 @@ fn inline_text_literals() {
     #[rustfmt::skip]
     let cases = [
         (r#""I'm an inline raw text!""#, block![
-            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"")]),
+            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"" 0)]),
         (r#"zero_length = """#, block![
-            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\""))]),
-        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() ()))]),
+            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\"" 0))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() () 0))]),
         (r#"unclosed = "a"#, block![
-            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) ()))]),
-        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'")]),
-        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"")]),
+            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) () 0))]),
+        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'" 0)]),
+        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"" 0)]),
         (r#""String with \" escape""#, block![
             (TextLiteral
              "\""
              #((Section "String with ") (Escape "\\") (Section "\" escape"))
-             "\"")]),
+             "\"" 0)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
 fn multiline_text_literals() {
-    test("'''", block![(TextLiteral "'''" #() ())]);
+    test("'''", block![(TextLiteral "'''" #() () 0)]);
     const CODE: &str = r#"'''
     part of the string
        3-spaces indented line, part of the Text Block
@@ -602,7 +602,7 @@ fn multiline_text_literals() {
            (Section "\n") (Section "")
            (Section "\n") (Section "also part of the string")
            (Section "\n") (Section ""))
-        ())
+        () 4)
         (Number 3)
     ];
     test(CODE, expected);

@@ -128,6 +128,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// - Block literal: Always.
             /// - Inline literal: On error: EOL or EOF occurred without the string being closed.
             pub close_quote: Option<token::TextEnd<'s>>,
+            pub trim: VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -380,6 +381,15 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
     }
 }
 
+impl<'s, 'a> TreeVisitable<'s, 'a> for VisibleOffset {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
+impl<'s> span::Builder<'s> for VisibleOffset {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> { span }
+}
+
 
 // === OprApp ===
 
@@ -465,6 +475,9 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             }
             lhs.elements.append(&mut rhs.elements);
             lhs.close_quote = rhs.close_quote.take();
+            if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
+                lhs.trim = rhs.trim;
+            }
             return func;
         }
         Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant => {

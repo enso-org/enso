@@ -47,18 +47,28 @@ impl<'s> Item<'s> {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
                 token::Variant::Number(number) => Tree::number(token.with_variant(number)),
-                token::Variant::TextStart(open) =>
-                    Tree::text_literal(Some(token.with_variant(open)), default(), default()),
+                token::Variant::TextStart(open) => Tree::text_literal(
+                    Some(token.with_variant(open)),
+                    default(),
+                    default(),
+                    default(),
+                ),
                 token::Variant::TextSection(section) => {
+                    let trim = token.left_offset.visible;
                     let section = tree::TextElement::Section(token.with_variant(section));
-                    Tree::text_literal(default(), vec![section], default())
+                    Tree::text_literal(default(), vec![section], default(), trim)
                 }
                 token::Variant::TextEscape(escape) => {
+                    let trim = token.left_offset.visible;
                     let section = tree::TextElement::Escape(token.with_variant(escape));
-                    Tree::text_literal(default(), vec![section], default())
+                    Tree::text_literal(default(), vec![section], default(), trim)
                 }
-                token::Variant::TextEnd(close) =>
-                    Tree::text_literal(default(), default(), Some(token.with_variant(close))),
+                token::Variant::TextEnd(close) => Tree::text_literal(
+                    default(),
+                    default(),
+                    Some(token.with_variant(close)),
+                    default(),
+                ),
                 _ => {
                     let message = format!("to_ast: Item::Token({token:?})");
                     let value = Tree::ident(token.with_variant(token::variant::Ident(false, 0)));
