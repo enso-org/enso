@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import esbuild from 'esbuild'
 import plugin_yaml from 'esbuild-plugin-yaml'
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
+import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
 import aliasPlugin from 'esbuild-plugin-alias'
 // @ts-ignore
 import timePlugin from 'esbuild-plugin-time'
@@ -93,6 +94,7 @@ const config: esbuild.BuildOptions = {
     plugins: [
         plugin_yaml.yamlPlugin({}),
         NodeModulesPolyfillPlugin(),
+        NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
         aliasPlugin({ wasm_rust_glue: js_glue_path }),
         timePlugin(),
         copy_plugin.create(files_to_copy_provider),
