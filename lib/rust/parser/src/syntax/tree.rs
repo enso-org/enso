@@ -367,16 +367,22 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
 pub enum TextElement<'s> {
     /// The text content of the literal. If it is multiline, the offset information may contain
     /// part of the content, after trimming appropriately.
-    Section(token::TextSection<'s>),
+    Section {
+        /// The text content.
+        text: token::TextSection<'s>
+    },
     /// A \ character.
-    Escape(token::TextEscape<'s>),
+    Escape {
+        /// The \ character.
+        backslash: token::TextEscape<'s>
+    },
 }
 
 impl<'s> span::Builder<'s> for TextElement<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         match self {
-            TextElement::Section(section) => section.add_to_span(span),
-            TextElement::Escape(escape) => escape.add_to_span(span),
+            TextElement::Section { text } => text.add_to_span(span),
+            TextElement::Escape { backslash } => backslash.add_to_span(span),
         }
     }
 }
@@ -471,8 +477,9 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
                 && lhs.close_quote.is_none() && rhs.open_quote.is_none() => {
             match rhs.elements.first_mut() {
-                Some(TextElement::Section(section)) => section.left_offset = arg.span.left_offset,
-                Some(TextElement::Escape(escape)) => escape.left_offset = arg.span.left_offset,
+                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
+                Some(TextElement::Escape { backslash }) =>
+                    backslash.left_offset = arg.span.left_offset,
                 None => (),
             }
             lhs.elements.append(&mut rhs.elements);

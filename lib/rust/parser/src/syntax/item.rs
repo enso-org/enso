@@ -55,12 +55,13 @@ impl<'s> Item<'s> {
                 ),
                 token::Variant::TextSection(section) => {
                     let trim = token.left_offset.visible;
-                    let section = tree::TextElement::Section(token.with_variant(section));
+                    let section = tree::TextElement::Section { text: token.with_variant(section) };
                     Tree::text_literal(default(), vec![section], default(), trim)
                 }
                 token::Variant::TextEscape(escape) => {
                     let trim = token.left_offset.visible;
-                    let section = tree::TextElement::Escape(token.with_variant(escape));
+                    let backslash = token.with_variant(escape);
+                    let section = tree::TextElement::Escape { backslash };
                     Tree::text_literal(default(), vec![section], default(), trim)
                 }
                 token::Variant::TextEnd(close) => Tree::text_literal(
