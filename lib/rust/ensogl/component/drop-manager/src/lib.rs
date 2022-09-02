@@ -139,12 +139,11 @@ impl Manager {
             files_received <- source();
         }
 
-        let drop: DropClosure =
-            Closure::new(f!([logger,files_received](event:web_sys::DragEvent) {
-                debug!("Dropped files.");
-                event.prevent_default();
-                Self::handle_drop_event(&logger,event,&files_received)
-            }));
+        let drop: DropClosure = Closure::new(f!([files_received](event:web_sys::DragEvent) {
+            debug!("Dropped files.");
+            event.prevent_default();
+            Self::handle_drop_event(event,&files_received)
+        }));
         // To mark element as a valid drop target, the `dragover` event handler should return
         // `false`. See
         // https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop#define_the_drop_zone
@@ -162,11 +161,7 @@ impl Manager {
         &self.files_received
     }
 
-    fn handle_drop_event(
-        logger: &Logger,
-        event: web_sys::DragEvent,
-        files_received: &frp::Source<Vec<File>>,
-    ) {
+    fn handle_drop_event(event: web_sys::DragEvent, files_received: &frp::Source<Vec<File>>) {
         let opt_files = event.data_transfer().and_then(|t| t.files());
         if let Some(js_files) = opt_files {
             let js_files_iter = (0..js_files.length()).filter_map(|i| js_files.get(i));

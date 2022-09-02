@@ -202,7 +202,7 @@ impl BreadcrumbsModel {
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         let gap_width = default();
 
         scene.layers.panel.add_exclusive(&background);

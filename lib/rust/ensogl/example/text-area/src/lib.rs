@@ -60,6 +60,7 @@ fn init(app: Application) {
     area.hover();
 
 
+
     // area.set_cursor_at_end();
     //
     // area.set_format_option(

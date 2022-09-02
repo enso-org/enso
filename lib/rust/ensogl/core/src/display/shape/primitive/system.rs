@@ -209,7 +209,7 @@ pub trait DynamicShape: display::Object + CloneRef + Debug + Sized {
     /// The shape system instance this shape belongs to.
     type System: DynShapeSystemInstance<DynamicShape = Self>;
     /// Constructor.
-    fn new(logger: impl AnyLogger) -> Self;
+    fn new() -> Self;
     /// Accessor for the underlying sprite, if the shape is initialized.
     fn sprites(&self) -> Vec<Sprite>;
     /// The "canvas" size of the shape. It defines the bounding-box for the shape drawing area.
@@ -464,7 +464,7 @@ macro_rules! _define_shape_system {
                 type System      = ShapeSystem;
 
                 #[profile(Debug)]
-                fn new(logger:impl AnyLogger) -> Self {
+                fn new() -> Self {
                     let display_object  = display::object::Instance::new();
                     let shapes          = default();
                     let params          = default();

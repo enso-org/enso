@@ -152,7 +152,7 @@ impl ProjectNameModel {
         text_field.hover();
 
         let view_logger = Logger::new_sub(&logger, "view_logger");
-        let view = background::View::new(&view_logger);
+        let view = background::View::new();
 
         scene.layers.panel.add_exclusive(&view);
 

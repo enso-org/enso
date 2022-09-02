@@ -329,7 +329,7 @@ impl<Host> Model<Host> {
         let is_origin_dirty = has_new_parent || parent_origin_changed || layers_changed;
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
-        debug_span!("Update with {parent_origin_label} parent origin.").in_scope(|| {
+        debug_span!("Update with {} parent origin.", parent_origin_label).in_scope(|| {
             let origin_changed = self.transform.borrow_mut().update(new_parent_origin);
             let new_origin = self.transform.borrow().matrix;
             if origin_changed || layers_changed {

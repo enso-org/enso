@@ -385,9 +385,9 @@ impl PortShapeView {
     #[profile(Debug)]
     fn new(number_of_ports: usize, logger: &Logger) -> Self {
         if number_of_ports <= 1 {
-            Self::Single(SinglePortView::new(&logger))
+            Self::Single(SinglePortView::new())
         } else {
-            Self::Multi(MultiPortView::new(&logger))
+            Self::Multi(MultiPortView::new())
         }
     }
 

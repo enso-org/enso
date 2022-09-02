@@ -201,8 +201,8 @@ impl CursorModel {
         let scene = scene.clone_ref();
         let logger = Logger::new("cursor");
         let display_object = display::object::Instance::new();
-        let view = shape::View::new(&logger);
-        let port_selection = shape::View::new(&logger);
+        let view = shape::View::new();
+        let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);

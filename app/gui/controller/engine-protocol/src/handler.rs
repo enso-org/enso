@@ -99,7 +99,7 @@ where
             transport:     Box::new(transport),
             logger:        logger.clone_ref(),
             sender:        None,
-            ongoing_calls: OngoingCalls::new(logger),
+            ongoing_calls: OngoingCalls::new(),
             processor:     Box::new(processor),
         }
     }

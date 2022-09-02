@@ -51,7 +51,7 @@ pub fn main() {
     let navigator = Navigator::new(scene, &camera);
     let logger = Logger::new("ShapeView");
 
-    let view1 = shape::View::new(&logger);
+    let view1 = shape::View::new();
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 

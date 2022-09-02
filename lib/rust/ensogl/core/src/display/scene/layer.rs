@@ -359,7 +359,7 @@ impl Drop for LayerModel {
 
 impl LayerModel {
     fn new(logger: Logger) -> Self {
-        let camera = RefCell::new(Camera2d::new(&logger));
+        let camera = RefCell::new(Camera2d::new());
         let shape_system_registry = default();
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();

@@ -88,7 +88,7 @@ impl ProjectList {
         let logger = Logger::new("ProjectList");
         let network = frp::Network::new("ProjectList");
         let display_object = display::object::Instance::new();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         let caption = app.new_view::<text::Area>();
         let list = app.new_view::<list_view::ListView<Entry>>();
         display_object.add_child(&background);

@@ -88,8 +88,8 @@ impl component::Model for Model {
         "LabeledLine"
     }
 
-    fn new(_app: &Application, logger: &Logger) -> Self {
-        let line = shape::arrow::View::new(&logger);
+    fn new(_app: &Application, _logger: &Logger) -> Self {
+        let line = shape::arrow::View::new();
         Model { line }
     }
 }

@@ -164,7 +164,7 @@ impl Model {
         let fullscreen = fullscreen::View::new(&app);
         display_object.add_child(&fullscreen);
 
-        let shape = shape::View::new(&logger);
+        let shape = shape::View::new();
         display_object.add_child(&shape);
 
         Self { app, logger, display_object, shape, close, fullscreen }

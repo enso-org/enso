@@ -89,7 +89,7 @@ struct StatusIndicatorModel {
 
 impl StatusIndicatorModel {
     fn new(logger: &Logger) -> Self {
-        let shape = status_indicator_shape::View::new(logger);
+        let shape = status_indicator_shape::View::new();
         let root = display::object::Instance::new();
         root.add_child(&shape);
         StatusIndicatorModel { shape, root }

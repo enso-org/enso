@@ -203,9 +203,9 @@ impl<E: Entry> Model<E> {
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
         let entries = entry::List::new(&logger, &app);
-        let background = background::View::new(&logger);
-        let overlay = overlay::View::new(&logger);
-        let selection = selection::View::new(&logger);
+        let background = background::View::new();
+        let overlay = overlay::View::new();
+        let selection = selection::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);

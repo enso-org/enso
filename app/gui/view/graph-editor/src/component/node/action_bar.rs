@@ -89,9 +89,9 @@ impl Icons {
     fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "Icons");
         let display_object = display::object::Instance::new();
-        let freeze = ToggleButton::new(&logger);
-        let visibility = ToggleButton::new(&logger);
-        let skip = ToggleButton::new(&logger);
+        let freeze = ToggleButton::new();
+        let visibility = ToggleButton::new();
+        let skip = ToggleButton::new();
         display_object.add_child(&visibility);
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
@@ -139,7 +139,7 @@ impl Model {
         let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "ActionBar");
         let display_object = display::object::Instance::new();
-        let hover_area = hover_area::View::new(&logger);
+        let hover_area = hover_area::View::new();
         let icons = Icons::new(&logger);
         let shapes = compound::events::MouseEvents::default();
         let size = default();

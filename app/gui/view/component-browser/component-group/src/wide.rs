@@ -374,9 +374,9 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
-        let selection_background = background::View::new(&logger);
+        let selection_background = background::View::new();
         display_object.add_child(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);

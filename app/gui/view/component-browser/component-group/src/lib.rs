@@ -656,11 +656,11 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let header_text = default();
         let display_object = display::object::Instance::new();
-        let header_overlay = header_overlay::View::new(&logger);
-        let background = background::View::new(&logger);
-        let selection_background = background::View::new(&logger);
-        let header_background = header_background::View::new(&logger);
-        let selection_header_background = selection_header_background::View::new(&logger);
+        let header_overlay = header_overlay::View::new();
+        let background = background::View::new();
+        let selection_background = background::View::new();
+        let header_background = header_background::View::new();
+        let selection_header_background = selection_header_background::View::new();
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();

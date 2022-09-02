@@ -106,7 +106,7 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new();
         let label = default();
 
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
         scene.layers.tooltip.add_exclusive(&background);
 

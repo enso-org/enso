@@ -427,10 +427,8 @@ pub struct Dirty {
 }
 
 impl Dirty {
-    pub fn new<OnMut: Fn() + Clone + 'static>(logger: &Logger, on_mut: OnMut) -> Self {
-        let sub_logger = Logger::new_sub(logger, "shape_dirty");
+    pub fn new<OnMut: Fn() + Clone + 'static>(on_mut: OnMut) -> Self {
         let shape = ShapeDirty::new(Box::new(on_mut.clone()));
-        let sub_logger = Logger::new_sub(logger, "symbols_dirty");
         let symbols = SymbolRegistryDirty::new(Box::new(on_mut));
         Self { symbols, shape }
     }
@@ -765,7 +763,7 @@ impl SceneData {
         display_object.force_set_visibility(true);
         let var_logger = Logger::new_sub(&logger, "global_variables");
         let variables = UniformScope::new(var_logger);
-        let dirty = Dirty::new(&logger, on_mut);
+        let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);

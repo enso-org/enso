@@ -275,7 +275,7 @@ impl Model {
         searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let prompt_background = prompt_background::View::new(&logger);
+        let prompt_background = prompt_background::View::new();
         let prompt = ensogl_text::Area::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {

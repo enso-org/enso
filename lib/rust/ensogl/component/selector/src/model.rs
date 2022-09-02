@@ -77,19 +77,18 @@ pub struct Model {
 #[allow(missing_docs)]
 impl Model {
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new("selector::common::Model");
         let root = display::object::Instance::new();
         let label = FloatLabel::new(app);
         let label_left = app.new_view::<text::Area>();
         let label_right = app.new_view::<text::Area>();
         let caption_center = app.new_view::<text::Area>();
         let caption_left = app.new_view::<text::Area>();
-        let background = background::View::new(&logger);
-        let track = track::View::new(&logger);
-        let track_handle_left = io_rect::View::new(&logger);
-        let track_handle_right = io_rect::View::new(&logger);
-        let left_overflow = left_overflow::View::new(&logger);
-        let right_overflow = right_overflow::View::new(&logger);
+        let background = background::View::new();
+        let track = track::View::new();
+        let track_handle_left = io_rect::View::new();
+        let track_handle_right = io_rect::View::new();
+        let left_overflow = left_overflow::View::new();
+        let right_overflow = right_overflow::View::new();
         let background_color = default();
         let track_color = default();
         let background_left_corner_roundness = default();

@@ -213,7 +213,7 @@ impl<Shape: ButtonShape> Model<Shape> {
         let app = app.clone_ref();
         let logger = Logger::new(Shape::debug_name());
         let display_object = display::object::Instance::new();
-        let shape = ShapeView::new(&logger);
+        let shape = ShapeView::new();
         display_object.add_child(&shape);
         Self { app, logger, display_object, shape }
     }

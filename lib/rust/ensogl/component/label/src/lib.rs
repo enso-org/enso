@@ -93,7 +93,7 @@ impl Model {
         let logger = Logger::new("TextLabel");
         let display_object = display::object::Instance::new();
         let label = app.new_view::<text::Area>();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
 
         display_object.add_child(&background);
         display_object.add_child(&label);

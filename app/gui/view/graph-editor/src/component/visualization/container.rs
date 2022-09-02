@@ -172,8 +172,8 @@ impl View {
     pub fn new(logger: &Logger, scene: Scene) -> Self {
         let logger = Logger::new_sub(logger, "view");
         let display_object = display::object::Instance::new();
-        let background = background::View::new(&logger);
-        let overlay = overlay::View::new(&logger);
+        let background = background::View::new();
+        let overlay = overlay::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
 

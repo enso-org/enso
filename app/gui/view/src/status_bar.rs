@@ -164,7 +164,7 @@ impl Model {
         let logger = Logger::new("StatusBar");
         let display_object = display::object::Instance::new();
         let root = display::object::Instance::new();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         let label = text::Area::new(app);
         let events = default();
         let processes = default();

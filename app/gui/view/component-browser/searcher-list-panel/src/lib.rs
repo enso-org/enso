@@ -416,9 +416,9 @@ impl Model {
         let navigator = default();
         let groups_wrapper = component_group::set::Wrapper::new();
 
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
-        let navigator_shadow = navigator_shadow::View::new(&logger);
+        let navigator_shadow = navigator_shadow::View::new();
         display_object.add_child(&navigator_shadow);
 
         let favourites_section = Self::init_column_section(&app);
@@ -441,7 +441,7 @@ impl Model {
         display_object.add_child(&section_navigator);
         layers.navigator.add_exclusive(&section_navigator);
 
-        let selection = selection_box::View::new(&app.logger);
+        let selection = selection_box::View::new();
         scroll_area.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
 
@@ -706,7 +706,7 @@ impl<T: CloneRef> LabeledSection<T> {
     pub fn new(content: T, app: &Application) -> Self {
         let logger = Logger::new("LabeledSection");
         let label = text::Area::new(app);
-        let divider = hline::View::new(logger);
+        let divider = hline::View::new();
         Self { label, divider, content }
     }
 

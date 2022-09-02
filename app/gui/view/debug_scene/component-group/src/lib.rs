@@ -283,7 +283,7 @@ fn init(app: &Application) {
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
     {
-        let transparent_circle = transparent_circle::View::new(&app.logger);
+        let transparent_circle = transparent_circle::View::new();
         transparent_circle.size.set(Vector2(150.0, 150.0));
         transparent_circle.set_position_xy(Vector2(200.0, -150.0));
         scroll_area.content().add_child(&transparent_circle);

@@ -142,7 +142,7 @@ impl Selection {
         let display_object = display::object::Instance::new();
         let right_side = display::object::Instance::new();
         let network = frp::Network::new("text_selection");
-        let shape_view = shape::View::new(&logger);
+        let shape_view = shape::View::new();
         let position = DEPRECATED_Animation::new(&network);
         let width = DEPRECATED_Animation::new(&network);
         let edit_mode = Rc::new(Cell::new(edit_mode));

@@ -286,9 +286,9 @@ impl BreadcrumbModel {
         let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new();
         let view_logger = Logger::new_sub(&logger, "view_logger");
-        let view = background::View::new(&view_logger);
-        let icon = icon::View::new(&view_logger);
-        let separator = separator::View::new(&view_logger);
+        let view = background::View::new();
+        let icon = icon::View::new();
+        let separator = separator::View::new();
         let label = app.new_view::<text::Area>();
         let expression_id = *expression_id;
         let method_pointer = method_pointer.clone();

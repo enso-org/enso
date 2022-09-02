@@ -481,11 +481,11 @@ impl NodeModel {
         let drag_logger = Logger::new_sub(&logger, "drag_area");
         let error_indicator_logger = Logger::new_sub(&logger, "error_indicator");
 
-        let error_indicator = error_shape::View::new(&error_indicator_logger);
+        let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
-        let backdrop = backdrop::View::new(&main_logger);
-        let background = background::View::new(&main_logger);
-        let drag_area = drag_area::View::new(&drag_logger);
+        let backdrop = backdrop::View::new();
+        let background = background::View::new();
+        let drag_area = drag_area::View::new();
         let vcs_indicator = vcs::StatusIndicator::new(app);
         let display_object = display::object::Instance::new();
 

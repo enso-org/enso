@@ -328,7 +328,6 @@ impl Symbol {
         on_mut: OnMut,
     ) -> Self {
         let logger = Logger::new(format!("symbol_{}", id));
-        let init_logger = logger.clone();
         debug_span!("Initializing.").in_scope(|| {
             let on_mut2 = on_mut.clone();
             let shader_dirty = ShaderDirty::new(Box::new(on_mut));
@@ -570,7 +569,6 @@ impl SymbolData {
     ) -> Self {
         let global_id_provider = global_id_provider.clone_ref();
         let surface_logger = Logger::new_sub(&logger, "surface");
-        let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
         let surface_dirty = GeometryDirty::new(Box::new(on_mut));
         let surface_on_mut = Box::new(f!(surface_dirty.set()));
         let surface = Mesh::new(surface_logger, stats, surface_on_mut);

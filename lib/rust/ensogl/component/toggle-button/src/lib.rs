@@ -77,9 +77,8 @@ struct Model<Shape> {
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "ToggleButton");
-        let icon = ShapeView::new(&logger);
+    fn new() -> Self {
+        let icon = ShapeView::new();
         Self { icon }
     }
 }
@@ -208,9 +207,9 @@ impl<Shape> Deref for ToggleButton<Shape> {
 
 impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::<Shape>::new(logger));
+        let model = Rc::new(Model::<Shape>::new());
         Self { frp, model }.init_frp()
     }
 

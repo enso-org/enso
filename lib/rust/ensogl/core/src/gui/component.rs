@@ -44,8 +44,8 @@ impl<S> Deref for ShapeView<S> {
 
 impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let model = Rc::new(ShapeViewModel::new(logger));
+    pub fn new() -> Self {
+        let model = Rc::new(ShapeViewModel::new());
         Self { model }.init()
     }
 
@@ -131,8 +131,8 @@ impl<S: DynamicShapeInternals> ShapeViewModel<S> {
 
 impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let shape = S::new(logger);
+    pub fn new() -> Self {
+        let shape = S::new();
         let events = PointerTarget::new();
         let registry = default();
         let pointer_targets = default();

@@ -122,7 +122,6 @@ impl {
     (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
-        let scopes_logger = Logger::new_sub(&logger,"scopes_dirty");
         let scopes_dirty  = ScopesDirty::new(Box::new(on_mut));
         let scopes        = debug_span!("Initializing.").in_scope(|| {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(

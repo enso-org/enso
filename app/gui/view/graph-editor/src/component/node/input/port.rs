@@ -98,8 +98,8 @@ impl Shape {
     #[profile(Debug)]
     pub fn new(logger: &Logger, size: Vector2, hover_height: f32) -> Self {
         let root = display::object::Instance::new();
-        let hover = hover::View::new(logger);
-        let viz = viz::View::new(logger);
+        let hover = hover::View::new();
+        let viz = viz::View::new();
 
         let width_padded = size.x + 2.0 * PADDING_X;
         hover.size.set(Vector2::new(width_padded, hover_height));

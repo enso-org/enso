@@ -102,7 +102,7 @@ impl EntryData {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new();
         let label = app.new_view::<ensogl_text::Area>();
-        let background = entry::shape::View::new(&logger);
+        let background = entry::shape::View::new();
         display_object.add_child(&label);
         display_object.add_child(&background);
         if let Some(layer) = text_layer {

@@ -80,7 +80,7 @@ impl Model {
         let inner_dom = DomSymbol::new(&inner_div);
         let size =
             Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));
-        let overlay = overlay::View::new(&logger);
+        let overlay = overlay::View::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)

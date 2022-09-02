@@ -113,7 +113,6 @@ impl Client {
     /// Function that does early processing of the peer's message and decides how it shall be
     /// handled. Returns a function so that it may be passed to the `Handler`.
     fn processor(
-        logger: Logger,
     ) -> impl FnMut(TransportEvent) -> Disposition<Uuid, FromServerPayloadOwned, Notification> + 'static
     {
         move |event: TransportEvent| {
@@ -149,7 +148,7 @@ impl Client {
     /// * `init` must be called or it needs to be wrapped into `Connection`.
     pub fn new(parent: impl AnyLogger, transport: impl Transport + 'static) -> Client {
         let logger = Logger::new_sub(parent, "binary-protocol-client");
-        let processor = Self::processor(logger.clone_ref());
+        let processor = Self::processor();
         Client { logger: logger.clone_ref(), handler: Handler::new(transport, logger, processor) }
     }
 
@@ -167,8 +166,6 @@ impl Client {
     {
         let message = MessageToServerRef::new(payload);
         let id = message.message_id;
-
-        let logger = self.logger.clone_ref();
         let completer = move |reply| {
             info!("Completing request {id} with a reply: {reply:?}");
             if let FromServerPayloadOwned::Error { code, message, data } = reply {

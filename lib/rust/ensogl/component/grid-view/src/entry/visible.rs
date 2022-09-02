@@ -80,7 +80,7 @@ where EntryParams: frp::node::Data
         text_layer: Option<&Layer>,
     ) -> VisibleEntry<E> {
         let entry = E::new(&self.app, text_layer);
-        let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
+        let overlay = entry::overlay::View::new();
         entry.add_child(&overlay);
         if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();

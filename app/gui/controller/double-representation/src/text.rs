@@ -29,7 +29,6 @@ pub fn apply_code_change_to_id_map(
     let inserted = change.text.as_str();
     let new_code = change.applied(code).unwrap_or_else(|_| code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
-    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
     let inserted_size: Bytes = inserted.len().into();
 
