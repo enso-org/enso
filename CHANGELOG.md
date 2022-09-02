@@ -58,9 +58,10 @@
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
-- [New nodes are created in the project source when the searcher is opened  
-  and a new node is created.][3645]
+- [New nodes are created in the project source when the searcher is opened and a
+  new node is created.][3645]
 - [Proper Polyglot Vector and Array Support][3667]
+- [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
 
 #### EnsoGL (rendering engine)
@@ -297,6 +298,7 @@
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
+[3661]: https://github.com/enso-org/enso/pull/3661
 [3665]: https://github.com/enso-org/enso/pull/3665
 [3634]: https://github.com/enso-org/enso/pull/3634
 [3667]: https://github.com/enso-org/enso/pull/3667

@@ -19,7 +19,7 @@ import Standard.Visualization.Helpers
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Json
-prepare_visualization x max_rows = Helpers.recover_errors <| case x of
+prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     Dataframe_Table.Table_Data _ ->
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
