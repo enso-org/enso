@@ -558,7 +558,7 @@ main =
         use model::module::Position;
 
         let mut fixture = crate::test::mock::Unified::new().fixture();
-        let Fixture { executed_graph, graph, project, logger, .. } = &mut fixture;
+        let Fixture { executed_graph, graph, project, .. } = &mut fixture;
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();

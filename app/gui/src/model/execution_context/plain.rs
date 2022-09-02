@@ -316,7 +316,6 @@ pub mod test {
         }
 
         pub fn create(&self) -> ExecutionContext {
-            let logger = Logger::new("Mocked Execution Context");
             let mut ec = ExecutionContext::new(self.main_method_pointer());
             ec.component_groups = self.component_groups();
             ec

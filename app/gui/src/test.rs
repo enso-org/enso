@@ -228,7 +228,6 @@ pub mod mock {
         }
 
         pub fn execution_context(&self) -> Rc<model::execution_context::Plain> {
-            let logger = Logger::new_sub(&self.logger, "Mocked Execution Context");
             Rc::new(model::execution_context::Plain::new(self.method_pointer()))
         }
 

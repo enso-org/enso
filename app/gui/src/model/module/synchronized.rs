@@ -150,7 +150,6 @@ impl Module {
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
     ) -> FallibleResult<Rc<Self>> {
-        let logger = Logger::new(iformat!("Module {path}"));
         let file_path = path.file_path().clone();
         info!("Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
@@ -506,22 +505,19 @@ pub mod test {
     // Ensures that subsequent LS text operations form a consistent series of versions.
     #[derive(Clone, Debug)]
     struct LsClientSetup {
-        logger:             Logger,
         path:               Path,
         current_ls_content: Rc<CloneCell<Text>>,
         current_ls_version: Rc<CloneCell<Sha3_224>>,
     }
 
     impl LsClientSetup {
-        fn new(parent: impl AnyLogger, path: Path, initial_content: impl Into<Text>) -> Self {
+        fn new(path: Path, initial_content: impl Into<Text>) -> Self {
             let current_ls_content = initial_content.into();
             let current_ls_version =
                 Sha3_224::from_parts(current_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
-            let logger = Logger::new_sub(parent, "LsClientSetup");
             debug!("Initial content:\n===\n{current_ls_content}\n===");
             Self {
                 path,
-                logger,
                 current_ls_content: Rc::new(CloneCell::new(current_ls_content)),
                 current_ls_version: Rc::new(CloneCell::new(current_ls_version)),
             }
@@ -529,7 +525,7 @@ pub mod test {
 
         /// Create a setup initialized with the data from the given mock description.
         fn new_for_mock_data(data: &crate::test::mock::Unified) -> Self {
-            Self::new(&data.logger, data.module_path.clone(), data.get_code())
+            Self::new(data.module_path.clone(), data.get_code())
         }
 
         /// Set up general text edit expectation in the mock client.
@@ -655,7 +651,7 @@ pub mod test {
         // Parser which is time-consuming to construct.
         let test = |runner: &mut Runner| {
             let module_path = data.module_path.clone();
-            let edit_handler = Rc::new(LsClientSetup::new(&data.logger, module_path, initial_code));
+            let edit_handler = Rc::new(LsClientSetup::new(module_path, initial_code));
             let mut fixture = data.fixture_customize(|data, client, _| {
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
