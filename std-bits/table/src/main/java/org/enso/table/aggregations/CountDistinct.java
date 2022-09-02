@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.MultiValueKey;
+import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
@@ -33,9 +33,9 @@ public class CountDistinct extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
-    Set<MultiValueKey> set = new HashSet<>();
+    Set<MultiValueKeyBase> set = new HashSet<>();
     for (int row : indexes) {
-      MultiValueKey key = new MultiValueKey(storage, row, objectComparator);
+      MultiValueKeyBase key = new MultiValueKeyBase(storage, row, objectComparator);
       if (key.hasFloatValues()) {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));
       }

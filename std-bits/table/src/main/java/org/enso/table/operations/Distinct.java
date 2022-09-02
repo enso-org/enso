@@ -1,26 +1,22 @@
 package org.enso.table.operations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.MultiValueKey;
+import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.problems.WithProblems;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class Distinct {
   public static BitSet buildDistinctRowsMask(int tableSize, Column[] keyColumns, Comparator<Object> objectComparator, AggregatedProblems problems) {
     var mask = new BitSet();
     if (keyColumns.length != 0) {
-      Map<MultiValueKey, Boolean> visitedRows = new HashMap<>();
+      Map<MultiValueKeyBase, Boolean> visitedRows = new HashMap<>();
       int size = keyColumns[0].getSize();
       Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        MultiValueKey key = new MultiValueKey(storage, i, null, objectComparator);
+        MultiValueKeyBase key = new MultiValueKeyBase(storage, i, null, objectComparator);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("Distinct", i));

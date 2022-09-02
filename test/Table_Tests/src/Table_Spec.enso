@@ -694,7 +694,7 @@ spec =
             d2.at "X" . to_vector . should_equal ["A", "enso"]
             d2.at "Y" . to_vector . should_equal [1, 3]
 
-            t2 = Table.new [["X", ["łąka", "STRASSE", "Łąka", "Straße", "ﬃ", "ffi"]]]
+            t2 = Table.new [["X", ["łąka", "STRASSE", "ŁĄka", "Straße", "ﬃ", "ffi"]]]
             t2.distinct case_sensitive=Case_Insensitive_Data . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
 
         Test.specify "should report a warning if the key contains floating point values" <|

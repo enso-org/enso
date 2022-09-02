@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
 
 public class MultiValueIndex {
   private final int keyColumnsLength;
-  private final Map<MultiValueKey, List<Integer>> locs;
+  private final Map<MultiValueKeyBase, List<Integer>> locs;
   private final AggregatedProblems problems;
 
   public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
@@ -31,7 +31,7 @@ public class MultiValueIndex {
       int size = keyColumns[0].getSize();
       Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        MultiValueKey key = new MultiValueKey(storage, i, ordering, objectComparator);
+        MultiValueKeyBase key = new MultiValueKeyBase(storage, i, ordering, objectComparator);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -41,7 +41,7 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      this.locs.put(new MultiValueKey(new Storage[0], 0, objectComparator), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(new MultiValueKeyBase(new Storage[0], 0, objectComparator), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
