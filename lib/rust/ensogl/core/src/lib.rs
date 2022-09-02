@@ -21,6 +21,7 @@
 #![feature(trace_macros)]
 #![feature(const_trait_impl)]
 #![feature(slice_as_chunks)]
+#![feature(local_key_cell_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

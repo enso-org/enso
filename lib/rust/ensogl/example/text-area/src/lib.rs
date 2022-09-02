@@ -54,16 +54,16 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content("test sentence showing a longer text\n1234");
+    area.set_content("testt\n1234");
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
     // area.set_cursor_at_end();
     //
-    area.set_format_option(
-        Range::new(5.ubytes(), 7.ubytes()),
-        style::FormatOption::Weight(style::Weight::Bold),
-    );
+    // area.set_format_option(
+    //     Range::new(5.ubytes(), 7.ubytes()),
+    //     style::FormatOption::Weight(style::Weight::Bold),
+    // );
     // area.set_format_option(Range::new(4.ubytes(), 6.ubytes()), style::SdfWeight(0.02));
     // area.set_sdf_weight(Range::new(7.ubytes(), 15.ubytes()), style::SdfWeight(0.04));
     // area.set_sdf_weight(Range::new(24.ubytes(), 26.ubytes()), style::SdfWeight(0.02));

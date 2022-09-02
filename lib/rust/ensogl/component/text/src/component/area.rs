@@ -380,6 +380,7 @@ impl Area {
             mouse_on_add_cursor      <- mouse.position.sample(&input.add_cursor_at_mouse_position);
             trace mouse_on_add_cursor;
             loc_on_set_cursor_mouse  <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
+            trace loc_on_set_cursor_mouse;
             loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
             trace loc_on_add_cursor_mouse;
             loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
@@ -666,10 +667,16 @@ impl AreaModel {
     ) {
         event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
         {
+            event!(WARN, ">>x1");
             let mut selection_map = self.selection_map.borrow_mut();
+            event!(WARN, ">>x2");
+
+            event!(WARN, "{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
             for sel in selections {
+                event!(WARN, ">>1 {:?}", sel);
                 let sel = self.snap_selection(*sel);
+                event!(WARN, ">>2 {:?}", sel);
                 let id = sel.id;
                 let start_line = sel.start.line.as_usize();
                 let end_line = sel.end.line.as_usize();
@@ -741,7 +748,7 @@ impl AreaModel {
             }
             *selection_map = new_selection_map;
         }
-        self.redraw(true)
+        // self.redraw(true)
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -821,6 +828,7 @@ impl AreaModel {
         })
     }
 
+    // FIXME: the video posted on discord activity channel shows an issue (panic). To be fixed.
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         event!(DEBUG, "redraw_line {:?} {:?}", view_line_index, content);
 
@@ -843,7 +851,7 @@ impl AreaModel {
 
         let glyph_system = self.glyph_system.borrow();
 
-        let mut divs = vec![];
+        let mut divs = vec![0.0];
         let mut last_cursor = None;
         let mut last_cursor_target = default();
 
@@ -893,11 +901,6 @@ impl AreaModel {
                     let units_per_em = ttf_face.units_per_em();
                     let rustybuzz_scale = units_per_em as f32 / size * 1.0;
 
-                    if column != Column(0) {
-                        glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
-                    }
-                    divs.push(glyph_offset_x);
-
                     let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
                     glyph.set_color(style.color);
                     glyph.set_sdf_weight(style.sdf_weight.value);
@@ -916,9 +919,10 @@ impl AreaModel {
                     let glyph_render_offset = glyph_render_info.offset.scale(size);
                     let glyph_x = glyph_render_offset.x + glyph_offset_x;
                     let glyph_y = glyph_render_offset.y;
-
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
 
+                    glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
+                    divs.push(glyph_offset_x);
 
                     cursor_map.get(&column).for_each(|id| {
                         self.selection_map.borrow().id_map.get(id).for_each(|cursor| {

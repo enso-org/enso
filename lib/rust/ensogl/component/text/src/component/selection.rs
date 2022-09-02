@@ -109,7 +109,7 @@ ensogl_core::define_endpoints! {
 /// used for smooth glyph animation. For example, after several glyphs were selected and removed,
 /// the selection will gradually shrink. Making all following glyphs children of the `right_side`
 /// object will make the following glyphs  animate while the selection is shrinking.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef)]
 pub struct Selection {
     logger:         Logger,
     display_object: display::object::Instance,
@@ -120,6 +120,12 @@ pub struct Selection {
     pub width:      DEPRECATED_Animation<f32>,
     pub edit_mode:  Rc<Cell<bool>>,
     pub frp:        Frp,
+}
+
+impl Debug for Selection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Selection")
+    }
 }
 
 impl Deref for Selection {
