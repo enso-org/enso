@@ -97,13 +97,20 @@ impl Line {
     }
 
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn _div_by_column(&self, column: Column) -> f32 {
+    fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
-        self.divs[ix]
+        if ix < self.divs.len() {
+            self.divs[ix]
+        } else {
+            if column != Column(0) {
+                event!(WARN, "Internal error. Incorrect text divisions.")
+            }
+            0.0
+        }
     }
 
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn _resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
+    fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
             let glyph = cons();
@@ -369,12 +376,16 @@ impl Area {
             // === Set / Add cursor ===
 
             mouse_on_set_cursor      <- mouse.position.sample(&input.set_cursor_at_mouse_position);
+            trace mouse_on_set_cursor;
             mouse_on_add_cursor      <- mouse.position.sample(&input.add_cursor_at_mouse_position);
+            trace mouse_on_add_cursor;
             loc_on_set_cursor_mouse  <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
             loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
+            trace loc_on_add_cursor_mouse;
             loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
             loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse,loc_on_set_cursor_at_end);
             loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
+            trace loc_on_add_cursor;
 
             eval loc_on_set_cursor ((loc) m.buffer.frp.set_cursor(loc));
             eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
@@ -388,7 +399,7 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    event!(WARN, ">> 2");
+                    event!(WARN, ">> selection_non_edit_mode");
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
@@ -649,88 +660,88 @@ impl AreaModel {
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
-        _selections: &buffer::selection::Group,
-        _time: f32,
-        _do_edit: bool,
+        selections: &buffer::selection::Group,
+        time: f32,
+        do_edit: bool,
     ) {
-        // event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
-        // {
-        //     let mut selection_map = self.selection_map.borrow_mut();
-        //     let mut new_selection_map = SelectionMap::default();
-        //     for sel in selections {
-        //         let sel = self.snap_selection(*sel);
-        //         let id = sel.id;
-        //         let start_line = sel.start.line.as_usize();
-        //         let end_line = sel.end.line.as_usize();
-        //         let pos_x = |line: usize, column: Column| {
-        //             if line >= self.lines.len() {
-        //                 self.lines
-        //                     .rc
-        //                     .borrow()
-        //                     .last()
-        //                     .and_then(|l| l.divs.last().cloned())
-        //                     .unwrap_or(0.0)
-        //             } else {
-        //                 self.lines.rc.borrow()[line].div_by_column(column)
-        //             }
-        //         };
-        //         let min_pos_x = pos_x(start_line, sel.start.column);
-        //         let max_pos_x = pos_x(end_line, sel.end.column);
-        //         let logger = Logger::new_sub(&self.logger, "cursor");
-        //         let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
-        //         let pos = Vector2(min_pos_x, min_pos_y);
-        //         let width = max_pos_x - min_pos_x;
-        //         let selection = match selection_map.id_map.remove(&id) {
-        //             Some(selection) => {
-        //                 let select_left = selection.width.simulator.target_value() < 0.0;
-        //                 let select_right = selection.width.simulator.target_value() > 0.0;
-        //                 let tgt_pos_x = selection.position.simulator.target_value().x;
-        //                 let tgt_width = selection.width.simulator.target_value();
-        //                 let mid_point = tgt_pos_x + tgt_width / 2.0;
-        //                 let go_left = pos.x < mid_point;
-        //                 let go_right = pos.x > mid_point;
-        //                 let need_flip = (select_left && go_left) || (select_right && go_right);
-        //                 if width == 0.0 && need_flip {
-        //                     selection.flip_sides()
-        //                 }
-        //                 selection.position.set_target_value(pos);
-        //                 selection
-        //             }
-        //             None => {
-        //                 let selection = Selection::new(&logger, do_edit);
-        //                 selection.letter_width.set(7.0); // FIXME hardcoded values
-        //                 self.add_child(&selection);
-        //                 selection.position.set_target_value(pos);
-        //                 selection.position.skip();
-        //                 let selection_network = &selection.network;
-        //                 // FIXME[wd]: memory leak. To be fixed with the below note as a part of
-        //                 //            https://github.com/enso-org/ide/issues/670 . Once fixed,
-        //                 //            delete code removing all cursors on Area drop.
-        //                 let model = self.clone_ref();
-        //                 frp::extend! { selection_network
-        //                     // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
-        //                     //            animation frame. Multiple times, once per cursor.
-        //                     //            https://github.com/enso-org/ide/issues/1031
-        //                     eval_ selection.position.value (model.redraw(true));
-        //                     selection.frp.set_color <+ self.frp_endpoints.selection_color;
-        //                 }
-        //                 selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
-        //                 selection
-        //             }
-        //         };
-        //         selection.width.set_target_value(width);
-        //         selection.edit_mode.set(do_edit);
-        //         selection.start_time.set(time);
-        //         new_selection_map.id_map.insert(id, selection);
-        //         new_selection_map
-        //             .location_map
-        //             .entry(start_line)
-        //             .or_default()
-        //             .insert(sel.start.column, id);
-        //     }
-        //     *selection_map = new_selection_map;
-        // }
-        // self.redraw(true)
+        event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
+        {
+            let mut selection_map = self.selection_map.borrow_mut();
+            let mut new_selection_map = SelectionMap::default();
+            for sel in selections {
+                let sel = self.snap_selection(*sel);
+                let id = sel.id;
+                let start_line = sel.start.line.as_usize();
+                let end_line = sel.end.line.as_usize();
+                let pos_x = |line: usize, column: Column| {
+                    if line >= self.lines.len() {
+                        self.lines
+                            .rc
+                            .borrow()
+                            .last()
+                            .and_then(|l| l.divs.last().cloned())
+                            .unwrap_or(0.0)
+                    } else {
+                        self.lines.rc.borrow()[line].div_by_column(column)
+                    }
+                };
+                let min_pos_x = pos_x(start_line, sel.start.column);
+                let max_pos_x = pos_x(end_line, sel.end.column);
+                let logger = Logger::new_sub(&self.logger, "cursor");
+                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * start_line as f32;
+                let pos = Vector2(min_pos_x, min_pos_y);
+                let width = max_pos_x - min_pos_x;
+                let selection = match selection_map.id_map.remove(&id) {
+                    Some(selection) => {
+                        let select_left = selection.width.simulator.target_value() < 0.0;
+                        let select_right = selection.width.simulator.target_value() > 0.0;
+                        let tgt_pos_x = selection.position.simulator.target_value().x;
+                        let tgt_width = selection.width.simulator.target_value();
+                        let mid_point = tgt_pos_x + tgt_width / 2.0;
+                        let go_left = pos.x < mid_point;
+                        let go_right = pos.x > mid_point;
+                        let need_flip = (select_left && go_left) || (select_right && go_right);
+                        if width == 0.0 && need_flip {
+                            selection.flip_sides()
+                        }
+                        selection.position.set_target_value(pos);
+                        selection
+                    }
+                    None => {
+                        let selection = Selection::new(&logger, do_edit);
+                        selection.letter_width.set(7.0); // FIXME hardcoded values
+                        self.add_child(&selection);
+                        selection.position.set_target_value(pos);
+                        selection.position.skip();
+                        let selection_network = &selection.network;
+                        // FIXME[wd]: memory leak. To be fixed with the below note as a part of
+                        //            https://github.com/enso-org/ide/issues/670 . Once fixed,
+                        //            delete code removing all cursors on Area drop.
+                        let model = self.clone_ref();
+                        frp::extend! { selection_network
+                            // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
+                            //            animation frame. Multiple times, once per cursor.
+                            //            https://github.com/enso-org/ide/issues/1031
+                            eval_ selection.position.value (model.redraw(true));
+                            selection.frp.set_color <+ self.frp_endpoints.selection_color;
+                        }
+                        selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
+                        selection
+                    }
+                };
+                selection.width.set_target_value(width);
+                selection.edit_mode.set(do_edit);
+                selection.start_time.set(time);
+                new_selection_map.id_map.insert(id, selection);
+                new_selection_map
+                    .location_map
+                    .entry(start_line)
+                    .or_default()
+                    .insert(sel.start.column, id);
+            }
+            *selection_map = new_selection_map;
+        }
+        self.redraw(true)
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -1078,7 +1089,7 @@ impl AreaModel {
 
     /// Constrain the selection to values fitting inside of the current text buffer.
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn _snap_selection(
+    fn snap_selection(
         &self,
         selection: buffer::selection::Selection,
     ) -> buffer::selection::Selection {

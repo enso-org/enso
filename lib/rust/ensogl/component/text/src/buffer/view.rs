@@ -341,7 +341,7 @@ impl ViewBuffer {
 // ===========
 
 ensogl_core::define_endpoints! {
-    Input {
+    Input { [TRACE_ALL]
         cursors_move               (Option<Transform>),
         cursors_select             (Option<Transform>),
         set_cursor                 (Location),
@@ -443,6 +443,7 @@ impl View {
 
             sel_on_set_cursor        <- input.set_cursor.map(f!((t) m.new_cursor(*t).into()));
             sel_on_add_cursor        <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
+            trace sel_on_add_cursor;
             sel_on_set_newest_end    <- input.set_newest_selection_end.map(f!((t) m.set_newest_selection_end(*t)));
             sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
 

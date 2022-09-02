@@ -56,8 +56,8 @@ fn init(app: Application) {
     let text = "test".to_string();
     area.set_content("test sentence showing a longer text\n1234");
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
-    // area.focus();
-    // area.hover();
+    area.focus();
+    area.hover();
     // area.set_cursor_at_end();
     //
     area.set_format_option(
