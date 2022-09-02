@@ -541,6 +541,7 @@ impl Font {
         }
     }
 
+    // FIXME: remove?
     /// Get kerning between two characters.
     pub fn kerning(
         &self,
@@ -552,6 +553,21 @@ impl Font {
         match self {
             Font::NonVariable(font) => font.kerning(&non_variable_font_variations, left, right),
             Font::Variable(font) => font.kerning(variable_font_variations, left, right),
+        }
+    }
+
+    pub fn with_borrowed_face<F, T>(
+        &self,
+        non_variable_font_variations: NonVariableFaceHeader,
+        f: F,
+    ) -> Option<T>
+    where
+        F: for<'a> FnOnce(&'a Face) -> T,
+    {
+        match self {
+            Font::NonVariable(font) =>
+                font.family.with_borrowed_face(&non_variable_font_variations, f),
+            Font::Variable(font) => font.family.with_borrowed_face(&default(), f),
         }
     }
 }
