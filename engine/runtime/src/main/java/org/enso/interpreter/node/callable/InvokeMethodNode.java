@@ -240,6 +240,28 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ARRAY"
+      })
+  Stateful doConvertArray(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
+    arguments[0] = self;
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE"
       })
   Stateful doConvertDate(

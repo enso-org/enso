@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
-public class Array implements TruffleObject {
+public final class Array implements TruffleObject {
   public static class InvalidIndexException extends RuntimeException {
     private final long index;
     private final Array array;
@@ -93,8 +93,6 @@ public class Array implements TruffleObject {
     return e;
   }
 
-  /** @return the size of this array */
-  @Builtin.Method(description = "Returns the size of this array.")
   public long length() {
     return this.getItems().length;
   }
@@ -119,15 +117,6 @@ public class Array implements TruffleObject {
   @ExportMessage
   long getArraySize() {
     return items.length;
-  }
-
-  @Builtin.Method(name = "at", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = InvalidIndexException.class, to = InvalidArrayIndexError.class)
-  public Object get(long index) {
-    if (index < 0 || index >= items.length) {
-      throw new InvalidIndexException(index, this);
-    }
-    return getItems()[(int) index];
   }
 
   /**

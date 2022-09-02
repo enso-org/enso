@@ -2,8 +2,6 @@ from Standard.Base import all
 
 import Standard.Test
 
-polyglot java import java.util.ArrayList
-
 spec =
     Test.group "JavaScript Objects, Arrays & Functions" <|
         Test.specify "Missing method" <|
@@ -20,7 +18,6 @@ spec =
             number = data.classes.at 1
             number.name.should_equal "java.lang.Number"
             number.superclass.name.should_equal "java.lang.Object"
-
 
 main = Test.Suite.run_main spec
 
