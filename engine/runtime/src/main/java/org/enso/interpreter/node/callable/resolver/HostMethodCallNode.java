@@ -40,11 +40,6 @@ public abstract class HostMethodCallNode extends Node {
      */
     READ_ARRAY_ELEMENT,
     /**
-     * The method call should be handled through {@link InteropLibrary#writeArrayElement(Object,
-     * long,Object)}.
-     */
-    WRITE_ARRAY_ELEMENT,
-    /**
      * The method call should be handled through {@link InteropLibrary#removeArrayElement(Object,
      * long)}.
      */
@@ -102,7 +97,6 @@ public abstract class HostMethodCallNode extends Node {
 
   private static final String ARRAY_LENGTH_NAME = "length";
   private static final String ARRAY_READ_NAME = "at";
-  private static final String ARRAY_WRITE_NAME = "set";
   private static final String ARRAY_REMOVE_NAME = "remove";
   private static final String NEW_NAME = "new";
 
@@ -145,8 +139,6 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.GET_ARRAY_LENGTH;
     } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_READ_NAME)) {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
-    } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_WRITE_NAME)) {
-      return PolyglotCallType.WRITE_ARRAY_ELEMENT;
     } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_REMOVE_NAME)) {
       return PolyglotCallType.REMOVE_ARRAY_ELEMENT;
     }
@@ -292,38 +284,6 @@ public abstract class HostMethodCallNode extends Node {
     try {
       return hostValueToEnsoNode.execute(arrays.readArrayElement(self, idx));
     } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
-    } catch (InvalidArrayIndexException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, idx), this);
-    }
-  }
-
-  @Specialization(guards = {"callType == WRITE_ARRAY_ELEMENT"})
-  void resolveHostArrayWrite(
-      PolyglotCallType callType,
-      String symbol,
-      Object self,
-      Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
-      @Cached BranchProfile arityErrorProfile,
-      @Cached BranchProfile typeErrorProfile,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
-    if (args.length != 2) {
-      arityErrorProfile.enter();
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(2, 2, args.length), this);
-    }
-    if (!(args[0] instanceof Long)) {
-      typeErrorProfile.enter();
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, args[0]), this);
-    }
-    long idx = (Long) args[0];
-    try {
-      arrays.writeArrayElement(self, idx, args[1]);
-    } catch (UnsupportedMessageException | UnsupportedTypeException e) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     } catch (InvalidArrayIndexException e) {
