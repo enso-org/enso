@@ -19,10 +19,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
-public class Vector implements TruffleObject {
+public final class Vector implements TruffleObject {
   private final Object storage;
 
-  public Vector(Object storage) {
+  private Vector(Object storage) {
     this.storage = storage;
   }
 
@@ -103,7 +103,7 @@ public class Vector implements TruffleObject {
   }
 
   @Builtin.Method(description = "Returns an Array representation of this Vector.")
-  public static Vector fromArray(Array arr) {
+  public static Vector fromArray(Object arr) {
     return new Vector(arr);
   }
 

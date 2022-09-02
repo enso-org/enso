@@ -19,6 +19,11 @@ spec =
             number.name.should_equal "java.lang.Number"
             number.superclass.name.should_equal "java.lang.Object"
 
+        Test.specify "Vector/Array map" <|
+            classes = Vector.from_array data.classes
+            names = classes.map (x -> x.name)
+            names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
+
 main = Test.Suite.run_main spec
 
 foreign js data = """
