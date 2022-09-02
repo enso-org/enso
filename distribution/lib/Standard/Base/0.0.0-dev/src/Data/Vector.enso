@@ -3,7 +3,6 @@ import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
 import Standard.Base.Runtime.Unsafe
 
-polyglot java import java.util.ArrayList
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Utils
 
@@ -988,7 +987,7 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=10) = Builder_Data (ArrayList.new capacity)
+    new (capacity=10) = Builder_Data (Array_Utils.newBuilder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
@@ -1034,7 +1033,7 @@ type Builder
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
            `Unsupported argument types: [Array]`.
-        Array_Utils.appendToArrayList self.java_builder subrange.to_array
+        self.java_builder.appendTo subrange.to_array
 
     ## PRIVATE
        Appends a new element into this builder.

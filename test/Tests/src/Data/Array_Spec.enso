@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test
 
-polyglot java import java.util.ArrayList
+polyglot java import java.util.LinkedHashSet
 
 Array.method self = 0
 
@@ -16,7 +16,7 @@ make_enso_array vector =
 ## Returns an array with the same contents as the given vector, surely backed by
    a Java array.
 make_java_array vector =
-    builder = ArrayList.new
+    builder = LinkedHashSet.new
     vector.each x->
         builder.add x
     builder.toArray
