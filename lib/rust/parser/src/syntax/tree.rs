@@ -369,12 +369,12 @@ pub enum TextElement<'s> {
     /// part of the content, after trimming appropriately.
     Section {
         /// The text content.
-        text: token::TextSection<'s>
+        text: token::TextSection<'s>,
     },
     /// A \ character.
     Escape {
         /// The \ character.
-        backslash: token::TextEscape<'s>
+        backslash: token::TextEscape<'s>,
     },
 }
 
