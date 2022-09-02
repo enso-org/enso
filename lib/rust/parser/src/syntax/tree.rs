@@ -365,8 +365,8 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
 /// A component of a text literal, within the quotation marks.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub enum TextElement<'s> {
-    /// The text content of the literal. If it is multiline, the offset information may contain part
-    /// of the content, after trimming appropriately.
+    /// The text content of the literal. If it is multiline, the offset information may contain
+    /// part of the content, after trimming appropriately.
     Section(token::TextSection<'s>),
     /// A \ character.
     Escape(token::TextEscape<'s>),
@@ -387,7 +387,9 @@ impl<'a, 't, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
 impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
 impl<'a, 't, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
 impl<'s> span::Builder<'s> for VisibleOffset {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> { span }
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
 }
 
 
