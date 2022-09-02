@@ -9,7 +9,15 @@ import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
     static {
-        File parser = new File("target/rust/debug/libenso_parser.so");
+        String os = System.getProperty("os.name");
+        File parser;
+        if (os.startsWith("Mac")) {
+            parser = new File("target/rust/debug/libenso_parser.dylib");
+        } else if (os.startsWith("Windows")) {
+            parser = new File("target/rust/debug/enso_parser.dll");
+        } else {
+            parser = new File("target/rust/debug/libenso_parser.so");
+        }
         System.load(parser.getAbsolutePath());
     }
 
