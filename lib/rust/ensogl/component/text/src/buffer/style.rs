@@ -69,7 +69,7 @@ macro_rules! define_format {
 
         #[derive(Clone, Copy, Debug, Default, From)]
         pub struct Format {
-            $($field : $field_type),*
+            $(pub $field : $field_type),*
         }
 
         /// The value of a style at some point in the buffer.
@@ -219,14 +219,14 @@ impl<T: Copy> Property<T> {
     /// Return new property narrowed to the given range.
     pub fn sub(&self, range: Range<UBytes>) -> Self {
         let spans = self.spans.sub(range);
-        let default = self.default.clone();
+        let default = self.default;
         Self { spans, default }
     }
 
     /// Convert the property to a vector of spans.
     pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
-        spans_iter.map(|t| t.map_value(|v| v.unwrap_or_else(|| self.default.clone()))).collect_vec()
+        spans_iter.map(|t| t.map_value(|v| v.unwrap_or_else(|| self.default))).collect_vec()
     }
 
     /// The default value of this property.
@@ -282,9 +282,9 @@ impl Default for SdfWeight {
 define_format! {
     size       : Size,
     color      : color::Rgba,
-    weight     : font::Weight,
-    width      : font::Width,
-    style      : font::Style,
+    weight     : Weight,
+    width      : Width,
+    style      : Style,
     underline  : Underline,
     sdf_weight : SdfWeight,
 }

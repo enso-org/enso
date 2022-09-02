@@ -38,7 +38,7 @@ impl<T: Clone> Spans<T> {
     /// `value`. Use with caution, as it can easily lead to wrong amount of bytes covered by the
     /// span.
     pub fn replace_resize(&mut self, range: Range<UBytes>, length: UBytes, value: T) {
-        let mut builder = rope::spans::Builder::new(length.as_usize());
+        let mut builder = rope::spans::Builder::new(length.value);
         builder.add_span(.., value);
         self.raw.edit(range.into_rope_interval(), builder.build())
     }
@@ -64,17 +64,35 @@ impl<T: Clone> Spans<T> {
 
 
 
+// ===================
+// === RangedValue ===
+// ===================
+
+/// A value associated with a range.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub struct RangedValue<I, A> {
     pub range: Range<I>,
     pub value: A,
 }
 
 impl<I, A> RangedValue<I, A> {
+    /// Constructor.
     pub fn new(range: Range<I>, value: A) -> Self {
         Self { range, value }
     }
 
+    /// Zip sequence of ranged values. The intervals will be intersected. For example, when given:
+    /// `[RangedValue(0..2, 'a'), RangedValue(2..4, 'b')]` and
+    /// `[RangedValue(0..1, 'x'), RangedValue(2..3, 'y')]`, it will return:
+    /// `[
+    ///     RangedValue(0..1, (Some('a'), Some('x')),
+    ///     RangedValue(1..2, (Some('a'), None),
+    ///     RangedValue(2..3, (Some('b'), Some('y')),
+    ///     RangedValue(3..4, (Some('b'), None),
+    /// ]`
+    ///
+    /// See tests for more examples.
     pub fn zip_seq<B, C>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -155,6 +173,7 @@ impl<I, A> RangedValue<I, A> {
         result
     }
 
+    /// Like `zip_seq`, but for three sequences of ranged values.
     pub fn zip3_seq<B, C, X>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -175,6 +194,7 @@ impl<I, A> RangedValue<I, A> {
         })
     }
 
+    /// Like `zip_seq`, but for four sequences of ranged values.
     pub fn zip4_seq<B, C, D, X>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -200,20 +220,7 @@ impl<I, A> RangedValue<I, A> {
 }
 
 impl<I, A> RangedValue<I, A> {
-    pub fn map_range<J>(mut self, f: impl Fn(Range<I>) -> Range<J>) -> RangedValue<J, A> {
-        let range = f(self.range);
-        let value = self.value;
-        RangedValue { range, value }
-    }
-
-    pub fn map_value<B>(mut self, f: impl Fn(A) -> B) -> RangedValue<I, B> {
-        let range = self.range;
-        let value = f(self.value);
-        RangedValue { range, value }
-    }
-}
-
-impl<I, A> RangedValue<I, A> {
+    /// Like `zip_seq`, but returns default values instead of `None`.
     pub fn zip_def_seq<B, C>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -227,6 +234,7 @@ impl<I, A> RangedValue<I, A> {
         Self::zip_seq(a_seq, b_seq, |a, b| f(a.unwrap_or_default(), b.unwrap_or_default()))
     }
 
+    /// Like `zip3_seq`, but returns default values instead of `None`.
     pub fn zip3_def_seq<B, C, X>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -244,6 +252,7 @@ impl<I, A> RangedValue<I, A> {
         })
     }
 
+    /// Like `zip4_seq`, but returns default values instead of `None`.
     pub fn zip4_def_seq<B, C, D, X>(
         a_seq: &[RangedValue<I, A>],
         b_seq: &[RangedValue<I, B>],
@@ -266,6 +275,22 @@ impl<I, A> RangedValue<I, A> {
                 d.unwrap_or_default(),
             )
         })
+    }
+}
+
+impl<I, A> RangedValue<I, A> {
+    /// Map the range of this ranged value.
+    pub fn map_range<J>(self, f: impl Fn(Range<I>) -> Range<J>) -> RangedValue<J, A> {
+        let range = f(self.range);
+        let value = self.value;
+        RangedValue { range, value }
+    }
+
+    /// Map the value of this ranged value.
+    pub fn map_value<B>(self, f: impl Fn(A) -> B) -> RangedValue<I, B> {
+        let range = self.range;
+        let value = f(self.value);
+        RangedValue { range, value }
     }
 }
 

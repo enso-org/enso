@@ -114,25 +114,25 @@ impl Text {
     /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
     /// more about codepoints.
     pub fn next_codepoint_offset(&self, offset: UBytes) -> Option<UBytes> {
-        self.rope.next_codepoint_offset(offset.as_usize()).map(UBytes)
+        self.rope.next_codepoint_offset(offset.value).map(UBytes)
     }
 
     /// Return the offset to the previous codepoint if any. See the [`crate`] documentation to learn
     /// more about codepoints.
     pub fn prev_codepoint_offset(&self, offset: UBytes) -> Option<UBytes> {
-        self.rope.prev_codepoint_offset(offset.as_usize()).map(UBytes)
+        self.rope.prev_codepoint_offset(offset.value).map(UBytes)
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
     pub fn next_grapheme_offset(&self, offset: UBytes) -> Option<UBytes> {
-        self.rope.next_grapheme_offset(offset.as_usize()).map(UBytes)
+        self.rope.next_grapheme_offset(offset.value).map(UBytes)
     }
 
     /// Return the offset to the previous grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
     pub fn prev_grapheme_offset(&self, offset: UBytes) -> Option<UBytes> {
-        self.rope.prev_grapheme_offset(offset.as_usize()).map(UBytes)
+        self.rope.prev_grapheme_offset(offset.value).map(UBytes)
     }
 
     /// An iterator over the lines of a rope.
@@ -362,7 +362,7 @@ impl Text {
 
     /// The line of a given byte offset. Panics in case the offset was invalid.
     pub fn line_index_of_byte_offset_unchecked(&self, offset: UBytes) -> Line {
-        self.rope.line_of_offset(offset.as_usize()).into()
+        self.rope.line_of_offset(offset.value).into()
     }
 
     /// The line index of the given byte offset.
@@ -705,7 +705,7 @@ impl TextCell {
 
     /// Get all lines in the provided range as strings.
     pub fn lines_vec(&self, range: std::ops::Range<UBytes>) -> Vec<String> {
-        let rope_range = range.start.as_usize()..range.end.as_usize();
+        let rope_range = range.start.value..range.end.value;
         let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
         let missing_last = lines.len() == self.last_line_index().as_usize();
         if missing_last {
@@ -946,8 +946,8 @@ impl<Metric, String> Change<Metric, String> {
 impl<S: AsRef<str>> Change<UBytes, S> {
     /// Apply the change on the given string.
     pub fn apply(&self, target: &mut String) -> Result<(), BoundsError> {
-        let start_byte = self.range.start.as_usize();
-        let end_byte = self.range.end.as_usize();
+        let start_byte = self.range.start.value;
+        let end_byte = self.range.end.value;
         target.replace_range(start_byte..end_byte, self.text.as_ref());
         Ok(())
     }

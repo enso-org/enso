@@ -17,7 +17,6 @@ use crate::font::glyph::Glyph;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use enso_text::spans::RangedValue;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
@@ -98,13 +97,13 @@ impl Line {
     }
 
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn div_by_column(&self, column: Column) -> f32 {
+    fn _div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
+    fn _resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
             let glyph = cons();
@@ -646,12 +645,13 @@ impl AreaModel {
         .init()
     }
 
+
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
-        selections: &buffer::selection::Group,
-        time: f32,
-        do_edit: bool,
+        _selections: &buffer::selection::Group,
+        _time: f32,
+        _do_edit: bool,
     ) {
         // event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
         // {
@@ -796,11 +796,11 @@ impl AreaModel {
     ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
             match font {
-                font::Font::NonVariable(font) =>
+                font::Font::NonVariable(_) =>
                     for a in line_style.chunks_per_font_face(&content) {
                         yield a;
                     }
-                font::Font::Variable(font) => {
+                font::Font::Variable(_) => {
                     let range = UBytes(0)..UBytes(content.len());
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = font::NonVariableFaceHeader::default();
@@ -836,17 +836,26 @@ impl AreaModel {
         let mut last_cursor = None;
         let mut last_cursor_target = default();
 
-        let font2 = &glyph_system.font;
+        let font = &glyph_system.font;
         let mut line_style_iter = line_style.iter();
         let mut glyph_offset_x = 0.0;
         let mut column = 0.column();
-        for (range, non_variable_variations) in
-            Self::chunks_per_font_face(&font2, &line_style, &content)
+        for (range, requested_non_variable_variations) in
+            Self::chunks_per_font_face(&font, &line_style, &content)
         {
-            let non_variable_variations =
-                font2.closest_non_variable_variations_or_panic(non_variable_variations);
+            let non_variable_variations_match =
+                font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
+            let non_variable_variations = non_variable_variations_match.variations;
+            if non_variable_variations_match.was_closest() {
+                event!(
+                    WARN,
+                    "The font is not defined for the variation {:?}. Using {:?} instead.",
+                    requested_non_variable_variations,
+                    non_variable_variations
+                );
+            }
             // Safe because the non_variable_variations was chosen above.
-            font2.with_borrowed_face(non_variable_variations, |face| {
+            font.with_borrowed_face(non_variable_variations, |face| {
                 let ttf_face = face.ttf.as_face_ref();
                 // This is safe. Unwrap should be removed after rustybuzz is fixed:
                 // https://github.com/RazrFalcon/rustybuzz/issues/52
@@ -860,8 +869,7 @@ impl AreaModel {
                     let cluster_byte_off = UBytes(glyph_info.cluster as usize);
                     let cluster_diff = cluster_byte_off.saturating_sub(prev_cluster_byte_off);
                     // Drop styles assigned to skipped bytes. One byte will be skipped
-                    // during the call to
-                    // `line_style_iter.next()`.
+                    // during the call to `line_style_iter.next()`.
                     line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
                     let style = line_style_iter.next().unwrap_or_default();
                     prev_cluster_byte_off = cluster_byte_off;
@@ -888,7 +896,7 @@ impl AreaModel {
 
                     let variable_variations = glyph.variations.borrow();
 
-                    let glyph_render_info = font2.glyph_info_of_known_face(
+                    let glyph_render_info = font.glyph_info_of_known_face(
                         non_variable_variations,
                         &variable_variations,
                         glyph_id,
@@ -1070,7 +1078,7 @@ impl AreaModel {
 
     /// Constrain the selection to values fitting inside of the current text buffer.
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn snap_selection(
+    fn _snap_selection(
         &self,
         selection: buffer::selection::Selection,
     ) -> buffer::selection::Selection {

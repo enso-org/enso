@@ -157,8 +157,8 @@ impl Index<Range<UBytes>> for str {
     type Output = str;
 
     fn index(&self, index: Range<UBytes>) -> &Self::Output {
-        let start = index.start.as_usize();
-        let end = index.end.as_usize();
+        let start = index.start.value;
+        let end = index.end.value;
         &self[start..end]
     }
 }
@@ -182,9 +182,7 @@ impl<T: Clone> From<&Range<T>> for Range<T> {
 
 impl From<Range<UBytes>> for rope::Interval {
     fn from(t: Range<UBytes>) -> Self {
-        let start = t.start.value as usize;
-        let end = t.end.value as usize;
-        Self { start, end }
+        Self { start: t.start.value, end: t.end.value }
     }
 }
 

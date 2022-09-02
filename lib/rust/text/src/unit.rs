@@ -72,13 +72,6 @@ unit! {
 UBytes::ubytes(usize)
 }
 
-impl UBytes {
-    /// Saturating conversion to `usize`.
-    pub fn as_usize(self) -> usize {
-        self.value.max(0) as usize
-    }
-}
-
 impl<T: Into<UBytes>> ubytes::Into for Range<T> {
     type Output = Range<UBytes>;
     fn ubytes(self) -> Self::Output {

@@ -19,7 +19,7 @@ pub struct WordCursor<'a> {
 impl<'a> WordCursor<'a> {
     /// Constructor.
     pub fn new(text: &'a rope::Rope, pos: UBytes) -> WordCursor<'a> {
-        let cursor = rope::Cursor::new(text, pos.value as usize);
+        let cursor = rope::Cursor::new(text, pos.value);
         WordCursor { cursor }
     }
 

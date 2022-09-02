@@ -23,6 +23,7 @@ pub mod glyph_render_info;
 pub use ensogl_text_font_family as family;
 pub use family::Name;
 pub use family::NonVariableFaceHeader;
+pub use family::NonVariableFaceHeaderMatch;
 pub use glyph_render_info::GlyphRenderInfo;
 pub use ttf::GlyphId;
 pub use ttf::Style;
@@ -262,12 +263,12 @@ pub trait Family {
     fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> Option<NonVariableFaceHeader>;
+    ) -> Option<NonVariableFaceHeaderMatch>;
 
     fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> NonVariableFaceHeader;
+    ) -> NonVariableFaceHeaderMatch;
 }
 
 /// A non-variable font family.
@@ -308,10 +309,10 @@ impl NonVariableFamily {
     pub fn closest_variations(
         &self,
         variation: NonVariableFaceHeader,
-    ) -> Option<NonVariableFaceHeader> {
+    ) -> Option<NonVariableFaceHeaderMatch> {
         let faces = self.faces.borrow();
         if faces.contains_key(&variation) {
-            Some(variation)
+            Some(NonVariableFaceHeaderMatch::exact(variation))
         } else {
             let mut closest = None;
             let mut closest_distance = usize::MAX;
@@ -319,7 +320,7 @@ impl NonVariableFamily {
                 let distance = known_header.distance(variation);
                 if distance < closest_distance {
                     closest_distance = distance;
-                    closest = Some(*known_header);
+                    closest = Some(NonVariableFaceHeaderMatch::closest(*known_header));
                 }
             }
             closest
@@ -329,7 +330,7 @@ impl NonVariableFamily {
     pub fn closest_variations_or_panic(
         &self,
         variation: NonVariableFaceHeader,
-    ) -> NonVariableFaceHeader {
+    ) -> NonVariableFaceHeaderMatch {
         self.closest_variations(variation)
             .unwrap_or_else(|| panic!("Trying to use a font with no faces registered."))
     }
@@ -362,14 +363,14 @@ impl Family for NonVariableFamily {
     fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> Option<NonVariableFaceHeader> {
+    ) -> Option<NonVariableFaceHeaderMatch> {
         self.closest_variations(variations)
     }
 
     fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> NonVariableFaceHeader {
+    ) -> NonVariableFaceHeaderMatch {
         self.closest_variations_or_panic(variations)
     }
 }
@@ -401,17 +402,17 @@ impl Family for VariableFamily {
     fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> Option<NonVariableFaceHeader> {
+    ) -> Option<NonVariableFaceHeaderMatch> {
         // Variable fonts do not depend on non-variable variations.
-        Some(variations)
+        Some(NonVariableFaceHeaderMatch::exact(variations))
     }
 
     fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> NonVariableFaceHeader {
+    ) -> NonVariableFaceHeaderMatch {
         // Variable fonts do not depend on non-variable variations.
-        variations
+        NonVariableFaceHeaderMatch::exact(variations)
     }
 }
 
@@ -489,7 +490,7 @@ impl Font {
     pub fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> Option<NonVariableFaceHeader> {
+    ) -> Option<NonVariableFaceHeaderMatch> {
         match self {
             Font::NonVariable(font) => font.family.closest_non_variable_variations(variations),
             Font::Variable(font) => font.family.closest_non_variable_variations(variations),
@@ -499,7 +500,7 @@ impl Font {
     pub fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
-    ) -> NonVariableFaceHeader {
+    ) -> NonVariableFaceHeaderMatch {
         match self {
             Font::NonVariable(font) =>
                 font.family.closest_non_variable_variations_or_panic(variations),

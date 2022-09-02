@@ -18,7 +18,6 @@ use ensogl_core::DEPRECATED_Animation;
 const CURSOR_PADDING: f32 = 4.0;
 const CURSOR_WIDTH: f32 = 2.0;
 const CURSOR_ALPHA: f32 = 0.8;
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 const CURSORS_SPACING: f32 = 1.0;
 const SELECTION_ALPHA: f32 = 0.3;
 const SELECTION_CORNER_RADIUS: f32 = 2.0;
@@ -132,7 +131,6 @@ impl Deref for Selection {
 
 impl Selection {
     /// Constructor.
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn new(logger: impl AnyLogger, edit_mode: bool) -> Self {
         let logger = Logger::new_sub(logger, "selection");
         let display_object = display::object::Instance::new(&logger);
@@ -163,7 +161,6 @@ impl Selection {
         .init()
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn init(self) -> Self {
         let network = &self.network;
         let view = &self.shape_view;
@@ -193,7 +190,6 @@ impl Selection {
         self
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn flip_sides(&self) {
         let width = self.width.target_value();
         self.position.set_value(self.position.value() + Vector2(width, 0.0));
