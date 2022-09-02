@@ -84,7 +84,7 @@ impl<E, P: Default> ListData<E, P> {
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
         let entry_params = default();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let provider = default();
         let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
         Self {
@@ -169,7 +169,7 @@ impl<E: Entry> ListData<E, E::Params> {
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
-            debug!(self.logger, "Update entries for {range:?}");
+            debug!("Update entries for {range:?}");
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
@@ -241,7 +241,6 @@ impl<E: Entry> ListData<E, E::Params> {
         let provider = provider.into();
         if provider.entry_count() > MAX_SAFE_ENTRIES_COUNT {
             error!(
-                self.logger,
                 "ListView entry count exceed {MAX_SAFE_ENTRIES_COUNT} - so big \
             number of entries can cause visual glitches, e.g. https://github.com/enso-org/ide/\
             issues/757 or https://github.com/enso-org/ide/issues/758"
@@ -267,9 +266,8 @@ impl<E: Entry> ListData<E, E::Params> {
         let layers = &self.app.display.default_scene.layers;
         let layer = self.label_layer.borrow().upgrade().unwrap_or_else(|| {
             error!(
-                self.logger,
-                "Cannot set layer {self.label_layer:?} for labels: the layer does \
-                not exist in the scene"
+                "Cannot set layer {:?} for labels: the layer does not exist in the scene",
+                self.label_layer
             );
             layers.main.clone_ref()
         });
@@ -286,16 +284,12 @@ impl<E: Entry> ListData<E, E::Params> {
         id: entry::Id,
         model: &Option<E::Model>,
     ) {
-        debug!(
-            logger,
-            "Setting new model {model:?} for entry {id}; \
-            old entry: {entry.id.get():?}."
-        );
+        debug!("Setting new model {:?} for entry {}; old entry: {:?}.", model, id, entry.id.get());
         entry.id.set(Some(id));
         match model {
             Some(model) => entry.entry.update(model),
             None => {
-                error!(logger, "Model provider didn't return model for id {id}.");
+                error!("Model provider didn't return model for id {id}.");
                 entry.entry.update(&default());
             }
         };

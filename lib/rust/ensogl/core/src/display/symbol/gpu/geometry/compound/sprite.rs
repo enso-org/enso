@@ -142,7 +142,7 @@ impl Sprite {
     ) -> Self {
         let symbol = symbol.clone_ref();
         let logger = Logger::new(iformat!("Sprite{instance.instance_id}"));
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         let stats = Rc::new(SpriteStats::new(stats));
         let erase_on_drop = Rc::new(EraseOnDrop::new(size.clone_ref()));
         let size = Size::new(size);

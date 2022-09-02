@@ -491,7 +491,7 @@ impl Model {
         type_label.set_position_y(offset_y);
         self.type_label = Some(type_label.clone());
 
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         display_object.add_child(&shape);
         display_object.add_child(&type_label);
         self.display_object = Some(display_object.clone());

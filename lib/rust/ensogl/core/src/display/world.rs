@@ -205,7 +205,7 @@ impl WorldData {
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
-        let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
+        let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
         let default_scene = Scene::new(&logger, &stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);

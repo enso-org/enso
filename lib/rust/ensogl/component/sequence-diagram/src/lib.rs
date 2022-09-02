@@ -96,7 +96,7 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let app = app.clone();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let actor_lines = default();
         let message_lines = default();
         let origin_x = default();

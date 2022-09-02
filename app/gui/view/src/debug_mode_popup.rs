@@ -112,7 +112,7 @@ impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("DebugModePopup");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let label = PopupLabel::new(app);
         label.set_delay(LABEL_VISIBILITY_DELAY_MS);
         display_object.add_child(&label);

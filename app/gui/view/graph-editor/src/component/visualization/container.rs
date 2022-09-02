@@ -171,7 +171,7 @@ impl View {
     /// Constructor.
     pub fn new(logger: &Logger, scene: Scene) -> Self {
         let logger = Logger::new_sub(logger, "view");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let background = background::View::new(&logger);
         let overlay = overlay::View::new(&logger);
         display_object.add_child(&background);
@@ -265,8 +265,8 @@ impl ContainerModel {
     pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "visualization_container");
-        let display_object = display::object::Instance::new(&logger);
-        let drag_root = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let drag_root = display::object::Instance::new();
         let visualization = default();
         let vis_frp_connection = default();
         let view = View::new(&logger, scene.clone_ref());

@@ -42,7 +42,7 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let logger = logger.sub("ComponentBrowser");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let list = app.new_view::<list_panel::ComponentBrowserPanel>();
         let documentation = documentation::View::new(&app.display.default_scene);
         app.display.default_scene.layers.node_searcher.add_exclusive(&display_object);

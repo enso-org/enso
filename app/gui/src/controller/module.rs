@@ -90,7 +90,6 @@ impl Handle {
         let my_code = self.code();
         if code != my_code {
             error!(
-                self.logger,
                 "The module controller ast was not synchronized with text editor \
                 content!\n >>> Module: {my_code}\n >>> Editor: {code}"
             );

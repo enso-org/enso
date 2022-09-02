@@ -1692,7 +1692,7 @@ impl GraphEditorModel {
         let network = frp.network();
         let scene = &app.display.default_scene;
         let logger = Logger::new("GraphEditor");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let nodes = Nodes::new(&logger);
         let edges = Edges::new(&logger);
         let vis_registry = visualization::Registry::with_default_visualizations();

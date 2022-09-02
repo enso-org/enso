@@ -136,7 +136,7 @@ impl ProjectNameModel {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let logger = Logger::new("ProjectName");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
@@ -190,7 +190,7 @@ impl ProjectNameModel {
 
     /// Revert the text field content to the last committed project name.
     fn reset_name(&self) {
-        debug!(self.logger, "Resetting project name.");
+        debug!("Resetting project name.");
         self.update_text_field_content(self.project_name.borrow().as_str());
     }
 
@@ -211,7 +211,7 @@ impl ProjectNameModel {
     /// Change the text field content and commit the given name.
     fn rename(&self, name: impl Str) {
         let name = name.into();
-        debug!(self.logger, "Renaming: '{name}'.");
+        debug!("Renaming: '{name}'.");
         self.update_text_field_content(&name);
         self.commit(name);
     }
@@ -219,7 +219,7 @@ impl ProjectNameModel {
     /// Confirm the given name as the current project name.
     fn commit<T: Into<String>>(&self, name: T) {
         let name = name.into();
-        debug!(self.logger, "Committing name: '{name}'.");
+        debug!("Committing name: '{name}'.");
         *self.project_name.borrow_mut() = name;
     }
 }

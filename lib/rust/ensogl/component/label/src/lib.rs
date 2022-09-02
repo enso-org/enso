@@ -91,7 +91,7 @@ impl Model {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let logger = Logger::new("TextLabel");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let label = app.new_view::<text::Area>();
         let background = background::View::new(&logger);
 

@@ -200,7 +200,7 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let logger = Logger::new("cursor");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let view = shape::View::new(&logger);
         let port_selection = shape::View::new(&logger);
         let style = default();

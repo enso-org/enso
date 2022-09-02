@@ -86,10 +86,7 @@ impl Model {
         if let Some(target_id) = self.state.ast_node_id_of_view(node_id) {
             manager.set_visualization(target_id, metadata);
         } else {
-            error!(
-                self.logger,
-                "Failed to update visualization: {node_id:?} does not represent any AST code."
-            )
+            error!("Failed to update visualization: {node_id:?} does not represent any AST code.")
         }
     }
 
@@ -110,7 +107,7 @@ impl Model {
                 Err(err) => {
                     // TODO [mwu]: We should consider having the visualization also accept error
                     //     input.
-                    error!(self.logger, "Failed to deserialize visualization update: {err}");
+                    error!("Failed to deserialize visualization update: {err}");
                 }
             }
         }
@@ -146,11 +143,11 @@ impl Model {
                         graph_editor.frp.register_visualization.emit(Some(visualization));
                     }
                     Err(err) => {
-                        error!(logger, "Error while loading visualization {identifier}: {err:?}");
+                        error!("Error while loading visualization {identifier}: {err:?}");
                     }
                 }
             }
-            info!(logger, "Visualizations Initialized.");
+            info!("Visualizations Initialized.");
         });
     }
 }
@@ -234,17 +231,17 @@ impl Visualization {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifier, move |notification, model| {
             let logger = &model.logger;
-            info!(logger, "Received update for visualization: {notification:?}");
+            info!("Received update for visualization: {notification:?}");
             match notification {
                 manager::Notification::ValueUpdate { target, data, .. } => {
                     model.handle_value_update(&update_endpoint, target, data);
                 }
                 manager::Notification::FailedToAttach { visualization, error } => {
-                    error!(logger, "Visualization {visualization.id} failed to attach: {error}.");
+                    error!("Visualization {} failed to attach: {error}.", visualization.id);
                     model.handle_controller_failure(&failure_endpoint, visualization.expression_id);
                 }
                 manager::Notification::FailedToDetach { visualization, error } => {
-                    error!(logger, "Visualization {visualization.id} failed to detach: {error}.");
+                    error!("Visualization {} failed to detach: {error}.", visualization.id);
                     // Here we cannot really do much. Failing to detach might mean that
                     // visualization was already detached, that we detached it
                     // but failed to observe this (e.g. due to a connectivity
@@ -253,13 +250,13 @@ impl Visualization {
                     // it rather than likely break visualizations on the node altogether.
                     let forgotten = manager.forget_visualization(visualization.expression_id);
                     if let Some(forgotten) = forgotten {
-                        error!(logger, "The visualization will be forgotten: {forgotten:?}")
+                        error!("The visualization will be forgotten: {forgotten:?}")
                     }
                 }
                 manager::Notification::FailedToModify { desired, error } => {
                     error!(
-                        logger,
-                        "Visualization {desired.id} failed to be modified: {error}. Will hide it in GUI."
+                        "Visualization {} failed to be modified: {error}. Will hide it in GUI.",
+                        desired.id
                     );
                     // Actually it would likely have more sense if we had just restored the previous
                     // visualization, as its LS state should be preserved. However, we already
@@ -289,10 +286,7 @@ impl Visualization {
                         model.error_manager.retain_visualizations(&nodes_set);
                     }
                     Err(err) => {
-                        error!(
-                            model.logger,
-                            "Cannot update visualization after graph change: {err}"
-                        );
+                        error!("Cannot update visualization after graph change: {err}");
                     }
                 },
                 _ => {}

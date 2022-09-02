@@ -412,7 +412,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("ComponentBrowserPanel");
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let navigator = default();
         let groups_wrapper = component_group::set::Wrapper::new();
 

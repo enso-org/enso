@@ -243,7 +243,7 @@ mod tests {
 
         fn new(_: &Application, _: Option<&Layer>) -> Self {
             let frp = EntryFrp::<Self>::new();
-            let display_object = display::object::Instance::new(Logger::new("TestEntry"));
+            let display_object = display::object::Instance::new();
             let network = frp.network();
             let input = &frp.private().input;
             let out = &frp.private().output;

@@ -58,6 +58,8 @@ fn init(app: Application) {
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
+
+
     // area.set_cursor_at_end();
     //
     // area.set_format_option(

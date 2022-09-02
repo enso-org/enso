@@ -615,13 +615,13 @@ impl Searcher {
         self.invalidate_fragments_added_by_picking();
         let expression_changed = old_expr != new_expr;
         if expression_changed {
-            debug!(self.logger, "Reloading list.");
+            debug!("Reloading list.");
             self.reload_list();
         } else {
             let data = self.data.borrow();
             data.components.update_filtering(&data.input.pattern);
             if let Actions::Loaded { list } = &data.actions {
-                debug!(self.logger, "Update filtering.");
+                debug!("Update filtering.");
                 list.update_filtering(&data.input.pattern);
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
@@ -738,7 +738,7 @@ impl Searcher {
                                     manage_projects.open_project(*id),
                             };
                             if let Err(err) = result.await {
-                                error!(logger, "Error when creating new project: {err}");
+                                error!("Error when creating new project: {err}");
                             }
                         });
                         Ok(None)
@@ -941,7 +941,7 @@ impl Searcher {
             }
             let ThisNode { id, .. } = this.deref().as_ref()?;
             let opt_type = graph.expression_type(*id).await.map(Into::into);
-            opt_type.map_none(move || error!(logger, "Failed to obtain type for this node."))
+            opt_type.map_none(move || error!("Failed to obtain type for this node."))
         }
     }
 
@@ -984,9 +984,9 @@ impl Searcher {
         };
         executor::global::spawn(async move {
             let this_type = this_type.await;
-            info!(this.logger, "Requesting new suggestion list. Type of `self` is {this_type:?}.");
+            info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let requests = return_types_for_engine.into_iter().map(|return_type| {
-                info!(this.logger, "Requesting suggestions for returnType {return_type:?}.");
+                info!("Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
                 ls.completion(file, &position, &this_type, &return_type, &tags)
             });
@@ -994,7 +994,7 @@ impl Searcher {
                 futures::future::join_all(requests).await.into_iter().collect();
             match responses {
                 Ok(responses) => {
-                    info!(this.logger, "Received suggestions from Language Server.");
+                    info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
@@ -1004,7 +1004,7 @@ impl Searcher {
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
-                    error!(this.logger, "{msg}: {err}");
+                    error!("{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
@@ -1051,7 +1051,6 @@ impl Searcher {
                     .map(|entry| Action::Suggestion(action::Suggestion::FromDatabase(entry)))
                     .handle_err(|e| {
                         error!(
-                            self.logger,
                             "Response provided a suggestion ID that cannot be \
                         resolved: {e}."
                         )

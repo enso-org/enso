@@ -162,8 +162,8 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new("StatusBar");
-        let display_object = display::object::Instance::new(&logger);
-        let root = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let root = display::object::Instance::new();
         let background = background::View::new(&logger);
         let label = text::Area::new(app);
         let events = default();

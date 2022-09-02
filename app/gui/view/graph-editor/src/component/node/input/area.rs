@@ -237,9 +237,9 @@ impl Model {
     #[profile(Debug)]
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let logger = Logger::new_sub(&logger, "input_ports");
-        let display_object = display::object::Instance::new(&logger);
-        let ports = display::object::Instance::new(&Logger::new_sub(&logger, "ports"));
-        let header = display::object::Instance::new(&Logger::new_sub(&logger, "header"));
+        let display_object = display::object::Instance::new();
+        let ports = display::object::Instance::new();
+        let header = display::object::Instance::new();
         let app = app.clone_ref();
         let label = app.new_view::<text::Area>();
         let id_crumbs_map = default();

@@ -76,7 +76,7 @@ pub struct Line {
 impl Line {
     fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "line");
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         let glyphs = default();
         let divs = default();
         let centers = default();
@@ -103,7 +103,7 @@ impl Line {
             self.divs[ix]
         } else {
             if column != Column(0) {
-                event!(WARN, "Internal error. Incorrect text divisions.")
+                warn!("Internal error. Incorrect text divisions.")
             }
             0.0
         }
@@ -397,14 +397,14 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                        event!(WARN, ">> 1");
+                        warn!(">> 1");
                         m.on_modified_selection(selections,*time,true)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    event!(WARN, ">> selection_non_edit_mode");
+                    warn!(">> selection_non_edit_mode");
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
@@ -623,7 +623,7 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let glyph_system = {
             let fonts = scene.extension::<font::Registry>();
             let font = fonts.load(font::DEFAULT_FONT_MONO);
@@ -669,18 +669,18 @@ impl AreaModel {
         time: f32,
         do_edit: bool,
     ) {
-        event!(WARN, "on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
+        warn!("on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
         {
-            event!(WARN, ">>x1");
+            warn!(">>x1");
             let mut selection_map = self.selection_map.borrow_mut();
-            event!(WARN, ">>x2");
+            warn!(">>x2");
 
-            event!(WARN, "{:?}", selection_map);
+            warn!("{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
             for sel in selections {
-                event!(WARN, ">>1 {:?}", sel);
+                warn!(">>1 {:?}", sel);
                 let sel = self.limit_selection_to_known_values(*sel);
-                event!(WARN, ">>2 {:?}", sel);
+                warn!(">>2 {:?}", sel);
                 let id = sel.id;
                 let selection_start_line = sel.start.line.as_usize();
                 let selection_end_line = sel.end.line.as_usize();
@@ -785,7 +785,7 @@ impl AreaModel {
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self, size_may_change: bool) {
-        event!(DEBUG, "redraw {:?}", size_may_change);
+        debug!("redraw {:?}", size_may_change);
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
         self.lines.resize_with(line_count, |ix| self.new_line(ix));
@@ -829,7 +829,7 @@ impl AreaModel {
 
     // FIXME: the video posted on discord activity channel shows an issue (panic). To be fixed.
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
-        event!(DEBUG, "redraw_line {:?} {:?}", view_line_index, content);
+        debug!("redraw_line {:?} {:?}", view_line_index, content);
 
         let cursor_map = self
             .selection_map
@@ -838,11 +838,11 @@ impl AreaModel {
             .get(&view_line_index)
             .cloned()
             .unwrap_or_default();
-        event!(DEBUG, "cursor_map {:?}", cursor_map);
+        debug!("cursor_map {:?}", cursor_map);
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        event!(DEBUG, "line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
+        debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
 
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
 
@@ -865,11 +865,9 @@ impl AreaModel {
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
             let non_variable_variations = non_variable_variations_match.variations;
             if non_variable_variations_match.was_closest() {
-                event!(
-                    WARN,
+                warn!(
                     "The font is not defined for the variation {:?}. Using {:?} instead.",
-                    requested_non_variable_variations,
-                    non_variable_variations
+                    requested_non_variable_variations, non_variable_variations
                 );
             }
             // Safe because the non_variable_variations was chosen above.

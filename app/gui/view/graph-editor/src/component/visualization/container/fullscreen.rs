@@ -62,7 +62,7 @@ impl Panel {
     /// Constructor.
     pub fn new(logger: &Logger, scene: &Scene) -> Self {
         let logger = Logger::new_sub(logger, "fullscreen_view");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)

@@ -487,7 +487,7 @@ impl NodeModel {
         let background = background::View::new(&main_logger);
         let drag_area = drag_area::View::new(&drag_logger);
         let vcs_indicator = vcs::StatusIndicator::new(app);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);

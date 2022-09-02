@@ -37,7 +37,7 @@ pub fn create_providers_from_controller(logger: &Logger, controller: &controller
             as_any(Rc::new(provider))
         }
         Actions::Error(err) => {
-            error!(logger, "Error while obtaining searcher action list: {err}");
+            error!("Error while obtaining searcher action list: {err}");
             as_any(Rc::new(list_view::entry::EmptyProvider))
         }
     }

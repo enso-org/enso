@@ -195,7 +195,7 @@ impl list_view::Entry for View {
         Params { colors, selection_layer }: &Params,
     ) -> Self {
         let logger = Logger::new("component_group::Entry");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let icon: Rc<RefCell<CurrentIcon>> = default();
         let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
@@ -207,7 +207,7 @@ impl list_view::Entry for View {
                 selected_label.set_label_layer(&layer);
                 display_object.add_child(&selected_label);
             } else {
-                error!(logger, "Selection layer is dropped.");
+                error!("Selection layer is dropped.");
             }
         }
 
@@ -273,7 +273,7 @@ impl list_view::Entry for View {
                     self.colors.selected.icon_weak.value(),
                 );
             } else {
-                error!(self.logger, "Cannot add icon shape to a dropped scene layer.");
+                error!("Cannot add icon shape to a dropped scene layer.");
             }
         }
     }

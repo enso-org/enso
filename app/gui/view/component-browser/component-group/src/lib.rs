@@ -655,7 +655,7 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let header_text = default();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
         let selection_background = background::View::new(&logger);

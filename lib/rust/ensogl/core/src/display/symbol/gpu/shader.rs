@@ -111,8 +111,7 @@ impl {
         let surface_material = default();
         let program = default();
         let shader_compiler_job = default();
-        let dirty_logger = Logger::new_sub(&logger,"dirty");
-        let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
+        let dirty = Dirty::new(Box::new(on_mut));
         let stats = stats.clone_ref();
         let profiler = None;
         Self {
@@ -124,7 +123,7 @@ impl {
     /// Check dirty flags and update the state accordingly.
     pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>
     (&mut self, bindings:Vec<VarBinding>, on_ready:F) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
 

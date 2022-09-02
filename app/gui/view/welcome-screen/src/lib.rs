@@ -127,7 +127,7 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         let side_menu = SideMenu::new(&logger);
         let template_cards = TemplateCards::new(&logger);

@@ -82,7 +82,7 @@ impl Model {
                 *self.searcher.borrow_mut() = Some(searcher);
             }
             Err(err) => {
-                error!(self.logger, "Error while creating searcher integration: {err}");
+                error!("Error while creating searcher integration: {err}");
             }
         }
     }
@@ -143,7 +143,7 @@ impl Model {
             let name = name.into();
             executor::global::spawn(async move {
                 if let Err(e) = project.rename_project(name).await {
-                    error!(logger, "The project couldn't be renamed: {e}");
+                    error!("The project couldn't be renamed: {e}");
                     breadcrumbs.cancel_project_name_editing.emit(());
                 }
             });
@@ -151,16 +151,16 @@ impl Model {
     }
 
     fn undo(&self) {
-        debug!(self.logger, "Undo triggered in UI.");
+        debug!("Undo triggered in UI.");
         if let Err(e) = self.controller.model.urm().undo() {
-            error!(self.logger, "Undo failed: {e}");
+            error!("Undo failed: {e}");
         }
     }
 
     fn redo(&self) {
-        debug!(self.logger, "Redo triggered in UI.");
+        debug!("Redo triggered in UI.");
         if let Err(e) = self.controller.model.urm().redo() {
-            error!(self.logger, "Redo failed: {e}");
+            error!("Redo failed: {e}");
         }
     }
 }
@@ -264,7 +264,7 @@ impl Project {
         let notifications = self.model.controller.model.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, |notification, model| {
-            info!(model.logger, "Processing notification {notification:?}");
+            info!("Processing notification {notification:?}");
             let message = match notification {
                 model::project::Notification::ConnectionLost(_) =>
                     crate::BACKEND_DISCONNECTED_MESSAGE,

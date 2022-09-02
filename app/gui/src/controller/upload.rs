@@ -128,9 +128,11 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
         match self.file.data.next_chunk().await {
             Ok(Some(data)) => {
                 debug!(
-                    self.logger,
-                    "Received chunk of {self.file.name} of size {data.len()} \
-                    uploading to {self.remote_path:?}: {data:?}"
+                    "Received chunk of {} of size {} uploading to {:?}: {:?}",
+                    self.file.name,
+                    data.len(),
+                    self.remote_path,
+                    data
                 );
                 let offset = self.bytes_uploaded;
                 self.bin_connection.write_bytes(&self.remote_path, offset, false, &data).await?;
@@ -145,10 +147,9 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
                 }
                 if self.bytes_uploaded != self.file.size {
                     error!(
-                        self.logger,
-                        "The promised file size ({self.file.size}) and uploaded \
-                        data length ({self.bytes_uploaded}) do not match. Leaving as much data as \
-                        received."
+                        "The promised file size ({}) and uploaded data length ({}) do not match. \
+                        Leaving as much data as received.",
+                        self.file.size, self.bytes_uploaded
                     );
                     self.bytes_uploaded = self.file.size;
                 }
@@ -207,7 +208,7 @@ impl NodeFromDroppedFileHandler {
         let this = self.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = this.upload_file(node, file).await {
-                error!(this.logger, "Error while uploading file: {err}");
+                error!("Error while uploading file: {err}");
                 this.update_metadata(node, |md| md.error = Some(err.to_string()));
             }
         });

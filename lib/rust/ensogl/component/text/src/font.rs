@@ -231,7 +231,7 @@ impl Face {
                     let msdf = msdf::OwnedFace::load_from_memory(data);
                     Face { msdf, ttf }
                 });
-            result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
+            result.map_err(|err| error!("Error parsing font: {}", err)).ok()
         })
     }
 }
@@ -386,7 +386,7 @@ impl Family for VariableFamily {
                     face.msdf
                         .set_variation_axis(axis.tag, value)
                         .map_err(|err| {
-                            event!(WARN, "Error setting font variation axis: {}", err);
+                            warn!("Error setting font variation axis: {}", err);
                         })
                         .ok();
                 });
@@ -750,7 +750,7 @@ impl {
     pub fn load(&mut self, name:impl Into<Name>) -> Font {
         let name = name.into();
         self.try_load(&name).unwrap_or_else(|| {
-            event!(WARN, "Font '{name}' not found. Loading the default font.");
+            warn!("Font '{name}' not found. Loading the default font.");
             self.try_load(DEFAULT_FONT).expect("Default font not found.")
         })
     }
@@ -760,7 +760,7 @@ impl {
     /// embedded font list.
     pub fn try_load(&mut self, name:impl Into<Name>) -> Option<Font> {
         let name = name.into();
-        event!(DEBUG, "Loading font: {:?}", name);
+        debug!("Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => Some(entry.get().clone_ref()),
             Entry::Vacant   (entry) => {

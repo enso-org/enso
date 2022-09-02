@@ -305,8 +305,8 @@ impl Instance {
         if let Err(err) = self.model.update_preprocessor() {
             let logger = self.model.logger.clone();
             error!(
-                logger,
-                "Failed to trigger initial preprocessor update from JS: {err.print_to_string()}"
+                "Failed to trigger initial preprocessor update from JS: {}",
+                err.print_to_string()
             );
         }
         self

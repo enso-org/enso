@@ -104,7 +104,7 @@ impl Label {
     /// Constructor.
     pub fn new(app: &Application, style_prefix: &Path) -> Self {
         let logger = Logger::new("list_view::entry::Label");
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         let label = app.new_view::<ensogl_text::Area>();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);

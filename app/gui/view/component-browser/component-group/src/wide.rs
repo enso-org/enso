@@ -373,7 +373,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         let selection_background = background::View::new(&logger);

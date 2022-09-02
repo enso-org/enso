@@ -167,8 +167,8 @@ struct Icons {
 impl Icons {
     fn new(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "Icons");
-        let display_object = display::object::Instance::new(&logger);
-        let icon_root = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let icon_root = display::object::Instance::new();
         let reset_position_icon = pin_icon::View::new(&logger);
         let drag_icon = four_arrow_icon::View::new(&logger);
         let size = default();
@@ -266,7 +266,7 @@ impl Model {
         let background = background::View::new(&logger);
         let hover_area = hover_area::View::new(&logger);
         let visualization_chooser = VisualizationChooser::new(app, vis_registry);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let size = default();
         let icons = Icons::new(logger);
         let shapes = compound::events::MouseEvents::default();

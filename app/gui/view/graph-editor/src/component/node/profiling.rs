@@ -197,7 +197,7 @@ impl ProfilingLabel {
     /// Constructs a `ProfilingLabel` for the given application.
     pub fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let root = display::object::Instance::new(Logger::new("ProfilingIndicator"));
+        let root = display::object::Instance::new();
 
         let label = text::Area::new(app);
         root.add_child(&label);

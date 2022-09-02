@@ -41,7 +41,7 @@ impl list_view::Entry for Entry {
 
     fn new(app: &Application, _style_prefix: &Path, params: &Self::Params) -> Self {
         let logger = app.logger.sub("NavigatorIcon");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let icon: Rc<RefCell<Option<icon::Any>>> = default();
         let icon_id = default();
         let network = frp::Network::new("searcher_list_panel::navigator::Icon");

@@ -100,7 +100,7 @@ pub struct EntryData {
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let logger = Logger::new("list_view::entry::Label");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let label = app.new_view::<ensogl_text::Area>();
         let background = entry::shape::View::new(&logger);
         display_object.add_child(&label);

@@ -153,10 +153,10 @@ impl Module {
     ) -> FallibleResult<Rc<Self>> {
         let logger = Logger::new(iformat!("Module {path}"));
         let file_path = path.file_path().clone();
-        info!(logger, "Opening module {file_path}");
+        info!("Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
         let content: Text = (&opened.content).into();
-        info!(logger, "Read content of the module {path}, digest is {opened.current_version:?}");
+        info!("Read content of the module {path}, digest is {:?}", opened.current_version);
         let end_of_file = content.location_of_text_end();
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
@@ -281,7 +281,7 @@ impl Module {
                 let this = weak.upgrade();
                 match (notification, this) {
                     (Some(notification), Some(this)) => {
-                        debug!(this.logger, "Processing a notification: {notification:?}");
+                        debug!("Processing a notification: {notification:?}");
                         let result = this.handle_notification(&ls_content, notification).await;
                         ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
                     }
@@ -302,11 +302,11 @@ impl Module {
     ) -> LanguageServerContent {
         match new_content {
             Ok(new_content) => {
-                debug!(self.logger, "Updating the LS content digest to: {new_content.summary:?}");
+                debug!("Updating the LS content digest to: {:?}", new_content.summary);
                 LanguageServerContent::Synchronized(new_content)
             }
             Err(err) => {
-                error!(self.logger, "Error during sending text change to Language Server: {err}");
+                error!("Error during sending text change to Language Server: {err}");
                 LanguageServerContent::Desynchronized(old_content)
             }
         }
@@ -321,7 +321,7 @@ impl Module {
     ) -> FallibleResult<ParsedContentSummary> {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
-        debug!(self.logger, "Handling notification: {content:?}.");
+        debug!("Handling notification: {content:?}.");
         match content {
             LanguageServerContent::Desynchronized(summary) =>
                 profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
@@ -360,7 +360,7 @@ impl Module {
         ls_content: &ContentSummary,
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
-        debug!(self.logger, "Handling full invalidation: {ls_content:?}.");
+        debug!("Handling full invalidation: {ls_content:?}.");
         let range = Range::new(Location::default(), ls_content.end_of_file);
         let edits = vec![TextEdit { range: range.into(), text: new_file.content.clone() }];
         self.notify_language_server(ls_content, &new_file, edits)
@@ -417,7 +417,7 @@ impl Module {
         ls_content: &ParsedContentSummary,
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
-        debug!(self.logger, "Handling partial invalidation: {ls_content:?}.");
+        debug!("Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
             //id_map and metadata go first, because code change may alter their position.
             Self::edit_for_idmap(ls_content, &new_file),
@@ -446,7 +446,7 @@ impl Module {
             old_version: ls_content.digest.clone(),
             new_version: Sha3_224::new(new_file.content.as_bytes()),
         };
-        debug!(self.logger, "Notifying LS with edit: {edit:#?}.");
+        debug!("Notifying LS with edit: {edit:#?}.");
         let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
         async move {
             ls_future_reply.await?;
@@ -463,7 +463,7 @@ impl Drop for Module {
         executor::global::spawn(async move {
             let result = language_server.client.close_text_file(&file_path).await;
             if let Err(err) = result {
-                error!(logger, "Error when closing module file {file_path}: {err}");
+                error!("Error when closing module file {file_path}: {err}");
             }
         });
     }
@@ -522,7 +522,7 @@ pub mod test {
             let current_ls_version =
                 Sha3_224::from_parts(current_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
             let logger = Logger::new_sub(parent, "LsClientSetup");
-            debug!(logger, "Initial content:\n===\n{current_ls_content}\n===");
+            debug!("Initial content:\n===\n{current_ls_content}\n===");
             Self {
                 path,
                 logger,
@@ -554,18 +554,18 @@ pub mod test {
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
-                debug!(this.logger, "Actual digest:   {actual_old} => {actual_new}");
-                debug!(this.logger, "Declared digest: {edits.old_version} => {edits.new_version}");
-                debug!(this.logger, "New content:\n===\n{new_content}\n===");
+                debug!("Actual digest:   {actual_old} => {actual_new}");
+                debug!("Declared digest: {} => {}", edits.old_version, edits.new_version);
+                debug!("New content:\n===\n{new_content}\n===");
                 assert_eq!(&edits.path, this.path.file_path());
                 assert_eq!(edits.old_version, actual_old);
                 assert_eq!(edits.new_version, actual_new);
                 if result.is_ok() {
                     this.current_ls_content.set(new_content);
                     this.current_ls_version.set(actual_new);
-                    debug!(this.logger, "Accepted!");
+                    debug!("Accepted!");
                 } else {
-                    debug!(this.logger, "Rejected!");
+                    debug!("Rejected!");
                 }
                 result
             });

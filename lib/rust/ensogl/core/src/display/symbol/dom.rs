@@ -111,14 +111,13 @@ pub struct DomSymbol {
 impl DomSymbol {
     /// Constructor.
     pub fn new(content: &web::Node) -> Self {
-        let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
         let dom = web::document.create_div_or_panic();
         dom.set_style_or_warn("position", "absolute");
         dom.set_style_or_warn("width", "0px");
         dom.set_style_or_warn("height", "0px");
         dom.append_or_warn(content);
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         let guard = Rc::new(Guard::new(&display_object, &dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
             let mut transform = inverse_y_translation(t.matrix());

@@ -58,7 +58,7 @@ impl QualifiedNameToIdMap {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
-            event!(WARN, "An existing suggestion entry id at {path} was overwritten with {id}.");
+            warn!("An existing suggestion entry id at {path} was overwritten with {id}.");
         }
     }
 
@@ -70,7 +70,7 @@ impl QualifiedNameToIdMap {
             let msg = format!(
                 "Could not remove a suggestion entry id at {path} because it does not exist."
             );
-            event!(WARN, "{msg}");
+            warn!("{msg}");
         }
     }
 
@@ -189,7 +189,7 @@ impl SuggestionDatabase {
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
-                    error!(logger, "Discarded invalid entry {id}: {err}");
+                    error!("Discarded invalid entry {id}: {err}");
                 }
             }
         }
@@ -228,7 +228,7 @@ impl SuggestionDatabase {
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
-                        error!(self.logger, "Discarding update for {id}: {err}")
+                        error!("Discarding update for {id}: {err}")
                     }
                 },
                 entry::Update::Remove { id } => {
@@ -241,7 +241,7 @@ impl SuggestionDatabase {
                                 "Received a suggestion database 'Remove' event for a nonexistent \
                                 entry id: {id}."
                             );
-                            error!(self.logger, "{msg}");
+                            error!("{msg}");
                         }
                     }
                 }
@@ -252,13 +252,10 @@ impl SuggestionDatabase {
                         let errors = entry.apply_modifications(*modification);
                         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
                         for error in errors {
-                            error!(
-                                self.logger,
-                                "Error when applying update for entry {id}: {error:?}"
-                            );
+                            error!("Error when applying update for entry {id}: {error:?}");
                         }
                     } else {
-                        error!(self.logger, "Received Modify event for nonexistent id: {id}");
+                        error!("Received Modify event for nonexistent id: {id}");
                     }
                 }
             };

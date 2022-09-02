@@ -150,7 +150,7 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new("TopButtons");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {

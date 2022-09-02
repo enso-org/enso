@@ -87,7 +87,7 @@ impl ProjectList {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("ProjectList");
         let network = frp::Network::new("ProjectList");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let background = background::View::new(&logger);
         let caption = app.new_view::<text::Area>();
         let list = app.new_view::<list_view::ListView<Entry>>();

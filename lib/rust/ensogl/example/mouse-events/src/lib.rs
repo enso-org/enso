@@ -68,7 +68,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = DefaultTraceLogger::new("Button");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let shape = shape::View::new(&logger);
         shape.size.set(Vector2::new(100.0, 100.0));
         display_object.add_child(&shape);

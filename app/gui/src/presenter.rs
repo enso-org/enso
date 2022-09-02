@@ -76,7 +76,7 @@ impl Model {
                 }
                 Err(err) => {
                     let err_msg = format!("Failed to initialize project: {}", err);
-                    error!(self.logger, "{err_msg}");
+                    error!("{err_msg}");
                     self.controller.status_notifications().publish_event(err_msg);
                 }
             }
@@ -92,10 +92,10 @@ impl Model {
         crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.open_project_by_name(project_name).await {
-                    error!(logger, "Cannot open project by name: {err}.");
+                    error!("Cannot open project by name: {err}.");
                 }
             } else {
-                warning!(logger, "Project opening failed: no ProjectManagingAPI available.");
+                warn!("Project opening failed: no ProjectManagingAPI available.");
             }
         });
     }
@@ -111,16 +111,13 @@ impl Model {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.create_new_project(template.clone()).await {
                     if let Some(template) = template {
-                        error!(
-                            logger,
-                            "Could not create new project from template {template}: {err}."
-                        );
+                        error!("Could not create new project from template {template}: {err}.");
                     } else {
-                        error!(logger, "Could not create new project: {err}.");
+                        error!("Could not create new project: {err}.");
                     }
                 }
             } else {
-                warning!(logger, "Project creation failed: no ProjectManagingAPI available.");
+                warn!("Project creation failed: no ProjectManagingAPI available.");
             }
         });
     }
@@ -198,7 +195,7 @@ impl Presenter {
                     if let Some(view_handle) = process_map.remove(&handle) {
                         status_bar.finish_process(view_handle);
                     } else {
-                        warning!(logger, "Controllers finished process not displayed in view");
+                        warn!("Controllers finished process not displayed in view");
                     }
                 }
             }
@@ -228,7 +225,7 @@ impl Presenter {
                     self.model.view.welcome_screen().frp.set_projects_list(names);
                 }
                 Err(err) => {
-                    error!(self.model.logger, "Unable to get list of projects: {err}.");
+                    error!("Unable to get list of projects: {err}.");
                 }
             }
         }

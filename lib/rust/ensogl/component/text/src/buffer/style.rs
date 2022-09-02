@@ -327,7 +327,7 @@ impl FormatSpan {
                 }
             }
             if start_byte != end_byte {
-                event!(WARN, "Misaligned bytes found when shaping text.");
+                warn!("Misaligned bytes found when shaping text.");
                 let next_byte = end_byte + Bytes(1);
                 yield (start_byte..next_byte, default());
             }

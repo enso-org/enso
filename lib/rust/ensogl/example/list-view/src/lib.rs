@@ -105,7 +105,7 @@ fn init(app: &Application) {
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
         eval list_view.chosen_entry([logger](entry) {
-            info!(logger, "Chosen entry {entry:?}")
+            info!("Chosen entry {entry:?}")
         });
     }
 

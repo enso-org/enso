@@ -133,7 +133,7 @@ impl Manager {
     /// Constructor, adding listener to the given target.
     pub fn new(target: &enso_web::EventTarget) -> Self {
         let logger = Logger::new("DropFileManager");
-        debug!(logger, "Creating");
+        debug!("Creating.");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
             files_received <- source();
@@ -141,7 +141,7 @@ impl Manager {
 
         let drop: DropClosure =
             Closure::new(f!([logger,files_received](event:web_sys::DragEvent) {
-                debug!(logger, "Dropped files.");
+                debug!("Dropped files.");
                 event.prevent_default();
                 Self::handle_drop_event(&logger,event,&files_received)
             }));
@@ -173,7 +173,7 @@ impl Manager {
             let files_iter = js_files_iter.filter_map(|f| match File::from_js_file(&f) {
                 Ok(file) => Some(file),
                 Err(err) => {
-                    error!(logger, "Error when processing dropped file: {err:?}.");
+                    error!("Error when processing dropped file: {err:?}.");
                     None
                 }
             });

@@ -362,7 +362,7 @@ impl Entry {
                         entry {self:?}. Every entry with the 'Method' kind should have a self \
                         type set, but this entry is missing the self type."
                     );
-                    event!(ERROR, "{msg}");
+                    error!("{msg}");
                     default()
                 }
             },
@@ -697,7 +697,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
                     documentation of a component is not a valid, losslessly-convertible snake_case \
                     identifier. The component may be displayed with a different icon than expected."
                 );
-                event!(WARN, "{msg}");
+                warn!("{msg}");
             }
             Some(icon_name)
         }

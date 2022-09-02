@@ -139,8 +139,8 @@ impl Selection {
     /// Constructor.
     pub fn new(logger: impl AnyLogger, edit_mode: bool) -> Self {
         let logger = Logger::new_sub(logger, "selection");
-        let display_object = display::object::Instance::new(&logger);
-        let right_side = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let right_side = display::object::Instance::new();
         let network = frp::Network::new("text_selection");
         let shape_view = shape::View::new(&logger);
         let position = DEPRECATED_Animation::new(&network);

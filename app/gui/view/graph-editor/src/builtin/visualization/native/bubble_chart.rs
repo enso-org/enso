@@ -106,7 +106,7 @@ impl BubbleChart {
 
     pub fn new(scene: &Scene) -> Self {
         let logger = Logger::new("bubble");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let views = Rc::new(RefCell::new(vec![]));
         let network = frp::Network::new("bubble_chart");
         let frp = visualization::instance::Frp::new(&network);

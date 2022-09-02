@@ -269,7 +269,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
         searcher.set_navigator(graph_editor.model.navigator.clone_ref());
@@ -344,7 +344,7 @@ impl Model {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             node.position().xy()
         } else {
-            error!(self.logger, "Trying to show searcher under nonexisting node");
+            error!("Trying to show searcher under nonexisting node");
             default()
         }
     }

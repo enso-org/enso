@@ -159,7 +159,7 @@ macro_rules! read_args {
                     (&ensogl::system::web::window,&path).ok() {
                         None => {
                             let path = path.join(".");
-                            error!(&logger,"The config path '{path}' is invalid.");
+                            error!("The config path '{path}' is invalid.");
                             default()
                         }
                         Some(cfg) => {

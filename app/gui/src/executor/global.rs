@@ -42,7 +42,7 @@ impl Default for GlobalSpawner {
 
 impl GlobalSpawner {
     fn set_spawner(&self, spawner_to_set: impl LocalSpawn + 'static) {
-        info!(self.logger, "Setting new spawner");
+        info!("Setting new spawner");
         *self.spawner.borrow_mut() = Some(Box::new(spawner_to_set))
     }
 
@@ -51,13 +51,10 @@ impl GlobalSpawner {
         let mut borrowed = self.spawner.borrow_mut();
         if let Some(unwrapped) = borrowed.as_mut() {
             if unwrapped.spawn_local(f).is_err() {
-                error!(
-                    self.logger,
-                    "Failed to spawn the task. Global executor might have been dropped."
-                );
+                error!("Failed to spawn the task. Global executor might have been dropped.");
             }
         } else {
-            error!(self.logger, "Fail to spawn the task. No global executor has been provided.")
+            error!("Fail to spawn the task. No global executor has been provided.")
         }
     }
 }

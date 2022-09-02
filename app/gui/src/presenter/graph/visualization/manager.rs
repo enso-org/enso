@@ -326,7 +326,7 @@ impl Manager {
     }
 
     fn write_new_desired(self: &Rc<Self>, target: ast::Id, new_desired: Option<Desired>) {
-        debug!(self.logger, "Requested to set visualization {target}: {new_desired:?}");
+        debug!("Requested to set visualization {target}: {new_desired:?}");
         let mut current = match self.visualizations.get_cloned(&target) {
             None => {
                 if new_desired.is_none() {
@@ -345,7 +345,6 @@ impl Manager {
             self.synchronize(target);
         } else {
             debug!(
-                self.logger,
                 "Visualization for {target} was already in the desired state: \
             {new_desired:?}"
             );
@@ -395,7 +394,7 @@ impl Manager {
             let desired_vis_id = description.desired.as_ref().map(|v| v.visualization_id);
             let new_visualization = description.desired.and_then(|desired| {
                 this.prepare_visualization(desired.clone()).handle_err(|error| {
-                    error!(this.logger, "Failed to prepare visualization {desired:?}: {error}")
+                    error!("Failed to prepare visualization {desired:?}: {error}")
                 })
             });
             match (status, new_visualization) {
@@ -423,10 +422,7 @@ impl Manager {
         target: ast::Id,
         new_visualization: Visualization,
     ) {
-        info!(
-            self.logger,
-            "Will attach visualization {new_visualization.id} to expression {target}"
-        );
+        info!("Will attach visualization {} to expression {target}", new_visualization.id);
         let status = Status::BeingAttached(new_visualization.clone());
         self.update_status(target, status);
         let notifier = self.notification_sender.clone();
@@ -462,7 +458,7 @@ impl Manager {
 
     #[profile(Detail)]
     async fn detach_visualization(self: Rc<Self>, target: ast::Id, so_far: Visualization) {
-        info!(self.logger, "Will detach from {target}: {so_far:?}");
+        info!("Will detach from {target}: {so_far:?}");
         let status = Status::BeingDetached(so_far.clone());
         self.update_status(target, status);
         let detaching_result = self.executed_graph.detach_visualization(so_far.id);
@@ -494,10 +490,7 @@ impl Manager {
         so_far: Visualization,
         new_visualization: Visualization,
     ) {
-        info!(
-            self.logger,
-            "Will modify visualization on {target} from {so_far:?} to {new_visualization:?}"
-        );
+        info!("Will modify visualization on {target} from {so_far:?} to {new_visualization:?}");
         let status =
             Status::BeingModified { from: so_far.clone(), to: new_visualization.clone() };
         self.update_status(target, status);

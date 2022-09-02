@@ -178,7 +178,7 @@ impl Model {
     fn nodes_collapsed(&self, collapsed: &[ViewNodeId]) {
         self.update_ast(
             || {
-                debug!(self.logger, "Collapsing node.");
+                debug!("Collapsing node.");
                 let ids = collapsed.iter().filter_map(|node| self.state.ast_node_id_of_view(*node));
                 let new_node_id = self.controller.graph().collapse(ids, COLLAPSED_FUNCTION_NAME);
                 // TODO [mwu] https://github.com/enso-org/ide/issues/760
@@ -193,7 +193,7 @@ impl Model {
     fn update_ast<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
         if let Some(Err(err)) = f() {
-            error!(self.logger, "Failed to {action} in AST: {err}");
+            error!("Failed to {action} in AST: {err}");
         }
     }
 
@@ -290,7 +290,7 @@ impl Model {
         let position = model::module::Position { vector: position };
         let handler = NodeFromDroppedFileHandler::new(&self.logger, project, graph);
         if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
-            error!(self.logger, "Error when creating node from dropped file: {err}");
+            error!("Error when creating node from dropped file: {err}");
         }
     }
 
@@ -487,7 +487,7 @@ impl Graph {
             update_data <- update_view.map(f_!([logger,model] match ViewUpdate::new(&*model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
-                    error!(logger,"Failed to update view: {err:?}");
+                    error!("Failed to update view: {err:?}");
                     Rc::new(default())
                 }
             }));

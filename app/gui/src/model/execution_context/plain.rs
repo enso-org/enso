@@ -122,7 +122,7 @@ impl ExecutionContext {
         let id = visualization.id;
         let (update_sender, receiver) = futures::channel::mpsc::unbounded();
         let visualization = AttachedVisualization { visualization, update_sender };
-        info!(self.logger, "Inserting to the registry: {id}.");
+        info!("Inserting to the registry: {id}.");
         self.visualizations.borrow_mut().insert(id, visualization);
         receiver
     }
@@ -154,7 +154,7 @@ impl ExecutionContext {
     /// This function shadows the asynchronous version from API trait.
     pub fn detach_visualization(&self, id: VisualizationId) -> FallibleResult<Visualization> {
         let err = || InvalidVisualizationId(id);
-        info!(self.logger, "Removing from the registry: {id}.");
+        info!("Removing from the registry: {id}.");
         let removed = self.visualizations.borrow_mut().remove(&id).ok_or_else(err)?;
         Ok(removed.visualization)
     }
@@ -242,11 +242,10 @@ impl model::execution_context::API for ExecutionContext {
             // TODO [mwu] Should we consider detaching the visualization if the view has dropped the
             //   channel's receiver? Or we need to provide a way to re-establish the channel.
             let _ = visualization.update_sender.unbounded_send(data);
-            debug!(self.logger, "Sending update data to the visualization {visualization_id}.");
+            debug!("Sending update data to the visualization {visualization_id}.");
             Ok(())
         } else {
             error!(
-                self.logger,
                 "Failed to dispatch update to visualization {visualization_id}. \
             Failed to found such visualization."
             );

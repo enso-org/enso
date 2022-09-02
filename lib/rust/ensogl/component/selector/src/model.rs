@@ -78,7 +78,7 @@ pub struct Model {
 impl Model {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("selector::common::Model");
-        let root = display::object::Instance::new(&logger);
+        let root = display::object::Instance::new();
         let label = FloatLabel::new(app);
         let label_left = app.new_view::<text::Area>();
         let label_right = app.new_view::<text::Area>();

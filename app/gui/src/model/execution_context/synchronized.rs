@@ -70,14 +70,14 @@ impl ExecutionContext {
     ) -> impl Future<Output = FallibleResult<Self>> {
         let logger = Logger::new_sub(&parent, "ExecutionContext");
         async move {
-            info!(logger, "Creating.");
+            info!("Creating.");
             let id = language_server.client.create_execution_context().await?.context_id;
             let logger = Logger::new_sub(&parent, iformat! {"ExecutionContext {id}"});
             let model = model::execution_context::Plain::new(&logger, root_definition);
-            info!(logger, "Created. Id: {id}.");
+            info!("Created. Id: {id}.");
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
-            info!(this.logger, "Pushed root frame.");
+            info!("Pushed root frame.");
             Ok(this)
         }
     }
@@ -104,7 +104,7 @@ impl ExecutionContext {
                 "Failed to parse a component group returned by the Engine. The group will not \
                 appear in the Favorites section of the Component Browser. Error: {err}"
             );
-            error!(self.logger, "{msg}");
+            error!("{msg}");
         };
         match self.language_server.get_component_groups(&self.id).await {
             Ok(ls_response) => {
@@ -114,14 +114,14 @@ impl ExecutionContext {
                     .filter_map(|group| group.try_into().inspect_err(log_group_parsing_error).ok())
                     .collect();
                 *self.model.component_groups.borrow_mut() = Rc::new(groups);
-                info!(self.logger, "Loaded component groups.");
+                info!("Loaded component groups.");
             }
             Err(err) => {
                 let msg = iformat!(
                     "Failed to load component groups. No groups will appear in the Favorites \
                     section of the Component Browser. Error: {err}"
                 );
-                error!(self.logger, "{msg}");
+                error!("{msg}");
             }
         }
     }
@@ -139,7 +139,7 @@ impl ExecutionContext {
         let ast_id = vis.expression_id;
         let ls = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
-        info!(logger, "About to detach visualization by id: {vis_id}.");
+        info!("About to detach visualization by id: {vis_id}.");
         ls.detach_visualisation(&exe_id, &vis_id, &ast_id).await?;
         if let Err(err) = self.model.detach_visualization(vis_id) {
             warning!(logger, "Failed to update model after detaching visualization: {err:?}.")
@@ -152,7 +152,7 @@ impl ExecutionContext {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
-                    info!(self.logger, "Context {self.id} Became ready");
+                    info!("Context {} Became ready", self.id);
                     let this = self.clone();
                     executor::global::spawn(async move {
                         this.load_component_groups().await;
@@ -287,7 +287,7 @@ impl model::execution_context::API for ExecutionContext {
         visualization_id: VisualizationId,
         data: VisualizationUpdateData,
     ) -> FallibleResult {
-        debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
+        debug!("Dispatching visualization update through the context {}", self.id());
         self.model.dispatch_visualization_update(visualization_id, data)
     }
 }
@@ -300,7 +300,7 @@ impl Drop for ExecutionContext {
         executor::global::spawn(async move {
             let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {
-                error!(logger, "Error when destroying Execution Context: {result:?}.");
+                error!("Error when destroying Execution Context: {result:?}.");
             }
         });
     }

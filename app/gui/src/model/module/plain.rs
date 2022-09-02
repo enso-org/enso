@@ -65,10 +65,10 @@ impl Module {
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
-            debug!(self.logger, "Ignoring spurious update.");
+            debug!("Ignoring spurious update.");
             return Ok(());
         }
-        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
+        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content.borrow().clone());
 
