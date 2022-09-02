@@ -41,7 +41,7 @@ impl ParserTestExts for Parser {
         let program = program.into();
         DEBUG!("parsing " program);
         let ast = self.parse(program.clone(), default()).unwrap();
-        assert_eq!(ast.shape().len().as_usize(), program.len());
+        assert_eq!(ast.shape().len().value, program.len());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast

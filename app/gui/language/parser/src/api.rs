@@ -78,10 +78,9 @@ impl SourceFile {
                 let tag_range = two_before_last + 1.bytes()..*before_last;
                 let id_map_range = before_last + 1.bytes()..*last;
                 let metadata_range = last + 1.bytes()..Bytes::from(content.len());
-                let tag = &content[tag_range.start.as_usize()..tag_range.end.as_usize()];
-                let idmap = &content[id_map_range.start.as_usize()..id_map_range.end.as_usize()];
-                let metadata =
-                    &content[metadata_range.start.as_usize()..metadata_range.end.as_usize()];
+                let tag = &content[tag_range.start.value..tag_range.end.value];
+                let idmap = &content[id_map_range.start.value..id_map_range.end.value];
+                let metadata = &content[metadata_range.start.value..metadata_range.end.value];
                 let tag_matching = tag == METADATA_TAG;
                 let idmap_matching = Self::looks_like_idmap(idmap);
                 let metadata_matching = Self::looks_like_metadata(metadata);
@@ -137,8 +136,8 @@ impl SourceFile {
     }
 
     fn slice(&self, range: &Range<Bytes>) -> &str {
-        let start = range.start.as_usize();
-        let end = range.end.as_usize();
+        let start = range.start.value;
+        let end = range.end.value;
         &self.content[start..end]
     }
 }

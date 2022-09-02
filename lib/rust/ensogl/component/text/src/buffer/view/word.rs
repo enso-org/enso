@@ -18,13 +18,13 @@ pub struct WordCursor<'a> {
 
 impl<'a> WordCursor<'a> {
     /// Constructor.
-    pub fn new(text: &'a rope::Rope, pos: UBytes) -> WordCursor<'a> {
+    pub fn new(text: &'a rope::Rope, pos: Bytes) -> WordCursor<'a> {
         let cursor = rope::Cursor::new(text, pos.value);
         WordCursor { cursor }
     }
 
     /// Get previous boundary, and set the cursor at the boundary found.
-    pub fn prev_boundary(&mut self) -> Option<UBytes> {
+    pub fn prev_boundary(&mut self) -> Option<Bytes> {
         self.prev_codepoint_class().map(|mut cls| {
             let mut candidate = self.cursor.pos();
             while let Some(prev_cls) = self.prev_codepoint_class() {
@@ -40,7 +40,7 @@ impl<'a> WordCursor<'a> {
     }
 
     /// Get next boundary, and set the cursor at the boundary found.
-    pub fn next_boundary(&mut self) -> Option<UBytes> {
+    pub fn next_boundary(&mut self) -> Option<Bytes> {
         self.next_codepoint_class().map(|mut cls| {
             let mut candidate = self.cursor.pos();
             while let Some(next_cls) = self.next_codepoint_class() {
@@ -57,7 +57,7 @@ impl<'a> WordCursor<'a> {
 
     /// Return the selection for the word containing the current cursor. The cursor is moved to the
     /// end of that selection.
-    pub fn select_word(&mut self) -> (UBytes, UBytes) {
+    pub fn select_word(&mut self) -> (Bytes, Bytes) {
         let initial = self.cursor.pos();
         let init_cls_after = self.next_codepoint_class();
         self.cursor.set(initial); // FIXME ???

@@ -106,8 +106,8 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = enso_text::unit::Bytes(byte_id as i32);
-                            let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                            let start = enso_text::unit::Bytes(byte_id);
+                            let end = enso_text::unit::Bytes(byte_id + char.len_utf8());
                             break Some(enso_text::Range::new(start, end));
                         }
                     } else {
@@ -215,8 +215,8 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
                 if let Some(char) = char_iter.next() {
                     let (char_idx, (byte_id, char)) = char;
                     if char_idx == *idx {
-                        let start = enso_text::unit::Bytes(byte_id as i32);
-                        let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                        let start = enso_text::unit::Bytes(byte_id);
+                        let end = enso_text::unit::Bytes(byte_id + char.len_utf8());
                         break Some(enso_text::Range::new(start, end));
                     }
                 } else {

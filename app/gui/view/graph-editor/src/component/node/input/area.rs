@@ -137,7 +137,7 @@ impl From<node::Expression> for Expression {
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
             info.prev_tok_local_index = node.offset + size;
-            viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
+            viz_code += &" ".repeat(offset_from_prev_tok.value);
             if node.children.is_empty() {
                 viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
             }

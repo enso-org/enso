@@ -88,8 +88,8 @@ impl JsonIdMap {
     pub fn from_id_map(id_map: &IdMap, code: &str) -> Self {
         let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
-            let byte_start = range.start.as_usize();
-            let byte_end = range.end.as_usize();
+            let byte_start = range.start.value;
+            let byte_end = range.end.value;
             let start: Chars = char_offsets.binary_search(&byte_start).unwrap_both().into();
             let end: Chars = char_offsets.binary_search(&byte_end).unwrap_both().into();
             let size = end - start;

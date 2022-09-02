@@ -21,7 +21,7 @@ pub struct Spans<T: Clone> {
 
 impl<T: Clone> Spans<T> {
     /// The number of bytes of this span.
-    pub fn len(&self) -> UBytes {
+    pub fn len(&self) -> Bytes {
         self.raw.len().into()
     }
 
@@ -37,26 +37,26 @@ impl<T: Clone> Spans<T> {
     /// and then creates a new byte subsequence of the length `length` and associates it with the
     /// `value`. Use with caution, as it can easily lead to wrong amount of bytes covered by the
     /// span.
-    pub fn replace_resize(&mut self, range: Range<UBytes>, length: UBytes, value: T) {
+    pub fn replace_resize(&mut self, range: Range<Bytes>, length: Bytes, value: T) {
         let mut builder = rope::spans::Builder::new(length.value);
         builder.add_span(.., value);
         self.raw.edit(range.into_rope_interval(), builder.build())
     }
 
     /// Return all spans contained in the provided range.
-    pub fn sub(&self, range: Range<UBytes>) -> Self {
+    pub fn sub(&self, range: Range<Bytes>) -> Self {
         Self { raw: self.raw.subseq(range.into_rope_interval()) }
     }
 
     // FIXME: convert to iterator
     /// Convert the span tree to vector of non-overlapping ranges and their values.
-    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
+    pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
         self.raw
             .iter()
             .map(|t| {
-                let start: UBytes = t.0.start.into();
-                let end: UBytes = t.0.end.into();
-                RangedValue::new((start..end).into(), t.1.clone())
+                let start: Bytes = t.0.start.into();
+                let end: Bytes = t.0.end.into();
+                RangedValue::new(start..end, t.1.clone())
             })
             .collect()
     }
@@ -78,7 +78,8 @@ pub struct RangedValue<I, A> {
 
 impl<I, A> RangedValue<I, A> {
     /// Constructor.
-    pub fn new(range: Range<I>, value: A) -> Self {
+    pub fn new(range: impl Into<Range<I>>, value: A) -> Self {
+        let range = range.into();
         Self { range, value }
     }
 
@@ -298,8 +299,8 @@ impl<I, A> RangedValue<I, A> {
 mod tests {
     use super::*;
 
-    type V1 = Vec<RangedValue<usize, usize>>;
-    type V2 = Vec<RangedValue<usize, char>>;
+    type V1 = Vec<RangedValue<i32, i32>>;
+    type V2 = Vec<RangedValue<i32, char>>;
 
     #[test]
     fn test_zip_ranged_values() {

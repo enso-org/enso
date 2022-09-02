@@ -116,13 +116,13 @@ pub fn apply_code_change_to_id_map(
 
         if trim_front && to_trim_front > 0.bytes() {
             range.start += to_trim_front;
-            debug!(logger, "Trimming front {to_trim_front.as_usize()} chars.");
+            debug!(logger, "Trimming front {to_trim_front.value} chars.");
         }
 
         if trim_back {
             if to_trim_back > 0.bytes() {
-                range.end += -to_trim_back;
-                debug!(logger, "Trimming back {to_trim_back.as_usize()} chars.");
+                range.end -= to_trim_back;
+                debug!(logger, "Trimming back {to_trim_back.value} chars.");
             }
             let new_repr = &new_code[*range];
             // Trim trailing spaces

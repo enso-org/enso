@@ -201,7 +201,7 @@ impl ViewBuffer {
             Transform::LeftWord => {
                 let end_offset = self.byte_offset_of_location_snapped(selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
-                let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.ubytes());
+                let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.bytes());
                 let end = self.offset_to_location(offset);
                 shape(selection.start, end)
             }
