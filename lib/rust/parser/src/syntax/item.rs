@@ -49,8 +49,14 @@ impl<'s> Item<'s> {
                 token::Variant::Number(number) => Tree::number(token.with_variant(number)),
                 token::Variant::TextStart(open) =>
                     Tree::text_literal(Some(token.with_variant(open)), default(), default()),
-                token::Variant::TextSection(section) =>
-                    Tree::text_literal(default(), vec![token.with_variant(section)], default()),
+                token::Variant::TextSection(section) => {
+                    let section = tree::TextElement::Section(token.with_variant(section));
+                    Tree::text_literal(default(), vec![section], default())
+                }
+                token::Variant::TextEscape(escape) => {
+                    let section = tree::TextElement::Escape(token.with_variant(escape));
+                    Tree::text_literal(default(), vec![section], default())
+                }
                 token::Variant::TextEnd(close) =>
                     Tree::text_literal(default(), default(), Some(token.with_variant(close))),
                 _ => {

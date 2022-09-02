@@ -123,8 +123,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         TextLiteral {
             pub open_quote: Option<token::TextStart<'s>>,
-            /// One for each line in the literal.
-            pub sections: Vec<token::TextSection<'s>>,
+            pub elements: Vec<TextElement<'s>>,
             /// Conditions when this is `None`:
             /// - Block literal: Always.
             /// - Inline literal: On error: EOL or EOF occurred without the string being closed.
@@ -360,6 +359,28 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
 }
 
 
+// === Text literals ===
+
+/// A component of a text literal, within the quotation marks.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub enum TextElement<'s> {
+    /// The text content of the literal. If it is multiline, the offset information may contain part
+    /// of the content, after trimming appropriately.
+    Section(token::TextSection<'s>),
+    /// A \ character.
+    Escape(token::TextEscape<'s>),
+}
+
+impl<'s> span::Builder<'s> for TextElement<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        match self {
+            TextElement::Section(section) => section.add_to_span(span),
+            TextElement::Escape(escape) => escape.add_to_span(span),
+        }
+    }
+}
+
+
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
@@ -437,10 +458,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         }
         Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
                 && lhs.close_quote.is_none() && rhs.open_quote.is_none() => {
-            if let Some(first) = rhs.sections.first_mut() {
-                first.left_offset = arg.span.left_offset;
+            match rhs.elements.first_mut() {
+                Some(TextElement::Section(section)) => section.left_offset = arg.span.left_offset,
+                Some(TextElement::Escape(escape)) => escape.left_offset = arg.span.left_offset,
+                None => (),
             }
-            lhs.sections.append(&mut rhs.sections);
+            lhs.elements.append(&mut rhs.elements);
             lhs.close_quote = rhs.close_quote.take();
             return func;
         }

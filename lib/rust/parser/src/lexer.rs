@@ -665,11 +665,13 @@ impl<'s> Lexer<'s> {
             }
             if multiline {
                 let text_start = self.mark();
-                let token = self.make_token(open_quote_start, text_start.clone(), token::Variant::TextStart(token::variant::TextStart()));
+                let token = self.make_token(open_quote_start, text_start.clone(),
+                    token::Variant::TextStart(token::variant::TextStart()));
                 self.output.push(token);
                 self.take_rest_of_line();
                 let next_line_start = self.mark();
-                let token = self.make_token(text_start, next_line_start, token::Variant::TextSection(token::variant::TextSection()));
+                let token = self.make_token(text_start, next_line_start,
+                    token::Variant::TextSection(token::variant::TextSection()));
                 if !token.code.len().is_zero() {
                     self.output.push(token);
                 }
@@ -677,28 +679,50 @@ impl<'s> Lexer<'s> {
             } else {
                 // Exactly two quote characters: Open and shut case.
                 let close_quote_end = self.mark();
-                let token = self.make_token(open_quote_start, close_quote_start.clone(), token::Variant::TextStart(token::variant::TextStart()));
+                let token = self.make_token(open_quote_start, close_quote_start.clone(),
+                    token::Variant::TextStart(token::variant::TextStart()));
                 self.output.push(token);
-                let token = self.make_token(close_quote_start, close_quote_end, token::Variant::TextEnd(token::variant::TextEnd()));
+                let token = self.make_token(close_quote_start, close_quote_end,
+                    token::Variant::TextEnd(token::variant::TextEnd()));
                 self.output.push(token);
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
-            let text_start = self.mark();
-            let token = self.make_token(open_quote_start, text_start.clone(), token::Variant::TextStart(token::variant::TextStart()));
+            let mut text_start = self.mark();
+            let token = self.make_token(open_quote_start, text_start.clone(),
+                token::Variant::TextStart(token::variant::TextStart()));
             self.output.push(token);
-            while let Some(char) = self.current_char && char != quote_char && !is_newline_char(char) {
+            while let Some(char) = self.current_char {
+                if char == quote_char || is_newline_char(char) {
+                    break;
+                }
+                if char == '\\' {
+                    let escape_start = self.mark();
+                    self.take_next();
+                    if let Some(char) = self.current_char && char == quote_char {
+                        let token = self.make_token(text_start, escape_start.clone(),
+                            token::Variant::TextSection(token::variant::TextSection()));
+                        self.output.push(token);
+                        let escape_end = self.mark();
+                        let token = self.make_token(escape_start, escape_end.clone(),
+                            token::Variant::TextEscape(token::variant::TextEscape()));
+                        self.output.push(token);
+                        text_start = escape_end;
+                    }
+                }
                 self.take_next();
             }
             let close_quote_start = self.mark();
-            let token = self.make_token(text_start, close_quote_start.clone(), token::Variant::TextSection(token::variant::TextSection()));
+            let token = self.make_token(text_start, close_quote_start.clone(),
+                token::Variant::TextSection(token::variant::TextSection()));
             if !token.code.len().is_zero() {
                 self.output.push(token);
             }
             if let Some(char) = self.current_char && char == quote_char {
                 self.take_next();
                 let close_quote_end = self.mark();
-                let token = self.make_token(close_quote_start, close_quote_end, token::Variant::TextEnd(token::variant::TextEnd()));
+                let token = self.make_token(close_quote_start, close_quote_end,
+                    token::Variant::TextEnd(token::variant::TextEnd()));
                 self.output.push(token);
             }
         }

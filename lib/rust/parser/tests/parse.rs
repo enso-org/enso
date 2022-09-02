@@ -564,13 +564,19 @@ fn inline_text_literals() {
     #[rustfmt::skip]
     let cases = [
         (r#""I'm an inline raw text!""#, block![
-            (TextLiteral "\"" #("I'm an inline raw text!") "\"")]),
+            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"")]),
         (r#"zero_length = """#, block![
             (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\""))]),
         (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() ()))]),
         (r#"unclosed = "a"#, block![
-            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #("a") ()))]),
-        (r#"'Other quote type'"#, block![(TextLiteral "'" #("Other quote type") "'")]),
+            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) ()))]),
+        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'")]),
+        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"")]),
+        (r#""String with \" escape""#, block![
+            (TextLiteral
+             "\""
+             #((Section "String with ") (Escape "\\") (Section "\" escape"))
+             "\"")]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -590,12 +596,12 @@ fn multiline_text_literals() {
     let expected = block![
         (TextLiteral
          "'''"
-         #("\n" "part of the string"
-           "\n" "3-spaces indented line, part of the Text Block"
-           "\n" "this does not end the string -> '''"
-           "\n" ""
-           "\n" "also part of the string"
-           "\n" "")
+         #((Section "\n") (Section "part of the string")
+           (Section "\n") (Section "3-spaces indented line, part of the Text Block")
+           (Section "\n") (Section "this does not end the string -> '''")
+           (Section "\n") (Section "")
+           (Section "\n") (Section "also part of the string")
+           (Section "\n") (Section ""))
         ())
         (Number 3)
     ];
@@ -658,6 +664,7 @@ where T: serde::Serialize + Reflect {
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
     let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
     let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
+    let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
     let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
@@ -677,6 +684,8 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(text_start_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(text_end_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_escape_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str;
