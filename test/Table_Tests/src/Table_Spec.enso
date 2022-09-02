@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Error
 
 import Standard.Table
 from Standard.Table import Column, Sort_Column, Sort_Column_Selector
@@ -659,12 +660,12 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r1 = t.distinct (By_Name ["A"])
+            r1 = t.distinct (By_Name ["A"]) on_problems=Report_Error
             r1.at "A" . to_vector . should_equal ["a"]
             r1.at "B" . to_vector . should_equal [1]
             r1.at "C" . to_vector . should_equal [0.1]
 
-            r2 = t.distinct (By_Name ["A", "B"])
+            r2 = t.distinct (By_Name ["A", "B"]) on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -673,7 +674,7 @@ spec =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct (By_Name ["A"])
+            r = t.distinct (By_Name ["A"]) on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -681,26 +682,24 @@ spec =
             Nothing
 
         Test.specify "should report a warning if the key contains floating point values" <|
-            t1 = Table.new [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
+            t1 = Table.new [["X", [3.1, 1.0, 2.0, 2.0, 1.0]]]
             action1 = t1.distinct on_problems=_
             tester1 table =
-                table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4]]
+                table.at "X" . to_vector . should_equal [3.1, 1.0, 2.0]
+            problems1 = [Floating_Point_Grouping_Data "Distinct" [0]]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = Table.new [["X", [1.00000000000001, 1.0, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
+            t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
-                table.at "X" . to_vector . should_equal [1.00000000000001, 1.0, 1.00000000000002, 1.5]
+                table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
             problems2 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4, 5]]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
             t = Table.new [["A", [1, 2, 1, 1]]]
             test table = table.should_equal t
-            r = t.distinct (By_Name []) on_problems=Problem_Behavior.Report_Error
-            IO.println r
-            r.print
+
             action1 = t.distinct (By_Name []) on_problems=_
             problems1 = [No_Input_Columns_Selected]
             Problems.test_problem_handling action1 problems1 test
@@ -714,7 +713,7 @@ spec =
             a = ["A", ["a", "b", "a", "b", "a", "b"]]
             b = ["B", [2, 1, 2, 2, 2, 1]]
             t = Table.new [a, b]
-            r = t.distinct
+            r = t.distinct on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", "b", "b"]
             r.at "B" . to_vector . should_equal [2, 1, 2]
 

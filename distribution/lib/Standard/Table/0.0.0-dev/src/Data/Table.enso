@@ -681,7 +681,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
-    distinct self (columns = By_Name [self.columns.map .name]) case_sensitive=True on_problems=Report_Warning =
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
         # TODO case sensitive!
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
@@ -690,7 +690,9 @@ type Table
             Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
         java_table = self.java_table.distinct java_columns.to_array Comparator.new
-        Table_Data java_table
+        on_problems.attach_problems_after (Table_Data java_table) <|
+            problems = java_table.getProblems
+            Aggregate_Column_Helper.parse_aggregated_problems problems
 
 
     ## Parses columns within a Table to a specific value type.

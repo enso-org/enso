@@ -249,7 +249,6 @@ public class Table {
       newColumns[i] = this.columns[i].mask(newIx, rowsToKeep, cardinality);
     }
 
-    // TODO should we preserve the original problems of the input table too? I don't think so - we don't in the index, and seems that regular Enso dataflow should already handle that
     return new Table(newColumns, newIx, problems);
   }
 
