@@ -132,6 +132,7 @@ impl ToMeta {
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
+        ty.child_field = Some(0);
         self.graph.types.bind(id_, ty);
     }
 

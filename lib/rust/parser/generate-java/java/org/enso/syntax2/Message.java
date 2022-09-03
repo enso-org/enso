@@ -10,22 +10,22 @@ final class Message {
     private final long metadata;
     private boolean encounteredUnsupportedSyntax;
 
-    public Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn, long metadataIn) {
+    Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn, long metadataIn) {
         buffer = bufferIn;
         context = contextIn;
         base = (int)baseIn;
         metadata = metadataIn;
     }
 
-    public long get64() {
+    long get64() {
         return buffer.getLong();
     }
 
-    public int get32() {
+    int get32() {
         return buffer.getInt();
     }
 
-    public boolean getBoolean() {
+    boolean getBoolean() {
         switch (buffer.get()) {
             case 0: return false;
             case 1: return true;
@@ -33,18 +33,18 @@ final class Message {
         }
     }
 
-    public String getString() {
+    String getString() {
         int len = (int)get64();
         byte[] dst = new byte[len];
         buffer.get(dst);
         return new String(dst, StandardCharsets.UTF_8);
     }
 
-    public java.nio.ByteBuffer context() {
+    java.nio.ByteBuffer context() {
         return context;
     }
 
-    public int offset(int xLow32) {
+    int offset(int xLow32) {
         // Given the low bits of `x`, the low bits of `base`, and the invariant `x >= base`,
         // return `x - base`.
         int tmp = xLow32 - base;
@@ -59,15 +59,15 @@ final class Message {
         return "Message[buffer=" + buffer.position() + "]";
     }
 
-    public boolean getEncounteredUnsupportedSyntax() {
+    boolean getEncounteredUnsupportedSyntax() {
         return encounteredUnsupportedSyntax;
     }
 
-    public void markEncounteredUnsupportedSyntax() {
+    void markEncounteredUnsupportedSyntax() {
         encounteredUnsupportedSyntax = true;
     }
 
-    public java.util.UUID getUuid(long nodeOffset, long nodeLength) {
+    java.util.UUID getUuid(long nodeOffset, long nodeLength) {
         long high = Parser.getUuidHigh(metadata, nodeOffset, nodeLength);
         long low = Parser.getUuidLow(metadata, nodeOffset, nodeLength);
         if (high == 0 && low == 0) {

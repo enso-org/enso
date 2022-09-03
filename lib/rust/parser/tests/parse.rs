@@ -418,7 +418,7 @@ fn minus_unary() {
 }
 
 
-// === Import ===
+// === Import/Export ===
 
 #[test]
 fn import() {
@@ -443,8 +443,7 @@ fn import() {
              ()
              ((Ident import) (Ident all))
              ()
-             ((Ident hiding)
-              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean))))]),
+             ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
         ("from Standard.Table as Column_Module import Column", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
@@ -468,6 +467,37 @@ fn import() {
               (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
              ((Ident as) (Ident Java_URI))
              ())]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn export() {
+    #[rustfmt::skip]
+    let cases = [
+        ("export Foo", block![(Export () () ((Ident export) (Ident Foo)) () ())]),
+        ("export Foo as Bar", block![
+            (Export () () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)) ())]),
+        ("from Foo export Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (OprApp (Ident Bar) (Ok ",") (Ident Baz)))
+             () ())]),
+        ("from Foo export all hiding Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (Ident all))
+             ()
+             ((Ident hiding) (OprApp (Ident Bar) (Ok ",") (Ident Baz))))]),
+        ("from Foo as Bar export Baz, Quux", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ((Ident as) (Ident Bar))
+             ((Ident export) (OprApp (Ident Baz) (Ok ",") (Ident Quux)))
+             () ())
+        ]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -527,6 +557,58 @@ fn type_annotations() {
 }
 
 
+// === Text Literals ===
+
+#[test]
+fn inline_text_literals() {
+    #[rustfmt::skip]
+    let cases = [
+        (r#""I'm an inline raw text!""#, block![
+            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"" 0)]),
+        (r#"zero_length = """#, block![
+            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\"" 0))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() () 0))]),
+        (r#"unclosed = "a"#, block![
+            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) () 0))]),
+        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'" 0)]),
+        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"" 0)]),
+        (r#""String with \" escape""#, block![
+            (TextLiteral
+             "\""
+             #((Section "String with ") (Escape "\\") (Section "\" escape"))
+             "\"" 0)]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn multiline_text_literals() {
+    test("'''", block![(TextLiteral "'''" #() () 0)]);
+    const CODE: &str = r#"'''
+    part of the string
+       3-spaces indented line, part of the Text Block
+    this does not end the string -> '''
+
+    also part of the string
+
+3"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral
+         "'''"
+         #((Section "\n") (Section "part of the string")
+           (Section "\n") (Section "3-spaces indented line, part of the Text Block")
+           (Section "\n") (Section "this does not end the string -> '''")
+           (Section "\n") (Section "")
+           (Section "\n") (Section "also part of the string")
+           (Section "\n") (Section ""))
+        () 4)
+        (Number 3)
+    ];
+    test(CODE, expected);
+}
+
+
 
 // ====================
 // === Test Support ===
@@ -580,6 +662,10 @@ where T: serde::Serialize + Reflect {
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Number::reflect().id];
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
+    let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
+    let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
+    let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
+    let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
     let line = rust_to_meta[&tree::block::Line::reflect().id];
@@ -594,6 +680,14 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(symbol_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_start_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_end_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_escape_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str;
     to_s_expr.mapper(number_token, move |token| {
         Value::Number(token_to_str_(token).parse::<u64>().unwrap().into())

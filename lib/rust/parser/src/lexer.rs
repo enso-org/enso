@@ -495,11 +495,25 @@ impl token::Variant {
 impl<'s> Lexer<'s> {
     /// Parse an identifier.
     fn ident(&mut self) {
-        if let Some(token) = self.token(|this| this.take_while_1(is_ident_char)) {
+        if let Some(token) = self.token(|this| {
+            if this.ident_start_char() {
+                this.take_while_1(is_ident_char);
+            }
+        }) {
             let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
             let token = token.with_variant(tp);
             self.submit_token(token);
         }
+    }
+
+    /// If the current char could start an identifier, consume it and return true; otherwise, return
+    /// false.
+    fn ident_start_char(&mut self) -> bool {
+        if let Some(char) = self.current_char && is_ident_char(char) && char != '\'' {
+            self.take_next();
+            return true;
+        }
+        false
     }
 }
 
@@ -529,10 +543,11 @@ impl<'s> Lexer<'s> {
                 let (left, right) = token.split_at_(Bytes(1));
                 let (binary, unary) = compute_precedence(&left.code);
                 self.submit_token(
-                    left.with_variant(token::Variant::operator(binary, unary, false)),
+                    left.with_variant(token::Variant::operator(binary, unary, false, true)),
                 );
                 let (_, unary) = compute_precedence(&right.code);
-                self.submit_token(right.with_variant(token::Variant::operator(None, unary, false)));
+                let rhs = token::Variant::operator(None, unary, false, true);
+                self.submit_token(right.with_variant(rhs));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
@@ -540,7 +555,7 @@ impl<'s> Lexer<'s> {
                     token::Variant::modifier()
                 } else {
                     let (binary, unary) = compute_precedence(&token.code);
-                    token::Variant::operator(binary, unary, token.code == ":")
+                    token::Variant::operator(binary, unary, token.code == ":", token.code != ",")
                 };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
@@ -625,55 +640,158 @@ impl<'s> Lexer<'s> {
 // === Text ===
 // ============
 
-#[inline(always)]
-fn is_inline_text_body(t: char) -> bool {
-    t != '"' && !is_newline_char(t) && t != '\\'
-}
-
 impl<'s> Lexer<'s> {
-    /// Parse a text literal.
+    /// Read a text literal.
     fn text(&mut self) {
-        let token = self.token(|this| this.take_1('"'));
-        if let Some(token) = token {
-            self.submit_token(token.with_variant(token::Variant::text_start()));
-            let line_empty = self.current_char.map(is_newline_char).unwrap_or(true);
-            if line_empty {
-                // FIXME: Handle this case; test this function. Issue: #182496940
-                let char = self.current_char;
-                self.internal_error.get_or_insert_with(|| format!("text: line_empty ({:?})", char));
-                return;
+        // TODO: Interpolation within "'" quotes (#182496932); for now, treat them as raw.
+        let quote_char = match self.current_char {
+            Some(char @ ('"' | '\'')) => char,
+            _ => return,
+        };
+        let indent = self.last_spaces_visible_offset;
+        let open_quote_start = self.mark();
+        self.last_spaces_visible_offset = VisibleOffset(0);
+        self.last_spaces_offset = Bytes(0);
+        self.take_next();
+        let mut multiline = false;
+        // At least two quote characters.
+        if let Some(char) = self.current_char && char == quote_char {
+            let close_quote_start = self.mark();
+            self.take_next();
+            // If more than two quote characters: Start a multiline quote.
+            while let Some(char) = self.current_char && char == quote_char {
+                multiline = true;
+                self.take_next();
             }
-            let mut parsed_element;
-            loop {
-                parsed_element = false;
-
-                let section = self.token(|this| this.take_while_1(is_inline_text_body));
-                if let Some(tok) = section {
-                    parsed_element = true;
-                    self.submit_token(tok.with_variant(token::Variant::text_section()));
+            if multiline {
+                let text_start = self.mark();
+                let token = self.make_token(open_quote_start, text_start.clone(),
+                    token::Variant::TextStart(token::variant::TextStart()));
+                self.output.push(token);
+                self.take_rest_of_line();
+                let next_line_start = self.mark();
+                let token = self.make_token(text_start, next_line_start,
+                    token::Variant::TextSection(token::variant::TextSection()));
+                if !token.code.len().is_zero() {
+                    self.output.push(token);
                 }
-
-                let escape = self.token(|this| {
-                    if this.take_1('\\') {
-                        this.take_1('"');
+                self.text_lines(indent);
+            } else {
+                // Exactly two quote characters: Open and shut case.
+                let close_quote_end = self.mark();
+                let token = self.make_token(open_quote_start, close_quote_start.clone(),
+                    token::Variant::TextStart(token::variant::TextStart()));
+                self.output.push(token);
+                let token = self.make_token(close_quote_start, close_quote_end,
+                    token::Variant::TextEnd(token::variant::TextEnd()));
+                self.output.push(token);
+            }
+        } else {
+            // One quote followed by non-quote character: Inline quote.
+            let mut text_start = self.mark();
+            let token = self.make_token(open_quote_start, text_start.clone(),
+                token::Variant::TextStart(token::variant::TextStart()));
+            self.output.push(token);
+            while let Some(char) = self.current_char {
+                if char == quote_char || is_newline_char(char) {
+                    break;
+                }
+                if char == '\\' {
+                    let escape_start = self.mark();
+                    self.take_next();
+                    if let Some(char) = self.current_char && char == quote_char {
+                        let token = self.make_token(text_start, escape_start.clone(),
+                            token::Variant::TextSection(token::variant::TextSection()));
+                        self.output.push(token);
+                        let escape_end = self.mark();
+                        let token = self.make_token(escape_start, escape_end.clone(),
+                            token::Variant::TextEscape(token::variant::TextEscape()));
+                        self.output.push(token);
+                        text_start = escape_end;
                     }
-                });
-                if let Some(token) = escape {
-                    parsed_element = true;
-                    self.submit_token(token.with_variant(token::Variant::text_escape()));
                 }
-
-                let end = self.token(|this| this.take_1('"'));
-                if let Some(token) = end {
-                    self.submit_token(token.with_variant(token::Variant::text_end()));
-                    break;
-                }
-
-                if !parsed_element {
-                    break;
-                }
+                self.take_next();
+            }
+            let close_quote_start = self.mark();
+            let token = self.make_token(text_start, close_quote_start.clone(),
+                token::Variant::TextSection(token::variant::TextSection()));
+            if !token.code.len().is_zero() {
+                self.output.push(token);
+            }
+            if let Some(char) = self.current_char && char == quote_char {
+                self.take_next();
+                let close_quote_end = self.mark();
+                let token = self.make_token(close_quote_start, close_quote_end,
+                    token::Variant::TextEnd(token::variant::TextEnd()));
+                self.output.push(token);
             }
         }
+        self.spaces_after_lexeme();
+    }
+
+    /// Read the lines of a text literal, after the initial line introducing it.
+    fn text_lines(&mut self, indent: VisibleOffset) {
+        while self.current_char.is_some() {
+            let start = self.mark();
+            // Consume the newline and any spaces.
+            if !self.take_1('\n') && self.take_1('\r') {
+                self.take_1('\n');
+            }
+            let before_space = self.mark();
+            self.spaces_after_lexeme();
+            let after_space = self.mark();
+            // Check indent, unless this is an empty line.
+            if let Some(char) = self.current_char {
+                if self.last_spaces_visible_offset <= indent && !is_newline_char(char) {
+                    let token = self.make_token(
+                        start,
+                        before_space,
+                        token::Variant::Newline(token::variant::Newline()),
+                    );
+                    self.output.push(token);
+                    return;
+                }
+            };
+            // Output the newline as a text section.
+            self.last_spaces_visible_offset = VisibleOffset(0);
+            self.last_spaces_offset = Bytes(0);
+            let token = self.make_token(
+                start,
+                before_space,
+                token::Variant::TextSection(token::variant::TextSection()),
+            );
+            self.output.push(token);
+            // Output the line as a text section.
+            self.take_rest_of_line();
+            let next_line_start = self.mark();
+            let token = self.make_token(
+                after_space,
+                next_line_start,
+                token::Variant::TextSection(token::variant::TextSection()),
+            );
+            self.output.push(token);
+        }
+    }
+
+    fn mark(&self) -> (Bytes, Offset<'s>) {
+        let start = self.current_offset;
+        let left_offset_start = start - self.last_spaces_offset;
+        let offset_code = self.input.slice(left_offset_start..start);
+        let visible_offset = self.last_spaces_visible_offset;
+        (start, Offset(visible_offset, offset_code))
+    }
+
+    fn make_token(
+        &self,
+        from: (Bytes, Offset<'s>),
+        to: (Bytes, Offset<'s>),
+        variant: token::Variant,
+    ) -> Token<'s> {
+        let (start, offset) = from;
+        let end = to.0;
+        let start = start.unchecked_raw();
+        let end = end.unchecked_raw();
+        Token(offset, &self.input[start..end], variant)
     }
 }
 
@@ -877,7 +995,7 @@ pub mod test {
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let (binary, unary) = compute_precedence(code);
-        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":"))
+        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":", code != ","))
     }
 }
 
@@ -1026,7 +1144,7 @@ mod tests {
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
         let (_, unary) = compute_precedence("-");
-        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false));
+        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false, true));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 
