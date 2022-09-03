@@ -51,21 +51,21 @@ public abstract class MultiValueKeyBase {
     return false;
   }
 
-  protected static Object foldObject(Object value) {
+  protected Object foldObject(Object value) {
     if (value instanceof Long) {
       return value;
-    } else if (value instanceof Integer) {
-      return ((Integer) value).longValue();
-    } else if (value instanceof Byte) {
-      return ((Byte) value).longValue();
-    } else if (value instanceof Float && ((Float) value) % 1 == 0) {
-      return ((Float) value).longValue();
-    } else if (value instanceof Double && ((Double) value) % 1 == 0) {
-      return ((Double) value).longValue();
-    } else if (value instanceof Float) {
-      return ((Float) value).doubleValue();
-    } else if (value instanceof Double) {
-      return value;
+    } else if (value instanceof Integer i) {
+      return i.longValue();
+    } else if (value instanceof Byte b) {
+      return b.longValue();
+    } else if (value instanceof Float f && f % 1 == 0) {
+      return f.longValue();
+    } else if (value instanceof Double d && d % 1 == 0) {
+      return d.longValue();
+    } else if (value instanceof Float f) {
+      return f.doubleValue();
+    } else if (value instanceof Double d) {
+      return d;
     }
 
     return value;

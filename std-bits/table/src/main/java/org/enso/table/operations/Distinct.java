@@ -6,18 +6,19 @@ import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.text.TextFoldingStrategy;
 
 import java.util.*;
 
 public class Distinct {
-  public static BitSet buildDistinctRowsMask(int tableSize, Column[] keyColumns, Comparator<Object> objectComparator, AggregatedProblems problems) {
+  public static BitSet buildDistinctRowsMask(int tableSize, Column[] keyColumns, TextFoldingStrategy textFoldingStrategy, AggregatedProblems problems) {
     var mask = new BitSet();
     if (keyColumns.length != 0) {
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
       int size = keyColumns[0].getSize();
       Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i);
+        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, textFoldingStrategy);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("Distinct", i));
