@@ -4,13 +4,14 @@ import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class OrderedMultiValueKey extends MultiValueKeyBase implements Comparable<OrderedMultiValueKey>{
-  private final ObjectComparator objectComparator;
+  private final Comparator<Object> objectComparator;
 
   private final int[] directions;
 
-  public OrderedMultiValueKey(Storage[] storages, int rowIndex, int[] directions, ObjectComparator objectComparator) {
+  public OrderedMultiValueKey(Storage[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     super(storages, rowIndex);
     this.objectComparator = objectComparator;
     if (directions == null) {

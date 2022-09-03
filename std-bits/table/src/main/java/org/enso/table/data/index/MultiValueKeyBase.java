@@ -22,11 +22,11 @@ public abstract class MultiValueKeyBase {
 
   public boolean areAllNull() {
     for (Storage value : storages) {
-      if (value.isNa(rowIndex)) {
-        return true;
+      if (!value.isNa(rowIndex)) {
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   public boolean hasFloatValues() {
