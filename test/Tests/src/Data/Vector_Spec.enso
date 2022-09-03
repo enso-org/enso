@@ -59,9 +59,11 @@ spec = Test.group "Vectors" <|
         built_from_py = Vector.from_polyglot_array generate_py_array
         built_from_py . should_equal [1, 2, 3, 4, Nothing]
 
-    Test.specify "should allow creation from arrays without mutability for nested arrays" pending="Polyglot Arrays/Vector rewrite" <|
+    Test.specify "should allow creation from nested arrays from JavaScript" <|
         built_from_js = Vector.from_polyglot_array generate_nested_js_array
         built_from_js . should_equal [[1, 2, 3], [4, 5]]
+
+    Test.specify "should allow creation from nested arrays from Python" <|
         built_from_py = Vector.from_polyglot_array generate_nested_py_array
         built_from_py . should_equal [[1, 2, 3], [4, 5]]
 

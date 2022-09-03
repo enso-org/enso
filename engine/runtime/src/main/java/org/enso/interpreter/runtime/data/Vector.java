@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -90,7 +91,8 @@ public final class Vector implements TruffleObject {
   public Object readArrayElement(long index)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     InteropLibrary interop = InteropLibrary.getUncached();
-    return interop.readArrayElement(storage, index);
+    var v = interop.readArrayElement(storage, index);
+    return HostValueToEnsoNode.build().execute(v);
   }
 
   public boolean isArray() {

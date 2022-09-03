@@ -1,4 +1,6 @@
 import Standard.Base.Data.Vector
+import Standard.Base.Data.Range
+import Standard.Base.Data.Boolean
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -48,6 +50,19 @@ type Array
        primitive array protocol.
     to_array : Array
     to_array self = @Builtin_Method "Array.to_array"
+
+    ## Checks whether this array is equal to `that`.
+
+       Arguments:
+       - that: The array to compare this array against.
+
+       Two arrays are considered equal, when they have the same length and
+       their items are pairwise equal.
+
+    == : Array -> Boolean
+    == self that =
+        eq_at i = self.at i == that.at i
+        if self.length == that.length then 0.up_to self.length . all eq_at else Boolean.False
 
     ## UNSTABLE
        ADVANCED
