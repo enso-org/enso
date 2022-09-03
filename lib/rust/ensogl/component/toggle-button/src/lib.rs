@@ -70,7 +70,7 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "Shape:CloneRef")]
 struct Model<Shape> {
     icon: ShapeView<Shape>,
@@ -78,7 +78,8 @@ struct Model<Shape> {
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
     fn new() -> Self {
-        default()
+        let icon = ShapeView::new();
+        Self { icon }
     }
 }
 
