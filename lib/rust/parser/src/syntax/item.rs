@@ -47,7 +47,6 @@ impl<'s> Item<'s> {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
                 token::Variant::Number(number) => Tree::number(token.with_variant(number)),
-                token::Variant::Comment(comment) => Tree::comment(token.with_variant(comment)),
                 token::Variant::TextSection(text) => Tree::text_section(token.with_variant(text)),
                 _ => {
                     let message = format!("to_ast: Item::Token({token:?})");

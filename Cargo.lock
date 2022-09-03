@@ -2203,6 +2203,8 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rand_distr 0.4.3",
  "serde",
+ "serde_json",
+ "uuid 1.1.2",
 ]
 
 [[package]]
