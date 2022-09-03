@@ -605,7 +605,6 @@ pub struct AreaModel {
     //            be replaced with proper object management.
     layer: Rc<CloneRefCell<display::scene::Layer>>,
 
-    logger:         Logger,
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
@@ -620,7 +619,6 @@ impl AreaModel {
     pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let logger = Logger::new("text_area");
         let selection_map = default();
         let display_object = display::object::Instance::new();
         let glyph_system = {
@@ -648,7 +646,6 @@ impl AreaModel {
         Self {
             app,
             layer,
-            logger,
             frp_endpoints,
             buffer,
             display_object,
@@ -692,7 +689,6 @@ impl AreaModel {
                 };
                 let start_x = get_pos_x(selection_start_line, sel.start.column);
                 let end_x = get_pos_x(selection_end_line, sel.end.column);
-                let logger = Logger::new_sub(&self.logger, "cursor");
                 let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
                 let pos = Vector2(start_x, min_pos_y);
                 let width = end_x - start_x;
@@ -713,7 +709,7 @@ impl AreaModel {
                         selection
                     }
                     None => {
-                        let selection = Selection::new(&logger, do_edit);
+                        let selection = Selection::new(do_edit);
                         selection.letter_width.set(7.0); // FIXME hardcoded values
                         self.add_child(&selection);
                         selection.position.set_target_value(pos);

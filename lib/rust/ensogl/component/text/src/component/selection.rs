@@ -111,7 +111,6 @@ ensogl_core::define_endpoints! {
 /// object will make the following glyphs  animate while the selection is shrinking.
 #[derive(Clone, CloneRef)]
 pub struct Selection {
-    logger:         Logger,
     display_object: display::object::Instance,
     pub right_side: display::object::Instance,
     shape_view:     shape::View,
@@ -137,8 +136,7 @@ impl Deref for Selection {
 
 impl Selection {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, edit_mode: bool) -> Self {
-        let logger = Logger::new_sub(logger, "selection");
+    pub fn new(edit_mode: bool) -> Self {
         let display_object = display::object::Instance::new();
         let right_side = display::object::Instance::new();
         let network = frp::Network::new("text_selection");
@@ -153,18 +151,8 @@ impl Selection {
         position.update_spring(|spring| spring * spring_factor);
         width.update_spring(|spring| spring * spring_factor);
 
-        Self {
-            logger,
-            display_object,
-            right_side,
-            shape_view,
-            network,
-            position,
-            width,
-            edit_mode,
-            frp,
-        }
-        .init()
+        Self { display_object, right_side, shape_view, network, position, width, edit_mode, frp }
+            .init()
     }
 
     fn init(self) -> Self {
