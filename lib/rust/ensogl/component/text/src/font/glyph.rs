@@ -40,17 +40,18 @@ pub struct Glyph {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct GlyphData {
-    pub glyph_id:    Cell<GlyphId>,
-    pub sprite:      Sprite,
-    pub context:     Context,
-    pub font:        Font,
-    pub properties:  Cell<font::family::NonVariableFaceHeader>,
-    pub variations:  RefCell<VariationAxes>,
-    pub font_size:   Attribute<f32>,
-    pub color:       Attribute<Vector4<f32>>,
-    pub sdf_weight:  Attribute<f32>,
-    pub atlas_index: Attribute<f32>,
-    pub atlas:       Uniform<Texture>,
+    pub glyph_id:       Cell<GlyphId>,
+    pub display_object: display::object::Instance,
+    pub sprite:         Sprite,
+    pub context:        Context,
+    pub font:           Font,
+    pub properties:     Cell<font::family::NonVariableFaceHeader>,
+    pub variations:     RefCell<VariationAxes>,
+    pub font_size:      Attribute<f32>,
+    pub color:          Attribute<Vector4<f32>>,
+    pub sdf_weight:     Attribute<f32>,
+    pub atlas_index:    Attribute<f32>,
+    pub atlas:          Uniform<Texture>,
 }
 
 
@@ -205,7 +206,7 @@ impl Glyph {
 
 impl display::Object for Glyph {
     fn display_object(&self) -> &display::object::Instance {
-        self.sprite.display_object()
+        &self.display_object
     }
 }
 
@@ -266,6 +267,7 @@ impl System {
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
         let context = self.context.clone();
+        let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
         let font_size = self.font_size.at(instance_id);
@@ -277,10 +279,12 @@ impl System {
         let glyph_id = default();
         let properties = default();
         let variations = default();
+        display_object.add_child(&sprite);
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
         Glyph {
             data: Rc::new(GlyphData {
+                display_object,
                 sprite,
                 context,
                 font,

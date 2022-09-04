@@ -290,22 +290,29 @@ impl ViewBuffer {
         text: Text,
         transform: Option<Transform>,
     ) -> Modification {
+        warn!("modify_selection: {:?} {:?} {:?}", selection, text, transform);
         let text_byte_size = text.byte_size();
         let transformed = match transform {
             Some(t) if selection.is_cursor() => self.moved_selection_region(t, selection, true),
             _ => selection,
         };
+        warn!("transformed: {:?}", transformed);
         let byte_selection = self.to_bytes_selection(transformed);
+        warn!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
+        warn!("range {:?}", range);
         self.buffer.replace(range, &text);
         let new_byte_cursor_pos = range.start + text_byte_size;
+        warn!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
-        let change = Change { range, text };
-        Modification {
-            changes:         vec![change],
-            selection_group: selection::Group::from(self.to_location_selection(new_byte_selection)),
-            byte_offset:     text_byte_size - range.size(),
-        }
+        warn!("new_byte_selection {:?}", new_byte_selection);
+        let changes = vec![Change { range, text }];
+        warn!("change {:?}", changes);
+        let selection_group =
+            selection::Group::from(self.to_location_selection(new_byte_selection));
+        warn!(">>> {}, {}", text_byte_size, range.size());
+        let byte_offset = text_byte_size - range.size();
+        Modification { changes, selection_group, byte_offset }
     }
 
     fn byte_selections(&self) -> Vec<Selection<Bytes>> {
@@ -612,6 +619,7 @@ impl ViewModel {
         self.byte_range_of_line_index_snapped(line)
     }
 
+    // FIXME: clone of str vec!
     /// Return all lines of this buffer view.
     pub fn view_lines(&self) -> Vec<String> {
         self.lines_vec(self.view_byte_range())

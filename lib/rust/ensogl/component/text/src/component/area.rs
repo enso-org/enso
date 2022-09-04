@@ -765,6 +765,9 @@ impl AreaModel {
             warn!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
         }
+        if do_edit {
+            self.add_glyphs_to_cursors();
+        }
         // self.redraw(true)
     }
 
@@ -820,6 +823,12 @@ impl AreaModel {
         }
     }
 
+    pub fn add_glyphs_to_cursors(&self) {
+        for view_line_index in 0..self.buffer.view_lines().len() {
+            self.add_line_glyphs_to_cursors(view_line_index)
+        }
+    }
+
     fn calculate_height(&self) -> f32 {
         self.lines.len() as f32 * LINE_HEIGHT
     }
@@ -864,13 +873,11 @@ impl AreaModel {
 
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
 
-
-
         let glyph_system = self.glyph_system.borrow();
 
         let mut divs = vec![0.0];
-        let mut last_cursor = None;
-        let mut last_cursor_target = default();
+        // let mut last_cursor = None;
+        // let mut last_cursor_target = default();
 
         let font = &glyph_system.font;
         let mut line_style_iter = line_style.iter();
@@ -932,30 +939,31 @@ impl AreaModel {
                         face,
                     );
                     let glyph_render_offset = glyph_render_info.offset.scale(size);
-                    let glyph_x = glyph_render_offset.x + glyph_offset_x;
-                    let glyph_y = glyph_render_offset.y;
-                    glyph.set_position_xy(Vector2(glyph_x, glyph_y));
+                    glyph.sprite.set_position_xy(glyph_render_offset);
+                    glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
                     glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
                     divs.push(glyph_offset_x);
 
-                    cursor_map.get(&column).for_each(|id| {
-                        self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
-                            if cursor.edit_mode.get() {
-                                let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
-                                last_cursor = Some(cursor.clone_ref());
-                                last_cursor_target = Vector2(glyph_offset_x, pos_y);
-                            }
-                        });
-                    });
+                    // cursor_map.get(&column).for_each(|id| {
+                    //     self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
+                    //         if cursor.edit_mode.get() {
+                    //             let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
+                    //             last_cursor = Some(cursor.clone_ref());
+                    //             last_cursor_target = Vector2(glyph_offset_x, pos_y);
+                    //         }
+                    //     });
+                    // });
+                    //
+                    // match &last_cursor {
+                    //     None => line_object.add_child(glyph),
+                    //     Some(cursor) => {
+                    //         cursor.right_side.add_child(glyph);
+                    //         glyph.mod_position_xy(|p| p - last_cursor_target);
+                    //     }
+                    // }
 
-                    match &last_cursor {
-                        None => line_object.add_child(glyph),
-                        Some(cursor) => {
-                            cursor.right_side.add_child(glyph);
-                            glyph.mod_position_xy(|p| p - last_cursor_target);
-                        }
-                    }
+                    line_object.add_child(glyph);
 
                     column += 1.column();
                 }
@@ -963,13 +971,52 @@ impl AreaModel {
         }
         line.glyphs.truncate(column.value as usize);
 
-
-        let last_offset = divs.last().cloned().unwrap_or_default();
-        let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x - cursor.position().x);
-        let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
-        last_offset - cursor_offset
+
+        0.0 // FIXME
+            // let last_offset = divs.last().cloned().unwrap_or_default();
+            // let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x -
+            // cursor.position().x); let cursor_offset =
+            // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
+
+    fn add_line_glyphs_to_cursors(&self, view_line_index: usize) {
+        debug!("add_line_glyphs_to_cursors {:?}", view_line_index);
+
+        let cursor_map = self
+            .selection_map
+            .borrow()
+            .location_map
+            .get(&view_line_index)
+            .cloned()
+            .unwrap_or_default();
+        debug!("cursor_map {:?}", cursor_map);
+        let line = &mut self.lines.rc.borrow_mut()[view_line_index];
+
+        let mut last_cursor = None;
+        let mut last_cursor_target = default();
+        let mut column = 0.column();
+
+        for glyph in &line.glyphs {
+            cursor_map.get(&column).for_each(|id| {
+                if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
+                    if cursor.edit_mode.get() {
+                        let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
+                        last_cursor = Some(cursor.clone_ref());
+                        last_cursor_target = Vector2(glyph.position().x, pos_y);
+                    }
+                }
+            });
+
+            if let Some(cursor) = &last_cursor {
+                cursor.right_side.add_child(glyph);
+                glyph.mod_position_xy(|p| p - last_cursor_target);
+            }
+
+            column += 1.column();
+        }
+    }
+
 
     // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
     /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
