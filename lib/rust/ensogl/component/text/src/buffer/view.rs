@@ -68,16 +68,16 @@ pub struct HistoryData {
 /// `ViewBuffer`.
 #[derive(Clone, Debug, Default)]
 struct Modification<T = Bytes> {
-    changes:       Vec<Change<T>>,
-    new_selection: selection::Group,
-    byte_offset:   Bytes,
+    changes:         Vec<Change<T>>,
+    selection_group: selection::Group,
+    byte_offset:     Bytes,
 }
 
 impl<T> Modification<T> {
     fn merge(&mut self, other: Modification<T>) {
         self.changes.extend(other.changes);
-        for selection in other.new_selection {
-            self.new_selection.merge(selection)
+        for selection in other.selection_group {
+            self.selection_group.merge(selection)
         }
         self.byte_offset += other.byte_offset;
     }
@@ -187,8 +187,8 @@ impl ViewBuffer {
 
     fn add_cursor(&self, location: Location) -> selection::Group {
         let mut selection = self.selection.borrow().clone();
-        let new_selection = self.new_cursor(location);
-        selection.merge(new_selection);
+        let selection_group = self.new_cursor(location);
+        selection.merge(selection_group);
         selection
     }
 
@@ -302,9 +302,9 @@ impl ViewBuffer {
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
         let change = Change { range, text };
         Modification {
-            changes:       vec![change],
-            new_selection: selection::Group::from(self.to_location_selection(new_byte_selection)),
-            byte_offset:   text_byte_size - range.size(),
+            changes:         vec![change],
+            selection_group: selection::Group::from(self.to_location_selection(new_byte_selection)),
+            byte_offset:     text_byte_size - range.size(),
         }
     }
 
@@ -424,7 +424,7 @@ impl View {
             mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
                 ,mod_on_delete_word_left,mod_on_delete_word_right);
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
-            sel_on_modification       <- modification.map(|m| m.new_selection.clone());
+            sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
             output.source.text_change <+ modification.gate(&changed).map(|m| m.changes.clone());
 

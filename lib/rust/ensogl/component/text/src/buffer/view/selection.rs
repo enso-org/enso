@@ -21,7 +21,7 @@ pub trait Boundary = Copy + Ord + Eq;
 // =============
 
 /// Text selection shape. In case the `start` and `end` offsets are equal, the selection is
-/// interpreted as a cursor. Please note that the start of the selection is not always smaller then
+/// interpreted as a cursor. Please note that the start of the selection is not always smaller than
 /// its end. If the selection was dragged from right to left, the start byte offset will be bigger
 /// than the end. Use the `min` and `max` methods to discover the edges.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]

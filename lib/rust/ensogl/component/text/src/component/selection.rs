@@ -11,6 +11,9 @@ use ensogl_core::DEPRECATED_Animation;
 
 
 
+const DEBUG_SLOWDOWN: bool = true;
+
+
 // ==============
 // === Cursor ===
 // ==============
@@ -145,8 +148,7 @@ impl Selection {
         let width = DEPRECATED_Animation::new(&network);
         let edit_mode = Rc::new(Cell::new(edit_mode));
         let frp = Frp::new();
-        let debug = false; // Change to true to slow-down movement for debug purposes.
-        let spring_factor = if debug { 0.1 } else { 1.5 };
+        let spring_factor = if DEBUG_SLOWDOWN { 0.1 } else { 1.5 };
 
         position.update_spring(|spring| spring * spring_factor);
         width.update_spring(|spring| spring * spring_factor);

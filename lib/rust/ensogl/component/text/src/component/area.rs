@@ -499,7 +499,9 @@ impl Area {
 
             key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_modifier_down);
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
-            str_to_insert <- any(&input.insert,&key_to_insert);
+            trace key_to_insert;
+            str_to_insert <- any(&input.insert, &key_to_insert);
+            trace str_to_insert;
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ([input](s) {
                 input.set_cursor(&default());
@@ -661,25 +663,40 @@ impl AreaModel {
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
-        selections: &buffer::selection::Group,
+        buffer_selections: &buffer::selection::Group,
         time: f32,
         do_edit: bool,
     ) {
-        warn!("on_modified_selection {:?} {:?} {:?}", selections, time, do_edit);
+        warn!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
         {
-            warn!(">>x1");
-            let mut selection_map = self.selection_map.borrow_mut();
-            warn!(">>x2");
+            // tutaj robimy redraw poniewaz musimy shapowac tekst by znac nowe divy. Po tym jak
+            // poznamy divy mozemy przesuwac kursor. W obecnej implementacji to nie dziala dobrze,
+            // bo redraw dodaje litery do kursorow, ale jeszcze ich nie stworzylismy.
 
+            // dodatkowo, takie jezyki jak Tamil moga miec jeden glyph po tuknieciu kilku klawiszy.
+            // to tez jest do poprawy.
+
+            // to think: animacje kursora miedzy widgetami, selekcja "calych" widgetow (np strzalka
+            // w gore przy selekcji slidera zmienia jego wartosc, skakanie pomiedzy
+            // selekcjami sasiadujacych widgetow, co z widgetami hierarchicznymi?
+            // TODO ^^^
+            if do_edit {
+                // TODO: do smaller redraws - at least only the changed lines. For longer lines this
+                //   will still be slow. However, inserting one char can change ligatures, so we
+                //   need to carefully analyse chars around.
+                self.redraw(true);
+            }
+            let mut selection_map = self.selection_map.borrow_mut();
             warn!("{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
-            for sel in selections {
-                warn!(">>1 {:?}", sel);
-                let sel = self.limit_selection_to_known_values(*sel);
-                warn!(">>2 {:?}", sel);
-                let id = sel.id;
-                let selection_start_line = sel.start.line.as_usize();
-                let selection_end_line = sel.end.line.as_usize();
+
+            for buffer_selection in buffer_selections {
+                warn!(">>1 {:?}", buffer_selection);
+                let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
+                warn!(">>2 {:?}", buffer_selection);
+                let id = buffer_selection.id;
+                let selection_start_line = buffer_selection.start.line.as_usize();
+                let selection_end_line = buffer_selection.end.line.as_usize();
                 let get_pos_x = |line: usize, column: Column| {
                     if line >= self.lines.len() {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
@@ -687,11 +704,15 @@ impl AreaModel {
                         self.lines.rc.borrow()[line].div_by_column(column)
                     }
                 };
-                let start_x = get_pos_x(selection_start_line, sel.start.column);
-                let end_x = get_pos_x(selection_end_line, sel.end.column);
-                let min_pos_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
-                let pos = Vector2(start_x, min_pos_y);
+                let start_x = get_pos_x(selection_start_line, buffer_selection.start.column);
+                let end_x = get_pos_x(selection_end_line, buffer_selection.end.column);
+                warn!("start_x {start_x}, end_x {end_x}");
+                let selection_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
+                warn!("selection_y {selection_y}");
+                let pos = Vector2(start_x, selection_y);
+                warn!("pos {pos}");
                 let width = end_x - start_x;
+                warn!("width {width}");
                 let selection = match selection_map.id_map.remove(&id) {
                     Some(selection) => {
                         let select_left = selection.width.simulator.target_value() < 0.0;
@@ -705,27 +726,28 @@ impl AreaModel {
                         if width == 0.0 && need_flip {
                             selection.flip_sides()
                         }
+                        warn!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
                         selection.position.set_target_value(pos);
                         selection
                     }
                     None => {
                         let selection = Selection::new(do_edit);
-                        selection.letter_width.set(7.0); // FIXME hardcoded values
                         self.add_child(&selection);
+                        selection.letter_width.set(7.0); // FIXME hardcoded values
                         selection.position.set_target_value(pos);
                         selection.position.skip();
-                        let selection_network = &selection.network;
+                        // let selection_network = &selection.network;
                         // FIXME[wd]: memory leak. To be fixed with the below note as a part of
                         //            https://github.com/enso-org/ide/issues/670 . Once fixed,
                         //            delete code removing all cursors on Area drop.
-                        let model = self.clone_ref();
-                        frp::extend! { selection_network
-                            // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
-                            //            animation frame. Multiple times, once per cursor.
-                            //            https://github.com/enso-org/ide/issues/1031
-                            eval_ selection.position.value (model.redraw(true));
-                            selection.frp.set_color <+ self.frp_endpoints.selection_color;
-                        }
+                        // let model = self.clone_ref();
+                        // frp::extend! { selection_network
+                        //     // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
+                        //     //            animation frame. Multiple times, once per cursor.
+                        //     //            https://github.com/enso-org/ide/issues/1031
+                        //     eval_ selection.position.value (model.redraw(true));
+                        //     selection.frp.set_color <+ self.frp_endpoints.selection_color;
+                        // }
                         selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
                         selection
                     }
@@ -738,8 +760,9 @@ impl AreaModel {
                     .location_map
                     .entry(selection_start_line)
                     .or_default()
-                    .insert(sel.start.column, id);
+                    .insert(buffer_selection.start.column, id);
             }
+            warn!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
         }
         // self.redraw(true)
