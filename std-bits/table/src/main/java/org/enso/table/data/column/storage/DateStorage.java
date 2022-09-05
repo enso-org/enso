@@ -30,7 +30,7 @@ public class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.DATE;
   }
 }

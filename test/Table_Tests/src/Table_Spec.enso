@@ -5,6 +5,8 @@ from Standard.Table import Column, Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data
 import Standard.Table.Data.Storage
+import Standard.Table.Data.Aggregate_Column
+from Standard.Table.Data.Aggregate_Column import all hiding First, Last
 
 import Standard.Visualization
 
@@ -616,5 +618,32 @@ spec =
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
             problems = [Duplicate_Output_Column_Names_Data ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
+
+    Test.group "[In-Memory] Table.aggregate" <|
+        Test.specify "should return columns with correct types" <|
+            dates = ["dates", [Date.new 1999, Date.new 2000, Date.new 2000, Date.new 2000]]
+            texts = ["texts", ["a", "bb", "a", "bb"]]
+            mixed = ["mixed", [1, "a", "a", 1]]
+            ints = ["ints", [0, 1, 1, 0]]
+            floats = ["floats", [0.1, 1.0, 2.0, 1.5]]
+            objects = ["objects", [My_Data 0 1, My_Data 0 1, My_Data 2 2, My_Data 2 2]]
+            table = Table.new [dates, texts, mixed, ints, floats, objects]
+
+            t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
+            t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
+            t1.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Text, Storage.Text, Storage.Any, Storage.Integer, Storage.Any]
+
+            t2 = table.aggregate [Mode "dates", Count_Distinct "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
+            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Distinct objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
+            t2.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Integer, Storage.Integer, Storage.Integer, Storage.Decimal]
+
+            t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
+            t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
+            t3.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Decimal]
+
+            t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
+            t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
+            t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
+
 
 main = Test.Suite.run_main spec
