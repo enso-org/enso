@@ -82,6 +82,8 @@ pub struct Struct {
 pub struct NamedField {
     #[allow(missing_docs)]
     pub name:    String,
+    /// The abstract identifier of the type, if different from its name in Rust.
+    pub rename:  Option<String>,
     #[allow(missing_docs)]
     pub type_:   LazyType,
     /// If true, this type should become the parent of the type in this field.

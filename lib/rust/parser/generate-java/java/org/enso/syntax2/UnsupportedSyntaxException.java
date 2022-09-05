@@ -8,7 +8,7 @@ public final class UnsupportedSyntaxException extends Exception {
         tree = treeIn;
     }
 
-    public final Tree getTree() {
-                              return tree;
-                                          }
+    public Tree getTree() {
+        return tree;
+    }
 }

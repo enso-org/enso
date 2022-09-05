@@ -52,6 +52,14 @@ fn impl_deserialize(
     token_source_.hide_in_tostring();
     let token_source = token_source_.id();
     graph[token].fields.push(token_source_);
+    // Add UUIDs to types
+    let uuid = Class::builtin("java.util.UUID", vec![]);
+    let uuid = graph.classes.insert(uuid);
+    let tree_id_ = Field::object("uuid", uuid, false);
+    let tree_id = tree_id_.id();
+    graph[tree].fields.push(tree_id_);
+    graph[tree].methods.push(Method::Dynamic(Dynamic::Getter(tree_id)));
+
     let tree_begin = graph[tree].find_field(TREE_BEGIN).unwrap().id();
     let token_begin = graph[token].find_field(TOKEN_BEGIN).unwrap().id();
     let token_offset_begin = graph[token].find_field(TOKEN_OFFSET_BEGIN).unwrap().id();
@@ -67,6 +75,7 @@ fn impl_deserialize(
         }
         if class.parent == Some(tree) {
             deserialization.materialize(tree_source, context_materializer());
+            deserialization.materialize(tree_id, uuid_materializer());
         }
         if class.parent == Some(token) {
             deserialization.materialize(token_source, context_materializer());
@@ -84,6 +93,10 @@ fn context_materializer() -> impl for<'a> FnOnce(MaterializerInput<'a>) -> Strin
 }
 fn offset_mapper() -> impl for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String + 'static {
     |MapperInput { message, value }| format!("{message}.offset({value})")
+}
+
+fn uuid_materializer() -> impl for<'a> FnOnce(MaterializerInput<'a>) -> String + 'static {
+    |MaterializerInput { message }| format!("{message}.getUuid({TREE_BEGIN}, {TREE_LEN})")
 }
 
 

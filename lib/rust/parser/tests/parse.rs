@@ -15,6 +15,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+mod metadata;
+
 use lexpr::sexp;
 use lexpr::Value;
 
@@ -75,8 +77,7 @@ fn parentheses_nested() {
 
 #[test]
 fn comments() {
-    // Basic, full-line comment.
-    test("# a b c", block![(Comment "# a b c")]);
+    test("# a b c", block![() ()]);
 }
 
 
@@ -138,7 +139,7 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef (Ident type) (Ident Geo) #()
-         #(((Circle #() #((OprApp (Ident radius) (Ok ":") (Ident float)) (Number 4))))
+         #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Number 4))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #()))
            (()))
@@ -417,7 +418,7 @@ fn minus_unary() {
 }
 
 
-// === Import ===
+// === Import/Export ===
 
 #[test]
 fn import() {
@@ -442,8 +443,7 @@ fn import() {
              ()
              ((Ident import) (Ident all))
              ()
-             ((Ident hiding)
-              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean))))]),
+             ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
         ("from Standard.Table as Column_Module import Column", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
@@ -469,6 +469,143 @@ fn import() {
              ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn export() {
+    #[rustfmt::skip]
+    let cases = [
+        ("export Foo", block![(Export () () ((Ident export) (Ident Foo)) () ())]),
+        ("export Foo as Bar", block![
+            (Export () () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)) ())]),
+        ("from Foo export Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (OprApp (Ident Bar) (Ok ",") (Ident Baz)))
+             () ())]),
+        ("from Foo export all hiding Bar, Baz", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ()
+             ((Ident export) (Ident all))
+             ()
+             ((Ident hiding) (OprApp (Ident Bar) (Ok ",") (Ident Baz))))]),
+        ("from Foo as Bar export Baz, Quux", block![
+            (Export
+             ((Ident from) (Ident Foo))
+             ((Ident as) (Ident Bar))
+             ((Ident export) (OprApp (Ident Baz) (Ok ",") (Ident Quux)))
+             () ())
+        ]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Metadata ===
+
+
+#[test]
+fn metadata_raw() {
+    let code = [
+        "4",
+        "#### METADATA ####",
+        r#"[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]"#,
+    ];
+    let code = code.join("\n");
+    let (_meta, code) = enso_parser::metadata::parse(&code).unwrap();
+    let expected = block![
+        (Number 4)
+        ()
+    ];
+    test(code, expected);
+}
+
+#[test]
+fn metadata_parsing() {
+    let code = metadata::ORDERS_WITH_METADATA;
+    let (meta, code) = enso_parser::metadata::parse(code).unwrap();
+    let _ast = enso_parser::Parser::new().run(code);
+    let _meta: enso_parser::metadata::Metadata = meta.unwrap();
+}
+
+
+// === Type annotations and signatures ===
+
+#[test]
+fn type_signatures() {
+    let cases = [
+        ("val : Bool", block![(TypeSignature val ":" (Ident Bool))]),
+        ("val : List Int", block![(TypeSignature val ":" (App (Ident List) (Ident Int)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn type_annotations() {
+    #[rustfmt::skip]
+    let cases = [
+        ("val = 123 : Int", block![
+            (Assignment (Ident val) "=" (TypeAnnotated (Number 123) ":" (Ident Int)))]),
+        ("val = foo (123 : Int)", block![
+            (Assignment (Ident val) "="
+             (App (Ident foo)
+              (Group "(" (TypeAnnotated (Number 123) ":" (Ident Int)) ")")))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Text Literals ===
+
+#[test]
+fn inline_text_literals() {
+    #[rustfmt::skip]
+    let cases = [
+        (r#""I'm an inline raw text!""#, block![
+            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"" 0)]),
+        (r#"zero_length = """#, block![
+            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\"" 0))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() () 0))]),
+        (r#"unclosed = "a"#, block![
+            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) () 0))]),
+        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'" 0)]),
+        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"" 0)]),
+        (r#""String with \" escape""#, block![
+            (TextLiteral
+             "\""
+             #((Section "String with ") (Escape "\\") (Section "\" escape"))
+             "\"" 0)]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn multiline_text_literals() {
+    test("'''", block![(TextLiteral "'''" #() () 0)]);
+    const CODE: &str = r#"'''
+    part of the string
+       3-spaces indented line, part of the Text Block
+    this does not end the string -> '''
+
+    also part of the string
+
+3"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral
+         "'''"
+         #((Section "\n") (Section "part of the string")
+           (Section "\n") (Section "3-spaces indented line, part of the Text Block")
+           (Section "\n") (Section "this does not end the string -> '''")
+           (Section "\n") (Section "")
+           (Section "\n") (Section "also part of the string")
+           (Section "\n") (Section ""))
+        () 4)
+        (Number 3)
+    ];
+    test(CODE, expected);
 }
 
 
@@ -521,11 +658,14 @@ where T: serde::Serialize + Reflect {
     let mut to_s_expr = ToSExpr::new(&graph);
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
     let ident_token = rust_to_meta[&token::variant::Ident::reflect().id];
-    let comment_token = rust_to_meta[&token::variant::Comment::reflect().id];
     let operator_token = rust_to_meta[&token::variant::Operator::reflect().id];
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Number::reflect().id];
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
+    let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
+    let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
+    let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
+    let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
     let line = rust_to_meta[&tree::block::Line::reflect().id];
@@ -537,11 +677,17 @@ where T: serde::Serialize + Reflect {
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(ident_token, move |token| Value::symbol(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(comment_token, move |token| Value::string(token_to_str_(token)));
-    let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(symbol_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_start_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_end_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_escape_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str;
     to_s_expr.mapper(number_token, move |token| {
         Value::Number(token_to_str_(token).parse::<u64>().unwrap().into())
