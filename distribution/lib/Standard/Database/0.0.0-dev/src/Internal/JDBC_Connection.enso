@@ -22,7 +22,7 @@ polyglot java import org.enso.database.JDBCProxy
 
 type JDBC_Connection
     ## PRIVATE
-    type JDBC_Connection connection_resource
+    JDBC_Connection_Data connection_resource
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -138,7 +138,7 @@ create url properties = handle_sql_errors <|
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection
-    JDBC_Connection resource
+    JDBC_Connection_Data resource
 
 ## PRIVATE
 

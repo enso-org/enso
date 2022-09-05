@@ -1,6 +1,11 @@
 from Standard.Base import all
 
 from Standard.Database.Data.Sql import Sql_Type, Statement
+
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Data.Dialect
+from Standard.Database.Connection.Connection import Connection_Data
+
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
@@ -13,7 +18,7 @@ type SQLite_Connection
 
        Arguments:
        - connection: the underlying connection.
-    type SQLite_Connection connection
+    SQLite_Connection_Data connection
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -137,3 +142,15 @@ type SQLite_Connection
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <|
         self.connection.upload_table name table temporary batch_size
+
+## PRIVATE
+
+   Creates a SQLite connection based on a URL, properties and a dialect.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create : Text -> Vector -> Dialect -> SQLite_Connection
+create url properties dialect =
+    jdbc_connection = JDBC_Connection.create url properties
+    SQLite_Connection_Data (Connection_Data jdbc_connection dialect)
