@@ -577,8 +577,6 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
     }
 }
 
-// impl<Entry, EntryModel, EntryParams> application::command::CommandApi for GridViewTemplate<Entry,
-// EntryModel, EntryParams> {
 impl<E: Entry> application::command::CommandApi for GridView<E> {
     fn command_api(&self) -> Rc<RefCell<HashMap<String, application::command::Command>>> {
         self.widget.command_api()
