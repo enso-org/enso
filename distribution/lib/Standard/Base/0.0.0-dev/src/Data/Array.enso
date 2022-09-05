@@ -1,6 +1,8 @@
 import Standard.Base.Data.Vector
 import Standard.Base.Data.Range
 import Standard.Base.Data.Boolean
+import Standard.Base.Error.Common
+import Standard.Base.Meta
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -61,8 +63,10 @@ type Array
 
     == : Array -> Boolean
     == self that =
-        eq_at i = self.at i == that.at i
-        if self.length == that.length then 0.up_to self.length . all eq_at else Boolean.False
+        if Meta.is_same_object Array self then Meta.is_same_object Array that else
+            eq_at i = self.at i == that.at i
+            Common.Panic.catch_primitive handler=(_ -> Boolean.FALSE)
+                if self.length == that.length then 0.up_to self.length . all eq_at else Boolean.False
 
     ## UNSTABLE
        ADVANCED
