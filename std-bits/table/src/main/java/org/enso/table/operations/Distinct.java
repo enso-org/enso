@@ -11,6 +11,7 @@ import org.enso.table.text.TextFoldingStrategy;
 import java.util.*;
 
 public class Distinct {
+  /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
   public static BitSet buildDistinctRowsMask(
       int tableSize,
       Column[] keyColumns,

@@ -2,17 +2,20 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.Storage;
 
+/** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
   protected final Storage[] storages;
   protected final int rowIndex;
   protected boolean hasFloatValues = false;
   protected boolean floatsComputed = false;
 
+  /** Constructs a key based on an array of column storages and the index of the row the key is associated with. */
   public MultiValueKeyBase(Storage[] storage, int rowIndex) {
     this.storages = storage;
     this.rowIndex = rowIndex;
   }
 
+  /** A helper function to get the item from the nth column of the key's row. */
   protected Object get(int column) {
     return storages[column].getItemBoxed(rowIndex);
   }
@@ -20,6 +23,7 @@ public abstract class MultiValueKeyBase {
   @Override
   public abstract boolean equals(Object o);
 
+  /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
     for (Storage value : storages) {
       if (!value.isNa(rowIndex)) {
@@ -29,6 +33,10 @@ public abstract class MultiValueKeyBase {
     return true;
   }
 
+  /* Checks if any cell contains float values.
+
+    It takes value folding into account, i.e. a float value that can be coerced to an integer without loss of precision is not considered floating.
+   */
   public boolean hasFloatValues() {
     if (!floatsComputed) {
       hasFloatValues = findFloats();
@@ -42,7 +50,7 @@ public abstract class MultiValueKeyBase {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
       if (value != null) {
-        Object folded = foldObject(value);
+        Object folded = foldNumeric(value);
         if (folded instanceof Double) {
           return true;
         }
@@ -51,7 +59,10 @@ public abstract class MultiValueKeyBase {
     return false;
   }
 
-  protected Object foldObject(Object value) {
+  /** If the value is a numeric type, this method coerces it in such a way to ensure consistency with Enso.
+   *
+   * Integer types are coerced to {@code Long} and floating point values are coerced to {@code Double} unless they represent a whole integer in which case they are also coerced to {@code Long}, to ensure the Enso property that {@code 2 == 2.0}. */
+  protected Object foldNumeric(Object value) {
     if (value instanceof Long) {
       return value;
     } else if (value instanceof Integer i) {

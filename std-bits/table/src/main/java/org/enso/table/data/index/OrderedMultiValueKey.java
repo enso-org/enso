@@ -1,11 +1,17 @@
 package org.enso.table.data.index;
 
-import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
+/**
+ * A multi-value key for ordered operations like sorting.
+ *
+ * It is meant to be used by sorted collections relying on {@code compareTo}, like {@code TreeMap}. It uses an {@code objectComparator} that should expose the Enso comparison logic to the Java-verse.
+ *
+ * It currently does not support hashing, as we do not have a hashing implementation consistent with Enso's comparison semantics.
+ */
 public class OrderedMultiValueKey extends MultiValueKeyBase implements Comparable<OrderedMultiValueKey>{
   private final Comparator<Object> objectComparator;
 
