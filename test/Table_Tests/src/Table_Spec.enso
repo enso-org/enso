@@ -698,11 +698,11 @@ spec =
             t2.distinct case_sensitive=Case_Insensitive_Data . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
 
         Test.specify "should report a warning if the key contains floating point values" <|
-            t1 = Table.new [["X", [3.1, 1.0, 2.0, 2.0, 1.0]]]
+            t1 = Table.new [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
             action1 = t1.distinct on_problems=_
             tester1 table =
-                table.at "X" . to_vector . should_equal [3.1, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping_Data "Distinct" [0]]
+                table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
+            problems1 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4]]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]

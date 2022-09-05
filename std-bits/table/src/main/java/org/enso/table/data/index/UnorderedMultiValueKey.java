@@ -37,8 +37,8 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
 
       Object value = this.get(i);
       if (value != null) {
+        hasFloatValues = hasFloatValues || isFloatingPoint(value);
         Object folded = foldObject(value);
-        hasFloatValues = hasFloatValues || (folded instanceof Double);
         h += folded.hashCode();
       }
     }
@@ -66,11 +66,45 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
       return numeric;
     }
 
+    if (value instanceof Boolean) {
+      return value;
+    }
+
     if (value instanceof LocalDate || value instanceof LocalTime || value instanceof ZonedDateTime) {
       return value;
     }
 
     throw new IllegalArgumentException("Custom objects in UnorderedMultiValueKey are currently not supported due to lack of hashing support.");
+  }
+
+  /**
+   * If the value is a numeric type, this method coerces it in such a way to ensure consistency with
+   * Enso.
+   *
+   * <p>Integer types are coerced to {@code Long} and floating point values are coerced to {@code
+   * Double} unless they represent a whole integer in which case they are also coerced to {@code
+   * Long}, to ensure the Enso property that {@code 2 == 2.0}.
+   *
+   * Returns {@code null} if the value was not a numeric value.
+   */
+  protected Object foldNumeric(Object value) {
+    if (value instanceof Long) {
+      return value;
+    } else if (value instanceof Integer i) {
+      return i.longValue();
+    } else if (value instanceof Byte b) {
+      return b.longValue();
+    } else if (value instanceof Float f && f % 1 == 0) {
+      return f.longValue();
+    } else if (value instanceof Double d && d % 1 == 0) {
+      return d.longValue();
+    } else if (value instanceof Float f) {
+      return f.doubleValue();
+    } else if (value instanceof Double d) {
+      return d;
+    }
+
+    return null;
   }
 
   @Override
