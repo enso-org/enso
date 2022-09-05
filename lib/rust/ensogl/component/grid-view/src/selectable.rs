@@ -114,6 +114,10 @@ where
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
             });
+
+
+            // === Move selection by one position ===
+
             input_move_selection <- any(...);
             input_move_selection <+ input.move_selection_up.constant(Some(Direction::Up));
             input_move_selection <+ input.move_selection_down.constant(Some(Direction::Down));
