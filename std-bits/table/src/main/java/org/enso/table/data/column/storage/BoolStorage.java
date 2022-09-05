@@ -39,7 +39,7 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.BOOL;
   }
 

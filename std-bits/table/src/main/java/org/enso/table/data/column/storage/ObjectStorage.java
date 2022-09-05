@@ -26,7 +26,7 @@ public class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.OBJECT;
   }
 

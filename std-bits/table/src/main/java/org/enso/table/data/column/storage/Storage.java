@@ -24,7 +24,7 @@ public abstract class Storage {
   public abstract int countMissing();
 
   /** @return the type tag of this column's storage. Must be one of {@link Type} */
-  public abstract long getType();
+  public abstract int getType();
 
   /**
    * Checks whether the value at {@code idx} is missing.
