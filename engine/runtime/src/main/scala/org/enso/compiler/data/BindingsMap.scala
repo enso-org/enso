@@ -3,7 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -22,10 +22,7 @@ import scala.annotation.unused
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  types: List[BindingsMap.Type],
-  constructors: List[BindingsMap.Cons],
-  polyglotSymbols: List[BindingsMap.PolyglotSymbol],
-  moduleMethods: List[BindingsMap.ModuleMethod],
+  definedEntities: List[DefinedEntity],
   currentModule: ModuleReference
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -129,40 +126,12 @@ case class BindingsMap(
     withSymbols
   }
 
-  private def findTypeCandidates(name: String): List[ResolvedType] = {
-    types.filter(_.name == name).map(ResolvedType(currentModule, _))
-  }
-
-  private def findConstructorCandidates(
-    name: String
-  ): List[ResolvedConstructor] = {
-    constructors
-      .filter(_.name == name)
-      .map(ResolvedConstructor(currentModule, _))
-  }
-
-  private def findPolyglotCandidates(
-    name: String
-  ): List[ResolvedPolyglotSymbol] = {
-    polyglotSymbols
-      .filter(_.name == name)
-      .map(ResolvedPolyglotSymbol(currentModule, _))
-  }
-
-  private def findMethodCandidates(
-    name: String
-  ): List[ResolvedName] =
-    moduleMethods.filter(_.name == name).map(ResolvedMethod(currentModule, _))
-
   private def findLocalCandidates(name: String): List[ResolvedName] = {
-    val types    = findTypeCandidates(name)
-    val conses   = findConstructorCandidates(name)
-    val polyglot = findPolyglotCandidates(name)
-    val methods  = findMethodCandidates(name)
-    val all      = types ++ conses ++ polyglot ++ methods
-    if (all.isEmpty && currentModule.getName.item == name) {
+    val candidates =
+      definedEntities.filter(_.name == name).map(_.resolvedIn(currentModule))
+    if (candidates.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
-    } else { all }
+    } else { candidates }
   }
 
   private def findQualifiedImportCandidates(
@@ -175,7 +144,7 @@ case class BindingsMap(
 
   private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
     imp.importDef.onlyNames
-      .map(_ => imp.importDef.rename.map(_.name == name).getOrElse(false))
+      .map(_ => imp.importDef.rename.exists(_.name == name))
       .getOrElse(imp.importDef.getSimpleName.name == name)
   }
 
@@ -743,6 +712,19 @@ object BindingsMap {
     }
   }
 
+  sealed trait DefinedEntity {
+    def name: String
+    def resolvedIn(module: ModuleReference): ResolvedName = this match {
+      case c: Cons           => ResolvedConstructor(module, c)
+      case t: Type           => ResolvedType(module, t)
+      case m: ModuleMethod   => ResolvedMethod(module, m)
+      case p: PolyglotSymbol => ResolvedPolyglotSymbol(module, p)
+    }
+    def resolvedIn(module: Module): ResolvedName = resolvedIn(
+      ModuleReference.Concrete(module)
+    )
+  }
+
   /** A representation of a constructor.
     *
     * @param name the name of the constructor.
@@ -751,29 +733,33 @@ object BindingsMap {
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
   case class Cons(
-    name: String,
+    override val name: String,
     arity: Int,
     allFieldsDefaulted: Boolean
-  )
+  ) extends DefinedEntity
 
   /** A representation of a sum type
     *
     * @param name the type name
     * @param members the member names
     */
-  case class Type(name: String, members: Seq[String], builtinType: Boolean)
+  case class Type(
+    override val name: String,
+    members: Seq[String],
+    builtinType: Boolean
+  ) extends DefinedEntity
 
   /** A representation of an imported polyglot symbol.
     *
     * @param name the name of the symbol.
     */
-  case class PolyglotSymbol(name: String)
+  case class PolyglotSymbol(override val name: String) extends DefinedEntity
 
   /** A representation of a method defined on the current module.
     *
     * @param name the name of the method.
     */
-  case class ModuleMethod(name: String)
+  case class ModuleMethod(override val name: String) extends DefinedEntity
 
   /** A name resolved to a sum type.
     *
@@ -785,8 +771,10 @@ object BindingsMap {
     def getVariants: Seq[ResolvedConstructor] = {
       val bindingsMap = getBindingsFrom(module)
       tp.members.flatMap(m =>
-        bindingsMap.constructors
-          .find(_.name == m)
+        bindingsMap.definedEntities
+          .collect {
+            case c: Cons if c.name == m => c
+          }
           .map(ResolvedConstructor(module, _))
       )
     }
@@ -902,11 +890,10 @@ object BindingsMap {
       moduleIr.flatMap(_.bindings.find {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
-            .map(
+            .forall(
               _.getMetadata(MethodDefinitions)
                 .contains(Resolution(ResolvedModule(module)))
             )
-            .getOrElse(true)
         case _ => false
       })
     }

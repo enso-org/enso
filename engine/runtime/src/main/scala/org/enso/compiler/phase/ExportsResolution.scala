@@ -1,16 +1,7 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
-  ModuleReference,
-  ResolvedConstructor,
-  ResolvedMethod,
-  ResolvedModule,
-  ResolvedPolyglotSymbol,
-  ResolvedType,
-  SymbolRestriction
-}
+import org.enso.compiler.data.BindingsMap.{ExportedModule, ModuleReference, ResolvedModule, SymbolRestriction}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -166,28 +157,8 @@ class ExportsResolution {
   private def resolveExportedSymbols(modules: List[Module]): Unit = {
     modules.foreach { module =>
       val bindings = getBindings(module)
-      val ownTypes = bindings.types.map { tp =>
-        val sym = List(ResolvedType(ModuleReference.Concrete(module), tp))
-        (tp.name, sym)
-      }
-      val ownMethods = bindings.moduleMethods.map { method =>
-        val name = method.name
-        val syms =
-          List(ResolvedMethod(ModuleReference.Concrete(module), method))
-        (name, syms)
-      }
-      val ownConstructors = bindings.constructors.map { tp =>
-        val name = tp.name
-        val types =
-          List(ResolvedConstructor(ModuleReference.Concrete(module), tp))
-        (name, types)
-      }
-      val ownPolyglotBindings = bindings.polyglotSymbols.map { poly =>
-        val name = poly.name
-        val syms =
-          List(ResolvedPolyglotSymbol(ModuleReference.Concrete(module), poly))
-        (name, syms)
-      }
+      val ownEntities =
+        bindings.definedEntities.map(e => (e.name, List(e.resolvedIn(module))))
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _) =>
           (name, List(ResolvedModule(mod)))
@@ -202,10 +173,7 @@ class ExportsResolution {
           }
       }
       bindings.exportedSymbols = List(
-        ownTypes,
-        ownMethods,
-        ownConstructors,
-        ownPolyglotBindings,
+        ownEntities,
         exportedModules,
         reExportedSymbols
       ).flatten.groupBy(_._1).map { case (m, names) =>

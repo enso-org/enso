@@ -1,5 +1,6 @@
 package org.enso.compiler.codegen
 
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
@@ -24,7 +25,11 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    localBindings.types.foreach { tp =>
+    // TODO
+    val types = localBindings.definedEntities.collect {
+      case t: BindingsMap.Type => t
+    }
+    types.foreach { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {

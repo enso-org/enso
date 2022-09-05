@@ -105,10 +105,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
-        definedSumTypes,
-        definedConstructors,
-        importedPolyglot,
-        methodsWithAutogen,
+        definedSumTypes ++ definedConstructors ++ importedPolyglot ++ methodsWithAutogen,
         ModuleReference.Concrete(moduleContext.module)
       )
     )

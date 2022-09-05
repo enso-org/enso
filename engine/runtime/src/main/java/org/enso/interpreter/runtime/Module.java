@@ -23,7 +23,6 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -471,16 +470,6 @@ public class Module implements TruffleObject {
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
     return patchedValues != null;
-  }
-
-  /**
-   * Builds an IR stub for this module.
-   *
-   * <p>Should only be used for source-less modules (e.g. {@link Builtins}).
-   */
-  public void unsafeBuildIrStub() {
-    ir = StubIrBuilder.build(this);
-    compilationStage = CompilationStage.AFTER_CODEGEN;
   }
 
   /** @return the cache for this module */

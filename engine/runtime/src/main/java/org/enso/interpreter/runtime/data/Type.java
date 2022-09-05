@@ -15,7 +15,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
-import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
