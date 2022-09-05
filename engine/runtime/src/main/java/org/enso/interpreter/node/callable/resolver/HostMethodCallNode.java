@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** Discovers and performs method calls on foreign values. */
@@ -121,8 +122,17 @@ public abstract class HostMethodCallNode extends Node {
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.hasArrayElements(self)) {
-      return PolyglotCallType.CONVERT_TO_ARRAY;
-    } else if (library.isMemberInvocable(self, methodName)) {
+      var ctx = Context.get(library);
+      var arrayType = ctx.getBuiltins().array();
+      var methodResolverNode = MethodResolverNodeGen.getUncached();
+      var symbol = UnresolvedSymbol.build(methodName, ctx.getBuiltins().getScope());
+      var fn = methodResolverNode.execute(arrayType, symbol);
+      if (fn != null) {
+        return PolyglotCallType.CONVERT_TO_ARRAY;
+      }
+    }
+
+    if (library.isMemberInvocable(self, methodName)) {
       return PolyglotCallType.CALL_METHOD;
     } else if (library.isMemberReadable(self, methodName)) {
       return PolyglotCallType.GET_MEMBER;
