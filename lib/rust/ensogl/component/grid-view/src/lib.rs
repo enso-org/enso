@@ -175,7 +175,7 @@ ensogl_core::define_endpoints_2! {
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
         column_resized(Col, f32),
-        selection_movement_confined_to_grid(Option<frp::io::keyboard::ArrowKeyDirection>),
+        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowKeyDirection>),
     }
 }
 

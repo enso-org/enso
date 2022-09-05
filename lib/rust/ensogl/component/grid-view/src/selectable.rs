@@ -134,7 +134,7 @@ where
                     if let Some(pos) = new_pos {
                         grid_frp.select_entry(pos);
                     } else {
-                        internal.output.selection_movement_confined_to_grid.emit(Some(dir));
+                        internal.output.selection_movement_out_of_grid_prevented.emit(Some(dir));
                     }
                 }
             }));
