@@ -250,7 +250,7 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
-        warn!("modify {:?} {:?}", text, transform);
+        debug!("modify {:?} {:?}", text, transform);
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
@@ -263,7 +263,7 @@ impl ViewBuffer {
                 })
             });
             let selection = self.to_location_selection(byte_selection);
-            warn!(
+            debug!(
                 ">> {:?}\n{:?}\n{:?}\n{:?}",
                 modification, rel_byte_selection, byte_selection, selection
             );
@@ -311,27 +311,27 @@ impl ViewBuffer {
         text: Text,
         transform: Option<Transform>,
     ) -> Modification {
-        warn!("modify_selection: {:?} {:?} {:?}", selection, text, transform);
+        debug!("modify_selection: {:?} {:?} {:?}", selection, text, transform);
         let text_byte_size = text.byte_size();
         let transformed = match transform {
             Some(t) if selection.is_cursor() => self.moved_selection_region(t, selection, true),
             _ => selection,
         };
-        warn!("transformed: {:?}", transformed);
+        debug!("transformed: {:?}", transformed);
         let byte_selection = self.to_bytes_selection(transformed);
-        warn!("byte_selection {:?}", byte_selection);
+        debug!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
-        warn!("range {:?}", range);
+        debug!("range {:?}", range);
         self.buffer.replace(range, &text);
         let new_byte_cursor_pos = range.start + text_byte_size;
-        warn!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
+        debug!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
-        warn!("new_byte_selection {:?}", new_byte_selection);
+        debug!("new_byte_selection {:?}", new_byte_selection);
         let changes = vec![Change { range, text }];
-        warn!("change {:?}", changes);
+        debug!("change {:?}", changes);
         let selection_group =
             selection::Group::from(self.to_location_selection(new_byte_selection));
-        warn!(">>> {}, {}", text_byte_size, range.size());
+        debug!(">>> {}, {}", text_byte_size, range.size());
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
     }

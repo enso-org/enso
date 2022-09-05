@@ -396,14 +396,14 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                        warn!(">> 1");
+                        debug!(">> 1");
                         m.on_modified_selection(selections,*time,true)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    warn!(">> selection_non_edit_mode");
+                    debug!(">> selection_non_edit_mode");
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
@@ -667,7 +667,7 @@ impl AreaModel {
         time: f32,
         do_edit: bool,
     ) {
-        warn!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
+        debug!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
         {
             // tutaj robimy redraw poniewaz musimy shapowac tekst by znac nowe divy. Po tym jak
             // poznamy divy mozemy przesuwac kursor. W obecnej implementacji to nie dziala dobrze,
@@ -687,13 +687,13 @@ impl AreaModel {
                 self.redraw(true);
             }
             let mut selection_map = self.selection_map.borrow_mut();
-            warn!("{:?}", selection_map);
+            debug!("{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
 
             for buffer_selection in buffer_selections {
-                warn!(">>1 {:?}", buffer_selection);
+                debug!(">>1 {:?}", buffer_selection);
                 let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
-                warn!(">>2 {:?}", buffer_selection);
+                debug!(">>2 {:?}", buffer_selection);
                 let id = buffer_selection.id;
                 let selection_start_line = buffer_selection.start.line.as_usize();
                 let selection_end_line = buffer_selection.end.line.as_usize();
@@ -706,13 +706,13 @@ impl AreaModel {
                 };
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.column);
                 let end_x = get_pos_x(selection_end_line, buffer_selection.end.column);
-                warn!("start_x {start_x}, end_x {end_x}");
+                debug!("start_x {start_x}, end_x {end_x}");
                 let selection_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
-                warn!("selection_y {selection_y}");
+                debug!("selection_y {selection_y}");
                 let pos = Vector2(start_x, selection_y);
-                warn!("pos {pos}");
+                debug!("pos {pos}");
                 let width = end_x - start_x;
-                warn!("width {width}");
+                debug!("width {width}");
                 let selection = match selection_map.id_map.remove(&id) {
                     Some(selection) => {
                         let select_left = selection.width.simulator.target_value() < 0.0;
@@ -726,7 +726,7 @@ impl AreaModel {
                         if width == 0.0 && need_flip {
                             selection.flip_sides()
                         }
-                        warn!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
+                        debug!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
                         selection.position.set_target_value(pos);
                         selection
                     }
@@ -762,7 +762,7 @@ impl AreaModel {
                     .or_default()
                     .insert(buffer_selection.start.column, id);
             }
-            warn!("new_selection_map = {new_selection_map:#?}");
+            debug!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
         }
         if do_edit {
@@ -854,7 +854,6 @@ impl AreaModel {
         })
     }
 
-    // FIXME: the video posted on discord activity channel shows an issue (panic). To be fixed.
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
