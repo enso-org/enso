@@ -538,6 +538,29 @@ impl<E: Entry> GridView<E> {
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
     }
+
+    fn move_selection_or_emit_movement_out_of_grid_prevented_event(
+        &self,
+        dir: frp::io::keyboard::ArrowKeyDirection,
+    ) {
+        use frp::io::keyboard::ArrowKeyDirection::*;
+        let frp = self.frp();
+        if let Some((row, col)) = frp.entry_selected.value() {
+            let (rows, cols) = frp.grid_size.value();
+            let new_selection_if_in_bounds = match dir {
+                Up if row > 0 => Some((row - 1, col)),
+                Down if row + 1 < rows => Some((row + 1, col)),
+                Left if col > 0 => Some((row, col - 1)),
+                Right if col + 1 < cols => Some((row, col + 1)),
+                _ => None,
+            };
+            if let Some(selection) = new_selection_if_in_bounds {
+                frp.select_entry(selection);
+            } else {
+                frp.private.output.selection_movement_out_of_grid_prevented.emit(Some(dir));
+            }
+        }
+    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>

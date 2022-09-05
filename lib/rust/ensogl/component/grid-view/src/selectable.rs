@@ -106,10 +106,10 @@ where
         selection_handler.connect_with_shape(&highlights);
         hover_handler.connect_with_shape(&highlights);
 
-        let grid_frp = grid.as_ref().frp();
+        let grid_ref = grid.as_ref();
+        let grid_frp = grid_ref.frp();
         let network = grid_frp.network();
         let input = &grid_frp.private.input;
-        let output = &grid_frp.private.output;
         frp::extend! { network
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
@@ -119,24 +119,11 @@ where
             input_move_selection <+ input.move_selection_down.constant(Some(Direction::Down));
             input_move_selection <+ input.move_selection_left.constant(Some(Direction::Left));
             input_move_selection <+ input.move_selection_right.constant(Some(Direction::Right));
-            _eval <- input_move_selection.map2(&grid_frp.entry_selected, f!([grid_frp, output](dir, pos) {
-                use Direction::*;
-                if let Some(((row, col), dir)) = pos.zip(*dir) {
-                    let (rows, cols) = grid_frp.grid_size.value();
-                    let new_pos = match dir {
-                        Up if row > 0 => Some((row - 1, col)),
-                        Down if row + 1 < rows => Some((row + 1, col)),
-                        Left if col > 0 => Some((row, col - 1)),
-                        Right if col + 1 < cols => Some((row, col + 1)),
-                        _ => None,
-                    };
-                    if let Some(pos) = new_pos {
-                        grid_frp.select_entry(pos);
-                    } else {
-                        output.selection_movement_out_of_grid_prevented.emit(Some(dir));
-                    }
+            eval input_move_selection ([grid_ref](dir) {
+                if let Some(dir) = *dir {
+                    grid_ref.move_selection_or_emit_movement_out_of_grid_prevented_event(dir);
                 }
-            }));
+            });
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
