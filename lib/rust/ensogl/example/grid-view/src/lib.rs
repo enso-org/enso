@@ -85,7 +85,7 @@ fn setup_grid_view(
             if let Some(dir) = dir {
                 let msg = iformat!(
                     "An attempt to select an entry outside of the grid in " dir;?
-                    " direction was stopped."
+                    " direction was prevented."
                 );
                 tracing::debug!("{msg}");
             }
