@@ -175,6 +175,8 @@ ensogl_core::define_endpoints_2! {
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
         column_resized(Col, f32),
+        /// Event emitted after a request was made to move the selection in a direction, but the
+        /// currently selected entry is the last one in the grid in that direction.
         selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowKeyDirection>),
     }
 }
