@@ -747,4 +747,3 @@ mod tests {
         check_headers_sections(&grid, [(1..4, 0), (2..4, 1)]);
     }
 }
-
