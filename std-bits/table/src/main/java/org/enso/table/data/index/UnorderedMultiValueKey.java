@@ -1,5 +1,8 @@
 package org.enso.table.data.index;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 
 import org.enso.base.text.TextFoldingStrategy;
@@ -50,11 +53,24 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
    * <p>Case-sensitivity of text folding is controlled by {@code textFoldingStrategy}.
    */
   protected Object foldObject(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (value instanceof String s) {
       return textFoldingStrategy.fold(s);
-    } else {
-      return foldNumeric(value);
     }
+
+    Object numeric = foldNumeric(value);
+    if (numeric != null) {
+      return numeric;
+    }
+
+    if (value instanceof LocalDate || value instanceof LocalTime || value instanceof ZonedDateTime) {
+      return value;
+    }
+
+    throw new IllegalArgumentException("Custom objects in UnorderedMultiValueKey are currently not supported due to lack of hashing support.");
   }
 
   @Override

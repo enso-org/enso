@@ -24,10 +24,6 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
       Storage[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     super(storages, rowIndex);
     this.objectComparator = objectComparator;
-    if (directions == null) {
-      directions = new int[storages.length];
-      Arrays.fill(directions, 1);
-    }
     this.directions = directions;
   }
 

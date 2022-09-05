@@ -1,7 +1,6 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 

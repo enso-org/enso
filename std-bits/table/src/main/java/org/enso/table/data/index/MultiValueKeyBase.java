@@ -69,6 +69,8 @@ public abstract class MultiValueKeyBase {
    * <p>Integer types are coerced to {@code Long} and floating point values are coerced to {@code
    * Double} unless they represent a whole integer in which case they are also coerced to {@code
    * Long}, to ensure the Enso property that {@code 2 == 2.0}.
+   *
+   * Returns {@code null} if the value was not a numeric value.
    */
   protected Object foldNumeric(Object value) {
     if (value instanceof Long) {
@@ -87,6 +89,6 @@ public abstract class MultiValueKeyBase {
       return d;
     }
 
-    return value;
+    return null;
   }
 }

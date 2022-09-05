@@ -542,7 +542,7 @@ type Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
-        on_problems.attach_problems_before validated.problems <|
+        on_problems.attach_problems_before validated.problems <| Illegal_Argument_Error.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -651,7 +651,8 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+            java_table = Illegal_Argument_Error.handle_java_exception <|
+                self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table_Data java_table
 
     ## Returns the distinct set of rows within the specified columns from the
@@ -690,7 +691,8 @@ type Table
             Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case.folding_strategy case_sensitive
-        java_table = self.java_table.distinct java_columns.to_array text_folding_strategy
+        java_table = Illegal_Argument_Error.handle_java_exception <|
+            self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table_Data java_table) <|
             problems = java_table.getProblems
             Aggregate_Column_Helper.parse_aggregated_problems problems
