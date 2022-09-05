@@ -67,7 +67,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Inferred java_builder
+    Builder_Inferred java_builder
 
     ## PRIVATE
 
@@ -75,7 +75,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Double java_builder
+    Builder_Double java_builder
 
     ## PRIVATE
 
@@ -83,7 +83,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Long java_builder
+    Builder_Long java_builder
 
     ## PRIVATE
 
@@ -91,7 +91,7 @@ type Builder
 
        Arguments:
        - java_builder: The underlying builder object.
-    type Builder_Boolean java_builder
+    Builder_Boolean java_builder
 
     ## PRIVATE
 

@@ -17,7 +17,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    type Postgres_Connection connection make_new
+    Postgres_Connection_Data connection make_new
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
