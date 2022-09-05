@@ -102,11 +102,14 @@ public class MultiValueIndex {
 
   private static Builder getBuilderForType(int type, int size) {
     return switch (type) {
-      case Storage.Type.BOOL -> new BoolBuilder();
-      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
-      case Storage.Type.STRING -> new StringBuilder(size);
       case Storage.Type.OBJECT -> new ObjectBuilder(size);
+      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
+      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.STRING -> new StringBuilder(size);
+      case Storage.Type.BOOL -> new BoolBuilder();
+      case Storage.Type.DATE -> new DateBuilder(size);
+      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
+      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
       default -> new InferredBuilder(size);
     };
   }

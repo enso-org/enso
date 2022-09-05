@@ -30,7 +30,7 @@ public class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.DATE_TIME;
   }
 }

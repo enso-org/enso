@@ -29,7 +29,7 @@ public class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.STRING;
   }
 

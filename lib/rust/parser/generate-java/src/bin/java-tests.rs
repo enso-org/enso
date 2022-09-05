@@ -48,7 +48,7 @@ fn main() {
     println!("            ByteBuffer buffer = ByteBuffer.wrap(accept[i]);");
     println!("            buffer.order(ByteOrder.LITTLE_ENDIAN);");
     println!("            ByteBuffer context = ByteBuffer.allocate(0);");
-    println!("            Message message = new Message(buffer, context, 0);");
+    println!("            Message message = new Message(buffer, context, 0, 0);");
     println!("            try {{");
     println!("                Tree tree = Tree.deserialize(message);");
     println!("                System.out.print(\"- pass: \");");
@@ -63,7 +63,7 @@ fn main() {
     println!("            ByteBuffer buffer = ByteBuffer.wrap(reject[i]);");
     println!("            buffer.order(ByteOrder.LITTLE_ENDIAN);");
     println!("            ByteBuffer context = ByteBuffer.allocate(0);");
-    println!("            Message message = new Message(buffer, context, 0);");
+    println!("            Message message = new Message(buffer, context, 0, 0);");
     println!("            try {{");
     println!("                Tree tree = Tree.deserialize(message);");
     println!("                System.out.print(\"- fail: accepted: \");");

@@ -119,7 +119,7 @@ pub enum Method {
 }
 
 /// A method that is rendered to syntax on demand.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Dynamic {
     /// A constructor.
     Constructor,
@@ -131,6 +131,8 @@ pub enum Dynamic {
     ToString,
     /// A read-accessor for a field.
     Getter(FieldId),
+    /// A read-accessor for a field, with a specified name.
+    GetterNamed(FieldId, String),
 }
 
 impl From<Dynamic> for Method {

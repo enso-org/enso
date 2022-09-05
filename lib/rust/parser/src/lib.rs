@@ -104,12 +104,14 @@
 use crate::prelude::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
 
 pub mod lexer;
 pub mod macros;
+pub mod metadata;
 pub mod serialization;
 pub mod source;
 pub mod syntax;
@@ -206,6 +208,19 @@ impl Default for Parser {
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
     let mut left_offset = source::span::Offset::default();
+    if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
+        if let Tree { variant: box Variant::Ident(ident), span: _ } = annotated.expression {
+            let operator = annotated.operator;
+            let type_ = annotated.type_;
+            let variable = ident.token;
+            let variant = TypeSignature { variable, operator, type_ };
+            let variant = Box::new(Variant::TypeSignature(variant));
+            return Tree { variant, span };
+        }
+        let err = Error::new("Expected identifier in left-hand operand of type signature.");
+        let variant = Box::new(Variant::TypeAnnotated(annotated));
+        return Tree::invalid(err, Tree { variant, span });
+    }
     let tree_ = match &mut tree {
         Tree { variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast }), span } => {
             left_offset += &span.left_offset;
