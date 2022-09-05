@@ -36,6 +36,22 @@ impl Side {
 
 
 
+// =========================
+// === ArrowKeyDirection ===
+// =========================
+
+/// The four directions of the arrow keys on a typical keyboard.
+#[derive(Copy, Clone, Debug)]
+#[allow(missing_docs)]
+pub enum ArrowKeyDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+
+
 // ===========
 // === Key ===
 // ===========

@@ -92,17 +92,6 @@ pub type Row = usize;
 pub type Col = usize;
 
 
-// === Direction ===
-
-#[derive(Copy, Clone, Debug)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-
 // === Properties ===
 
 /// A set of GridView properties used in many operations.
@@ -186,7 +175,7 @@ ensogl_core::define_endpoints_2! {
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
         column_resized(Col, f32),
-        selection_movement_confined_to_grid(Option<Direction>),
+        selection_movement_confined_to_grid(Option<frp::io::keyboard::ArrowKeyDirection>),
     }
 }
 
