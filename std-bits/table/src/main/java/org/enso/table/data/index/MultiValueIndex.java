@@ -1,17 +1,16 @@
 package org.enso.table.data.index;
 
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.builder.object.*;
+import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class MultiValueIndex {
   private final int keyColumnsLength;
@@ -22,13 +21,18 @@ public class MultiValueIndex {
     this(keyColumns, tableSize, null, objectComparator);
   }
 
-  public MultiValueIndex(Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
+  public MultiValueIndex(
+      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     this.keyColumnsLength = keyColumns.length;
     this.problems = new AggregatedProblems();
-    this.locs = ordering == null ? buildUnorderedIndex(keyColumns, tableSize) : buildOrderedIndex(keyColumns, tableSize, ordering, objectComparator);
+    this.locs =
+        ordering == null
+            ? buildUnorderedIndex(keyColumns, tableSize)
+            : buildOrderedIndex(keyColumns, tableSize, ordering, objectComparator);
   }
 
-  private HashMap<UnorderedMultiValueKey, List<Integer>> buildUnorderedIndex(Column[] keyColumns, int tableSize) {
+  private HashMap<UnorderedMultiValueKey, List<Integer>> buildUnorderedIndex(
+      Column[] keyColumns, int tableSize) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
@@ -44,13 +48,16 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      locs.put(new UnorderedMultiValueKey(new Storage[0], 0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      locs.put(
+          new UnorderedMultiValueKey(new Storage[0], 0),
+          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
 
     return locs;
   }
 
-  private TreeMap<OrderedMultiValueKey, List<Integer>> buildOrderedIndex(Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
+  private TreeMap<OrderedMultiValueKey, List<Integer>> buildOrderedIndex(
+      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
@@ -66,7 +73,9 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      locs.put(new OrderedMultiValueKey(new Storage[0], 0, null, objectComparator), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      locs.put(
+          new OrderedMultiValueKey(new Storage[0], 0, null, objectComparator),
+          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
 
     return locs;

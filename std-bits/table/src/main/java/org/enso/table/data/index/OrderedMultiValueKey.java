@@ -1,23 +1,27 @@
 package org.enso.table.data.index;
 
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.Arrays;
 import java.util.Comparator;
+import org.enso.table.data.column.storage.Storage;
 
 /**
  * A multi-value key for ordered operations like sorting.
  *
- * It is meant to be used by sorted collections relying on {@code compareTo}, like {@code TreeMap}. It uses an {@code objectComparator} that should expose the Enso comparison logic to the Java-verse.
+ * <p>It is meant to be used by sorted collections relying on {@code compareTo}, like {@code
+ * TreeMap}. It uses an {@code objectComparator} that should expose the Enso comparison logic to the
+ * Java-verse.
  *
- * It currently does not support hashing, as we do not have a hashing implementation consistent with Enso's comparison semantics.
+ * <p>It currently does not support hashing, as we do not have a hashing implementation consistent
+ * with Enso's comparison semantics.
  */
-public class OrderedMultiValueKey extends MultiValueKeyBase implements Comparable<OrderedMultiValueKey>{
+public class OrderedMultiValueKey extends MultiValueKeyBase
+    implements Comparable<OrderedMultiValueKey> {
   private final Comparator<Object> objectComparator;
 
   private final int[] directions;
 
-  public OrderedMultiValueKey(Storage[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
+  public OrderedMultiValueKey(
+      Storage[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     super(storages, rowIndex);
     this.objectComparator = objectComparator;
     if (directions == null) {
@@ -63,6 +67,8 @@ public class OrderedMultiValueKey extends MultiValueKeyBase implements Comparabl
 
   @Override
   public int hashCode() {
-    throw new IllegalStateException("Currently no hash_code implementation consistent with the ObjectComparator is exposed, so OrderedMultiValueKey is not hashable.");
+    throw new IllegalStateException(
+        "Currently no hash_code implementation consistent with the ObjectComparator is exposed, so"
+            + " OrderedMultiValueKey is not hashable.");
   }
 }

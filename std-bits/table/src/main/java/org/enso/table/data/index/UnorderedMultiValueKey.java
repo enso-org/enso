@@ -1,17 +1,18 @@
 package org.enso.table.data.index;
 
+import java.util.Objects;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.text.TextFoldingStrategy;
 import org.enso.table.text.UnicodeNormalizedFold;
 
-import java.util.Objects;
-
 /**
  * A multi-value key for unordered operations like group-by or distinct.
  *
- * It relies on folding logic that coerces values to their representatives in such a way that their equality is consistent with how Enso would handle equality.
+ * <p>It relies on folding logic that coerces values to their representatives in such a way that
+ * their equality is consistent with how Enso would handle equality.
  *
- * As it relies on hashing, it currently is not prepared to work correctly for custom Enso-defined objects, as hashing of such objects is not yet implemented properly.
+ * <p>As it relies on hashing, it currently is not prepared to work correctly for custom
+ * Enso-defined objects, as hashing of such objects is not yet implemented properly.
  */
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final int hashCodeValue;
@@ -21,7 +22,8 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     this(storages, rowIndex, UnicodeNormalizedFold.INSTANCE);
   }
 
-  public UnorderedMultiValueKey(Storage[] storages, int rowIndex, TextFoldingStrategy textFoldingStrategy) {
+  public UnorderedMultiValueKey(
+      Storage[] storages, int rowIndex, TextFoldingStrategy textFoldingStrategy) {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 
@@ -42,10 +44,11 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     floatsComputed = true;
   }
 
-
-  /** Folds the value to ensure consistency with Enso's equality.
+  /**
+   * Folds the value to ensure consistency with Enso's equality.
    *
-   * Case-sensitivity of text folding is controlled by {@code textFoldingStrategy}. */
+   * <p>Case-sensitivity of text folding is controlled by {@code textFoldingStrategy}.
+   */
   protected Object foldObject(Object value) {
     if (value instanceof String s) {
       return textFoldingStrategy.fold(s);
