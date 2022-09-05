@@ -4,8 +4,8 @@ import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
 import Standard.Database.Data.Sql
-from Standard.Database.Data.Sql import Sql_Type, Statement, Statement_Data
-from Standard.Database.Errors import Sql_Error, Sql_Timeout_Error
+from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data, Statement, Statement_Data
+from Standard.Database.Errors import Sql_Error, Sql_Error_Data, Sql_Timeout_Error, Sql_Timeout_Error_Data
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Table.Data.Storage
 import Standard.Database.Data.Table as Database_Table
@@ -89,7 +89,7 @@ type JDBC_Connection
                 name = metadata.getColumnName ix+1
                 typeid = metadata.getColumnType ix+1
                 typename = metadata.getColumnTypeName ix+1
-                [name, Sql_Type typeid typename]
+                [name, Sql_Type_Data typeid typename]
 
             Vector.new metadata.getColumnCount resolve_column
 
@@ -108,7 +108,7 @@ type JDBC_Connection
                     num_rows = table.row_count
                     columns = table.columns
                     check_rows updates_array expected_size =
-                        updates = Vector.Vector updates_array
+                        updates = Vector.Vector_Data updates_array
                         if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then
@@ -163,8 +163,8 @@ handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (Sql_Timeout_Error exc related_query)
-            False -> Error.throw (Sql_Error exc related_query)
+            True -> Error.throw (Sql_Timeout_Error_Data exc related_query)
+            False -> Error.throw (Sql_Error_Data exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.
