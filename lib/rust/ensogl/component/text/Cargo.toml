@@ -14,10 +14,15 @@ enso-shapely = { path = "../../../shapely" }
 enso-text = { path = "../../../text" }
 enso-types = { path = "../../../types" }
 ensogl-core = { path = "../../core" }
-ensogl-text-embedded-fonts = { path = "embedded-fonts" }
-ensogl-text-msdf-sys = { path = "msdf-sys" }
+ensogl-text-embedded-fonts = { path = "src/font/embedded" }
+ensogl-text-msdf = { path = "src/font/msdf" }
 const_format = "0.2.22"
 xi-rope = { version = "0.3.0" }
+owned_ttf_parser = "0.15.1"
+bincode = "2.0.0-rc.1"
+serde = { version = "1", features = ["rc"] }
+ordered-float = "3.0.0"
+ensogl-text-font-family = { path = "src/font/family" }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }

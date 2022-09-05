@@ -19,14 +19,14 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        Vector.Vector arr ->
+        Vector.Vector_Data arr ->
             Scalar.new arr
-        Matrix.Matrix m ->
+        Matrix.Matrix_Data m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix.Dimensions_Not_Equal
         _ ->
             Scalar.all value
     function mat scalar result
-    Image.Image result
+    Image.Image_Data result
 
 ## PRIVATE
 

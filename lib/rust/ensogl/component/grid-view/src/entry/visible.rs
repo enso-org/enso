@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::entry;
 use crate::Col;
+use crate::ColumnWidths;
 use crate::Entry;
 use crate::Row;
 
@@ -17,6 +18,10 @@ use ensogl_core::display::scene::Layer;
 // === Constants ===
 // =================
 
+/// The distance the mouse should be moved in last couple of frames to highlight entry as hovered.
+///
+/// We avoid hovering the entry when mouse does not move for better UX (e.g. during scrolling with
+/// mouse wheel).
 const MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX: f32 = 1.5;
 
 
@@ -52,14 +57,15 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct CreationCtx<EntryParams> {
-    pub app:              Application,
-    pub network:          frp::WeakNetwork,
-    pub set_entry_size:   frp::Stream<Vector2>,
-    pub set_entry_params: frp::Stream<EntryParams>,
-    pub entry_contour:    frp::Any<(Row, Col, entry::Contour)>,
-    pub entry_hovered:    frp::Any<Option<(Row, Col)>>,
-    pub entry_selected:   frp::Any<Option<(Row, Col)>>,
-    pub entry_accepted:   frp::Any<(Row, Col)>,
+    pub app:                   Application,
+    pub network:               frp::WeakNetwork,
+    pub set_entry_size:        frp::Stream<Vector2>,
+    pub set_entry_params:      frp::Stream<EntryParams>,
+    pub entry_contour:         frp::Any<(Row, Col, entry::Contour)>,
+    pub entry_hovered:         frp::Any<Option<(Row, Col)>>,
+    pub entry_selected:        frp::Any<Option<(Row, Col)>>,
+    pub entry_accepted:        frp::Any<(Row, Col)>,
+    pub override_column_width: frp::Any<(Col, f32)>,
 }
 
 impl<EntryParams> CreationCtx<EntryParams>
@@ -91,6 +97,7 @@ where EntryParams: frp::node::Data
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
                 self.entry_contour <+ all_with(&location, &contour, |&(r, c), &cont| (r, c, cont));
+                column <- location._1();
 
                 // We make a distinction between "hovered" state and "mouse_in" state, because
                 // we want to highlight entry as hovered only when mouse moves a bit.
@@ -112,6 +119,10 @@ where EntryParams: frp::node::Data
                 self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
+                self.override_column_width <+ entry_frp.override_column_width.map2(
+                    &column,
+                    |width, col| (*col, *width)
+                );
             }
             init.emit(());
         }
@@ -126,8 +137,9 @@ where EntryParams: frp::node::Data
 // ================
 
 /// Get base X position of entry at given column.
-pub fn position_x(col: Col, entry_size: Vector2) -> f32 {
-    (col as f32 + 0.5) * entry_size.x
+pub fn position_x(col: Col, entry_size: Vector2, column_widths: &ColumnWidths) -> f32 {
+    let x_offset = column_widths.pos_offset(col) + column_widths.width_diff(col) / 2.0;
+    (col as f32 + 0.5) * entry_size.x + x_offset
 }
 
 /// Get base Y position of entry at given row.
@@ -136,11 +148,17 @@ pub fn position_y(row: Row, entry_size: Vector2) -> f32 {
 }
 
 /// Get base position of entry at given row and column.
-pub fn position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
-    Vector2(position_x(col, entry_size), position_y(row, entry_size))
+pub fn position(row: Row, col: Col, entry_size: Vector2, column_widths: &ColumnWidths) -> Vector2 {
+    Vector2(position_x(col, entry_size, column_widths), position_y(row, entry_size))
 }
 
 /// Set the proper position of entry at given row and column.
-pub fn set_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
-    entry.set_position_xy(position(row, col, entry_size));
+pub fn set_position<E: display::Object>(
+    entry: &E,
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) {
+    entry.set_position_xy(position(row, col, entry_size, column_widths));
 }

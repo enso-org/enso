@@ -1,11 +1,5 @@
+@Builtin_Type
 type Boolean
-    @Builtin_Type
-    type Boolean
-
+    True
+    False
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
-
-@Builtin_Type
-type True
-
-@Builtin_Type
-type False

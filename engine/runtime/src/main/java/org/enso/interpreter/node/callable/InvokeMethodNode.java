@@ -1,7 +1,10 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -12,23 +15,27 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
+import java.time.ZoneId;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.callable.resolver.*;
+import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -78,21 +85,17 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Stateful execute(
       VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = "dispatch.hasFunctionalDispatch(self)")
+  @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
   Stateful doFunctionalDispatch(
       VirtualFrame frame,
       Object state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
-    try {
-      Function function = dispatch.getFunctionalDispatch(self, symbol);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
-    }
+      @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Cached MethodResolverNode methodResolverNode) {
+    Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization
@@ -102,8 +105,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
-      @Cached DataflowErrorResolverNode dataflowErrorResolverNode) {
-    Function function = dataflowErrorResolverNode.execute(symbol, self);
+      @Cached MethodResolverNode methodResolverNode) {
+    Function function =
+        methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
       return new Stateful(state, self);
     } else {
@@ -159,7 +163,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   @ExplodeLoop
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
       })
@@ -169,7 +173,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
@@ -206,8 +210,8 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
-        "!methods.hasSpecialDispatch(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TEXT"
       })
   Stateful doConvertText(
@@ -216,27 +220,26 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
-      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode) {
     try {
-      String str = interop.asString(self);
-      Text txt = Text.create(str);
-      Function function = textDispatch.getFunctionalDispatch(txt, symbol);
-      arguments[0] = txt;
+      var str = interop.asString(self);
+      var text = Text.create(str);
+      var ctx = Context.get(this);
+      var textType = ctx.getBuiltins().text();
+      var function = methodResolverNode.expectNonNull(text, textType, symbol);
+      arguments[0] = text;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
-        "!methods.hasSpecialDispatch(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE"
       })
   Stateful doConvertDate(
@@ -245,24 +248,142 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
-      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
     var ctx = Context.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
       var date = new EnsoDate(hostLocalDate);
-      Function function = dateDispatch.getFunctionalDispatch(date, symbol);
+      Function function = methodResolverNode.expectNonNull(date, ctx.getBuiltins().date(), symbol);
+
       arguments[0] = date;
       return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+    } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE_TIME"
+      })
+  Stateful doConvertDateTime(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalDate = interop.asDate(self);
+      var hostLocalTime = interop.asTime(self);
+      var hostZonedDateTime = hostLocalDate.atTime(hostLocalTime).atZone(ZoneId.systemDefault());
+      var dateTime = new EnsoDateTime(hostZonedDateTime);
+      Function function =
+          methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
+
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONED_DATE_TIME"
+      })
+  Stateful doConvertZonedDateTime(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalDate = interop.asDate(self);
+      var hostLocalTime = interop.asTime(self);
+      var hostZone = interop.asTimeZone(self);
+      var dateTime = new EnsoDateTime(hostLocalDate.atTime(hostLocalTime).atZone(hostZone));
+      Function function =
+          methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_ZONE"
+      })
+  Stateful doConvertZone(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    try {
+      var hostZone = interop.asTimeZone(self);
+      var dateTime = new EnsoTimeZone(hostZone);
+      Function function =
+          methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().timeZone(), symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_OF_DAY"
+      })
+  Stateful doConvertTimeOfDay(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalTime = interop.asTime(self);
+      var dateTime = new EnsoTimeOfDay(hostLocalTime);
+      Function function =
+          methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().timeOfDay(), symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == NOT_SUPPORTED"
       })
@@ -272,10 +393,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached AnyResolverNode anyResolverNode) {
-    Function function = anyResolverNode.execute(symbol, self);
+      @Cached MethodResolverNode anyResolverNode) {
+    var ctx = Context.get(this);
+    Function function = anyResolverNode.expectNonNull(self, ctx.getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 

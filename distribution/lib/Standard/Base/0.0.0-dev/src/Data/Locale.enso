@@ -303,7 +303,7 @@ type Locale
 
        Arguments:
        - java_locale: The Java locale representation used internally.
-    type Locale java_locale
+    Locale_Data java_locale
 
     ## Gets the language from the locale.
 
@@ -417,7 +417,7 @@ type Locale
     ## Compares two locales for equality.
     == : Any -> Boolean
     == self other = case other of
-        Locale other_java_locale -> self.java_locale.equals other_java_locale
+        Locale_Data other_java_locale -> self.java_locale.equals other_java_locale
         _ -> False
 
 ## PRIVATE
@@ -427,7 +427,7 @@ type Locale
    Arguments:
    - java: The java locale value.
 from_java : JavaLocale -> Locale
-from_java java = Locale java
+from_java java = Locale_Data java
 
 ## PRIVATE
 javaLocaleBuilder = JavaLocale.Builder

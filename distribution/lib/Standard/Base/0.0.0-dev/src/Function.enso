@@ -1,14 +1,11 @@
 import Standard.Base.Data.Vector
 
-# Function types.
+## A function is any type that represents a not-yet evaluated computation.
+
+   Methods are represented as functions with dynamic dispatch semantics on
+   the this argument.
+@Builtin_Type
 type Function
-
-    ## A function is any type that represents a not-yet evaluated computation.
-
-       Methods are represented as functions with dynamic dispatch semantics on
-       the this argument.
-    @Builtin_Type
-    type Function
 
 
 ## An identity function which returns the provided argument.

@@ -197,8 +197,9 @@ impl<'s> ExpressionBuilder<'s> {
                 Arity::Unary(opr) => syntax::Tree::unary_opr_app(opr, rhs_),
                 Arity::Binary(opr) => {
                     let lhs = self.output.pop().map(|t| t.to_ast());
-                    self.was_section_used =
-                        self.was_section_used || lhs.is_none() || rhs_.is_none();
+                    let can_form_section = opr.len() != 1 || opr[0].can_form_section;
+                    self.was_section_used = self.was_section_used
+                        || (can_form_section && (lhs.is_none() || rhs_.is_none()));
                     syntax::tree::apply_operator(lhs, opr, rhs_)
                 }
             };

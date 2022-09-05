@@ -60,7 +60,13 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         position(Vector2),
         contour(entry::Contour),
         color(color::Rgba),
+        /// Used in [Grid Views with headers](header::GridView). The y position of line separating
+        /// the header of scrolled down section from the rest of entries. If other entry than
+        /// this header is selected, the highlight should be top-clipped at this position.
         header_separator(f32),
+        /// The y position of line clipping the highlight from the top. Usually it's just the top
+        /// of the viewport, but may be a lower line in case where a header in
+        /// [Grid Views with headers](header::GridView) should cover part of the highlight.
         top_clip(f32),
         is_masked_layer_set(bool),
     }
@@ -380,7 +386,7 @@ impl<Kind: EndpointsGetter, E: Entry> HasConstructor
             new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
             animations.position_jump.target <+ new_jump;
             animations.position_jump.skip <+ new_jump.constant(());
-            animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
+            animations.position_jump.target <+ new_jump.constant(Vector2::zero());
 
 
             // === Color and Contour ===

@@ -6,40 +6,20 @@ polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.imgcodecs.Imgcodecs
 
 ## PRIVATE
-Codecs.Read_Alpha_Channel.to_integer = Imgcodecs.IMREAD_UNCHANGED
+Codecs.Read_Flag.to_integer self = case self of
+    Codecs.Read_Alpha_Channel -> Imgcodecs.IMREAD_UNCHANGED
+    Codecs.Read_Grayscale -> Imgcodecs.IMREAD_GRAYSCALE
+    Codecs.Read_Gdal -> Imgcodecs.IMREAD_LOAD_GDAL
 
 ## PRIVATE
-Codecs.Read_Grayscale.to_integer = Imgcodecs.IMREAD_GRAYSCALE
-
-## PRIVATE
-Codecs.Read_Gdal.to_integer = Imgcodecs.IMREAD_LOAD_GDAL
-
-## PRIVATE
-Codecs.Write_Jpeg_Quality.to_integer = Imgcodecs.IMWRITE_JPEG_QUALITY
-
-## PRIVATE
-Codecs.Write_Jpeg_Progressive.to_integer = Imgcodecs.IMWRITE_JPEG_PROGRESSIVE
-
-## PRIVATE
-Codecs.Write_Jpeg_Progressive.value = 1
-
-## PRIVATE
-Codecs.Write_Jpeg_Optimize.to_integer = Imgcodecs.IMWRITE_JPEG_OPTIMIZE
-
-## PRIVATE
-Codecs.Write_Jpeg_Optimize.value = 1
-
-## PRIVATE
-Codecs.Write_Jpeg_Luma_Quality.to_integer = Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY
-
-## PRIVATE
-Codecs.Write_Jpeg_Chroma_Quality.to_integer = Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY
-
-## PRIVATE
-Codecs.Write_Png_Compression.to_integer = Imgcodecs.IMWRITE_PNG_COMPRESSION
-
-## PRIVATE
-Codecs.Write_Webp_Quality.to_integer = Imgcodecs.IMWRITE_WEBP_QUALITY
+Codecs.Write_Flag.to_integer self = case self of
+    Codecs.Write_Jpeg_Quality _ -> Imgcodecs.IMWRITE_JPEG_QUALITY
+    Codecs.Write_Jpeg_Progressive -> Imgcodecs.IMWRITE_JPEG_PROGRESSIVE
+    Codecs.Write_Jpeg_Optimize -> Imgcodecs.IMWRITE_JPEG_OPTIMIZE
+    Codecs.Write_Jpeg_Luma_Quality _ -> Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY
+    Codecs.Write_Jpeg_Chroma_Quality _ -> Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY
+    Codecs.Write_Png_Compression _ -> Imgcodecs.IMWRITE_PNG_COMPRESSION
+    Codecs.Write_Webp_Quality _ -> Imgcodecs.IMWRITE_WEBP_QUALITY
 
 ## PRIVATE
 

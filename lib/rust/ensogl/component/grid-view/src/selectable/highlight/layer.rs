@@ -31,13 +31,15 @@ use ensogl_core::display::scene::Layer;
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "InnerGridView: CloneRef")]
 pub struct Handler<InnerGridView> {
-    entries:   Layer,
-    text:      Layer,
-    mask:      Layer,
+    entries:     Layer,
+    text:        Layer,
+    mask:        Layer,
+    header:      Immutable<Option<Layer>>,
+    header_text: Immutable<Option<Layer>>,
     /// The _inner_ grid view.
-    pub grid:  InnerGridView,
+    pub grid:    InnerGridView,
     /// The shape being a mask for the sub-layers.
-    pub shape: shape::View,
+    pub shape:   shape::View,
 }
 
 impl<InnerGridView> Handler<InnerGridView> {
@@ -52,6 +54,8 @@ impl<InnerGridView> Handler<InnerGridView> {
         let shape = shape::View::new(Logger::new("HighlightMask"));
         let entries = parent_layer.create_sublayer();
         let text = parent_layer.create_sublayer();
+        let header = default();
+        let header_text = default();
         let mask = Layer::new_with_cam(
             Logger::new("grid_view::HighlightLayers::mask"),
             &parent_layer.camera(),
@@ -87,7 +91,7 @@ impl<InnerGridView> Handler<InnerGridView> {
         init.emit(());
         base_grid_frp.request_model_for_visible_entries();
 
-        Self { entries, text, mask, grid, shape }
+        Self { entries, text, header, header_text, mask, grid, shape }
     }
 }
 
@@ -116,18 +120,20 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
 
     fn new(app: &Application, parent_layer: &Layer, base_grid: &Self::InnerGrid) -> Self {
         let grid = header::GridView::new(app);
-        let header_frp = grid.header_frp();
+        let mut this = Self::new_wrapping(parent_layer, grid, base_grid);
+
+        let header_frp = this.grid.header_frp();
         let base_header_frp = base_grid.header_frp();
         frp::extend! { network
             header_frp.section_info <+ base_header_frp.section_info;
         }
-
-        let headers = parent_layer.create_sublayer();
-        let headers_text = parent_layer.create_sublayer();
-        header_frp.set_layers(header::WeakLayers::new(&headers, Some(&headers_text)));
-        let this = Self::new_wrapping(parent_layer, grid, base_grid);
-        headers.set_mask(&this.mask);
-        headers_text.set_mask(&this.mask);
+        let header = parent_layer.create_sublayer();
+        let header_text = parent_layer.create_sublayer();
+        header_frp.set_layers(header::WeakLayers::new(&header, Some(&header_text)));
+        header.set_mask(&this.mask);
+        header_text.set_mask(&this.mask);
+        this.header = Immutable(Some(header));
+        this.header_text = Immutable(Some(header_text));
         this
     }
 }

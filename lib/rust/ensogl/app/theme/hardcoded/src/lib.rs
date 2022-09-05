@@ -14,8 +14,6 @@
 #![warn(missing_debug_implementations)]
 
 use ensogl_core::prelude::ImString;
-use ensogl_text_embedded_fonts::DefaultFamily as DefaultFontFamily;
-use ensogl_text_embedded_fonts::Family;
 
 
 
@@ -198,7 +196,7 @@ define_themes! { [light:0, dark:1]
                     section_heading_size = 16.0, 16.0;
                     section_heading_offset = 50.0, 50.0;
                     section_heading_text_offset = 13.0, 13.0;
-                    section_heading_font = "Causten-Semibold", "Causten-Semibold";
+                    section_heading_font = "default", "default";
                     section_heading_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
                     section_divider_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
 
@@ -243,7 +241,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
-                        font = DefaultFontFamily::bold(), DefaultFontFamily::bold();
+                        font = "default", "default";
                         size = 12.0, 12.0;
                         color_intensity = 1.0, 1.0;
                     }
@@ -279,7 +277,7 @@ define_themes! { [light:0, dark:1]
                     highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
                     selected_color = Rgba::white(), Rgba::white();
                     text {
-                        font = DefaultFontFamily::regular(), DefaultFontFamily::regular();
+                        font = "default", "default";
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                         highlight_bold = 0.02, 0.02;
@@ -609,7 +607,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = DefaultFontFamily::mono(), DefaultFontFamily::mono();
+                font      = "default-mono", "default-mono";
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }
@@ -636,7 +634,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
-                font   = "DejaVuSans", "DejaVuSans";
+                font   = "default", "default";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;

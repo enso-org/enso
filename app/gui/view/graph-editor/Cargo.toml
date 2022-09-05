@@ -21,7 +21,7 @@ enso-shapely = { path = "../../../../lib/rust/shapely" }
 enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }
 ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
-ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-text-msdf = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }
 failure = { version = "0.1.8" }

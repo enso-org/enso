@@ -394,7 +394,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Parsing the module [${module.getName}]."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     if (irCachingEnabled && !module.isInteractive) {
@@ -412,7 +412,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Loading module `${module.getName}` from source."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     val moduleContext = ModuleContext(
@@ -724,6 +724,11 @@ class Compiler(
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
+        val count =
+          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+        val warnCount =
+          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+        println(s"Aborting due to ${count} errors and ${warnCount} warnings.")
         throw new CompilationAbortedException
       }
     }

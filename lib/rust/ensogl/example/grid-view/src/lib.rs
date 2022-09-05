@@ -24,7 +24,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-use enso_frp::web::forward_panic_hook_to_console;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -33,7 +32,7 @@ use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -46,8 +45,6 @@ use ensogl_text_msdf_sys::run_once_initialized;
 #[allow(dead_code)]
 pub fn main() {
     run_once_initialized(|| {
-        init_tracing(TRACE);
-        forward_panic_hook_to_console();
         let app = Application::new("root");
         init(&app);
         mem::forget(app);
@@ -56,8 +53,9 @@ pub fn main() {
 
 fn entry_model(row: Row, col: Col) -> grid_view::simple::EntryModel {
     grid_view::simple::EntryModel {
-        text:     format!("Entry ({row}, {col})").into(),
-        disabled: Immutable(row == col),
+        text:           format!("Entry ({row}, {col})").into(),
+        disabled:       Immutable(row == col),
+        override_width: Immutable(if col == 1 && row == 5 { Some(180.0) } else { None }),
     }
 }
 
@@ -67,7 +65,8 @@ fn setup_grid_view(
     let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
     let header_frp = view.header_frp();
     frp::new_network! { network
-        requested_entry <- view.model_for_entry_needed.map(|&(r, c)| (r, c, entry_model(r, c)));
+        requested_entry <-
+            view.model_for_entry_needed.map(|&(row, col)| (row, col, entry_model(row, col)));
         requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
             let sections_size = 2 + col;
             let section_start = row - (row % sections_size);
@@ -133,6 +132,11 @@ fn init(app: &Application) {
     for (view, (x, y)) in grid_views.iter().zip(positions) {
         grids_layer.add_exclusive(view);
         view.set_position_xy(Vector2(x, y));
+    }
+
+    let view = &grid_views[0];
+    for i in (0..1000).step_by(2) {
+        view.set_column_width((i, 60.0));
     }
 
     for view in with_hover_mask {

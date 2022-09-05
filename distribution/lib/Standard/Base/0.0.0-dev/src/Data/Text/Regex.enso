@@ -1,18 +1,16 @@
 ## This module contains the basic interface to the more advanced functionality
+
    of Enso's regular expression engine.
 
    TODO Examples
 
 from Standard.Base import all
 
-import Standard.Base.Data.Map
-import Standard.Base.Data.Text.Span
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
-import Standard.Base.Data.Map
 
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
@@ -122,7 +120,8 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
 
    Arguments:
    - id: The identifier of the group that was asked for but does not exist.
-type No_Such_Group_Error (id : Text | Integer)
+type No_Such_Group_Error
+    No_Such_Group_Error_Data (id : Text | Integer)
 
 ## PRIVATE
 

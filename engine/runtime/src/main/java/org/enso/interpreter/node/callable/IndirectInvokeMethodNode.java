@@ -23,7 +23,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @GenerateUncached
@@ -48,7 +48,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       BaseNode.TailStatus isTail,
       int thisArgumentPosition);
 
-  @Specialization(guards = "dispatch.hasFunctionalDispatch(self)")
+  @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
   Stateful doFunctionalDispatch(
       MaterializedFrame frame,
       Object state,
@@ -60,23 +60,19 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
+      @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Cached MethodResolverNode methodResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-    try {
-      Function function = dispatch.getFunctionalDispatch(self, symbol);
-      return invokeFunctionNode.execute(
-          function,
-          frame,
-          state,
-          arguments,
-          schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
-          isTail);
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
-    }
+    Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
+    return invokeFunctionNode.execute(
+        function,
+        frame,
+        state,
+        arguments,
+        schema,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail);
   }
 
   @Specialization
@@ -91,10 +87,11 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @Cached DataflowErrorResolverNode dataflowErrorResolverNode,
+      @Cached MethodResolverNode methodResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
-    Function function = dataflowErrorResolverNode.execute(symbol, self);
+    Function function =
+        methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
     if (profile.profile(function == null)) {
       return new Stateful(state, self);
     } else {
@@ -157,7 +154,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType != NOT_SUPPORTED",
         "polyglotCallType != CONVERT_TO_TEXT"
@@ -173,7 +170,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
@@ -195,7 +192,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TEXT"
       })
@@ -210,15 +207,17 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
-      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Cached MethodResolverNode methodResolverNode,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
-      String str = interop.asString(self);
-      Text txt = Text.create(str);
-      Function function = textDispatch.getFunctionalDispatch(txt, symbol);
-      arguments[0] = txt;
+      var str = interop.asString(self);
+      var text = Text.create(str);
+      var ctx = Context.get(this);
+      var textType = ctx.getBuiltins().text();
+      var function = methodResolverNode.expectNonNull(text, textType, symbol);
+      arguments[0] = text;
       return invokeFunctionNode.execute(
           function,
           frame,
@@ -230,16 +229,13 @@ public abstract class IndirectInvokeMethodNode extends Node {
           isTail);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
   @ExplodeLoop
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == NOT_SUPPORTED"
       })
@@ -254,15 +250,14 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
-      @Cached ThunkExecutorNode argExecutor,
-      @Cached AnyResolverNode anyResolverNode,
-      @Cached HostMethodCallNode hostMethodCallNode,
+      @Cached MethodResolverNode methodResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-    Function function = anyResolverNode.execute(symbol, self);
+    Function function =
+        methodResolverNode.expectNonNull(self, Context.get(this).getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(
         function,
         frame,

@@ -28,7 +28,7 @@
 
 pub mod buffer;
 pub mod component;
-pub mod typeface;
+pub mod font;
 
 
 

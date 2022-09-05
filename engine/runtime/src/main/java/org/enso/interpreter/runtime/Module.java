@@ -31,9 +31,11 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -162,11 +164,15 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+      QualifiedName name,
+      Package<TruffleFile> pkg,
+      boolean synthetic,
+      Rope literalSource,
+      Context context) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scope = new ModuleScope(this, context);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
@@ -183,8 +189,8 @@ public class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, null);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, Context context) {
+    return new Module(name, pkg, false, null, context);
   }
 
   /**
@@ -196,8 +202,9 @@ public class Module implements TruffleObject {
    * @param source source of the module declaring exports of the desired modules
    * @return the synthetic module
    */
-  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, source);
+  public static Module synthetic(
+      QualifiedName name, Package<TruffleFile> pkg, Rope source, Context context) {
+    return new Module(name, pkg, true, source, context);
   }
 
   /** Clears any literal source set for this module. */
@@ -316,7 +323,7 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(Context context) {
-    ensureScopeExists();
+    ensureScopeExists(context);
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -327,9 +334,9 @@ public class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists() {
+  public void ensureScopeExists(Context context) {
     if (scope == null) {
-      scope = new ModuleScope(this);
+      scope = new ModuleScope(this, context);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -381,7 +388,7 @@ public class Module implements TruffleObject {
   }
 
   private void compile(Context context) throws IOException {
-    ensureScopeExists();
+    ensureScopeExists(context);
     Source source = getSource();
     if (source == null) return;
     scope.reset();
@@ -517,13 +524,12 @@ public class Module implements TruffleObject {
   abstract static class InvokeMember {
     private static Function getMethod(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
-      Types.Pair<AtomConstructor, String> arguments =
-          Types.extractArguments(args, AtomConstructor.class, String.class);
-      AtomConstructor cons = arguments.getFirst();
+      Types.Pair<Type, String> arguments = Types.extractArguments(args, Type.class, String.class);
+      Type type = arguments.getFirst();
       String name = arguments.getSecond();
 
       try {
-        return scope.getMethods().get(cons).get(name);
+        return scope.getMethods().get(type).get(name);
       } catch (NullPointerException npe) {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(
@@ -537,6 +543,12 @@ public class Module implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(args, String.class);
       return scope.getConstructors().get(name);
+    }
+
+    private static Type getType(ModuleScope scope, Object[] args)
+        throws ArityException, UnsupportedTypeException {
+      String name = Types.extractArguments(args, String.class);
+      return scope.getTypes().get(name);
     }
 
     private static Module reparse(Module module, Object[] args, Context context)
@@ -566,8 +578,7 @@ public class Module implements TruffleObject {
       return module;
     }
 
-    private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
-        throws ArityException {
+    private static Type getAssociatedType(ModuleScope scope, Object[] args) throws ArityException {
       Types.extractArguments(args);
       return scope.getAssociatedType();
     }
@@ -583,10 +594,12 @@ public class Module implements TruffleObject {
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
-      Object state = context.getBuiltins().nothing().newInstance();
       return callOptimiserNode
           .executeDispatch(
-              eval, callerInfo, state, new Object[] {builtins.debug(), Text.create(expr)})
+              eval,
+              callerInfo,
+              EmptyMap.create(),
+              new Object[] {builtins.debug(), Text.create(expr)})
           .getValue();
     }
 
@@ -614,10 +627,13 @@ public class Module implements TruffleObject {
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
-          return result == null ? context.getBuiltins().nothing().newInstance() : result;
+          return result == null ? context.getBuiltins().nothing() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
           scope = module.compileScope(context);
           return getConstructor(scope, arguments);
+        case MethodNames.Module.GET_TYPE:
+          scope = module.compileScope(context);
+          return getType(scope, arguments);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
         case MethodNames.Module.GENERATE_DOCS:
@@ -628,9 +644,9 @@ public class Module implements TruffleObject {
           return setSource(module, arguments, context);
         case MethodNames.Module.SET_SOURCE_FILE:
           return setSourceFile(module, arguments, context);
-        case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
+        case MethodNames.Module.GET_ASSOCIATED_TYPE:
           scope = module.compileScope(context);
-          return getAssociatedConstructor(scope, arguments);
+          return getAssociatedType(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);
@@ -663,7 +679,7 @@ public class Module implements TruffleObject {
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
-        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR)
+        || member.equals(MethodNames.Module.GET_ASSOCIATED_TYPE)
         || member.equals(MethodNames.Module.EVAL_EXPRESSION);
   }
 
@@ -681,7 +697,7 @@ public class Module implements TruffleObject {
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,
-        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
+        MethodNames.Module.GET_ASSOCIATED_TYPE,
         MethodNames.Module.EVAL_EXPRESSION);
   }
 }

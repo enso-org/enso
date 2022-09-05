@@ -1,9 +1,8 @@
 bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
 bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
+@Builtin_Type
 type Managed_Resource
-    @Builtin_Type
-    type Managed_Resource
     register resource function = @Builtin_Method "Managed_Resource.register"
     finalize self = @Builtin_Method "Managed_Resource.finalize"
     with self ~action = @Builtin_Method "Managed_Resource.with"

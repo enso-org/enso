@@ -100,7 +100,7 @@ case object VectorLiterals extends IRPass {
             BindingsMap
               .ResolvedConstructor(
                 ModuleReference.Concrete(module),
-                BindingsMap.Cons("Vector", 1, allFieldsDefaulted = false)
+                BindingsMap.Cons("Vector_Data", 1, allFieldsDefaulted = false)
               )
           )
         )

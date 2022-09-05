@@ -88,7 +88,8 @@ class ConstructorsTest extends InterpreterTest {
         """import Standard.Base.Nothing
           |from Standard.Base.Data.List import all
           |
-          |type Cons2 a b
+          |type C2
+          |    Cons2 a b
           |
           |Nothing.genList = i -> if i == 0 then Nil2 else Cons2 i (Nothing.genList (i - 1))
           |

@@ -385,6 +385,7 @@ impl ViewUpdate {
     fn set_node_expressions(&self) -> Vec<(ViewNodeId, node_view::Expression)> {
         self.nodes
             .iter()
+            .filter(|node| self.state.should_receive_expression_auto_updates(node.id()))
             .filter_map(|node| {
                 let id = node.main_line.id();
                 let trees = self.trees.get(&id).cloned().unwrap_or_default();
@@ -573,8 +574,8 @@ impl Graph {
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, graph_notifications, move |notification, model| {
-            info!(model.logger, "Received controller notification {notification:?}");
+        spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
+            tracing::debug!("Received controller notification {notification:?}");
             match notification {
                 executed::Notification::Graph(graph) => match graph {
                     Notification::Invalidate => update_view.emit(()),
@@ -608,6 +609,15 @@ impl Graph {
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
+    }
+
+    /// Indicate whether the given node should be automatically synced with its view.
+    ///
+    /// The auto sync can be disabled, for cases where it is desirable to manually update the
+    /// content of a node. For example, the searcher uses this to allow the edit field to have a
+    /// preview that is different from the actual node AST.
+    pub fn allow_expression_auto_updates(&self, id: AstNodeId, allow: bool) {
+        self.model.state.allow_expression_auto_updates(id, allow);
     }
 }
 

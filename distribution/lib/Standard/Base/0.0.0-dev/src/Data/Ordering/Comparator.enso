@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Ordering.Natural_Order
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 
 polyglot java import org.enso.base.ObjectComparator
 
@@ -32,5 +30,5 @@ for_text_ordering text_ordering =
             txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
             new.withCustomTextComparator txt_cmp
         False -> case text_ordering.case_sensitive of
-            Case_Insensitive locale -> new.withCaseInsensitivity locale.java_locale
+            Case_Insensitive_Data locale -> new.withCaseInsensitivity locale.java_locale
             _ -> new

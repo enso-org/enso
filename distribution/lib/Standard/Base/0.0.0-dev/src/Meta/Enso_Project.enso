@@ -1,6 +1,7 @@
 import Standard.Base.System.File
 
 ## Functionality for inspecting the current project.
+@Builtin_Type
 type Project_Description
 
     ## A representation of an Enso project.
@@ -8,8 +9,7 @@ type Project_Description
        Arguments:
        - prim_root_file: The primitive root file of the project.
        - prim_config: The primitive config of the project.
-    @Builtin_Type
-    type Project_Description prim_root_file prim_config
+    Project_Description_Data prim_root_file prim_config
 
 
     ## Returns the root directory of the project.

@@ -5,6 +5,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::layout;
 use crate::layouting;
 use crate::searcher_theme;
 use crate::GroupId;
@@ -87,9 +88,10 @@ impl Model {
         let overall_width = style.content_width - 2.0 * style.content_padding;
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
 
-        let groups = content.iter().enumerate().map(|(index, provider)| {
-            let height = provider.original_entry_count;
-            layouting::Group { index, height }
+        let groups = content.iter().enumerate().map(|(index, provider)| layout::Group {
+            id:              GroupId { section: *section, index },
+            height:          provider.content.entry_count(),
+            original_height: provider.original_entry_count,
         });
         let arrangement = layouting::Layouter::new(groups).arrange();
 
@@ -127,7 +129,8 @@ impl Model {
         for entry in content.iter() {
             const DEFAULT_COLUMN_INDEX: usize = 1;
             let mut arranged = arrangement.iter().enumerate();
-            let column_index = arranged.find_map(|(i, c)| c.contains(&entry.index).then_some(i));
+            let column_index =
+                arranged.find_map(|(i, c)| c.iter().find(|g| g.id.index == entry.index).map(|_| i));
             let column_index = column_index.unwrap_or(DEFAULT_COLUMN_INDEX);
             columns[column_index].push(&entry.content);
             heights[column_index] += entry.content.size.value().y + style.column_gap;

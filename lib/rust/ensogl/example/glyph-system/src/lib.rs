@@ -22,13 +22,11 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use ensogl_text::typeface::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_text_embedded_fonts as embedded_fonts;
-use ensogl_text_embedded_fonts::Family;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text::font;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -44,11 +42,12 @@ pub fn main() {
 
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
-    let font = fonts.load(embedded_fonts::DefaultFamily::regular());
-    let glyph_system = glyph::System::new(&world.default_scene, font);
-    let height = 32.0;
+    let font = fonts.load("mplus1");
+    let glyph_system = font::glyph::System::new(&world.default_scene, font);
+    let height = 64.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
     let start_pos = Vector2(-300.0, -300.0);
+
 
     for (line_ind, line) in CHARS_TO_TEST.iter().enumerate() {
         for (char_ind, char) in line.chars().enumerate() {
@@ -61,7 +60,7 @@ fn init(world: &World) {
             bold_glyph.set_char(char);
             bold_glyph.set_color(color);
             bold_glyph.set_font_size(height);
-            bold_glyph.set_bold(true);
+            bold_glyph.set_weight_bold();
 
             let x = char_ind as f32 * (height + 4.0);
             let y = line_ind as f32 * (height * 2.0 + 8.0);

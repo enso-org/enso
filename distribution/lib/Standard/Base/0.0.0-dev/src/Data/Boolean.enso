@@ -1,12 +1,11 @@
-## Booleans.
+## A type with only two possible values.
+
+   The boolean type represents the two truth values of boolean logic. It is
+   primarily used for control-flow.
+@Builtin_Type
 type Boolean
-
-    ## A type with only two possible values.
-
-       The boolean type represents the two truth values of boolean logic. It is
-       primarily used for control-flow.
-    @Builtin_Type
-    type Boolean
+    True
+    False
 
     ## Compares two booleans for equality.
 
@@ -106,11 +105,3 @@ type Boolean
              if (27 % 3) == 0 then IO.println "Fizz"
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
-
-## The constructor for the value True.
-@Builtin_Type
-type True
-
-## The constructor for the value False.
-@Builtin_Type
-type False

@@ -1,10 +1,6 @@
-## Utilities for working with mutable references.
+## A mutable reference type.
+@Builtin_Type
 type Ref
-
-    ## A mutable reference type.
-    @Builtin_Type
-    type Ref
-
     ## Gets the contents of this mutable reference ref.
 
        > Example

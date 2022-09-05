@@ -8,13 +8,14 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Decimal type.")
 public abstract class DecimalBranchNode extends BranchNode {
-  private final AtomConstructor decimal;
+  private final Type decimal;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  DecimalBranchNode(AtomConstructor decimal, RootCallTarget branch) {
+  DecimalBranchNode(Type decimal, RootCallTarget branch) {
     super(branch);
     this.decimal = decimal;
   }
@@ -26,14 +27,14 @@ public abstract class DecimalBranchNode extends BranchNode {
    * @param branch the code to execute in this case
    * @return a decimal branch node
    */
-  public static DecimalBranchNode build(AtomConstructor decimal, RootCallTarget branch) {
+  public static DecimalBranchNode build(Type decimal, RootCallTarget branch) {
     return DecimalBranchNodeGen.create(decimal, branch);
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(decimal == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(decimal == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

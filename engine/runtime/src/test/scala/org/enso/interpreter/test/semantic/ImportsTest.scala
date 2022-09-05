@@ -14,7 +14,7 @@ class ImportsTest extends PackageTest {
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestNonImportedOverloads"
-    ) should have message "Method `method` of X could not be found."
+    ) should have message "Method `method` of Mk_X could not be found."
   }
 
   "Import statements" should "report errors when they cannot be resolved" in {
@@ -39,7 +39,7 @@ class ImportsTest extends PackageTest {
     consumeOut
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
-      .head should include("The name `X` could not be found.")
+      .head should include("The name `Mk_X` could not be found.")
   }
 
   "Symbols from imported modules" should "not be visible when hidden" in {
@@ -82,9 +82,9 @@ class ImportsTest extends PackageTest {
     evalTestProject("TestSubmodules") shouldEqual 42
     val outLines = consumeOut
     outLines(0) shouldEqual "(Foo 10)"
-    outLines(1) shouldEqual "(C 52)"
+    outLines(1) shouldEqual "(Mk_C 52)"
     outLines(2) shouldEqual "20"
-    outLines(3) shouldEqual "(C 10)"
+    outLines(3) shouldEqual "(Mk_C 10)"
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {

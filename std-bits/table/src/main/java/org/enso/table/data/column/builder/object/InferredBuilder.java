@@ -3,6 +3,10 @@ package org.enso.table.data.column.builder.object;
 import org.enso.table.data.column.storage.Storage;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.List;
 
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
@@ -34,40 +38,10 @@ public class InferredBuilder extends Builder {
     if (o == null) {
       currentBuilder.appendNoGrow(o);
     } else {
-      switch (currentBuilder.getType()) {
-        case Storage.Type.BOOL:
-          if (o instanceof Boolean) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.LONG:
-          if (o instanceof Long) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.DOUBLE:
-          if (o instanceof Double || o instanceof BigDecimal) {
-            currentBuilder.appendNoGrow(o);
-          } else if (o instanceof Long) {
-            currentBuilder.appendNoGrow(((Long) o).doubleValue());
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.STRING:
-          if (o instanceof String) {
-            currentBuilder.appendNoGrow(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.OBJECT:
-          currentBuilder.appendNoGrow(o);
-          break;
+      if (currentBuilder.accepts(o)) {
+        currentBuilder.appendNoGrow(o);
+      } else {
+        retypeAndAppend(o);
       }
     }
     currentSize++;
@@ -86,40 +60,10 @@ public class InferredBuilder extends Builder {
     if (o == null) {
       currentBuilder.append(o);
     } else {
-      switch (currentBuilder.getType()) {
-        case Storage.Type.BOOL:
-          if (o instanceof Boolean) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.LONG:
-          if (o instanceof Long) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.DOUBLE:
-          if (o instanceof Double || o instanceof BigDecimal) {
-            currentBuilder.append(o);
-          } else if (o instanceof Long) {
-            currentBuilder.append(((Long) o).doubleValue());
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.STRING:
-          if (o instanceof String) {
-            currentBuilder.append(o);
-          } else {
-            retypeAndAppend(o);
-          }
-          break;
-        case Storage.Type.OBJECT:
-          currentBuilder.append(o);
-          break;
+      if (currentBuilder.accepts(o)) {
+        currentBuilder.append(o);
+      } else {
+        retypeAndAppend(o);
       }
     }
     currentSize++;
@@ -141,6 +85,12 @@ public class InferredBuilder extends Builder {
       currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
     } else if (o instanceof Long) {
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity);
+    } else if (o instanceof LocalDate) {
+      currentBuilder = new DateBuilder(initialCapacity);
+    } else if (o instanceof LocalTime) {
+      currentBuilder = new TimeOfDayBuilder(initialCapacity);
+    } else if (o instanceof ZonedDateTime) {
+      currentBuilder = new DateTimeBuilder(initialCapacity);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity);
     } else {
@@ -149,21 +99,29 @@ public class InferredBuilder extends Builder {
     currentBuilder.appendNulls(currentSize);
   }
 
+  private record RetypeInfo(Class<?> clazz, int type) {}
+
+  private static final List<RetypeInfo> retypePairs =
+      List.of(
+          new RetypeInfo(Boolean.class, Storage.Type.BOOL),
+          new RetypeInfo(Long.class, Storage.Type.LONG),
+          new RetypeInfo(Double.class, Storage.Type.DOUBLE),
+          new RetypeInfo(BigDecimal.class, Storage.Type.DOUBLE),
+          new RetypeInfo(LocalDate.class, Storage.Type.DATE),
+          new RetypeInfo(LocalTime.class, Storage.Type.TIME_OF_DAY),
+          new RetypeInfo(ZonedDateTime.class, Storage.Type.DATE_TIME),
+          new RetypeInfo(String.class, Storage.Type.STRING));
+
   private void retypeAndAppend(Object o) {
-    if ((o instanceof Double || o instanceof BigDecimal)
-        && currentBuilder.canRetypeTo(Storage.Type.DOUBLE)) {
-      currentBuilder = currentBuilder.retypeTo(Storage.Type.DOUBLE);
-    } else if (o instanceof String && currentBuilder.canRetypeTo(Storage.Type.STRING)) {
-      currentBuilder = currentBuilder.retypeTo(Storage.Type.STRING);
-    } else if (o instanceof Long && currentBuilder.canRetypeTo(Storage.Type.LONG)) {
-      currentBuilder = currentBuilder.retypeTo(Storage.Type.LONG);
-    } else if (o instanceof Boolean && currentBuilder.canRetypeTo(Storage.Type.BOOL)) {
-      currentBuilder = currentBuilder.retypeTo(Storage.Type.BOOL);
-    } else if (currentBuilder.canRetypeTo(Storage.Type.OBJECT)) {
-      currentBuilder = currentBuilder.retypeTo(Storage.Type.OBJECT);
-    } else {
-      retypeToObject();
+    for (RetypeInfo info : retypePairs) {
+      if (info.clazz.isInstance(o) && currentBuilder.canRetypeTo(info.type)) {
+        currentBuilder = currentBuilder.retypeTo(info.type);
+        currentBuilder.append(o);
+        return;
+      }
     }
+
+    retypeToObject();
     currentBuilder.append(o);
   }
 
@@ -177,11 +135,6 @@ public class InferredBuilder extends Builder {
   @Override
   public int getCurrentSize() {
     return currentSize;
-  }
-
-  @Override
-  public int getCurrentCapacity() {
-    return 0;
   }
 
   @Override

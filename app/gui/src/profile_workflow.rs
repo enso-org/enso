@@ -4,7 +4,6 @@ use crate::integration_test::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_debug_api as debug_api;
-use enso_web as web;
 
 
 
@@ -13,11 +12,9 @@ use enso_web as web;
 // ===================
 
 /// Startup function for running and profiling a test workflow.
-#[wasm_bindgen]
+#[entry_point(profile)]
 #[allow(dead_code)] // Used from JavaScript.
-pub async fn entry_point_profile() {
-    web::forward_panic_hook_to_console();
-
+pub async fn main() {
     // Run selected workflow.
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";

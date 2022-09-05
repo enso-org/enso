@@ -26,7 +26,7 @@ import Standard.Database.Data.Sql
      is escaped by doubling each occurrence.
 make_concat make_raw_concat_expr make_contains_expr has_quote args =
     expected_args = if has_quote then 5 else 4
-    if args.length != expected_args then Error.throw (Illegal_State_Error "Unexpected number of arguments for the concat operation.") else
+    if args.length != expected_args then Error.throw (Illegal_State_Error_Data "Unexpected number of arguments for the concat operation.") else
         expr = args.at 0
         separator = args.at 1
         prefix = args.at 2

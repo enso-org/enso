@@ -3,67 +3,62 @@ from Standard.Base import all
 ## UNSTABLE
    ADVANCED
 
-   A meta-representation of a runtime value.
+   An Atom meta-representation.
 
-   ! Warning
-     The functionality contained in this module exposes certain implementation
-     details of the language. As such, the API has no stability guarantees and
-     is subject to change as the Enso interpreter evolves.
-type Meta
+   Arguments:
+   - value: The value of the atom in the meta representation.
+type Atom
+    Atom_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An Atom meta-representation.
+   A constructor meta-representation.
 
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    type Atom value
+   Arguments:
+   - value: The value of the constructor in the meta representation.
+type Constructor
+    Constructor_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       A constructor meta-representation.
+   A primitive value meta-prepresentation.
 
-       Arguments:
-       - value: The value of the constructor in the meta representation.
-    type Constructor value
+   Arguments:
+   - value: The value of the primitive object in the meta representation.
+type Primitive
+    Primitive_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       A primitive value meta-prepresentation.
+   An unresolved symbol meta-representation.
 
-       Arguments:
-       - value: The value of the primitive object in the meta representation.
-    type Primitive value
+   Arguments:
+   - value: The value of the unresolved symbol in the meta representation.
+type Unresolved_Symbol
+    Unresolved_Symbol_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An unresolved symbol meta-representation.
+   An error meta-representation, containing the payload of a dataflow error.
 
-       Arguments:
-       - value: The value of the unresolved symbol in the meta representation.
-    type Unresolved_Symbol value
+   Arguments:
+   - value: The payload of the error.
+type Error
+    Error_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An error meta-representation, containing the payload of a dataflow error.
+   A polyglot value meta-representation.
 
-       Arguments:
-       - value: The payload of the error.
-    type Error value
-
-    ## UNSTABLE
-       ADVANCED
-
-       A polyglot value meta-representation.
-
-       Arguments:
-       - value: The polyglot value contained in the meta representation.
-    type Polyglot value
+   Arguments:
+   - value: The polyglot value contained in the meta representation.
+type Polyglot
+    Polyglot_Data value
 
 
 ## Atom methods
@@ -90,7 +85,7 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields self = Vector.Vector (get_atom_fields self.value)
+Atom.fields self = Vector.Vector_Data (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
@@ -208,7 +203,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
-Constructor.fields self = Vector.Vector (get_constructor_fields self.value)
+Constructor.fields self = Vector.Vector_Data (get_constructor_fields self.value)
 
 ## UNSTABLE
    ADVANCED
@@ -237,12 +232,12 @@ Constructor.new self fields = new_atom self.value fields.to_array
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Meta
-meta value = if is_atom value then Atom value else
-    if is_atom_constructor value then Constructor value else
-        if is_polyglot value then Polyglot value else
-            if is_unresolved_symbol value then Unresolved_Symbol value else
-                if is_error value then Error value.catch else
-                    Primitive value
+meta value = if is_atom value then Atom_Data value else
+    if is_atom_constructor value then Constructor_Data value else
+        if is_polyglot value then Polyglot_Data value else
+            if is_unresolved_symbol value then Unresolved_Symbol_Data value else
+                if is_error value then Error_Data value.catch else
+                    Primitive_Data value
 
 ## UNSTABLE
    ADVANCED
@@ -304,30 +299,38 @@ Base.Error.is_an self typ = typ==Any || typ==Base.Error
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
 is_a : Any -> Any -> Boolean
-is_a value typ = if typ == Any then True else
-    if is_error value then typ == Base.Error else
-        case value of
-            Array -> typ == Array
-            Boolean -> if typ == Boolean then True else value == typ
-            Text -> typ == Text
-            Number -> if typ == Number then True else case value of
-                Integer -> typ == Integer
-                Decimal -> typ == Decimal
-            Base.Polyglot -> typ == Base.Polyglot
-            _ ->
-                meta_val = meta value
-                case meta_val of
-                    Atom _ -> if is_atom typ then typ == value else
-                        meta_val.constructor == typ
-                    Constructor _ ->
-                        meta_typ = meta typ
-                        case meta_typ of
-                            Atom _ -> meta_val == meta_typ.constructor
-                            Constructor _ -> meta_val == meta_typ
-                            _ -> False
-                    Error _ -> typ == Error
-                    Unresolved_Symbol _ -> typ == Unresolved_Symbol
-                    _ -> False
+is_a value typ = if is_same_object value typ then True else
+    if typ == Any then True else
+        if is_error value then typ == Base.Error else
+            case value of
+                Array -> typ == Array
+                Boolean -> if typ == Boolean then True else value == typ
+                Text -> typ == Text
+                Number -> if typ == Number then True else case value of
+                    Integer -> typ == Integer
+                    Decimal -> typ == Decimal
+                Base.Polyglot ->
+                    typ==Base.Polyglot || java_instance_check value typ
+                _ ->
+                    meta_val = meta value
+                    case meta_val of
+                        Atom_Data _ -> if is_atom typ then typ == value else
+                            meta_val.constructor == typ
+                        Constructor_Data _ ->
+                            meta_typ = meta typ
+                            case meta_typ of
+                                Atom_Data _ -> meta_val == meta_typ.constructor
+                                Constructor_Data _ -> meta_val == meta_typ
+                                _ -> False
+                        Error_Data _ -> typ == Error
+                        Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
+                        _ -> False
+
+## PRIVATE
+java_instance_check value typ =
+    val_java = get_polyglot_language value == "java"
+    typ_java = get_polyglot_language typ == "java"
+    val_java && typ_java && Base.Java.is_instance value typ
 
 ## UNSTABLE
    ADVANCED
@@ -347,13 +350,13 @@ type Language
        ADVANCED
 
        The Java laguage.
-    type Java
+    Java
 
     ## UNSTABLE
        ADVANCED
 
        An unknown language.
-    type Unknown
+    Unknown
 
 ## PRIVATE
 

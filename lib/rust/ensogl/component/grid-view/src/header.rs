@@ -6,6 +6,7 @@ use crate::entry;
 use crate::entry::visible::VisibleEntry;
 use crate::visible_area;
 use crate::Col;
+use crate::ColumnWidths;
 use crate::Entry;
 use crate::Properties;
 use crate::Row;
@@ -23,38 +24,50 @@ use ensogl_scroll_area::Viewport;
 // === FRP ===
 // ===========
 
-/// A structure with layers where the headers are displayed.
+/// A structure with layers where the headers are displayed. Designed to be used in FRP networks.
 ///
-/// The references are weak so the structure may be safely propagated through FRP networks.
+/// To avoid unpredictable layer lifetime, all the references are weak.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WeakLayers {
-    pub header: WeakLayer,
+    pub header: Option<WeakLayer>,
     pub text:   Option<WeakLayer>,
 }
 
 impl WeakLayers {
     /// Constructor.
     pub fn new(header: &Layer, text: Option<&Layer>) -> Self {
-        Self { header: header.downgrade(), text: text.map(|l| l.downgrade()) }
+        Self { header: Some(header.downgrade()), text: text.map(|l| l.downgrade()) }
     }
 
-    fn upgrade_header(this: &Option<Self>) -> Option<Layer> {
-        this.as_ref()?.header.upgrade()
+    /// Upgrade the main layer for headers.
+    pub fn upgrade_header(&self) -> Option<Layer> {
+        self.header.as_ref()?.upgrade()
     }
 
-    fn upgrade_text(this: &Option<Self>) -> Option<Layer> {
-        this.as_ref()?.text.as_ref()?.upgrade()
+    /// Upgrade the text layer for headers.
+    pub fn upgrade_text(&self) -> Option<Layer> {
+        self.text.as_ref()?.upgrade()
     }
 }
 
 ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
     Input {
-        set_layers(Option<WeakLayers>),
+        set_layers(WeakLayers),
+        /// The information about section, should be provided when the [`section_info_needed`]
+        /// output is emitted.
+        ///
+        /// The first row in the range is considered a header of the section. The model is an
+        /// [`Entry::Model`] for the header instance (displayed in case when the section is scrolled
+        /// down).
         section_info(Range<Row>, Col, HeaderModel),
         reset_sections(),
     }
     Output {
+        /// Emitted when the information of the section where given location belongs is needed.
+        ///
+        /// As a response, the `section_info` input should be called for given column, until then
+        /// the header won't be displayed.
         section_info_needed(Row, Col),
         header_shown(Row, Col),
         header_position_changed(Row, Col, Vector2),
@@ -69,6 +82,9 @@ ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
 // =============
 
 /// A pushed-down header visible on the top of the viewport.
+///
+/// We push down headers of scrolled-down sections to have them always visible. See the
+/// [main component documentation](GridView).
 #[derive(Clone, Debug)]
 pub struct VisibleHeader<HeaderEntry> {
     section_rows: Range<Row>,
@@ -76,13 +92,19 @@ pub struct VisibleHeader<HeaderEntry> {
 }
 
 impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
-    fn header_position(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> Vector2 {
+    fn header_position(
+        &self,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+        column_widths: &ColumnWidths,
+    ) -> Vector2 {
         let contour = self.entry.entry.frp().contour.value();
         let max_y = entry::visible::position_y(self.section_rows.start, entry_size);
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
         let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0;
         let y = (viewport.top - contour.size.y / 2.0).min(max_y).max(min_y);
-        Vector2(entry::visible::position_x(col, entry_size), y)
+        Vector2(entry::visible::position_x(col, entry_size, column_widths), y)
     }
 }
 
@@ -90,16 +112,25 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
 #[derive(Clone, Debug)]
 pub struct Model<InnerGrid, HeaderEntry, HeaderParams> {
     grid:               InnerGrid,
+    /// The cloned-ref instance of ColumnWidths structure from `grid`.
+    column_widths:      ColumnWidths,
     visible_headers:    RefCell<HashMap<Col, VisibleHeader<HeaderEntry>>>,
     free_headers:       RefCell<Vec<VisibleEntry<HeaderEntry>>>,
     entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>,
 }
 
 impl<InnerGrid, HeaderEntry, HeaderParams> Model<InnerGrid, HeaderEntry, HeaderParams> {
-    fn new(grid: InnerGrid, entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>) -> Self {
+    fn new<E: Entry>(
+        grid: InnerGrid,
+        entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>,
+    ) -> Self
+    where
+        InnerGrid: AsRef<crate::GridView<E>>,
+    {
         let visible_headers = default();
         let free_headers = default();
-        Self { grid, visible_headers, free_headers, entry_creation_ctx }
+        let column_widths = grid.as_ref().model().column_widths.clone_ref();
+        Self { grid, column_widths, visible_headers, free_headers, entry_creation_ctx }
     }
 }
 
@@ -108,9 +139,10 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 {
     fn hide_no_longer_visible_headers(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
-        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count);
+        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count, widths);
         let highest_visible_row =
             visible_area::visible_rows(viewport, entries_size, row_count).start;
         let freed = visible_headers.drain_filter(|col, header| {
@@ -127,8 +159,9 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 
     fn needed_info_for_uncovered_sections(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let visible_headers = self.visible_headers.borrow();
-        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count);
+        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count, widths);
         let highest_visible_row =
             visible_area::visible_rows(viewport, entries_size, row_count).start;
         let uncovered = cols_range.filter_map(|col| {
@@ -139,6 +172,7 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
         let highest_visible_row =
@@ -148,7 +182,8 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
             header.entry
         });
         free_headers.extend(detached);
-        let visible_columns = visible_area::visible_columns(viewport, entries_size, col_count);
+        let visible_columns =
+            visible_area::visible_columns(viewport, entries_size, col_count, widths);
         visible_columns.map(|col| (highest_visible_row, col)).collect()
     }
 
@@ -168,34 +203,45 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         viewport: Viewport,
     ) -> Option<Vector2> {
         let visible_headers = self.visible_headers.borrow();
+        let widths = &self.column_widths;
         let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
-        header.map(|h| h.header_position(col, entry_size, viewport))
+        header.map(|h| h.header_position(col, entry_size, viewport, widths))
     }
 
+    /// The y position of line between the header displayed on the top of the viewport and the rest
+    /// of entries. If no header is displayed in given column, the top of the viewport is returned.
     fn header_separator(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> f32 {
         let visible_headers = self.visible_headers.borrow();
+        let widths = &self.column_widths;
         let header = visible_headers.get(&col);
-        header
-            .map(|h| {
-                h.header_position(col, entry_size, viewport).y
-                    - h.entry.entry.frp().contour.value().size.y / 2.0
-            })
-            .unwrap_or(viewport.top)
+        let separator_if_header_visible = header.map(|h| {
+            h.header_position(col, entry_size, viewport, widths).y
+                - h.entry.entry.frp().contour.value().size.y / 2.0
+        });
+        separator_if_header_visible.unwrap_or(viewport.top)
     }
 
     fn update_headers_positions(&self, properties: Properties) -> Vec<(Row, Col, Vector2)> {
         let Properties { viewport, entries_size, .. } = properties;
         let visible_headers = self.visible_headers.borrow();
-        visible_headers
-            .iter()
-            .filter_map(|(col, header)| {
-                let new_position = header.header_position(*col, entries_size, viewport);
-                (header.entry.position().xy() != new_position).as_some_from(|| {
-                    header.entry.set_position_xy(new_position);
-                    (header.section_rows.start, *col, new_position)
-                })
+        let widths = &self.column_widths;
+        let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
+            let new_position = header.header_position(*col, entries_size, viewport, widths);
+            (header.entry.position().xy() != new_position).as_some_from(|| {
+                header.entry.set_position_xy(new_position);
+                (header.section_rows.start, *col, new_position)
             })
-            .collect()
+        });
+        updated_positions.collect()
+    }
+
+    fn update_header_size(&self, col: Col, properties: Properties) {
+        let entries_size = properties.entries_size;
+        let width_diff = self.column_widths.width_diff(col);
+        let header = self.visible_headers.borrow().get(&col).map(|h| h.entry.clone_ref());
+        if let Some(header) = header {
+            header.entry.frp().set_size(entries_size + Vector2(width_diff, 0.0))
+        }
     }
 
     fn update_section(
@@ -205,7 +251,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         model: HeaderEntry::Model,
         entry_size: Vector2,
         viewport: Viewport,
-        layers: &Option<WeakLayers>,
+        layers: &WeakLayers,
     ) -> (Row, Col, Vector2)
     where
         InnerGrid: display::Object,
@@ -213,10 +259,11 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         use std::collections::hash_map::Entry::*;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
+        let widths = &self.column_widths;
         let create_new_entry = || {
-            let text_layer = WeakLayers::upgrade_text(layers);
+            let text_layer = layers.upgrade_text();
             let entry = self.entry_creation_ctx.create_entry(text_layer.as_ref());
-            if let Some(layer) = WeakLayers::upgrade_header(layers) {
+            if let Some(layer) = layers.upgrade_header() {
                 layer.add_exclusive(&entry);
             }
             entry
@@ -237,7 +284,9 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
-        let position = entry.header_position(col, entry_size, viewport);
+        let width_offset = self.column_widths.width_diff(col);
+        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
+        let position = entry.header_position(col, entry_size, viewport, widths);
         entry.entry.set_position_xy(position);
         (entry.section_rows.start, col, position)
     }
@@ -372,16 +421,15 @@ where
         let input = &frp.private.input;
         let out = &frp.private.output;
         frp::extend! { network
-            headers_hidden_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties,
-                f!((_, props) model.hide_no_longer_visible_headers(*props))
-            );
-            headers_hidden_after_entry_size_change <= grid_frp.entries_size.map2(
+            viewport_changed <- grid_frp.viewport.constant(());
+            entries_size_changed <- grid_frp.entries_size.constant(());
+            column_resized <- grid_frp.column_resized.constant(());
+            headers_may_be_hidden <- any(viewport_changed, entries_size_changed, column_resized);
+            header_hidden <= headers_may_be_hidden.map2(
                 &grid_frp.properties,
-                f!((_, props) model.hide_no_longer_visible_headers(*props))
+                f!(((), props) model.hide_no_longer_visible_headers(*props))
             );
-            out.header_hidden <+ headers_hidden_after_viewport_change;
-            out.header_hidden <+ headers_hidden_after_entry_size_change;
+            out.header_hidden <+ header_hidden;
 
             request_sections_after_viewport_change <= grid_frp.viewport.map2(
                 &grid_frp.properties,
@@ -403,15 +451,21 @@ where
                 &grid_frp.properties,
                 f!((_, props) model.drop_all_entries(*props))
             );
+            request_sections_after_column_resize <= grid_frp.column_resized.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
             out.section_info_needed <+ request_sections_after_viewport_change;
             out.section_info_needed <+ request_sections_after_entry_size_change;
             out.section_info_needed <+ request_sections_after_reset;
             out.section_info_needed <+ request_sections_after_sections_reset;
             out.section_info_needed <+ request_sections_after_layer_change;
+            out.section_info_needed <+ request_sections_after_column_resize;
 
-            position_update <= grid_frp.viewport.map2(
+            pos_should_be_updated <- any(viewport_changed, entries_size_changed, column_resized);
+            position_update <= pos_should_be_updated.map2(
                 &grid_frp.properties,
-                f!((_, props) model.update_headers_positions(*props))
+                f!(((), props) model.update_headers_positions(*props))
             );
             out.header_position_changed <+ position_update;
             section_update <- input.section_info.map3(
@@ -422,6 +476,9 @@ where
             );
             out.header_shown <+ section_update.map(|&(row, col, _)| (row, col));
             out.header_position_changed <+ section_update;
+
+            column_resize_params <- all(&grid_frp.column_resized, &grid_frp.properties);
+            eval column_resize_params ((&((col, _), props)) model.update_header_size(col, props));
         }
         let entry_type = PhantomData;
         Self { frp, model, entry_type }
@@ -486,6 +543,15 @@ where
 {
     fn as_ref(&self) -> &crate::GridView<E> {
         self.model.grid.as_ref()
+    }
+}
+
+impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> AsRef<Self>
+    for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
+where HeaderModel: frp::node::Data
+{
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 
@@ -681,3 +747,4 @@ mod tests {
         check_headers_sections(&grid, [(1..4, 0), (2..4, 1)]);
     }
 }
+

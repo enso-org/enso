@@ -15,15 +15,16 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
@@ -193,104 +194,12 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isNull() {
-    return this.getConstructor() == Context.get(null).getBuiltins().nothing();
-  }
-
-  @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, getContext().getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "self.constructor == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Atom self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("self.constructor") AtomConstructor cachedConstructor,
-        @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(Atom self, UnresolvedSymbol symbol)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(self.constructor, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
-  }
-
-  @ExportMessage
-  boolean canConvertFrom() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedConversion == conversion",
-          "cachedTarget == target",
-          "self.constructor == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Atom self,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("self.constructor") AtomConstructor cachedConstructor,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(Atom self, AtomConstructor target, UnresolvedConversion conversion)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(self.constructor, target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  Type getType() {
+    return getConstructor().getType();
   }
 }

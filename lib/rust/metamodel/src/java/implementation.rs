@@ -162,7 +162,11 @@ fn implement_method(graph: &TypeGraph, method: &Dynamic, class: &Class) -> synta
         Dynamic::HashCode => implement_hash_code(graph, class),
         Dynamic::Equals => implement_equals(graph, class),
         Dynamic::ToString => implement_to_string(graph, class),
-        Dynamic::Getter(field) => implement_getter(graph, class, *field),
+        Dynamic::Getter(id) => {
+            let field = class.fields.iter().find(|field| field.id() == *id).unwrap();
+            getter(graph, field, &field.name)
+        }
+        Dynamic::GetterNamed(field, name) => implement_getter(graph, class, *field, name),
     }
 }
 
@@ -290,23 +294,17 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
 
 /// Produce a representation of Java syntax implementing a method returning the value of a field
 /// (identified by [`FieldId`]) of the specified [`Class`].
-fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Method {
+fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId, name: &str) -> syntax::Method {
     let field = class.fields.iter().find(|field| field.id() == id).unwrap();
-    getter(graph, field)
+    getter(graph, field, name)
 }
 
 /// Produce a representation of Java syntax implementing a method returning the value of the
 /// specified [`Field`]. The method must be attached to the same [`syntax::Class`] in which the
 /// [`Field`] is defined.
-fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
-    let getter_name = |field| {
-        let field = crate::meta::Identifier::from_camel_case(field);
-        let mut name = crate::meta::Identifier::from_camel_case("get");
-        name.append(field);
-        name.to_camel_case()
-    };
+fn getter(graph: &TypeGraph, field: &Field, name: &str) -> syntax::Method {
     let type_ = quote_type(graph, &field.data);
-    let mut method = syntax::Method::new(getter_name(&field.name), type_);
+    let mut method = syntax::Method::new(name, type_);
     method.body = format!("return {};", &field.name);
     method
 }

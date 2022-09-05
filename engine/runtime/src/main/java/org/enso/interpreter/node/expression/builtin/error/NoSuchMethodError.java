@@ -2,6 +2,14 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
-@BuiltinType(params = {"target", "symbol"})
-public class NoSuchMethodError extends Builtin {}
+import java.util.List;
+
+@BuiltinType
+public class NoSuchMethodError extends UniquelyConstructibleBuiltin {
+  @Override
+  protected List<String> getConstructorParamNames() {
+    return List.of("target", "symbol");
+  }
+}

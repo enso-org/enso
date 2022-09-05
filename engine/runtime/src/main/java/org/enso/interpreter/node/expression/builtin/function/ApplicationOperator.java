@@ -28,7 +28,7 @@ public class ApplicationOperator extends Node {
   }
 
   Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Function self, @Suspend Object argument) {
+      VirtualFrame frame, @MonadicState Object state, Object self, @Suspend Object argument) {
     return invokeCallableNode.execute(self, frame, state, new Object[] {argument});
   }
 }

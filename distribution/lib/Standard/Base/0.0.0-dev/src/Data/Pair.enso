@@ -10,7 +10,7 @@ type Pair
        Arguments:
        - first: The first element.
        - second: The second element.
-    type Pair first second
+    Pair_Data first second
 
     ## UNSTABLE
 
@@ -22,4 +22,4 @@ type Pair
          (Pair 1 2).map (+1) == (Pair 2 3)
     map : (Any -> Any) -> Pair
     map self fun =
-        Pair (fun self.first) (fun self.second)
+        Pair_Data (fun self.first) (fun self.second)
