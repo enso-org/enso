@@ -62,7 +62,8 @@ public class First extends Aggregator {
       }
 
       OrderedMultiValueKey newKey =
-          new OrderedMultiValueKey(this.orderByColumns, row, this.orderByDirections, objectComparator);
+          new OrderedMultiValueKey(
+              this.orderByColumns, row, this.orderByDirections, objectComparator);
       if (key == null || key.compareTo(newKey) > 0) {
         key = newKey;
         current = storage.getItemBoxed(row);

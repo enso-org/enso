@@ -10,4 +10,3 @@ public class UnicodeNormalizedFold implements TextFoldingStrategy {
 
   public static final UnicodeNormalizedFold INSTANCE = new UnicodeNormalizedFold();
 }
-

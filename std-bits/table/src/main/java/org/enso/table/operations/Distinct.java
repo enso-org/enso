@@ -11,7 +11,11 @@ import org.enso.table.text.TextFoldingStrategy;
 import java.util.*;
 
 public class Distinct {
-  public static BitSet buildDistinctRowsMask(int tableSize, Column[] keyColumns, TextFoldingStrategy textFoldingStrategy, AggregatedProblems problems) {
+  public static BitSet buildDistinctRowsMask(
+      int tableSize,
+      Column[] keyColumns,
+      TextFoldingStrategy textFoldingStrategy,
+      AggregatedProblems problems) {
     var mask = new BitSet();
     if (keyColumns.length != 0) {
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
