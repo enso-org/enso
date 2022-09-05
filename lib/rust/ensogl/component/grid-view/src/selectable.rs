@@ -124,27 +124,17 @@ where
                 use Direction::*;
                 if let Some(((row, col), dir)) = pos.zip(*dir) {
                     let (rows, cols) = grid_frp.grid_size.value();
-                    match dir {
-                        Up => if row == 0 {
-                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Up));
-                        } else {
-                            grid_frp.select_entry(Some((row - 1, col)));
-                        },
-                        Down => if row + 1 >= rows {
-                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Down));
-                        } else {
-                            grid_frp.select_entry(Some((row + 1, col)));
-                        },
-                        Left => if col == 0 {
-                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Left));
-                        } else {
-                            grid_frp.select_entry(Some((row, col - 1)));
-                        },
-                        Right => if col + 1 >= cols {
-                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Right));
-                        } else {
-                            grid_frp.select_entry(Some((row, col + 1)));
-                        }
+                    let new_pos = match dir {
+                        Up if row > 0 => Some((row - 1, col)),
+                        Down if row + 1 < rows => Some((row + 1, col)),
+                        Left if col > 0 => Some((row, col - 1)),
+                        Right if col + 1 < cols => Some((row, col + 1)),
+                        _ => None,
+                    };
+                    if let Some(pos) = new_pos {
+                        grid_frp.select_entry(pos);
+                    } else {
+                        internal.output.selection_movement_confined_to_grid.emit(Some(dir));
                     }
                 }
             }));
