@@ -18,58 +18,26 @@ pub mod traits {
     pub use super::chars::Into as TRAIT_chars_into;
     pub use super::column::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
-    // pub use super::ubytes::Into as TRAIT_ubytes_into;
+    pub use super::ubytes::Into as TRAIT_ubytes_into;
 }
 pub use traits::*;
 
 
 
-// // =============
-// // === Bytes ===
-// // =============
-//
-// unit! {
-// /// An offset in the buffer in bytes.
-// Bytes::bytes(i32)
-// }
-//
-// impl Bytes {
-//     /// Saturating conversion to `usize`.
-//     pub fn as_usize(self) -> usize {
-//         self.value.max(0) as usize
-//     }
-// }
-//
-// impl<T: Into<Bytes>> bytes::Into for Range<T> {
-//     type Output = Range<Bytes>;
-//     fn bytes(self) -> Self::Output {
-//         let start = self.start.into();
-//         let end = self.end.into();
-//         Range { start, end }
-//     }
-// }
-//
-// impl From<usize> for Bytes {
-//     fn from(t: usize) -> Self {
-//         (t as i32).into()
-//     }
-// }
-//
-// impl From<&usize> for Bytes {
-//     fn from(t: &usize) -> Self {
-//         (*t as i32).into()
-//     }
-// }
-
-
-
-// ==============
+// =============
 // === Bytes ===
-// ==============
+// =============
 
 unit! {
-/// Unsigned bytes unit.
-Bytes::bytes(usize)
+/// An offset in the buffer in bytes.
+Bytes::bytes(i32)
+}
+
+impl Bytes {
+    /// Saturating conversion to `usize`.
+    pub fn as_usize(self) -> usize {
+        self.value.max(0) as usize
+    }
 }
 
 impl<T: Into<Bytes>> bytes::Into for Range<T> {
@@ -78,6 +46,87 @@ impl<T: Into<Bytes>> bytes::Into for Range<T> {
         let start = self.start.into();
         let end = self.end.into();
         Range { start, end }
+    }
+}
+
+impl From<usize> for Bytes {
+    fn from(t: usize) -> Self {
+        (t as i32).into()
+    }
+}
+
+impl From<&usize> for Bytes {
+    fn from(t: &usize) -> Self {
+        (*t as i32).into()
+    }
+}
+
+
+
+// ==============
+// === UBytes ===
+// ==============
+
+unit! {
+/// Unsigned bytes unit.
+UBytes::ubytes(usize) NO_SUB
+}
+
+impl<T: Into<UBytes>> ubytes::Into for Range<T> {
+    type Output = Range<UBytes>;
+    fn ubytes(self) -> Self::Output {
+        let start = self.start.into();
+        let end = self.end.into();
+        Range { start, end }
+    }
+}
+
+impl Sub<UBytes> for UBytes {
+    type Output = Bytes;
+    fn sub(self, rhs: UBytes) -> Self::Output {
+        (self.value as i32 - rhs.value as i32).into()
+    }
+}
+
+impl Sub<Bytes> for UBytes {
+    type Output = Bytes;
+    fn sub(self, rhs: Bytes) -> Self::Output {
+        (self.value as i32 - rhs.value).into()
+    }
+}
+
+impl Sub<UBytes> for Bytes {
+    type Output = Bytes;
+    fn sub(self, rhs: UBytes) -> Self::Output {
+        (self.value - rhs.value as i32).into()
+    }
+}
+
+impl Add<Bytes> for UBytes {
+    type Output = Bytes;
+    fn add(self, rhs: Bytes) -> Self::Output {
+        (self.value as i32 + rhs.value).into()
+    }
+}
+
+impl Add<UBytes> for Bytes {
+    type Output = Bytes;
+    fn add(self, rhs: UBytes) -> Self::Output {
+        (self.value + rhs.value as i32).into()
+    }
+}
+
+pub struct BytesToUBytesConversionError;
+
+impl TryFrom<Bytes> for UBytes {
+    type Error = BytesToUBytesConversionError;
+
+    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
+        if bytes.value < 0 {
+            Err(BytesToUBytesConversionError)
+        } else {
+            Ok(UBytes::from(bytes.value as usize))
+        }
     }
 }
 

@@ -774,32 +774,32 @@ impl From<Duration> for std::time::Duration {
 
 
 // =============
-// === Bytes ===
+// === UBytes ===
 // =============
 
 define! {
     /// Number of bytes.
-    Bytes: usize = 0
+    UBytes: usize = 0
 }
 define_ops![
-    Bytes [+,-] Bytes = Bytes,
-    Bytes * usize = Bytes,
-    usize * Bytes = Bytes,
+    UBytes [+,-] UBytes = UBytes,
+    UBytes * usize = UBytes,
+    usize * UBytes = UBytes,
 ];
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Bytes(size: usize) -> Bytes {
-    Bytes::from(size)
+pub fn UBytes(size: usize) -> UBytes {
+    UBytes::from(size)
 }
 
-impl From<usize> for Bytes {
+impl From<usize> for UBytes {
     fn from(t: usize) -> Self {
-        Bytes::unchecked_from(t)
+        UBytes::unchecked_from(t)
     }
 }
 
-/// Additional methods for [`Bytes`].
+/// Additional methods for [`UBytes`].
 pub trait BytesOps {
     /// Check whether this bytes value is zero.
     fn is_zero(&self) -> bool;
@@ -811,21 +811,21 @@ pub trait BytesOps {
     fn is_negative(&self) -> bool;
 }
 
-impl BytesOps for Bytes {
+impl BytesOps for UBytes {
     fn is_zero(&self) -> bool {
-        *self == Bytes::from(0)
+        *self == UBytes::from(0)
     }
 
     fn is_positive(&self) -> bool {
-        *self > Bytes::from(0)
+        *self > UBytes::from(0)
     }
 
     fn is_negative(&self) -> bool {
-        *self < Bytes::from(0)
+        *self < UBytes::from(0)
     }
 }
 
-/// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
+/// Methods of the [`UBytes`] unit as extensions for the [`str`] type.
 #[allow(missing_docs)]
 pub trait BytesStrOps<Range> {
     /// Slice the provided string.
@@ -836,28 +836,28 @@ pub trait BytesStrOps<Range> {
     fn slice(&self, range: Range) -> &str;
 }
 
-impl BytesStrOps<ops::Range<Bytes>> for str {
+impl BytesStrOps<ops::Range<UBytes>> for str {
     #[inline(always)]
-    fn slice(&self, range: ops::Range<Bytes>) -> &str {
+    fn slice(&self, range: ops::Range<UBytes>) -> &str {
         &self[range.into_unchecked_raw_range()]
     }
 }
 
-impl BytesStrOps<ops::RangeFrom<Bytes>> for str {
+impl BytesStrOps<ops::RangeFrom<UBytes>> for str {
     #[inline(always)]
-    fn slice(&self, range: ops::RangeFrom<Bytes>) -> &str {
+    fn slice(&self, range: ops::RangeFrom<UBytes>) -> &str {
         &self[range.into_unchecked_raw_range()]
     }
 }
 
-/// Methods of the [`Bytes`] unit as extensions for the [`Cow`] type.
+/// Methods of the [`UBytes`] unit as extensions for the [`Cow`] type.
 #[allow(missing_docs)]
 pub trait BytesCowOps<'t, Range> {
     fn slice(&self, range: Range) -> Cow<'t, str>;
 }
 
-impl<'t> BytesCowOps<'t, ops::Range<Bytes>> for Cow<'t, str> {
-    fn slice(&self, range: ops::Range<Bytes>) -> Cow<'t, str> {
+impl<'t> BytesCowOps<'t, ops::Range<UBytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::Range<UBytes>) -> Cow<'t, str> {
         match self {
             Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
             Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
@@ -865,8 +865,8 @@ impl<'t> BytesCowOps<'t, ops::Range<Bytes>> for Cow<'t, str> {
     }
 }
 
-impl<'t> BytesCowOps<'t, ops::RangeFrom<Bytes>> for Cow<'t, str> {
-    fn slice(&self, range: ops::RangeFrom<Bytes>) -> Cow<'t, str> {
+impl<'t> BytesCowOps<'t, ops::RangeFrom<UBytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::RangeFrom<UBytes>) -> Cow<'t, str> {
         match self {
             Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
             Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),

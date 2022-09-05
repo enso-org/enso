@@ -272,12 +272,12 @@ ensogl_core::define_endpoints! {
         add_cursor            (Location),
         paste_string          (String),
         insert                (String),
-        set_color_bytes       (buffer::Range<Bytes>, color::Rgba),
+        set_color_bytes       (buffer::Range<UBytes>, color::Rgba),
         /// Explicitly set the color of all text.
         set_color_all         (color::Rgba),
-        set_sdf_weight        (buffer::Range<Bytes>, style::SdfWeight),
-        set_format_option     (buffer::Range<Bytes>, Option<style::FormatOption>),
-        set_format            (buffer::Range<Bytes>, style::Format),
+        set_sdf_weight        (buffer::Range<UBytes>, style::SdfWeight),
+        set_format_option     (buffer::Range<UBytes>, Option<style::FormatOption>),
+        set_format            (buffer::Range<UBytes>, style::Format),
         /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
@@ -532,7 +532,7 @@ impl Area {
                 m.redraw(true);
             });
             eval input.set_color_all         ([input](color) {
-                let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(usize::max_value()));
+                let all_bytes = buffer::Range::from(UBytes::from(0)..UBytes(usize::max_value()));
                 input.set_color_bytes.emit((all_bytes,*color));
             });
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
@@ -837,7 +837,7 @@ impl AreaModel {
         font: &'a font::Font,
         line_style: &'a style::FormatSpan,
         content: &'a str,
-    ) -> impl Iterator<Item = (Range<Bytes>, font::NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
             match font {
                 font::Font::NonVariable(_) =>
@@ -845,7 +845,7 @@ impl AreaModel {
                         yield a;
                     }
                 font::Font::Variable(_) => {
-                    let range = Bytes(0)..Bytes(content.len());
+                    let range = UBytes(0)..UBytes(content.len());
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = font::NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);
@@ -905,13 +905,13 @@ impl AreaModel {
                 buffer.push_str(&content[range.start.value..range.end.value]);
                 let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
                 let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
-                let mut prev_cluster_byte_off = Bytes(0);
+                let mut prev_cluster_byte_off = UBytes(0);
                 for (glyph_position, glyph_info) in shaped_iter {
-                    let cluster_byte_off = Bytes(glyph_info.cluster as usize);
+                    let cluster_byte_off = UBytes(glyph_info.cluster as usize);
                     let cluster_diff = cluster_byte_off.saturating_sub(prev_cluster_byte_off);
                     // Drop styles assigned to skipped bytes. One byte will be skipped
                     // during the call to `line_style_iter.next()`.
-                    line_style_iter.drop(cluster_diff.saturating_sub(Bytes(1)));
+                    line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
                     let style = line_style_iter.next().unwrap_or_default();
                     prev_cluster_byte_off = cluster_byte_off;
                     if column >= Column::from(line.glyphs.len()) {
@@ -1033,7 +1033,7 @@ impl AreaModel {
     ) -> String {
         // const ELLIPSIS: char = '\u{2026}';
         // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        // let mut truncation_point = 0.bytes();
+        // let mut truncation_point = 0.ubytes();
         // let truncate = line.char_indices().any(|(i, ch)| {
         //     let char_info = pen::CharInfo::new(ch, font_size.value);
         //     let pen_info = pen.advance(Some(char_info));
@@ -1042,9 +1042,9 @@ impl AreaModel {
         //         return true;
         //     }
         //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.value).size;
-        //     let char_length: Bytes = ch.len_utf8().into();
+        //     let char_length: UBytes = ch.len_utf8().into();
         //     if next_width + width_of_ellipsis <= max_width_px {
-        //         truncation_point = Bytes::from(i) + char_length;
+        //         truncation_point = UBytes::from(i) + char_length;
         //     }
         //     false
         // });

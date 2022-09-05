@@ -81,7 +81,7 @@ macro_rules! define_format {
 
         #[derive(Debug)]
         struct StyleIteratorComponents {
-            $($field : std::vec::IntoIter<RangedValue<Bytes ,$field_type>>),*
+            $($field : std::vec::IntoIter<RangedValue<UBytes ,$field_type>>),*
         }
 
 
@@ -89,7 +89,7 @@ macro_rules! define_format {
 
         #[derive(Debug,Default)]
         struct StyleIteratorValue {
-            $($field : Option<RangedValue<Bytes, $field_type>>),*
+            $($field : Option<RangedValue<UBytes, $field_type>>),*
         }
 
         impl Iterator for StyleIterator {
@@ -101,7 +101,7 @@ macro_rules! define_format {
                     }
                     let $field = self.value.$field?.value;
                 )*
-                self.offset += 1.bytes();
+                self.offset += 1.ubytes();
                 Some(StyleValueForByte {$($field),*})
             }
         }
@@ -124,7 +124,7 @@ macro_rules! define_format {
             }
 
             /// Return new style narrowed to the given range.
-            pub fn sub(&self, range:Range<Bytes>) -> Self {
+            pub fn sub(&self, range:Range<UBytes>) -> Self {
                 $(let $field = self.$field.sub(range);)*
                 Self {$($field),*}
             }
@@ -132,7 +132,7 @@ macro_rules! define_format {
             /// Replace the provided `range` with the `None` value (default), repeated over `len`
             /// bytes. Use with care, as it's very easy to provide incorrect byte size value, which
             /// may result in styles being applied to parts of grapheme clusters only.
-            pub fn set_resize_with_default(&mut self, range:Range<Bytes>, len:Bytes) {
+            pub fn set_resize_with_default(&mut self, range:Range<UBytes>, len:UBytes) {
                 $(self.$field.replace_resize(range,len,None);)*
             }
 
@@ -147,7 +147,8 @@ macro_rules! define_format {
             impl Setter<Option<$field_type>> for Buffer {
                 fn replace(&self, range:impl enso_text::RangeBounds, data:Option<$field_type>) {
                     let range = self.crop_byte_range(range);
-                    self.data.style.cell.borrow_mut().$field.replace_resize(range,range.size(),data)
+                    let range_size = UBytes::try_from(range.size()).unwrap_or_default();
+                    self.data.style.cell.borrow_mut().$field.replace_resize(range,range_size,data)
                 }
             }
 
@@ -178,7 +179,7 @@ impl ensogl_core::frp::IntoParam<Option<FormatOption>> for SdfWeight {
 /// Byte-based iterator for the `FormatSpan`.
 #[derive(Debug)]
 pub struct StyleIterator {
-    offset:    Bytes,
+    offset:    UBytes,
     value:     StyleIteratorValue,
     component: StyleIteratorComponents,
 }
@@ -191,7 +192,7 @@ impl StyleIterator {
     }
 
     /// Drop the given amount of bytes.
-    pub fn drop(&mut self, bytes: Bytes) {
+    pub fn drop(&mut self, bytes: UBytes) {
         for _ in 0..bytes.value {
             self.next();
         }
@@ -217,14 +218,14 @@ pub struct Property<T: Copy> {
 
 impl<T: Copy> Property<T> {
     /// Return new property narrowed to the given range.
-    pub fn sub(&self, range: Range<Bytes>) -> Self {
+    pub fn sub(&self, range: Range<UBytes>) -> Self {
         let spans = self.spans.sub(range);
         let default = self.default;
         Self { spans, default }
     }
 
     /// Convert the property to a vector of spans.
-    pub fn to_vector(&self) -> Vec<RangedValue<Bytes, T>> {
+    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
         spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
     }
@@ -290,7 +291,7 @@ define_format! {
 }
 
 impl FormatSpan {
-    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<Bytes, font::NonVariableFaceHeader>> {
+    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, font::NonVariableFaceHeader>> {
         let seq_width = self.width.to_vector();
         let seq_weight = self.weight.to_vector();
         let seq_style = self.style.to_vector();
@@ -305,31 +306,26 @@ impl FormatSpan {
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,
-    ) -> impl Iterator<Item = (std::ops::Range<Bytes>, font::NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (std::ops::Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         let seq_font_header = self.non_variable_font_spans();
-
         gen_iter!(move {
-            let mut start_byte = Bytes(0);
-            let mut end_byte = Bytes(0);
-
-
+            let mut start_byte = UBytes(0);
+            let mut end_byte = UBytes(0);
             let mut header_iter = seq_font_header.into_iter();
             let mut opt_header = header_iter.next();
             for chr in content.chars() {
-                end_byte += Bytes(chr.len_utf8());
+                end_byte += UBytes(chr.len_utf8());
                 if let Some(header) = opt_header {
-                    let next_byte = end_byte + Bytes(1);
-                    if next_byte == header.range.end {
-                        yield (start_byte..next_byte, header.value);
-                        start_byte = next_byte;
+                    if end_byte == header.range.end {
+                        yield (start_byte..end_byte, header.value);
+                        start_byte = end_byte;
                         opt_header = header_iter.next();
                     }
                 }
             }
             if start_byte != end_byte {
-                warn!("Misaligned bytes found when shaping text.");
-                let next_byte = end_byte + Bytes(1);
-                yield (start_byte..next_byte, default());
+                error!("Misaligned bytes found when shaping text. {:?} != {:?}", start_byte, end_byte);
+                yield (start_byte..end_byte, default());
             }
         })
     }
@@ -363,14 +359,14 @@ impl StyleCell {
     }
 
     /// Return style narrowed to the given range.
-    pub fn sub(&self, range: Range<Bytes>) -> FormatSpan {
+    pub fn sub(&self, range: Range<UBytes>) -> FormatSpan {
         self.cell.borrow().sub(range)
     }
 
     /// Replace the provided `range` with the `None` value (default), repeated over `len`
     /// bytes. Use with care, as it's very easy to provide incorrect byte size value, which
     /// may result in styles being applied to parts of grapheme clusters only.
-    pub fn set_resize_with_default(&self, range: Range<Bytes>, len: Bytes) {
+    pub fn set_resize_with_default(&self, range: Range<UBytes>, len: UBytes) {
         self.cell.borrow_mut().set_resize_with_default(range, len)
     }
 }

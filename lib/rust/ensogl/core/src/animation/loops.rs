@@ -232,7 +232,7 @@ impl<OnFrame, OnTooManyFramesSkipped> FixedFrameRateSampler<OnFrame, OnTooManyFr
         callback: OnFrame,
         on_too_many_frames_skipped: OnTooManyFramesSkipped,
     ) -> Self {
-        let max_skipped_frames = 2;
+        let max_skipped_frames = 200; // FIXME !!!!!!!!!!!!!!!!!!!!!!! Revert to "2" after testing.
         let frame_time = (1000.0 / fps).ms();
         let local_time = default();
         // The first call to this sampler will be with frame time 0, which would drop this

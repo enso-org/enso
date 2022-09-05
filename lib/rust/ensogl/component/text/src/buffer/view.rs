@@ -67,7 +67,7 @@ pub struct HistoryData {
 /// The summary of single text modification, usually returned by `modify`-like functions in
 /// `ViewBuffer`.
 #[derive(Clone, Debug, Default)]
-struct Modification<T = Bytes> {
+struct Modification<T = UBytes> {
     changes:         Vec<Change<T>>,
     selection_group: selection::Group,
     byte_offset:     Bytes,
@@ -250,10 +250,23 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
+        warn!("modify {:?} {:?}", text, transform);
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
+            let byte_selection = byte_selection.map_shape(|t| {
+                t.map(|bytes| {
+                    UBytes::try_from(bytes).unwrap_or_else(|_| {
+                        error!("Negative byte selection");
+                        UBytes(0)
+                    })
+                })
+            });
             let selection = self.to_location_selection(byte_selection);
+            warn!(
+                ">> {:?}\n{:?}\n{:?}\n{:?}",
+                modification, rel_byte_selection, byte_selection, selection
+            );
             modification.merge(self.modify_selection(selection, text.clone(), transform));
         }
         modification
@@ -272,6 +285,14 @@ impl ViewBuffer {
         for rel_byte_selection in self.byte_selections() {
             let text = iter.next().map(|t| t.into()).unwrap_or_default();
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
+            let byte_selection = byte_selection.map_shape(|t| {
+                t.map(|bytes| {
+                    UBytes::try_from(bytes).unwrap_or_else(|_| {
+                        error!("Negative byte selection");
+                        UBytes(0)
+                    })
+                })
+            }); // FIXME repeated code above
             let selection = self.to_location_selection(byte_selection);
             modification.merge(self.modify_selection(selection, text, transform));
         }
@@ -315,27 +336,31 @@ impl ViewBuffer {
         Modification { changes, selection_group, byte_offset }
     }
 
-    fn byte_selections(&self) -> Vec<Selection<Bytes>> {
+    fn byte_selections(&self) -> Vec<Selection<UBytes>> {
         self.selection.borrow().iter().map(|s| self.to_bytes_selection(*s)).collect()
     }
 
-    fn to_bytes_selection(&self, selection: Selection) -> Selection<Bytes> {
+    fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
         let start = self.byte_offset_of_location_snapped(selection.start);
         let end = self.byte_offset_of_location_snapped(selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
 
-    fn to_location_selection(&self, selection: Selection<Bytes>) -> Selection {
+    fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
         let start = self.offset_to_location(selection.start);
         let end = self.offset_to_location(selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
 
-    fn offset_to_location(&self, offset: Bytes) -> Location {
+    fn offset_to_location(&self, offset: UBytes) -> Location {
         let line = self.line_index_of_byte_offset_snapped(offset);
         let line_offset = offset - self.byte_offset_of_line_index(line).unwrap();
+        let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
+            error!("Internal error. Line offset overflow.");
+            UBytes(0)
+        });
         let column = self.column_of_line_index_and_in_line_byte_offset_snapped(line, line_offset);
         Location(line, column)
     }
@@ -375,10 +400,10 @@ ensogl_core::define_endpoints! {
         redo                       (),
         set_default_color          (color::Rgba),
         set_default_text_size      (style::Size),
-        set_color_bytes            (buffer::Range<Bytes>, color::Rgba),
-        set_sdf_weight             (buffer::Range<Bytes>, style::SdfWeight),
-        set_format_option          (buffer::Range<Bytes>, Option<style::FormatOption>),
-        set_format                 (buffer::Range<Bytes>, style::Format),
+        set_color_bytes            (buffer::Range<UBytes>, color::Rgba),
+        set_sdf_weight             (buffer::Range<UBytes>, style::SdfWeight),
+        set_format_option          (buffer::Range<UBytes>, Option<style::FormatOption>),
+        set_format                 (buffer::Range<UBytes>, style::Format),
     }
 
     Output {
@@ -578,43 +603,43 @@ impl ViewModel {
     }
 
     /// Byte offset of the first line of this buffer view.
-    pub fn first_view_line_byte_offset(&self) -> Bytes {
+    pub fn first_view_line_byte_offset(&self) -> UBytes {
         self.byte_offset_of_line_index(self.first_view_line_index()).unwrap() // FIXME
     }
 
     /// Byte offset of the last line of this buffer view.
-    pub fn last_view_line_byte_offset(&self) -> Bytes {
+    pub fn last_view_line_byte_offset(&self) -> UBytes {
         self.byte_offset_of_line_index(self.last_view_line_index()).unwrap()
     }
 
     /// Byte offset range of lines visible in this buffer view.
-    pub fn view_line_byte_offset_range(&self) -> Range<Bytes> {
+    pub fn view_line_byte_offset_range(&self) -> Range<UBytes> {
         self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
     }
 
     /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
-    pub fn view_end_byte_offset_snapped(&self) -> Bytes {
+    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
         self.end_byte_offset_of_line_index_snapped(self.last_view_line_index())
     }
 
     /// Return the offset after the last character of a given view line if the line exists.
-    pub fn end_offset_of_view_line(&self, line: Line) -> Option<Bytes> {
+    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
         self.end_byte_offset_of_line_index(line + self.first_view_line_index.get()).ok()
     }
 
     /// The byte range of this buffer view.
-    pub fn view_byte_range(&self) -> Range<Bytes> {
+    pub fn view_byte_range(&self) -> Range<UBytes> {
         self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
     }
 
     /// The byte offset of the given buffer view line index.
-    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<Bytes, BoundsError> {
+    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
         let line = self.first_view_line_index() + view_line;
         self.byte_offset_of_line_index(line)
     }
 
     /// Byte range of the given view line.
-    pub fn byte_range_of_view_line_index_snapped(&self, view_line: Line) -> Range<Bytes> {
+    pub fn byte_range_of_view_line_index_snapped(&self, view_line: Line) -> Range<UBytes> {
         let line = view_line + self.first_view_line_index.get();
         self.byte_range_of_line_index_snapped(line)
     }

@@ -11,7 +11,7 @@ use enso_text::Range;
 // === Boundary ===
 // ================
 
-/// Selection boundary data type. In most cases it's either `Location` or `Bytes`.
+/// Selection boundary data type. In most cases it's either `Location` or `UBytes`.
 pub trait Boundary = Copy + Ord + Eq;
 
 
@@ -85,8 +85,10 @@ impl<T: Boundary> Shape<T> {
     }
 
     /// Map both start and end values.
-    pub fn map(&self, f: impl Fn(T) -> T) -> Self {
-        self.with_start(f(self.start)).with_end(f(self.end))
+    pub fn map<S>(self, f: impl Fn(T) -> S) -> Shape<S> {
+        let start = f(self.start);
+        let end = f(self.end);
+        Shape { start, end }
     }
 
     /// Produce cursor by snapping the end edge to the start one.
@@ -157,12 +159,13 @@ impl<T: Boundary> Selection<T> {
     }
 
     /// Replace the shape value.
-    pub fn with_shape(&self, shape: Shape<T>) -> Self {
-        Self { shape, ..*self }
+    pub fn with_shape<S>(self, shape: Shape<S>) -> Selection<S> {
+        let id = self.id;
+        Selection { shape, id }
     }
 
     /// Map the shape value.
-    pub fn map_shape(&self, f: impl FnOnce(Shape<T>) -> Shape<T>) -> Self {
+    pub fn map_shape<S>(self, f: impl FnOnce(Shape<T>) -> Shape<S>) -> Selection<S> {
         self.with_shape(f(self.shape))
     }
 
@@ -187,7 +190,7 @@ impl<T: Boundary> Selection<T> {
     }
 
     /// Map both start and end values.
-    pub fn map(&self, f: impl Fn(T) -> T) -> Self {
+    pub fn map<S>(&self, f: impl Fn(T) -> S) -> Selection<S> {
         self.map_shape(|s| s.map(f))
     }
 
