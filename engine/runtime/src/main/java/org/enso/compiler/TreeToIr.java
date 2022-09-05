@@ -239,12 +239,13 @@ final class TreeToIr {
             Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
           } else {
           */
-          yield new IR$Module$Scope$Definition$Atom(
+          Object data = new IR$Module$Scope$Definition$Data(
             typeName,
             args,
             getIdentifiedLocation(inputAst),
             meta(), diag()
           );
+          yield (IR$Module$Scope$Definition)data;
         } else {
           // type
           var containsAtomDefOrInclude = switch (translatedBody.head()) {
@@ -259,7 +260,7 @@ final class TreeToIr {
             yield new IR$Module$Scope$Definition$Type(
               typeName,
               args,
-              translatedBody,
+              (List<IR$Module$Scope$Definition$Data>) (Object) translatedBody,
               getIdentifiedLocation(inputAst),
               meta(), diag()
             );
