@@ -110,45 +110,44 @@ where
         let network = grid_frp.network();
         // FIXME[mc] rename as in other places
         let internal = &grid_frp.private;
+        let input = &internal.input;
         frp::extend! { network
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
             });
-            entry_selected <- grid_frp.entry_selected.filter_map(|v| *v);
-            selected_on_move_up <- entry_selected.sample(&internal.input.move_selection_up);
-            selected_on_move_down <- entry_selected.sample(&internal.input.move_selection_down);
-            selected_on_move_left <- entry_selected.sample(&internal.input.move_selection_left);
-            selected_on_move_right <- entry_selected.sample(&internal.input.move_selection_right);
-            eval selected_on_move_up ([grid_frp, internal]((row, col)) {
-                if *row == 0 {
-                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Up));
-                } else {
-                    grid_frp.select_entry(Some((row - 1, *col)));
+            input_move_selection <- any(...);
+            input_move_selection <+ input.move_selection_up.constant(Some(Direction::Up));
+            input_move_selection <+ input.move_selection_down.constant(Some(Direction::Down));
+            input_move_selection <+ input.move_selection_left.constant(Some(Direction::Left));
+            input_move_selection <+ input.move_selection_right.constant(Some(Direction::Right));
+            _eval <- input_move_selection.map2(&grid_frp.entry_selected, f!([grid_frp, internal](dir, pos) {
+                use Direction::*;
+                if let Some(((row, col), dir)) = pos.zip(*dir) {
+                    let (rows, cols) = grid_frp.grid_size.value();
+                    match dir {
+                        Up => if row == 0 {
+                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Up));
+                        } else {
+                            grid_frp.select_entry(Some((row - 1, col)));
+                        },
+                        Down => if row + 1 >= rows {
+                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Down));
+                        } else {
+                            grid_frp.select_entry(Some((row + 1, col)));
+                        },
+                        Left => if col == 0 {
+                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Left));
+                        } else {
+                            grid_frp.select_entry(Some((row, col - 1)));
+                        },
+                        Right => if col + 1 >= cols {
+                            internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Right));
+                        } else {
+                            grid_frp.select_entry(Some((row, col + 1)));
+                        }
+                    }
                 }
-            });
-            eval selected_on_move_down ([grid_frp, internal]((row, col)) {
-                let (rows, _) = grid_frp.grid_size.value();
-                if *row + 1 >= rows {
-                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Down));
-                } else {
-                    grid_frp.select_entry(Some((row + 1, *col)));
-                }
-            });
-            eval selected_on_move_left ([grid_frp, internal]((row, col)) {
-                if *col == 0 {
-                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Left));
-                } else {
-                    grid_frp.select_entry(Some((*row, col - 1)));
-                }
-            });
-            eval selected_on_move_right ([grid_frp, internal]((row, col)) {
-                let (_, cols) = grid_frp.grid_size.value();
-                if *col + 1 >= cols {
-                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Right));
-                } else {
-                    grid_frp.select_entry(Some((*row, col + 1)));
-                }
-            });
+            }));
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
