@@ -23,24 +23,26 @@ public class Array_Utils<T> {
 
   /** Creates new builder */
   public static <V> Array_Utils<V> newBuilder(int capacity) {
-      return new Array_Utils<>(capacity);
+    return new Array_Utils<>(capacity);
   }
 
   /** Is the builder empty? */
   public boolean isEmpty() {
-      return builder.isEmpty();
+    return builder.isEmpty();
   }
 
-  /** Adds an element to the builder
-     * @param e the element to add
-     */
+  /**
+   * Adds an element to the builder
+   *
+   * @param e the element to add
+   */
   public void add(T e) {
-      builder.add(e);
+    builder.add(e);
   }
 
   /** Obtains an element from the builder */
   public T get(int index) {
-      return builder.get(index);
+    return builder.get(index);
   }
 
   /** A temporary workaround to be able to efficiently append an array to `ArrayList`. */
@@ -50,6 +52,6 @@ public class Array_Utils<T> {
 
   /** Converts current content to a new array. */
   public Object[] toArray() {
-      return builder.toArray();
+    return builder.toArray();
   }
 }

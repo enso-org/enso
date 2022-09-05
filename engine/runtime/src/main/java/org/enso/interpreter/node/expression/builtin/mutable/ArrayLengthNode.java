@@ -17,7 +17,7 @@ public class ArrayLengthNode extends Node {
       return iop.getArraySize(self);
     } catch (UnsupportedMessageException ex) {
       var ctx = Context.get(this);
-      var pay = ctx.getBuiltins().error().makeUnsupportedArgumentsError(new Object[] { self });
+      var pay = ctx.getBuiltins().error().makeUnsupportedArgumentsError(new Object[] {self});
       throw new PanicException(pay, this);
     }
   }
