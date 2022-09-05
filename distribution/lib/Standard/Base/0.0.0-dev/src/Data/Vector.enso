@@ -575,9 +575,14 @@ type Vector a
 
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
-    == self that =
-        eq_at i = self.unsafe_at i == that.unsafe_at i
-        if self.length == that.length then 0.up_to self.length . all eq_at else False
+    == self that = case that of
+        Vector ->
+            eq_at i = self.unsafe_at i == that.unsafe_at i
+            if self.length == that.length then 0.up_to self.length . all eq_at else False
+        Array ->
+            eq_at i = self.at i == that.at i
+            if self.length == that.length then 0.up_to self.length . all eq_at else False
+        _ -> False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `self`, followed by all the elements of `that`.

@@ -479,4 +479,34 @@ spec = Test.group "Vectors" <|
         expected = "abet".utf_8
         input.sort . should_equal expected
 
+    v1 = [1, 2, 3]
+    a1 = v1.to_array
+
+    v2 = [1, 2, 3]
+    a2 = v2.to_array
+
+    Test.specify "vector1 should be equal to vector1" <|
+        v1.should_equal v1
+
+    Test.specify "vector1 should be equal to vector2" <|
+        v1.should_equal v2
+
+    Test.specify "vector1 should be equal to array1" <|
+        v1.should_equal a1
+
+    Test.specify "vector1 should be equal to array2" <|
+        v1.should_equal a2
+
+    Test.specify "array1 should be equal to vector1" <|
+        a1.should_equal v1
+
+    Test.specify "array1 should be equal to vector2" <|
+        a1.should_equal v2
+
+    Test.specify "array1 should be equal to array1" <|
+        a1.should_equal a1
+
+    Test.specify "array1 should be equal to array2" <|
+        a1.should_equal a2
+
 main = Test.Suite.run_main spec
