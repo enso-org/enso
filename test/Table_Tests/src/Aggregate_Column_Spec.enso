@@ -1,8 +1,9 @@
 from Standard.Base import all hiding First, Last
 
-import Standard.Table.Data.Table
+import Standard.Table
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
+
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder
 

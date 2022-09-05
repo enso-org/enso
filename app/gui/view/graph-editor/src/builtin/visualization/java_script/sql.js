@@ -87,8 +87,7 @@ class SqlVisualization extends Visualization {
 
     constructor(api) {
         super(api)
-        this.setPreprocessorModule('Standard.Visualization.Sql.Visualization')
-        this.setPreprocessorCode(`x -> prepare_visualization x`)
+        this.setPreprocessor('Standard.Visualization.Sql.Visualization', 'prepare_visualization')
     }
 
     onDataReceived(data) {

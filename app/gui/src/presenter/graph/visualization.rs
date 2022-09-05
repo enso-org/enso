@@ -181,10 +181,8 @@ impl Visualization {
         let network = frp::Network::new("presenter::graph::Visualization");
 
         let controller = project.visualization().clone_ref();
-        let (manager, notifications) =
-            Manager::new(&logger, graph.clone_ref(), project.clone_ref());
-        let (error_manager, error_notifications) =
-            Manager::new(&logger, graph.clone_ref(), project);
+        let (manager, notifications) = Manager::new(&logger, graph.clone_ref());
+        let (error_manager, error_notifications) = Manager::new(&logger, graph.clone_ref());
         let model = Rc::new(Model {
             logger,
             controller,

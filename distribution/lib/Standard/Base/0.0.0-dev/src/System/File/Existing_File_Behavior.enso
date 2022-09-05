@@ -11,21 +11,21 @@ type Existing_File_Behavior
 
        Note: There is a risk of data loss if a failure occurs during the write
        operation.
-    type Overwrite
+    Overwrite
 
     ## Creates a backup of the existing file (by appending a `.bak` suffix to
        the name) before replacing it with the new contents.
 
        Note: This requires sufficient storage to have two copies of the file.
              If an existing `.bak` file exists, it will be replaced.
-    type Backup
+    Backup
 
     ## Appends data to the existing file.
-    type Append
+    Append
 
     ## If the file already exists, a `File_Already_Exists_Error` error is
        raised.
-    type Error
+    Error
 
     ## PRIVATE
        Runs the `action` which is given a file output stream and should write
@@ -50,7 +50,7 @@ type Existing_File_Behavior
                 handle_write_failure_dataflow caught_panic =
                     Common.Error.throw caught_panic.payload.cause
                 handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
-                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored_Data handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
                    destination, but if that files due to the file already
                    existing, we will run the alternative algorithm which uses a
@@ -58,7 +58,7 @@ type Existing_File_Behavior
                 handle_file_already_exists <| handle_internal_dataflow <|
                     Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] output_stream->
                         action output_stream . catch Any dataflow_error->
-                            Panic.throw (Internal_Write_Operation_Errored dataflow_error)
+                            Panic.throw (Internal_Write_Operation_Errored_Data dataflow_error)
 
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
@@ -80,15 +80,15 @@ write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Fo
             new_file.delete
             Common.Error.throw caught_panic.payload.cause
         handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
-        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
-        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored_Data handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked_Data handler=handle_write_failure_panic
         handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
             Panic.rethrow <|
                 new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
                     result = Panic.catch Any (action output_stream) caught_panic->
-                        Panic.throw (Internal_Write_Operation_Panicked caught_panic)
+                        Panic.throw (Internal_Write_Operation_Panicked_Data caught_panic)
                     result.catch Any dataflow_error->
-                        Panic.throw (Internal_Write_Operation_Errored dataflow_error)
+                        Panic.throw (Internal_Write_Operation_Errored_Data dataflow_error)
             ## We ignore the file not found error, because it means that there
                is no file to back-up. This may also be caused by someone
                removing the original file during the time when we have been
@@ -102,7 +102,9 @@ write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Fo
 
 
 ## PRIVATE
-type Internal_Write_Operation_Panicked (cause : Caught_Panic)
+type Internal_Write_Operation_Panicked
+    Internal_Write_Operation_Panicked_Data (cause : Caught_Panic)
 
 ## PRIVATE
-type Internal_Write_Operation_Errored (cause : Any)
+type Internal_Write_Operation_Errored
+    Internal_Write_Operation_Errored_Data (cause : Any)

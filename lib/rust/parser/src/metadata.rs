@@ -1,4 +1,7 @@
 //! Data associated with a syntax tree.
+//!
+//! This data is currently represented as two lines containing one JSON value each, placed at the
+//! end of a file after a line containing exactly the text "#### METADATA ####".
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -13,13 +16,14 @@ use uuid::Uuid;
 /// Attaches stable IDs to AST nodes, and associates properties with them.
 #[derive(Debug)]
 pub struct Metadata {
-    id_map: BTreeMap<(usize, usize), Uuid>,
+    id_map: BTreeMap<Location, Uuid>,
 }
 
 impl Metadata {
     /// Return the UUID associated with the node identified by offset/length, if any is found.
-    pub fn get_uuid(&self, code_offset: usize, code_length: usize) -> Option<Uuid> {
-        Some(*self.id_map.get(&(code_offset, code_length))?)
+    pub fn get_uuid(&self, index: usize, size: usize) -> Option<Uuid> {
+        let loc = Location { index: Number { value: index }, size: Number { value: size } };
+        Some(*self.id_map.get(&loc)?)
     }
 }
 
@@ -34,8 +38,7 @@ struct MetadataFormat {
 
 impl From<MetadataFormat> for Metadata {
     fn from(metadata: MetadataFormat) -> Self {
-        let unpack = |k: Location| (k.index.value, k.size.value);
-        let id_map = metadata.id_map.into_iter().map(|(k, v)| (unpack(k), v)).collect();
+        let id_map = metadata.id_map.into_iter().collect();
         Self { id_map }
     }
 }
@@ -62,13 +65,16 @@ impl FromStr for MetadataFormat {
 
 // === Location ===
 
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+/// Identifies a span in the source code.
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 struct Location {
+    /// The beginning of the span, as a byte offset from the beginning of the file.
     index: Number,
+    /// The length of the span, in bytes.
     size:  Number,
 }
 
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 struct Number {
     value: usize,
 }

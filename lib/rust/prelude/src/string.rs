@@ -1,8 +1,8 @@
 //! This module defines several useful string variants, including copy-on-write and immutable
 //! implementations.
 
-use crate::clone::*;
 use derive_more::*;
+use enso_shapely::clone_ref::*;
 use itertools::*;
 
 use crate::impls;
@@ -313,6 +313,12 @@ macro_rules! im_string_newtype_without_serde {
         impl From<&&str> for $name {
             fn from(t:&&str) -> Self {
                 Self::new(t)
+            }
+        }
+
+        impl From<&$name> for String {
+            fn from(t:&$name) -> Self {
+                t.content.to_string()
             }
         }
     )*};

@@ -16,7 +16,7 @@ type Vector_Builder
 
        Arguments:
        - vec: The vector at the leaf.
-    type Leaf vec
+    Leaf vec
 
     ## PRIVATE
 
@@ -26,7 +26,7 @@ type Vector_Builder
        - left: The left subtree.
        - right: The right subtree.
        - len: The length of the vectors across the subtrees.
-    type Append left right len
+    Append left right len
 
     ## PRIVATE
 
@@ -56,7 +56,7 @@ type Vector_Builder
                ix2 = go ix l
                go ix2 r
        go 0 self
-       Vector.Vector array
+       Vector.Vector_Data array
 
     ## PRIVATE
 
@@ -73,7 +73,7 @@ type Vector_Builder
         case other of
             Leaf _ -> Append self other len
             Append _ _ _ -> Append self other len
-            Vector.Vector _ -> Append self (Leaf other) len
+            Vector.Vector_Data _ -> Append self (Leaf other) len
 
 ## PRIVATE
 

@@ -26,7 +26,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;

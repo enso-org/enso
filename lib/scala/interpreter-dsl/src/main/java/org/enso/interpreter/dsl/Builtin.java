@@ -232,12 +232,6 @@ public @interface Builtin {
     Class<? extends Exception> from();
     /** @return Class of Enso's builtin (error) type to throw instead. */
     Class<?> to();
-
-    /**
-     * @return true, if the original exception should only be wrapped. Otherwise we pass parameters
-     *     from the method when creating the new exception.
-     */
-    boolean propagate() default false;
   }
 
   /**

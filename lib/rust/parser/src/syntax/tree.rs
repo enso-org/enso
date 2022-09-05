@@ -121,9 +121,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Number {
             pub token: token::Number<'s>,
         },
-        /// A text section.
-        TextSection {
-            pub token: token::TextSection<'s>,
+        TextLiteral {
+            pub open_quote: Option<token::TextStart<'s>>,
+            pub elements: Vec<TextElement<'s>>,
+            /// Conditions when this is `None`:
+            /// - Block literal: Always.
+            /// - Inline literal: On error: EOL or EOF occurred without the string being closed.
+            pub close_quote: Option<token::TextEnd<'s>>,
+            pub trim: VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -202,6 +207,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub from_as:   Option<MultiSegmentAppSegment<'s>>,
             pub import:    MultiSegmentAppSegment<'s>,
             pub import_as: Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+        },
+        /// An export statement.
+        Export {
+            pub from:      Option<MultiSegmentAppSegment<'s>>,
+            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
+            pub export:    MultiSegmentAppSegment<'s>,
+            pub export_as: Option<MultiSegmentAppSegment<'s>>,
             pub hiding:    Option<MultiSegmentAppSegment<'s>>,
         },
         /// An expression grouped by matched parentheses.
@@ -347,6 +360,45 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
 }
 
 
+// === Text literals ===
+
+/// A component of a text literal, within the quotation marks.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub enum TextElement<'s> {
+    /// The text content of the literal. If it is multiline, the offset information may contain
+    /// part of the content, after trimming appropriately.
+    Section {
+        /// The text content.
+        text: token::TextSection<'s>,
+    },
+    /// A \ character.
+    Escape {
+        /// The \ character.
+        backslash: token::TextEscape<'s>,
+    },
+}
+
+impl<'s> span::Builder<'s> for TextElement<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        match self {
+            TextElement::Section { text } => text.add_to_span(span),
+            TextElement::Escape { backslash } => backslash.add_to_span(span),
+        }
+    }
+}
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for VisibleOffset {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
+impl<'s> span::Builder<'s> for VisibleOffset {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
+
+
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
@@ -413,9 +465,35 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 
 /// Join two nodes with a new node appropriate for their types.
 ///
-/// For most input types, this simply constructs an `App`; however, for some block type operands
+/// For most input types, this simply constructs an `App`; however, for some operand types
 /// application has special semantics.
-pub fn apply<'s>(func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+    match &mut *func.variant {
+        Variant::OprApp(app)
+        if let Ok(opr) = &app.opr && !opr.can_form_section && app.rhs.is_none() => {
+            app.rhs = Some(arg);
+            return func;
+        }
+        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
+                && lhs.close_quote.is_none() && rhs.open_quote.is_none() => {
+            match rhs.elements.first_mut() {
+                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
+                Some(TextElement::Escape { backslash }) =>
+                    backslash.left_offset = arg.span.left_offset,
+                None => (),
+            }
+            lhs.elements.append(&mut rhs.elements);
+            lhs.close_quote = rhs.close_quote.take();
+            if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
+                lhs.trim = rhs.trim;
+            }
+            return func;
+        }
+        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant => {
+            panic!("lhs: {:?}, rhs: {:?}", lhs, rhs)
+        }
+        _ => (),
+    }
     match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
             block.lhs = Some(func);

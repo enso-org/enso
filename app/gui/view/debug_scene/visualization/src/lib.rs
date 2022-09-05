@@ -19,7 +19,7 @@ use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Data;
 use ide_view::graph_editor::component::visualization::Registry;
@@ -55,7 +55,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
                         console.log("pressed",e);
                     })
                 }
-                this.setPreprocessor(`x ->\n IO.println "Preprocessor set after receiving ${data}`)
+                this.setPreprocessor('Standard.Visualization.Preprocessor', 'default_preprocessor');
 
                 let first = data.shift();
                 if (first) {

@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.callable.atom;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -9,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -25,16 +25,15 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
-import java.util.Map;
-
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public final class AtomConstructor implements TruffleObject {
 
   private final String name;
@@ -42,6 +41,8 @@ public final class AtomConstructor implements TruffleObject {
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
+
+  private final Type type;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
@@ -51,8 +52,8 @@ public final class AtomConstructor implements TruffleObject {
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
    */
-  public AtomConstructor(String name, ModuleScope definitionScope) {
-    this(name, definitionScope, false);
+  public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
+    this(name, definitionScope, type, false);
   }
 
   /**
@@ -64,9 +65,10 @@ public final class AtomConstructor implements TruffleObject {
    * @param definitionScope the scope in which this constructor was defined
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, boolean builtin) {
+  public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
+    this.type = type;
     this.builtin = builtin;
   }
 
@@ -76,23 +78,6 @@ public final class AtomConstructor implements TruffleObject {
 
   public boolean isBuiltin() {
     return builtin;
-  }
-
-  public void setShadowDefinitions(ModuleScope scope) {
-    if (builtin) {
-      // Ensure that synthetic methods, such as getters for fields are in the scope
-      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
-      // check.
-      CompilerAsserts.neverPartOfCompilation();
-      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
-      if (methods != null) {
-        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-      }
-      this.definitionScope = scope;
-    } else {
-      throw new RuntimeException(
-          "Attempting to modify scope of a non-builtin type post-construction is not allowed");
-    }
   }
 
   /**
@@ -125,7 +110,7 @@ public final class AtomConstructor implements TruffleObject {
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
-    generateMethods(args);
+    generateQualifiedAccessor();
     if (args.length == 0) {
       cachedInstance = new Atom(this);
     } else {
@@ -169,13 +154,6 @@ public final class AtomConstructor implements TruffleObject {
     return new Function(callTarget, null, new FunctionSchema(args));
   }
 
-  private void generateMethods(ArgumentDefinition[] args) {
-    generateQualifiedAccessor();
-    for (ArgumentDefinition arg : args) {
-      definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
-    }
-  }
-
   private void generateQualifiedAccessor() {
     QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
@@ -186,16 +164,6 @@ public final class AtomConstructor implements TruffleObject {
             new FunctionSchema(
                 new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
-  }
-
-  private Function generateGetter(int position) {
-    GetFieldNode node = new GetFieldNode(null, position);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    return new Function(
-        callTarget,
-        null,
-        new FunctionSchema(
-            new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
   /**
@@ -292,11 +260,7 @@ public final class AtomConstructor implements TruffleObject {
 
   /** @return the fully qualified name of this constructor. */
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
-      return definitionScope.getModule().getName();
-    } else {
-      return definitionScope.getModule().getName().createChild(getName());
-    }
+    return definitionScope.getModule().getName().createChild(getName());
   }
 
   /** @return the fields defined by this constructor. */
@@ -304,100 +268,18 @@ public final class AtomConstructor implements TruffleObject {
     return constructorFunction.getSchema().getArgumentInfos();
   }
 
+  @ExportMessage.Ignore
+  public Type getType() {
+    return type;
+  }
+
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, getContext().getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "self == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        AtomConstructor self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("self") AtomConstructor cachedConstructor,
-        @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(AtomConstructor self, UnresolvedSymbol symbol)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(self, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
-  }
-
-  @ExportMessage
-  boolean canConvertFrom() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedConversion == conversion",
-          "cachedTarget == target",
-          "self == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        AtomConstructor self,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("self") AtomConstructor cachedConstructor,
-        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        AtomConstructor self, AtomConstructor target, UnresolvedConversion conversion)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(self, target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().function();
   }
 }

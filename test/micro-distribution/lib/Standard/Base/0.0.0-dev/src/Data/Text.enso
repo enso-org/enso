@@ -1,3 +1,2 @@
+@Builtin_Type
 type Text
-    @Builtin_Type
-    type Text

@@ -43,7 +43,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
     InterpreterException.rethrowPolyglot {
       val topScope        = executionContext.getTopScope
       val mainModuleScope = topScope.getModule(mainModule.toString)
-      val assocCons       = mainModuleScope.getAssociatedConstructor
+      val assocCons       = mainModuleScope.getAssociatedType
       val mainFun         = mainModuleScope.getMethod(assocCons, "main").get
       mainFun.execute()
     }

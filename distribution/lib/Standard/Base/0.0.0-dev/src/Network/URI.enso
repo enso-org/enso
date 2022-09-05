@@ -22,8 +22,8 @@ polyglot java import java.util.Optional
          example_parse = URI.parse "http://example.com"
 parse : Text -> URI ! Syntax_Error
 parse text =
-    Panic.catch_java Any (URI (Java_URI.create text)) java_exception->
-        Error.throw (Syntax_Error ("URI syntax error: " + java_exception.getMessage))
+    Panic.catch_java Any (URI_Data (Java_URI.create text)) java_exception->
+        Error.throw (Syntax_Error_Data ("URI syntax error: " + java_exception.getMessage))
 
 ## Convert Text to a URI.
 
@@ -46,7 +46,7 @@ type URI
 
        Arguments:
        - internal_uri: The internal representation of the URI.
-    type URI internal_uri
+    URI_Data internal_uri
 
     ## Convert this to URI.
 

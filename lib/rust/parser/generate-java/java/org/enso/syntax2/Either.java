@@ -8,12 +8,6 @@ public final class Either<Left, Right> {
         left = leftIn;
         right = rightIn;
     }
-    public static final <L, R> Either<L, R> left(L left) {
-        return new Either<>(left, null);
-    }
-    public static final <L, R> Either<L, R> right(R right) {
-        return new Either<>(null, right);
-    }
 
     public Left getLeft() {
         return left;
@@ -30,5 +24,12 @@ public final class Either<Left, Right> {
         } else {
             return "Either{" + "right=" + right + '}';
         }
+    }
+
+    public static <L, R> Either<L, R> left(L left) {
+        return new Either<>(left, null);
+    }
+    public static <L, R> Either<L, R> right(R right) {
+        return new Either<>(null, right);
     }
 }

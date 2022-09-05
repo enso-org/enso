@@ -58,6 +58,7 @@ fn impl_deserialize(
     let tree_id_ = Field::object("uuid", uuid, false);
     let tree_id = tree_id_.id();
     graph[tree].fields.push(tree_id_);
+    graph[tree].methods.push(Method::Dynamic(Dynamic::Getter(tree_id)));
 
     let tree_begin = graph[tree].find_field(TREE_BEGIN).unwrap().id();
     let token_begin = graph[token].find_field(TOKEN_BEGIN).unwrap().id();

@@ -44,7 +44,7 @@ impl Default for EntryParams {
             bg_margin:           0.0,
             hover_color:         color::Rgba(0.9, 0.9, 0.9, 1.0),
             selection_color:     color::Rgba(0.8, 0.8, 0.8, 1.0),
-            font:                text::typeface::font::DEFAULT_FONT.into(),
+            font:                text::font::DEFAULT_FONT.into(),
             text_offset:         7.0,
             text_size:           text::Size(14.0),
             text_color:          color::Rgba(0.0, 0.0, 0.0, 1.0),
@@ -63,8 +63,9 @@ impl Default for EntryParams {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct EntryModel {
-    pub text:     ImString,
-    pub disabled: Immutable<bool>,
+    pub text:           ImString,
+    pub disabled:       Immutable<bool>,
+    pub override_width: Immutable<Option<f32>>,
 }
 
 impl EntryModel {
@@ -170,7 +171,9 @@ impl crate::Entry for Entry {
             max_width_px <- input.set_size.map(|size| size.x);
             data.label.set_content_truncated <+ all(&content, &max_width_px);
 
+            out.override_column_width <+ input.set_model.filter_map(|m| *m.override_width);
             out.contour <+ contour;
+            out.highlight_contour <+ contour;
             out.disabled <+ disabled;
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
@@ -207,3 +210,8 @@ pub type SimpleSelectableGridView = selectable::GridView<Entry>;
 /// The Simple version of scrollable and selectable Grid View, where each entry is just a label with
 /// background.
 pub type SimpleScrollableSelectableGridView = scrollable::SelectableGridView<Entry>;
+
+/// The Simple version of scrollable and selectable Grid View with headers, where each header or
+/// entry is just a label with background.
+pub type SimpleScrollableSelectableGridViewWithHeaders =
+    scrollable::SelectableGridViewWithHeaders<Entry, Entry>;

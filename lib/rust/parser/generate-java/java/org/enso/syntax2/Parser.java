@@ -1,5 +1,7 @@
 package org.enso.syntax2;
 
+import org.enso.syntax2.Message;
+import org.enso.syntax2.UnsupportedSyntaxException;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -7,9 +9,17 @@ import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
     static {
+        String os = System.getProperty("os.name");
         File dir = new File(".").getAbsoluteFile();
         for (;;) {
-            File parser = new File(dir, "target/rust/debug/libenso_parser.so");
+            File parser;
+            if (os.startsWith("Mac")) {
+                parser = new File("target/rust/debug/libenso_parser.dylib");
+            } else if (os.startsWith("Windows")) {
+                parser = new File("target/rust/debug/enso_parser.dll");
+            } else {
+                parser = new File("target/rust/debug/libenso_parser.so");
+            }
             try {
                 System.load(parser.getAbsolutePath());
                 break;
@@ -39,6 +49,7 @@ public final class Parser implements AutoCloseable {
         var state = allocState();
         return new Parser(state);
     }
+
     public Tree parse(CharSequence input) throws UnsupportedSyntaxException {
         byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);

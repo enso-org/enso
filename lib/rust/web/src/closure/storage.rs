@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use derivative::Derivative;
 use js_sys::Function;
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::JsCast;

@@ -64,6 +64,19 @@ public abstract class CoercePrimitiveNode extends Node {
     }
   }
 
+  @Specialization(guards = {"characters.isString(character)", "isChar(character)"})
+  long doChar(Object character, @CachedLibrary(limit = "5") InteropLibrary characters) {
+    try {
+      return characters.asString(character).charAt(0);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, `character` is checked to be a long");
+    }
+  }
+
+  static boolean isChar(Object s) {
+    return s instanceof Character;
+  }
+
   @Fallback
   Object doNonPrimitive(Object value) {
     return value;

@@ -23,7 +23,7 @@ public class MinOrMax extends Aggregator {
    * @param minOrMax <0 for minimum, >0 for maximum
    */
   public MinOrMax(String name, Column column, int minOrMax, Comparator<Object> objectComparator) {
-    super(name, Storage.Type.OBJECT);
+    super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
     this.objectComparator = objectComparator;

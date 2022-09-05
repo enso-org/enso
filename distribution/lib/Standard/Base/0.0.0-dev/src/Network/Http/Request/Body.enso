@@ -4,34 +4,34 @@ from Standard.Base import all
 type Body
 
     ## Empty request body.
-    type Empty
+    Empty
 
     ## Request body with text.
 
        Arguments:
        - text: The plain text in the request body.
-    type Text text
+    Text text
 
     ## Request body with JSON.
 
        Arguments:
        - json: The JSON in the request body.
-    type Json json
+    Json json
 
     ## Request body with form data.
 
        Arguments:
        - form: The form data in the request body.
-    type Form form
+    Form form
 
     ## Request body with file data.
 
        Arguments:
        - file: The file data in the request body.
-    type File file
+    File file
 
     ## Request body with binary.
 
        Arguments:
        - bytes: The binary data in the request body.
-    type Bytes bytes
+    Bytes bytes

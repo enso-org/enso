@@ -8,5 +8,4 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-ensogl-core = { version = "0.1.0", path = "../../../core" }
-ensogl-text-embedded-fonts = { version = "0.1.0", path = "../../../../../../lib/rust/ensogl/component/text/embedded-fonts" }
+ensogl-core = { path = "../../../core" }
