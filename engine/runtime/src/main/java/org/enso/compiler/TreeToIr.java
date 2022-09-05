@@ -8,7 +8,6 @@ import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InterfaceDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
@@ -17,7 +16,7 @@ import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
-import org.enso.compiler.core.IR$Module$Scope$Definition$Atom;
+import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Type;
 import org.enso.compiler.core.IR$Module$Scope$Import;
@@ -249,7 +248,7 @@ final class TreeToIr {
         } else {
           // type
           var containsAtomDefOrInclude = switch (translatedBody.head()) {
-            case IR$Module$Scope$Definition$Atom atom -> true;
+            case IR$Module$Scope$Definition$Data atom -> true;
             case IR$Module$Scope$Definition$Type type -> true;
             case IR$Name$Literal lit -> true;
             default -> false;
@@ -264,8 +263,6 @@ final class TreeToIr {
               getIdentifiedLocation(inputAst),
               meta(), diag()
             );
-          } else if (!containsAtomDefOrInclude) {
-            yield new IR$Error$Syntax(inputAst, IR$Error$Syntax$InterfaceDefinition$.MODULE$, meta(), diag());
           } else {
             yield new IR$Error$Syntax(inputAst, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
           }
