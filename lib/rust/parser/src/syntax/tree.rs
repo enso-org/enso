@@ -26,12 +26,12 @@ pub mod block;
 #[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
+    #[reflect(flatten, hide)]
+    pub span:    Span<'s>,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
     pub variant: Box<Variant<'s>>,
-    #[reflect(flatten)]
-    pub span:    Span<'s>,
 }
 
 /// Constructor.
@@ -470,7 +470,7 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match &mut *func.variant {
         Variant::OprApp(app)
-        if let Ok(opr) = &app.opr && !opr.can_form_section && app.rhs.is_none() => {
+        if let Ok(opr) = &app.opr && !opr.properties.can_form_section() && app.rhs.is_none() => {
             app.rhs = Some(arg);
             return func;
         }
@@ -488,9 +488,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
                 lhs.trim = rhs.trim;
             }
             return func;
-        }
-        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant => {
-            panic!("lhs: {:?}, rhs: {:?}", lhs, rhs)
         }
         _ => (),
     }
@@ -522,7 +519,7 @@ pub fn apply_operator<'s>(
         1 => Ok(opr.into_iter().next().unwrap()),
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
-    if let Ok(opr_) = &opr && opr_.is_type_annotation {
+    if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
         let (lhs, rhs) = match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => (lhs, rhs),
             (lhs, rhs) => {
@@ -778,14 +775,14 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
 
 impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         visitor.visit(span::Ref { left_offset: &self.left_offset, code_length });
     }
 }
 
 impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });
     }
 }

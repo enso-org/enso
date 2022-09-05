@@ -235,7 +235,7 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }
         _ => return tree,
     };
-    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.code == "=" {
+    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
         let mut args = vec![];
         let mut lhs = lhs;
         while let Tree { variant: box Variant::App(App { func, arg }), .. } = lhs {

@@ -475,7 +475,11 @@ fn import() {
 fn export() {
     #[rustfmt::skip]
     let cases = [
-        ("export Foo", block![(Export () () ((Ident export) (Ident Foo)) () ())]),
+        ("export prj.Data.Foo", block![
+            (Export () ()
+             ((Ident export)
+              (OprApp (OprApp (Ident prj) (Ok ".") (Ident Data)) (Ok ".") (Ident Foo)))
+             () ())]),
         ("export Foo as Bar", block![
             (Export () () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)) ())]),
         ("from Foo export Bar, Baz", block![
@@ -708,7 +712,9 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanLeftOffsetVisible",
         ":spanLeftOffsetCodeReprBegin",
         ":spanLeftOffsetCodeReprLen",
-        ":spanCodeLength",
+        ":spanLeftOffsetCodeUtf16",
+        ":spanCodeLengthUtf8",
+        ":spanCodeLengthUtf16",
     ];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {

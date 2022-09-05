@@ -106,14 +106,14 @@ use enso_shapely_macros::tagged_enum;
 #[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
+    #[reflect(flatten, hide)]
+    pub left_offset: Offset<'s>,
+    #[reflect(flatten)]
+    pub code:        Code<'s>,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
     pub variant:     T,
-    #[reflect(flatten, hide)]
-    pub left_offset: Offset<'s>,
-    #[reflect(flatten, hide)]
-    pub code:        Code<'s>,
 }
 
 /// Constructor.
@@ -163,7 +163,7 @@ impl<'s, T> Token<'s, T> {
 
     /// Span of this token.
     pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         span::Ref { left_offset: &self.left_offset, code_length }
     }
 }
@@ -185,7 +185,7 @@ impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         Span { left_offset, code_length }
     }
 }
@@ -263,10 +263,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub lift_level: usize
         },
         Operator {
-            pub binary_infix_precedence: Option<Precedence>,
-            pub unary_prefix_precedence: Option<Precedence>,
-            pub is_type_annotation: bool,
-            pub can_form_section: bool,
+            pub properties: OperatorProperties,
         },
         Modifier,
         DocComment,
@@ -286,6 +283,95 @@ impl Default for Variant {
 
 
 // === Operator properties ===
+
+/// Properties of an operator that are identified when lexing.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Reflect,
+    Deserialize,
+    PartialOrd,
+    Ord,
+    Default
+)]
+pub struct OperatorProperties {
+    #[serde(skip)]
+    #[reflect(skip)]
+    binary_infix_precedence:   Option<Precedence>,
+    #[serde(skip)]
+    #[reflect(skip)]
+    unary_prefix_precedence:   Option<Precedence>,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_compile_time_operation: bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_type_annotation:        bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_assignment:             bool,
+}
+
+impl OperatorProperties {
+    /// Construct an operator with default properties.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Return a copy of this operator, with the given binary infix precedence.
+    pub fn with_binary_infix_precedence(self, value: usize) -> Self {
+        Self { binary_infix_precedence: Some(Precedence { value }), ..self }
+    }
+
+    /// Return a copy of this operator, with unary prefix parsing allowed.
+    pub fn with_unary_prefix_mode(self) -> Self {
+        Self { unary_prefix_precedence: Some(Precedence { value: 100 }), ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a compile time operation.
+    pub fn as_compile_time_operation(self) -> Self {
+        Self { is_compile_time_operation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a type annotation operator.
+    pub fn as_type_annotation(self) -> Self {
+        Self { is_type_annotation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an assignment operator.
+    pub fn as_assignment(self) -> Self {
+        Self { is_assignment: true, ..self }
+    }
+
+    /// Return this operator's binary infix precedence, if it has one.
+    pub fn binary_infix_precedence(&self) -> Option<Precedence> {
+        self.binary_infix_precedence
+    }
+
+    /// Return this operator's unary prefix precedence, if it has one.
+    pub fn unary_prefix_precedence(&self) -> Option<Precedence> {
+        self.unary_prefix_precedence
+    }
+
+    /// Return whether this operator can form operator sections.
+    pub fn can_form_section(&self) -> bool {
+        !self.is_compile_time_operation
+    }
+
+    /// Return whether this operator is the type annotation operator.
+    pub fn is_type_annotation(&self) -> bool {
+        self.is_type_annotation
+    }
+
+    /// Return whether this operator is the assignment operator.
+    pub fn is_assignment(&self) -> bool {
+        self.is_assignment
+    }
+}
 
 /// Value that can be compared to determine which operator will bind more tightly within an
 /// expression.

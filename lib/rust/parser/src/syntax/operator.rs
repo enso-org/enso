@@ -134,7 +134,11 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operator.
     pub fn operator(&mut self, opr: token::Operator<'s>) {
         use ItemType::*;
-        match (self.nospace, opr.binary_infix_precedence, opr.unary_prefix_precedence) {
+        match (
+            self.nospace,
+            opr.properties.binary_infix_precedence(),
+            opr.properties.unary_prefix_precedence(),
+        ) {
             // If an operator has a binary role, and a LHS is available, it's acting as binary.
             (_, Some(prec), _) if self.prev_type == Some(Ast) => self.binary_operator(prec, opr),
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
@@ -197,7 +201,7 @@ impl<'s> ExpressionBuilder<'s> {
                 Arity::Unary(opr) => syntax::Tree::unary_opr_app(opr, rhs_),
                 Arity::Binary(opr) => {
                     let lhs = self.output.pop().map(|t| t.to_ast());
-                    let can_form_section = opr.len() != 1 || opr[0].can_form_section;
+                    let can_form_section = opr.len() != 1 || opr[0].properties.can_form_section();
                     self.was_section_used = self.was_section_used
                         || (can_form_section && (lhs.is_none() || rhs_.is_none()));
                     syntax::tree::apply_operator(lhs, opr, rhs_)
