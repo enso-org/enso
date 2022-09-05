@@ -1,6 +1,7 @@
 package org.enso.table.data.index;
 
 import java.util.*;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.table.aggregations.Aggregator;
@@ -14,7 +15,7 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 public class MultiValueIndex {
   private final int keyColumnsLength;
-  private final Map<? extends MultiValueKeyBase, List<Integer>> locs;
+  private final Map<MultiValueKeyBase, List<Integer>> locs;
   private final AggregatedProblems problems;
 
   public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
@@ -25,60 +26,33 @@ public class MultiValueIndex {
       Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     this.keyColumnsLength = keyColumns.length;
     this.problems = new AggregatedProblems();
-    this.locs =
-        ordering == null
-            ? buildUnorderedIndex(keyColumns, tableSize)
-            : buildOrderedIndex(keyColumns, tableSize, ordering, objectComparator);
-  }
 
-  private HashMap<UnorderedMultiValueKey, List<Integer>> buildUnorderedIndex(
-      Column[] keyColumns, int tableSize) {
-    HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
+    boolean isOrdered = ordering != null;
+    this.locs = isOrdered ? new TreeMap<>() : new HashMap<>();
+
+    Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    IntFunction<MultiValueKeyBase> keyFactory =
+        isOrdered
+            ? i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator)
+            : i -> new UnorderedMultiValueKey(storage, i);
+
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
-      Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+
       for (int i = 0; i < size; i++) {
-        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i);
+        MultiValueKeyBase key = keyFactory.apply(i);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
         }
 
-        List<Integer> ids = locs.computeIfAbsent(key, x -> new ArrayList<>());
+        List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
       }
     } else {
-      locs.put(
-          new UnorderedMultiValueKey(new Storage[0], 0),
-          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(
+          keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
-
-    return locs;
-  }
-
-  private TreeMap<OrderedMultiValueKey, List<Integer>> buildOrderedIndex(
-      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
-    TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
-    if (keyColumns.length != 0) {
-      int size = keyColumns[0].getSize();
-      Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
-      for (int i = 0; i < size; i++) {
-        OrderedMultiValueKey key = new OrderedMultiValueKey(storage, i, ordering, objectComparator);
-
-        if (key.hasFloatValues()) {
-          problems.add(new FloatingPointGrouping("GroupBy", i));
-        }
-
-        List<Integer> ids = locs.computeIfAbsent(key, x -> new ArrayList<>());
-        ids.add(i);
-      }
-    } else {
-      locs.put(
-          new OrderedMultiValueKey(new Storage[0], 0, null, objectComparator),
-          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
-    }
-
-    return locs;
   }
 
   public Table makeTable(Aggregator[] columns) {

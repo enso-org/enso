@@ -1334,7 +1334,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
             problems.at 0 . is_an Floating_Point_Grouping_Data . should_be_true
-            problems.at 0 . rows . length . should_equal 9
+            problems.at 0 . rows . length . should_equal 15
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" pending=pending <|
