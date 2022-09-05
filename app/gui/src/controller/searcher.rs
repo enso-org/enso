@@ -696,15 +696,68 @@ impl Searcher {
     }
 
     /// Preview the suggestion in the searcher.
-    pub fn preview_entry_as_suggestion(&self, index: usize) {
+    pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
         tracing::debug!("Previewing entry: {:?}", index);
-        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
+        let error = || NoSuchAction { index };
+        let suggestion = {
+            let data = self.data.borrow();
+            let list = data.actions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.action
+        };
+        if let Action::Suggestion(picked_suggestion) = suggestion {
+            self.preview_suggestion(picked_suggestion)?;
+        };
+
+        Ok(())
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn preview_suggestion(&self, selected_suggestion: action::Suggestion) {
-        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
-        tracing::debug!("Previewing suggestion: {:?}", selected_suggestion);
+    pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+        tracing::debug!("Previewing suggestion: {:?}", picked_suggestion);
+
+        let id = self.data.borrow().input.next_completion_id();
+        let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
+        let code_to_insert = self.code_to_insert(&picked_completion).code;
+        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
+        let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
+        let pattern_offset = self.data.borrow().input.pattern_offset;
+        let new_expression = match self.data.borrow_mut().input.expression.clone() {
+            None => {
+                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
+                ast::Shifted::new(pattern_offset, ast)
+            }
+            Some(mut expression) => {
+                let new_argument = ast::prefix::Argument {
+                    sast:      ast::Shifted::new(pattern_offset.max(1), added_ast),
+                    prefix_id: default(),
+                };
+                expression.args.push(new_argument);
+                expression
+            }
+        };
+        let expr_and_method = || {
+            let input_chain = Some(new_expression);
+
+            let expression = match (self.this_var(), input_chain) {
+                (Some(this_var), Some(input)) =>
+                    apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
+                (None, Some(input)) => input.wrapped.into_ast().repr(),
+                (_, None) => "".to_owned(),
+            };
+            let intended_method = self.intended_method();
+            (expression, intended_method)
+        };
+        let (expression, intended_method) = expr_and_method();
+
+        self.graph.graph().module.with_node_metadata(
+            self.mode.node_id(),
+            Box::new(|md| md.intended_method = intended_method),
+        )?;
+        tracing::debug!("Previewing expression: {:?}", expression);
+
+        self.graph.graph().set_expression(self.mode.node_id(), expression)?;
+
+        Ok(())
     }
 
     /// Execute given action.

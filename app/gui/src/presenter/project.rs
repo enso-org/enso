@@ -129,6 +129,8 @@ impl Model {
     fn editing_aborted(&self) {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
+            let node = self.graph.ast_node_of_view(searcher.input_view()).unwrap();
+            self.graph.allow_expression_auto_updates(node, true);
             searcher.abort_editing();
         } else {
             warning!(self.logger, "Editing aborted without searcher controller.");
