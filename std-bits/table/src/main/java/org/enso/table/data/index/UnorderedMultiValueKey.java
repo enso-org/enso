@@ -1,9 +1,9 @@
 package org.enso.table.data.index;
 
 import java.util.Objects;
+
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.text.TextFoldingStrategy;
-import org.enso.table.text.UnicodeNormalizedFold;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -19,7 +19,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final TextFoldingStrategy textFoldingStrategy;
 
   public UnorderedMultiValueKey(Storage[] storages, int rowIndex) {
-    this(storages, rowIndex, UnicodeNormalizedFold.INSTANCE);
+    this(storages, rowIndex, TextFoldingStrategy.unicodeNormalizedFold);
   }
 
   public UnorderedMultiValueKey(

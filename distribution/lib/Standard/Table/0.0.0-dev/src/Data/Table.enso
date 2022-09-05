@@ -3,6 +3,7 @@ import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
@@ -32,8 +33,6 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.data.mask.OrderMask
-polyglot java import org.enso.table.text.UnicodeNormalizedFold
-polyglot java import org.enso.table.text.CaseInsensitiveFold
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -690,10 +689,7 @@ type Table
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
-        text_folding_strategy = case case_sensitive of
-            True -> UnicodeNormalizedFold.INSTANCE
-            Case_Insensitive_Data locale ->
-                CaseInsensitiveFold.new locale.java_locale
+        text_folding_strategy = Case.folding_strategy case_sensitive
         java_table = self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table_Data java_table) <|
             problems = java_table.getProblems

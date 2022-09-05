@@ -1,13 +1,14 @@
 package org.enso.table.operations;
 
 import java.util.*;
+
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.text.TextFoldingStrategy;
 
 public class Distinct {
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */

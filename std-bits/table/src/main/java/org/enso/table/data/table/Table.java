@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -13,7 +14,6 @@ import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
-import org.enso.table.text.TextFoldingStrategy;
 
 import java.util.*;
 import java.util.stream.Collectors;

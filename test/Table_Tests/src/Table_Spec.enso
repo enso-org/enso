@@ -683,18 +683,18 @@ spec =
             t1.distinct . at "X" . to_vector . should_equal ['ś', 's']
 
         Test.specify "should allow to control case-sensitivity of keys" <|
-            x = ["X", ["A", "a", "enso", "Enso", "A"]]
-            y = ["Y", [1, 2, 3, 4, 5]]
+            x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
+            y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
             d1 = t1.distinct (By_Name ["X"]) on_problems=Report_Error
-            d1.at "X" . to_vector . should_equal ["A", "a", "enso", "Enso"]
-            d1.at "Y" . to_vector . should_equal [1, 2, 3, 4]
+            d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
+            d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
             d2 = t1.distinct (By_Name ["X"]) case_sensitive=Case_Insensitive_Data on_problems=Report_Error
-            d2.at "X" . to_vector . should_equal ["A", "enso"]
-            d2.at "Y" . to_vector . should_equal [1, 3]
+            d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
+            d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
-            t2 = Table.new [["X", ["łąka", "STRASSE", "ŁĄka", "Straße", "ﬃ", "ffi"]]]
+            t2 = Table.new [["X", ["łąka", "STRASSE", "Straße", "ﬃ", "ŁĄka", "ffi"]]]
             t2.distinct case_sensitive=Case_Insensitive_Data . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
 
         Test.specify "should report a warning if the key contains floating point values" <|
@@ -724,7 +724,6 @@ spec =
             problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
             Problems.test_problem_handling action2 problems2 test
 
-        # TODO that is not the original design but I wanted to suggest this, as it seems more natural for a call with defaulted argument: `table.distinct`
         Test.specify "should group by all columns by default" <|
             a = ["A", ["a", "b", "a", "b", "a", "b"]]
             b = ["B", [2, 1, 2, 2, 2, 1]]
