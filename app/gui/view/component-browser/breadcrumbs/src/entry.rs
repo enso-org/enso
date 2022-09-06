@@ -275,7 +275,7 @@ impl Default for Params {
         Self {
             margin:                   1.0,
             hover_color:              color::Rgba(0.0, 0.0, 0.0, 0.2),
-            font:                     text::typeface::font::DEFAULT_FONT.into(),
+            font:                     text::font::DEFAULT_FONT.into(),
             text_offset:              7.0,
             text_size:                12.0.into(),
             text_color:               color::Rgba(0.0, 0.0, 0.0, 1.0),
