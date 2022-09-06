@@ -369,8 +369,8 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> 
 impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> FrpNetworkProvider
     for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
 where
-    HeaderModel: frp::node::Data,
     InnerGridView: FrpNetworkProvider,
+    HeaderModel: frp::node::Data,
 {
     fn network(&self) -> &frp::Network {
         self.model.grid.network()
@@ -414,7 +414,6 @@ where
             .collect()
     }
 }
-
 
 impl<E, InnerGridView, HeaderEntry>
     GridViewTemplate<E, InnerGridView, HeaderEntry, HeaderEntry::Model, HeaderEntry::Params>
