@@ -75,7 +75,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |    x =
           |        IO.println "foobar"
           |
-          |main = Bar.x
+          |main = Foo.x
           |""".stripMargin
 
       eval(code)
