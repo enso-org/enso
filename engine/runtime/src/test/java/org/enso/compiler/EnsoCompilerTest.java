@@ -107,6 +107,16 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testMetadataRaw() throws Exception {
+    parseTest("""
+    main = 4
+    #### METADATA ####
+    [[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]
+    """);
+  }
+
+  @Test
   @Ignore // because of https://github.com/enso-org/enso/pull/3653#issuecomment-1221841342
   public void testDocumentationComment() throws Exception {
     parseTest("""
