@@ -109,10 +109,12 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
-            _eval <- base_grid.entry_selected.map(f!([base_grid] (optpos) {
+            _eval <- base_grid.entry_selected.map(f!([base_grid, area] (optpos) {
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
                     tracing::warn!("MCDBG entry selected {row},{col} -> {pos}");
+                    area.scroll_to_x(pos.x);
+                    area.scroll_to_y(pos.y);
                 }
             }));
         }
