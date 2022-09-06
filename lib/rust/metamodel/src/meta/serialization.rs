@@ -55,7 +55,7 @@ use std::fmt::Write;
 
 
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 
 
@@ -372,44 +372,52 @@ impl<'g> ProgramBuilder<'g> {
         };
         for (i, field) in fields.iter().enumerate() {
             if ty.child_field == Some(i) {
-                if hierarchy.is_empty() {
-                    let basecase_discriminant = self.basecase_discriminant[&id];
-                    let discriminants = &ty.discriminants;
-                    let basecase_ty = discriminants[&basecase_discriminant];
-                    hierarchy.push(basecase_ty);
-                    if basecase {
-                        self.emit(Op::U32(basecase_discriminant as u32));
-                        self.object_(hierarchy, basecase);
-                    } else {
-                        let (&max, _) = discriminants.last_key_value().unwrap();
-                        self.emit(Op::SwitchPush);
-                        self.emit(Op::U32(basecase_discriminant as u32));
-                        self.debug_prev(&self.graph[basecase_ty].name);
-                        self.object_(hierarchy, basecase);
-                        self.emit(Op::Case(Case::Accept));
-                        for i in 0..=(max + 1) {
-                            if i == basecase_discriminant {
-                                continue;
-                            }
-                            self.emit(Op::U32(i as u32));
-                            match discriminants.get(&i) {
-                                Some(id) => {
-                                    hierarchy.push(*id);
-                                    self.debug_prev(&self.graph[*id].name);
-                                    self.object_(hierarchy, basecase);
-                                    self.emit(Op::Case(Case::Accept));
-                                }
-                                None => self.emit(Op::Case(Case::Reject)),
-                            }
-                        }
-                        self.emit(Op::SwitchPop);
-                    }
-                } else {
-                    self.object_(hierarchy, basecase);
-                }
+                self.child(id, hierarchy, basecase)
             }
             self.type_(field.type_, basecase);
             self.debug_prev(format!(".{}", &field.name));
+        }
+        if fields.is_empty() && ty.child_field.is_some() {
+            self.child(id, hierarchy, basecase)
+        }
+    }
+
+    fn child(&mut self, id: TypeId, hierarchy: &mut Vec<TypeId>, basecase: bool) {
+        let ty = &self.graph[id];
+        if hierarchy.is_empty() {
+            let basecase_discriminant = self.basecase_discriminant[&id];
+            let discriminants = &ty.discriminants;
+            let basecase_ty = discriminants[&basecase_discriminant];
+            hierarchy.push(basecase_ty);
+            if basecase {
+                self.emit(Op::U32(basecase_discriminant as u32));
+                self.object_(hierarchy, basecase);
+            } else {
+                let (&max, _) = discriminants.last_key_value().unwrap();
+                self.emit(Op::SwitchPush);
+                self.emit(Op::U32(basecase_discriminant as u32));
+                self.debug_prev(&self.graph[basecase_ty].name);
+                self.object_(hierarchy, basecase);
+                self.emit(Op::Case(Case::Accept));
+                for i in 0..=(max + 1) {
+                    if i == basecase_discriminant {
+                        continue;
+                    }
+                    self.emit(Op::U32(i as u32));
+                    match discriminants.get(&i) {
+                        Some(id) => {
+                            hierarchy.push(*id);
+                            self.debug_prev(&self.graph[*id].name);
+                            self.object_(hierarchy, basecase);
+                            self.emit(Op::Case(Case::Accept));
+                        }
+                        None => self.emit(Op::Case(Case::Reject)),
+                    }
+                }
+                self.emit(Op::SwitchPop);
+            }
+        } else {
+            self.object_(hierarchy, basecase);
         }
     }
 }

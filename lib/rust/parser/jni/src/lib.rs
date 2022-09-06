@@ -54,8 +54,14 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     } else {
         unsafe { std::str::from_utf8_unchecked(input) }
     };
-    state.base = str::as_ptr(input) as usize as u64;
-    let tree = enso_parser::Parser::new().run(input);
+    let mut code = input;
+    let mut meta = None;
+    if let Some((meta_, code_)) = enso_parser::metadata::parse(input) {
+        meta = Some(meta_);
+        code = code_;
+    }
+    state.base = str::as_ptr(code) as usize as u64;
+    let tree = enso_parser::Parser::new().run(code);
     state.output = match enso_parser::serialization::serialize_tree(&tree) {
         Ok(tree) => tree,
         // `Tree` does not contain any types with fallible `serialize` implementations, so this
@@ -65,6 +71,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
             default()
         }
     };
+    state.metadata = meta.and_then(|meta| meta.ok());
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
 }
@@ -85,6 +92,29 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
 ) -> u64 {
     let state = unsafe { &mut *(state as usize as *mut State) };
     state.base
+}
+
+/// Return the metadata associated with the most recent parse.
+///
+/// # Safety
+///
+/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
+/// `freeState`.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
+    _env: JNIEnv,
+    _class: JClass,
+    state: u64,
+) -> u64 {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    match &state.metadata {
+        Some(metadata) => {
+            let metadata: *const _ = metadata;
+            metadata as usize as u64
+        }
+        None => 0,
+    }
 }
 
 /// Allocate a new parser state object. The returned value should be passed to `freeState` when no
@@ -117,6 +147,57 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
     }
 }
 
+/// Return the high bits of the UUID associated with the specified node.
+///
+/// # Safety
+///
+/// The `metadata` pointer MUST be 0, or a value returned by `Parser.getMetadata`. If it is the
+/// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
+/// returned the value.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidHigh(
+    _env: JNIEnv,
+    _class: JClass,
+    metadata: u64,
+    code_offset: u64,
+    code_length: u64,
+) -> u64 {
+    get_uuid(metadata, code_offset, code_length).0
+}
+
+/// Return the low bits of the UUID associated with the specified node.
+///
+/// # Safety
+///
+/// The `metadata` pointer MUST be 0, or a value returned by `Parser.getMetadata`. If it is the
+/// latter, `parser.parseInput` MUST NOT have been called since the call to `getMetadata` that
+/// returned the value.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getUuidLow(
+    _env: JNIEnv,
+    _class: JClass,
+    metadata: u64,
+    code_offset: u64,
+    code_length: u64,
+) -> u64 {
+    get_uuid(metadata, code_offset, code_length).1
+}
+
+#[allow(unsafe_code)]
+fn get_uuid(metadata: u64, code_offset: u64, code_length: u64) -> (u64, u64) {
+    if metadata == 0 {
+        return (0, 0);
+    }
+    let metadata = unsafe { &*(metadata as usize as *const enso_parser::metadata::Metadata) };
+    let data = metadata.get_uuid(code_offset as usize, code_length as usize);
+    match data {
+        Some(uuid) => uuid.as_u64_pair(),
+        None => (0, 0),
+    }
+}
+
 
 
 // ====================
@@ -125,6 +206,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
 
 #[derive(Default, Debug)]
 struct State {
-    base:   u64,
-    output: Vec<u8>,
+    base:     u64,
+    output:   Vec<u8>,
+    metadata: Option<enso_parser::metadata::Metadata>,
 }
