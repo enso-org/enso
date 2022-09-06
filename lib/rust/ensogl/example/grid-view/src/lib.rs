@@ -138,10 +138,10 @@ fn init(app: &Application) {
         view.set_position_xy(Vector2(x, y));
     }
 
-    let view = &grid_views[0];
-    for i in (0..1000).step_by(2) {
-        view.set_column_width((i, 60.0));
-    }
+    // let view = &grid_views[0];
+    // for i in (0..1000).step_by(2) {
+    //     view.set_column_width((i, 60.0));
+    // }
 
     for view in with_hover_mask {
         view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
