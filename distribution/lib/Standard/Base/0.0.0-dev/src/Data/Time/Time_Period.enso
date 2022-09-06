@@ -5,10 +5,10 @@ polyglot java import java.time.temporal.ChronoUnit
 
 ## Represents a period of time of a day or shorter.
 type Time_Period
-     Day
-     Hour
-     Minute
-     Second
+    Day
+    Hour
+    Minute
+    Second
 
     ## PRIVATE
        This method could be replaced with matching on `Date_Period` supertype

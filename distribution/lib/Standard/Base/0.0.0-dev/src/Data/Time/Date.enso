@@ -236,7 +236,7 @@ type Date
     start_of self period=Date_Period.Month = period.adjust_start self
 
     ## Returns the last date within the `Date_Period` containing self.
-    end_of: Date_Period -> Date
+    end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
     ## ALIAS Date to Time
@@ -254,7 +254,7 @@ type Date
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Time_Zone.utc
     to_time : Time_Of_Day -> Time_Zone -> Date_Time
-    to_time self time_of_day (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
+    to_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
 

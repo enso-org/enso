@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Date_Period
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 import Standard.Test
@@ -133,6 +135,32 @@ spec_with name create_new_date parse_date =
             date_1<date_2 . should_be_false
 
     Date_Part_Spec.spec name create_new_date
+
+    Test.group name+" start_of/end_of period" <|
+        Test.specify "should allow to find start of a Date_Period containing the current date" <|
+            d1 = create_new_date 2022 9 12
+            d1.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
+            d1.end_of Date_Period.Year . should_equal (Date.new 2022 12 31)
+            d1.start_of Date_Period.Month . should_equal (Date.new 2022 9 1)
+            d1.end_of Date_Period.Month . should_equal (Date.new 2022 9 30)
+
+            d2 = create_new_date 2022 2 7
+            d2.start_of Date_Period.Month . should_equal (Date.new 2022 2 1)
+            d2.end_of Date_Period.Month . should_equal (Date.new 2022 2 28)
+
+            d3 = create_new_date 2020 2 17
+            d3.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
+            d3.end_of Date_Period.Year . should_equal (Date.new 2022 12 31)
+            d3.start_of Date_Period.Month . should_equal (Date.new 2020 2 1)
+            d3.end_of Date_Period.Month . should_equal (Date.new 2020 2 29)
+
+            d4 = create_new_date 1970 12 31
+            d4.start_of Date_Period.Month . should_equal (Date.new 1970 12 1)
+            d4.end_of Date_Period.Month . should_equal (Date.new 1970 12 31)
+
+            d5 = create_new_date 2040 1 1
+            d5.start_of Date_Period.Month . should_equal (Date.new 2040 1 1)
+            d5.end_of Date_Period.Month . should_equal (Date.new 2040 1 31)
 
 main = Test.Suite.run_main spec
 

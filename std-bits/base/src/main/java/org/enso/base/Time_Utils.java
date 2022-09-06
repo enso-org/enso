@@ -205,7 +205,11 @@ public class Time_Utils {
     return (LocalTime.parse(text, formatter.withLocale(locale)));
   }
 
-  public static Temporal apply_adjuster(Temporal date, TemporalAdjuster adjuster) {
+  public static LocalDate apply_adjuster(LocalDate date, TemporalAdjuster adjuster) {
+    return date.with(adjuster);
+  }
+
+  public static ZonedDateTime apply_adjuster(ZonedDateTime date, TemporalAdjuster adjuster) {
     return date.with(adjuster);
   }
 

@@ -339,7 +339,7 @@ type Date_Time
 
     ## Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
-    end_of: (Date_Period|Time_Period) -> Date_Time
+    end_of : (Date_Period|Time_Period) -> Date_Time
     end_of self period=Date_Period.Month =
         adjusted = period.adjust_end self
         case period.is_date_period of
