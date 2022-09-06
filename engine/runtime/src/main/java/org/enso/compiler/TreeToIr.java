@@ -1585,8 +1585,16 @@ final class TreeToIr {
         var hidingList = exp.getHiding() == null ? nil() : buildNames(exp.getHiding().getBody(), ',', false);
         final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
           Option.apply((List<IR$Name$Literal>) (Object)hidingList);
+
+        Option<IR$Name$Literal> rename;
+        if (exp.getFromAs() != null) {
+          rename = Option.apply(buildName(exp.getFromAs().getBody()));
+        } else {
+          rename = Option.empty();
+        }
+
         return new IR$Module$Scope$Export$Module(
-          qualifiedName, Option.empty(),
+          qualifiedName, rename,
           true, onlyNames, hidingNames, getIdentifiedLocation(exp), false,
           meta(), diag()
         );

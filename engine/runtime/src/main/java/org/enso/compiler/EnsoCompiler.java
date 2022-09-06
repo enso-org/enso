@@ -24,7 +24,7 @@ public final class EnsoCompiler implements AutoCloseable {
   }
 
   Tree parse(Source src) throws UnsupportedSyntaxException {
-      return parser.parse(src.getCharacters());
+    return parser.parse(src.getCharacters());
   }
 
   public IR.Module generateIR(Tree t) {
