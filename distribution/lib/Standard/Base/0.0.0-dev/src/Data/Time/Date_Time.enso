@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Date_Period
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -325,6 +327,30 @@ type Date_Time
     day_of_week : Day_Of_Week
     day_of_week self =
         Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
+
+    ## Returns the first date within the `Date_Period` containing self.
+    start_of : (Date_Period|Time_Period) -> Date_Time
+    start_of self period=Date_Period.Month =
+        case period of
+            Date_Period.Year ->
+                Time_Utils.apply_adjuster self TemporalAdjusters.firstDayOfYear
+            Date_Period.Quarter ->
+                Time_Utils.quarter_start self
+            Date_Period.Month ->
+                Time_Utils.apply_adjuster self TemporalAdjusters.firstDayOfMonth
+            Date_Period.Day -> self
+
+    ## Returns the last date within the `Date_Period` containing self.
+    end_of: (Date_Period|Time_Period) -> Date_Time
+    end_of self period=Date_Period.Month =
+        case self of
+            Date_Period.Year ->
+                Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfYear
+            Date_Period.Quarter ->
+                Time_Utils.quarter_end self
+            Date_Period.Month ->
+                Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfMonth
+            Date_Period.Day -> self
 
     ## ALIAS Time to Date
 

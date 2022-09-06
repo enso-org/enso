@@ -1,0 +1,5 @@
+## Represents a period of time shorter than a day.
+type Time_Period
+     Hour
+     Minute
+     Second

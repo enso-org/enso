@@ -3,9 +3,7 @@ package org.enso.base;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalField;
-import java.time.temporal.WeekFields;
+import java.time.temporal.*;
 import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
@@ -205,5 +203,39 @@ public class Time_Utils {
   public static LocalTime parse_time(String text, String pattern, Locale locale) {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
     return (LocalTime.parse(text, formatter.withLocale(locale)));
+  }
+
+  public static void playground() {
+    TemporalAdjusters.firstDayOfYear();
+    TemporalAdjusters.lastDayOfYear();
+
+    TemporalAdjusters.firstDayOfMonth();
+    TemporalAdjusters.lastDayOfMonth();
+  }
+
+  public static Temporal apply_adjuster(Temporal date, TemporalAdjuster adjuster) {
+    return date.with(adjuster);
+  }
+
+  public static Temporal quarter_start(Temporal temporal) {
+    int month = temporal.get(ChronoField.MONTH_OF_YEAR);
+    int quarter = (month - 1) / 3;
+    int firstMonth = quarter * 3 + 1;
+    return temporal.with(ChronoField.MONTH_OF_YEAR, firstMonth);
+  }
+
+  public static Temporal quarter_end(Temporal temporal) {
+    int month = temporal.get(ChronoField.MONTH_OF_YEAR);
+    int quarter = (month - 1) / 3;
+    int lastMonth = quarter * 3 + 3;
+    return temporal.with(ChronoField.MONTH_OF_YEAR, lastMonth).with(TemporalAdjusters.lastDayOfMonth());
+  }
+
+  public static ZonedDateTime start_of_day(ZonedDateTime date) {
+    return date.truncatedTo(ChronoUnit.DAYS);
+  }
+
+  public static ZonedDateTime end_of_day(ZonedDateTime date) {
+    return date.truncatedTo(ChronoUnit.DAYS).plusDays(1).minusNanos(1);
   }
 }
