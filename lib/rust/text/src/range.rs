@@ -155,7 +155,6 @@ impl From<RangeToInclusive<UBytes>> for Range<UBytes> {
 
 impl Index<Range<UBytes>> for str {
     type Output = str;
-
     fn index(&self, index: Range<UBytes>) -> &Self::Output {
         let start = index.start.value;
         let end = index.end.value;
@@ -165,8 +164,23 @@ impl Index<Range<UBytes>> for str {
 
 impl Index<Range<UBytes>> for String {
     type Output = str;
-
     fn index(&self, index: Range<UBytes>) -> &Self::Output {
+        &self.as_str()[index]
+    }
+}
+
+impl Index<Range<Bytes>> for str {
+    type Output = str;
+    fn index(&self, index: Range<Bytes>) -> &Self::Output {
+        let start = index.start.value;
+        let end = index.end.value;
+        &self[start as usize..end as usize]
+    }
+}
+
+impl Index<Range<Bytes>> for String {
+    type Output = str;
+    fn index(&self, index: Range<Bytes>) -> &Self::Output {
         &self.as_str()[index]
     }
 }
@@ -183,6 +197,39 @@ impl<T: Clone> From<&Range<T>> for Range<T> {
 impl From<Range<UBytes>> for rope::Interval {
     fn from(t: Range<UBytes>) -> Self {
         Self { start: t.start.value, end: t.end.value }
+    }
+}
+
+impl From<Range<UBytes>> for Range<Bytes> {
+    fn from(t: Range<UBytes>) -> Self {
+        let start = t.start.into();
+        let end = t.end.into();
+        Self { start, end }
+    }
+}
+
+impl From<&Range<UBytes>> for Range<Bytes> {
+    fn from(t: &Range<UBytes>) -> Self {
+        let start = t.start.into();
+        let end = t.end.into();
+        Self { start, end }
+    }
+}
+
+impl From<&mut Range<UBytes>> for Range<Bytes> {
+    fn from(t: &mut Range<UBytes>) -> Self {
+        let start = t.start.into();
+        let end = t.end.into();
+        Self { start, end }
+    }
+}
+
+impl TryFrom<Range<Bytes>> for Range<UBytes> {
+    type Error = BytesToUBytesConversionError;
+    fn try_from(t: Range<Bytes>) -> Result<Self, Self::Error> {
+        let start = t.start.try_into()?;
+        let end = t.end.try_into()?;
+        Ok(Self { start, end })
     }
 }
 

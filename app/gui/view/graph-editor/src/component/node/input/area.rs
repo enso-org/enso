@@ -108,13 +108,13 @@ impl Debug for Expression {
 /// Helper struct used for `Expression` conversions.
 #[derive(Debug, Default)]
 struct ExprConversion {
-    prev_tok_local_index:  Bytes,
+    prev_tok_local_index:  UBytes,
     /// Index of the last traverse parent node in the `SpanTree`.
-    last_parent_tok_index: Bytes,
+    last_parent_tok_index: UBytes,
 }
 
 impl ExprConversion {
-    fn new(last_parent_tok_index: Bytes) -> Self {
+    fn new(last_parent_tok_index: UBytes) -> Self {
         let prev_tok_local_index = default();
         Self { prev_tok_local_index, last_parent_tok_index }
     }
@@ -126,18 +126,18 @@ impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0.bytes();
+        let mut shift = 0.ubytes();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = span.size();
+            let mut size = UBytes::try_from(span.size()).unwrap(); // FIXME: hande errors
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
             info.prev_tok_local_index = node.offset + size;
-            viz_code += &" ".repeat(offset_from_prev_tok.value);
+            viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
             if node.children.is_empty() {
                 viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
             }
@@ -145,16 +145,16 @@ impl From<node::Expression> for Expression {
             if is_expected_arg {
                 if let Some(name) = node.name() {
                     size = name.len().into();
-                    index += 1.bytes();
-                    shift += 1.bytes() + size;
+                    index += 1.ubytes();
+                    shift += 1.ubytes() + size;
                     viz_code += " ";
                     viz_code += name;
                 }
             }
             let port = node.payload_mut();
             port.local_index = index - info.last_parent_tok_index;
-            port.index = index;
-            port.length = size;
+            port.index = index.into();
+            port.length = size.into();
             ExprConversion::new(index)
         });
         Self { viz_code, code, span_tree }
@@ -822,6 +822,7 @@ impl Area {
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
+                        let range = enso_text::Range::<UBytes>::try_from(range).unwrap(); // FIXME: handle errors
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }

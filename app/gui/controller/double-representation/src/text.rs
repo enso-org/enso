@@ -14,7 +14,7 @@ use ast::IdMap;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &enso_text::text::Change<Bytes, String>,
+    change: &enso_text::text::Change<UBytes, String>,
     code: &str,
 ) {
     // TODO [mwu]
@@ -61,7 +61,7 @@ pub fn apply_code_change_to_id_map(
     // This is needed for edits like: `foo f` => `foo` — the earlier `foo` in `foo f` also has a
     // id map entry, however we want it to be consistently shadowed by the id from the whole App
     // expression.
-    let mut preferred: HashMap<enso_text::Range<Bytes>, ast::Id> = default();
+    let mut preferred: HashMap<enso_text::Range<UBytes>, ast::Id> = default();
 
     for (range, id) in vector.iter_mut() {
         let mut trim_front = false;
@@ -71,25 +71,31 @@ pub fn apply_code_change_to_id_map(
         if range.start > removed.end {
             debug!("Node after the edited region.");
             // AST node starts after edited region — it will be simply shifted.
-            let between_range: enso_text::Range<_> = (removed.end..range.start).into();
+            let between_range: enso_text::Range<UBytes> = (removed.end..range.start).into();
             let code_between = &code[between_range];
-            *range = range.moved_left(removed.size()).moved_right(inserted_size);
+            let local_range = enso_text::Range::<Bytes>::from(*range);
+            let local_range = local_range.moved_left(removed.size()).moved_right(inserted_size);
+            *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
             debug!("Between: `{code_between}`.");
             if all_spaces(code_between) && inserted_non_white {
                 debug!("Will extend the node leftwards.");
-                range.start -= inserted_size + between_range.size();
+                let mut local_range = enso_text::Range::<Bytes>::from(*range);
+                local_range.start -= inserted_size + between_range.size();
+                *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
                 trim_front = true;
             }
         } else if range.start >= removed.start {
             // AST node starts inside the edited region. It does not have to end inside it.
             debug!("Node overlapping with the end of the edited region.");
             let removed_before = range.start - removed.start;
-            *range = range.moved_left(removed_before);
-            range.end -= removed.size() - removed_before;
-            range.end += inserted_size;
+            let local_range = enso_text::Range::<Bytes>::from(*range);
+            let mut local_range = local_range.moved_left(removed_before);
+            local_range.end -= removed.size() - removed_before;
+            local_range.end += inserted_size;
+            *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
             trim_front = true;
         } else if range.end >= removed.start {
             // AST node starts before the edited region and reaches (or possibly goes past) its end.
@@ -98,29 +104,36 @@ pub fn apply_code_change_to_id_map(
                 trim_back = true;
             }
             let removed_chars = (range.end - removed.start).min(removed.size());
-            range.end -= removed_chars;
-            range.end += inserted_size;
+            let mut local_range = enso_text::Range::<Bytes>::from(*range);
+            local_range.end -= removed_chars;
+            local_range.end += inserted_size;
+            *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle
+                                                                                 // errors
         } else {
             debug!("Node before the edited region.");
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            let between_range: enso_text::Range<_> = (range.end..removed.start).into();
+            let between_range: enso_text::Range<UBytes> = (range.end..removed.start).into();
             let between = &code[between_range];
             if all_spaces(between) && inserted_non_white {
                 debug!("Will extend ");
-                range.end += between_range.size() + inserted_size;
+                let mut local_range = enso_text::Range::<Bytes>::from(*range);
+                local_range.end += between_range.size() + inserted_size;
+                *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
                 trim_back = true;
             }
         }
 
         if trim_front && to_trim_front > 0.bytes() {
-            range.start += to_trim_front;
+            range.start += UBytes::try_from(to_trim_front).unwrap(); // FIXME: handle errors
             debug!("Trimming front {} chars.", to_trim_front.value);
         }
 
         if trim_back {
             if to_trim_back > 0.bytes() {
-                range.end -= to_trim_back;
+                let mut local_range = enso_text::Range::<Bytes>::from(*range);
+                local_range.end -= to_trim_back;
+                *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
                 debug!("Trimming back {} chars.", to_trim_back.value);
             }
             let new_repr = &new_code[*range];
@@ -130,7 +143,9 @@ pub fn apply_code_change_to_id_map(
             if spaces_len > 0.bytes() {
                 debug!("Additionally trimming {} trailing spaces.", space_count.as_usize());
                 debug!("The would-be code: `{new_repr}`.");
-                range.end -= spaces_len;
+                let mut local_range = enso_text::Range::<Bytes>::from(*range);
+                local_range.end -= spaces_len;
+                *range = enso_text::Range::<UBytes>::try_from(local_range).unwrap(); // FIXME: handle errors
             }
         }
 
@@ -194,7 +209,7 @@ mod test {
         /// The initial enso program code.
         pub code:   String,
         /// The edit made to the initial code.
-        pub change: enso_text::Change<Bytes, String>,
+        pub change: enso_text::Change<UBytes, String>,
     }
 
     impl Case {
@@ -287,13 +302,13 @@ mod test {
         let case = Case::from_markdown("foo«aa⎀bb»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "bb");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.ubytes()..5.ubytes());
         assert_eq!(case.resulting_code(), "foobbc");
 
         let case = Case::from_markdown("foo«aa»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.ubytes()..5.ubytes());
         assert_eq!(case.resulting_code(), "fooc");
     }
 

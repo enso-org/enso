@@ -170,7 +170,7 @@ pub struct GlyphHighlightedLabelModel {
     /// Displayed text.
     pub label:       String,
     /// A list of ranges of highlighted bytes.
-    pub highlighted: Vec<text::Range<text::Bytes>>,
+    pub highlighted: Vec<text::Range<text::UBytes>>,
 }
 
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
@@ -178,7 +178,7 @@ pub struct GlyphHighlightedLabelModel {
 #[derive(Clone, CloneRef, Debug)]
 pub struct GlyphHighlightedLabel {
     pub inner: Label,
-    highlight: frp::Source<Vec<text::Range<text::Bytes>>>,
+    highlight: frp::Source<Vec<text::Range<text::UBytes>>>,
 }
 
 impl Entry for GlyphHighlightedLabel {
@@ -193,7 +193,7 @@ impl Entry for GlyphHighlightedLabel {
         let label = &inner.label;
 
         frp::extend! { network
-            highlight <- source::<Vec<text::Range<text::Bytes>>>();
+            highlight <- source::<Vec<text::Range<text::UBytes>>>();
             content_changed <- label.content.constant(());
             set_highlight <- all(highlight, highlight_bold, content_changed);
             eval set_highlight ([label]((highlight, bold, ())) {

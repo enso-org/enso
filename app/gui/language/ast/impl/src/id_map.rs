@@ -21,20 +21,20 @@ use uuid::Uuid;
 /// A mapping between text position and immutable ID.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct IdMap {
-    pub vec: Vec<(enso_text::Range<Bytes>, Id)>,
+    pub vec: Vec<(enso_text::Range<UBytes>, Id)>,
 }
 
 impl IdMap {
     /// Create a new instance.
-    pub fn new(vec: Vec<(enso_text::Range<Bytes>, Id)>) -> IdMap {
+    pub fn new(vec: Vec<(enso_text::Range<UBytes>, Id)>) -> IdMap {
         IdMap { vec }
     }
     /// Assigns Span to given ID.
-    pub fn insert(&mut self, span: impl Into<enso_text::Range<Bytes>>, id: Id) {
+    pub fn insert(&mut self, span: impl Into<enso_text::Range<UBytes>>, id: Id) {
         self.vec.push((span.into(), id));
     }
     /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<enso_text::Range<Bytes>>) {
+    pub fn generate(&mut self, span: impl Into<enso_text::Range<UBytes>>) {
         self.vec.push((span.into(), Uuid::new_v4()));
     }
 }
@@ -88,8 +88,8 @@ impl JsonIdMap {
     pub fn from_id_map(id_map: &IdMap, code: &str) -> Self {
         let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
-            let byte_start = range.start.value;
-            let byte_end = range.end.value;
+            let byte_start = range.start.value as usize;
+            let byte_end = range.end.value as usize;
             let start: Chars = char_offsets.binary_search(&byte_start).unwrap_both().into();
             let end: Chars = char_offsets.binary_search(&byte_end).unwrap_both().into();
             let size = end - start;

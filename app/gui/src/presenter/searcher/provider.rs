@@ -106,8 +106,8 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = enso_text::unit::Bytes(byte_id);
-                            let end = enso_text::unit::Bytes(byte_id + char.len_utf8());
+                            let start = enso_text::unit::UBytes(byte_id);
+                            let end = enso_text::unit::UBytes(byte_id + char.len_utf8());
                             break Some(enso_text::Range::new(start, end));
                         }
                     } else {
@@ -205,7 +205,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 
 // === Component Provider helpers ===
 
-fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
+fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::UBytes>> {
     if let MatchInfo::Matches { subsequence } = match_info {
         let mut char_iter = label.char_indices().enumerate();
         subsequence
@@ -215,8 +215,8 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
                 if let Some(char) = char_iter.next() {
                     let (char_idx, (byte_id, char)) = char;
                     if char_idx == *idx {
-                        let start = enso_text::unit::Bytes(byte_id);
-                        let end = enso_text::unit::Bytes(byte_id + char.len_utf8());
+                        let start = enso_text::unit::UBytes(byte_id);
+                        let end = enso_text::unit::UBytes(byte_id + char.len_utf8());
                         break Some(enso_text::Range::new(start, end));
                     }
                 } else {

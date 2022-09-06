@@ -15,7 +15,7 @@ use enso_types::unit;
 /// Common traits.
 pub mod traits {
     pub use super::bytes::Into as TRAIT_bytes_into;
-    // pub use super::chars::Into as TRAIT_chars_into;
+    pub use super::chars::Into as TRAIT_chars_into;
     pub use super::code_point_index::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
     pub use super::ubytes::Into as TRAIT_ubytes_into;

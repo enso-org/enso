@@ -259,7 +259,7 @@ mod test {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
         let change = TextChange {
-            range: enso_text::Range::new(2.bytes(), 5.bytes()),
+            range: enso_text::Range::new(2.ubytes(), 5.ubytes()),
             text:  "- abc".to_string(),
         };
         module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
@@ -290,13 +290,19 @@ mod test {
 
         // Code change
         let change = TextChange {
-            range: enso_text::Range::new(0.bytes(), 1.bytes()),
+            range: enso_text::Range::new(0.ubytes(), 1.ubytes()),
             text:  "foo".to_string(),
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
         let replaced_location = enso_text::Range {
-            start: enso_text::Location { line: 0.line(), column: 0.column() },
-            end:   enso_text::Location { line: 0.line(), column: 1.column() },
+            start: enso_text::Location {
+                line:             0.line(),
+                code_point_index: 0.code_point_index(),
+            },
+            end:   enso_text::Location {
+                line:             0.line(),
+                code_point_index: 1.code_point_index(),
+            },
         };
         expect_notification(NotificationKind::CodeChanged { change, replaced_location });
 

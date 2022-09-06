@@ -690,10 +690,8 @@ mod test {
         assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
         assert!(db.lookup(3).unwrap().arguments[2].is_suspended);
         assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
-        let range = Location { line: 1.line(), column: 5.column() }..=Location {
-            line:   3.line(),
-            column: 0.column(),
-        };
+        let range = Location { line: 1.line(), code_point_index: 5.code_point_index() }
+            ..=Location { line: 3.line(), code_point_index: 0.code_point_index() };
         assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule { range });
         assert_eq!(db.version.get(), 6);
 

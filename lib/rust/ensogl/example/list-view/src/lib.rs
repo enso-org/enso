@@ -23,7 +23,7 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_text::unit::Bytes;
+use enso_text::unit::UBytes;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
@@ -74,7 +74,7 @@ impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> fo
             None
         } else {
             let label = iformat!("Entry {id}");
-            let highlighted = if id == 10 { vec![(Bytes(1)..Bytes(3)).into()] } else { vec![] };
+            let highlighted = if id == 10 { vec![(UBytes(1)..UBytes(3)).into()] } else { vec![] };
             Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
         }
     }

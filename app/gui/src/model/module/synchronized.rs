@@ -63,9 +63,12 @@ impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source: &SourceFile) -> Self {
         let content = Text::from(&source.content);
-        let code = source.code.map(|i| content.location_of_byte_offset_snapped(i));
-        let id_map = source.id_map.map(|i| content.location_of_byte_offset_snapped(i));
-        let metadata = source.metadata.map(|i| content.location_of_byte_offset_snapped(i));
+        let code =
+            source.code.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
+        let id_map =
+            source.id_map.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
+        let metadata =
+            source.metadata.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
         ParsedContentSummary {
             summary: ContentSummary::new(&content),
             source: content,
@@ -365,7 +368,7 @@ impl Module {
     fn edit_for_snipped(start: &Location, source: Text, target: Text) -> Option<TextEdit> {
         // This is an implicit assumption that always seems to be true. Otherwise finding the
         // correct location for the final edit would be more complex.
-        debug_assert_eq!(start.column, 0.column());
+        debug_assert_eq!(start.code_point_index, 0.code_point_index());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
         (edit.range.start != edit.range.end || !edit.text.is_empty())
@@ -577,8 +580,9 @@ pub mod test {
                     // TODO [mwu]
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
-                    let idmap_range =
-                        file_so_far.id_map.map(|x| code_so_far.location_of_byte_offset_snapped(x));
+                    let idmap_range = file_so_far.id_map.map(|x| {
+                        code_so_far.location_of_byte_offset_snapped(x.try_into().unwrap())
+                    });
                     let idmap_range = TextRange::from(idmap_range);
                     assert_eq!(edit_idmap.range, idmap_range);
                     assert!(SourceFile::looks_like_idmap(&edit_idmap.text));
@@ -729,7 +733,7 @@ pub mod test {
         let source = Text::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
         let target = Text::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
         let edit = Module::edit_for_snipped(
-            &Location { line: 0.into(), column: 0.into() },
+            &Location { line: 0.into(), code_point_index: 0.into() },
             source,
             target,
         );

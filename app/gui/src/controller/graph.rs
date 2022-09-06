@@ -1114,7 +1114,7 @@ pub mod tests {
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
-            let change = TextChange { range: (12.bytes()..12.bytes()).into(), text: "2".into() };
+            let change = TextChange { range: (12.ubytes()..12.ubytes()).into(), text: "2".into() };
             graph.module.apply_code_change(change, &graph.parser, default()).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         });

@@ -228,16 +228,16 @@ mod test {
             let uuid3 = Uuid::new_v4();
             let uuid4 = Uuid::new_v4();
             let id_map = ast::IdMap::new(vec![
-                ((0.bytes()..1.bytes()).into(), uuid1),
-                ((1.bytes()..2.bytes()).into(), uuid2),
-                ((2.bytes()..3.bytes()).into(), uuid3),
-                ((0.bytes()..3.bytes()).into(), uuid4),
+                ((0.ubytes()..1.ubytes()).into(), uuid1),
+                ((1.ubytes()..2.ubytes()).into(), uuid2),
+                ((2.ubytes()..3.ubytes()).into(), uuid3),
+                ((0.ubytes()..3.ubytes()).into(), uuid4),
             ]);
             let controller =
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
             // Change code from "2+2" to "22+2"
-            let change = enso_text::Change::inserted(0.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(0.ubytes(), "2".to_string());
             controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {
