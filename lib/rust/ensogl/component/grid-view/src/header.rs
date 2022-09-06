@@ -377,17 +377,8 @@ where
     }
 }
 
-impl<E, HeaderEntry> application::View
-    for GridViewTemplate<
-        E,
-        crate::GridView<E>,
-        HeaderEntry,
-        <HeaderEntry as Entry>::Model,
-        <HeaderEntry as Entry>::Params,
-    >
-where
-    E: Entry,
-    HeaderEntry: Entry<Params = E::Params>,
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
+    for GridView<E, HeaderEntry>
 {
     fn label() -> &'static str {
         "GridViewWithHeaders"
