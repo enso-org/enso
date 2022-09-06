@@ -18,6 +18,8 @@ use ensogl_grid_view::entry::ShapeWithEntryContour;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
 use ensogl_text as text;
 
+
+
 // ==============
 // === Shapes ===
 // ==============

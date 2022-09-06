@@ -22,8 +22,9 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::prelude::*;
+
 use enso_frp as frp;
-use enso_frp::Network;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
@@ -33,27 +34,32 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::gui::Widget;
-use ensogl_core::prelude::*;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
+use entry::Entry;
 use grid_view::Col;
+
+
+
+mod entry;
+
+
+// ====================
+// === Type Aliases ===
+// ====================
 
 
 type GridView = grid_view::selectable::GridView<Entry>;
 type Entries = Rc<RefCell<Vec<Breadcrumb>>>;
+type BreadcrumbId = usize;
 
-mod entry;
+// ============
+// === Mask ===
+// ============
 
-use entry::Entry;
-
-#[derive(Debug, Clone, CloneRef)]
-struct Layers {
-    main: Layer,
-    text: Layer,
-    mask: Layer,
-}
-
+/// A rectangular mask used to crop the content of the breadcrumbs when it doesn't fit in the
+/// designated space.
 mod mask {
     use super::*;
     use ensogl_core::display::shape::*;
@@ -67,6 +73,35 @@ mod mask {
     }
 }
 
+// ==============
+// === Layers ===
+// ==============
+
+/// A set of layers used by the breadcrumbs.
+#[derive(Debug, Clone, CloneRef)]
+struct Layers {
+    main: Layer,
+    text: Layer,
+    mask: Layer,
+}
+
+impl Layers {
+    /// Constructor.
+    pub fn new(app: &Application, base_layer: &Layer) -> Self {
+        let mask = Layer::new(app.logger.sub("BreadcrumbsMask"));
+        let main = base_layer.create_sublayer();
+        let text = main.create_sublayer();
+        main.set_mask(&mask);
+        Layers { main, text, mask }
+    }
+}
+
+
+// =============
+// === Model ===
+// =============
+
+/// A breadcrumbs model.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
     display_object: display::object::Instance,
@@ -80,18 +115,20 @@ pub struct Model {
 }
 
 impl Model {
+    /// Constructor.
     pub fn new(app: &Application, layer: &Layer) -> Self {
-        let mask = Layer::new(app.logger.sub("BreadcrumbsMask"));
-        let main = layer.create_sublayer();
-        let text = main.create_sublayer();
-        main.set_mask(&mask);
-        let layers = Layers { main, text, mask };
+        let layers = Layers::new(app, layer);
         let display_object = display::object::Instance::new(&app.logger);
         let mask = mask::View::new(&app.logger);
         display_object.add_child(&mask);
         layers.mask.add_exclusive(&mask);
         layers.main.add_exclusive(&display_object);
         let grid = GridView::new(app);
+        grid.set_text_layer(Some(layers.text.downgrade()));
+        let params = entry::Params::default();
+        grid.set_entries_params(params.clone());
+        grid.reset_entries(1, 0);
+        display_object.add_child(&grid);
         let entries: Entries = default();
         let show_ellipsis = Rc::new(Cell::new(false));
         frp::new_network! { network
@@ -103,11 +140,6 @@ impl Model {
             );
             grid.model_for_entry <+ requested_entry;
         }
-        grid.set_text_layer(Some(layers.text.downgrade()));
-        let params = entry::Params::default();
-        grid.set_entries_params(params.clone());
-        grid.reset_entries(1, 0);
-        display_object.add_child(&grid);
         Self {
             display_object,
             grid,
@@ -120,6 +152,7 @@ impl Model {
         }
     }
 
+    /// Update the displayed height of the breadcrumbs entries.
     fn update_entries_height(&self, height: f32) {
         // The width of the entries is not important, because each entry will set it according to
         // its own size.
@@ -141,6 +174,9 @@ impl Model {
         self.grid.set_viewport(vp);
     }
 
+    /// A model for the specific entry. Every second entry of the grid view is an actual
+    /// breadcrumb. They are separated by the [`entry::Model::Separator`] entries and can have an
+    /// optional [`entry::Model::Ellipsis`] icon as the last entry (if [`show_ellipsis`] is true).
     fn entry_model(
         entries: &Entries,
         col: Col,
@@ -150,7 +186,7 @@ impl Model {
         let is_last = col == number_of_cols - 1;
         let is_not_first = col != 0;
         let is_separator_index = col % 2 == 1;
-        let model = if show_ellipsis && is_last && is_not_first {
+        if show_ellipsis && is_last && is_not_first {
             entry::Model::Ellipsis
         } else if is_separator_index {
             entry::Model::Separator
@@ -159,10 +195,11 @@ impl Model {
         } else {
             tracing::error!("Requested entry is missing in the breadcrumbs ({col})");
             entry::Model::default()
-        };
-        model
+        }
     }
 
+    /// A number of columns in the grid view. It depends on the number of entries and whether the
+    /// ellipsis icon is displayed.
     fn grid_columns(&self) -> Col {
         let entries_count = self.entries.borrow().len();
         let is_not_empty = entries_count != 0;
@@ -170,7 +207,9 @@ impl Model {
         (entries_count * 2).saturating_sub(1) + ellipsis
     }
 
-    fn last_entry(&self) -> Option<BreadcrumbId> {
+    /// The column index of the last right-most displayed breadcrumb. Returns [`None`] if there
+    /// are no breadcrumbs displayed.
+    fn column_of_the_last_entry(&self) -> Option<Col> {
         if self.entries.borrow().is_empty() {
             None
         } else {
@@ -182,16 +221,20 @@ impl Model {
         }
     }
 
+    /// Enable or disable showing of the ellipsis icon at the end of breadcrumbs stack.
     pub fn show_ellipsis(&self, show: bool) {
         if self.show_ellipsis.get() != show {
             self.show_ellipsis.set(show);
             let new_cols = self.grid_columns();
             self.grid.resize_grid(1, new_cols);
-            self.grid.reset_entries(1, new_cols);
+            /// TODO: An API for partial update in the Grid View?
+            self.grid.request_model_for_visible_entries();
         }
     }
 
-    pub fn grey_out(&self, from: Option<usize>) {
+    /// Mark entries as greyed out starting from supplied column index. Cancel greying out if
+    /// [`None`] is supplied.
+    pub fn grey_out(&self, from: Option<Col>) {
         let params = {
             let mut borrowed = self.params.borrow_mut();
             borrowed.greyed_out_start = from;
@@ -200,36 +243,39 @@ impl Model {
         self.grid.set_entries_params(params);
     }
 
+    /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
     pub fn push(&self, breadcrumb: &Breadcrumb) {
         self.entries.borrow_mut().push(breadcrumb.clone_ref());
         let new_col_count = self.grid_columns();
         self.grid.resize_grid(1, new_col_count);
         // TODO: An API for partial update in the Grid View?
         self.grid.request_model_for_visible_entries();
-        if let Some(last_entry) = self.last_entry() {
+        if let Some(last_entry) = self.column_of_the_last_entry() {
             self.grid.select_entry(Some((0, last_entry)));
         }
         self.grid.hover_entry(None);
     }
 
+    /// Move the selection to the previous breadcrumb. Stops at the first one, there is always at
+    /// least one breadcrumb selected.
     pub fn move_up(&self) {
-        let selected = self.grid.entry_selected.value();
-        if let Some((row, col)) = selected {
+        if let Some((row, col)) = self.grid.entry_selected.value() {
             if col != 0 {
                 self.grid.select_entry(Some((row, col.saturating_sub(2))));
             }
         } else {
-            if let Some(last) = self.last_entry() {
+            if let Some(last) = self.column_of_the_last_entry() {
                 self.grid.select_entry(Some((0, last)));
             }
         }
         self.grid.hover_entry(None);
     }
 
+    /// Move the selection to the next breadcrumb. Stops at the last one, there is always at
+    /// least one breadcrumb selected.
     pub fn move_down(&self) {
-        let selected = self.grid.entry_selected.value();
-        if let Some((row, col)) = selected {
-            if let Some(last) = self.last_entry() {
+        if let Some((row, col)) = self.grid.entry_selected.value() {
+            if let Some(last) = self.column_of_the_last_entry() {
                 if col < last {
                     self.grid.select_entry(Some((row, col + 2)));
                 }
@@ -238,6 +284,7 @@ impl Model {
         self.grid.hover_entry(None);
     }
 
+    /// Clear the breadcrumbs list.
     pub fn clear(&self) {
         self.entries.borrow_mut().clear();
         self.grey_out(None);
@@ -246,34 +293,53 @@ impl Model {
     }
 }
 
+// === Breadcrumb ===
+
+/// The breadcrumb type.
 #[derive(Debug, Clone, CloneRef, Default)]
-pub struct Breadcrumb {
-    label: ImString,
-}
+pub struct Breadcrumb(ImString);
 
 impl Breadcrumb {
+    /// Constructor.
     pub fn new(label: &str) -> Self {
-        Self { label: ImString::new(label) }
+        Self(ImString::new(label))
     }
 }
 
-type BreadcrumbId = usize;
+// ===========
+// === FRP ===
+// ===========
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Select a specific breadcrumb, greying out breadcrumbs after it.
         select(BreadcrumbId),
+        /// Add a new breadcrumb to the end of the list.
         push(Breadcrumb),
+        /// Set a list of displayed breadcrumbs, rewriting any previously added breadcrumbs.
         set_entries(Vec<Breadcrumb>),
+        /// Enable or disable displaying of the ellipsis icon at the end of the list.
         show_ellipsis(bool),
+        /// Remove all breadcrumbs.
         clear(),
+        /// Set a size of the visible portion of the breadcrumbs. The widget will crop the
+        /// breadcrumbs to this size and will prioritize showing the right part of the list if it
+        /// can't fit in completely.
         set_size(Vector2),
+        /// Move the selection to the previous breadcrumb in the list.
         move_up(),
+        /// Move the selection to the next breadcrumb in the list.
         move_down(),
     }
     Output {
+        /// Currently selected breadcrumb.
         selected(BreadcrumbId)
     }
 }
+
+/// ==============
+/// === Widget ===
+/// ==============
 
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Breadcrumbs {
@@ -282,6 +348,7 @@ pub struct Breadcrumbs {
 }
 
 impl Breadcrumbs {
+    /// Constructor.
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app, &app.display.default_scene.layers.node_searcher));
         let display_object = model.display_object.clone_ref();
@@ -344,7 +411,7 @@ impl ensogl_core::application::View for Breadcrumbs {
 }
 
 impl FrpNetworkProvider for Breadcrumbs {
-    fn network(&self) -> &Network {
+    fn network(&self) -> &frp::Network {
         self.widget.frp().network()
     }
 }
