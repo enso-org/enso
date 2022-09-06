@@ -67,14 +67,15 @@ class DataflowErrorsTest extends InterpreterTest {
           |from Standard.Base.Error.Common import all
           |import Standard.Base.IO
           |
-          |type MyCons err
+          |type My_Cons
+          |    Mk_My_Cons err
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch_primitive MyCons)
+          |    IO.println (unitErr.catch_primitive Mk_My_Cons)
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyCons Nothing)")
+      consumeOut shouldEqual List("(Mk_My_Cons Nothing)")
     }
 
     "accept a method handle in catch function" in {
@@ -82,18 +83,20 @@ class DataflowErrorsTest extends InterpreterTest {
         """from Standard.Base.Error.Common import all
           |import Standard.Base.IO
           |
-          |type MyRecovered x
-          |type MyError x
+          |type My_Recovered
+          |    Mk_My_Recovered x
+          |type My_Error
+          |    Mk_My_Error x
           |
-          |MyError.recover self = case self of
-          |    MyError x -> MyRecovered x
+          |My_Error.recover self = case self of
+          |    Mk_My_Error x -> Mk_My_Recovered x
           |
           |main =
-          |    myErr = Error.throw (MyError 20)
+          |    myErr = Error.throw (Mk_My_Error 20)
           |    IO.println(myErr.catch_primitive .recover)
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyRecovered 20)")
+      consumeOut shouldEqual List("(Mk_My_Recovered 20)")
     }
 
     "make the catch method an identity for non-error values" in {
@@ -106,12 +109,13 @@ class DataflowErrorsTest extends InterpreterTest {
         """from Standard.Base.Error.Common import all
           |import Standard.Base.IO
           |
-          |type My_Atom a
+          |type My_Atom
+          |    Mk_My_Atom a
           |type My_Error
           |
           |main =
           |    broken_val = Error.throw My_Error
-          |    atom = My_Atom broken_val
+          |    atom = Mk_My_Atom broken_val
           |
           |    IO.println atom
           |""".stripMargin
@@ -200,8 +204,8 @@ class DataflowErrorsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        "(Error: (Syntax_Error 'Unrecognized token.'))",
-        "(Syntax_Error 'Unrecognized token.')"
+        "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
+        "(Syntax_Error_Data 'Unrecognized token.')"
       )
     }
   }

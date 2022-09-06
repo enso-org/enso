@@ -21,5 +21,6 @@ case class Visualisation(
   module: Module,
   config: VisualisationConfiguration,
   visualisationExpressionId: Option[ExpressionId],
-  callback: AnyRef
+  callback: AnyRef,
+  arguments: Vector[AnyRef]
 )

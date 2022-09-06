@@ -119,19 +119,6 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.Module.Scope.Definition = {
     binding match {
-      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _) =>
-        arguments.foreach(arg => {
-          val argDep  = asStatic(arg)
-          val atomDep = asStatic(atom)
-          info.dependents.updateAt(argDep, Set(atomDep))
-          info.dependencies.updateAt(atomDep, Set(argDep))
-        })
-
-        atom
-          .copy(
-            arguments = arguments.map(analyseDefinitionArgument(_, info))
-          )
-          .updateMetadata(this -->> info)
       case m: Method.Conversion =>
         val bodyDep       = asStatic(m.body)
         val methodDep     = asStatic(m)
@@ -154,13 +141,39 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
-      case _: IR.Module.Scope.Definition.UnionType => binding
+      case tp @ IR.Module.Scope.Definition.Type(_, params, members, _, _, _) =>
+        val tpDep = asStatic(tp)
+        val newParams = params.map { param =>
+          val paramDep = asStatic(param)
+          info.dependents.updateAt(paramDep, Set(tpDep))
+          info.dependencies.updateAt(tpDep, Set(paramDep))
+          analyseDefinitionArgument(param, info)
+        }
+        val newMembers = members.map {
+          case data @ IR.Module.Scope.Definition.Data(_, arguments, _, _, _) =>
+            val dataDep = asStatic(data)
+            info.dependents.updateAt(dataDep, Set(tpDep))
+            info.dependencies.updateAt(tpDep, Set(dataDep))
+            arguments.foreach(arg => {
+              val argDep = asStatic(arg)
+              info.dependents.updateAt(argDep, Set(dataDep))
+              info.dependencies.updateAt(dataDep, Set(argDep))
+            })
+
+            data
+              .copy(
+                arguments = arguments.map(analyseDefinitionArgument(_, info))
+              )
+              .updateMetadata(this -->> info)
+        }
+        tp.copy(params = newParams, members = newMembers)
+          .updateMetadata(this -->> info)
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
           "analysis."
         )
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "dataflow analysis."
@@ -367,6 +380,21 @@ case object DataflowAnalysis extends IRPass {
             signature = analyseExpression(signature, info)
           )
           .updateMetadata(this -->> info)
+
+      case fun @ IR.Type.Function(args, result, _, _, _) =>
+        val funDep  = asStatic(fun)
+        val argDeps = args.map(asStatic)
+        val resDep  = asStatic(result)
+        argDeps.foreach(info.dependents.updateAt(_, Set(funDep)))
+        info.dependents.updateAt(resDep, Set(funDep))
+        info.dependencies.updateAt(funDep, Set(resDep :: argDeps: _*))
+
+        fun
+          .copy(
+            args   = args.map(analyseExpression(_, info)),
+            result = analyseExpression(result, info)
+          )
+          .updateMetadata(this -->> info)
       case ctx @ IR.Type.Context(typed, context, _, _, _) =>
         val ctxDep     = asStatic(ctx)
         val typedDep   = asStatic(typed)
@@ -449,19 +477,13 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case union @ IR.Type.Set.Union(left, right, _, _, _) =>
+      case union @ IR.Type.Set.Union(operands, _, _, _) =>
         val unionDep = asStatic(union)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(unionDep))
-        info.dependents.updateAt(rightDep, Set(unionDep))
-        info.dependencies.updateAt(unionDep, Set(leftDep, rightDep))
-
+        val opDeps   = operands.map(asStatic)
+        opDeps.foreach(info.dependents.updateAt(_, Set(unionDep)))
+        info.dependencies.updateAt(unionDep, opDeps.toSet)
         union
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copy(operands = operands.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
       case subsumption @ IR.Type.Set.Subsumption(left, right, _, _, _) =>
         val subDep   = asStatic(subsumption)

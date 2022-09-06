@@ -7,28 +7,27 @@
    > Example
      Get the current time
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_now = Date_Time.now
 
    > Example
      Parse UTC time.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
-         example_parse = Time.parse "2020-10-01T04:11:12Z"
+         example_parse = Date_Time.parse "2020-10-01T04:11:12Z"
 
    > Example
      Convert time instance to -04:00 timezone.
 
-         import Standard.Base.Data.Time.Date_Time
-         import Standard.Base.Data.Time.Zone
+         from Standard.Base import Date_Time, Time_Zone
 
-         exaomple_at_zone = Date_Time.new 2020 . at_zone (Zone.new -4)
+         exaomple_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
 
    > Example
      Convert the current time to a date.
 
-         import Standard.Base.Data.Time
+         from Standard.Base import Date_Time
 
          example_date = Date_Time.now.date

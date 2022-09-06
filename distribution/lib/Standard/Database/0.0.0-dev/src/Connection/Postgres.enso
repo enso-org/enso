@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Numbers import Parse_Error
+from Standard.Base.Data.Numbers import Parse_Error_Data
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials
+from Standard.Database.Connection.Credentials import Credentials_Data, Credentials
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -23,7 +23,7 @@ type Postgres
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    Postgres_Data (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -48,17 +48,17 @@ type Postgres
             Nothing ->
                 env_user = Environment.get "PGUSER"
                 env_password = Environment.get "PGPASSWORD"
-                case Pair env_user env_password of
-                    Pair Nothing Nothing ->
+                case Pair_Data env_user env_password of
+                    Pair_Data Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
-                    Pair Nothing _ ->
-                        Error.throw (Illegal_State_Error "PGPASSWORD is set, but PGUSER is not.")
-                    Pair username Nothing ->
+                    Pair_Data Nothing _ ->
+                        Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
+                    Pair_Data username Nothing ->
                         Pgpass.read self.host self.port self.database username
-                    Pair username password ->
-                        [Pair 'user' username, Pair 'password' password]
-            Credentials username password ->
-                [Pair 'user' username, Pair 'password' password]
+                    Pair_Data username password ->
+                        [Pair_Data 'user' username, Pair_Data 'password' password]
+            Credentials_Data username password ->
+                [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
 
@@ -77,14 +77,14 @@ type Postgres
 ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     Disable -> []
-    Prefer -> [Pair 'sslmode' 'prefer']
-    Require -> [Pair 'sslmode' 'require']
+    Prefer -> [Pair_Data 'sslmode' 'prefer']
+    Require -> [Pair_Data 'sslmode' 'require']
     Verify_CA cert_file ->
-        if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
-            [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-ca'] else
+            [Pair_Data 'sslmode' 'verify-ca', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
     Full_Verification cert_file ->
-        if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
-            [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-full'] else
+            [Pair_Data 'sslmode' 'verify-full', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
 
 ## PRIVATE
 default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
@@ -94,7 +94,7 @@ default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
-        port -> Integer.parse port . catch Parse_Error (_->hardcoded_port)
+        port -> Integer.parse port . catch Parse_Error_Data (_->hardcoded_port)
 
 ## PRIVATE
 default_postgres_database = Environment.get_or_else "PGDATABASE" ""

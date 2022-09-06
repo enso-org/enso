@@ -138,11 +138,10 @@ mod profile_workflow;
 // ===================
 
 /// IDE startup function.
+#[entry_point(ide)]
 #[profile(Objective)]
-#[wasm_bindgen]
 #[allow(dead_code)]
-pub fn entry_point_ide() {
-    init_tracing(WARN);
+pub fn main() {
     // Logging of build information.
     #[cfg(debug_assertions)]
     let debug_mode = true;
@@ -154,7 +153,7 @@ pub fn entry_point_ide() {
         analytics::AnonymousData(debug_mode),
     );
     let config =
-        crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration");
     let executor = crate::ide::initializer::setup_global_executor();
     let initializer = crate::ide::initializer::Initializer::new(config);
     executor::global::spawn(async move {

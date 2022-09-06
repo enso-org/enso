@@ -74,17 +74,10 @@ public abstract class BitShiftNode extends Node {
     }
   }
 
-  @Specialization
-  Object doAtomThis(Atom self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
-  }
-
   @Fallback
   Object doOther(Object self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

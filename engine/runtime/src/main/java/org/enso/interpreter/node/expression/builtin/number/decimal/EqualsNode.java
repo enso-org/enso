@@ -9,6 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "==", description = "Equality on numbers.")
@@ -34,20 +35,8 @@ public abstract class EqualsNode extends Node {
     return self == BigIntegerOps.toDouble(that.getValue());
   }
 
-  @Specialization
-  boolean doAtom(
-      Atom self, Atom that, @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
-    var thatCons = that.getConstructor();
-    var thisCons = self.getConstructor();
-    return (thatCons == decimalCons) && (thisCons == thatCons);
-  }
-
   @Fallback
   boolean doOther(Object self, Object that) {
-    return false;
-  }
-
-  AtomConstructor getDecimalConstructor() {
-    return Context.get(this).getBuiltins().number().getDecimal();
+    return self == that;
   }
 }

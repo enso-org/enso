@@ -1,4 +1,5 @@
 ## This module contains the basic interface to the more advanced functionality
+
    of Enso's regular expression engine.
 
    TODO Examples
@@ -119,7 +120,8 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
 
    Arguments:
    - id: The identifier of the group that was asked for but does not exist.
-type No_Such_Group_Error (id : Text | Integer)
+type No_Such_Group_Error
+    No_Such_Group_Error_Data (id : Text | Integer)
 
 ## PRIVATE
 

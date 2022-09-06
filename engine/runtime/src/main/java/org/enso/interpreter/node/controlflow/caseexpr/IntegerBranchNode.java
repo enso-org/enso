@@ -9,13 +9,14 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @NodeInfo(shortName = "IntegerMatch", description = "Allows matching on the Integer type.")
 public abstract class IntegerBranchNode extends BranchNode {
-  private final AtomConstructor integer;
-  private final AtomConstructor smallInteger;
-  private final AtomConstructor bigInteger;
+  private final Type integer;
+  private final Type smallInteger;
+  private final Type bigInteger;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   public IntegerBranchNode(Number number, RootCallTarget branch) {
@@ -37,13 +38,10 @@ public abstract class IntegerBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    var shouldMatch =
-        (integer == target.getConstructor())
-            || (smallInteger == target.getConstructor())
-            || (bigInteger == target.getConstructor());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    var shouldMatch = (integer == target) || (smallInteger == target) || (bigInteger == target);
     if (profile.profile(shouldMatch)) {
-      accept(frame, state, target.getFields());
+      accept(frame, state, new Object[0]);
     }
   }
 

@@ -59,7 +59,8 @@ impl ToMeta {
                 continue;
             }
             let type_ = self.rust_to_meta[&field.type_.id];
-            let name = field_name(&field.name);
+            let name = field.rename.as_deref().unwrap_or(&field.name);
+            let name = field_name(name);
             let mut field_ = meta::Field::named(name, type_);
             if field.flatten {
                 self.flatten.insert(field_.id());
@@ -131,6 +132,7 @@ impl ToMeta {
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
+        ty.child_field = Some(0);
         self.graph.types.bind(id_, ty);
     }
 

@@ -51,21 +51,27 @@ case object BindingAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     val definedSumTypes = ir.bindings.collect {
-      case sumType: IR.Module.Scope.Definition.UnionType =>
-        BindingsMap.Type(sumType.name.name, sumType.members.map(_.name))
-    }
-
-    val definedConstructors = ir.bindings.collect {
-      case cons: IR.Module.Scope.Definition.Atom =>
-        val isBuiltinType = cons
+      case sumType: IR.Module.Scope.Definition.Type =>
+        val isBuiltinType = sumType
           .getMetadata(ModuleAnnotations)
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))
-        BindingsMap.Cons(
-          cons.name.name,
-          cons.arguments.length,
-          cons.arguments.forall(_.defaultValue.isDefined),
+        BindingsMap.Type(
+          sumType.name.name,
+          sumType.members.map(_.name.name),
           isBuiltinType
         )
+    }
+
+    val definedConstructors = ir.bindings.flatMap {
+      case tp: IR.Module.Scope.Definition.Type =>
+        tp.members.map { cons =>
+          BindingsMap.Cons(
+            cons.name.name,
+            cons.arguments.length,
+            cons.arguments.forall(_.defaultValue.isDefined)
+          )
+        }
+      case _ => List()
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
@@ -78,12 +84,12 @@ case object BindingAnalysis extends IRPass {
           case Some(IR.Name.Qualified(List(), _, _, _)) =>
             Some(ref.methodName.name)
           case Some(IR.Name.Qualified(List(n), _, _, _)) =>
-            val shadowed = definedConstructors.exists(_.name == n.name)
+            val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None
           case Some(IR.Name.Literal(n, _, _, _, _)) =>
-            val shadowed = definedConstructors.exists(_.name == n)
+            val shadowed = definedSumTypes.exists(_.name == n)
             if (!shadowed && n == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None

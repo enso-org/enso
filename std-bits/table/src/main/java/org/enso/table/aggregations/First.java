@@ -27,7 +27,7 @@ public class First extends Aggregator {
       Column[] orderByColumns,
       Long[] orderByDirections,
       Comparator<Object> objectComparator) {
-    super(name, Storage.Type.OBJECT);
+    super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.orderByColumns =
         orderByColumns == null

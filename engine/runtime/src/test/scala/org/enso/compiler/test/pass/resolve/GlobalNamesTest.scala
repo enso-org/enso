@@ -71,7 +71,8 @@ class GlobalNamesTest extends CompilerTest {
                  |    x8 = Does_Not_Exist 32
                  |    0
                  |
-                 |type My_Cons a b c
+                 |type My
+                 |    My_Cons a b c
                  |
                  |constant = 2
                  |

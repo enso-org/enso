@@ -16,7 +16,7 @@ polyglot java import org.enso.table.util.NameDeduplicator
          duplicates = unique_name_strategy.renames
          invalid = unique_name_strategy.invalid_names
 new : Unique_Name_Strategy
-new = Unique_Name_Strategy NameDeduplicator.new
+new = Unique_Name_Strategy_Data NameDeduplicator.new
 
 type Unique_Name_Strategy
     ## PRIVATE
@@ -24,7 +24,7 @@ type Unique_Name_Strategy
 
        Arguments:
        - deduplicator: Name deduplicator
-    type Unique_Name_Strategy deduplicator
+    Unique_Name_Strategy_Data deduplicator
 
 
     ## Vector of any duplicates renamed

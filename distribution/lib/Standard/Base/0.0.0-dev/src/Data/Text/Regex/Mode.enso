@@ -4,22 +4,15 @@
    to matching on the `Full` content of the input text.
 
 from Standard.Base import all
-from Standard.Base.Data.Text.Matching_Mode import First
-from Standard.Base.Data.Text.Matching_Mode export First
+from Standard.Base.Data.Text.Matching_Mode import First, Last
+from Standard.Base.Data.Text.Matching_Mode export First, Last
 
 type Mode
-
-    ## The regex will only match the first instance it finds.
-    First
-
-    ## The regex will match up to some `Integer` number of instances.
-    Integer
-
     ## The regex will make all possible matches.
-    type All
+    All
 
     ## The regex will only match if the _entire_ text matches.
-    type Full
+    Full
 
     ## The regex will only match within the region defined by start..end.
 
@@ -32,5 +25,5 @@ type Mode
          The `start` and `end` indices range over _characters_ in the text. The
          precise definition of `character` is, for the moment, defined by the
          regular expression engine itself.
-    type Bounded (start : Integer) (end : Integer) (mode : (First | Integer | All | Full) = All)
+    Bounded (start : Integer) (end : Integer) (mode : (First | Integer | All | Full) = All)
 

@@ -1,8 +1,8 @@
 package org.enso.table.data.index;
 
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -102,11 +102,14 @@ public class MultiValueIndex {
 
   private static Builder getBuilderForType(int type, int size) {
     return switch (type) {
-      case Storage.Type.BOOL -> new BoolBuilder();
-      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
-      case Storage.Type.STRING -> new StringBuilder(size);
       case Storage.Type.OBJECT -> new ObjectBuilder(size);
+      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
+      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.STRING -> new StringBuilder(size);
+      case Storage.Type.BOOL -> new BoolBuilder();
+      case Storage.Type.DATE -> new DateBuilder(size);
+      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
+      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
       default -> new InferredBuilder(size);
     };
   }

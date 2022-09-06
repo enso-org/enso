@@ -2,6 +2,14 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
-@BuiltinType(params = {"message"})
-public class SyntaxError extends Builtin {}
+import java.util.List;
+
+@BuiltinType
+public class SyntaxError extends UniquelyConstructibleBuiltin {
+  @Override
+  protected List<String> getConstructorParamNames() {
+    return List.of("message");
+  }
+}

@@ -169,7 +169,6 @@ always trust the results you get.
     <b>Join Our Community</b><br/>
     <ul>
         <li><a href="https://discord.gg/enso">Discord chat. Get help, share your use cases, meet the team behind Enso and other Enso users!</a></li>
-        <li><a href="https://github.com/enso-org/enso/discussions">GitHub Discussion Forum</a></li>
     </ul>
 </ul></ul>
 

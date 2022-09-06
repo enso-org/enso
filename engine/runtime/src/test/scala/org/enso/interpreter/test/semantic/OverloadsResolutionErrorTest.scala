@@ -57,24 +57,5 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       )
     }
 
-    "result in an error at runtime for methods overloading atoms" in {
-      val code =
-        """
-          |type Foo
-          |foo = 0
-          |""".stripMargin.linesIterator.mkString("\n")
-
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
-
-      val diagnostics = consumeOut
-      diagnostics
-        .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
-        .toSet shouldEqual Set(
-        "Test[3:1-3:7]: Method definitions with the same name as atoms are not supported. Method foo clashes with the atom Foo in this module."
-      )
-    }
-
   }
 }

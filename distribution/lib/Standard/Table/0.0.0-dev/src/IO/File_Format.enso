@@ -7,9 +7,9 @@ import Standard.Table.Data.Table
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
-from Standard.Table.Errors import Unsupported_File_Type
+from Standard.Table.Errors import Unsupported_File_Type_Data
 
-from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
 import Standard.Table.IO.Excel as Excel_Module
 import Standard.Table.IO.Quote_Style
 
@@ -19,8 +19,6 @@ import Standard.Table.IO.Quote_Style
 
 ## Determines the format of file to use based on the file extension.
 type Auto
-    type Auto
-
     ## ADVANCED
        Gets the underlying File_Format for the specified file
     materialise : File->File_Format
@@ -28,17 +26,17 @@ type Auto
         extension = file.extension
 
         output = Ref.new Nothing
-        if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text
-        if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text
-        if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited ',')
-        if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited '\t')
-        if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xls".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xlt".equals_ignore_case extension then output.put File_Format.Excel
+        if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text_Data
+        if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text_Data
+        if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited_Data ',')
+        if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited_Data '\t')
+        if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xls".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xlt".equals_ignore_case extension then output.put File_Format.Excel_Data
 
         output.get.if_nothing <|
-            Error.throw (Unsupported_File_Type file.name)
+            Error.throw (Unsupported_File_Type_Data file.name)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -54,7 +52,6 @@ type Auto
 
 ## Reads the file to a `Vector` of bytes.
 type Bytes
-    type Bytes
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -68,7 +65,7 @@ type Bytes
 
 ## Reads the file to a `Text` with specified encoding.
 type Plain_Text
-    type Plain_Text (encoding:Encoding=Encoding.utf_8)
+    Plain_Text_Data (encoding:Encoding=Encoding.utf_8)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -118,7 +115,7 @@ type Delimited
          character if it anywhere else than at the beginning of the line. This
          option is only applicable for read mode and does not affect writing. It
          defaults to `Nothing` which means that comments are disabled.
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
+    Delimited_Data (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter_Data) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -131,11 +128,11 @@ type Delimited
         Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
-     Clone the instance with some properties overridden.
-     Note: This function is internal until such time as Atom cloning with modification is built into Enso.
+       Clone the instance with some properties overridden.
+       Note: This function is internal until such time as Atom cloning with modification is built into Enso.
     clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
-        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
+        Delimited_Data self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text->Text->Boolean->Delimited
@@ -160,7 +157,7 @@ type Delimited
 
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited
-    with_parsing self (value_formatter=Data_Formatter) =
+    with_parsing self (value_formatter=Data_Formatter_Data) =
         self.clone value_formatter=value_formatter
 
     ## Create a clone of this without value parsing.
@@ -206,7 +203,7 @@ type Excel
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    type Excel (section:Excel_Section=Excel_Module.Sheet) (headers:(True|False|Infer)=Infer) (xls_format:(True|False|Infer)=Infer)
+    Excel_Data (section:Excel_Section=Excel_Module.Sheet) (headers:(True|False|Infer)=Infer) (xls_format:(True|False|Infer)=Infer)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any

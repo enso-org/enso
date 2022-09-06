@@ -5,7 +5,7 @@ from Standard.Base import Polyglot, Array
     Wrapper for Polyglot Arrays
 type Proxy_Polyglot_Array
 
-    type Proxy_Polyglot_Array arr
+    Proxy_Polyglot_Array_Data arr
 
     ## Returns the number of elements stored in this Polyglot Array.
 

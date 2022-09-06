@@ -104,7 +104,7 @@ class GeoMapVisualization extends Visualization {
         this.initMapElement()
         this.initStyle()
         this.dataPoints = []
-        this.setPreprocessor('process_to_json_text', 'Standard.Visualization.Geo_Map')
+        this.setPreprocessor('Standard.Visualization.Geo_Map', 'process_to_json_text')
     }
 
     initMapElement() {

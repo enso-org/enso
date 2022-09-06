@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database.Connection.Connection_Options import Connection_Options
+from Standard.Database.Connection.Connection_Options import Connection_Options, Connection_Options_Data
 
 import Standard.Database.Connection.Postgres
 import Standard.Database.Connection.SQLite
@@ -16,5 +16,5 @@ from Standard.Database.Connection.Connection import Connection, Sql_Error
    - details: Connection_Details to use to connect.
    - options: Any overriding options to use.
 connect : (Postgres|SQLite|Redshift) -> Connection_Options -> Connection ! Sql_Error
-connect details options=Connection_Options =
+connect details options=Connection_Options_Data =
     details.connect options

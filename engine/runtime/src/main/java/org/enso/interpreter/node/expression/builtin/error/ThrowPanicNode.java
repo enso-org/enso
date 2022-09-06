@@ -30,7 +30,10 @@ public abstract class ThrowPanicNode extends Node {
     return Context.get(this);
   }
 
-  @Specialization(guards = {"payload.getConstructor() == getContext().getBuiltins().caughtPanic()"})
+  @Specialization(
+      guards = {
+        "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
+      })
   Stateful doCaughtPanic(
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,

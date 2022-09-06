@@ -1,6 +1,0 @@
-x ->
-    ok = '{ message: ""}'
-    result = x.map_error err->
-        message = err.to_display_text
-        '{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}'
-    if result.is_error then result.catch else ok

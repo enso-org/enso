@@ -44,7 +44,7 @@ impl Default for EntryParams {
             bg_margin:           0.0,
             hover_color:         color::Rgba(0.9, 0.9, 0.9, 1.0),
             selection_color:     color::Rgba(0.8, 0.8, 0.8, 1.0),
-            font:                text::typeface::font::DEFAULT_FONT.into(),
+            font:                text::font::DEFAULT_FONT.into(),
             text_offset:         7.0,
             text_size:           text::Size(14.0),
             text_color:          color::Rgba(0.0, 0.0, 0.0, 1.0),

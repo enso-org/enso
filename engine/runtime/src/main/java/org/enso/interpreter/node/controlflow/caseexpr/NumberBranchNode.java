@@ -9,15 +9,16 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @NodeInfo(shortName = "NumberMatch", description = "Allows matching on the Number type.")
 public abstract class NumberBranchNode extends BranchNode {
-  private final AtomConstructor number;
-  private final AtomConstructor integer;
-  private final AtomConstructor bigInteger;
-  private final AtomConstructor smallInteger;
-  private final AtomConstructor decimal;
+  private final Type number;
+  private final Type integer;
+  private final Type bigInteger;
+  private final Type smallInteger;
+  private final Type decimal;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   NumberBranchNode(Number number, RootCallTarget branch) {
@@ -41,15 +42,15 @@ public abstract class NumberBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
+  void doType(VirtualFrame frame, Object state, Type target) {
     var shouldMatch =
-        (target.getConstructor() == number)
-            || (target.getConstructor() == integer)
-            || (target.getConstructor() == bigInteger)
-            || (target.getConstructor() == smallInteger)
-            || (target.getConstructor() == decimal);
+        (target == number)
+            || (target == integer)
+            || (target == bigInteger)
+            || (target == smallInteger)
+            || (target == decimal);
     if (profile.profile(shouldMatch)) {
-      accept(frame, state, target.getFields());
+      accept(frame, state, new Object[0]);
     }
   }
 

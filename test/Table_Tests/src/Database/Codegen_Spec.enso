@@ -3,13 +3,13 @@ from Standard.Base import all
 from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
+from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 from Standard.Database.Data.Table import combine_names, fresh_names
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -53,7 +53,7 @@ spec =
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         Test.specify "should fail if at is called for a non-existent column" <|
-            t1.at "undefined" . should_fail_with No_Such_Column_Error
+            t1.at "undefined" . should_fail_with No_Such_Column_Error_Data
 
         Test.specify "should allow to limit the amount of returned results" <|
             t2 = t1.limit 5
@@ -64,7 +64,7 @@ spec =
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.column_count . should_equal 0
-            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error
+            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error_Data
 
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
@@ -126,11 +126,11 @@ spec =
                 Fake_Test_Connection.make Dialect.sqlite tables
             t1 = connection.access_table "T1"
             t2 = connection.access_table "T2"
-            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error
+            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should ensure that name suffixes are distinct" <|
             err = (t1.set_index 'A').join (t2.set_index 'D') left_suffix='foo' right_suffix='foo'
-            err . should_fail_with Illegal_State_Error
+            err . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should correctly handle self-joins" <|
             r1 = t1.join (t1.set_index 'A') on='B'
@@ -169,7 +169,7 @@ spec =
             action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
             tester table =
                 table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|
@@ -180,7 +180,7 @@ spec =
             combined.first . should_equal ["A_1", "B"]
             combined.second . should_equal ["A_2", "C"]
 
-            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error
+            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error_Data
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]

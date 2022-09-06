@@ -1,9 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
-
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
@@ -13,6 +9,12 @@ import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends NumericStorage {
@@ -69,7 +71,7 @@ public class LongStorage extends NumericStorage {
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.LONG;
   }
 
@@ -369,5 +371,23 @@ public class LongStorage extends NumericStorage {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask);
+  }
+
+  @Override
+  public LongStorage slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    long[] newData = new long[newSize];
+    BitSet newMissing = new BitSet(newSize);
+    int offset = 0;
+    for (SliceRange range : ranges) {
+      int length = range.end() - range.start();
+      System.arraycopy(data, range.start(), newData, offset, length);
+      for (int i = 0; i < length; ++i) {
+        newMissing.set(offset + i, isMissing.get(range.start() + i));
+      }
+      offset += length;
+    }
+
+    return new LongStorage(newData, newSize, newMissing);
   }
 }

@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends Node {
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(EnsoBigInteger self, Object that);
 
   static BitShiftRightNode build() {
     return BitShiftRightNodeGen.create();
@@ -32,17 +32,10 @@ public abstract class BitShiftRightNode extends Node {
     return bitShiftNode.execute(self, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 
-  @Specialization
-  Object doAtomThis(Atom self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
-  }
-
   @Fallback
-  Object doOther(Object self, Object that) {
+  Object doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

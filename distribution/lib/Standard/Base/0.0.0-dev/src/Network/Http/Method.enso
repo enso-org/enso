@@ -1,25 +1,25 @@
 type Method
 
     ## The HTTP method "OPTIONS".
-    type Options
+    Options
 
     ## The HTTP method "GET".
-    type Get
-    
+    Get
+
     ## The HTTP method "HEAD".
-    type Head
+    Head
 
     ## The HTTP method "POST".
-    type Post
+    Post
 
     ## The HTTP method "PUT".
-    type Put
+    Put
 
     ## The HTTP method "DELETE".
-    type Delete
+    Delete
 
     ## The HTTP method "TRACE".
-    type Trace
+    Trace
 
     ## The HTTP method "CONNECT".
-    type Connect
+    Connect

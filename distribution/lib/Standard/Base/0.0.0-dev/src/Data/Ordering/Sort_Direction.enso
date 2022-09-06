@@ -9,7 +9,7 @@ type Sort_Direction
          Create an ascending order.
 
              Sort_Direction.Ascending
-    type Ascending
+    Ascending
 
     ## Elements should be sorted in descending order.
 
@@ -17,7 +17,7 @@ type Sort_Direction
          Create a descending order.
 
              Sort_Direction.Descending
-    type Descending
+    Descending
 
     ## Convert into the sign of the direction
     to_sign : Integer

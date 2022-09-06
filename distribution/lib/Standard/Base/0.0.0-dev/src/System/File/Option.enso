@@ -11,37 +11,37 @@ type Option
 
     ## If the file is opened for `Write` access then bytes will be written to
        the end of the file rather than the beginning.
-    type Append
+    Append
 
     ## Create a new file if it does not exist.
-    type Create
+    Create
 
     ## Create a new file, failing if the file already exists.
-    type Create_New
+    Create_New
 
     ## Delete the underlying file on closing the stream.
-    type Delete_On_Close
+    Delete_On_Close
 
     ## Requires that every update to the file's content be written
        synchronously to the underlying storage device.
-    type Dsync
+    Dsync
 
     ## Open for read access.
-    type Read
+    Read
 
     ## Sparse file.
-    type Sparse
+    Sparse
 
     ## Requires that every update to the file's content or metadata be written
        synchronously to the underlying storage device.
-    type Sync
+    Sync
 
     ## If the file already exists and is opened for `Write` access,
        the original contents will be removed.
-    type Truncate_Existing
+    Truncate_Existing
 
     ## Open file for write access.
-    type Write
+    Write
 
     ## PRIVATE
 

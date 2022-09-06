@@ -12,7 +12,7 @@ import Standard.Table.Data.Sort_Column
 
 import Standard.Base.Data.Ordering.Comparator
 
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -39,7 +39,8 @@ polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
    - key_columns: Vector of Columns from the table to group by
    - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
    - problems: Set of any problems when validating the input
-type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+type Validated_Aggregate_Columns
+    Validated_Aggregate_Columns_Data (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
 
 ## PRIVATE
    Prepares an aggregation input for further processing:
@@ -70,17 +71,17 @@ prepare_aggregate_columns aggregates table =
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
         new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
-        Pair new_name agg
+        Pair_Data new_name agg
 
     # Build Problems Output
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
 
-    Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
+    Validated_Aggregate_Columns_Data unique_key_columns renamed_columns problem_builder.build_problemset
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
@@ -208,7 +209,7 @@ java_aggregator name column =
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
         Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
-        _ -> Error.throw (Invalid_Aggregation name -1 "Unsupported aggregation")
+        _ -> Error.throw (Invalid_Aggregation_Data name -1 "Unsupported aggregation")
 
 ## PRIVATE
    Convert Java aggregated problems to Enso Vector of equivalents
@@ -218,10 +219,10 @@ parse_aggregated_problems problems =
         problems_array = problems.getProblems
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName (Vector.from_polyglot_array p.getRows) else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName (Vector.from_polyglot_array p.getRows) else
-                        Invalid_Aggregation Nothing -1 "Unknown Error"
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation_Data p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                        Invalid_Aggregation_Data Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings (problems.getCount - problems_array.length)]
+            parsed + [Additional_Warnings_Data (problems.getCount - problems_array.length)]

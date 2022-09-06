@@ -9,14 +9,14 @@ type Column_Name_Mapping
        The `matcher` can be used to specify if the names should be matched
        exactly or should be treated as regular expressions. It also allows to
        specify if the matching should be case-sensitive.
-    type By_Name (names : Map Text Text) (matcher : Matcher = Text_Matcher)
+    By_Name (names : Map Text Text) (matcher : Matcher = Text_Matcher_Data)
 
     ## Selects columns by their index.
 
        The index of the first column in the table is 0. If the provided index is
        negative, it counts from the end of the table (e.g. -1 refers to the last
        column in the table).
-    type By_Index (indexes : Map Number Text)
+    By_Index (indexes : Map Number Text)
 
     ## Selects columns having exactly the same names as the columns provided in
        the input.
@@ -26,8 +26,8 @@ type Column_Name_Mapping
        of columns of some other table, for example, when preparing for a join.
 
        The Vector should be of the form [[Column, Name], [Column1, Name1], ...]
-    type By_Column (columns : Vector)
+    By_Column (columns : Vector)
 
     ## Selects columns by position starting at the first column until the
        new_names is exhausted.
-    type By_Position (new_names : [Text])
+    By_Position (new_names : [Text])

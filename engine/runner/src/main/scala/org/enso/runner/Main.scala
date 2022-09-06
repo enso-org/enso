@@ -753,11 +753,11 @@ object Main {
     mainMethodName: String = "main"
   ): Unit = {
     try {
-      val mainCons = mainModule.getAssociatedConstructor
-      val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
+      val mainType = mainModule.getAssociatedType
+      val mainFun  = mainModule.getMethod(mainType, mainMethodName)
       mainFun match {
         case Some(main) if mainMethodName != "main" =>
-          main.execute(mainCons.newInstance())
+          main.execute(mainType.newInstance())
         case Some(main) =>
           main.execute()
         case None =>

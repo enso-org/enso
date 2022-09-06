@@ -4,7 +4,7 @@
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::boxed_local)]
 
-use enso_prelude::*;
+use crate::prelude::*;
 
 use std::marker::Unsize;
 
@@ -78,13 +78,13 @@ macro_rules! mock_struct {
         }
 
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl$(<$($param $(:?$param_tp)?),*>)?
         $name $(<$($param),*>)? {
             /// Const constructor.
             pub const fn const_new() -> Self {
-                unsafe { mem::transmute(()) }
+                unsafe { std::mem::transmute(()) }
             }
         }
 
@@ -138,12 +138,12 @@ macro_rules! mock_struct_as_ref {
         $(=> $deref:ident)?
     ) => {
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
         AsRef<__T__> for $name $(<$($param),*>)? {
             fn as_ref(&self) -> &__T__ {
-                unsafe { mem::transmute(self) }
+                unsafe { std::mem::transmute(self) }
             }
         }
     };
@@ -364,7 +364,7 @@ impl<T: ?Sized> Closure<T> {
 #[allow(unsafe_code)]
 impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     fn as_ref(&self) -> &JsValue {
-        unsafe { mem::transmute(self) }
+        unsafe { std::mem::transmute(self) }
     }
 }
 

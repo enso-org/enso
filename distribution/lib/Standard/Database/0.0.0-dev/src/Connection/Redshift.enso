@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials
+from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -23,7 +23,7 @@ type Redshift
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Profile|AWS_Key|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    Redshift_Data (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## Build the Connection resource.
 
@@ -57,7 +57,7 @@ type Redshift
                 [Pair 'user' db_user] + (if profile == '' then [] else [Pair 'profile' profile])
             AWS_Key db_user access_key secret_access_key ->
                 [Pair 'user' db_user, Pair 'AccessKeyID' access_key, Pair 'SecretAccessKey' secret_access_key]
-            Credentials username password ->
+            Credentials_Data username password ->
                 [Pair 'user' username, Pair 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.
@@ -72,13 +72,13 @@ type Redshift
     dialect : Dialect
     dialect self = Dialect.redshift
 
-type AWS_Profile
+type AWS_Credential
     ## Access Redshift using IAM via an AWS profile.
 
        Arguments:
        - db_user: Redshift username to connect as.
        - profile: AWS profile name (if empty uses default).
-    type AWS_Profile db_user:Text profile:Text=''
+    AWS_Profile db_user:Text profile:Text=''
 
 
     ## Access Redshift using IAM via an AWS access key ID and secret access key.
@@ -87,4 +87,4 @@ type AWS_Profile
        - db_user: Redshift username to connect as.
        - access_key: AWS access key ID.
        - secret_access_key: AWS secret access key.
-    type AWS_Key db_user:Text access_key:Text secret_access_key:Text
+    AWS_Key db_user:Text access_key:Text secret_access_key:Text

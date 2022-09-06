@@ -72,7 +72,6 @@ case class BindingsMap(
     copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
-
     copy
   }
 
@@ -120,12 +119,18 @@ case class BindingsMap(
       if (newSymbols.exists { case (_, v) => v.isEmpty }) {
         None
       } else {
-        bindings.exportedSymbols = newSymbols.map { case (k, v) => k -> v.get }
+        bindings.exportedSymbols = newSymbols.map { case (k, v) =>
+          k -> v.get
+        }
         Some(bindings)
       }
     }
 
     withSymbols
+  }
+
+  private def findTypeCandidates(name: String): List[ResolvedType] = {
+    types.filter(_.name == name).map(ResolvedType(currentModule, _))
   }
 
   private def findConstructorCandidates(
@@ -150,10 +155,11 @@ case class BindingsMap(
     moduleMethods.filter(_.name == name).map(ResolvedMethod(currentModule, _))
 
   private def findLocalCandidates(name: String): List[ResolvedName] = {
+    val types    = findTypeCandidates(name)
     val conses   = findConstructorCandidates(name)
     val polyglot = findPolyglotCandidates(name)
     val methods  = findMethodCandidates(name)
-    val all      = conses ++ polyglot ++ methods
+    val all      = types ++ conses ++ polyglot ++ methods
     if (all.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
     } else { all }
@@ -215,22 +221,6 @@ case class BindingsMap(
     }
   }
 
-  /** Resolves a name as a type.
-    *
-    * NB: This should be removed when sum types become proper runtime values.
-    *
-    * @param name the type name to resolve.
-    * @return the resolution
-    */
-  def resolveTypeName(
-    name: String
-  ): Either[ResolutionError, ResolvedTypeName] = {
-    types.find(_.name == name) match {
-      case Some(value) => Right(ResolvedType(currentModule, value))
-      case None        => resolveName(name)
-    }
-  }
-
   /** Resolves a name in the context of current module.
     *
     * @param name the name to resolve.
@@ -248,7 +238,9 @@ case class BindingsMap(
     if (qualifiedImps.nonEmpty) {
       return handleAmbiguity(qualifiedImps)
     }
-    handleAmbiguity(findExportedCandidatesInImports(name))
+    handleAmbiguity(
+      findExportedCandidatesInImports(name)
+    )
   }
 
   /** Resolves a qualified name to a symbol in the context of this module.
@@ -761,8 +753,7 @@ object BindingsMap {
   case class Cons(
     name: String,
     arity: Int,
-    allFieldsDefaulted: Boolean,
-    builtinType: Boolean = false
+    allFieldsDefaulted: Boolean
   )
 
   /** A representation of a sum type
@@ -770,7 +761,7 @@ object BindingsMap {
     * @param name the type name
     * @param members the member names
     */
-  case class Type(name: String, members: Seq[String])
+  case class Type(name: String, members: Seq[String], builtinType: Boolean)
 
   /** A representation of an imported polyglot symbol.
     *
@@ -784,35 +775,13 @@ object BindingsMap {
     */
   case class ModuleMethod(name: String)
 
-  /** Represents a resolved name on typelevel.
-    *
-    * NB: should be unified with `ResolvedName` and removed, once sum types get
-    * a proper runtime meaning.
-    */
-  sealed trait ResolvedTypeName {
-    def module: ModuleReference
-
-    /** Convert the resolved name to abstract form.
-      *
-      * @return `this`, converted to abstract form
-      */
-    def toAbstract: ResolvedTypeName
-
-    /** Convert the resolved name to concrete form.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this`, converted to concrete form
-      */
-    def toConcrete(moduleMap: ModuleMap): Option[ResolvedTypeName]
-  }
-
   /** A name resolved to a sum type.
     *
     * @param module the module defining the type
     * @param tp a representation for the type
     */
   case class ResolvedType(override val module: ModuleReference, tp: Type)
-      extends ResolvedTypeName {
+      extends ResolvedName {
     def getVariants: Seq[ResolvedConstructor] = {
       val bindingsMap = getBindingsFrom(module)
       tp.members.flatMap(m =>
@@ -834,25 +803,30 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def qualifiedName: QualifiedName = module.getName.createChild(tp.name)
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(tp.name)
   }
 
   /** A result of successful name resolution.
     */
-  sealed trait ResolvedName extends ResolvedTypeName {
+  sealed trait ResolvedName {
+
+    def module: ModuleReference
+
+    def qualifiedName: QualifiedName
 
     /** Convert the resolved name to abstract form.
       *
       * @return `this`, converted to abstract form
       */
-    override def toAbstract: ResolvedName
+    def toAbstract: ResolvedName
 
     /** Convert the resolved name to concrete form.
       *
       * @param moduleMap the mapping from qualified names to modules
       * @return `this`, converted to concrete form
       */
-    override def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
+    def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
   }
 
   /** A representation of a name being resolved to a constructor.
@@ -875,7 +849,8 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def qualifiedName: QualifiedName = module.getName.createChild(cons.name)
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(cons.name)
   }
 
   /** A representation of a name being resolved to a module.
@@ -895,6 +870,8 @@ object BindingsMap {
     ): Option[ResolvedModule] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
+
+    override def qualifiedName: QualifiedName = module.getName
   }
 
   /** A representation of a name being resolved to a method call.
@@ -936,6 +913,9 @@ object BindingsMap {
 
     def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
+
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(method.name)
   }
 
   /** A representation of a name being resolved to a polyglot symbol.
@@ -958,6 +938,9 @@ object BindingsMap {
     ): Option[ResolvedPolyglotSymbol] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
+
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(symbol.name)
   }
 
   /** A representation of an error during name resolution.

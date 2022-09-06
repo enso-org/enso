@@ -3,8 +3,10 @@ from Standard.Base import all
 import Standard.Table
 from Standard.Table import Column, Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Table import Empty_Error
-from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data
 import Standard.Table.Data.Storage
+import Standard.Table.Data.Aggregate_Column
+from Standard.Table.Data.Aggregate_Column import all hiding First, Last
 
 import Standard.Visualization
 
@@ -13,16 +15,17 @@ import Standard.Test.Problems
 
 import project.Common_Table_Spec
 
-type My x y
+type My
+    My_Data x y
 
 My.== self that = case that of
-    My x1 y1 -> (self.x + self.y) == (x1 + y1)
+    My_Data x1 y1 -> (self.x + self.y) == (x1 + y1)
     _ -> False
 
 My.compare_to self that = self.x+self.y . compare_to that.x+that.y
 
 My.frobnicate self = case self of
-    My x1 y1 -> My y1 x1
+    My_Data x1 y1 -> My_Data y1 x1
 
 spec =
     Test.group "JSON construction" <|
@@ -82,12 +85,36 @@ spec =
             r.at 'foo' . to_vector . should_equal [1, 2, 3]
             r.at 'bar' . to_vector . should_equal [False, True, False]
 
+        Test.specify "should correctly infer storage types" <|
+            strs = ["strs", ["a", "b", "c", Nothing]]
+            ints = ["ints", [Nothing, 1, 2, 4]]
+            doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
+            doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
+            custom_objects = ["custom_objects", [My_Data 1 2, My_Data 3 4, Nothing, Nothing]]
+            dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
+            times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
+            datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
+            mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+            just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
+
+            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, just_nulls]
+            table.at "strs" . storage_type . should_equal Storage.Text
+            table.at "ints" . storage_type . should_equal Storage.Integer
+            table.at "doubles" . storage_type . should_equal Storage.Decimal
+            table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
+            table.at "custom_objects" . storage_type . should_equal Storage.Any
+            table.at "mixed" . storage_type . should_equal Storage.Any
+            table.at "dates" . storage_type . should_equal Storage.Date
+            table.at "times" . storage_type . should_equal Storage.Time_Of_Day
+            table.at "datetimes" . storage_type . should_equal Storage.Date_Time
+            table.at "just_nulls" . storage_type . should_equal Storage.Any
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
             col_1.to_vector.reduce (+) . should_equal 6
 
-            col_2 = Column.from_vector 'y' [My 1 2, My 2 3]
+            col_2 = Column.from_vector 'y' [My_Data 1 2, My_Data 2 3]
             col_2.to_vector.map (my -> my.x + my.y) . should_equal [3, 5]
 
             col_3 = Column.from_vector 'z' [False, True, False]
@@ -103,8 +130,8 @@ spec =
             c_dec.map (+ 1.5) . to_vector . should_equal [3.4, 3.5, 2.7, 7.1, 3.4]
             c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
             c_bool.map (_.to_text) . to_vector . should_equal ["True", "False", Nothing, "True", "False"]
-            c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
-            c_any.map (_.frobnicate) . to_vector . should_equal [My 6 1, My 3 6, My 5 2, My 4 3, My 300 200]
+            c_any = Column.from_vector 'x' [My_Data 1 6, My_Data 6 3, My_Data 2 5, My_Data 3 4, My_Data 200 300]
+            c_any.map (_.frobnicate) . to_vector . should_equal [My_Data 6 1, My_Data 3 6, My_Data 5 2, My_Data 4 3, My_Data 300 200]
 
         Test.specify "should allow zipping columns with a custom function" <|
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
@@ -126,8 +153,8 @@ spec =
             (c_dec == 1.9).to_vector.should_equal [True, False, False, False, True]
             c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
             (c_bool == False).to_vector.should_equal [False, True, Nothing, False, True]
-            c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
-            (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
+            c_any = Column.from_vector 'x' [My_Data 1 6, My_Data 6 3, My_Data 2 5, My_Data 3 4, My_Data 200 300]
+            (c_any == My_Data 7 0).to_vector.should_equal [True, False, True, True, False]
 
         Test.specify "should switch between maps and zips based on argument type" <|
             a = Column.from_vector 'x' [0, 1, 7, 3, 6]
@@ -353,7 +380,7 @@ spec =
 
         Test.specify 'should respect defined comparison operations for custom types' <|
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
-            c_2 = ['val', [My 1 2, My 3 4, My 2 1, My 5 2, My 7 0, My 4 -1]]
+            c_2 = ['val', [My_Data 1 2, My_Data 3 4, My_Data 2 1, My_Data 5 2, My_Data 7 0, My_Data 4 -1]]
             df = Table.new [c_1, c_2]
             r = df.order_by (Sort_Column_Selector.By_Name ['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
@@ -362,7 +389,7 @@ spec =
             action = df.order_by (Sort_Column_Selector.By_Name ['foobar']) on_problems=_
             tester table =
                 table.at 'Id' . to_vector . should_equal [1,2,3,4,5,6]
-            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
@@ -406,15 +433,15 @@ spec =
             r_3.to_vector.should_equal [Nothing,Nothing,8,7,4,1]
 
         Test.specify 'should respect defined comparison operations for custom types' <|
-            c = Column.from_vector 'foo'  [My 1 2, My 3 4, My 2 1, My 5 2, My 7 0, My 4 -1]
+            c = Column.from_vector 'foo'  [My_Data 1 2, My_Data 3 4, My_Data 2 1, My_Data 5 2, My_Data 7 0, My_Data 4 -1]
             r = c.sort
-            r.to_vector.should_equal [My 1 2, My 2 1, My 4 -1, My 3 4, My 5 2, My 7 0]
+            r.to_vector.should_equal [My_Data 1 2, My_Data 2 1, My_Data 4 -1, My_Data 3 4, My_Data 5 2, My_Data 7 0]
 
         Test.specify 'should allow passing a custom comparator' <|
-            c = Column.from_vector 'foo' [My 1 2, My 2 5, My 3 4, My 6 3, Nothing, My 1 0]
+            c = Column.from_vector 'foo' [My_Data 1 2, My_Data 2 5, My_Data 3 4, My_Data 6 3, Nothing, My_Data 1 0]
             cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
             r = c.sort comparator=cmp
-            r.to_vector.should_equal [My 1 2, My 3 4, My 1 0, My 2 5, My 6 3, Nothing]
+            r.to_vector.should_equal [My_Data 1 2, My_Data 3 4, My_Data 1 0, My_Data 2 5, My_Data 6 3, Nothing]
 
     Test.group "Concatenating Tables" <|
         Test.specify 'should concat tables with the same schema' <|
@@ -482,15 +509,15 @@ spec =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
-            t_1.take_start 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
-            t_2 = t_1.take_start 2
+            t_2 = t_1.take (First 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
             t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
-            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -499,63 +526,15 @@ spec =
             c_3 = ['col3', [False, True, Nothing]]
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
-            t_1.take_end 10 . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
+            t_1.take (Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
-            t_2 = t_1.take_end 2
+            t_2 = t_1.take (Last 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (Last 2))
             t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
 
-        Test.specify "should allow getting the first / head row" <|
-            i_1 = ['ix', [1, 2, 3]]
-            c_1 = ['col1', [5, 6, 7]]
-            c_2 = ['col2', ["a", Nothing, "c"]]
-            c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
-            expected_i_1 = ['ix', [1]]
-            expected_c_1 = ['col1', [5]]
-            expected_c_2 = ['col2', ["a"]]
-            expected_c_3 = ['col3', [False]]
-            expected_head = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3] . set_index 'ix'
-
-            t_2 = t_1.first
-
-            t_2.index.to_vector . should_equal expected_head.index.to_vector
-            t_2.at 'col1' . to_vector . should_equal (expected_head.at 'col1' . to_vector)
-            t_2.at 'col2' . to_vector . should_equal (expected_head.at 'col2' . to_vector)
-            t_2.at 'col3' . to_vector . should_equal (expected_head.at 'col3' . to_vector)
-
-            empty_ix = ['ix', []]
-            empty_col = ['col_1', []]
-            empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
-
-            empty_table.first.should_fail_with Empty_Error
-
-        Test.specify "should allow getting the last row" <|
-            i_1 = ['ix', [1, 2, 3]]
-            c_1 = ['col1', [5, 6, 7]]
-            c_2 = ['col2', ["a", Nothing, "c"]]
-            c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
-            expected_i_1 = ['ix', [3]]
-            expected_c_1 = ['col1', [7]]
-            expected_c_2 = ['col2', ["c"]]
-            expected_c_3 = ['col3', [Nothing]]
-            expected_last = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3] . set_index 'ix'
-
-            t_2 = t_1.last
-
-            t_2.index.to_vector . should_equal expected_last.index.to_vector
-            t_2.at 'col1' . to_vector . should_equal (expected_last.at 'col1' . to_vector)
-            t_2.at 'col2' . to_vector . should_equal (expected_last.at 'col2' . to_vector)
-            t_2.at 'col3' . to_vector . should_equal (expected_last.at 'col3' . to_vector)
-
-            empty_ix = ['ix', []]
-            empty_col = ['col_1', []]
-            empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
-
-            empty_table.last.should_fail_with Empty_Error
+            t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
 
         Test.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -595,7 +574,7 @@ spec =
             t_3 = Table.new [c_3_1, c_3_2, c_3_3]
             t_3.default_visualization.should_equal Visualization.Id.table
 
-    selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
+    selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
     Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
@@ -617,7 +596,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column_1", "1"]
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names_Data [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
@@ -626,7 +605,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "Column_1"]
-            problems = [Invalid_Output_Column_Names [Nothing]]
+            problems = [Invalid_Output_Column_Names_Data [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -637,7 +616,34 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
-            problems = [Duplicate_Output_Column_Names ["A", "A", "A"]]
+            problems = [Duplicate_Output_Column_Names_Data ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
+
+    Test.group "[In-Memory] Table.aggregate" <|
+        Test.specify "should return columns with correct types" <|
+            dates = ["dates", [Date.new 1999, Date.new 2000, Date.new 2000, Date.new 2000]]
+            texts = ["texts", ["a", "bb", "a", "bb"]]
+            mixed = ["mixed", [1, "a", "a", 1]]
+            ints = ["ints", [0, 1, 1, 0]]
+            floats = ["floats", [0.1, 1.0, 2.0, 1.5]]
+            objects = ["objects", [My_Data 0 1, My_Data 0 1, My_Data 2 2, My_Data 2 2]]
+            table = Table.new [dates, texts, mixed, ints, floats, objects]
+
+            t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
+            t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
+            t1.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Text, Storage.Text, Storage.Any, Storage.Integer, Storage.Any]
+
+            t2 = table.aggregate [Mode "dates", Count_Distinct "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
+            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Distinct objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
+            t2.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Integer, Storage.Integer, Storage.Integer, Storage.Decimal]
+
+            t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
+            t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
+            t3.info.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Decimal]
+
+            t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
+            t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
+            t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
+
 
 main = Test.Suite.run_main spec

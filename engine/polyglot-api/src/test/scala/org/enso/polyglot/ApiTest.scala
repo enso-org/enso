@@ -26,11 +26,11 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |foo = x -> x + 1
         |bar = x -> foo x + 1
         |""".stripMargin
-    val module                = executionContext.evalModule(code, "Test")
-    val associatedConstructor = module.getAssociatedConstructor
-    val barFunction           = module.getMethod(associatedConstructor, "bar").get
+    val module         = executionContext.evalModule(code, "Test")
+    val associatedType = module.getAssociatedType
+    val barFunction    = module.getMethod(associatedType, "bar").get
     val result = barFunction.execute(
-      associatedConstructor.newInstance(),
+      associatedType,
       10L.asInstanceOf[AnyRef]
     )
     result.asLong shouldEqual 12
@@ -39,19 +39,21 @@ class ApiTest extends AnyFlatSpec with Matchers {
   "Parsing a file and calling a method on an arbitrary atom" should "be possible" in {
     val code =
       """
-        |type Vector x y z
+        |type Vector
+        |    Vec x y z
         |
         |Vector.squares self = case self of
-        |    Vector x y z -> Vector x*x y*y z*z
+        |    Vec x y z -> Vec x*x y*y z*z
         |
         |Vector.sum self = case self of
-        |    Vector x y z -> x + y + z
+        |    Vec x y z -> x + y + z
         |
         |Vector.squareNorm self = self.squares.sum
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
-    val vectorCons = module.getConstructor("Vector")
-    val squareNorm = module.getMethod(vectorCons, "squareNorm").get
+    val vectorCons = module.getConstructor("Vec")
+    val squareNorm =
+      module.getMethod(module.getType("Vector"), "squareNorm").get
     val testVector = vectorCons.newInstance(
       1L.asInstanceOf[AnyRef],
       2L.asInstanceOf[AnyRef],

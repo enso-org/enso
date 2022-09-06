@@ -16,6 +16,7 @@ Cargo.toml
 
 # Scala Libraries
 /lib/scala/ @4e6
+/lib/scala/interpreter-dsl/ @4e6 @jaroslavtulach
 
 # GUI
 /run @MichaelMauderer @wdanilo

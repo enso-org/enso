@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -9,6 +7,10 @@ import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+
+import java.util.BitSet;
+import java.util.List;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends NumericStorage {
@@ -61,7 +63,7 @@ public class DoubleStorage extends NumericStorage {
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.DOUBLE;
   }
 
@@ -258,5 +260,23 @@ public class DoubleStorage extends NumericStorage {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
+  }
+
+  @Override
+  public DoubleStorage slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    long[] newData = new long[newSize];
+    BitSet newMissing = new BitSet(newSize);
+    int offset = 0;
+    for (SliceRange range : ranges) {
+      int length = range.end() - range.start();
+      System.arraycopy(data, range.start(), newData, offset, length);
+      for (int i = 0; i < length; ++i) {
+        newMissing.set(offset + i, isMissing.get(range.start() + i));
+      }
+      offset += length;
+    }
+
+    return new DoubleStorage(newData, newSize, newMissing);
   }
 }

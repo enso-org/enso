@@ -59,7 +59,7 @@ class ModuleManagementTest
 
     val mainModule =
       ctx.executionContext.getTopScope.getModule("Enso_Test.Test.Main")
-    val assocCons = mainModule.getAssociatedConstructor
+    val assocCons = mainModule.getAssociatedType
     val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute().asLong() shouldEqual 12345L
@@ -80,7 +80,7 @@ class ModuleManagementTest
 
     val mainModule =
       ctx.executionContext.getTopScope.getModule("Enso_Test.Test.Main")
-    val assocCons = mainModule.getAssociatedConstructor
+    val assocCons = mainModule.getAssociatedType
     val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute().asLong() shouldEqual 123L
@@ -127,7 +127,7 @@ class ModuleManagementTest
     )
 
     val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
+    val assocCons  = mainModule.getAssociatedType
     val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute().asLong shouldEqual 11L
   }
@@ -156,7 +156,7 @@ class ModuleManagementTest
                           |""".stripMargin)
 
     val mainModule = topScope.getModule("Enso_Test.Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
+    val assocCons  = mainModule.getAssociatedType
     val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute().asLong shouldEqual 21L
   }
@@ -174,7 +174,7 @@ class ModuleManagementTest
         |""".stripMargin,
       "X"
     )
-    val mod1AssocCons = mod1.getAssociatedConstructor
+    val mod1AssocCons = mod1.getAssociatedType
     val mod1Main      = mod1.getMethod(mod1AssocCons, "bar").get
     mod1Main.execute(mod1AssocCons).asLong shouldEqual 124
 
@@ -189,7 +189,7 @@ class ModuleManagementTest
       "X2"
     )
     val exception =
-      the[PolyglotException] thrownBy mod2.getAssociatedConstructor
+      the[PolyglotException] thrownBy mod2.getAssociatedType
     exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 

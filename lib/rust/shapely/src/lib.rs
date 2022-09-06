@@ -21,6 +21,7 @@
 // ==============
 
 pub mod cartesian;
+pub mod clone_ref;
 pub mod generator;
 pub mod shared;
 pub mod singleton;

@@ -755,117 +755,64 @@ function ok(value: any) {
 }
 
 class Config {
-    public entry: string
-    public project: string
-    public project_manager: string
-    public language_server_rpc: string
-    public language_server_data: string
-    public namespace: string
-    public platform: string
-    public frame: boolean
-    public theme: string
-    public dark_theme: boolean
-    public high_contrast: boolean
-    public use_loader: boolean
-    public wasm_url: string
-    public wasm_glue_url: string
-    public node_labels: boolean
-    public crash_report_host: string
-    public data_gathering: boolean
-    public is_in_cloud: boolean
-    public verbose: boolean
-    public authentication_enabled: boolean
-    public email: string
-    public application_config_url: string
-    public test_workflow: string
-    public skip_min_version_check: boolean
-    public preferred_engine_version: SemVer
-    public enable_new_component_browser: boolean
-
-    static default() {
-        let config = new Config()
-        config.use_loader = true
-        config.wasm_url = '/assets/ide.wasm'
-        config.wasm_glue_url = '/assets/wasm_imports.js'
-        config.crash_report_host = defaultLogServerHost
-        config.data_gathering = true
-        config.is_in_cloud = false
-        config.entry = null
-        config.authentication_enabled = true
-        config.application_config_url =
-            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
-        config.skip_min_version_check = Versions.isDevVersion()
-        config.preferred_engine_version = Versions.ideVersion
-        config.enable_new_component_browser = false
-        return config
-    }
+    public entry: string = undefined
+    public project: string = undefined
+    public project_manager: string = undefined
+    public language_server_rpc: string = undefined
+    public language_server_data: string = undefined
+    public namespace: string = undefined
+    public platform: string = undefined
+    public frame: boolean = false
+    public theme: string = undefined
+    public dark_theme: boolean = false
+    public high_contrast: boolean = false
+    public use_loader: boolean = true
+    public wasm_url: string = '/assets/ide.wasm'
+    public wasm_glue_url: string = '/assets/wasm_imports.js'
+    public node_labels: boolean = false
+    public crash_report_host: string = defaultLogServerHost
+    public data_gathering: boolean = true
+    public is_in_cloud: boolean = false
+    public verbose: boolean = false
+    public authentication_enabled: boolean = true
+    public email: string = undefined
+    public application_config_url: string =
+        'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+    public test_workflow: string = undefined
+    public skip_min_version_check: boolean = Versions.isDevVersion()
+    public preferred_engine_version: SemVer = Versions.ideVersion
+    public enable_new_component_browser: boolean = false
 
     updateFromObject(other: any) {
         if (!ok(other)) {
             return
         }
-        this.entry = ok(other.entry) ? tryAsString(other.entry) : this.entry
-        this.project = ok(other.project) ? tryAsString(other.project) : this.project
-        this.project_manager = ok(other.project_manager)
-            ? tryAsString(other.project_manager)
-            : this.project_manager
-        this.language_server_rpc = ok(other.language_server_rpc)
-            ? tryAsString(other.language_server_rpc)
-            : this.language_server_rpc
-        this.language_server_data = ok(other.language_server_data)
-            ? tryAsString(other.language_server_data)
-            : this.language_server_data
-        this.namespace = ok(other.namespace) ? tryAsString(other.namespace) : this.namespace
-        this.platform = ok(other.platform) ? tryAsString(other.platform) : this.platform
-        this.frame = ok(other.frame) ? tryAsBoolean(other.frame) : this.frame
-        this.theme = ok(other.theme) ? tryAsString(other.theme) : this.theme
-        this.dark_theme = ok(other.dark_theme) ? tryAsBoolean(other.dark_theme) : this.dark_theme
-        this.high_contrast = ok(other.high_contrast)
-            ? tryAsBoolean(other.high_contrast)
-            : this.high_contrast
-        this.use_loader = ok(other.use_loader) ? tryAsBoolean(other.use_loader) : this.use_loader
-        this.wasm_url = ok(other.wasm_url) ? tryAsString(other.wasm_url) : this.wasm_url
-        this.wasm_glue_url = ok(other.wasm_glue_url)
-            ? tryAsString(other.wasm_glue_url)
-            : this.wasm_glue_url
-        this.node_labels = ok(other.node_labels)
-            ? tryAsBoolean(other.node_labels)
-            : this.node_labels
-        this.crash_report_host = ok(other.crash_report_host)
-            ? tryAsString(other.crash_report_host)
-            : this.crash_report_host
-        this.data_gathering = parseBoolean(other.data_gathering) ?? this.data_gathering
-        this.is_in_cloud = ok(other.is_in_cloud)
-            ? tryAsBoolean(other.is_in_cloud)
-            : this.is_in_cloud
-        this.verbose = ok(other.verbose) ? tryAsBoolean(other.verbose) : this.verbose
-        this.authentication_enabled = ok(other.authentication_enabled)
-            ? tryAsBoolean(other.authentication_enabled)
-            : this.authentication_enabled
-        this.email = ok(other.email) ? tryAsString(other.email) : this.email
-        this.application_config_url = ok(other.application_config_url)
-            ? tryAsString(other.application_config_url)
-            : this.application_config_url
-        this.test_workflow = ok(other.test_workflow)
-            ? tryAsString(other.test_workflow)
-            : this.test_workflow
-        this.skip_min_version_check = ok(other.skip_min_version_check)
-            ? tryAsBoolean(other.skip_min_version_check)
-            : this.skip_min_version_check
-        this.preferred_engine_version =
-            semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
-        this.enable_new_component_browser =
-            parseBoolean(other.enable_new_component_browser) ?? this.enable_new_component_browser
-    }
-}
-
-function parseBoolean(value: any): boolean | null {
-    if (value === 'true' || value === true) {
-        return true
-    } else if (value === 'false' || value === false) {
-        return false
-    } else {
-        return null
+        for (let key of Object.keys(this)) {
+            let self: any = this
+            let otherVal = other[key]
+            let selfVal = self[key]
+            if (ok(otherVal)) {
+                if (typeof selfVal === 'boolean') {
+                    let val = tryAsBoolean(otherVal)
+                    if (val === null) {
+                        console.error(
+                            `Invalid value for ${key}: ${otherVal}. Expected boolean. Reverting to the default value of `
+                        )
+                    } else {
+                        self[key] = val
+                    }
+                } else if (selfVal instanceof SemVer) {
+                    let val = semver.parse(otherVal)
+                    if (val === null) {
+                        console.error(`Invalid value for ${key}: ${otherVal}. Expected semver.`)
+                    } else {
+                        self[key] = val
+                    }
+                } else {
+                    self[key] = tryAsString(otherVal)
+                }
+            }
+        }
     }
 }
 
@@ -881,10 +828,9 @@ function parseBooleanOrLeaveAsIs(value: any): any {
     return value
 }
 
-function tryAsBoolean(value: any): boolean {
+function tryAsBoolean(value: any): boolean | null {
     value = parseBooleanOrLeaveAsIs(value)
-    assert(typeof value == 'boolean')
-    return value
+    return typeof value == 'boolean' ? value : null
 }
 
 function tryAsString(value: any): string {
@@ -963,12 +909,12 @@ API.main = async function (inputConfig: any) {
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
 
-    const config = Config.default()
+    const config = new Config()
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
     if (await checkMinSupportedVersion(config)) {
-        if (config.authentication_enabled) {
+        if (config.authentication_enabled && !config.entry) {
             new FirebaseAuthentication(function (user: any) {
                 config.email = user.email
                 runEntryPoint(config)
