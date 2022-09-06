@@ -1,5 +1,5 @@
-//! Definition of strongly typed units, like `Line`, `Column`, or `Location`. Used to express type
-//! level dependencies in the whole library.
+//! Definition of strongly typed units, like `Line`, `CodePointIndex`, or `Location`. Used to
+//! express type level dependencies in the whole library.
 
 use crate::prelude::*;
 
@@ -15,8 +15,8 @@ use enso_types::unit;
 /// Common traits.
 pub mod traits {
     pub use super::bytes::Into as TRAIT_bytes_into;
-    pub use super::chars::Into as TRAIT_chars_into;
-    pub use super::column::Into as TRAIT_column_into;
+    // pub use super::chars::Into as TRAIT_chars_into;
+    pub use super::code_point_index::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
     pub use super::ubytes::Into as TRAIT_ubytes_into;
 }
@@ -58,6 +58,18 @@ impl From<usize> for Bytes {
 impl From<&usize> for Bytes {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
+    }
+}
+
+impl From<UBytes> for Bytes {
+    fn from(t: UBytes) -> Self {
+        (t.value as i32).into()
+    }
+}
+
+impl From<&UBytes> for Bytes {
+    fn from(t: &UBytes) -> Self {
+        (t.value as i32).into()
     }
 }
 
@@ -116,6 +128,7 @@ impl Add<UBytes> for Bytes {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct BytesToUBytesConversionError;
 
 impl TryFrom<Bytes> for UBytes {
@@ -136,6 +149,7 @@ impl TryFrom<Bytes> for UBytes {
 // === Chars ===
 // =============
 
+// FIXME: use CodePointIndex instead
 unit! {
 /// An offset in the buffer in Rust's chars (being roughly the Unicode code points.
 ///
@@ -224,7 +238,7 @@ impl From<&usize> for Line {
 
 
 // ==============
-// === Column ===
+// === CodePointIndex ===
 // ==============
 
 // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
@@ -235,16 +249,16 @@ unit! {
 ///
 /// See [`crate`] documentation to know more about codepoints.
 ///
-/// Note: The reason of representing Column as a code point is that our text rendering engine
+/// Note: The reason of representing CodePointIndex as a code point is that our text rendering engine
 /// display each codepoint as a separate glyph (so it does not support the _grapheme clusters_).
 /// This should be fixed when doing
 /// https://www.pivotaltracker.com/n/projects/2539304/stories/180392693: after that, the column
 /// should be measured in grapheme clusters, to have Text Area cursors behave correctly (and the
 /// usages shall be then fixed, e.g. [`crate::text::Text::column_of_byte_offset`]).
-Column::column(i32)
+CodePointIndex::code_point_index(i32)
 }
 
-impl Column {
+impl CodePointIndex {
     /// Saturating conversion to `usize`.
     pub fn as_usize(self) -> usize {
         self.value.max(0) as usize
@@ -256,13 +270,13 @@ impl Column {
     }
 }
 
-impl From<usize> for Column {
+impl From<usize> for CodePointIndex {
     fn from(t: usize) -> Self {
         (t as i32).into()
     }
 }
 
-impl From<&usize> for Column {
+impl From<&usize> for CodePointIndex {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
     }
@@ -278,7 +292,7 @@ newtype! {
 /// A type representing 2d measurements.
 Location {
     line:   Line,
-    column: Column,
+    code_point_index: CodePointIndex,
 }}
 
 impl Location {
@@ -287,8 +301,8 @@ impl Location {
         Self { line, ..self }
     }
 
-    /// Column setter.
-    pub fn with_column(self, column: Column) -> Self {
-        Self { column, ..self }
+    /// CodePointIndex setter.
+    pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
+        Self { code_point_index, ..self }
     }
 }

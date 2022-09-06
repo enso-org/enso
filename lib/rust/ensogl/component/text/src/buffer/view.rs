@@ -250,7 +250,10 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
-        debug!("\n\n\nmodify {:?} {:?}", text, transform);
+        debug!(
+            "\n\n\n\n-----------------------------------------\nmodify {:?} {:?}",
+            text, transform
+        );
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
@@ -575,7 +578,7 @@ impl ViewModel {
         result
     }
 
-    // FIXME: rename
+    // FIXME: rename - left fixme
     fn moved_selection2(&self, movement: Option<Transform>, modify: bool) -> selection::Group {
         movement.map(|t| self.moved_selection(t, modify)).unwrap_or_default()
     }

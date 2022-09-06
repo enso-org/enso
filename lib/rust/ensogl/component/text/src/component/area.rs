@@ -2,6 +2,7 @@
 //! text editors.
 
 use crate::prelude::*;
+use enso_text::unit;
 use enso_text::unit::*;
 use ensogl_core::display::shape::*;
 
@@ -50,7 +51,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
-    location_map: HashMap<usize, HashMap<Column, usize>>,
+    location_map: HashMap<unit::Line, HashMap<CodePointIndex, usize>>,
 }
 
 
@@ -96,12 +97,12 @@ impl Line {
     }
 
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn div_by_column(&self, column: Column) -> f32 {
+    fn div_by_column(&self, column: CodePointIndex) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         if ix < self.divs.len() {
             self.divs[ix]
         } else {
-            if column != Column(0) {
+            if column != CodePointIndex(0) {
                 warn!("Internal error. Incorrect text divisions.")
             }
             0.0
@@ -687,6 +688,18 @@ impl AreaModel {
                 self.redraw(true);
             }
             let mut selection_map = self.selection_map.borrow_mut();
+
+            if !do_edit {}
+
+            // /// Mapping between selection id, `Selection`, and text location.
+            // #[derive(Clone, Debug, Default)]
+            // #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+            // pub struct SelectionMap {
+            //     id_map:       HashMap<usize, Selection>,
+            //     location_map: HashMap<usize, HashMap<CodePointIndex, usize>>,
+            // }
+
+
             debug!("{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
 
@@ -695,19 +708,21 @@ impl AreaModel {
                 let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
                 debug!(">>2 {:?}", buffer_selection);
                 let id = buffer_selection.id;
-                let selection_start_line = buffer_selection.start.line.as_usize();
-                let selection_end_line = buffer_selection.end.line.as_usize();
-                let get_pos_x = |line: usize, column: Column| {
-                    if line >= self.lines.len() {
+                let selection_start_line = buffer_selection.start.line;
+                let selection_end_line = buffer_selection.end.line;
+                let get_pos_x = |line: unit::Line, code_pt_ix: CodePointIndex| {
+                    if line >= unit::Line(self.lines.len() as i32) {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
-                        self.lines.rc.borrow()[line].div_by_column(column)
+                        self.lines.rc.borrow()[line.as_usize()].div_by_column(code_pt_ix)
                     }
                 };
-                let start_x = get_pos_x(selection_start_line, buffer_selection.start.column);
-                let end_x = get_pos_x(selection_end_line, buffer_selection.end.column);
+                let start_x =
+                    get_pos_x(selection_start_line, buffer_selection.start.code_point_index);
+                let end_x = get_pos_x(selection_end_line, buffer_selection.end.code_point_index);
                 debug!("start_x {start_x}, end_x {end_x}");
-                let selection_y = -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line as f32;
+                let selection_y =
+                    -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line.value as f32;
                 debug!("selection_y {selection_y}");
                 let pos = Vector2(start_x, selection_y);
                 debug!("pos {pos}");
@@ -760,7 +775,7 @@ impl AreaModel {
                     .location_map
                     .entry(selection_start_line)
                     .or_default()
-                    .insert(buffer_selection.start.column, id);
+                    .insert(buffer_selection.start.code_point_index, id);
             }
             debug!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
@@ -813,7 +828,9 @@ impl AreaModel {
         let widths = lines
             .into_iter()
             .enumerate()
-            .map(|(view_line_index, content)| self.redraw_line(view_line_index, content))
+            .map(|(view_line_index, content)| {
+                self.redraw_line(unit::Line(view_line_index as i32), content)
+            })
             .collect_vec();
         let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
         if size_may_change {
@@ -825,6 +842,7 @@ impl AreaModel {
 
     pub fn add_glyphs_to_cursors(&self) {
         for view_line_index in 0..self.buffer.view_lines().len() {
+            let view_line_index = unit::Line(view_line_index as i32);
             self.add_line_glyphs_to_cursors(view_line_index)
         }
     }
@@ -854,7 +872,7 @@ impl AreaModel {
         })
     }
 
-    fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
+    fn redraw_line(&self, view_line_index: unit::Line, content: String) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
         let cursor_map = self
@@ -865,7 +883,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.rc.borrow_mut()[view_line_index];
+        let line = &mut self.lines.rc.borrow_mut()[view_line_index.as_usize()];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
@@ -881,7 +899,7 @@ impl AreaModel {
         let font = &glyph_system.font;
         let mut line_style_iter = line_style.iter();
         let mut glyph_offset_x = 0.0;
-        let mut column = 0.column();
+        let mut code_point_index = 0.code_point_index();
         // FIXME: after removing glyph in the middle we have two the same headers here - to be
         // optimized
         for (range, requested_non_variable_variations) in
@@ -915,10 +933,10 @@ impl AreaModel {
                     line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
                     let style = line_style_iter.next().unwrap_or_default();
                     prev_cluster_byte_off = cluster_byte_off;
-                    if column >= Column::from(line.glyphs.len()) {
+                    if code_point_index >= CodePointIndex::from(line.glyphs.len()) {
                         line.push_glyph(|| glyph_system.new_glyph());
                     }
-                    let glyph = &line.glyphs[column.value as usize];
+                    let glyph = &line.glyphs[code_point_index.value as usize];
 
                     let size = style.size.value;
                     let units_per_em = ttf_face.units_per_em();
@@ -946,7 +964,7 @@ impl AreaModel {
                     glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
                     divs.push(glyph_offset_x);
 
-                    // cursor_map.get(&column).for_each(|id| {
+                    // cursor_map.get(&code_point_index).for_each(|id| {
                     //     self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
                     //         if cursor.edit_mode.get() {
                     //             let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
@@ -966,11 +984,11 @@ impl AreaModel {
 
                     line_object.add_child(glyph);
 
-                    column += 1.column();
+                    code_point_index += 1.code_point_index();
                 }
             });
         }
-        line.glyphs.truncate(column.value as usize);
+        line.glyphs.truncate(code_point_index.value as usize);
 
         line.set_divs(divs);
 
@@ -981,7 +999,7 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
-    fn add_line_glyphs_to_cursors(&self, view_line_index: usize) {
+    fn add_line_glyphs_to_cursors(&self, view_line_index: unit::Line) {
         debug!("add_line_glyphs_to_cursors {:?}", view_line_index);
 
         let cursor_map = self
@@ -992,14 +1010,14 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.rc.borrow_mut()[view_line_index];
+        let line = &mut self.lines.rc.borrow_mut()[view_line_index.as_usize()];
 
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        let mut column = 0.column();
+        let mut code_point_index = 0.code_point_index();
 
         for glyph in &line.glyphs {
-            cursor_map.get(&column).for_each(|id| {
+            cursor_map.get(&code_point_index).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
                         let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
@@ -1014,7 +1032,7 @@ impl AreaModel {
                 glyph.mod_position_xy(|p| p - last_cursor_target);
             }
 
-            column += 1.column();
+            code_point_index += 1.code_point_index();
         }
     }
 
