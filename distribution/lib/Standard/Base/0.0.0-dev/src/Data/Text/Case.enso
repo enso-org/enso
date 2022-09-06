@@ -20,7 +20,8 @@ type Case
 type Case_Insensitive
     Case_Insensitive_Data locale=Locale.default
 
-
+## PRIVATE
+   Creates a Java `TextFoldingStrategy` from the case sensitivity setting. 
 folding_strategy : (True|Case_Insensitive) -> TextFoldingStrategy
 folding_strategy case_sensitive = case case_sensitive of
     True -> TextFoldingStrategy.unicodeNormalizedFold
