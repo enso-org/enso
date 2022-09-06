@@ -1581,10 +1581,13 @@ final class TreeToIr {
         var isAll = isAll(onlyBodies);
         final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
           Option.apply((List<IR$Name$Literal>) (Object)buildNames(onlyBodies, ',', false));
+
+        var hidingList = exp.getHiding() == null ? nil() : buildNames(exp.getHiding().getBody(), ',', false);
+        final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
+          Option.apply((List<IR$Name$Literal>) (Object)hidingList);
         return new IR$Module$Scope$Export$Module(
           qualifiedName, Option.empty(),
-          true, onlyNames,
-          Option.empty(), getIdentifiedLocation(exp), false,
+          true, onlyNames, hidingNames, getIdentifiedLocation(exp), false,
           meta(), diag()
         );
       } else {

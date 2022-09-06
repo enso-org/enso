@@ -219,6 +219,11 @@ public class EnsoCompilerTest {
     parseTest("from prj.Data.Foo export Bar, Baz");
   }
 
+  @Test
+  public void testExportFromAllHiding() throws Exception {
+    parseTest("from prj.Data.Foo export all hiding Bar, Baz");
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
