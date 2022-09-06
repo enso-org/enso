@@ -45,14 +45,16 @@ use grid_view::Col;
 mod entry;
 
 
+
 // ====================
 // === Type Aliases ===
 // ====================
 
-
 type GridView = grid_view::selectable::GridView<Entry>;
 type Entries = Rc<RefCell<Vec<Breadcrumb>>>;
 type BreadcrumbId = usize;
+
+
 
 // ============
 // === Mask ===
@@ -72,6 +74,8 @@ mod mask {
         }
     }
 }
+
+
 
 // ==============
 // === Layers ===
@@ -95,6 +99,7 @@ impl Layers {
         Layers { main, text, mask }
     }
 }
+
 
 
 // =============
@@ -191,7 +196,7 @@ impl Model {
         } else if is_separator_index {
             entry::Model::Separator
         } else if let Some(entry) = entries.borrow().get(col / 2) {
-            entry::Model::Text(entry.label.clone_ref())
+            entry::Model::Text(entry.0.clone_ref())
         } else {
             tracing::error!("Requested entry is missing in the breadcrumbs ({col})");
             entry::Model::default()
@@ -227,7 +232,7 @@ impl Model {
             self.show_ellipsis.set(show);
             let new_cols = self.grid_columns();
             self.grid.resize_grid(1, new_cols);
-            /// TODO: An API for partial update in the Grid View?
+            // TODO: An API for partial update in the Grid View?
             self.grid.request_model_for_visible_entries();
         }
     }
@@ -293,6 +298,7 @@ impl Model {
     }
 }
 
+
 // === Breadcrumb ===
 
 /// The breadcrumb type.
@@ -305,6 +311,8 @@ impl Breadcrumb {
         Self(ImString::new(label))
     }
 }
+
+
 
 // ===========
 // === FRP ===
@@ -337,6 +345,8 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
+
+
 /// ==============
 /// === Widget ===
 /// ==============
@@ -367,7 +377,7 @@ impl Breadcrumbs {
             eval_ input.clear(model.clear());
             eval input.show_ellipsis((b) model.show_ellipsis(*b));
             entry_selected <- grid.entry_selected.filter_map(|l| *l);
-            eval entry_selected([model]((row, col)) {
+            eval entry_selected([model]((_row, col)) {
                 model.grey_out(Some(col + 1));
             });
             selected <- entry_selected.map(|(_, col)| col / 2);

@@ -1,4 +1,4 @@
-//! A module defining the [`SimpleGridView`] with all helper structures.
+//! A module defining the special [`Entry`] type for the grid view of the breadcrumbs.
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -11,10 +11,8 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Scene;
-use ensogl_grid_view::entry;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
-use ensogl_grid_view::entry::ShapeWithEntryContour;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
 use ensogl_text as text;
 
@@ -76,6 +74,7 @@ pub mod ellipsis {
 }
 
 
+
 // =============
 // === Model ===
 // =============
@@ -91,10 +90,12 @@ pub enum Model {
 }
 
 
+
 // =================
 // === EntryType ===
 // =================
 
+/// A helper type that defines all possible types of entries in the breadcrumbs list.
 #[derive(Clone, Debug, CloneRef)]
 #[allow(missing_docs)]
 pub enum EntryType {
@@ -113,6 +114,8 @@ impl display::Object for EntryType {
     }
 }
 
+
+
 // =============
 // === Entry ===
 // =============
@@ -126,7 +129,7 @@ pub struct EntryData {
     app:            Application,
     display_object: display::object::Instance,
     logger:         Logger,
-    pub entry:      CloneRefCell<EntryType>,
+    entry:          CloneRefCell<EntryType>,
     text_layer:     Option<WeakLayer>,
 }
 
@@ -252,7 +255,7 @@ impl EntryData {
 
 // === Params ===
 
-/// The parameters of [`SimpleGridView`]`s entries.
+/// The parameters of Breadcrumbs' entries.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Params {
@@ -285,7 +288,7 @@ impl Default for Params {
 
 // === Entry ===
 
-/// A [`SimpleGridView`] entry - a label with background.
+/// A Breadcrumbs entry.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
@@ -322,7 +325,7 @@ impl ensogl_grid_view::Entry for Entry {
             );
             color <- switch(&should_grey_out, &text_color, &greyed_out_color);
 
-            contour <- all_with(&size, &margin, |size, margin| entry::Contour {
+            contour <- all_with(&size, &margin, |size, margin| Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
