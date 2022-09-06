@@ -9,7 +9,6 @@ from Standard.Base.Error.Common import Time_Error_Data
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.time.temporal.TemporalAdjusters
 
 ## Obtains the current date from the system clock in the system timezone.
 
@@ -234,25 +233,11 @@ type Date
 
     ## Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
-    start_of self period=Date_Period.Month = case period of
-        Date_Period.Year ->
-            Time_Utils.apply_adjuster self TemporalAdjusters.firstDayOfYear
-        Date_Period.Quarter ->
-            Time_Utils.quarter_start self
-        Date_Period.Month ->
-            Time_Utils.apply_adjuster self TemporalAdjusters.firstDayOfMonth
-        Date_Period.Day -> self
+    start_of self period=Date_Period.Month = period.adjust_start self
 
     ## Returns the last date within the `Date_Period` containing self.
     end_of: Date_Period -> Date
-    end_of self period=Date_Period.Month = case self of
-        Date_Period.Year ->
-            Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfYear
-        Date_Period.Quarter ->
-            Time_Utils.quarter_end self
-        Date_Period.Month ->
-            Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfMonth
-        Date_Period.Day -> self
+    end_of self period=Date_Period.Month = period.adjust_end self
 
     ## ALIAS Date to Time
 

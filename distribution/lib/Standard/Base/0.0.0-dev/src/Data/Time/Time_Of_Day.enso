@@ -170,6 +170,14 @@ type Time_Of_Day
     nanosecond : Integer
     nanosecond self = @Builtin_Method "Time_Of_Day.nanosecond"
 
+    ## Returns the first time within the `Time_Period` containing self.
+    start_of : Time_Period -> Time_Of_Day
+    start_of self period=Time_Period.Day = period.adjust_start self
+
+    ## Returns the last time within the `Time_Period` containing self.
+    end_of: Time_Period -> Time_Of_Day
+    end_of self period=Date_Period.Month = period.adjust_end self
+
     ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
        > Example

@@ -1,5 +1,35 @@
-## Represents a period of time shorter than a day.
+from Standard.Base import all
+
+polyglot java import org.enso.base.Time_Utils
+polyglot java import java.time.temporal.ChronoUnit
+
+## Represents a period of time of a day or shorter.
 type Time_Period
+     Day
      Hour
      Minute
      Second
+
+    ## PRIVATE
+       This method could be replaced with matching on `Date_Period` supertype
+       if/when that is supported.
+    is_date_period : Boolean
+    is_date_period self = False
+
+    ## PRIVATE
+    to_java_unit : TemporalUnit
+    to_java_unit self = case self of
+        Day -> ChronoUnit.DAYS
+        Hour -> ChronoUnit.HOURS
+        Minute -> ChronoUnit.MINUTES
+        Second -> ChronoUnit.SECONDS
+
+    ## PRIVATE
+    adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
+    adjust_start self date =
+        Time_Utils.start_of_time_period date self.to_java_unit
+
+    ## PRIVATE
+    adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
+    adjust_end self date =
+        Time_Utils.end_of_time_period date self.to_java_unit

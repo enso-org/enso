@@ -205,14 +205,6 @@ public class Time_Utils {
     return (LocalTime.parse(text, formatter.withLocale(locale)));
   }
 
-  public static void playground() {
-    TemporalAdjusters.firstDayOfYear();
-    TemporalAdjusters.lastDayOfYear();
-
-    TemporalAdjusters.firstDayOfMonth();
-    TemporalAdjusters.lastDayOfMonth();
-  }
-
   public static Temporal apply_adjuster(Temporal date, TemporalAdjuster adjuster) {
     return date.with(adjuster);
   }
@@ -231,11 +223,19 @@ public class Time_Utils {
     return temporal.with(ChronoField.MONTH_OF_YEAR, lastMonth).with(TemporalAdjusters.lastDayOfMonth());
   }
 
-  public static ZonedDateTime start_of_day(ZonedDateTime date) {
-    return date.truncatedTo(ChronoUnit.DAYS);
+  public static ZonedDateTime start_of_time_period(ZonedDateTime date, TemporalUnit unit) {
+    return date.truncatedTo(unit);
   }
 
-  public static ZonedDateTime end_of_day(ZonedDateTime date) {
-    return date.truncatedTo(ChronoUnit.DAYS).plusDays(1).minusNanos(1);
+  public static LocalTime start_of_time_period(LocalTime date, TemporalUnit unit) {
+    return date.truncatedTo(unit);
+  }
+
+  public static ZonedDateTime end_of_time_period(ZonedDateTime date, TemporalUnit unit) {
+    return date.truncatedTo(unit).plus(1, unit).minusNanos(1);
+  }
+
+  public static LocalTime end_of_time_period(LocalTime date, TemporalUnit unit) {
+    return date.truncatedTo(unit).plus(1, unit).minusNanos(1);
   }
 }

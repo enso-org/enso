@@ -1,0 +1,31 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.Time_Utils
+polyglot java import java.time.temporal.TemporalAdjusters
+
+## Represents a period of time longer on the scale of days (longer than a day).
+type Date_Period
+     Year
+     Quarter
+     Month
+
+    ## PRIVATE
+       This method could be replaced with matching on `Date_Period` supertype
+       if/when that is supported.
+    is_date_period : Boolean
+    is_date_period self = True
+
+    ## PRIVATE
+    adjust_start : (Date | Date_Time) -> (Date | Date_Time)
+    adjust_start self date = case self of
+        Year -> Time_Utils.apply_adjuster date TemporalAdjusters.firstDayOfYear
+        Quarter -> Time_Utils.quarter_start date
+        Month ->
+            Time_Utils.apply_adjuster date TemporalAdjusters.firstDayOfMonth
+
+    ## PRIVATE
+    adjust_end : (Date | Date_Time) -> (Date | Date_Time)
+    adjust_end self date = case self of
+        Year -> Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfYear
+        Quarter -> Time_Utils.quarter_end self
+        Month -> Time_Utils.apply_adjuster self TemporalAdjusters.lastDayOfMonth
