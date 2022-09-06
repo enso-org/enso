@@ -1,4 +1,7 @@
-//! Breadcrumbs EnsoGL Component.
+//! Breadcrumbs of the Component Browser. It displays a stack of entered module names.
+//!
+//! To learn more about the Component Browser and its components, see the [Component Browser Design
+//! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -124,6 +127,20 @@ impl Model {
         self.grid.set_entries_size(Vector2(width, height));
     }
 
+    /// Update the position and the viewport of the underlying Grid View. If the content does not
+    /// fit into [`size`], it is cropped by the rectangular [`mask`] and shifted left, so that
+    /// the user always sees the right (most-important) part of the breadcrumbs.
+    fn update_layout(&self, content_size: Vector2, size: Vector2) {
+        self.mask.size.set(size);
+        let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
+        self.mask.set_position_xy(grid_view_center);
+        let offset = (content_size.x - size.x).max(0.0);
+        self.grid.set_position_x(-offset);
+        let right = offset + size.x;
+        let vp = Viewport { top: 0.0, bottom: -size.y, left: offset, right };
+        self.grid.set_viewport(vp);
+    }
+
     fn entry_model(
         entries: &Entries,
         col: Col,
@@ -187,10 +204,12 @@ impl Model {
         self.entries.borrow_mut().push(breadcrumb.clone_ref());
         let new_col_count = self.grid_columns();
         self.grid.resize_grid(1, new_col_count);
-        self.grid.reset_entries(1, new_col_count);
+        // TODO: An API for partial update in the Grid View?
+        self.grid.request_model_for_visible_entries();
         if let Some(last_entry) = self.last_entry() {
             self.grid.select_entry(Some((0, last_entry)));
         }
+        self.grid.hover_entry(None);
     }
 
     pub fn move_up(&self) {
@@ -204,6 +223,7 @@ impl Model {
                 self.grid.select_entry(Some((0, last)));
             }
         }
+        self.grid.hover_entry(None);
     }
 
     pub fn move_down(&self) {
@@ -215,13 +235,14 @@ impl Model {
                 }
             }
         }
+        self.grid.hover_entry(None);
     }
 
     pub fn clear(&self) {
         self.entries.borrow_mut().clear();
         self.grey_out(None);
+        self.grid.hover_entry(None);
         self.grid.resize_grid(1, 0);
-        self.grid.reset_entries(1, 0);
     }
 }
 
@@ -286,16 +307,7 @@ impl Breadcrumbs {
             eval selected([](id) tracing::debug!("Selected breadcrumb: {id}"));
             out.selected <+ selected;
             _eval <- all_with(&model.grid.content_size, &input.set_size,
-                f!([model](content_size, size) {
-                    model.mask.size.set(*size);
-                    model.mask.set_position_xy(Vector2(size.x / 2.0, -size.y / 2.0));
-                    let offset_left = (content_size.x - size.x).max(0.0);
-                    model.grid.set_position_x(-offset_left);
-                    let left = offset_left;
-                    let right = offset_left + size.x;
-                    let vp = Viewport { top: 0.0, bottom: -size.y, left, right };
-                    model.grid.set_viewport(vp);
-                })
+                f!((content_size, size) model.update_layout(*content_size, *size))
             );
             eval_ input.move_up(model.move_up());
             eval_ input.move_down(model.move_down());
