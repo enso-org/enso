@@ -49,7 +49,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope, true)
       } else {
-        val rtp = if (tp.members.nonEmpty) {
+        val rtp = if (tp.members.nonEmpty || tp.builtinType) {
           Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
         } else {
           Type.createSingleton(tp.name, scope, builtins.any(), false)

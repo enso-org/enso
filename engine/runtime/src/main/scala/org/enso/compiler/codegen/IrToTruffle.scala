@@ -265,7 +265,7 @@ class IrToTruffle(
         "Method definition missing dataflow information."
       )
 
-      val consOpt =
+      val declaredConsOpt =
         methodDef.methodReference.typePointer match {
           case None =>
             Some(moduleScope.getAssociatedType)
@@ -293,6 +293,12 @@ class IrToTruffle(
                 }
               }
         }
+
+      val consOpt = declaredConsOpt.map { c =>
+        if (methodDef.isStatic) {
+          c.getEigentype
+        } else { c }
+      }
 
       consOpt.foreach { cons =>
         val expressionProcessor = new ExpressionProcessor(

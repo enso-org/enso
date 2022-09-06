@@ -1441,6 +1441,17 @@ object IR {
 
               s"${methodReference.showCode(indent)} = $exprStr"
             }
+
+            def isStatic: Boolean = body match {
+              case function: Function.Lambda =>
+                function.arguments.headOption.map(_.name) match {
+                  case Some(IR.Name.Self(_, true, _, _)) => true
+                  case _                                 => false
+                }
+              case _ =>
+                true // if it's not a function, it has no arguments, therefore no `self`
+            }
+
           }
 
           /** The definition of a method for a given constructor using sugared
