@@ -882,6 +882,8 @@ impl AreaModel {
         let mut line_style_iter = line_style.iter();
         let mut glyph_offset_x = 0.0;
         let mut column = 0.column();
+        // FIXME: after removing glyph in the middle we have two the same headers here - to be
+        // optimized
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {

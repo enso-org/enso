@@ -250,7 +250,7 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
-        debug!("modify {:?} {:?}", text, transform);
+        debug!("\n\n\nmodify {:?} {:?}", text, transform);
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
