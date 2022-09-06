@@ -14,11 +14,11 @@ public final class Parser implements AutoCloseable {
         for (;;) {
             File parser;
             if (os.startsWith("Mac")) {
-                parser = new File("target/rust/debug/libenso_parser.dylib");
+                parser = new File(dir, "target/rust/debug/libenso_parser.dylib");
             } else if (os.startsWith("Windows")) {
-                parser = new File("target/rust/debug/enso_parser.dll");
+                parser = new File(dir, "target/rust/debug/enso_parser.dll");
             } else {
-                parser = new File("target/rust/debug/libenso_parser.so");
+                parser = new File(dir, "target/rust/debug/libenso_parser.so");
             }
             try {
                 System.load(parser.getAbsolutePath());
