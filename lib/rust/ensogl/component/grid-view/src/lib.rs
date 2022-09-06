@@ -439,6 +439,12 @@ pub struct GridViewTemplate<
 /// See https://www.pivotaltracker.com/story/show/183046885 for more details.
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
+impl<E: Entry> FrpNetworkProvider for GridView<E> {
+    fn network(&self) -> &frp::Network {
+        self.widget.network()
+    }
+}
+
 impl<E: Entry> GridView<E> {
     /// Create new Grid View.
     fn new(app: &Application) -> Self {

@@ -366,16 +366,28 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> 
     }
 }
 
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> FrpNetworkProvider
-    for GridView<E, HeaderEntry>
+impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> FrpNetworkProvider
+    for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
+where
+    HeaderModel: frp::node::Data,
+    InnerGridView: FrpNetworkProvider,
 {
     fn network(&self) -> &frp::Network {
         self.model.grid.network()
     }
 }
 
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
-    for GridView<E, HeaderEntry>
+impl<E, HeaderEntry> application::View
+    for GridViewTemplate<
+        E,
+        crate::GridView<E>,
+        HeaderEntry,
+        <HeaderEntry as Entry>::Model,
+        <HeaderEntry as Entry>::Params,
+    >
+where
+    E: Entry,
+    HeaderEntry: Entry<Params = E::Params>,
 {
     fn label() -> &'static str {
         "GridViewWithHeaders"
