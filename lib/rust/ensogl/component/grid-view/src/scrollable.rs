@@ -108,6 +108,12 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
+
+            _eval <- base_grid.entry_selected.map(f!([base_grid] (optpos) {
+                if let Some((row, col)) = optpos {
+                    let pos = base_grid.entry_position(*row, *col);
+                }
+            }));
         }
 
         Self { area, inner_grid, text_layer, header_layer, header_text_layer }
