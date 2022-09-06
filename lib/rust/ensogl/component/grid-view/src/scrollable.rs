@@ -114,7 +114,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                     let pos = base_grid.entry_position(*row, *col);
                     tracing::warn!("MCDBG entry selected {row},{col} -> {pos}");
                     area.scroll_to_x(pos.x);
-                    area.scroll_to_y(pos.y);
+                    area.scroll_to_y(-pos.y);
                 }
             }));
         }
