@@ -1457,15 +1457,18 @@ final class TreeToIr {
     return buildQualifiedName(t, true);
   }
   private IR$Name$Qualified buildQualifiedName(Tree t, boolean fail) {
-    var segments = buildQualifiedSegments(t, fail);
+    var segments = buildNames(t, '.', fail);
     return segments == null ? null : new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
   }
 
-  private List<IR.Name> buildQualifiedSegments(Tree t, boolean fail) {
+  private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {
     List<IR.Name> segments = nil();
     for (;;) {
       switch (t) {
         case Tree.OprApp app -> {
+          if (!String.valueOf(separator).equals(app.getOpr().getRight().codeRepr())) {
+            throw new UnhandledEntity(t, "buildNames with " + separator);
+          }
           segments = cons(buildName(app.getRhs()), segments);
           t = app.getLhs();
         }
@@ -1475,7 +1478,7 @@ final class TreeToIr {
         }
         default -> {
           if (fail) {
-            throw new UnhandledEntity(t, "buildQualifiedName");
+            throw new UnhandledEntity(t, "buildNames");
           } else {
             return null;
           }
@@ -1495,14 +1498,14 @@ final class TreeToIr {
       if (imp.getFrom() != null) {
         var qualifiedName = buildQualifiedName(imp.getFrom().getBody());
         var onlyNames = imp.getImport().getBody();
-        var isAll = buildName(onlyNames).name().equals("all");
+        var isAll = isAll(onlyNames);
         return new IR$Module$Scope$Import$Module(
           qualifiedName, Option.empty(), isAll, Option.empty(),
           Option.empty(), getIdentifiedLocation(imp), false,
           meta(), diag()
         );
       } else if (imp.getPolyglot() != null) {
-        List<IR.Name> qualifiedName = buildQualifiedSegments(imp.getImport().getBody(), true);
+        List<IR.Name> qualifiedName = buildNames(imp.getImport().getBody(), '.', true);
         StringBuilder pkg = new StringBuilder();
         String cls = extractPackageAndName(qualifiedName, pkg);
         Option<String> rename = imp.getImportAs() == null ? Option.empty() :
@@ -1541,6 +1544,13 @@ final class TreeToIr {
     return new IR$Error$Syntax(imp, IR$Error$Syntax$InvalidImport$.MODULE$, meta(), diag());
   }
 
+  private boolean isAll(Tree onlyNames) {
+    return switch (onlyNames) {
+      case Tree.Ident id -> buildName(id).name().equals("all");
+      default -> false;
+    };
+  }
+
   @SuppressWarnings("unchecked")
   private String extractPackageAndName(List<IR.Name> qualifiedName, StringBuilder pkg) {
       String cls = null;
@@ -1567,10 +1577,13 @@ final class TreeToIr {
     if (exp.getExport() != null) {
       if (exp.getFrom() != null) {
         var qualifiedName = buildQualifiedName(exp.getFrom().getBody());
-        var onlyNames = exp.getExport().getBody();
-        var isAll = buildName(onlyNames).name().equals("all");
+        var onlyBodies = exp.getExport().getBody();
+        var isAll = isAll(onlyBodies);
+        final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
+          Option.apply((List<IR$Name$Literal>) (Object)buildNames(onlyBodies, ',', false));
         return new IR$Module$Scope$Export$Module(
-          qualifiedName, Option.empty(), isAll, Option.empty(),
+          qualifiedName, Option.empty(),
+          true, onlyNames,
           Option.empty(), getIdentifiedLocation(exp), false,
           meta(), diag()
         );

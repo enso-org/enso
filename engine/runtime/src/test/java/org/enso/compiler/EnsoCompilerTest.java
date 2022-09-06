@@ -209,6 +209,16 @@ public class EnsoCompilerTest {
     parseTest("export prj.Data.Foo");
   }
 
+  @Test
+  public void testExportAs() throws Exception {
+    parseTest("export prj.Data.Foo as Bar");
+  }
+
+  @Test
+  public void testExportFrom() throws Exception {
+    parseTest("from prj.Data.Foo export Bar, Baz");
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
