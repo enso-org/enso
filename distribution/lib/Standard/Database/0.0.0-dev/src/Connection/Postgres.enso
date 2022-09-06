@@ -74,7 +74,7 @@ type Postgres
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        (if self.schema == '' then [] else [Pair 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
+        (if self.schema == '' then [] else [Pair_Data 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based

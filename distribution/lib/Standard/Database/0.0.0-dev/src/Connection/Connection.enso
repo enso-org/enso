@@ -60,10 +60,9 @@ type Connection
 
        Arguments:
         - database: The name of the database to connect to.
-        - parent: The parent connection.
     set_database : Text -> Connection -> Connection ! Sql_Error
-    set_database self database parent=self =
-        if database == self.database then parent else
+    set_database self database =
+        if database == self.database then self else
             Sql_Error.throw_sql_error "Changing database is not supported."
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
@@ -81,10 +80,9 @@ type Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-        - parent: The parent connection.
     set_schema : Text -> Connection -> Connection ! Sql_Error
-    set_schema self schema parent=self =
-        if schema == self.schema then parent else
+    set_schema self schema =
+        if schema == self.schema then self else
             Sql_Error.throw_sql_error "Changing schema is not supported."
 
     ## Gets a list of the table types
