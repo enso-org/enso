@@ -8,7 +8,6 @@ import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
@@ -18,7 +17,7 @@ import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
-import org.enso.compiler.core.IR$Module$Scope$Definition$Type;
+import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
 import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
@@ -226,48 +225,25 @@ final class TreeToIr {
       */
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
-        var translatedBody = translateTypeBody(def, true);
-        if (translatedBody.isEmpty()) {
-          // atom
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
-          /*
-          if (newArgs.exists(_.suspended)) {
-            val ast = newArgs
-              .zip(args)
-              .collect { case (arg, ast) if arg.suspended => ast }
-              .head
-            Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
-          } else {
-          */
-          Object data = new IR$Module$Scope$Definition$Data(
-            typeName,
-            args,
-            getIdentifiedLocation(inputAst),
-            meta(), diag()
-          );
-          yield (IR$Module$Scope$Definition)data;
-        } else {
-          // type
-          var containsAtomDefOrInclude = switch (translatedBody.head()) {
-            case IR$Module$Scope$Definition$Data atom -> true;
-            case IR$Module$Scope$Definition$Type type -> true;
-            case IR$Name$Literal lit -> true;
-            default -> false;
-          };
-          var hasArgs = !def.getParams().isEmpty();
-          if (containsAtomDefOrInclude && !hasArgs) {
-            List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
-            yield new IR$Module$Scope$Definition$Type(
-              typeName,
-              args,
-              (List<IR$Module$Scope$Definition$Data>) (Object) translatedBody,
-              getIdentifiedLocation(inputAst),
-              meta(), diag()
-            );
-          } else {
-            yield new IR$Error$Syntax(inputAst, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
-          }
+        var translatedBody = translateTypeBody(def.getBlock(), true);
+        for (var c : def.getConstructors()) {
+          var cExpr = c.getExpression();
+          var constructorName = buildName(inputAst, cExpr.getConstructor());
+          List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
+          var cAt = getIdentifiedLocation(inputAst);
+          var data = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+
+          translatedBody = cons(data, translatedBody);
         }
+        // type
+        List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
+        yield new IR$Module$Scope$Definition$SugaredType(
+          typeName,
+          args,
+          translatedBody.reverse(),
+          getIdentifiedLocation(inputAst),
+          meta(), diag()
+        );
       }
       case Tree.Function fn -> {
         var nameId = buildName(fn, fn.getName());
@@ -405,9 +381,9 @@ final class TreeToIr {
     * @param body the body to be translated
     * @return the [[IR]] representation of `body`
     */
-  private scala.collection.immutable.List<IR> translateTypeBody(Tree.TypeDef def, boolean found) {
+  private scala.collection.immutable.List<IR> translateTypeBody(java.util.List<Line> block, boolean found) {
     List<IR> result = nil();
-    for (var line : def.getBlock()) {
+    for (var line : block) {
       var expr = translateTypeBodyExpression(line);
       if (expr != null) {
         result = cons(expr, result);
@@ -1678,6 +1654,9 @@ final class TreeToIr {
     }
   }
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
+    if (ast == null) {
+      return Option.empty();
+    }
     try {
       int begin, len;
       if (ast instanceof Tree.Ident id) {

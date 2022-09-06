@@ -43,8 +43,8 @@ public class EnsoCompilerTest {
   public void testCase() throws Exception {
     parseTest("""
     type Msg
-        type Ahoj
-        type Ciao
+        Ahoj
+        Ciao
         """
 
 //    c x = case x of
