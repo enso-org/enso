@@ -2,6 +2,20 @@
 //!
 //! To learn more about the Component Browser and its components, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//!
+//! The Breadcrumbs component is displayed as a horizontal list composed of individual breadcrumb
+//! entries (simple text labels) separated by [`entry::Model::Separator`] icons and an optional
+//! [`entry::Model::Ellipsis`] icon at the end of the list. The ellipsis icon shows that the last
+//! module has ancestors and can be further expanded.
+//!
+//! The selection of the breadcrumbs can be controlled by both the mouse and the keyboard.
+//! After switching to a higher-level name, the lower-level names should become grayed out, letting
+//! the user to switch back fast.
+//!
+//! The implementation is based on the [`grid_view::GridView`] with a single row and variable
+//! number of columns. A custom entry type for the Grid View is implemented in the [`entry`]
+//! module. Each entry has three different representations: a text label, a separator icon and an
+//! ellipsis icon, and can switch between these representations if needed.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -258,7 +272,6 @@ impl Model {
         if let Some(last_entry) = self.column_of_the_last_entry() {
             self.grid.select_entry(Some((0, last_entry)));
         }
-        self.grid.hover_entry(None);
     }
 
     /// Move the selection to the previous breadcrumb. Stops at the first one, there is always at
@@ -273,7 +286,6 @@ impl Model {
                 self.grid.select_entry(Some((0, last)));
             }
         }
-        self.grid.hover_entry(None);
     }
 
     /// Move the selection to the next breadcrumb. Stops at the last one, there is always at
@@ -286,14 +298,12 @@ impl Model {
                 }
             }
         }
-        self.grid.hover_entry(None);
     }
 
     /// Clear the breadcrumbs list.
     pub fn clear(&self) {
         self.entries.borrow_mut().clear();
         self.grey_out(None);
-        self.grid.hover_entry(None);
         self.grid.resize_grid(1, 0);
     }
 }

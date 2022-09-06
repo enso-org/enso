@@ -274,7 +274,7 @@ impl Default for Params {
     fn default() -> Self {
         Self {
             margin:                   1.0,
-            hover_color:              color::Rgba(0.0, 0.0, 0.0, 0.2),
+            hover_color:              color::Rgba(0.0, 0.0, 0.0, 0.0),
             font:                     text::font::DEFAULT_FONT.into(),
             text_offset:              7.0,
             text_size:                12.0.into(),
