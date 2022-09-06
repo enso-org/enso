@@ -250,6 +250,15 @@ impl<Host> Model<Host> {
         });
     }
 
+    pub fn remove_all_children(&self) -> Vec<Instance<Host>> {
+        let children: Vec<Instance<Host>> =
+            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+        for child in &children {
+            child.unset_parent();
+        }
+        children
+    }
+
     /// Removes the binding to the parent object. Parent is not updated.
     fn unsafe_unset_parent_without_update(&self) {
         trace!("Removing parent bind.");

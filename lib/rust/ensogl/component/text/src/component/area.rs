@@ -660,7 +660,6 @@ impl AreaModel {
         .init()
     }
 
-
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
@@ -686,17 +685,17 @@ impl AreaModel {
                 //   will still be slow. However, inserting one char can change ligatures, so we
                 //   need to carefully analyse chars around.
                 self.redraw(true);
+            } else {
+                self.remove_glyphs_from_cursors();
             }
             let mut selection_map = self.selection_map.borrow_mut();
-
-            if !do_edit {}
 
             // /// Mapping between selection id, `Selection`, and text location.
             // #[derive(Clone, Debug, Default)]
             // #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
             // pub struct SelectionMap {
             //     id_map:       HashMap<usize, Selection>,
-            //     location_map: HashMap<usize, HashMap<CodePointIndex, usize>>,
+            //     location_map: HashMap<unit::Line, HashMap<CodePointIndex, usize>>,
             // }
 
 
@@ -714,7 +713,7 @@ impl AreaModel {
                     if line >= unit::Line(self.lines.len() as i32) {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
-                        self.lines.rc.borrow()[line.as_usize()].div_by_column(code_pt_ix)
+                        self.lines.borrow()[line.as_usize()].div_by_column(code_pt_ix)
                     }
                 };
                 let start_x =
@@ -806,7 +805,7 @@ impl AreaModel {
         let object_space = self.to_object_space(screen_pos);
         let line_index = (-object_space.y / LINE_HEIGHT) as usize;
         let line_index = std::cmp::min(line_index, self.lines.len() - 1);
-        let div_index = self.lines.rc.borrow()[line_index].div_index_close_to(object_space.x);
+        let div_index = self.lines.borrow()[line_index].div_index_close_to(object_space.x);
         let line = line_index.into();
         let column = div_index.into();
         Location(line, column)
@@ -837,13 +836,6 @@ impl AreaModel {
             let height = self.calculate_height();
             self.frp_endpoints.source.width.emit(width);
             self.frp_endpoints.source.height.emit(height);
-        }
-    }
-
-    pub fn add_glyphs_to_cursors(&self) {
-        for view_line_index in 0..self.buffer.view_lines().len() {
-            let view_line_index = unit::Line(view_line_index as i32);
-            self.add_line_glyphs_to_cursors(view_line_index)
         }
     }
 
@@ -883,7 +875,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.rc.borrow_mut()[view_line_index.as_usize()];
+        let line = &mut self.lines.borrow_mut()[view_line_index.as_usize()];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
@@ -999,6 +991,13 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
+    pub fn add_glyphs_to_cursors(&self) {
+        for line in 0..self.buffer.view_lines().len() {
+            let line = unit::Line(line as i32);
+            self.add_line_glyphs_to_cursors(line)
+        }
+    }
+
     fn add_line_glyphs_to_cursors(&self, view_line_index: unit::Line) {
         debug!("add_line_glyphs_to_cursors {:?}", view_line_index);
 
@@ -1010,7 +1009,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.rc.borrow_mut()[view_line_index.as_usize()];
+        let line = &mut self.lines.borrow_mut()[view_line_index.as_usize()];
 
         let mut last_cursor = None;
         let mut last_cursor_target = default();
@@ -1033,6 +1032,23 @@ impl AreaModel {
             }
 
             code_point_index += 1.code_point_index();
+        }
+    }
+
+    pub fn remove_glyphs_from_cursors(&self) {
+        let mut selection_map = self.selection_map.borrow();
+        for (line, cursor_map) in &selection_map.location_map {
+            for (_, cursor_id) in cursor_map {
+                let selection = selection_map.id_map.get(cursor_id).unwrap();
+                let children_count = selection.right_side.children_count();
+                warn!("CHILDREN_COUNT: {}", children_count);
+                for glyph in selection.right_side.remove_all_children() {
+                    warn!("REMOVED CHILD: {:?}", glyph);
+                    self.lines.borrow_mut()[line.as_usize()].add_child(&glyph);
+                    let pos_x = selection.position.target_value().x;
+                    glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                }
+            }
         }
     }
 
@@ -1195,7 +1211,7 @@ impl AreaModel {
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
         // Remove old Glyph structures, as they still refer to the old Glyph System.
-        self.lines.rc.take();
+        self.lines.take();
         self.add_symbols_to_scene_layer();
         self.redraw(true);
     }

@@ -459,6 +459,7 @@ impl View {
             mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
                 ,mod_on_delete_word_left,mod_on_delete_word_right);
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
+            trace modification;
             sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
             output.source.text_change <+ modification.gate(&changed).map(|m| m.changes.clone());
