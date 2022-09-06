@@ -21,7 +21,7 @@ type Case_Insensitive
     Case_Insensitive_Data locale=Locale.default
 
 
-folding_strategy : (True|Case_Insensitive) -> TextFol
+folding_strategy : (True|Case_Insensitive) -> TextFoldingStrategy
 folding_strategy case_sensitive = case case_sensitive of
     True -> TextFoldingStrategy.unicodeNormalizedFold
     Case_Insensitive_Data locale ->
