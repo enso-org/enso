@@ -112,6 +112,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             _eval <- base_grid.entry_selected.map(f!([base_grid] (optpos) {
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
+                    tracing::warn!("MCDBG entry selected {row},{col} -> {pos}");
                 }
             }));
         }
