@@ -36,67 +36,65 @@ impl Side {
 
 
 
-// =========================
-// === ArrowKeyDirection ===
-// =========================
-
-/// The four directions of the arrow keys on a typical keyboard.
-#[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
-pub enum ArrowKeyDirection {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-
-
 // ===========
 // === Key ===
 // ===========
 
 macro_rules! define_keys {
-    (Side { $($side:ident),* $(,)? } Regular { $($regular:ident),* $(,)? }) => {
-        /// A key representation.
-        ///
-        /// For reference, see the following links:
-        /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
-        #[derive(Clone,Debug,Eq,Hash,PartialEq)]
-        #[allow(missing_docs)]
-        pub enum Key {
-            $($side(Side),)*
-            $($regular,)*
-            Character (String),
-            Other     (String),
-        }
+    (
+        Side { $($side:ident),* $(,)? }
+        Arrow { $($arrow:ident),* $(,)? }
+        Regular { $($regular:ident),* $(,)? }
+    ) => {
+        paste! {
+            /// A key representation.
+            ///
+            /// For reference, see the following links:
+            /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+            #[derive(Clone,Debug,Eq,Hash,PartialEq)]
+            #[allow(missing_docs)]
+            pub enum Key {
+                $($side(Side),)*
+                $( [<Arrow $arrow>], )*
+                $($regular,)*
+                Character (String),
+                Other     (String),
+            }
 
 
-        // === KEY_NAME_MAP ===
+            // === ArrowKeyDirection ===
 
-        lazy_static! {
-            /// A mapping from a name to key instance. Please note that all side-aware keys are
-            /// instantiated to the left binding. The correct assignment (left/right) is done in a
-            /// separate step.
-            static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
-                use Key::*;
-                use Side::*;
-                let mut m = HashMap::new();
-                $(m.insert(stringify!($side), $side(Left));)*
-                $(m.insert(stringify!($regular), $regular);)*
-                m
-            };
+            /// The directions of the arrow keys on a keyboard.
+            #[derive(Copy, Clone, Debug)]
+            #[allow(missing_docs)]
+            pub enum ArrowKeyDirection {
+                $($arrow,)*
+            }
+
+            // === KEY_NAME_MAP ===
+
+            lazy_static! {
+                /// A mapping from a name to key instance. Please note that all side-aware keys are
+                /// instantiated to the left binding. The correct assignment (left/right) is done in a
+                /// separate step.
+                static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
+                    use Key::*;
+                    use Side::*;
+                    let mut m = HashMap::new();
+                    $(m.insert(stringify!($side), $side(Left));)*
+                    $(m.insert(stringify!([<Arrow $arrow>]), [<Arrow $arrow>]);)*
+                    $(m.insert(stringify!($regular), $regular);)*
+                    m
+                };
+            }
         }
     };
 }
 
 define_keys! {
-    Side    {Alt,AltGr,AltGraph,Control,Meta,Shift}
+    Side    {Alt, AltGr, AltGraph, Control, Meta, Shift}
+    Arrow   {Down, Left, Right, Up}
     Regular {
-        ArrowDown,
-        ArrowLeft,
-        ArrowRight,
-        ArrowUp,
         Backspace,
         Delete,
         End,
