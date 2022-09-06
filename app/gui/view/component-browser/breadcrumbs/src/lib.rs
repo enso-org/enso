@@ -1,21 +1,21 @@
 //! Breadcrumbs of the Component Browser. It displays a stack of entered module names.
 //!
-//! To learn more about the Component Browser and its components, see the [Component Browser Design
-//! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//! To learn more about the Component Browser and its components, see the [Component Browser
+//! Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 //!
 //! The Breadcrumbs component is displayed as a horizontal list composed of individual breadcrumb
 //! entries (simple text labels) separated by [`entry::Model::Separator`] icons and an optional
 //! [`entry::Model::Ellipsis`] icon at the end of the list. The ellipsis icon shows that the last
 //! module has ancestors and can be further expanded.
 //!
-//! The selection of the breadcrumbs can be controlled by both the mouse and the keyboard.
-//! After switching to a higher-level name, the lower-level names should become grayed out, letting
-//! the user to switch back fast.
+//! The user can select breadcrumbs either by mouse or by keyboard. After switching to a
+//! higher-level breadcrumb, the lower-level breadcrumbs should become grayed out, letting the
+//! user switch back fast.
 //!
-//! The implementation is based on the [`grid_view::GridView`] with a single row and variable
+//! The implementation is based on the [`grid_view::GridView`] with a single row and a variable
 //! number of columns. A custom entry type for the Grid View is implemented in the [`entry`]
-//! module. Each entry has three different representations: a text label, a separator icon and an
-//! ellipsis icon, and can switch between these representations if needed.
+//! module. Each entry has three different representations: a text label, a separator icon, and an
+//! ellipsis icon, and it can switch between these representations if needed.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -74,8 +74,8 @@ type BreadcrumbId = usize;
 // === Mask ===
 // ============
 
-/// A rectangular mask used to crop the content of the breadcrumbs when it doesn't fit in the
-/// designated space.
+/// A rectangular mask used to crop the breadcrumbs' content when it doesn't fit in the designated
+/// space.
 mod mask {
     use super::*;
     use ensogl_core::display::shape::*;
@@ -173,22 +173,25 @@ impl Model {
 
     /// Update the displayed height of the breadcrumbs entries.
     fn update_entries_height(&self, height: f32) {
-        // The width of the entries is not important, because each entry will set it according to
-        // its own size.
+        // The width of the entries is unimportant because each entry will adjust the columns' sizes
+        // according to its content.
         let width = 0.0;
         self.grid.set_entries_size(Vector2(width, height));
     }
 
     /// Update the position and the viewport of the underlying Grid View. If the content does not
-    /// fit into [`size`], it is cropped by the rectangular [`mask`] and shifted left, so that
-    /// the user always sees the right (most-important) part of the breadcrumbs.
+    /// fit into [`size`], it is cropped by the rectangular [`mask`] and shifted left. So that
+    /// the user always sees the right (most important) part of the breadcrumbs.
     fn update_layout(&self, content_size: Vector2, size: Vector2) {
         self.mask.size.set(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_position_xy(grid_view_center);
         let offset = (content_size.x - size.x).max(0.0);
         self.grid.set_position_x(-offset);
-        let right = offset + size.x;
+        // TODO: This padding is used to ensure that trailing ellipsis is always visible. Can we
+        //   do something better here?
+        let padding = 50.0;
+        let right = offset + size.x + padding;
         let vp = Viewport { top: 0.0, bottom: -size.y, left: offset, right };
         self.grid.set_viewport(vp);
     }
@@ -217,7 +220,7 @@ impl Model {
         }
     }
 
-    /// A number of columns in the grid view. It depends on the number of entries and whether the
+    /// A count of columns in the grid view. It depends on the number of entries and whether the
     /// ellipsis icon is displayed.
     fn grid_columns(&self) -> Col {
         let entries_count = self.entries.borrow().len();
@@ -240,7 +243,7 @@ impl Model {
         }
     }
 
-    /// Enable or disable showing of the ellipsis icon at the end of breadcrumbs stack.
+    /// Enable or disable the showing of the ellipsis icon at the end of the breadcrumbs list.
     pub fn show_ellipsis(&self, show: bool) {
         if self.show_ellipsis.get() != show {
             self.show_ellipsis.set(show);
@@ -252,7 +255,7 @@ impl Model {
     }
 
     /// Mark entries as greyed out starting from supplied column index. Cancel greying out if
-    /// [`None`] is supplied.
+    /// [`None`] is provided.
     pub fn grey_out(&self, from: Option<Col>) {
         let params = {
             let mut borrowed = self.params.borrow_mut();
@@ -274,7 +277,7 @@ impl Model {
         }
     }
 
-    /// Move the selection to the previous breadcrumb. Stops at the first one, there is always at
+    /// Move the selection to the previous breadcrumb. Stops at the first one. There is always at
     /// least one breadcrumb selected.
     pub fn move_up(&self) {
         if let Some((row, col)) = self.grid.entry_selected.value() {
@@ -288,7 +291,7 @@ impl Model {
         }
     }
 
-    /// Move the selection to the next breadcrumb. Stops at the last one, there is always at
+    /// Move the selection to the next breadcrumb. Stops at the last one. There is always at
     /// least one breadcrumb selected.
     pub fn move_down(&self) {
         if let Some((row, col)) = self.grid.entry_selected.value() {
@@ -340,13 +343,13 @@ ensogl_core::define_endpoints_2! {
         show_ellipsis(bool),
         /// Remove all breadcrumbs.
         clear(),
-        /// Set a size of the visible portion of the breadcrumbs. The widget will crop the
-        /// breadcrumbs to this size and will prioritize showing the right part of the list if it
+        /// Set the size of the visible portion of the breadcrumbs. The widget will crop the
+        /// breadcrumbs to this size and prioritize showing the right part of the list if it
         /// can't fit in completely.
         set_size(Vector2),
-        /// Move the selection to the previous breadcrumb in the list.
+        /// Move the selection to the previous (higher-level) breadcrumb in the list.
         move_up(),
-        /// Move the selection to the next breadcrumb in the list.
+        /// Move the selection to the next (lower-level) breadcrumb in the list.
         move_down(),
     }
     Output {

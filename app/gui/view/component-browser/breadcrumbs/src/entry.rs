@@ -244,9 +244,9 @@ impl EntryData {
         }
     }
 
-    fn width(&self) -> f32 {
+    fn width(&self, text_offset: f32) -> f32 {
         match self.entry.get() {
-            EntryType::Text { label } => label.width.value() + 14.0,
+            EntryType::Text { label } => label.width.value() + text_offset * 2.0,
             EntryType::Separator { .. } => separator::ICON_WIDTH,
             EntryType::Ellipsis { .. } => ellipsis::ICON_WIDTH,
         }
@@ -347,7 +347,7 @@ impl ensogl_grid_view::Entry for Entry {
                     data.set_default_color(*text_color);
                     data.set_default_text_size(*text_size);
                     data.update_layout(layout.0, layout.1, layout.2);
-                    data.width()
+                    data.width(layout.2)
                 })
             );
             out.override_column_width <+ width;
