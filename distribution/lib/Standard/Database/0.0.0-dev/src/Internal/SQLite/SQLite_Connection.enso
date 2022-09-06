@@ -145,12 +145,12 @@ type SQLite_Connection
 
 ## PRIVATE
 
-   Creates a SQLite connection based on a URL, properties and a dialect.
+   Creates a SQLite connection based on a JDBC URL and properties.
 
    Arguments:
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
-create : Text -> Vector -> Dialect -> SQLite_Connection
-create url properties dialect =
+create : Text -> Vector -> SQLite_Connection
+create url properties =
     jdbc_connection = JDBC_Connection.create url properties
-    SQLite_Connection_Data (Connection_Data jdbc_connection dialect)
+    SQLite_Connection_Data (Connection_Data jdbc_connection Dialect.sqlite)
