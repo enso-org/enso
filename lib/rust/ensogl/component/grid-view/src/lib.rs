@@ -546,11 +546,13 @@ impl<E: Entry> GridView<E> {
         let frp = self.frp();
         if let Some((row, col)) = frp.entry_selected.value() {
             let (rows, cols) = frp.grid_size.value();
+            let row_below = row + 1;
+            let col_to_the_right = col + 1;
             let new_selection_if_in_bounds = match dir {
                 Up if row > 0 => Some((row - 1, col)),
-                Down if row + 1 < rows => Some((row + 1, col)),
+                Down if row < Row::MAX && row_below < rows => Some((row_below, col)),
                 Left if col > 0 => Some((row, col - 1)),
-                Right if col + 1 < cols => Some((row, col + 1)),
+                Right if col < Col::MAX && col_to_the_right < cols => Some((row, col_to_the_right)),
                 _ => None,
             };
             if let Some(selection) = new_selection_if_in_bounds {
