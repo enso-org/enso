@@ -98,6 +98,13 @@ public class EnsoCompilerTest {
     fac n = if n == 1 then 1 else n * fac n-1
     """);
   }
+  
+  @Test
+  public void testComments() throws Exception {
+    parseTest("""
+    # a b c
+    """);
+  }
 
   @Test
   @Ignore // because of https://github.com/enso-org/enso/pull/3653#issuecomment-1221841342
