@@ -186,8 +186,8 @@ always trust the results you get.
 # Enso Source Code
 
 If you want to start _using_ Enso, please see the download links in the
-[getting started](#getting-started) section above. Alternatively, you can get the
-IDE [here](https://github.com/enso-org/ide/releases) and the language itself
+[getting started](#getting-started) section above. Alternatively, you can get
+the IDE [here](https://github.com/enso-org/ide/releases) and the language itself
 [here](https://github.com/enso-org/enso/releases). This section is intended for
 people interested in contributing to the development of Enso.
 
@@ -225,10 +225,10 @@ IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0),
 as specified in the
 [LICENSE](https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE) file.
 
-This license set was chosen to provide you with complete freedom to use
-Enso, create libraries, and release them under any license of your choice, while
-also allowing us to release commercial products on top of the platform,
-including Enso Cloud and Enso Enterprise server managers.
+This license set was chosen to provide you with complete freedom to use Enso,
+create libraries, and release them under any license of your choice, while also
+allowing us to release commercial products on top of the platform, including
+Enso Cloud and Enso Enterprise server managers.
 
 <br/>
 
