@@ -121,43 +121,42 @@ impl Properties {
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
-        /// Move selection one position up.
-        move_selection_up(),
+        accept_entry(Row, Col),
+        hover_entry(Option<(Row, Col)>),
+        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
+        /// event for given row and column. After that the entry will be visible.
+        model_for_entry(Row, Col, EntryModel),
         /// Move selection one position down.
         move_selection_down(),
         /// Move selection one position to the left.
         move_selection_left(),
         /// Move selection one position to the right.
         move_selection_right(),
-
-        /// Declare what area of the GridView is visible. The area position is relative to left-top
-        /// corner of the Grid View.
-        set_viewport(Viewport),
+        /// Move selection one position up.
+        move_selection_up(),
+        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
+        /// [`reset_entries`], it does not detach any entry.
+        request_model_for_visible_entries(),
+        /// Reset entries, providing new number of rows and columns. All currently displayed entries
+        /// will be detached and their models re-requested.
+        reset_entries(Row, Col),
         /// Set new size of the grid. If the number of rows or columns is reduced, the entries are
         /// removed from the view. If it is extended, new model for entries may be requested if
         /// needed.
         resize_grid(Row, Col),
-        /// Reset entries, providing new number of rows and columns. All currently displayed entries
-        /// will be detached and their models re-requested.
-        reset_entries(Row, Col),
-        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
-        /// event for given row and column. After that the entry will be visible.
-        model_for_entry(Row, Col, EntryModel),
-        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
-        /// [`reset_entries`], it does not detach any entry.
-        request_model_for_visible_entries(),
-        /// Set the entries size. All entries have the same size.
-        set_entries_size(Vector2),
+        select_entry(Option<(Row, Col)>),
         /// Set the width of the specified column.
         set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
+        /// Set the entries size. All entries have the same size.
+        set_entries_size(Vector2),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
-        select_entry(Option<(Row, Col)>),
-        hover_entry(Option<(Row, Col)>),
-        accept_entry(Row, Col),
+        /// Declare what area of the GridView is visible. The area position is relative to left-top
+        /// corner of the Grid View.
+        set_viewport(Viewport),
     }
 
     Output {
