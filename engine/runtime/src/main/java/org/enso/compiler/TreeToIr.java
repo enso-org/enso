@@ -18,6 +18,8 @@ import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
 import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
+import org.enso.compiler.core.IR$Module$Scope$Export;
+import org.enso.compiler.core.IR$Module$Scope$Export$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
@@ -66,6 +68,7 @@ final class TreeToIr {
       case Tree.BodyBlock b -> {
         List<IR$Module$Scope$Definition> bindings = nil();
         List<IR$Module$Scope$Import> imports = nil();
+        List<IR$Module$Scope$Export> exports = nil();
         for (Line line : b.getStatements()) {
           switch (line.getExpression()) {
             case Tree.Assignment a -> {
@@ -99,6 +102,9 @@ final class TreeToIr {
             case Tree.Import imp -> {
               imports = cons(translateImport(imp), imports);
             }
+            case Tree.Export exp -> {
+              exports = cons(translateExport(exp), exports);
+            }
             case Tree.Function fn -> {
               var t = translateModuleSymbol(fn);
               bindings = cons(t, bindings);
@@ -120,7 +126,7 @@ final class TreeToIr {
             }
           }
         }
-        yield new IR.Module(imports.reverse(), nil(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
+        yield new IR.Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
       }
       default -> throw new UnhandledEntity(module, "translateModule");
     };
@@ -228,6 +234,9 @@ final class TreeToIr {
         var translatedBody = translateTypeBody(def.getBlock(), true);
         for (var c : def.getConstructors()) {
           var cExpr = c.getExpression();
+          if (cExpr == null) {
+            continue;
+          }
           var constructorName = buildName(inputAst, cExpr.getConstructor());
           List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
           var cAt = getIdentifiedLocation(inputAst);
@@ -1034,11 +1043,17 @@ final class TreeToIr {
               default -> throw new UnhandledEntity(app.getLhs(), "translateArgumentDefinition");
             };
           }
+          case Tree.TypeAnnotated anno -> {
+            yield null;
+          }
           default -> throw new UnhandledEntity(withValue.getLhs(), "translateArgumentDefinition");
         };
       }
       case Tree.OprSectionBoundary bound -> {
           yield translateArgumentDefinition(bound.getAst(), isSuspended);
+      }
+      case Tree.TypeAnnotated anno -> {
+        yield null;
       }
       /*
       case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>
@@ -1547,8 +1562,30 @@ final class TreeToIr {
     *
     * @param exp the export to translate
     * @return the [[IR]] representation of `imp`
-
-  def translateExport(exp: AST.Export): Module.Scope.Export.Module = {
+    */
+  IR$Module$Scope$Export$Module translateExport(Tree.Export exp) {
+    if (exp.getExport() != null) {
+      if (exp.getFrom() != null) {
+        var qualifiedName = buildQualifiedName(exp.getFrom().getBody());
+        var onlyNames = exp.getExport().getBody();
+        var isAll = buildName(onlyNames).name().equals("all");
+        return new IR$Module$Scope$Export$Module(
+          qualifiedName, Option.empty(), isAll, Option.empty(),
+          Option.empty(), getIdentifiedLocation(exp), false,
+          meta(), diag()
+        );
+      } else {
+        var qualifiedName = buildQualifiedName(exp.getExport().getBody());
+        Option<IR$Name$Literal> rename = exp.getExportAs() == null ? Option.empty() :
+                Option.apply(buildName(exp.getExportAs().getBody()));
+        return new IR$Module$Scope$Export$Module(
+          qualifiedName, rename, false, Option.empty(),
+          Option.empty(), getIdentifiedLocation(exp), false,
+          meta(), diag()
+        );
+      }
+    }
+    /*
     exp match {
       case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Export.Module(
@@ -1559,8 +1596,9 @@ final class TreeToIr {
           hiddenNames.map(_.map(buildName(_)).toList),
           getIdentifiedLocation(exp)
         )
-      case _ => throw new UnhandledEntity(exp, "translateExport")
     }
+      case _ -> */
+    throw new UnhandledEntity(exp, "translateExport");
   }
 
   /** Translates an arbitrary invalid expression from the [[AST]] representation

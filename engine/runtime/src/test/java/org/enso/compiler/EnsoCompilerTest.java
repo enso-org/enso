@@ -98,7 +98,7 @@ public class EnsoCompilerTest {
     fac n = if n == 1 then 1 else n * fac n-1
     """);
   }
-  
+
   @Test
   public void testComments() throws Exception {
     parseTest("""
@@ -202,6 +202,11 @@ public class EnsoCompilerTest {
   @Test
   public void testSignature4() throws Exception {
     parseTest("val = foo (123 : Int)");
+  }
+
+  @Test
+  public void testExport1() throws Exception {
+    parseTest("export prj.Data.Foo");
   }
 
   @SuppressWarnings("unchecked")

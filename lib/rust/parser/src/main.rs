@@ -34,7 +34,9 @@ use enso_parser::prelude::*;
 
 fn main() {
     init_wasm();
-    let ast = enso_parser::Parser::new().run("foo = 23");
+    let ast = enso_parser::Parser::new().run("
+export Foo
+    ");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);
 }
