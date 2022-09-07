@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -24,8 +26,11 @@ public final class Vector implements TruffleObject {
   private final Object storage;
 
   private Vector(Object storage) {
-    assert InteropLibrary.getUncached().hasArrayElements(storage)
-        : "Vector needs array-like delegate, but got: " + storage;
+    if (CompilerDirectives.inInterpreter()) {
+      if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
+        throw new IllegalStateException("Vector needs array-like delegate, but got: " + storage);
+      }
+    }
     this.storage = storage;
   }
 
@@ -49,10 +54,23 @@ public final class Vector implements TruffleObject {
     return new Vector(new Array(target));
   }
 
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E) t;
+  @Builtin.Method(
+      name = "to_array",
+      description = "Returns an Array representation of this Vector.")
+  public final Object toArray() {
+    return this.storage;
   }
+
+  @Builtin.Method(description = "Returns the length of this Vector.")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PolyglotError.class)
+  public final long length(InteropLibrary interop) throws UnsupportedMessageException {
+    return interop.getArraySize(storage);
+  }
+
+  //
+  // messages for the InteropLibrary
+  //
 
   /**
    * Marks the object as array-like for Polyglot APIs.
@@ -64,21 +82,9 @@ public final class Vector implements TruffleObject {
     return true;
   }
 
-  /**
-   * Exposes the size of this collection through the polyglot API.
-   *
-   * @return the size of this array
-   */
   @ExportMessage
-  public long getArraySize() throws UnsupportedMessageException {
-    InteropLibrary interop = InteropLibrary.getUncached();
-    return interop.getArraySize(storage);
-  }
-
-  @Builtin.Method(description = "Returns the length of this Vector.")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PolyglotError.class)
-  public long length(InteropLibrary interop) throws UnsupportedMessageException {
+  public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
+      throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }
 
@@ -90,20 +96,13 @@ public final class Vector implements TruffleObject {
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
   @ExportMessage
-  public Object readArrayElement(long index)
+  public Object readArrayElement(
+      long index,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
-    InteropLibrary interop = InteropLibrary.getUncached();
     var v = interop.readArrayElement(storage, index);
-    return HostValueToEnsoNode.build().execute(v);
-  }
-
-  public boolean isArray() {
-    return storage instanceof Array;
-  }
-
-  public Array toArrayUnsafe() throws UnsupportedMessageException {
-    if (!isArray()) throw UnsupportedMessageException.create();
-    return (Array) storage;
+    return toEnso.execute(v);
   }
 
   public static Vector fromArray(Object arr) {
@@ -117,9 +116,10 @@ public final class Vector implements TruffleObject {
    * @return {@code true} if the index is valid, {@code false} otherwise.
    */
   @ExportMessage
-  boolean isArrayElementReadable(long index) {
+  boolean isArrayElementReadable(long index, @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return index < getArraySize() && index >= 0;
+      var size = interop.getArraySize(storage);
+      return index < size && index >= 0;
     } catch (UnsupportedMessageException e) {
       return false;
     }
@@ -151,6 +151,10 @@ public final class Vector implements TruffleObject {
     throw UnsupportedMessageException.create();
   }
 
+  //
+  // methods for TypesLibrary
+  //
+
   @ExportMessage
   boolean hasType() {
     return true;
@@ -159,5 +163,14 @@ public final class Vector implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return Context.get(thisLib).getBuiltins().vector();
+  }
+
+  //
+  // helper methods
+  //
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }
