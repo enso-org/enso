@@ -98,7 +98,7 @@ type Connection
          means all tables are selected.
        - database: The database name to search in (default is current database).
        - schema: The schema name to search in (defaults to current schema).
-       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
