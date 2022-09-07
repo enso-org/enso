@@ -12,6 +12,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyArray;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -137,18 +139,47 @@ public class VectorTest {
     };
   }
 
+  public static ProxyArray lazyProxy() {
+    return new ProxyArray() {
+      @Override
+      public Object get(long index) {
+        QUERIED.set((int) index);
+        return "at" + index;
+      }
+
+      @Override
+      public void set(long index, Value value) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public long getSize() {
+        return 10;
+      }
+    };
+  }
+
   @Test
   public void noCopyLazyJavaList() throws Exception {
+    noCopyTest("lazyList");
+  }
+
+  @Test
+  public void noCopyLazyProxyArray() throws Exception {
+    noCopyTest("lazyProxy");
+  }
+
+  private void noCopyTest(String factoryName) throws Exception {
     final URI uri = new URI("memory://how_long.enso");
     final Source src = Source.newBuilder("enso", """
     import Standard.Base.Data.Vector
     polyglot java import org.enso.interpreter.test.VectorTest
 
-    raw = VectorTest.lazyList
-    copy = Vector.from_array VectorTest.lazyList
-    lazy = Vector.from_polyglot_array VectorTest.lazyList
+    raw = VectorTest.${call}
+    copy = Vector.from_array VectorTest.${call}
+    lazy = Vector.from_polyglot_array VectorTest.${call}
 
-    """, "how_long.enso")
+    """.replace("${call}", factoryName), "vectors.enso")
             .uri(uri)
             .buildLiteral();
 
