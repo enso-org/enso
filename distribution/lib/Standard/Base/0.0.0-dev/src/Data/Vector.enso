@@ -100,26 +100,24 @@ new_builder (capacity=10) = Builder.new capacity
 from_polyglot_array : Any -> Vector Any
 from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
-## The basic, immutable, vector type.
+##  The basic, immutable, vector type.
+    A vector allows to store an arbitrary number of elements, in linear memory.
+    It is the recommended data structure for most applications.
+
+    > Example
+      A vector containing the elements `1`, `2`, and `3`, in this order is:
+          [1, 2, 3]
+
+    > Example
+      A vector containing 50 elements, each being the number `42`, can be
+      created by:
+          Vector.fill length=50 item=42
+
 @Builtin_Type
 type Vector a
 
     ## ADVANCED
-
-       The basic, immutable, vector type.
-
-       A vector allows to store an arbitrary number of elements, in linear memory.
-       It is the recommended data structure for most applications.
-
-       > Example
-         A vector containing the elements `1`, `2`, and `3`, in this order is:
-             [1, 2, 3]
-
-       > Example
-         A vector containing 50 elements, each being the number `42`, can be
-         created by:
-             Vector.fill length=50 item=42
-
+       Copies content of a vector into an Array.
     to_array self = @Builtin_Method "Vector.to_array"
 
     ## Returns the number of elements stored in this vector.
