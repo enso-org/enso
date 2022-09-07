@@ -9,7 +9,6 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -109,13 +108,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
 
-  val sqlDatabase =
-    DeploymentType.fromEnvironment() match {
-      case Desktop =>
-        SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
-      case Azure =>
-        SqlDatabase.inmem("memdb")
-    }
+  val sqlDatabase = SqlDatabase.inmem("memdb")
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
