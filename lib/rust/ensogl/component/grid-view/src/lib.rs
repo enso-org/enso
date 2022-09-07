@@ -542,7 +542,10 @@ impl<E: Entry> GridView<E> {
     /// bounds of the grid view as defined by [`grid_size`]. Emit
     /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
     /// out of bounds of the grid. Do nothing if there is no selection.
-    fn move_selection_in_bounds_by_one_position(&self, direction: frp::io::keyboard::ArrowDirection) {
+    fn move_selection_in_bounds_by_one_position(
+        &self,
+        direction: frp::io::keyboard::ArrowDirection,
+    ) {
         use frp::io::keyboard::ArrowDirection::*;
         let frp = self.frp();
         if let Some((row, col)) = frp.entry_selected.value() {
