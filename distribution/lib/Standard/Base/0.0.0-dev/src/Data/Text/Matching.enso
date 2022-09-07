@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Text.Case import Case_Insensitive, Case_Insensitive_Data
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Wrapped_Dataflow_Error_Data
 
@@ -12,13 +13,6 @@ No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text self =
     "The criteria "+self.criteria.to_text+" did not match any names in the input."
 
-
-## Represents case-insensitive comparison mode.
-
-   Arguments:
-   - locale: The locale used for the comparison.
-type Case_Insensitive
-    Case_Insensitive_Data locale=Locale.default
 
 ## Represents exact text matching mode.
 
