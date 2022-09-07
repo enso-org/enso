@@ -62,8 +62,8 @@
   new node is created.][3645]
 - [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
-- [Selecting a suggestion from the searcher or component browser now updates the 
-  visualisation of the edited node to preview the results of applying the 
+- [Selecting a suggestion from the searcher or component browser now updates the
+  visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
 
 #### EnsoGL (rendering engine)
