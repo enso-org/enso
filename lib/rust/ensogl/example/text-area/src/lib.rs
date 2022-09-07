@@ -58,7 +58,7 @@ fn init(app: Application) {
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
-
+    // TODO: check scrolled area
 
 
     // area.set_cursor_at_end();

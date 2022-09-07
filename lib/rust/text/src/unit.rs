@@ -358,21 +358,53 @@ impl From<&usize> for CodePointIndex {
 // === Location ===
 // ================
 
-newtype! {
-/// A type representing 2d measurements.
-Location {
-    line:   Line,
-    code_point_index: CodePointIndex,
-}}
+mod location {
+    use super::*;
+    newtype! {
+    /// A type representing 2d measurements.
+    Location {
+        line:   Line,
+        code_point_index: CodePointIndex,
+    }}
 
-impl Location {
-    /// Line setter.
-    pub fn with_line(self, line: Line) -> Self {
-        Self { line, ..self }
-    }
+    impl Location {
+        /// Line setter.
+        pub fn with_line(self, line: Line) -> Self {
+            Self { line, ..self }
+        }
 
-    /// CodePointIndex setter.
-    pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
-        Self { code_point_index, ..self }
+        /// CodePointIndex setter.
+        pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
+            Self { code_point_index, ..self }
+        }
     }
 }
+pub use location::*;
+
+
+// ================
+// === Location ===
+// ================
+
+mod view_location {
+    use super::*;
+    newtype! {
+    /// A type representing 2d measurements.
+    ViewLocation {
+        line:   ViewLine,
+        code_point_index: CodePointIndex,
+    }}
+
+    impl ViewLocation {
+        /// Line setter.
+        pub fn with_line(self, line: ViewLine) -> Self {
+            Self { line, ..self }
+        }
+
+        /// CodePointIndex setter.
+        pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
+            Self { code_point_index, ..self }
+        }
+    }
+}
+pub use view_location::*;

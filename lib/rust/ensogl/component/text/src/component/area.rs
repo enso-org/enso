@@ -685,10 +685,24 @@ impl AreaModel {
                 // let lines_to_be_redrawn =
 
                 for change in changes {
+                    let change = self
+                        .buffer
+                        .change_with_selection_to_view_change_with_selection(change.clone());
                     warn!("change: {:#?}", change);
                     // self.buffer.line_to_view_line(change.)
                     // self.buffer.view_lines()
                 }
+
+                // mozlowe ze mozmy zrobic tak, ze jak jest redraw linijki, to bierzemy nowy ontent
+                // i ta optymalizuemy ktorel iterki sa redrawowane nie musimy
+                // wczesniej pobirac changes i ich aplikowac. po prostu wziac to przez rustybuzz i
+                // literka po literce sprawdzac czy potrzebuje redraw w literkach
+                // trzeba zapaimietac z jakich range poswstaly
+                //
+                // Wtedy moze tez da sie usunac te struktury ChangeWithLocation ktore zrobilismy
+                //
+                // moze jednak te struktury trzeb zostawic bo trzeba wiedziec jakie linijki
+                // przerysowywac
 
                 // let newlines_count = changes
                 //     .iter()

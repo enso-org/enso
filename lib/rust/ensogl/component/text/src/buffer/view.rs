@@ -87,10 +87,10 @@ impl<T> Modification<T> {
 
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
-pub struct ChangeWithSelection<Metric = UBytes, Str = Text> {
+pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     #[deref]
     change:    Change<Metric, Str>,
-    selection: Selection,
+    selection: Selection<Loc>,
 }
 
 
@@ -623,6 +623,32 @@ impl ViewModel {
 
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
         (line - self.first_view_line()).into()
+    }
+
+    pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
+        let line = self.line_to_view_line(location.line);
+        let code_point_index = location.code_point_index;
+        ViewLocation { line, code_point_index }
+    }
+
+    pub fn selection_to_view_selection(
+        &self,
+        selection: Selection<Location>,
+    ) -> Selection<ViewLocation> {
+        let start = self.location_to_view_location(selection.shape.start);
+        let end = self.location_to_view_location(selection.shape.end);
+        let shape = selection::Shape { start, end };
+        let id = selection.id;
+        Selection { shape, id }
+    }
+
+    pub fn change_with_selection_to_view_change_with_selection<Metric, Str>(
+        &self,
+        change_with_selection: ChangeWithSelection<Metric, Str, Location>,
+    ) -> ChangeWithSelection<Metric, Str, ViewLocation> {
+        let selection = self.selection_to_view_selection(change_with_selection.selection);
+        let change = change_with_selection.change;
+        ChangeWithSelection { selection, change }
     }
 
     /// Byte offset of the first line of this buffer view.
