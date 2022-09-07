@@ -167,8 +167,9 @@ helper tools for that. We recommend:
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
-**For users of MacOS Monterey and later**: building desktop IDE currently requires Python 2 
-installed in the system. It can be installed using the following commands:
+**For users of MacOS Monterey and later**: building desktop IDE currently
+requires Python 2 installed in the system. It can be installed using the
+following commands:
 
 ```sh
 brew install pyenv
