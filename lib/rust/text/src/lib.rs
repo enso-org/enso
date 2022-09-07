@@ -1,3 +1,4 @@
+#![feature(step_trait)]
 //! The text operation utilities.
 //!
 //! This crate contains several utility structures for operations on text:

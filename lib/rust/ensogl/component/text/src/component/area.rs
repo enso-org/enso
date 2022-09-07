@@ -681,6 +681,9 @@ impl AreaModel {
             // w gore przy selekcji slidera zmienia jego wartosc, skakanie pomiedzy
             // selekcjami sasiadujacych widgetow, co z widgetami hierarchicznymi?
             // TODO ^^^
+
+            let view_line_range = self.buffer.view_line_range();
+
             if let Some(changes) = changes {
                 // let lines_to_be_redrawn =
 
@@ -695,7 +698,7 @@ impl AreaModel {
 
                 let line_ranges = changes
                     .iter()
-                    .map(|change| {
+                    .filter_map(|change| {
                         let change = change.clone();
                         let change =
                             self.buffer.change_with_selection_to_view_change_with_selection(change);
@@ -704,7 +707,8 @@ impl AreaModel {
                         let newline_count = unit::ViewLine(newline_count as i32);
                         let start_line = change.selection.shape.start.line;
                         let end_line = change.selection.shape.end.line + newline_count;
-                        start_line..(end_line + unit::ViewLine(1))
+                        let range = start_line..=end_line;
+                        range.intersect(&view_line_range)
                     })
                     .collect_vec();
 
@@ -713,6 +717,8 @@ impl AreaModel {
 
                 warn!("LINES TO REDRAW: {:#?}", lines_to_redraw);
 
+                self.resize_lines();
+                self.redraw_sorted_line_ranges(&lines_to_redraw);
 
                 // mozlowe ze mozmy zrobic tak, ze jak jest redraw linijki, to bierzemy nowy ontent
                 // i ta optymalizuemy ktorel iterki sa redrawowane nie musimy
@@ -725,33 +731,10 @@ impl AreaModel {
                 // moze jednak te struktury trzeb zostawic bo trzeba wiedziec jakie linijki
                 // przerysowywac
 
-                // let newlines_count = changes
-                //     .iter()
-                //     .map(|change| {
-                //         let change_str = change.text.to_string();
-                //         change_str.chars().filter(|c| *c == '\n').count()
-                //     })
-                //     .max()
-                //     .unwrap_or(0);
-                //
-                // let line_ranges = buffer_selections
-                //     .iter()
-                //     .map(|selection| {
-                //         let start_line = selection.start.line;
-                //         let end_line = selection.end.line;
-                //         let max_line = start_line.max(end_line);
-                //         let min_line = start_line.min(end_line);
-                //         let min_line = min_line.saturating_sub(unit::Line(newlines_count as
-                // i32));         min_line..=max_line
-                //     })
-                //     .collect_vec();
-                //
-                // warn!("LINES TO REDRAW: {:#?}", line_ranges);
-
                 // TODO: do smaller redraws - at least only the changed lines. For longer lines this
                 //   will still be slow. However, inserting one char can change ligatures, so we
                 //   need to carefully analyse chars around.
-                self.redraw(true);
+                // self.redraw(true);
             } else {
                 self.remove_glyphs_from_cursors();
             }
@@ -885,7 +868,21 @@ impl AreaModel {
         self
     }
 
-    pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {}
+    pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+        for range in sorted_line_ranges {
+            let lines_content = self.buffer.lines_content(range.clone());
+            for (line, content) in range.clone().into_iter().zip(lines_content) {
+                self.redraw_line(line, content);
+            }
+        }
+    }
+
+    pub fn resize_lines(&self) {
+        let lines = self.buffer.view_lines();
+        let line_count = lines.len();
+        self.lines.resize_with(line_count, |ix| self.new_line(ix));
+    }
+
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self, size_may_change: bool) {

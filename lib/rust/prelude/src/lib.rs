@@ -8,6 +8,7 @@
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(generators)]
+#![feature(step_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -59,6 +60,7 @@ pub use leak::*;
 pub use macros::*;
 pub use option::*;
 pub use phantom::*;
+pub use range::traits::*;
 pub use rc::*;
 pub use reference::*;
 pub use result::*;

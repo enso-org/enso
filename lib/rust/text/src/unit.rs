@@ -265,6 +265,26 @@ impl From<&usize> for ViewLine {
     }
 }
 
+impl iter::Step for ViewLine {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        let diff = end.value - start.value;
+        if diff < 0 {
+            None
+        } else {
+            Some(diff as usize)
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_add(count as i32)?;
+        Some(ViewLine(new_value))
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_sub(count as i32)?;
+        Some(ViewLine(new_value))
+    }
+}
 // impl From<Line> for ViewLine {
 //     fn from(t: Line) -> Self {
 //         t.value.into()

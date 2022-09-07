@@ -1,3 +1,12 @@
+pub mod traits {
+    pub use super::RangeIntersect;
+    pub use super::RangeLen;
+    pub use super::RangeOps;
+    pub use super::RangeOverlap;
+}
+
+
+
 // ================
 // === RangeOps ===
 // ================
@@ -52,6 +61,36 @@ impl<T: Clone> RangeOps for std::ops::RangeInclusive<T> {
 
 
 
+// ================
+// === RangeLen ===
+// ================
+
+pub trait RangeLen: RangeOps {
+    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+    where Self::Item: std::ops::Sub<Self::Item>;
+}
+
+impl<T: Clone> RangeLen for std::ops::Range<T> {
+    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+    where Self::Item: std::ops::Sub<Self::Item> {
+        self.end.clone() - self.start.clone()
+    }
+}
+
+impl<T: Clone + std::ops::Sub> RangeLen for std::ops::RangeInclusive<T>
+where <T as std::ops::Sub>::Output: std::iter::Step
+{
+    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+    where Self::Item: std::ops::Sub<Self::Item> {
+        <<T as std::ops::Sub>::Output as std::iter::Step>::forward(
+            self.end().clone() - self.start().clone(),
+            1,
+        )
+    }
+}
+
+
+
 // ====================
 // === RangeOverlap ===
 // ====================
@@ -73,6 +112,36 @@ impl<T: PartialOrd> RangeOverlap<std::ops::RangeInclusive<T>> for std::ops::Rang
         let overlap1 = || self.start() >= other.start() && self.start() <= other.end();
         let overlap2 = || other.start() >= self.start() && other.start() <= self.end();
         overlap1() || overlap2()
+    }
+}
+
+
+// ======================
+// === RangeIntersect ===
+// ======================
+
+pub trait RangeIntersect<T = Self> {
+    type Result;
+    fn intersect(&self, other: &T) -> Self::Result;
+}
+
+impl<T> RangeIntersect<std::ops::RangeInclusive<T>> for std::ops::RangeInclusive<T>
+where T: PartialOrd + Clone
+{
+    type Result = Option<std::ops::RangeInclusive<T>>;
+
+    fn intersect(&self, other: &Self) -> Self::Result {
+        if self.overlaps(other) {
+            let self_start = self.start().clone();
+            let self_end = self.end().clone();
+            let other_start = other.start().clone();
+            let other_end = other.end().clone();
+            let start = if self_start > other_start { self_start } else { other_start };
+            let end = if self_end < other_end { self_end } else { other_end };
+            Some(start..=end)
+        } else {
+            None
+        }
     }
 }
 

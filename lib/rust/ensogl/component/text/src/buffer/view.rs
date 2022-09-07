@@ -617,13 +617,21 @@ impl ViewModel {
         self.view_line_count.get()
     }
 
-    /// Range of line indexes of this buffer view.
-    pub fn view_line_range(&self) -> Range<Line> {
-        self.first_view_line()..self.last_view_line()
+    // /// Range of line indexes of this buffer view.
+    // pub fn view_line_range(&self) -> Range<Line> {
+    //     self.first_view_line()..self.last_view_line()
+    // }
+
+    pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
+        ViewLine(0)..=self.line_to_view_line(self.last_view_line())
     }
 
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
         ViewLine((line - self.first_view_line()).value)
+    }
+
+    pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
+        Line(self.first_view_line().value + view_line.value)
     }
 
     pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
@@ -698,5 +706,14 @@ impl ViewModel {
     /// Return all lines of this buffer view.
     pub fn view_lines(&self) -> Vec<String> {
         self.lines_vec(self.view_byte_range())
+    }
+
+    pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
+        let start_line = self.view_line_to_line(*range.start());
+        let end_line = self.view_line_to_line(*range.end());
+        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
+        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
+        let range = start_byte_offset..end_byte_offset;
+        self.lines_vec(range)
     }
 }
