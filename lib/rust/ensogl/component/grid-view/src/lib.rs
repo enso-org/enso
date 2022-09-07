@@ -538,8 +538,8 @@ impl<E: Entry> GridView<E> {
         Self { widget }
     }
 
-    /// Move selection by one position in given direction if the resulting selection is still in
-    /// bounds of the grid view as defined by [`grid_size`]. Emit
+    /// Move selection by one position in given direction if the resulting selection is in bounds
+    /// of the grid view as defined by [`grid_size`]. Emit
     /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
     /// out of bounds of the grid. Do nothing if there is no selection.
     fn move_selection_in_bounds_by_one_position(
