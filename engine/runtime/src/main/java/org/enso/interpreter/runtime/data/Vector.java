@@ -24,6 +24,8 @@ public final class Vector implements TruffleObject {
   private final Object storage;
 
   private Vector(Object storage) {
+    assert InteropLibrary.getUncached().hasArrayElements(storage)
+        : "Vector needs array-like delegate, but got: " + storage;
     this.storage = storage;
   }
 
@@ -104,7 +106,6 @@ public final class Vector implements TruffleObject {
     return (Array) storage;
   }
 
-  @Builtin.Method(description = "Returns an Array representation of this Vector.")
   public static Vector fromArray(Object arr) {
     return new Vector(arr);
   }
