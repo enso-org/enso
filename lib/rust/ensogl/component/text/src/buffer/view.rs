@@ -68,7 +68,7 @@ pub struct HistoryData {
 /// `ViewBuffer`.
 #[derive(Clone, Debug, Default)]
 pub struct Modification<T = UBytes> {
-    pub changes:         Vec<Change<T>>,
+    pub changes:         Vec<ChangeWithSelection<T>>,
     pub selection_group: selection::Group,
     /// Byte offset of this modification. For example, after pressing a backspace with a cursor
     /// placed after an ASCII char, this should result in `-1`.
@@ -85,6 +85,13 @@ impl<T> Modification<T> {
     }
 }
 
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
+pub struct ChangeWithSelection<Metric = UBytes, Str = Text> {
+    #[deref]
+    change:    Change<Metric, Str>,
+    selection: Selection,
+}
 
 
 // ==================
@@ -336,7 +343,9 @@ impl ViewBuffer {
         debug!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
         debug!("new_byte_selection {:?}", new_byte_selection);
-        let changes = vec![Change { range, text }];
+        let change = Change { range, text };
+        let change = ChangeWithSelection { change, selection };
+        let changes = vec![change];
         debug!("change {:?}", changes);
         let selection_group =
             selection::Group::from(self.to_location_selection(new_byte_selection));
@@ -418,7 +427,7 @@ ensogl_core::define_endpoints! {
     Output {
         selection_edit_mode     (Modification),
         selection_non_edit_mode (selection::Group),
-        text_change             (Vec<Change>),
+        text_change             (Vec<ChangeWithSelection>),
     }
 }
 
@@ -541,10 +550,10 @@ impl Default for View {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct ViewModel {
-    pub frp:               FrpInputs,
-    pub view_buffer:       ViewBuffer,
-    first_view_line_index: Rc<Cell<Line>>,
-    view_line_count:       Rc<Cell<usize>>,
+    pub frp:         FrpInputs,
+    pub view_buffer: ViewBuffer,
+    first_view_line: Rc<Cell<ViewLine>>,
+    view_line_count: Rc<Cell<usize>>,
 }
 
 impl Deref for ViewModel {
@@ -559,9 +568,9 @@ impl ViewModel {
     pub fn new(frp: &FrpInputs, view_buffer: impl Into<ViewBuffer>) -> Self {
         let frp = frp.clone_ref();
         let view_buffer = view_buffer.into();
-        let first_view_line_index = default();
+        let first_view_line = default();
         let view_line_count = Rc::new(Cell::new(DEFAULT_LINE_COUNT));
-        Self { frp, view_buffer, first_view_line_index, view_line_count }
+        Self { frp, view_buffer, first_view_line, view_line_count }
     }
 }
 
@@ -591,15 +600,15 @@ impl ViewModel {
     }
 
     /// Index of the first line of this buffer view.
-    pub fn first_view_line_index(&self) -> Line {
-        self.first_view_line_index.get()
+    pub fn first_view_line(&self) -> ViewLine {
+        self.first_view_line.get()
     }
 
     /// Index of the last line of this buffer view.
-    pub fn last_view_line_index(&self) -> Line {
+    pub fn last_view_line(&self) -> ViewLine {
         let max_line = self.last_line_index();
         let view_line_count: Line = self.view_line_count().into();
-        max_line.min(self.first_view_line_index() + view_line_count)
+        max_line.min(self.first_view_line() + view_line_count).into()
     }
 
     /// Number of lines visible in this buffer view.
@@ -608,18 +617,22 @@ impl ViewModel {
     }
 
     /// Range of line indexes of this buffer view.
-    pub fn view_line_range(&self) -> Range<Line> {
-        self.first_view_line_index()..self.last_view_line_index()
+    pub fn view_line_range(&self) -> Range<ViewLine> {
+        self.first_view_line()..self.last_view_line()
+    }
+
+    pub fn line_to_view_line(&self, line: Line) -> ViewLine {
+        (line - self.first_view_line()).into()
     }
 
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.first_view_line_index()).unwrap() // FIXME
+        self.byte_offset_of_line_index(self.first_view_line().into()).unwrap() // FIXME
     }
 
     /// Byte offset of the last line of this buffer view.
     pub fn last_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.last_view_line_index()).unwrap()
+        self.byte_offset_of_line_index(self.last_view_line().into()).unwrap()
     }
 
     /// Byte offset range of lines visible in this buffer view.
@@ -629,12 +642,12 @@ impl ViewModel {
 
     /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
     pub fn view_end_byte_offset_snapped(&self) -> UBytes {
-        self.end_byte_offset_of_line_index_snapped(self.last_view_line_index())
+        self.end_byte_offset_of_line_index_snapped(self.last_view_line().into())
     }
 
     /// Return the offset after the last character of a given view line if the line exists.
     pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
-        self.end_byte_offset_of_line_index(line + self.first_view_line_index.get()).ok()
+        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
     }
 
     /// The byte range of this buffer view.
@@ -644,13 +657,13 @@ impl ViewModel {
 
     /// The byte offset of the given buffer view line index.
     pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
-        let line = self.first_view_line_index() + view_line;
+        let line = self.first_view_line() + view_line;
         self.byte_offset_of_line_index(line)
     }
 
     /// Byte range of the given view line.
     pub fn byte_range_of_view_line_index_snapped(&self, view_line: Line) -> Range<UBytes> {
-        let line = view_line + self.first_view_line_index.get();
+        let line = view_line + self.first_view_line.get();
         self.byte_range_of_line_index_snapped(line)
     }
 

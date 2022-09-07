@@ -13,7 +13,8 @@
 //! - https://gankra.github.io/blah/text-hates-you
 //! - https://lord.io/blog/2019/text-editing-hates-you-too
 //! - https://utf8everywhere.org
-//! - https://docs.google.com/document/d/1wuzzMOvKOJw93SWZAqoim1VUl9mloUxE0W6Ki_G23tw/edit (copy) https://docs.google.com/document/d/1D7iWPWQHrWY276WPVFZTi8JJqUnTcIVJs4dlG0IdCp8
+//! - https://docs.google.com/document/d/1wuzzMOvKOJw93SWZAqoim1VUl9mloUxE0W6Ki_G23tw/edit (copy)
+//! - https://docs.google.com/document/d/1D7iWPWQHrWY276WPVFZTi8JJqUnTcIVJs4dlG0IdCp8
 //!
 //! As a very short introduction, there are several common names used in this implementation:
 //!

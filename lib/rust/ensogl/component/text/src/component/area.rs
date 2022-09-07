@@ -51,7 +51,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
-    location_map: HashMap<unit::Line, HashMap<CodePointIndex, usize>>,
+    location_map: HashMap<unit::ViewLine, HashMap<CodePointIndex, usize>>,
 }
 
 
@@ -301,7 +301,7 @@ ensogl_core::define_endpoints! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Vec<enso_text::Change>),
+        changed         (Vec<crate::ChangeWithSelection>),
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
@@ -664,7 +664,7 @@ impl AreaModel {
     fn on_modified_selection(
         &self,
         buffer_selections: &buffer::selection::Group,
-        changes: Option<&[enso_text::Change]>,
+        changes: Option<&[crate::ChangeWithSelection]>,
         time: f32,
     ) {
         let do_edit = changes.is_some();
@@ -684,28 +684,34 @@ impl AreaModel {
             if let Some(changes) = changes {
                 // let lines_to_be_redrawn =
 
-                let newlines_count = changes
-                    .iter()
-                    .map(|change| {
-                        let change_str = change.text.to_string();
-                        change_str.chars().filter(|c| *c == '\n').count()
-                    })
-                    .max()
-                    .unwrap_or(0);
+                for change in changes {
+                    warn!("change: {:#?}", change);
+                    // self.buffer.line_to_view_line(change.)
+                    // self.buffer.view_lines()
+                }
 
-                let line_ranges = buffer_selections
-                    .iter()
-                    .map(|selection| {
-                        let start_line = selection.start.line;
-                        let end_line = selection.end.line;
-                        let max_line = start_line.max(end_line);
-                        let min_line = start_line.min(end_line);
-                        let min_line = min_line.saturating_sub(unit::Line(newlines_count as i32));
-                        min_line..=max_line
-                    })
-                    .collect_vec();
-
-                warn!("LINES TO REDRAW: {:#?}", line_ranges);
+                // let newlines_count = changes
+                //     .iter()
+                //     .map(|change| {
+                //         let change_str = change.text.to_string();
+                //         change_str.chars().filter(|c| *c == '\n').count()
+                //     })
+                //     .max()
+                //     .unwrap_or(0);
+                //
+                // let line_ranges = buffer_selections
+                //     .iter()
+                //     .map(|selection| {
+                //         let start_line = selection.start.line;
+                //         let end_line = selection.end.line;
+                //         let max_line = start_line.max(end_line);
+                //         let min_line = start_line.min(end_line);
+                //         let min_line = min_line.saturating_sub(unit::Line(newlines_count as
+                // i32));         min_line..=max_line
+                //     })
+                //     .collect_vec();
+                //
+                // warn!("LINES TO REDRAW: {:#?}", line_ranges);
 
                 // TODO: do smaller redraws - at least only the changed lines. For longer lines this
                 //   will still be slow. However, inserting one char can change ligatures, so we
@@ -733,10 +739,11 @@ impl AreaModel {
                 let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
                 debug!(">>2 {:?}", buffer_selection);
                 let id = buffer_selection.id;
-                let selection_start_line = buffer_selection.start.line;
-                let selection_end_line = buffer_selection.end.line;
-                let get_pos_x = |line: unit::Line, code_pt_ix: CodePointIndex| {
-                    if line >= unit::Line(self.lines.len() as i32) {
+                let selection_start_line =
+                    self.buffer.line_to_view_line(buffer_selection.start.line);
+                let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
+                let get_pos_x = |line: unit::ViewLine, code_pt_ix: CodePointIndex| {
+                    if line >= unit::ViewLine(self.lines.len() as i32) {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
                         self.lines.borrow()[line.as_usize()].div_by_column(code_pt_ix)
@@ -854,7 +861,7 @@ impl AreaModel {
             .into_iter()
             .enumerate()
             .map(|(view_line_index, content)| {
-                self.redraw_line(unit::Line(view_line_index as i32), content)
+                self.redraw_line(unit::ViewLine(view_line_index as i32), content)
             })
             .collect_vec();
         let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
@@ -890,7 +897,7 @@ impl AreaModel {
         })
     }
 
-    fn redraw_line(&self, view_line_index: unit::Line, content: String) -> f32 {
+    fn redraw_line(&self, view_line_index: unit::ViewLine, content: String) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
         let cursor_map = self
@@ -1019,12 +1026,12 @@ impl AreaModel {
 
     pub fn add_glyphs_to_cursors(&self) {
         for line in 0..self.buffer.view_lines().len() {
-            let line = unit::Line(line as i32);
+            let line = unit::ViewLine(line as i32);
             self.add_line_glyphs_to_cursors(line)
         }
     }
 
-    fn add_line_glyphs_to_cursors(&self, view_line_index: unit::Line) {
+    fn add_line_glyphs_to_cursors(&self, view_line_index: unit::ViewLine) {
         debug!("add_line_glyphs_to_cursors {:?}", view_line_index);
 
         let cursor_map = self

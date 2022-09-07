@@ -19,6 +19,7 @@ pub mod traits {
     pub use super::code_point_index::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
     pub use super::ubytes::Into as TRAIT_ubytes_into;
+    pub use super::view_line::Into as TRAIT_view_line_into;
 }
 pub use traits::*;
 
@@ -232,6 +233,75 @@ impl From<usize> for Line {
 impl From<&usize> for Line {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
+    }
+}
+
+unit! {
+/// A type representing vertical measurements.
+ViewLine::view_line(i32)
+}
+
+impl ViewLine {
+    /// Saturating conversion to `usize`.
+    pub fn as_usize(self) -> usize {
+        self.value.max(0) as usize
+    }
+
+    /// Compute the absolute value of this line.
+    pub fn abs(self) -> Self {
+        self.value.saturating_abs().into()
+    }
+}
+
+impl From<usize> for ViewLine {
+    fn from(t: usize) -> Self {
+        (t as i32).into()
+    }
+}
+
+impl From<&usize> for ViewLine {
+    fn from(t: &usize) -> Self {
+        (*t as i32).into()
+    }
+}
+
+impl From<Line> for ViewLine {
+    fn from(t: Line) -> Self {
+        t.value.into()
+    }
+}
+
+impl From<ViewLine> for Line {
+    fn from(t: ViewLine) -> Self {
+        t.value.into()
+    }
+}
+
+impl Add<Line> for ViewLine {
+    type Output = Line;
+    fn add(self, rhs: Line) -> Self::Output {
+        Line::from(self) + rhs
+    }
+}
+
+impl Add<ViewLine> for Line {
+    type Output = Line;
+    fn add(self, rhs: ViewLine) -> Self::Output {
+        self + Line::from(rhs)
+    }
+}
+
+impl Sub<Line> for ViewLine {
+    type Output = Line;
+    fn sub(self, rhs: Line) -> Self::Output {
+        Line::from(self) - rhs
+    }
+}
+
+impl Sub<ViewLine> for Line {
+    type Output = Line;
+    fn sub(self, rhs: ViewLine) -> Self::Output {
+        self - Line::from(rhs)
     }
 }
 
