@@ -1,7 +1,7 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.MultiValueKey;
+import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 
 import java.util.Arrays;
@@ -51,7 +51,7 @@ public class First extends Aggregator {
   }
 
   private Object firstBySpecifiedOrder(List<Integer> indexes) {
-    MultiValueKey key = null;
+    OrderedMultiValueKey key = null;
     Object current = null;
 
     for (int row : indexes) {
@@ -60,8 +60,9 @@ public class First extends Aggregator {
         continue;
       }
 
-      MultiValueKey newKey =
-          new MultiValueKey(this.orderByColumns, row, this.orderByDirections, objectComparator);
+      OrderedMultiValueKey newKey =
+          new OrderedMultiValueKey(
+              this.orderByColumns, row, this.orderByDirections, objectComparator);
       if (key == null || key.compareTo(newKey) > 0) {
         key = newKey;
         current = storage.getItemBoxed(row);

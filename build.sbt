@@ -1767,7 +1767,7 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"             % icuVersion,
+      "com.ibm.icu"         % "icu4j"             % icuVersion % "provided",
       "com.univocity"       % "univocity-parsers" % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
@@ -1786,6 +1786,7 @@ lazy val `std-table` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
 
 lazy val `std-image` = project
   .in(file("std-bits") / "image")

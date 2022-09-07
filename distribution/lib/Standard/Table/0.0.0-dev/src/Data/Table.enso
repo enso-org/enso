@@ -3,6 +3,7 @@ import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
@@ -14,10 +15,10 @@ import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
@@ -541,7 +542,7 @@ type Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
-        on_problems.attach_problems_before validated.problems <|
+        on_problems.attach_problems_before validated.problems <| Illegal_Argument_Error.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -650,8 +651,52 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+            java_table = Illegal_Argument_Error.handle_java_exception <|
+                self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table_Data java_table
+
+    ## Returns the distinct set of rows within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns, the
+       first row of each such set is returned.
+
+       For the in-memory table, the unique rows will be in the order they
+       occurred in the input (this is not guaranteed for database operations).
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitive: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Grouping` warning.
+    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
+        warning_mapper error = case error of
+            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
+            _ -> Nothing
+        key_columns = Warning.map_warnings_and_errors warning_mapper <|
+            Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
+        java_columns = key_columns.map .java_column
+        text_folding_strategy = Case.folding_strategy case_sensitive
+        java_table = Illegal_Argument_Error.handle_java_exception <|
+            self.java_table.distinct java_columns.to_array text_folding_strategy
+        on_problems.attach_problems_after (Table_Data java_table) <|
+            problems = java_table.getProblems
+            Aggregate_Column_Helper.parse_aggregated_problems problems
+
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
