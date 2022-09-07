@@ -141,26 +141,44 @@ spec_with name create_new_date parse_date =
             d1 = create_new_date 2022 9 12
             d1.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
             d1.end_of Date_Period.Year . should_equal (Date.new 2022 12 31)
+            d1.start_of Date_Period.Quarter . should_equal (Date.new 2022 7 1)
+            d1.end_of Date_Period.Quarter . should_equal (Date.new 2022 9 30)
             d1.start_of Date_Period.Month . should_equal (Date.new 2022 9 1)
             d1.end_of Date_Period.Month . should_equal (Date.new 2022 9 30)
 
             d2 = create_new_date 2022 2 7
+            d2.start_of Date_Period.Quarter . should_equal (Date.new 2022 1 1)
+            d2.end_of Date_Period.Quarter . should_equal (Date.new 2022 3 31)
             d2.start_of Date_Period.Month . should_equal (Date.new 2022 2 1)
             d2.end_of Date_Period.Month . should_equal (Date.new 2022 2 28)
 
             d3 = create_new_date 2020 2 17
-            d3.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
-            d3.end_of Date_Period.Year . should_equal (Date.new 2022 12 31)
+            d3.start_of Date_Period.Year . should_equal (Date.new 2020 1 1)
+            d3.end_of Date_Period.Year . should_equal (Date.new 2020 12 31)
             d3.start_of Date_Period.Month . should_equal (Date.new 2020 2 1)
             d3.end_of Date_Period.Month . should_equal (Date.new 2020 2 29)
 
             d4 = create_new_date 1970 12 31
+            d4.start_of Date_Period.Year . should_equal (Date.new 1970 1 1)
+            d4.end_of Date_Period.Year . should_equal (Date.new 1970 12 31)
+            d4.start_of Date_Period.Quarter . should_equal (Date.new 1970 10 1)
+            d4.end_of Date_Period.Quarter . should_equal (Date.new 1970 12 31)
             d4.start_of Date_Period.Month . should_equal (Date.new 1970 12 1)
             d4.end_of Date_Period.Month . should_equal (Date.new 1970 12 31)
 
             d5 = create_new_date 2040 1 1
+            d5.start_of Date_Period.Year . should_equal (Date.new 2040 1 1)
+            d5.end_of Date_Period.Year . should_equal (Date.new 2040 12 31)
+            d5.start_of Date_Period.Quarter . should_equal (Date.new 2040 1 1)
+            d5.end_of Date_Period.Quarter . should_equal (Date.new 2040 3 31)
             d5.start_of Date_Period.Month . should_equal (Date.new 2040 1 1)
             d5.end_of Date_Period.Month . should_equal (Date.new 2040 1 31)
+
+            (create_new_date 2000 7 1).start_of Date_Period.Quarter . should_equal (Date.new 2000 7 1)
+            (create_new_date 2000 6 30).start_of Date_Period.Quarter . should_equal (Date.new 2000 4 1)
+
+            (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
+            (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
 main = Test.Suite.run_main spec
 

@@ -217,7 +217,7 @@ public class Time_Utils {
     int month = temporal.get(ChronoField.MONTH_OF_YEAR);
     int quarter = (month - 1) / 3;
     int firstMonth = quarter * 3 + 1;
-    return temporal.with(ChronoField.MONTH_OF_YEAR, firstMonth);
+    return temporal.with(ChronoField.MONTH_OF_YEAR, firstMonth).with(TemporalAdjusters.firstDayOfMonth());
   }
 
   public static Temporal quarter_end(Temporal temporal) {
@@ -225,6 +225,24 @@ public class Time_Utils {
     int quarter = (month - 1) / 3;
     int lastMonth = quarter * 3 + 3;
     return temporal.with(ChronoField.MONTH_OF_YEAR, lastMonth).with(TemporalAdjusters.lastDayOfMonth());
+  }
+
+  // These methods are added because the polyglot conversion only happens for exact types and not supertypes.
+  // TODO: check if that is the desired design, as it seems weird to have to add these methods.
+  public static LocalDate quarter_start(LocalDate date) {
+    return (LocalDate) quarter_start((Temporal) date);
+  }
+
+  public static LocalDate quarter_end(LocalDate date) {
+    return (LocalDate) quarter_end((Temporal) date);
+  }
+
+  public static ZonedDateTime quarter_start(ZonedDateTime date) {
+    return (ZonedDateTime) quarter_start((Temporal) date);
+  }
+
+  public static ZonedDateTime quarter_end(ZonedDateTime date) {
+    return (ZonedDateTime) quarter_end((Temporal) date);
   }
 
   public static ZonedDateTime start_of_time_period(ZonedDateTime date, TemporalUnit unit) {
