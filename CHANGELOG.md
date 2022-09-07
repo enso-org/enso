@@ -191,6 +191,7 @@
 - [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
 - [Implemented specialized storage for the in-memory Table.][3673]
 - [Implemented `Table.distinct` for the in-memory backend.][3684]
+- [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -293,6 +294,7 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3632]: https://github.com/enso-org/enso/pull/3632
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
