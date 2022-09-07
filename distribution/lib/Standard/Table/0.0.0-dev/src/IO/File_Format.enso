@@ -52,7 +52,6 @@ type Auto
 
 ## Reads the file to a `Vector` of bytes.
 type Bytes
-
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file _ =

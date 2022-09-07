@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Error
 
 import Standard.Table
 from Standard.Table import Column, Sort_Column, Sort_Column_Selector
@@ -7,6 +8,8 @@ from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Da
 import Standard.Table.Data.Storage
 import Standard.Table.Data.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column import all hiding First, Last
+from Standard.Table.Data.Column_Selector import By_Name
+from Standard.Table.Errors import Floating_Point_Grouping_Data
 
 import Standard.Visualization
 
@@ -14,6 +17,7 @@ import Standard.Test
 import Standard.Test.Problems
 
 import project.Common_Table_Spec
+from project.Util import all
 
 type My
     My_Data x y
@@ -633,8 +637,8 @@ spec =
             t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
             t1.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Text, Storage.Text, Storage.Any, Storage.Integer, Storage.Any]
 
-            t2 = table.aggregate [Mode "dates", Count_Distinct "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
-            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Distinct objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
+            t2 = table.aggregate [Mode "dates", Count_Not_Nothing "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
+            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
             t2.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Integer, Storage.Integer, Storage.Integer, Storage.Decimal]
 
             t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
@@ -645,5 +649,91 @@ spec =
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
             t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
 
+    ## We have a separate set of tests for In-Memory distinct as it gives us
+       more guarantees: preserving order of rows and always selecting the first
+       row of ones sharing the same distinctness key. For database tests (to be
+       added later) we can not rely on ordering.
+    Test.group "[In-Memory] Table.distinct" <|
+        Test.specify "should allow to select distinct rows based on a subset of columns" <|
+            a = ["A", ["a", "a", "a", "a", "a", "a"]]
+            b = ["B", [1, 1, 2, 2, 1, 2]]
+            c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
+            t = Table.new [a, b, c]
+
+            r1 = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r1.at "A" . to_vector . should_equal ["a"]
+            r1.at "B" . to_vector . should_equal [1]
+            r1.at "C" . to_vector . should_equal [0.1]
+
+            r2 = t.distinct (By_Name ["A", "B"]) on_problems=Report_Error
+            r2.at "A" . to_vector . should_equal ["a", "a"]
+            r2.at "B" . to_vector . should_equal [1, 2]
+            r2.at "C" . to_vector . should_equal [0.1, 0.3]
+
+        Test.specify "should handle nulls correctly" <|
+            a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
+            b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
+            t = Table.new [a, b]
+            r = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
+            r.at "B" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should handle Unicode normalization of keys correctly" <|
+            t1 = Table.new [["X", ['ś', 's\u0301', 's', 'ś']]]
+            t1.distinct . at "X" . to_vector . should_equal ['ś', 's']
+
+        Test.specify "should allow to control case-sensitivity of keys" <|
+            x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
+            y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
+            t1 = Table.new [x, y]
+            d1 = t1.distinct (By_Name ["X"]) on_problems=Report_Error
+            d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
+            d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
+
+            d2 = t1.distinct (By_Name ["X"]) case_sensitive=Case_Insensitive_Data on_problems=Report_Error
+            d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
+            d2.at "Y" . to_vector . should_equal [1, 3, 4]
+
+            t2 = Table.new [["X", ["łąka", "STRASSE", "Straße", "ﬃ", "ŁĄka", "ffi"]]]
+            t2.distinct case_sensitive=Case_Insensitive_Data . at "X" . to_vector . should_equal ["łąka", "STRASSE", "ﬃ"]
+
+        Test.specify "should report a warning if the key contains floating point values" <|
+            t1 = Table.new [["X", [3.0, 1.0, 2.0, 2.0, 1.0]]]
+            action1 = t1.distinct on_problems=_
+            tester1 table =
+                table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
+            problems1 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4]]
+            Problems.test_problem_handling action1 problems1 tester1
+
+            t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
+            action2 = t2.distinct on_problems=_
+            tester2 table =
+                table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
+            problems2 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4, 5]]
+            Problems.test_problem_handling action2 problems2 tester2
+
+        Test.specify "should report a warning and report the whole table if no columns were selected" <|
+            t = Table.new [["A", [1, 2, 1, 1]]]
+            test table = table.should_equal t
+
+            action1 = t.distinct (By_Name []) on_problems=_
+            problems1 = [No_Input_Columns_Selected]
+            Problems.test_problem_handling action1 problems1 test
+
+            action2 = t.distinct (By_Name ["mismatched"]) on_problems=_
+            problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
+            Problems.test_problem_handling action2 problems2 test
+
+        Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
+            t = Table.new [["X", [My_Data 1 2, My_Data 3 4, My_Data 1 2]]]
+            t.distinct . should_fail_with Illegal_Argument_Error_Data
+
+        Test.specify "should group by all columns by default" <|
+            a = ["A", ["a", "b", "a", "b", "a", "b"]]
+            b = ["B", [2, 1, 2, 2, 2, 1]]
+            t = Table.new [a, b]
+            r = t.distinct on_problems=Report_Error
+            r.at "A" . to_vector . should_equal ["a", "b", "b"]
+            r.at "B" . to_vector . should_equal [2, 1, 2]
 
 main = Test.Suite.run_main spec

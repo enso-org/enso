@@ -24,7 +24,7 @@ type Fake_Test_Connection
         Error.throw "Materialization not supported on fake connection."
 
     ## PRIVATE
-    execute_query : Text | Sql.Statement -> Materialized_Table =
+    execute_query : Text | Sql.Statement -> Materialized_Table
     execute_query self _ =
         Error.throw "Materialization not supported on fake connection."
 
