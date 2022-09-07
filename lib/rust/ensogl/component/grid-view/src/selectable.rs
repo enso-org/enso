@@ -123,11 +123,9 @@ where
             input_move_selection <+ input.move_selection_down.constant(Some(Direction::Down));
             input_move_selection <+ input.move_selection_left.constant(Some(Direction::Left));
             input_move_selection <+ input.move_selection_right.constant(Some(Direction::Right));
-            eval input_move_selection ([grid_ref](dir) {
-                if let Some(dir) = *dir {
-                    grid_ref.move_selection_or_emit_movement_out_of_grid_prevented_event(dir);
-                }
-            });
+            eval input_move_selection ([grid_ref](dir)
+                dir.map(|d| grid_ref.move_selection_in_bounds_by_one_position(d))
+            );
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }

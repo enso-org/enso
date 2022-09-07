@@ -538,10 +538,7 @@ impl<E: Entry> GridView<E> {
         Self { widget }
     }
 
-    fn move_selection_or_emit_movement_out_of_grid_prevented_event(
-        &self,
-        dir: frp::io::keyboard::ArrowDirection,
-    ) {
+    fn move_selection_in_bounds_by_one_position(&self, dir: frp::io::keyboard::ArrowDirection) {
         use frp::io::keyboard::ArrowDirection::*;
         let frp = self.frp();
         if let Some((row, col)) = frp.entry_selected.value() {
