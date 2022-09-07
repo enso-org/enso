@@ -7,6 +7,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
@@ -46,10 +48,11 @@ public abstract class TypeToDisplayTextNode extends Node {
       return "Text";
     } else if (TypesGen.isFunction(value)) {
       return "Function";
-    } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getName();
-    } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getName() + " (Constructor)";
+    } else if (value instanceof Atom atom) {
+      var cons = atom.getConstructor();
+      return cons.getType().getName() + "." + cons.getName();
+    } else if (value instanceof AtomConstructor cons) {
+      return cons.getType().getName() + "." + cons.getName() + " (Constructor)";
     } else if (TypesGen.isType(value)) {
       return TypesGen.asType(value).getName();
     } else if (TypesGen.isDataflowError(value)) {

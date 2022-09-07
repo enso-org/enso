@@ -61,18 +61,6 @@ case object BindingAnalysis extends IRPass {
           isBuiltinType
         )
     }
-
-    val definedConstructors = ir.bindings.flatMap {
-      case tp: IR.Module.Scope.Definition.Type =>
-        tp.members.map { cons =>
-          BindingsMap.Cons(
-            cons.name.name,
-            cons.arguments.length,
-            cons.arguments.forall(_.defaultValue.isDefined)
-          )
-        }
-      case _ => List()
-    }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
         BindingsMap.PolyglotSymbol(poly.getVisibleName)
@@ -105,7 +93,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
-        definedSumTypes ++ definedConstructors ++ importedPolyglot ++ methodsWithAutogen,
+        definedSumTypes ++ importedPolyglot ++ methodsWithAutogen,
         ModuleReference.Concrete(moduleContext.module)
       )
     )

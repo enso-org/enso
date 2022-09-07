@@ -163,7 +163,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             new FunctionSchema(
                 new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
+    definitionScope.registerMethod(type.getEigentype(), this.name, function);
   }
 
   /**
@@ -258,12 +258,16 @@ public final class AtomConstructor implements TruffleObject {
     return "Constructor<" + name + ">";
   }
 
-  /** @return the fully qualified name of this constructor. */
+  /**
+   * @return the fully qualified name of this constructor.
+   */
   public QualifiedName getQualifiedName() {
     return definitionScope.getModule().getName().createChild(getName());
   }
 
-  /** @return the fields defined by this constructor. */
+  /**
+   * @return the fields defined by this constructor.
+   */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }
