@@ -10,6 +10,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.Assert;
@@ -17,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +52,7 @@ public class TypeMembersTest {
 
     type IntList
         End
-        Head Int IntList
+        Head h t
 
         is_empty self = case self of
             End -> True
@@ -73,29 +75,40 @@ public class TypeMembersTest {
     var module = ctx.eval(src);
 
 
-    var list1 = module.invokeMember("eval_expression", "list1");
+    var headAtom = module.invokeMember("eval_expression", "list1");
     var seven = module.invokeMember("eval_expression", "list1.head");
     var three = module.invokeMember("eval_expression", "list1.tail.head");
-    var list2 = module.invokeMember("eval_expression", "list1.tail.tail");
+    var endAtom = module.invokeMember("eval_expression", "list1.tail.tail");
 
     assertTrue("seven is number-like: " + seven, seven.fitsInInt());
     assertTrue("three is number-like: " + three, three.fitsInInt());
-    assertFalse("list1 is not number-like: " + list1, list1.fitsInInt());
-    assertFalse("list2 is not number-like: " + list2, list2.fitsInInt());
+    assertFalse("list1 is not number-like: " + headAtom, headAtom.fitsInInt());
+    assertFalse("list2 is not number-like: " + endAtom, endAtom.fitsInInt());
 
     assertEquals("seven check", 7, seven.asInt());
     assertEquals("three check", 3, three.asInt());
 
-    assertMembers("Keys in list1", list1, "head", "tail", "is_empty");
-    assertMembers("Keys in list2", list2, "head", "tail", "is_empty");
+    assertMembers("Keys in list1", false, headAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list2", false, endAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list1", false, headAtom, "h", "t");
+    assertMembers("Keys in list2", true, endAtom, "h", "t");
   }
 
-  private static void assertMembers(String msg, Value v, String... keys) {
+  private static void assertMembers(String msg, boolean invokeFails, Value v, String... keys) {
     var realKeys = v.getMemberKeys();
     for (var k : keys) {
       assertTrue(msg + " - found " + k + " in " + realKeys, realKeys.contains(k));
       assertTrue(msg + " - has member " + k, v.hasMember(k));
-      assertNotNull(msg + " - can be invoked", v.invokeMember(k));
+      if (invokeFails) {
+        try {
+          v.invokeMember(k);
+          fail("Invoking " + k + " on " + v + " shall fail");
+        } catch (PolyglotException ex) {
+          assertEquals("No_Such_Field_Error_Data", ex.getMessage());
+        }
+      } else {
+        assertNotNull(msg + " - can be invoked", v.invokeMember(k));
+      }
     }
   }
 }
