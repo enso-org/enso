@@ -113,9 +113,12 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
                     let size = base_grid.entry_size(*row, *col);
-                    tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?}");
-                    area.scroll_to_x(pos.x - size.x/2.0);
-                    area.scroll_to_y(-pos.y - size.y/2.0);
+                    let viewport_size = base_grid.viewport.value().size();
+                    tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?} in {viewport_size:?}");
+                    // area.scroll_to_x(pos.x - size.x/2.0);
+                    // area.scroll_to_y(-pos.y - size.y/2.0);
+                    area.scroll_to_x(pos.x + size.x/2.0 - viewport_size.x);
+                    area.scroll_to_y(-pos.y + size.y/2.0 - viewport_size.y);
                 }
             }));
         }
