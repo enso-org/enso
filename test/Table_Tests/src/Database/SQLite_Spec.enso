@@ -52,7 +52,10 @@ sqlite_specific_spec connection =
         Test.specify "should be able to filter tables by name" <|
             tables = connection.tables tinfo
             tables.row_count . should_equal 1
-            tables.at "Name" . to_vector . contains tinfo . should_be_true
+            tables.at "Database" . to_vector . at 0 . should_equal Nothing
+            tables.at "Schema" . to_vector . at 0 . should_equal Nothing
+            tables.at "Name" . to_vector . at 0 . should_equal tinfo
+            tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
             connection.tables "TestT_ble%" . row_count . should_equal 1
 
         Test.specify "should be able to filter tables by type" <|

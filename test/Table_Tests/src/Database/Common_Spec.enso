@@ -14,6 +14,8 @@ import Standard.Test.Problems
 import project.Database.Helpers.Name_Generator
 
 spec prefix connection pending=Nothing =
+    eps=0.000001
+
     tables_to_clean = Vector.new_builder
     upload prefix data =
         name = Name_Generator.random_name prefix
@@ -213,10 +215,10 @@ spec prefix connection pending=Nothing =
             t7 = upload "T7" <|
                 Materialized_Table.new [['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]]
             price = t7.at 'price'
-            price.sum.should_equal 107.6 epsilon=0.000001
-            price.min.should_equal 0.4 epsilon=0.000001
-            price.max.should_equal 97 epsilon=0.000001
-            price.mean.should_equal 26.9 epsilon=0.000001
+            price.sum.should_equal 107.6 epsilon=eps
+            price.min.should_equal 0.4 epsilon=eps
+            price.max.should_equal 97 epsilon=eps
+            price.mean.should_equal 26.9 epsilon=eps
 
     Test.group prefix+"Sorting" pending=pending <|
         df = upload "clothes" <|
@@ -321,6 +323,8 @@ spec prefix connection pending=Nothing =
             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name order_column])
 
         Test.specify "should allow counting group sizes and elements" <|
+            ## Names set to lower case to avoid issue with Redshift where columns are
+               returned in lower case.
             aggregates = [Count "count", Count_Not_Nothing "price" "count not nothing price", Count_Nothing "price" "count nothing price"]
 
             t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . to_dataframe)
@@ -335,6 +339,8 @@ spec prefix connection pending=Nothing =
             t2.at  "count nothing price" . to_vector . should_equal [5]
 
         Test.specify "should allow simple arithmetic aggregations" <|
+            ## Names set to lower case to avoid issue with Redshift where columns are
+               returned in lower case.
             aggregates = [Sum "price" "sum price", Sum "quantity" "sum quantity", Average "price" "avg price"]
             ## TODO can check the datatypes
 

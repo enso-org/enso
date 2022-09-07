@@ -37,13 +37,16 @@ postgres_specific_spec connection db_name pending =
             Meta.is_same_object connection (connection.set_schema "public") . should_be_true
 
         Test.specify "should allow changing schema" <|
-            connection.set_schema "information_schema" . schema . should_equal "information_schema"
+            new_connection = connection.set_schema "information_schema"
+            new_schema = new_connection.execute_query "SELECT current_schema()" . at 0 . to_vector . first
+            new_schema . should_equal "information_schema"
 
         databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
         pending_database = if databases.length != 0 then Nothing else "Cannot tests changing database unless two databases defined."
         Test.specify "should allow changing database" pending=pending_database <|
-            database = databases.first
-            connection.set_database database . database . should_equal database
+            new_connection = connection.set_database databases.first
+            new_database = new_connection.execute_query "SELECT current_database()" . at 0 . to_vector . first
+            new_database . should_equal databases.first
 
     Test.group "[PostgreSQL] Tables and Table Types" <|
         tinfo = Name_Generator.random_name "TestTable"
@@ -68,7 +71,10 @@ postgres_specific_spec connection db_name pending =
         Test.specify "should be able to filter tables by name" <|
             tables = connection.tables tinfo
             tables.row_count . should_equal 1
-            tables.at "Name" . to_vector . contains tinfo . should_be_true
+            tables.at "Database" . to_vector . at 0 . should_equal db_name
+            tables.at "Schema" . to_vector . at 0 . should_equal "public"
+            tables.at "Name" . to_vector . at 0 . should_equal tinfo
+            tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
             connection.tables "TestT_ble%" . row_count . should_equal 1
 
         Test.specify "should be able to filter tables by type" <|

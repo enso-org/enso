@@ -71,26 +71,26 @@ type Builder
 
     ## PRIVATE
 
-       A builder that has an inferred column type at runtime.
+       A builder that has a Decimal column type at runtime.
 
        Arguments:
-       - java_builder: The underlying builder object.
+       - java_builder: The underlying double NumericBuilder object.
     Builder_Double java_builder
 
     ## PRIVATE
 
-       A builder that has an inferred column type at runtime.
+       A builder that has an Integer column type at runtime.
 
        Arguments:
-       - java_builder: The underlying builder object.
+       - java_builder: The underlying long NumericBuilder object.
     Builder_Long java_builder
 
     ## PRIVATE
 
-       A builder that has an inferred column type at runtime.
+       A builder that has an Boolean column type at runtime.
 
        Arguments:
-       - java_builder: The underlying builder object.
+       - java_builder: The underlying BoolBuilder object.
     Builder_Boolean java_builder
 
     ## PRIVATE
