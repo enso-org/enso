@@ -265,45 +265,45 @@ impl From<&usize> for ViewLine {
     }
 }
 
-impl From<Line> for ViewLine {
-    fn from(t: Line) -> Self {
-        t.value.into()
-    }
-}
+// impl From<Line> for ViewLine {
+//     fn from(t: Line) -> Self {
+//         t.value.into()
+//     }
+// }
+//
+// impl From<ViewLine> for Line {
+//     fn from(t: ViewLine) -> Self {
+//         t.value.into()
+//     }
+// }
 
-impl From<ViewLine> for Line {
-    fn from(t: ViewLine) -> Self {
-        t.value.into()
-    }
-}
-
-impl Add<Line> for ViewLine {
-    type Output = Line;
-    fn add(self, rhs: Line) -> Self::Output {
-        Line::from(self) + rhs
-    }
-}
-
-impl Add<ViewLine> for Line {
-    type Output = Line;
-    fn add(self, rhs: ViewLine) -> Self::Output {
-        self + Line::from(rhs)
-    }
-}
-
-impl Sub<Line> for ViewLine {
-    type Output = Line;
-    fn sub(self, rhs: Line) -> Self::Output {
-        Line::from(self) - rhs
-    }
-}
-
-impl Sub<ViewLine> for Line {
-    type Output = Line;
-    fn sub(self, rhs: ViewLine) -> Self::Output {
-        self - Line::from(rhs)
-    }
-}
+// impl Add<Line> for ViewLine {
+//     type Output = Line;
+//     fn add(self, rhs: Line) -> Self::Output {
+//         Line::from(self) + rhs
+//     }
+// }
+//
+// impl Add<ViewLine> for Line {
+//     type Output = Line;
+//     fn add(self, rhs: ViewLine) -> Self::Output {
+//         self + Line::from(rhs)
+//     }
+// }
+//
+// impl Sub<Line> for ViewLine {
+//     type Output = Line;
+//     fn sub(self, rhs: Line) -> Self::Output {
+//         Line::from(self) - rhs
+//     }
+// }
+//
+// impl Sub<ViewLine> for Line {
+//     type Output = Line;
+//     fn sub(self, rhs: ViewLine) -> Self::Output {
+//         self - Line::from(rhs)
+//     }
+// }
 
 
 

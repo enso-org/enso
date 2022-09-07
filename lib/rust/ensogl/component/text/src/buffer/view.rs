@@ -89,8 +89,8 @@ impl<T> Modification<T> {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
 pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     #[deref]
-    change:    Change<Metric, Str>,
-    selection: Selection<Loc>,
+    change:        Change<Metric, Str>,
+    pub selection: Selection<Loc>,
 }
 
 
@@ -552,7 +552,8 @@ impl Default for View {
 pub struct ViewModel {
     pub frp:         FrpInputs,
     pub view_buffer: ViewBuffer,
-    first_view_line: Rc<Cell<ViewLine>>,
+    /// The line that corresponds to `ViewLine(0)`.
+    first_view_line: Rc<Cell<Line>>,
     view_line_count: Rc<Cell<usize>>,
 }
 
@@ -600,15 +601,15 @@ impl ViewModel {
     }
 
     /// Index of the first line of this buffer view.
-    pub fn first_view_line(&self) -> ViewLine {
+    pub fn first_view_line(&self) -> Line {
         self.first_view_line.get()
     }
 
     /// Index of the last line of this buffer view.
-    pub fn last_view_line(&self) -> ViewLine {
+    pub fn last_view_line(&self) -> Line {
         let max_line = self.last_line_index();
-        let view_line_count: Line = self.view_line_count().into();
-        max_line.min(self.first_view_line() + view_line_count).into()
+        let view_line_count = Line(self.view_line_count() as i32);
+        max_line.min(self.first_view_line() + view_line_count)
     }
 
     /// Number of lines visible in this buffer view.
@@ -617,12 +618,12 @@ impl ViewModel {
     }
 
     /// Range of line indexes of this buffer view.
-    pub fn view_line_range(&self) -> Range<ViewLine> {
+    pub fn view_line_range(&self) -> Range<Line> {
         self.first_view_line()..self.last_view_line()
     }
 
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
-        (line - self.first_view_line()).into()
+        ViewLine((line - self.first_view_line()).value)
     }
 
     pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
@@ -688,8 +689,8 @@ impl ViewModel {
     }
 
     /// Byte range of the given view line.
-    pub fn byte_range_of_view_line_index_snapped(&self, view_line: Line) -> Range<UBytes> {
-        let line = view_line + self.first_view_line.get();
+    pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
+        let line = Line(view_line.value + self.first_view_line.get().value);
         self.byte_range_of_line_index_snapped(line)
     }
 

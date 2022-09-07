@@ -693,6 +693,27 @@ impl AreaModel {
                     // self.buffer.view_lines()
                 }
 
+                let line_ranges = changes
+                    .iter()
+                    .map(|change| {
+                        let change = change.clone();
+                        let change =
+                            self.buffer.change_with_selection_to_view_change_with_selection(change);
+                        let change_str = change.text.to_string();
+                        let newline_count = change_str.chars().filter(|c| *c == '\n').count();
+                        let newline_count = unit::ViewLine(newline_count as i32);
+                        let start_line = change.selection.shape.start.line;
+                        let end_line = change.selection.shape.end.line + newline_count;
+                        start_line..(end_line + unit::ViewLine(1))
+                    })
+                    .collect_vec();
+
+                let lines_to_redraw =
+                    std_ext::range::merge_overlapping_ranges(&line_ranges).collect_vec();
+
+                warn!("LINES TO REDRAW: {:#?}", lines_to_redraw);
+
+
                 // mozlowe ze mozmy zrobic tak, ze jak jest redraw linijki, to bierzemy nowy ontent
                 // i ta optymalizuemy ktorel iterki sa redrawowane nie musimy
                 // wczesniej pobirac changes i ich aplikowac. po prostu wziac to przez rustybuzz i
@@ -864,6 +885,7 @@ impl AreaModel {
         self
     }
 
+    pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {}
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self, size_may_change: bool) {
@@ -1002,24 +1024,6 @@ impl AreaModel {
 
                     glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
                     divs.push(glyph_offset_x);
-
-                    // cursor_map.get(&code_point_index).for_each(|id| {
-                    //     self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
-                    //         if cursor.edit_mode.get() {
-                    //             let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
-                    //             last_cursor = Some(cursor.clone_ref());
-                    //             last_cursor_target = Vector2(glyph_offset_x, pos_y);
-                    //         }
-                    //     });
-                    // });
-                    //
-                    // match &last_cursor {
-                    //     None => line_object.add_child(glyph),
-                    //     Some(cursor) => {
-                    //         cursor.right_side.add_child(glyph);
-                    //         glyph.mod_position_xy(|p| p - last_cursor_target);
-                    //     }
-                    // }
 
                     line_object.add_child(glyph);
 
