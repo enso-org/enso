@@ -247,6 +247,7 @@ macro_rules! signed_unit {
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
             $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}

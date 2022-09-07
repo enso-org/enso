@@ -398,14 +398,14 @@ impl Area {
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
                         debug!(">> 1");
-                        m.on_modified_selection(selections,*time,true)
+                        m.on_modified_selection(&selections.selection_group,Some(&selections.changes),*time)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
                     debug!(">> selection_non_edit_mode");
-                    m.on_modified_selection(selections,*time,false)
+                    m.on_modified_selection(selections,None,*time)
                 }
             ));
 
@@ -664,9 +664,10 @@ impl AreaModel {
     fn on_modified_selection(
         &self,
         buffer_selections: &buffer::selection::Group,
+        changes: Option<&[enso_text::Change]>,
         time: f32,
-        do_edit: bool,
     ) {
+        let do_edit = changes.is_some();
         debug!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
         {
             // tutaj robimy redraw poniewaz musimy shapowac tekst by znac nowe divy. Po tym jak
@@ -680,7 +681,32 @@ impl AreaModel {
             // w gore przy selekcji slidera zmienia jego wartosc, skakanie pomiedzy
             // selekcjami sasiadujacych widgetow, co z widgetami hierarchicznymi?
             // TODO ^^^
-            if do_edit {
+            if let Some(changes) = changes {
+                // let lines_to_be_redrawn =
+
+                let newlines_count = changes
+                    .iter()
+                    .map(|change| {
+                        let change_str = change.text.to_string();
+                        change_str.chars().filter(|c| *c == '\n').count()
+                    })
+                    .max()
+                    .unwrap_or(0);
+
+                let line_ranges = buffer_selections
+                    .iter()
+                    .map(|selection| {
+                        let start_line = selection.start.line;
+                        let end_line = selection.end.line;
+                        let max_line = start_line.max(end_line);
+                        let min_line = start_line.min(end_line);
+                        let min_line = min_line.saturating_sub(unit::Line(newlines_count as i32));
+                        min_line..=max_line
+                    })
+                    .collect_vec();
+
+                warn!("LINES TO REDRAW: {:#?}", line_ranges);
+
                 // TODO: do smaller redraws - at least only the changed lines. For longer lines this
                 //   will still be slow. However, inserting one char can change ligatures, so we
                 //   need to carefully analyse chars around.

@@ -67,10 +67,12 @@ pub struct HistoryData {
 /// The summary of single text modification, usually returned by `modify`-like functions in
 /// `ViewBuffer`.
 #[derive(Clone, Debug, Default)]
-struct Modification<T = UBytes> {
-    changes:         Vec<Change<T>>,
-    selection_group: selection::Group,
-    byte_offset:     Bytes,
+pub struct Modification<T = UBytes> {
+    pub changes:         Vec<Change<T>>,
+    pub selection_group: selection::Group,
+    /// Byte offset of this modification. For example, after pressing a backspace with a cursor
+    /// placed after an ASCII char, this should result in `-1`.
+    pub byte_offset:     Bytes,
 }
 
 impl<T> Modification<T> {
@@ -213,9 +215,13 @@ impl ViewBuffer {
     /// chunks (e.g. after copying multiple selections), the chunks will be pasted into subsequent
     /// selections. In case there are more chunks than selections, end chunks will be dropped. In
     /// case there is more selections than chunks, end selections will be replaced with empty
-    /// strings.
+    /// strings. In case there is only one chunk, it will be pasted to all selections.
     fn paste(&self, text: &[String]) -> Modification {
-        self.modify_iter(text.iter(), None)
+        if text.len() == 1 {
+            self.modify_iter(iter::repeat(&text[0]), None)
+        } else {
+            self.modify_iter(text.iter(), None)
+        }
     }
 
     // TODO
@@ -410,7 +416,7 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
-        selection_edit_mode     (selection::Group),
+        selection_edit_mode     (Modification),
         selection_non_edit_mode (selection::Group),
         text_change             (Vec<Change>),
     }
@@ -460,7 +466,7 @@ impl View {
                 ,mod_on_delete_word_left,mod_on_delete_word_right);
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
             trace modification;
-            sel_on_modification       <- modification.map(|m| m.selection_group.clone());
+            // sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
             output.source.text_change <+ modification.gate(&changed).map(|m| m.changes.clone());
 
@@ -493,8 +499,8 @@ impl View {
             eval input.set_format_option     (((range,value)) m.replace(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
 
-            output.source.selection_edit_mode     <+ sel_on_modification;
-            output.source.selection_edit_mode     <+ sel_on_undo;
+            output.source.selection_edit_mode     <+ modification;
+            // output.source.selection_edit_mode     <+ sel_on_undo;
             output.source.selection_non_edit_mode <+ sel_on_move;
             output.source.selection_non_edit_mode <+ sel_on_mod;
             output.source.selection_non_edit_mode <+ sel_on_clear;
@@ -512,7 +518,7 @@ impl View {
             output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
             output.source.selection_non_edit_mode <+ sel_on_remove_all;
 
-            eval output.source.selection_edit_mode     ((t) m.set_selection(t));
+            eval output.source.selection_edit_mode     ((t) m.set_selection(&t.selection_group));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
         }
         Self { model, frp }
