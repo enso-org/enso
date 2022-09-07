@@ -121,7 +121,7 @@ type Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
+    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement query stmt->
             result_set_to_table stmt.executeQuery expected_types
