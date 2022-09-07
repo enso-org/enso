@@ -16,7 +16,7 @@ import project.IO.Quote_Style
 
 import project.Errors
 
-from project.Data.Table export new, from_rows, join, concat, Table, Table_Data
+from project.Data.Table export new, from_columns, from_rows, join, concat, Table, Table_Data
 export project.Data.Column
 export project.Data.Column_Selector
 export project.Data.Sort_Column
