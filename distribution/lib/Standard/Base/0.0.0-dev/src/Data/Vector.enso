@@ -30,10 +30,10 @@ new length constructor = @Builtin_Method "Vector.new_builtin"
 
 ## ADVANCED
 
-   Converts an array into a vector.
+   Converts an array into a vector by copying content of the array.
 
    Arguments:
-   - array: The array value to wrap into a vector.
+   - array: The array with content to copy into the new vector.
 
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
@@ -462,7 +462,7 @@ type Vector a
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        Vector.from_array arr
+        Vector.from_polyglot_array arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -598,7 +598,7 @@ type Vector a
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        Vector.from_array arr
+        Vector.from_polyglot_array arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -663,7 +663,7 @@ type Vector a
                 len = slice_end - slice_start
                 arr = Array.new len
                 Array.copy self.to_array slice_start arr 0 len
-                Vector.from_array arr
+                Vector.from_polyglot_array arr
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -885,7 +885,7 @@ type Vector a
 
         new_vec_arr.sort compare
 
-        Vector.from_array new_vec_arr
+        Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.

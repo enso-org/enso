@@ -728,7 +728,7 @@ type File
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children self = Vector.from_array (self.list_immediate_children_array)
+    list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
 

@@ -321,7 +321,7 @@ type Panic
             Caught_Panic_Data _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
-        stack_with_prims = Vector.from_array prim_stack
+        stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
     ## Takes any value, and if it is a dataflow error, throws it as a Panic,

@@ -56,7 +56,7 @@ type Vector_Builder
                ix2 = go ix l
                go ix2 r
        go 0 self
-       Vector.from_array array
+       Vector.from_polyglot_array array
 
     ## PRIVATE
 

@@ -56,7 +56,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         truncated = x.take (First max_rows)
         Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     Array ->
-        prepare_visualization (Vector.from_array x) max_rows
+        prepare_visualization (Vector.from_polyglot_array x) max_rows
 
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->
