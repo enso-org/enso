@@ -809,7 +809,7 @@ type Vector a
     first : Vector ! Empty_Error
     first self = self.head
 
-    ## Get the second element from the vector, or a `Singleton_Error` if the
+    ## Get the second element from the vector, or a `Index_Out_Of_Bounds_Error` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -818,9 +818,9 @@ type Vector a
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Singleton_Error
+    second : Vector ! Index_Out_Of_Bounds_Error
     second self = if self.length >= 2 then self.unsafe_at 1 else
-        Error.throw (Singleton_Error_Data self)
+        Error.throw (Index_Out_Of_Bounds_Error_Data 1 self.length)
 
     ## Get all elements in the vector except the first.
 
@@ -1108,31 +1108,11 @@ type Builder
    An error that indicates that the vector is empty.
 type Empty_Error
 
-## UNSTABLE
+    ## UNSTABLE
 
-   Pretty prints the empty error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The vector is empty."
-
-## UNSTABLE
-
-   An error that indicates that the vector only has one element.
-
-   Arguments:
-   - vec: The vector that only has one element.
-type Singleton_Error
-    Singleton_Error_Data vec
-
-## UNSTABLE
-
-   Pretty prints the singleton error.
-Singleton_Error.to_display_text : Text
-Singleton_Error.to_display_text self =
-    "The vector " + self.vec.to_text  + " has only one element."
-
-## PRIVATE
-type Partition_Accumulator
-    Partition_Accumulator_Data true_builder false_builder ix
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = "The vector is empty."
 
 ## UNSTABLE
 
