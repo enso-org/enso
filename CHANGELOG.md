@@ -62,6 +62,9 @@
   new node is created.][3645]
 - [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
+- [Selecting a suggestion from the searcher or component browser now updates the 
+  visualisation of the edited node to preview the results of applying the 
+  suggestion.][3691]
 
 #### EnsoGL (rendering engine)
 
@@ -305,6 +308,7 @@
 [3647]: https://github.com/enso-org/enso/pull/3647
 [3673]: https://github.com/enso-org/enso/pull/3673
 [3684]: https://github.com/enso-org/enso/pull/3684
+[3691]: https://github.com/enso-org/enso/pull/3691
 
 #### Enso Compiler
 
