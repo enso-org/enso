@@ -106,7 +106,7 @@ public final class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Array getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     if (members == null) {
       return new Array(0);
     }
@@ -117,7 +117,7 @@ public final class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     return members != null && members.containsKey(member);
   }
 
