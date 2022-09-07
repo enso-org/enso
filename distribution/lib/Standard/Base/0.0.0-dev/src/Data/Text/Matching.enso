@@ -9,9 +9,9 @@ from Standard.Base.Error.Common import Wrapped_Dataflow_Error_Data
 type No_Matches_Found
     No_Matches_Found_Data (criteria : Vector Text)
 
-No_Matches_Found.to_display_text : Text
-No_Matches_Found.to_display_text self =
-    "The criteria "+self.criteria.to_text+" did not match any names in the input."
+    to_display_text : Text
+    to_display_text self =
+        "The criteria "+self.criteria.to_text+" did not match any names in the input."
 
 
 ## Represents exact text matching mode.
