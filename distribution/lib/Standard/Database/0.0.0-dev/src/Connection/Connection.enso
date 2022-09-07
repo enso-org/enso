@@ -60,7 +60,7 @@ type Connection
 
        Arguments:
         - database: The name of the database to connect to.
-    set_database : Text -> Connection -> Connection ! Sql_Error
+    set_database : Text -> Connection ! Sql_Error
     set_database self database =
         if database == self.database then self else
             Sql_Error.throw_sql_error "Changing database is not supported."
