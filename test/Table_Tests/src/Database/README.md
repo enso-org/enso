@@ -42,7 +42,7 @@ an alternative hostname for this test it can be supplied in
 
 ### Testing Redshift connectivity
 
-To enable Redshift testing, set `ENSO_REDSHIFT_URI` to the full URI of the 
+To enable Redshift testing, set `ENSO_REDSHIFT_URI` to the full URI of the
 cluster including the database name. The username should be set as the
 `ENSO_REDSHIFT_USER` environment variable. The script will use the standard
 `AWS_PROFILE` (or `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`) environment
