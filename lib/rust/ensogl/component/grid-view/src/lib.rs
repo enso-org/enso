@@ -176,7 +176,7 @@ ensogl_core::define_endpoints_2! {
         column_resized(Col, f32),
         /// Event emitted after a request was made to move the selection in a direction, but the
         /// currently selected entry is the last one in the grid in that direction.
-        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowKeyDirection>),
+        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowDirection>),
     }
 }
 
@@ -540,9 +540,9 @@ impl<E: Entry> GridView<E> {
 
     fn move_selection_or_emit_movement_out_of_grid_prevented_event(
         &self,
-        dir: frp::io::keyboard::ArrowKeyDirection,
+        dir: frp::io::keyboard::ArrowDirection,
     ) {
-        use frp::io::keyboard::ArrowKeyDirection::*;
+        use frp::io::keyboard::ArrowDirection::*;
         let frp = self.frp();
         if let Some((row, col)) = frp.entry_selected.value() {
             let (rows, cols) = frp.grid_size.value();

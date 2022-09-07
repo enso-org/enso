@@ -46,47 +46,48 @@ macro_rules! define_keys {
         Arrow { $($arrow:ident),* $(,)? }
         Regular { $($regular:ident),* $(,)? }
     ) => {
-        paste! {
-            /// A key representation.
-            ///
-            /// For reference, see the following links:
-            /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
-            #[derive(Clone,Debug,Eq,Hash,PartialEq)]
-            #[allow(missing_docs)]
-            pub enum Key {
-                $($side(Side),)*
-                $( [<Arrow $arrow>], )*
-                $($regular,)*
-                Character (String),
-                Other     (String),
-            }
+        /// A key representation.
+        ///
+        /// For reference, see the following links:
+        /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+        #[derive(Clone,Debug,Eq,Hash,PartialEq)]
+        #[allow(missing_docs)]
+        pub enum Key {
+            $($side(Side),)*
+            $($regular,)*
+            Arrow (ArrowDirection),
+            Character (String),
+            Other (String),
+        }
 
 
-            // === ArrowKeyDirection ===
+        // === ArrowDirection ===
 
-            /// The directions of the arrow keys on a keyboard.
-            #[derive(Copy, Clone, Debug)]
-            #[allow(missing_docs)]
-            pub enum ArrowKeyDirection {
-                $($arrow,)*
-            }
+        /// The directions of the arrow keys on a keyboard.
+        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+        #[allow(missing_docs)]
+        pub enum ArrowDirection {
+            $($arrow,)*
+        }
 
-            // === KEY_NAME_MAP ===
+        // === KEY_NAME_MAP ===
 
-            lazy_static! {
-                /// A mapping from a name to key instance. Please note that all side-aware keys are
-                /// instantiated to the left binding. The correct assignment (left/right) is done in a
-                /// separate step.
-                static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
-                    use Key::*;
-                    use Side::*;
-                    let mut m = HashMap::new();
-                    $(m.insert(stringify!($side), $side(Left));)*
-                    $(m.insert(stringify!([<Arrow $arrow>]), [<Arrow $arrow>]);)*
-                    $(m.insert(stringify!($regular), $regular);)*
-                    m
-                };
-            }
+        lazy_static! {
+            /// A mapping from a name to key instance. Please note that all side-aware keys are
+            /// instantiated to the left binding. The correct assignment (left/right) is done in a
+            /// separate step.
+            static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
+                use Key::*;
+                use Side::*;
+                let mut m = HashMap::new();
+                $(m.insert(stringify!($side), $side(Left));)*
+                $(m.insert(stringify!($regular), $regular);)*
+                $(
+                    let key_name = concat!("Arrow", stringify!($arrow));
+                    m.insert(key_name, Arrow(ArrowDirection::$arrow));
+                )*
+                m
+            };
         }
     };
 }
@@ -154,6 +155,7 @@ impl Key {
 
     /// Simple, kebab-case name of a key.
     pub fn simple_name(&self) -> String {
+        use ArrowDirection as Dir;
         let fmt = |side: &Side, repr| format!("{}-{}", repr, side.simple_name());
         match self {
             Self::Alt(side) => fmt(side, "alt"),
@@ -163,10 +165,10 @@ impl Key {
             Self::Meta(side) => fmt(side, "meta"),
             Self::Shift(side) => fmt(side, "shift"),
 
-            Self::ArrowDown => "arrow-down".into(),
-            Self::ArrowLeft => "arrow-left".into(),
-            Self::ArrowRight => "arrow-right".into(),
-            Self::ArrowUp => "arrow-up".into(),
+            Self::Arrow(Dir::Down) => "arrow-down".into(),
+            Self::Arrow(Dir::Left) => "arrow-left".into(),
+            Self::Arrow(Dir::Right) => "arrow-right".into(),
+            Self::Arrow(Dir::Up) => "arrow-up".into(),
             Self::Backspace => "backspace".into(),
             Self::Delete => "delete".into(),
             Self::End => "end".into(),

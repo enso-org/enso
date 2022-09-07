@@ -97,7 +97,7 @@ where
         highlight::HasConstructor<InnerGridView = InnerGridView>,
 {
     fn new_wrapping(app: &Application, grid: InnerGridView) -> Self {
-        use frp::io::keyboard::ArrowKeyDirection as Direction;
+        use frp::io::keyboard::ArrowDirection as Direction;
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
         let header_highlights = Immutable(None);
         let selection_handler = highlight::SelectionHandler::new_connected(app, &grid);
