@@ -582,6 +582,12 @@ where
         let column_widths = &self.widget.model().column_widths;
         entry::visible::position(row, column, self.entries_size.value(), column_widths)
     }
+
+    pub fn entry_size(&self, _row: Row, column: Col) -> Vector2 {
+        let column_widths = &self.widget.model().column_widths;
+        let base_entry_size = self.entries_size.value();
+        Vector2(base_entry_size.x + column_widths.width_diff(column), base_entry_size.y)
+    }
 }
 
 impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> AsRef<Self>

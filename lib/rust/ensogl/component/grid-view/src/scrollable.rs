@@ -112,17 +112,10 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             _eval <- base_grid.entry_selected.map(f!([base_grid, area] (optpos) {
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
-                    let entry = base_grid.get_entry(*row, *col);
-                    let size = entry.map(|e| e.frp().contour.value().size);
-                    if size.is_none() {
-                        tracing::warn!("MCDBG entry selected {row},{col} but size is none!");
-                    }
-                    size.map(|size| {
-                        tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?}");
-                        area.scroll_to_x(pos.x - size.x/2.0);
-                        area.scroll_to_y(-pos.y - size.y/2.0);
-                        // area.scroll_to_y(-pos.y);
-                    });
+                    let size = base_grid.entry_size(*row, *col);
+                    tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?}");
+                    area.scroll_to_x(pos.x - size.x/2.0);
+                    area.scroll_to_y(-pos.y - size.y/2.0);
                 }
             }));
         }
