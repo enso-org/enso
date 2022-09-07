@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -118,5 +119,80 @@ public class VectorTest {
 
     var hundred = callback.execute((Object) new String[100]);
     assertEquals("Hundred elements", 100, hundred.asInt());
+  }
+
+  private static final BitSet QUERIED = new BitSet();
+  public static List<String> lazyList() {
+    return new java.util.AbstractList<String>() {
+      @Override
+      public String get(int index) {
+        QUERIED.set(index);
+        return "at" + index;
+      }
+
+      @Override
+      public int size() {
+        return 10;
+      }
+    };
+  }
+
+  @Test
+  public void noCopyLazyJavaList() throws Exception {
+    final URI uri = new URI("memory://how_long.enso");
+    final Source src = Source.newBuilder("enso", """
+    import Standard.Base.Data.Vector
+    polyglot java import org.enso.interpreter.test.VectorTest
+
+    raw = VectorTest.lazyList
+    copy = Vector.from_array VectorTest.lazyList
+    lazy = Vector.from_polyglot_array VectorTest.lazyList
+
+    """, "how_long.enso")
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    {
+      QUERIED.clear();
+      var raw = module.invokeMember("eval_expression", "raw");
+
+      assertTrue("We got raw array", raw.hasArrayElements());
+      assertEquals("No query yet", 0, QUERIED.cardinality());
+
+      assertEquals("at0", raw.getArrayElement(0).asString());
+      assertEquals("One query", 1, QUERIED.cardinality());
+
+      assertEquals("at7", raw.getArrayElement(7).asString());
+      assertEquals("Two queries", 2, QUERIED.cardinality());
+    }
+
+    {
+      QUERIED.clear();
+      var raw = module.invokeMember("eval_expression", "copy");
+
+      assertTrue("We got raw array", raw.hasArrayElements());
+      assertEquals("All elements queried", 10, QUERIED.cardinality());
+
+      assertEquals("at0", raw.getArrayElement(0).asString());
+      assertEquals("at7", raw.getArrayElement(7).asString());
+    }
+
+
+
+    {
+      QUERIED.clear();
+      var raw = module.invokeMember("eval_expression", "lazy");
+
+      assertTrue("We got raw array", raw.hasArrayElements());
+      assertEquals("No query yet", 0, QUERIED.cardinality());
+
+      assertEquals("at0", raw.getArrayElement(0).asString());
+      assertEquals("One query", 1, QUERIED.cardinality());
+
+      assertEquals("at7", raw.getArrayElement(7).asString());
+      assertEquals("Two queries", 2, QUERIED.cardinality());
+    }
   }
 }
