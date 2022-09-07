@@ -11,6 +11,7 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Scene;
+use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
@@ -110,9 +111,7 @@ enum State {
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryData {
-    app:            Application,
     display_object: display::object::Instance,
-    logger:         Logger,
     text:           text::Area,
     separator:      separator::View,
     ellipsis:       ellipsis::View,
@@ -131,7 +130,7 @@ impl EntryData {
         let separator = separator::View::new(&logger);
         let state = default();
         display_object.add_child(&ellipsis);
-        Self { display_object, app: app.clone_ref(), logger, state, text, ellipsis, separator }
+        Self { display_object, state, text, ellipsis, separator }
     }
 
     fn remove_current(&self) {
@@ -257,6 +256,10 @@ impl ensogl_grid_view::Entry for Entry {
         let input = &frp.private().input;
         let out = &frp.private().output;
         let network = frp.network();
+        let color_coeff = Animation::new(&network);
+        fn mix(c1: &color::Rgba, c2: &color::Rgba, coefficient: &f32) -> color::Rgba {
+            color::mix(*c1, *c2, *coefficient)
+        }
 
         enso_frp::extend! { network
             init <- source_();
@@ -275,7 +278,8 @@ impl ensogl_grid_view::Entry for Entry {
             should_grey_out <- all_with(&col, &greyed_out_from,
                 |col, from| from.map_or(false, |from| *col >= from)
             );
-            color <- switch(&should_grey_out, &text_color, &greyed_out_color);
+            color_coeff.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
+            color <- all_with3(&text_color, &greyed_out_color, &color_coeff.value, mix);
 
             contour <- all_with(&size, &margin, |size, margin| Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
@@ -284,21 +288,14 @@ impl ensogl_grid_view::Entry for Entry {
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             text_params <- all3(&color, &font, &text_size);
-            eval text_params([data](params) {
-                let (color, font, size) = params;
-                data.set_default_color(*color);
-                data.set_default_text_size(*size);
-                data.set_font(font.to_string());
-            });
+            eval color((c) data.set_default_color(*c));
+            eval font((f) data.set_font(f.to_string()));
+            eval text_size((s) data.set_default_text_size(*s));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
             width <- map3(&input.set_model, &text_params, &layout,
                 f!([data](model, text_params, layout) {
                     let (text_color, font, text_size) = text_params;
                     data.set_model(&model);
-                    data.set_font(font.to_string());
-                    data.set_default_color(*text_color);
-                    data.set_default_text_size(*text_size);
-                    data.update_layout(layout.0, layout.1, layout.2);
                     data.width(layout.2)
                 })
             );

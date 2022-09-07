@@ -230,7 +230,7 @@ impl Style {
     }
 
     fn breadcrumbs_size(&self) -> Vector2 {
-        Vector2(self.content_width, self.menu_height)
+        Vector2(self.content_width - self.content_padding * 2.0, self.menu_height)
     }
 }
 
