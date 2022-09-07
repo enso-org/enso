@@ -89,29 +89,13 @@ pub enum Model {
     Ellipsis,
 }
 
-
-
-// =================
-// === EntryType ===
-// =================
-
-/// A helper type that defines all possible types of entries in the breadcrumbs list.
-#[derive(Clone, Debug, CloneRef)]
 #[allow(missing_docs)]
-pub enum EntryType {
-    Text { label: text::Area },
-    Separator { shape: separator::View },
-    Ellipsis { shape: ellipsis::View },
-}
-
-impl display::Object for EntryType {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
-        match self {
-            EntryType::Text { label } => label.display_object(),
-            EntryType::Separator { shape } => shape.display_object(),
-            EntryType::Ellipsis { shape } => shape.display_object(),
-        }
-    }
+#[derive(Clone, Copy, CloneRef, Debug, Default, PartialEq)]
+enum State {
+    Text,
+    Separator,
+    #[default]
+    Ellipsis,
 }
 
 
@@ -129,23 +113,32 @@ pub struct EntryData {
     app:            Application,
     display_object: display::object::Instance,
     logger:         Logger,
-    entry:          CloneRefCell<EntryType>,
-    text_layer:     Option<WeakLayer>,
+    text:           text::Area,
+    separator:      separator::View,
+    ellipsis:       ellipsis::View,
+    state:          Rc<Cell<State>>,
 }
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let logger = Logger::new("breadcrumbs::Entry");
         let display_object = display::object::Instance::new(&logger);
-        let shape = ellipsis::View::new(&logger);
-        let entry = EntryType::Ellipsis { shape };
-        display_object.add_child(&entry);
-        Self {
-            display_object,
-            app: app.clone_ref(),
-            logger,
-            entry: CloneRefCell::new(entry),
-            text_layer: text_layer.map(Layer::downgrade),
+        let text = app.new_view::<ensogl_text::Area>();
+        if let Some(layer) = text_layer {
+            text.add_to_scene_layer(&layer);
+        }
+        let ellipsis = ellipsis::View::new(&logger);
+        let separator = separator::View::new(&logger);
+        let state = default();
+        display_object.add_child(&ellipsis);
+        Self { display_object, app: app.clone_ref(), logger, state, text, ellipsis, separator }
+    }
+
+    fn remove_current(&self) {
+        match self.state.get() {
+            State::Text => self.text.unset_parent(),
+            State::Separator => self.separator.unset_parent(),
+            State::Ellipsis => self.ellipsis.unset_parent(),
         }
     }
 
@@ -158,97 +151,56 @@ impl EntryData {
     }
 
     fn set_content(&self, content: &str) {
-        if let EntryType::Text { label } = self.entry.get() {
-            label.set_content(content);
-        } else {
-            self.switch_to_label(content);
+        self.text.set_content(content);
+        if self.state.get() != State::Text {
+            self.remove_current();
+            self.display_object.add_child(&self.text);
+            self.state.set(State::Text);
         }
-    }
-
-    fn switch_to_label(&self, content: &str) {
-        self.display_object.remove_child(&self.entry.get());
-        let label = self.app.new_view::<ensogl_text::Area>();
-        if let Some(weak_layer) = &self.text_layer {
-            if let Some(layer) = weak_layer.upgrade() {
-                label.add_to_scene_layer(&layer);
-            }
-        }
-        label.set_content(content);
-        let entry = EntryType::Text { label };
-        self.display_object.add_child(&entry);
-        self.entry.set(entry);
     }
 
     fn set_separator(&self) {
-        if !matches!(self.entry.get(), EntryType::Separator { .. }) {
-            self.switch_to_separator();
+        if self.state.get() != State::Separator {
+            self.remove_current();
+            self.display_object.add_child(&self.separator);
+            self.state.set(State::Separator);
         }
     }
 
     fn set_ellipsis(&self) {
-        if !matches!(self.entry.get(), EntryType::Ellipsis { .. }) {
-            self.switch_to_ellipsis();
+        if self.state.get() != State::Ellipsis {
+            self.remove_current();
+            self.display_object.add_child(&self.ellipsis);
+            self.state.set(State::Ellipsis);
         }
-    }
-
-    fn switch_to_separator(&self) {
-        let entry = EntryType::Separator { shape: separator::View::new(&self.logger) };
-        self.switch_to(entry);
-    }
-
-    fn switch_to_ellipsis(&self) {
-        let entry = EntryType::Ellipsis { shape: ellipsis::View::new(&self.logger) };
-        self.switch_to(entry);
-    }
-
-    fn switch_to(&self, entry: EntryType) {
-        self.display_object.remove_child(&self.entry.get());
-        self.display_object.add_child(&entry);
-        self.entry.set(entry);
     }
 
     fn update_layout(&self, contour: Contour, text_size: text::Size, text_offset: f32) {
         let size = contour.size;
-        match self.entry.get() {
-            EntryType::Text { label } => {
-                label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.raw / 2.0));
-            }
-            EntryType::Separator { shape } => {
-                shape.size.set(size);
-            }
-            EntryType::Ellipsis { shape } => {
-                shape.size.set(size);
-            }
-        }
+        self.text.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.raw / 2.0));
+        self.separator.size.set(size);
+        self.ellipsis.size.set(size);
     }
 
     fn set_default_color(&self, color: color::Rgba) {
-        match self.entry.get() {
-            EntryType::Text { label } => label.set_default_color(color),
-            EntryType::Separator { shape } => shape.color.set(color.into()),
-            EntryType::Ellipsis { shape } => shape.color.set(color.into()),
-        }
+        self.text.set_default_color(color);
+        self.ellipsis.color.set(color.into());
+        self.separator.color.set(color.into());
     }
 
     fn set_font(&self, font: String) {
-        match self.entry.get() {
-            EntryType::Text { label } => label.set_font(font),
-            _ => {}
-        }
+        self.text.set_font(font);
     }
 
     fn set_default_text_size(&self, size: text::Size) {
-        match self.entry.get() {
-            EntryType::Text { label } => label.set_default_text_size(size),
-            _ => {}
-        }
+        self.text.set_default_text_size(size);
     }
 
     fn width(&self, text_offset: f32) -> f32 {
-        match self.entry.get() {
-            EntryType::Text { label } => label.width.value() + text_offset * 2.0,
-            EntryType::Separator { .. } => separator::ICON_WIDTH,
-            EntryType::Ellipsis { .. } => ellipsis::ICON_WIDTH,
+        match self.state.get() {
+            State::Text => self.text.width.value() + text_offset * 2.0,
+            State::Separator => separator::ICON_WIDTH,
+            State::Ellipsis => ellipsis::ICON_WIDTH,
         }
     }
 }
