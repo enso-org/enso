@@ -66,6 +66,9 @@
 - [Selecting a suggestion from the searcher or component browser now updates the
   visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
+- [Selecting a suggestion from the searcher or component browser now updates the 
+  visualisation of the edited node to preview the results of applying the 
+  suggestion.][3691]
 
 #### EnsoGL (rendering engine)
 
