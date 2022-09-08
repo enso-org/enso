@@ -89,9 +89,9 @@ fn setup_grid_view(
         header_frp.section_info <+ requested_section;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
-        eval entry_hovered ([]((row, col)) tracing::warn!("Hovered entry ({row}, {col})."));
-        eval entry_selected ([]((row, col)) tracing::warn!("Selected entry ({row}, {col})."));
-        eval view.entry_accepted ([]((row, col)) tracing::warn!("ACCEPTED entry ({row}, {col})."));
+        eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
+        eval entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
+        eval view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
         eval view.selection_movement_out_of_grid_prevented ([](dir)
             if let Some(dir) = dir {
                 let msg = iformat!(
