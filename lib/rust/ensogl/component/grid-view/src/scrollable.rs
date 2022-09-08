@@ -104,11 +104,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
 
-        // const MARGIN_TOP: f32 = 197.0;
-        // const MARGIN_BOTTOM: f32 = 10.0;
-        // const MARGIN_LEFT: f32 = 10.0;
-        // const MARGIN_RIGHT: f32 = 10.0;
-
         frp::extend! { network
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
