@@ -1858,7 +1858,6 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#bc0602c8b904e70c3b76fddf4645e1a21b28020a"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1934,7 +1933,6 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#bc0602c8b904e70c3b76fddf4645e1a21b28020a"
 dependencies = [
  "anyhow",
  "byte-unit",
@@ -2953,10 +2951,12 @@ dependencies = [
 name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
+ "enso-build",
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-font-family",
  "owned_ttf_parser",
+ "tokio 1.19.2",
  "zip 0.5.13",
 ]
 
@@ -3860,7 +3860,6 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#bc0602c8b904e70c3b76fddf4645e1a21b28020a"
 dependencies = [
  "anyhow",
  "async-compression",

@@ -16,7 +16,6 @@ use std::io::Write as IoWrite;
 use std::path;
 
 
-
 // =============
 // === Utils ===
 // =============
@@ -146,8 +145,6 @@ mod google_fonts {
     use super::*;
     use crate::CodeGenerator;
 
-    use enso_build_utilities::GithubFile;
-    use enso_build_utilities::GoogleFontsRelease;
     use std::path;
 
     #[derive(Debug)]
@@ -156,12 +153,25 @@ mod google_fonts {
         face:      OwnedFace,
     }
 
-    pub fn download_files(name: impl AsRef<str>, out_dir: &path::Path) -> Vec<GithubFile> {
-        GoogleFontsRelease::download(name.as_ref(), out_dir)
+    /// A description of downloaded file.
+    #[derive(Debug, Clone)]
+    pub struct DownloadedFile {
+        name: String,
     }
 
-    pub fn load(out_dir: &path::Path, buffer: &mut CodeGenerator, family_name: &str) {
-        let files = download_files(family_name, out_dir);
+    pub async fn download_files(
+        name: impl AsRef<str>,
+        out_dir: &path::Path,
+    ) -> Vec<DownloadedFile> {
+        let octocrab = enso_build::setup_octocrab().await.expect("Failed to setup GitHub client.");
+        let result = enso_build::ide::web::download_google_font(&octocrab, name.as_ref(), out_dir)
+            .await
+            .expect(format!("Failed to download font '{}'", name.as_ref()).as_str());
+        result.into_iter().map(|content| DownloadedFile { name: content.name }).collect()
+    }
+
+    pub async fn load(out_dir: &path::Path, buffer: &mut CodeGenerator, family_name: &str) {
+        let files = download_files(family_name, out_dir).await;
 
         for file in &files {
             buffer.add_font_data(&file.name)
@@ -222,16 +232,16 @@ mod google_fonts {
 // ============
 // === Main ===
 // ============
-
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     let out = env::var("OUT_DIR").unwrap();
     let out_dir = path::Path::new(&out);
     deja_vu::download_and_extract_all_fonts(out_dir);
 
     let mut code_gen = CodeGenerator::default();
-    google_fonts::load(out_dir, &mut code_gen, "mplus1");
-    google_fonts::load(out_dir, &mut code_gen, "mplus1p");
+    google_fonts::load(out_dir, &mut code_gen, "mplus1").await;
+    google_fonts::load(out_dir, &mut code_gen, "mplus1p").await;
 
     let out_path = out_dir.join("embedded_fonts_data.rs");
     deja_vu::add_entries_to_fill_map_rs(&mut code_gen);
