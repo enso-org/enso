@@ -1,6 +1,6 @@
 pub mod traits {
     pub use super::RangeIntersect;
-    pub use super::RangeLen;
+    // pub use super::RangeLen;
     pub use super::RangeOps;
     pub use super::RangeOverlap;
 }
@@ -61,33 +61,33 @@ impl<T: Clone> RangeOps for std::ops::RangeInclusive<T> {
 
 
 
-// ================
-// === RangeLen ===
-// ================
-
-pub trait RangeLen: RangeOps {
-    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-    where Self::Item: std::ops::Sub<Self::Item>;
-}
-
-impl<T: Clone> RangeLen for std::ops::Range<T> {
-    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-    where Self::Item: std::ops::Sub<Self::Item> {
-        self.end.clone() - self.start.clone()
-    }
-}
-
-impl<T: Clone + std::ops::Sub> RangeLen for std::ops::RangeInclusive<T>
-where <T as std::ops::Sub>::Output: std::iter::Step
-{
-    fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-    where Self::Item: std::ops::Sub<Self::Item> {
-        <<T as std::ops::Sub>::Output as std::iter::Step>::forward(
-            self.end().clone() - self.start().clone(),
-            1,
-        )
-    }
-}
+// // ================
+// // === RangeLen ===
+// // ================
+//
+// pub trait RangeLen: RangeOps {
+//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+//     where Self::Item: std::ops::Sub<Self::Item>;
+// }
+//
+// impl<T: Clone> RangeLen for std::ops::Range<T> {
+//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+//     where Self::Item: std::ops::Sub<Self::Item> {
+//         self.end.clone() - self.start.clone()
+//     }
+// }
+//
+// impl<T: Clone + std::ops::Sub> RangeLen for std::ops::RangeInclusive<T>
+// where <T as std::ops::Sub>::Output: std::iter::Step
+// {
+//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
+//     where Self::Item: std::ops::Sub<Self::Item> {
+//         <<T as std::ops::Sub>::Output as std::iter::Step>::forward(
+//             self.end().clone() - self.start().clone(),
+//             1,
+//         )
+//     }
+// }
 
 
 

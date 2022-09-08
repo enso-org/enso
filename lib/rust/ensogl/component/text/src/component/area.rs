@@ -528,20 +528,21 @@ impl Area {
             );
             self.frp.source.default_color <+ self.frp.set_default_color;
 
-            eval input.set_default_text_size ((t) {
+            eval input.set_default_text_size ([m](t) {
+                warn!(">> set_default_text_size");
                 m.buffer.frp.set_default_text_size(*t);
                 m.redraw(true);
             });
-            eval input.set_color_all         ([input](color) {
-                let all_bytes = buffer::Range::from(UBytes::from(0)..UBytes(usize::max_value()));
+            eval input.set_color_all         ([m,input](color) {
+                let start = UBytes::from(0);
+                let end = m.buffer.last_line_end_byte_offset();
+                let all_bytes = buffer::Range::from(start..end);
                 input.set_color_bytes.emit((all_bytes,*color));
             });
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
             //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
-            eval input.set_color_bytes ((t) {
-                m.buffer.frp.set_color_bytes.emit(*t);
-                m.redraw(false);
-            });
+            m.buffer.frp.set_color_bytes <+ input.set_color_bytes;
+            eval input.set_color_bytes ((t) m.modify_glyphs_in_range(t.0, |g| g.set_color(t.1)));
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
 
@@ -549,7 +550,7 @@ impl Area {
 
             m.buffer.frp.set_sdf_weight <+ input.set_sdf_weight;
             m.buffer.frp.set_format_option <+ input.set_format_option;
-            // eval_ input.set_sdf_weight (m.redraw(false));
+            eval input.set_sdf_weight ((t) m.modify_glyphs_in_range(t.0, |g| g.set_sdf_weight(t.1)));
 
 
             // === Changes ===
@@ -984,17 +985,20 @@ impl AreaModel {
                 let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
                 let mut prev_cluster_byte_off = UBytes(0);
                 for (glyph_position, glyph_info) in shaped_iter {
-                    let cluster_byte_off = UBytes(glyph_info.cluster as usize);
-                    let cluster_diff = cluster_byte_off.saturating_sub(prev_cluster_byte_off);
+                    let glyph_byte_start = UBytes(glyph_info.cluster as usize);
+                    let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
                     // Drop styles assigned to skipped bytes. One byte will be skipped
                     // during the call to `line_style_iter.next()`.
                     line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
                     let style = line_style_iter.next().unwrap_or_default();
-                    prev_cluster_byte_off = cluster_byte_off;
+                    prev_cluster_byte_off = glyph_byte_start;
                     if code_point_index >= CodePointIndex::from(line.glyphs.len()) {
                         line.push_glyph(|| glyph_system.new_glyph());
                     }
+                    // FIXME: indexing by codepoint is wrong here as glyph may have multiple code
+                    // points
                     let glyph = &line.glyphs[code_point_index.value as usize];
+                    glyph.start_code_point.set(code_point_index);
 
                     let size = style.size.value;
                     let units_per_em = ttf_face.units_per_em();
@@ -1037,6 +1041,42 @@ impl AreaModel {
             // let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x -
             // cursor.position().x); let cursor_offset =
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
+    }
+
+    pub fn modify_glyphs_in_range(&self, range: buffer::Range<UBytes>, f: impl Fn(&Glyph)) {
+        let range = self.buffer.offset_range_to_location(range);
+        let range = self.buffer.location_range_to_view_location_range(range);
+        let lines = self.lines.borrow();
+        if range.start.line == range.end.line {
+            let line = &lines[range.start.line.as_usize()];
+            for glyph in &line.glyphs {
+                if glyph.start_code_point.get() >= range.end.code_point_index {
+                    break;
+                }
+                if glyph.start_code_point.get() >= range.start.code_point_index {
+                    f(&glyph)
+                }
+            }
+        } else {
+            let first_line = range.start.line;
+            let second_line = first_line + ViewLine(1);
+            let last_line = range.end.line;
+            for glyph in &lines[first_line.as_usize()].glyphs {
+                if glyph.start_code_point.get() >= range.start.code_point_index {
+                    f(&glyph)
+                }
+            }
+            for line in &lines[second_line.as_usize()..last_line.as_usize()] {
+                for glyph in &line.glyphs {
+                    f(&glyph)
+                }
+            }
+            for glyph in &lines[last_line.as_usize()].glyphs {
+                if glyph.start_code_point.get() < range.end.code_point_index {
+                    f(&glyph)
+                }
+            }
+        }
     }
 
     pub fn add_glyphs_to_cursors(&self) {
@@ -1250,6 +1290,7 @@ impl AreaModel {
 
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
+        warn!(">>> set_font");
         let app = &self.app;
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<font::Registry>();

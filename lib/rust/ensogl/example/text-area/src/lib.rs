@@ -27,11 +27,12 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::style;
 use ensogl_text::Area;
 use ensogl_text_msdf::run_once_initialized;
-
+use wasm_bindgen::JsCast;
 
 
 /// Main example runner.
@@ -58,7 +59,12 @@ fn init(app: Application) {
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
+
+
+
     // TODO: check scrolled area
+    // TODO: text width endpoints
+    // TODO: check support for glyphs with multiple code points
 
 
     // area.set_cursor_at_end();
@@ -82,7 +88,11 @@ fn init(app: Application) {
     app.display.default_scene.add_child(&area);
 
 
-    area.data.redraw(true); // fixme: make private and auto
+    warn!("=========================");
+    let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
+    area.set_color_bytes(range_green, color::Rgba::red());
+    // area.set_color_all(color::Rgba::red());
+    area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 
 
     // let text = "red green blue";
@@ -104,4 +114,25 @@ fn init(app: Application) {
     mem::forget(app);
     mem::forget(area);
     // mem::forget(colored_area);
+
+    init_debug_hotkeys();
+}
+
+fn init_debug_hotkeys() {
+    let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
+        let event = val.unchecked_into::<web::KeyboardEvent>();
+        if event.alt_key() && event.ctrl_key() {
+            let key = event.code();
+            warn!("{:?}", key);
+            // if key == "Backquote" {
+            // } else if key == "Digit0" {
+            // } else if key == "Digit1" {
+            // } else if key == "Digit2" {
+            // } else if key == "KeyP" {
+            // } else if key == "KeyQ" {
+            // }
+        }
+    });
+    let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
+    mem::forget(handle);
 }

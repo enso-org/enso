@@ -53,7 +53,8 @@ impl<Host> Drop for ParentBind<Host> {
 
 /// Callbacks manager for display objects. Callbacks can be set only once. Panics if you try set
 /// another callback to field with an already assigned callback. This design was chosen because it
-/// is very lightweight and is not confusing (setting a callback unregisters previous one). We may
+/// is very lightweight and is not confusing (setting a callback unregistering previous one will be
+/// confusing, while allowing to set multiple callbacks will use more resources). We may
 /// want to switch to a real callback registry in the future if there will be suitable use cases for
 /// it.
 #[derive(Derivative)]

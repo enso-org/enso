@@ -6,7 +6,9 @@ use ensogl_core::display::world::*;
 
 use crate::font;
 use crate::font::VariationAxes;
+use crate::SdfWeight;
 
+use enso_text::CodePointIndex;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
@@ -40,18 +42,19 @@ pub struct Glyph {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct GlyphData {
-    pub glyph_id:       Cell<GlyphId>,
-    pub display_object: display::object::Instance,
-    pub sprite:         Sprite,
-    pub context:        Context,
-    pub font:           Font,
-    pub properties:     Cell<font::family::NonVariableFaceHeader>,
-    pub variations:     RefCell<VariationAxes>,
-    pub font_size:      Attribute<f32>,
-    pub color:          Attribute<Vector4<f32>>,
-    pub sdf_weight:     Attribute<f32>,
-    pub atlas_index:    Attribute<f32>,
-    pub atlas:          Uniform<Texture>,
+    pub glyph_id:         Cell<GlyphId>,
+    pub start_code_point: Cell<CodePointIndex>,
+    pub display_object:   display::object::Instance,
+    pub sprite:           Sprite,
+    pub context:          Context,
+    pub font:             Font,
+    pub properties:       Cell<font::family::NonVariableFaceHeader>,
+    pub variations:       RefCell<VariationAxes>,
+    pub font_size:        Attribute<f32>,
+    pub color:            Attribute<Vector4<f32>>,
+    pub sdf_weight:       Attribute<f32>,
+    pub atlas_index:      Attribute<f32>,
+    pub atlas:            Uniform<Texture>,
 }
 
 
@@ -136,8 +139,8 @@ impl Glyph {
     }
 
     /// SDF-based glyph thickness getter.
-    pub fn set_sdf_weight(&self, value: f32) {
-        self.sdf_weight.set(value);
+    pub fn set_sdf_weight(&self, value: impl Into<SdfWeight>) {
+        self.sdf_weight.set(value.into().value);
     }
 
     /// Size getter.
@@ -156,16 +159,6 @@ impl Glyph {
         if let Some(glyph_info) = opt_glyph_info {
             self.sprite.size.set(glyph_info.scale.scale(size))
         }
-    }
-
-    /// Change the displayed character.
-    pub fn set_char(&self, ch: char) {
-        let opt_glyph_id =
-            self.font.glyph_id_of_code_point(self.properties.get(), &self.variations.borrow(), ch);
-        if let Some(glyph_id) = opt_glyph_id {
-            self.set_glyph_id(glyph_id)
-        }
-        // FIXME[WD]: display not found char. https://www.pivotaltracker.com/story/show/182746060
     }
 
     /// Change the displayed character.
@@ -277,6 +270,7 @@ impl System {
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
         let glyph_id = default();
+        let start_code_point = default();
         let properties = default();
         let variations = default();
         display_object.add_child(&sprite);
@@ -294,6 +288,7 @@ impl System {
                 atlas_index,
                 atlas,
                 glyph_id,
+                start_code_point,
                 properties,
                 variations,
             }),

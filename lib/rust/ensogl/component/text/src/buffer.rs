@@ -33,16 +33,9 @@ pub use enso_text::TextCell;
 // ==============
 
 /// Internally mutable text container with associated styles.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, Deref)]
 pub struct Buffer {
     data: Rc<BufferData>,
-}
-
-impl Deref for Buffer {
-    type Target = BufferData;
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
 }
 
 impl Buffer {
@@ -64,17 +57,11 @@ impl Buffer {
 // ==================
 
 /// Internal data of `Buffer`.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deref)]
 pub struct BufferData {
+    #[deref]
     pub(crate) text:  TextCell,
     pub(crate) style: StyleCell,
-}
-
-impl Deref for BufferData {
-    type Target = TextCell;
-    fn deref(&self) -> &Self::Target {
-        &self.text
-    }
 }
 
 impl BufferData {

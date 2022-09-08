@@ -102,20 +102,14 @@ pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
 /// history (containing also cursor movement history). This form of buffer is mainly used by `View`,
 /// but can also be combined with other `ViewBuffer`s to display cursors, selections, and edits of
 /// several users at the same time.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct ViewBuffer {
+    #[deref]
     pub buffer:            Buffer,
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<usize>>,
     pub history:           History,
-}
-
-impl Deref for ViewBuffer {
-    type Target = Buffer;
-    fn deref(&self) -> &Self::Target {
-        &self.buffer
-    }
 }
 
 impl From<Buffer> for ViewBuffer {
@@ -373,14 +367,29 @@ impl ViewBuffer {
     }
 
     fn offset_to_location(&self, offset: UBytes) -> Location {
+        warn!("\n\n\n offset_to_location {:?}", offset);
         let line = self.line_index_of_byte_offset_snapped(offset);
+        warn!("line: {:?}", line);
         let line_offset = offset - self.byte_offset_of_line_index(line).unwrap();
+        warn!("byte_offset_of_line_index: {:?}", self.byte_offset_of_line_index(line).unwrap());
+        warn!("line_offset: {:?}", line_offset);
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
-            error!("Internal error. Line offset overflow.");
+            error!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
+        warn!("line_offset: {:?}", line_offset);
+
         let column = self.column_of_line_index_and_in_line_byte_offset_snapped(line, line_offset);
         Location(line, column)
+    }
+
+    pub fn offset_range_to_location(
+        &self,
+        range: buffer::Range<UBytes>,
+    ) -> buffer::Range<Location> {
+        let start = self.offset_to_location(range.start);
+        let end = self.offset_to_location(range.end);
+        buffer::Range::new(start, end)
     }
 }
 
@@ -440,18 +449,12 @@ ensogl_core::define_endpoints! {
 /// View for a region of a buffer. There are several cases where multiple views share the same
 /// buffer, including displaying the buffer in separate tabs or displaying multiple users in the
 /// same file (keeping a view per user and merging them visually).
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct View {
+    #[deref]
     model:   ViewModel,
     pub frp: Frp,
-}
-
-impl Deref for View {
-    type Target = ViewModel;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
 }
 
 impl View {
@@ -547,21 +550,15 @@ impl Default for View {
 // =================
 
 /// Internal model for the `View`.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct ViewModel {
-    pub frp:         FrpInputs,
+    #[deref]
     pub view_buffer: ViewBuffer,
+    pub frp:         FrpInputs,
     /// The line that corresponds to `ViewLine(0)`.
     first_view_line: Rc<Cell<Line>>,
     view_line_count: Rc<Cell<usize>>,
-}
-
-impl Deref for ViewModel {
-    type Target = ViewBuffer;
-    fn deref(&self) -> &Self::Target {
-        &self.view_buffer
-    }
 }
 
 impl ViewModel {
@@ -640,6 +637,15 @@ impl ViewModel {
         ViewLocation { line, code_point_index }
     }
 
+    pub fn location_range_to_view_location_range(
+        &self,
+        range: buffer::Range<Location>,
+    ) -> buffer::Range<ViewLocation> {
+        let start = self.location_to_view_location(range.start);
+        let end = self.location_to_view_location(range.end);
+        buffer::Range { start, end }
+    }
+
     pub fn selection_to_view_selection(
         &self,
         selection: Selection<Location>,
@@ -715,5 +721,9 @@ impl ViewModel {
         let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
         let range = start_byte_offset..end_byte_offset;
         self.lines_vec(range)
+    }
+
+    pub fn last_line_end_byte_offset(&self) -> UBytes {
+        self.buffer.text().last_line_end_byte_offset()
     }
 }
