@@ -574,10 +574,8 @@ impl<E: Entry> GridView<E> {
     //FIXME[mc]: verify required trait bounds
     /// Return the position of the top-left corner of a viewport containing the area around the
     /// entry at given row and col. The area around an entry is defined as the bounding box of the
-    /// entry enlarged by given margins.
-    /// Return the position of the top-left corner of a viewport containing the entry at given row
-    /// and col plus given margins around the entry. If there is more than one such viewport
-    /// possible, return the one closest to the current viewport.
+    /// entry enlarged by given margins. If there is more than one such viewport possible, return
+    /// the one closest to the current viewport.
     fn viewport_position_containing_entry(
         &self,
         row: Row,
