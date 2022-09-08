@@ -84,14 +84,25 @@ pub use entry::Entry;
 // === FRP ===
 // ===========
 
-// === Type Aliases ===
+// === Row and Col Aliases ===
 
 /// A row index in [`GridView`].
 pub type Row = usize;
 /// A column index  in [`GridView`].
 pub type Col = usize;
 
-pub type Margins = Viewport;
+
+// === Margins ===
+
+/// Margins around an [`Entry`].
+#[derive(Clone, Debug, Copy, Default)]
+#[allow(missing_docs)]
+pub struct Margins {
+    pub top:    f32,
+    pub bottom: f32,
+    pub left:   f32,
+    pub right:  f32,
+}
 
 
 // === Properties ===
