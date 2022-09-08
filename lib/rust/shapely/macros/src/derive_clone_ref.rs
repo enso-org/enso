@@ -142,7 +142,7 @@ pub fn is_custom_bound(name_val: &MetaNameValue) -> bool {
 /// Panics if this is our attribute but the syntax is not correct.
 pub fn clone_ref_bounds(attr: &Attribute) -> Option<Vec<WherePredicate>> {
     // Silently ignore foreign attributes. Be picky only about our one.
-    is_clone_ref_customization(attr).then(|| ())?;
+    is_clone_ref_customization(attr).then_some(())?;
 
     let meta = attr.parse_meta().expect("Failed to parse attribute contents.");
     let list = match meta {

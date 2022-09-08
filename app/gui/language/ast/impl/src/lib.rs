@@ -1861,7 +1861,7 @@ mod tests {
         let ab = Ast::prefix(a, b);
         let abc = Ast::prefix(ab, c); // repr is `a b c`
 
-        assert_eq!((&abc).iter().count(), 2); // for App's two children
+        assert_eq!((abc).iter().count(), 2); // for App's two children
         assert_eq!(abc.iter_recursive().count(), 5); // for 2 Apps and 3 Vars
     }
 
