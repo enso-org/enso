@@ -112,11 +112,11 @@ fn setup_grid_view(
     };
     view.set_entries_params(params);
     view.scroll_frp().resize(Vector2(400.0, VIEWPORT_HEIGHT));
-    let scroll_margins = Margins{
-        top: VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
+    let scroll_margins = Margins {
+        top:    VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
         bottom: BASE_SCROLL_MARGIN,
-        left: BASE_SCROLL_MARGIN,
-        right: BASE_SCROLL_MARGIN,
+        left:   BASE_SCROLL_MARGIN,
+        right:  BASE_SCROLL_MARGIN,
     };
     view.set_preferred_margins_around_entry_when_scrolling(scroll_margins);
     view.reset_entries(1000, 1000);
