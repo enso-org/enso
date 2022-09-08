@@ -16,6 +16,20 @@ use ensogl_scroll_area::ScrollArea;
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+ensogl_core::define_endpoints_2! {
+    Input {
+        set_preferred_margins_around_entry(crate::Margins),
+    }
+
+    Output {}
+}
+
+
+
 // ================
 // === GridView ===
 // ================
@@ -28,6 +42,7 @@ pub struct GridViewTemplate<InnerGridView> {
     area:              ScrollArea,
     #[deref]
     inner_grid:        InnerGridView,
+    frp:               Frp,
     text_layer:        Layer,
     header_layer:      Immutable<Option<Layer>>,
     header_text_layer: Immutable<Option<Layer>>,
@@ -98,14 +113,17 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let area = ScrollArea::new(app);
         let base_grid = inner_grid.as_ref();
         area.content().add_child(&inner_grid);
-        let network = base_grid.network();
+        let base_network = base_grid.network();
         let text_layer = area.content_layer().create_sublayer();
         let header_layer = default();
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
         let input = &base_grid.private.input;
 
-        frp::extend! { network
+        let frp = Frp::new();
+        let network = &frp.network();
+
+        frp::new_bridge_network! { [network, base_network] grid_view_scrollable_base_bridge
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
@@ -120,7 +138,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                 &input.move_selection_up,
             );
             entry_selected_by_input_move <= base_grid.entry_selected.sample(&input_move_selection);
-            let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
+            let scroll_margins = &frp.set_preferred_margins_around_entry;
             _eval <- entry_selected_by_input_move.map2(scroll_margins,
                 f!([base_grid, area] ((row, col), margins) {
                     let scroll_to = base_grid.viewport_containing_entry(*row, *col, *margins);
@@ -130,7 +148,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             );
         }
 
-        Self { area, inner_grid, text_layer, header_layer, header_text_layer }
+        Self { area, inner_grid, frp, text_layer, header_layer, header_text_layer }
     }
 
     /// Create new Scrollable Grid View component wrapping a created instance of `inner_grid` which
