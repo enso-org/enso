@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Time.Date_Period
+import Standard.Base.Data.Time.Time_Period
 import Standard.Base.Data.Time.Duration
 
 import Standard.Test
@@ -297,6 +299,50 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
+
+        max_nanos = 999999999
+        Test.specify "should allow to find start/end of a Date_Period containing the current datetime" <|
+            d1 = create_new_datetime 2022 9 12 15 37 58
+            d1.start_of Date_Period.Year . should_equal (Date_Time.new 2022 1 1)
+            d1.end_of Date_Period.Year . should_equal (Date_Time.new 2022 12 31 23 59 59 max_nanos)
+            d1.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 7 1)
+            d1.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
+            d1.start_of Date_Period.Month . should_equal (Date_Time.new 2022 9 1)
+            d1.end_of Date_Period.Month . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
+
+            d2 = create_new_datetime 2022 2 7 12 34 56 123456789
+            d2.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 1 1)
+            d2.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 3 31 23 59 59 max_nanos)
+            d2.start_of Date_Period.Month . should_equal (Date_Time.new 2022 2 1)
+            d2.end_of Date_Period.Month . should_equal (Date_Time.new 2022 2 28 23 59 59 max_nanos)
+
+            d3 = create_new_datetime 2020 2 17
+            d3.start_of Date_Period.Year . should_equal (Date_Time.new 2020 1 1)
+            d3.end_of Date_Period.Year . should_equal (Date_Time.new 2020 12 31 23 59 59 max_nanos)
+            d3.start_of Date_Period.Month . should_equal (Date_Time.new 2020 2 1)
+            d3.end_of Date_Period.Month . should_equal (Date_Time.new 2020 2 29 23 59 59 max_nanos)
+
+            d4 = create_new_datetime 1970 12 31 23 59 59 max_nanos
+            d4.start_of Date_Period.Year . should_equal (Date_Time.new 1970 1 1)
+            d4.end_of Date_Period.Year . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+            d4.start_of Date_Period.Quarter . should_equal (Date_Time.new 1970 10 1)
+            d4.end_of Date_Period.Quarter . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+            d4.start_of Date_Period.Month . should_equal (Date_Time.new 1970 12 1)
+            d4.end_of Date_Period.Month . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+
+            d5 = create_new_datetime 2040 1 1
+            d5.start_of Date_Period.Year . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Year . should_equal (Date_Time.new 2040 12 31 23 59 59 max_nanos)
+            d5.start_of Date_Period.Quarter . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Quarter . should_equal (Date_Time.new 2040 3 31 23 59 59 max_nanos)
+            d5.start_of Date_Period.Month . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Month . should_equal (Date_Time.new 2040 1 31 23 59 59 max_nanos)
+
+            (create_new_datetime 2000 7 1 14 54).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 7 1)
+            (create_new_datetime 2000 6 30 15 34).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 4 1)
+
+            (create_new_datetime 2000 7 1 16 50).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 9 30 23 59 59 max_nanos)
+            (create_new_datetime 2000 6 30 17 40).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 6 30 23 59 59 max_nanos)
 
     Date_Part_Spec.spec name create_new_datetime
 

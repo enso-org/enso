@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.Time_Of_Day_Utils
+polyglot java import org.enso.base.time.Date_Time_Utils
 polyglot java import java.time.temporal.ChronoUnit
 
 ## Represents a period of time of a day or shorter.
@@ -27,9 +28,9 @@ type Time_Period
     ## PRIVATE
     adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_start self date =
-        Time_Utils.start_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit
 
     ## PRIVATE
     adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_end self date =
-        Time_Utils.end_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit

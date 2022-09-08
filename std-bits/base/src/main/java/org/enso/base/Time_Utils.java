@@ -1,5 +1,11 @@
 package org.enso.base;
 
+import org.enso.base.time.Date_Time_Utils;
+import org.enso.base.time.Date_Utils;
+import org.enso.base.time.TimeUtilsBase;
+import org.enso.base.time.Time_Of_Day_Utils;
+import org.graalvm.polyglot.Value;
+
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -205,59 +211,18 @@ public class Time_Utils {
     return (LocalTime.parse(text, formatter.withLocale(locale)));
   }
 
-  public static LocalDate apply_adjuster(LocalDate date, TemporalAdjuster adjuster) {
-    return date.with(adjuster);
-  }
-
-  public static ZonedDateTime apply_adjuster(ZonedDateTime date, TemporalAdjuster adjuster) {
-    return date.with(adjuster);
-  }
-
-  public static Temporal quarter_start(Temporal temporal) {
-    int month = temporal.get(ChronoField.MONTH_OF_YEAR);
-    int quarter = (month - 1) / 3;
-    int firstMonth = quarter * 3 + 1;
-    return temporal.with(ChronoField.MONTH_OF_YEAR, firstMonth).with(TemporalAdjusters.firstDayOfMonth());
-  }
-
-  public static Temporal quarter_end(Temporal temporal) {
-    int month = temporal.get(ChronoField.MONTH_OF_YEAR);
-    int quarter = (month - 1) / 3;
-    int lastMonth = quarter * 3 + 3;
-    return temporal.with(ChronoField.MONTH_OF_YEAR, lastMonth).with(TemporalAdjusters.lastDayOfMonth());
-  }
-
-  // These methods are added because the polyglot conversion only happens for exact types and not supertypes.
-  // TODO: check if that is the desired design, as it seems weird to have to add these methods.
-  public static LocalDate quarter_start(LocalDate date) {
-    return (LocalDate) quarter_start((Temporal) date);
-  }
-
-  public static LocalDate quarter_end(LocalDate date) {
-    return (LocalDate) quarter_end((Temporal) date);
-  }
-
-  public static ZonedDateTime quarter_start(ZonedDateTime date) {
-    return (ZonedDateTime) quarter_start((Temporal) date);
-  }
-
-  public static ZonedDateTime quarter_end(ZonedDateTime date) {
-    return (ZonedDateTime) quarter_end((Temporal) date);
-  }
-
-  public static ZonedDateTime start_of_time_period(ZonedDateTime date, TemporalUnit unit) {
-    return date.truncatedTo(unit);
-  }
-
-  public static LocalTime start_of_time_period(LocalTime date, TemporalUnit unit) {
-    return date.truncatedTo(unit);
-  }
-
-  public static ZonedDateTime end_of_time_period(ZonedDateTime date, TemporalUnit unit) {
-    return date.truncatedTo(unit).plus(1, unit).minusNanos(1);
-  }
-
-  public static LocalTime end_of_time_period(LocalTime date, TemporalUnit unit) {
-    return date.truncatedTo(unit).plus(1, unit).minusNanos(1);
+  /** Normally this method could be done in Enso by pattern matching,
+   * but currently matching on Time types is not supported, so this is a workaround.
+   *
+   * TODO once the related issue is fixed, this workaround may be replaced with pattern matching in Enso;
+   * the related Pivotal issue: https://www.pivotaltracker.com/story/show/183219169
+   */
+  public static TimeUtilsBase utils_for(Value value) {
+    boolean isDate = value.isDate();
+    boolean isTime = value.isTime();
+    if (isDate && isTime) return Date_Time_Utils.INSTANCE;
+    if (isDate) return Date_Utils.INSTANCE;
+    if (isTime) return Time_Of_Day_Utils.INSTANCE;
+    throw new IllegalArgumentException("Unexpected argument type: " + value);
   }
 }

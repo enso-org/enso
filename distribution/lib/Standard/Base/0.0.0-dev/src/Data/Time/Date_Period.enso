@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.Date_Utils
+polyglot java import org.enso.base.time.Date_Time_Utils
 polyglot java import java.time.temporal.TemporalAdjusters
 
 ## Represents a period of time longer on the scale of days (longer than a day).
@@ -18,14 +19,19 @@ type Date_Period
     ## PRIVATE
     adjust_start : (Date | Date_Time) -> (Date | Date_Time)
     adjust_start self date = case self of
-        Year -> Time_Utils.apply_adjuster date TemporalAdjusters.firstDayOfYear
-        Quarter -> Time_Utils.quarter_start date
+        Year ->
+            (Time_Utils.utils_for date).apply_adjuster_datetime date TemporalAdjusters.firstDayOfYear
+        Quarter ->
+            (Time_Utils.utils_for date).quarter_start_datetime date
         Month ->
-            Time_Utils.apply_adjuster date TemporalAdjusters.firstDayOfMonth
+            (Time_Utils.utils_for date).apply_adjuster_datetime date TemporalAdjusters.firstDayOfMonth
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
     adjust_end self date = case self of
-        Year -> Time_Utils.apply_adjuster date TemporalAdjusters.lastDayOfYear
-        Quarter -> Time_Utils.quarter_end date
-        Month -> Time_Utils.apply_adjuster date TemporalAdjusters.lastDayOfMonth
+        Year ->
+            (Time_Utils.utils_for date).apply_adjuster date TemporalAdjusters.lastDayOfYear
+        Quarter ->
+            (Time_Utils.utils_for date).quarter_end date
+        Month ->
+            (Time_Utils.utils_for date).apply_adjuster date TemporalAdjusters.lastDayOfMonth
