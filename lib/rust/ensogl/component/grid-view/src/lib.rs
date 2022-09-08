@@ -628,6 +628,7 @@ where
         entry::visible::position(row, column, self.entries_size.value(), column_widths)
     }
 
+    /// Return the size of the Entry instance for given row and column.
     pub fn entry_size(&self, _row: Row, column: Col) -> Vector2 {
         let column_widths = &self.widget.model().column_widths;
         let base_entry_size = self.entries_size.value();
