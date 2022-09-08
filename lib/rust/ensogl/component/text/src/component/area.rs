@@ -272,15 +272,13 @@ ensogl_core::define_endpoints! {
         single_line(bool),
         set_hover(bool),
 
-        set_cursor            (Location),
+        set_cursor            (Location), // fixme: should use column here
         add_cursor            (Location),
         paste_string          (String),
         insert                (String),
         set_color             (TextRange, color::Rgba),
-        /// Explicitly set the color of all text.
-        set_color_all         (color::Rgba),
         set_sdf_weight        (buffer::Range<UBytes>, style::SdfWeight),
-        set_format_option     (buffer::Range<UBytes>, Option<style::FormatOption>),
+        format                (TextRange, style::Property),
         set_format            (buffer::Range<UBytes>, style::Format),
         /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
@@ -536,25 +534,22 @@ impl Area {
                 m.buffer.frp.set_default_text_size(*t);
                 m.redraw(true);
             });
-            eval input.set_color_all         ([m,input](color) {
-                let start = UBytes::from(0);
-                let end = m.buffer.last_line_end_byte_offset();
-                let all_bytes = buffer::Range::from(start..end);
-                input.set_color.emit((all_bytes,*color));
-            });
+
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
             //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
             m.buffer.frp.set_color <+ input.set_color;
-            eval input.set_color ((t) m.modify_glyphs_in_range(&t.0, |g| g.set_color(t.1)));
+            // eval input.set_color ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_color(t.1)));
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
 
             // === Style ===
 
             m.buffer.frp.set_sdf_weight <+ input.set_sdf_weight;
-            m.buffer.frp.set_format_option <+ input.set_format_option;
+            format <- input.format.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
+            eval format ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_property(t.1)));
+            m.buffer.frp.format <+ format;
             // FIXME:
-            // eval input.set_sdf_weight ((t) m.modify_glyphs_in_range(t.0, |g| g.set_sdf_weight(t.1)));
+            // eval input.set_sdf_weight ((t) m.modify_glyphs_in_ranges(t.0, |g| g.set_sdf_weight(t.1)));
 
 
             // === Changes ===
@@ -663,6 +658,24 @@ impl AreaModel {
             selection_map,
         }
         .init()
+    }
+
+    pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
+        match range {
+            TextRange::Selections => self
+                .buffer
+                .byte_selections()
+                .into_iter()
+                .map(|t| {
+                    let start = std::cmp::min(t.start, t.end);
+                    let end = std::cmp::max(t.start, t.end);
+                    buffer::Range::new(start, end)
+                })
+                .collect(),
+            TextRange::BufferRange(range) => vec![range.clone()],
+            TextRange::RangeBytes(range) => vec![range.into()],
+            TextRange::RangeFull(_) => vec![self.buffer.full_range()],
+        }
     }
 
     #[profile(Debug)]
@@ -916,7 +929,7 @@ impl AreaModel {
 
     pub fn chunks_per_font_face<'a>(
         font: &'a font::Font,
-        line_style: &'a style::FormatSpan,
+        line_style: &'a style::Formatting,
         content: &'a str,
     ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
@@ -1047,9 +1060,9 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
-    pub fn modify_glyphs_in_range(&self, range: &TextRange, f: impl Fn(&Glyph)) {
-        warn!("modify_glyphs_in_range {:?}", range);
-        for range in self.buffer.text_to_byte_ranges(range) {
+    pub fn modify_glyphs_in_ranges(&self, ranges: &Vec<buffer::Range<UBytes>>, f: impl Fn(&Glyph)) {
+        warn!("modify_glyphs_in_ranges {:?}", ranges);
+        for &range in ranges {
             warn!(">> {:?}", range);
             let range = self.buffer.offset_range_to_location(range);
             let range = self.buffer.location_range_to_view_location_range(range);
@@ -1222,7 +1235,7 @@ impl AreaModel {
     }
 
     fn default_font_size(&self) -> style::Size {
-        *self.buffer.style.get().size.default()
+        *self.buffer.formatting.get().size.default()
     }
 
     fn new_line(&self, index: usize) -> Line {

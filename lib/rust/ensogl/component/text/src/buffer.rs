@@ -72,8 +72,8 @@ impl Buffer {
 #[derive(Debug, Default, Deref)]
 pub struct BufferData {
     #[deref]
-    pub(crate) text:  TextCell,
-    pub(crate) style: StyleCell,
+    pub(crate) text:       TextCell,
+    pub(crate) formatting: FormattingCell,
 }
 
 impl BufferData {
@@ -92,20 +92,20 @@ impl BufferData {
         self.text.set(text);
     }
 
-    /// FormatSpan getter.
-    pub fn style(&self) -> FormatSpan {
-        self.style.get()
+    /// Formatting getter.
+    pub fn style(&self) -> Formatting {
+        self.formatting.get()
     }
 
-    /// FormatSpan setter.
-    pub(crate) fn set_style(&self, style: FormatSpan) {
-        self.style.set(style)
+    /// Formatting setter.
+    pub(crate) fn set_style(&self, style: Formatting) {
+        self.formatting.set(style)
     }
 
     /// Query style information for the provided range.
-    pub fn sub_style(&self, range: impl enso_text::RangeBounds) -> FormatSpan {
+    pub fn sub_style(&self, range: impl enso_text::RangeBounds) -> Formatting {
         let range = self.crop_byte_range(range);
-        self.style.sub(range)
+        self.formatting.sub(range)
     }
 }
 
@@ -141,7 +141,7 @@ impl Setter<Text> for Buffer {
         let range = self.crop_byte_range(range);
         let size = text.byte_size();
         self.text.replace(range, text);
-        self.style.set_resize_with_default(range, size);
+        self.formatting.set_resize_with_default(range, size);
     }
 }
 

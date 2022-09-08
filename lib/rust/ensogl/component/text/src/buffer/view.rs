@@ -5,7 +5,7 @@ use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::style;
-use crate::buffer::style::FormatSpan;
+use crate::buffer::style::Formatting;
 use crate::buffer::Buffer;
 use crate::buffer::DefaultSetter;
 use crate::buffer::Setter;
@@ -55,10 +55,10 @@ pub struct History {
 /// Internal representation of `History`.
 #[derive(Debug, Clone, Default)]
 pub struct HistoryData {
-    undo_stack: Vec<(Text, FormatSpan, selection::Group)>,
+    undo_stack: Vec<(Text, Formatting, selection::Group)>,
     #[allow(dead_code)]
     /// Not yet implemented.
-    redo_stack: Vec<(Text, FormatSpan, selection::Group)>,
+    redo_stack: Vec<(Text, Formatting, selection::Group)>,
 }
 
 
@@ -351,7 +351,7 @@ impl ViewBuffer {
         Modification { changes, selection_group, byte_offset }
     }
 
-    fn byte_selections(&self) -> Vec<Selection<UBytes>> {
+    pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
         self.selection.borrow().iter().map(|s| self.to_bytes_selection(*s)).collect()
     }
 
@@ -426,7 +426,7 @@ ensogl_core::define_endpoints! {
         set_default_text_size      (style::Size),
         set_color                  (TextRange, color::Rgba),
         set_sdf_weight             (buffer::Range<UBytes>, style::SdfWeight),
-        set_format_option          (buffer::Range<UBytes>, Option<style::FormatOption>),
+        format                     (Vec<buffer::Range<UBytes>>, style::Property),
         set_format                 (buffer::Range<UBytes>, style::Format),
     }
 
@@ -505,7 +505,7 @@ impl View {
             eval input.set_default_text_size ((t) m.set_default(*t));
             eval input.set_color             (((range,color)) m.replace2(range,*color));
             eval input.set_sdf_weight        (((range,value)) m.replace(range,*value));
-            eval input.set_format_option     (((range,value)) m.replace(range,*value));
+            eval input.format                (((range,value)) m.replace3(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ modification;
@@ -552,7 +552,7 @@ impl Setter2<Option<color::Rgba>> for ViewModel {
         for range in self.text_to_byte_ranges(range) {
             let range = self.crop_byte_range(range);
             let range_size = UBytes::try_from(range.size()).unwrap_or_default();
-            self.data.style.borrow_mut().color.replace_resize(range, range_size, data)
+            self.data.formatting.borrow_mut().color.replace_resize(range, range_size, data)
         }
     }
 }
@@ -562,6 +562,16 @@ impl Setter2<color::Rgba> for ViewModel {
         self.replace2(range, Some(data))
     }
 }
+
+impl Setter2<style::Property> for ViewModel {
+    fn replace2(&self, range: &TextRange, data: style::Property) {
+        for range in self.text_to_byte_ranges(range) {
+            let range = self.crop_byte_range(range);
+            self.data.formatting.set_property(range, data)
+        }
+    }
+}
+
 
 
 /// Internal model for the `View`.
@@ -588,19 +598,27 @@ impl ViewModel {
 }
 
 impl ViewModel {
+    fn replace3(&self, ranges: &Vec<buffer::Range<UBytes>>, data: style::Property) {
+        for range in ranges {
+            let range = self.crop_byte_range(range);
+            self.data.formatting.set_property(range, data)
+        }
+    }
+
     pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
         match range {
-            TextRange::Selections => {
-                // FIXME: Selection shape and range are the same, arent they?
-                self.byte_selections()
-                    .into_iter()
-                    .map(|t| buffer::Range::new(t.start, t.end))
-                    .collect()
-            }
+            TextRange::Selections => self
+                .byte_selections()
+                .into_iter()
+                .map(|t| {
+                    let start = std::cmp::min(t.start, t.end);
+                    let end = std::cmp::max(t.start, t.end);
+                    buffer::Range::new(start, end)
+                })
+                .collect(),
             TextRange::BufferRange(range) => vec![range.clone()],
-            // TextRange::RangeBytes(range) => range.clone(),
-            // TextRange::RangeFull(range) => self.text.byte_range(range.clone()),
-            _ => panic!(),
+            TextRange::RangeBytes(range) => vec![range.into()],
+            TextRange::RangeFull(_) => vec![self.full_range()],
         }
     }
 
@@ -756,5 +774,11 @@ impl ViewModel {
 
     pub fn last_line_end_byte_offset(&self) -> UBytes {
         self.buffer.text().last_line_end_byte_offset()
+    }
+
+    pub fn full_range(&self) -> buffer::Range<UBytes> {
+        let start = UBytes::from(0);
+        let end = self.buffer.last_line_end_byte_offset();
+        buffer::Range { start, end }
     }
 }

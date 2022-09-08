@@ -62,6 +62,7 @@ fn init(app: Application) {
 
 
 
+    // TODO: add column unit and allow setting properties with it
     // TODO: check scrolled area
     // TODO: text width endpoints
     // TODO: check support for glyphs with multiple code points
@@ -91,7 +92,8 @@ fn init(app: Application) {
 
     warn!("=========================");
     let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
-    area.set_color(range_green, color::Rgba::red());
+    // area.set_color(range_green, color::Rgba::red());
+    area.format(range_green, color::Rgba::red());
     // area.set_color_all(color::Rgba::red());
     area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 

@@ -6,6 +6,7 @@ use ensogl_core::display::world::*;
 
 use crate::font;
 use crate::font::VariationAxes;
+use crate::Property;
 use crate::SdfWeight;
 
 use enso_text::CodePointIndex;
@@ -121,6 +122,13 @@ impl Glyph {
             UltraExpanded
         )
     ];
+
+    pub fn set_property(&self, property: Property) {
+        match property {
+            Property::Color(color) => self.set_color(color.unwrap()), // FIXME unwrap
+            _ => panic!(),
+        }
+    }
 
     /// Color getter.
     pub fn color(&self) -> Rgba {

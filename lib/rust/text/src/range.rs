@@ -12,6 +12,7 @@ use crate::rope;
 // === Range ===
 // =============
 
+// FIXME: Selection shape and range are the same, arent they?
 /// A (half-open) range bounded inclusively below and exclusively above [start,end).
 ///
 /// Unlike `std::ops::Range`, this type implements `Copy`, and contains text-related trait
@@ -121,8 +122,13 @@ impl<T: Debug> Debug for Range<T> {
 
 impl<T, U: Into<T>> From<std::ops::Range<U>> for Range<T> {
     fn from(range: std::ops::Range<U>) -> Range<T> {
-        let std::ops::Range { start, end } = range;
-        Range { start: start.into(), end: end.into() }
+        Range { start: range.start.into(), end: range.end.into() }
+    }
+}
+
+impl<T, U: Clone + Into<T>> From<&std::ops::Range<U>> for Range<T> {
+    fn from(range: &std::ops::Range<U>) -> Range<T> {
+        Range { start: range.start.clone().into(), end: range.end.clone().into() }
     }
 }
 
