@@ -161,6 +161,17 @@ impl Glyph {
         }
     }
 
+    // TODO: remove and update examples
+    /// Change the displayed character.
+    pub fn set_char(&self, ch: char) {
+        let opt_glyph_id =
+            self.font.glyph_id_of_code_point(self.properties.get(), &self.variations.borrow(), ch);
+        if let Some(glyph_id) = opt_glyph_id {
+            self.set_glyph_id(glyph_id)
+        }
+        // FIXME[WD]: display not found char. https://www.pivotaltracker.com/story/show/182746060
+    }
+
     /// Change the displayed character.
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);

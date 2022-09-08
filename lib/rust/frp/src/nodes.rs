@@ -1516,31 +1516,42 @@ impl<Out: Data> Source<Out> {
 pub trait IntoParam<T> {
     fn into_param(self) -> T;
 }
+
 impl<T> IntoParam<T> for T {
     fn into_param(self) -> T {
         self
     }
 }
+
 impl<T: Clone> IntoParam<T> for &T {
     fn into_param(self) -> T {
         self.clone()
     }
 }
+
 impl<T> IntoParam<Option<T>> for T {
     fn into_param(self) -> Option<T> {
         Some(self)
     }
 }
+
 impl<T: Clone> IntoParam<Option<T>> for &T {
     fn into_param(self) -> Option<T> {
         Some(self.clone())
     }
 }
+
 impl IntoParam<String> for &str {
     fn into_param(self) -> String {
         self.into()
     }
 }
+//
+// impl<T, S: Into<T>> IntoParam<T> for S {
+//     fn into_param(self) -> T {
+//         self.into()
+//     }
+// }
 
 
 
