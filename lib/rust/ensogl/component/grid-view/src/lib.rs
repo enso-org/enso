@@ -121,43 +121,42 @@ impl Properties {
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
-        /// Move selection one position up.
-        move_selection_up(),
+        accept_entry(Row, Col),
+        hover_entry(Option<(Row, Col)>),
+        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
+        /// event for given row and column. After that the entry will be visible.
+        model_for_entry(Row, Col, EntryModel),
         /// Move selection one position down.
         move_selection_down(),
         /// Move selection one position to the left.
         move_selection_left(),
         /// Move selection one position to the right.
         move_selection_right(),
-
-        /// Declare what area of the GridView is visible. The area position is relative to left-top
-        /// corner of the Grid View.
-        set_viewport(Viewport),
+        /// Move selection one position up.
+        move_selection_up(),
+        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
+        /// [`reset_entries`], it does not detach any entry.
+        request_model_for_visible_entries(),
+        /// Reset entries, providing new number of rows and columns. All currently displayed entries
+        /// will be detached and their models re-requested.
+        reset_entries(Row, Col),
         /// Set new size of the grid. If the number of rows or columns is reduced, the entries are
         /// removed from the view. If it is extended, new model for entries may be requested if
         /// needed.
         resize_grid(Row, Col),
-        /// Reset entries, providing new number of rows and columns. All currently displayed entries
-        /// will be detached and their models re-requested.
-        reset_entries(Row, Col),
-        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
-        /// event for given row and column. After that the entry will be visible.
-        model_for_entry(Row, Col, EntryModel),
-        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
-        /// [`reset_entries`], it does not detach any entry.
-        request_model_for_visible_entries(),
-        /// Set the entries size. All entries have the same size.
-        set_entries_size(Vector2),
+        select_entry(Option<(Row, Col)>),
         /// Set the width of the specified column.
         set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
+        /// Set the entries size. All entries have the same size.
+        set_entries_size(Vector2),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
-        select_entry(Option<(Row, Col)>),
-        hover_entry(Option<(Row, Col)>),
-        accept_entry(Row, Col),
+        /// Declare what area of the GridView is visible. The area position is relative to left-top
+        /// corner of the Grid View.
+        set_viewport(Viewport),
     }
 
     Output {
@@ -177,7 +176,7 @@ ensogl_core::define_endpoints_2! {
         column_resized(Col, f32),
         /// Event emitted after a request was made to move the selection in a direction, but the
         /// currently selected entry is the last one in the grid in that direction.
-        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowKeyDirection>),
+        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowDirection>),
     }
 }
 
@@ -539,25 +538,31 @@ impl<E: Entry> GridView<E> {
         Self { widget }
     }
 
-    fn move_selection_or_emit_movement_out_of_grid_prevented_event(
+    /// Move selection by one position in given direction if the resulting selection is in bounds
+    /// of the grid view as defined by [`grid_size`]. Emit
+    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
+    /// out of bounds of the grid. Do nothing if there is no selection.
+    fn move_selection_in_bounds_by_one_position(
         &self,
-        dir: frp::io::keyboard::ArrowKeyDirection,
+        direction: frp::io::keyboard::ArrowDirection,
     ) {
-        use frp::io::keyboard::ArrowKeyDirection::*;
+        use frp::io::keyboard::ArrowDirection::*;
         let frp = self.frp();
         if let Some((row, col)) = frp.entry_selected.value() {
             let (rows, cols) = frp.grid_size.value();
-            let new_selection_if_in_bounds = match dir {
+            let row_below = row + 1;
+            let col_to_the_right = col + 1;
+            let new_selection_if_in_bounds = match direction {
                 Up if row > 0 => Some((row - 1, col)),
-                Down if row + 1 < rows => Some((row + 1, col)),
+                Down if row < Row::MAX && row_below < rows => Some((row_below, col)),
                 Left if col > 0 => Some((row, col - 1)),
-                Right if col + 1 < cols => Some((row, col + 1)),
+                Right if col < Col::MAX && col_to_the_right < cols => Some((row, col_to_the_right)),
                 _ => None,
             };
             if let Some(selection) = new_selection_if_in_bounds {
                 frp.select_entry(selection);
             } else {
-                frp.private.output.selection_movement_out_of_grid_prevented.emit(Some(dir));
+                frp.private.output.selection_movement_out_of_grid_prevented.emit(Some(direction));
             }
         }
     }
@@ -603,6 +608,12 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
 {
     fn display_object(&self) -> &display::object::Instance {
         self.widget.display_object()
+    }
+}
+
+impl<E: Entry> FrpNetworkProvider for GridView<E> {
+    fn network(&self) -> &frp::Network {
+        self.widget.network()
     }
 }
 

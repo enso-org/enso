@@ -366,44 +366,6 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> 
     }
 }
 
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> FrpNetworkProvider
-    for GridView<E, HeaderEntry>
-{
-    fn network(&self) -> &frp::Network {
-        self.model.grid.network()
-    }
-}
-
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
-    for GridView<E, HeaderEntry>
-{
-    fn label() -> &'static str {
-        "GridViewWithHeaders"
-    }
-
-    fn new(app: &Application) -> Self {
-        GridView::<E, HeaderEntry>::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        self.model.grid.app()
-    }
-
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use application::shortcut::ActionType::*;
-        (&[
-            (PressAndRepeat, "up", "move_selection_up"),
-            (PressAndRepeat, "down", "move_selection_down"),
-            (PressAndRepeat, "left", "move_selection_left"),
-            (PressAndRepeat, "right", "move_selection_right"),
-        ])
-            .iter()
-            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
-            .collect()
-    }
-}
-
-
 impl<E, InnerGridView, HeaderEntry>
     GridViewTemplate<E, InnerGridView, HeaderEntry, HeaderEntry::Model, HeaderEntry::Params>
 where
@@ -564,6 +526,46 @@ where
 {
     fn display_object(&self) -> &display::object::Instance {
         self.model.grid.display_object()
+    }
+}
+
+impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> FrpNetworkProvider
+    for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
+where
+    InnerGridView: FrpNetworkProvider,
+    HeaderModel: frp::node::Data,
+{
+    fn network(&self) -> &frp::Network {
+        self.model.grid.network()
+    }
+}
+
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
+    for GridView<E, HeaderEntry>
+{
+    fn label() -> &'static str {
+        "GridViewWithHeaders"
+    }
+
+    fn new(app: &Application) -> Self {
+        GridView::<E, HeaderEntry>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        self.model.grid.app()
+    }
+
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use application::shortcut::ActionType::*;
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (PressAndRepeat, "left", "move_selection_left"),
+            (PressAndRepeat, "right", "move_selection_right"),
+        ])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+            .collect()
     }
 }
 
