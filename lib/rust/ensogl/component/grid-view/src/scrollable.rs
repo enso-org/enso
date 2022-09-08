@@ -121,7 +121,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
         let input = &base_grid.private.input;
-
         let frp = Frp::new();
         let network = &frp.network();
 
