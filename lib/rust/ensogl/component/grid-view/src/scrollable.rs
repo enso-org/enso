@@ -117,17 +117,15 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
                     let size = base_grid.entry_size(*row, *col);
-                    let entry_bbox_top = pos.y + size.y;
-                    let entry_bbox_bottom = pos.y - size.y;
-                    let entry_bbox_left = pos.x - size.x;
-                    let entry_bbox_right = pos.x + size.x;
+                    let half_size = size / 2.0;
+                    let entry_bbox_top = pos.y + half_size.y;
+                    let entry_bbox_bottom = pos.y - half_size.y;
+                    let entry_bbox_left = pos.x - half_size.x;
+                    let entry_bbox_right = pos.x + half_size.x;
                     let viewport = base_grid.viewport.value();
-                    // let viewport_size = viewport.size();
-                    // tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?} in {viewport_size:?}");
                     let viewport_height = viewport.size().y;
                     let viewport_width = viewport.size().x;
                     tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?} in {viewport:?}");
-                    // TODO[mc]: horizontal scroll
                     if viewport.top - MARGIN_TOP < entry_bbox_top {
                         area.scroll_to_y(-(entry_bbox_top + MARGIN_TOP));
                     } else if viewport.bottom + MARGIN_BOTTOM > entry_bbox_bottom {
@@ -138,10 +136,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                     } else if viewport.right < entry_bbox_right {
                         area.scroll_to_x(entry_bbox_right - viewport_width);
                     }
-                    // // area.scroll_to_x(pos.x - size.x/2.0);
-                    // // area.scroll_to_y(-pos.y - size.y/2.0);
-                    // area.scroll_to_x(pos.x + size.x/2.0 - viewport_size.x);
-                    // area.scroll_to_y(-pos.y + size.y/2.0 - viewport_size.y);
                 }
             }));
         }
