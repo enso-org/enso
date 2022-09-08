@@ -57,12 +57,10 @@ pub mod ellipsis {
             let background_width = style.get_number(theme::ellipsis::background_width);
             let background_height = style.get_number(theme::ellipsis::background_height);
             let background_corners_radius = style.get_number(theme::ellipsis::background_corners_radius);
-            let background_color = style.get_color(theme::ellipsis::background_color);
-            let circles_color = style.get_color(theme::ellipsis::circles_color);
-            let background_color = Var::<color::Rgba>::rgba(background_color.red,background_color
-                .green,background_color.blue,alpha.clone());
-            let circles_color = Var::<color::Rgba>::rgba(circles_color.red,circles_color
-                .green,circles_color.blue,alpha);
+            let col = style.get_color(theme::ellipsis::circles_color);
+            let circles_color = Var::<color::Rgba>::rgba(col.red,col.green,col.blue,alpha.clone());
+            let bg_col = style.get_color(theme::ellipsis::background_color);
+            let background_color = Var::<color::Rgba>::rgba(bg_col.red,bg_col.green,bg_col.blue,alpha);
 
             let left = Circle(radius.clone()).fill(circles_color.clone());
             let center = Circle(radius.clone()).fill(circles_color.clone());
