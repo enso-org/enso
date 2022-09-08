@@ -118,7 +118,7 @@ fn setup_grid_view(
         left:   BASE_SCROLL_MARGIN,
         right:  BASE_SCROLL_MARGIN,
     };
-    view.set_preferred_margins_around_entry_when_scrolling(scroll_margins);
+    view.extra_scroll_frp().set_preferred_margins_around_entry(scroll_margins);
     view.reset_entries(1000, 1000);
     std::mem::forget(network);
     app.display.add_child(&view);

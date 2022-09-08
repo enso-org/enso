@@ -22,6 +22,8 @@ use ensogl_scroll_area::ScrollArea;
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set margins defining an area around an [`Entry`] that should be made visible when
+        /// scrolling the GridView's viewport to display the Entry.
         set_preferred_margins_around_entry(crate::Margins),
     }
 
@@ -188,6 +190,12 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
     /// or jump at position.
     pub fn scroll_frp(&self) -> &ensogl_scroll_area::Frp {
         self.area.deref()
+    }
+
+    /// Access the parts of the FRP API of a scrollable Grid View that are not available through
+    /// either the [`InnerGridView`] FRP or the [`scroll_frp`] API.
+    pub fn extra_scroll_frp(&self) -> &Frp {
+        &self.frp
     }
 }
 
