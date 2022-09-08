@@ -48,6 +48,7 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::gui::Widget;
+use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
@@ -148,6 +149,8 @@ impl Model {
         grid.set_entries_params(params.clone());
         grid.reset_entries(1, 0);
         display_object.add_child(&grid);
+        // TODO: Without this line the icons are not cropped by the mask?
+        layers.main.add_exclusive(&grid);
         let entries: Entries = default();
         let show_ellipsis = Rc::new(Cell::new(false));
         frp::new_network! { network
@@ -186,14 +189,18 @@ impl Model {
         self.mask.size.set(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_position_xy(grid_view_center);
-        let offset = (content_size.x - size.x).max(0.0);
-        self.grid.set_position_x(-offset);
         // TODO: This padding is used to ensure that trailing ellipsis is always visible. Can we
         //   do something better here?
         let padding = 50.0;
+        let offset = self.offset(content_size, size);
         let right = offset + size.x + padding;
+        DEBUG!("Viewport: {offset} {right}");
         let vp = Viewport { top: 0.0, bottom: -size.y, left: offset, right };
         self.grid.set_viewport(vp);
+    }
+
+    fn offset(&self, content_size: Vector2, size: Vector2) -> f32 {
+        (content_size.x - size.x).max(0.0)
     }
 
     /// A model for the specific entry. Every second entry of the grid view is an actual
@@ -266,7 +273,8 @@ impl Model {
     }
 
     /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
-    pub fn push(&self, breadcrumb: &Breadcrumb) {
+    pub fn push(&self, breadcrumb: &Breadcrumb, selected: BreadcrumbId) {
+        self.entries.borrow_mut().truncate(selected + 1);
         self.entries.borrow_mut().push(breadcrumb.clone_ref());
         let new_col_count = self.grid_columns();
         self.grid.resize_grid(1, new_col_count);
@@ -382,11 +390,9 @@ impl Breadcrumbs {
         let grid = &model.grid;
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let entries_height = style.get_number(theme::height);
+        let offset_anim = Animation::new(&network);
         frp::extend! { network
             init <- source_();
-            eval input.push((breadcrumb) model.push(breadcrumb));
-            entries <= input.set_entries.map(f!((e) { model.clear(); e.clone() }));
-            eval entries((entry) model.push(entry));
             eval_ input.clear(model.clear());
             eval input.show_ellipsis((b) model.show_ellipsis(*b));
             entry_selected <- grid.entry_selected.filter_map(|l| *l);
@@ -394,11 +400,19 @@ impl Breadcrumbs {
                 model.grey_out(Some(col + 1));
             });
             selected <- entry_selected.map(|(_, col)| col / 2);
+            _eval <- input.push.map2(&selected, f!((b, s) model.push(b, *s)));
+            entries <= input.set_entries.map(f!((e) { model.clear(); e.clone() }));
+            _eval <- entries.map2(&selected, f!((entry, s) model.push(entry, *s)));
             eval selected([](id) tracing::debug!("Selected breadcrumb: {id}"));
             out.selected <+ selected;
-            _eval <- all_with(&model.grid.content_size, &input.set_size,
-                f!((content_size, size) model.update_layout(*content_size, *size))
+            offset_anim_target <- all_with(&model.grid.content_size, &input.set_size,
+                f!((content_size, size) {
+                    model.update_layout(*content_size, *size);
+                    model.offset(*content_size, *size)
+                })
             );
+            offset_anim.target <+ offset_anim_target;
+            eval offset_anim.value((offset) model.grid.set_position_x(-offset));
             eval_ input.move_up(model.move_up());
             eval_ input.move_down(model.move_down());
             entries_height <- all(&entries_height, &init)._0();
