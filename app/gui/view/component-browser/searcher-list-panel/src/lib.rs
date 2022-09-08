@@ -455,8 +455,8 @@ impl Model {
         layers.navigator.add_exclusive(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&layers.navigator);
         display_object.add_child(&breadcrumbs);
-        layers.navigator.add_exclusive(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
         breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
 

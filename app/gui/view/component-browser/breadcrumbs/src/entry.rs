@@ -8,9 +8,7 @@ use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::Scene;
 use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
@@ -68,7 +66,7 @@ pub mod ellipsis {
 
             let left = Circle(radius.clone()).fill(circles_color.clone());
             let center = Circle(radius.clone()).fill(circles_color.clone());
-            let right = Circle(radius.clone()).fill(circles_color);
+            let right = Circle(radius).fill(circles_color);
             let circles = left.translate_x(-gap.clone()) + center + right.translate_x(gap);
             let background = Rect((background_width.px(), background_height.px()));
             let background = background.corners_radius(background_corners_radius.px());
@@ -129,7 +127,7 @@ impl EntryData {
         let display_object = display::object::Instance::new(&logger);
         let text = app.new_view::<ensogl_text::Area>();
         if let Some(layer) = text_layer {
-            text.add_to_scene_layer(&layer);
+            text.add_to_scene_layer(layer);
         }
         let ellipsis = ellipsis::View::new(&logger);
         let separator = separator::View::new(&logger);
@@ -269,8 +267,8 @@ impl ensogl_grid_view::Entry for Entry {
         let input = &frp.private().input;
         let out = &frp.private().output;
         let network = frp.network();
-        let color_coeff = Animation::new(&network);
-        let appear_anim = Animation::new(&network);
+        let color_anim = Animation::new(network);
+        let appear_anim = Animation::new(network);
         fn mix(c1: &color::Rgba, c2: &color::Rgba, coefficient: &f32) -> color::Rgba {
             color::mix(*c1, *c2, *coefficient)
         }
@@ -293,8 +291,8 @@ impl ensogl_grid_view::Entry for Entry {
             should_grey_out <- all_with(&col, &greyed_out_from,
                 |col, from| from.map_or(false, |from| *col >= from)
             );
-            color_coeff.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
-            target_color <- all_with3(&text_color, &greyed_out_color, &color_coeff.value, mix);
+            color_anim.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
+            target_color <- all_with3(&text_color, &greyed_out_color, &color_anim.value, mix);
             appear_anim.target <+ init.constant(1.0);
             model_was_set <- input.set_model.map(f!((model) data.is_state_switch(model))).on_true();
             should_appear <- any(&init, &model_was_set);
@@ -311,16 +309,14 @@ impl ensogl_grid_view::Entry for Entry {
             });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
-            text_params <- all3(&color, &font, &text_size);
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
-            width <- map3(&input.set_model, &text_params, &layout,
-                f!([data](model, text_params, layout) {
-                    let (text_color, font, text_size) = text_params;
-                    data.set_model(&model);
-                    data.width(layout.2)
+            width <- map2(&input.set_model, &text_offset,
+                f!([data](model, text_offset) {
+                    data.set_model(model);
+                    data.width(*text_offset)
                 })
             );
             out.override_column_width <+ width;

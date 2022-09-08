@@ -61,6 +61,16 @@ mod entry;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// If the selected entry is to the left of this fraction of the viewport, we scroll the breadcrumbs
+/// to keep the entry visible and easily reachable.
+const SCROLLING_THRESHOLD: f32 = 0.5;
+
+
+
 // ====================
 // === Type Aliases ===
 // ====================
@@ -106,8 +116,9 @@ struct Layers {
 
 impl Layers {
     /// Constructor.
-    pub fn new(app: &Application, base_layer: &Layer) -> Self {
-        let mask = Layer::new(app.logger.sub("BreadcrumbsMask"));
+    pub fn new(base_layer: &Layer) -> Self {
+        let logger = Logger::new("BreadcrumbsMask");
+        let mask = Layer::new_with_cam(logger, &base_layer.camera());
         let main = base_layer.create_sublayer();
         let text = main.create_sublayer();
         main.set_mask(&mask);
@@ -129,28 +140,20 @@ pub struct Model {
     entries:        Entries,
     network:        frp::Network,
     mask:           mask::View,
-    layers:         Layers,
     show_ellipsis:  Rc<Cell<bool>>,
-    params:         Rc<RefCell<entry::Params>>,
 }
 
 impl Model {
     /// Constructor.
-    pub fn new(app: &Application, layer: &Layer) -> Self {
-        let layers = Layers::new(app, layer);
+    pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new(&app.logger);
         let mask = mask::View::new(&app.logger);
         display_object.add_child(&mask);
-        layers.mask.add_exclusive(&mask);
-        layers.main.add_exclusive(&display_object);
         let grid = GridView::new(app);
-        grid.set_text_layer(Some(layers.text.downgrade()));
         let params = entry::Params::default();
-        grid.set_entries_params(params.clone());
+        grid.set_entries_params(params);
         grid.reset_entries(1, 0);
         display_object.add_child(&grid);
-        // TODO: Without this line the icons are not cropped by the mask?
-        layers.main.add_exclusive(&grid);
         let entries: Entries = default();
         let show_ellipsis = Rc::new(Cell::new(false));
         frp::new_network! { network
@@ -162,16 +165,15 @@ impl Model {
             );
             grid.model_for_entry <+ requested_entry;
         }
-        Self {
-            display_object,
-            grid,
-            entries,
-            network,
-            mask,
-            layers,
-            show_ellipsis,
-            params: Rc::new(RefCell::new(params)),
-        }
+        Self { display_object, grid, entries, network, mask, show_ellipsis }
+    }
+
+    fn set_layers(&self, layers: Layers) {
+        layers.mask.add_exclusive(&self.mask);
+        layers.main.add_exclusive(&self.display_object);
+        layers.main.add_exclusive(&self.grid);
+        self.grid.set_text_layer(Some(layers.text.downgrade()));
+        self.network.store(&layers);
     }
 
     /// Update the displayed height of the breadcrumbs entries.
@@ -189,38 +191,35 @@ impl Model {
         self.mask.size.set(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_position_xy(grid_view_center);
-        // TODO: This padding is used to ensure that trailing ellipsis is always visible. Can we
-        //   do something better here?
-        let padding = 50.0;
+        // Additional padding is added to avoid rare glitches when the last entry is
+        // cropped because it is placed right on the border of the viewport. Even 1px seems
+        // enough, but we add a bit more to be sure.
+        let padding = 10.0;
         let offset = self.offset(content_size, size);
         let right = offset + size.x + padding;
-        DEBUG!("Viewport: {offset} {right}");
         let vp = Viewport { top: 0.0, bottom: -size.y, left: offset, right };
         self.grid.set_viewport(vp);
     }
 
+    /// Calculate an offset of the breadcrumbs' content. If the content does not fit into [`size`],
+    /// we shift it left so that the user always sees the right (most important) part of the
+    /// breadcrumbs. Also, we keep the selected breadcrumb visible and easily reachable by
+    /// placing it near the center of the viewport.
     fn offset(&self, content_size: Vector2, size: Vector2) -> f32 {
-        let content_width = if content_size.x > size.x {
-            if let Some((row, col)) = self.grid.entry_selected.value() {
-                let position = self.grid.entry_position(row, col).x;
-                let last_column = self.column_of_the_last_entry().unwrap_or(0);
-                if col < last_column {
-                    if position < content_size.x - size.x * 0.5 {
-                        position + 0.5 * size.x
-                    } else {
-                        content_size.x
-                    }
-                } else {
-                    content_size.x
-                }
-            } else {
-                content_size.x
-            }
+        let selected_col = self.grid.entry_selected.value().map(|(_, col)| col).unwrap_or(0);
+        let last_col = self.column_of_the_last_entry().unwrap_or(0);
+        let entry_pos = self.grid.entry_position(1, selected_col).x;
+        let selected_is_not_last = selected_col < last_col;
+        let scrolling_threshold_pos = content_size.x - size.x * SCROLLING_THRESHOLD;
+        let should_scroll = entry_pos < scrolling_threshold_pos;
+        let content_truncated = content_size.x > size.x;
+        let content_right = if content_truncated && selected_is_not_last && should_scroll {
+            entry_pos + SCROLLING_THRESHOLD * size.x
         } else {
             content_size.x
         };
-        let right = content_width.min(size.x);
-        content_width - right
+        let viewport_right = content_right.min(size.x);
+        content_right - viewport_right
     }
 
     /// A model for the specific entry. Every second entry of the grid view is an actual
@@ -261,12 +260,10 @@ impl Model {
     fn column_of_the_last_entry(&self) -> Option<Col> {
         if self.entries.borrow().is_empty() {
             None
+        } else if self.show_ellipsis.get() {
+            Some(self.grid_columns().saturating_sub(3))
         } else {
-            if self.show_ellipsis.get() {
-                Some(self.grid_columns().saturating_sub(3))
-            } else {
-                Some(self.grid_columns().saturating_sub(1))
-            }
+            Some(self.grid_columns().saturating_sub(1))
         }
     }
 
@@ -276,7 +273,6 @@ impl Model {
             self.show_ellipsis.set(show);
             let new_cols = self.grid_columns();
             self.grid.resize_grid(1, new_cols);
-            // TODO: An API for partial update in the Grid View?
             self.grid.request_model_for_visible_entries();
         }
     }
@@ -284,21 +280,19 @@ impl Model {
     /// Mark entries as greyed out starting from supplied column index. Cancel greying out if
     /// [`None`] is provided.
     pub fn grey_out(&self, from: Option<Col>) {
-        let params = {
-            let mut borrowed = self.params.borrow_mut();
-            borrowed.greyed_out_start = from;
-            borrowed.clone()
-        };
+        let mut params = self.grid.entries_params.value();
+        params.greyed_out_start = from;
         self.grid.set_entries_params(params);
     }
 
     /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
+    /// A newly added breadcrumb will be placed after the currently selected one. All inactive
+    /// (greyed out) breadcrumbs will be removed.
     pub fn push(&self, breadcrumb: &Breadcrumb, selected: BreadcrumbId) {
         self.entries.borrow_mut().truncate(selected + 1);
         self.entries.borrow_mut().push(breadcrumb.clone_ref());
         let new_col_count = self.grid_columns();
         self.grid.resize_grid(1, new_col_count);
-        // TODO: An API for partial update in the Grid View?
         self.grid.request_model_for_visible_entries();
         if let Some(last_entry) = self.column_of_the_last_entry() {
             self.grid.select_entry(Some((0, last_entry)));
@@ -312,10 +306,8 @@ impl Model {
             if col != 0 {
                 self.grid.select_entry(Some((row, col.saturating_sub(2))));
             }
-        } else {
-            if let Some(last) = self.column_of_the_last_entry() {
-                self.grid.select_entry(Some((0, last)));
-            }
+        } else if let Some(last) = self.column_of_the_last_entry() {
+            self.grid.select_entry(Some((0, last)));
         }
     }
 
@@ -363,7 +355,7 @@ ensogl_core::define_endpoints_2! {
     Input {
         /// Select a specific breadcrumb, greying out breadcrumbs after it.
         select(BreadcrumbId),
-        /// Add a new breadcrumb to the end of the list.
+        /// Add a new breadcrumb after the currently selected one.
         push(Breadcrumb),
         /// Set a list of displayed breadcrumbs, rewriting any previously added breadcrumbs.
         set_entries(Vec<Breadcrumb>),
@@ -401,7 +393,7 @@ pub struct Breadcrumbs {
 impl Breadcrumbs {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app, &app.display.default_scene.layers.node_searcher));
+        let model = Rc::new(Model::new(app));
         let display_object = model.display_object.clone_ref();
         let frp = Frp::new();
         let network = frp.network();
@@ -410,29 +402,30 @@ impl Breadcrumbs {
         let grid = &model.grid;
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let entries_height = style.get_number(theme::height);
-        let offset_anim = Animation::new(&network);
+        let scroll_anim = Animation::new(network);
         frp::extend! { network
             init <- source_();
-            eval_ input.clear(model.clear());
             eval input.show_ellipsis((b) model.show_ellipsis(*b));
-            entry_selected <- grid.entry_selected.filter_map(|l| *l);
-            eval entry_selected([model]((_row, col)) {
+            selected_grid_col <- grid.entry_selected.filter_map(|l| *l);
+            eval selected_grid_col([model]((_row, col)) {
                 model.grey_out(Some(col + 1));
             });
-            selected <- entry_selected.map(|(_, col)| col / 2);
+            eval_ input.clear(model.clear());
+            selected <- selected_grid_col.map(|(_, col)| col / 2);
             _eval <- input.push.map2(&selected, f!((b, s) model.push(b, *s)));
             entries <= input.set_entries.map(f!((e) { model.clear(); e.clone() }));
             _eval <- entries.map2(&selected, f!((entry, s) model.push(entry, *s)));
             eval selected([](id) tracing::debug!("Selected breadcrumb: {id}"));
             out.selected <+ selected;
-            offset_anim_target <- all_with3(&model.grid.content_size, &input.set_size, &model.grid.entry_selected,
+
+            scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid
+                .entry_selected,
                 f!((content_size, size, _) {
                     model.update_layout(*content_size, *size);
                     model.offset(*content_size, *size)
                 })
             );
-            offset_anim.target <+ offset_anim_target;
-            eval offset_anim.value((offset) model.grid.set_position_x(-offset));
+            eval scroll_anim.value((offset) model.grid.set_position_x(-offset));
             eval_ input.move_up(model.move_up());
             eval_ input.move_down(model.move_down());
             entries_height <- all(&entries_height, &init)._0();
@@ -442,6 +435,11 @@ impl Breadcrumbs {
 
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
+    }
+
+    /// Set the scene layer for the breadcrumbs.
+    pub fn set_base_layer(&self, base_layer: &Layer) {
+        self.widget.model().set_layers(Layers::new(base_layer));
     }
 }
 
