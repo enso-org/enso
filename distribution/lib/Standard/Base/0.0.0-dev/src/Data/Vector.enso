@@ -179,7 +179,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.at ix)
+        f = acc -> ix -> function acc (self.unsafe_at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
