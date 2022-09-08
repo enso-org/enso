@@ -16,8 +16,6 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
 import java.time.ZoneId;
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
