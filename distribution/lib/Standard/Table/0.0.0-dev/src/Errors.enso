@@ -242,12 +242,12 @@ type Column_Count_Mismatch
     to_display_text self =
         "Expected " + self.expected.to_text + " columns, got " + self.actual.to_text + "."
 
-## PRIVATE
-Column_Count_Mismatch.handle_java_exception self =
-    throw_column_count_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
-    Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
+    ## PRIVATE
+    handle_java_exception self =
+        throw_column_count_mismatch caught_panic =
+            cause = caught_panic.payload.cause
+            Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
+        Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
 
 ## Indicates that the existing table has a different set of column names to the
    new table.
@@ -257,12 +257,12 @@ type Column_Name_Mismatch
     to_display_text : Text
     to_display_text self = self.message
 
-## PRIVATE
-Column_Name_Mismatch.handle_java_exception =
-    throw_column_name_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Name_Mismatch_Data (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
-    Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
+    ## PRIVATE
+    handle_java_exception =
+        throw_column_name_mismatch caught_panic =
+            cause = caught_panic.payload.cause
+            Error.throw (Column_Name_Mismatch_Data (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
+        Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 
 ## UNSTABLE
 

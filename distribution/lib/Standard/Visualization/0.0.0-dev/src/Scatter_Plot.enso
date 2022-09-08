@@ -93,11 +93,10 @@ type Point_Data
 
 ## PRIVATE
 type No_Fallback_Column
-
-## PRIVATE
-No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text self =
-    "No fallback column found for the scatter plot."
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
