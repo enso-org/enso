@@ -114,35 +114,32 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
+            some_entry_selected <= base_grid.entry_selected;
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
-            _eval <- base_grid.entry_selected.map2(scroll_margins, f!([base_grid, area] (optpos, margins) {
-                // FIXME[mc]: use <= to unwrap Some
-                if let Some((row, col)) = optpos {
-                    let pos = base_grid.entry_position(*row, *col);
-                    let size = base_grid.entry_size(*row, *col);
-                    let half_size = size / 2.0;
-                    let entry_bbox_top = pos.y + half_size.y;
-                    let entry_bbox_bottom = pos.y - half_size.y;
-                    let entry_bbox_left = pos.x - half_size.x;
-                    let entry_bbox_right = pos.x + half_size.x;
-                    let viewport = base_grid.viewport.value();
+            _eval <- some_entry_selected.map2(scroll_margins, f!([base_grid, area] (pos, margins) {
+                let (row, col) = pos;
+                let pos = base_grid.entry_position(*row, *col);
+                let half_size = base_grid.entry_size(*row, *col) / 2.0;
+                let top = pos.y + half_size.y;
+                let bottom = pos.y - half_size.y;
+                let left = pos.x - half_size.x;
+                let right = pos.x + half_size.x;
+                let viewport = base_grid.viewport.value();
+                let preferred_min_viewport_top = top + margins.top;
+                let preferred_max_viewport_bottom = bottom - margins.bottom;
+                if viewport.top < preferred_min_viewport_top {
+                    area.scroll_to_y(-preferred_min_viewport_top);
+                } else if viewport.bottom > preferred_max_viewport_bottom {
                     let viewport_height = viewport.size().y;
+                    area.scroll_to_y(-(preferred_max_viewport_bottom + viewport_height));
+                }
+                let preferred_min_viewport_right = right + margins.right;
+                let preferred_max_viewport_left = left - margins.left;
+                if viewport.right < preferred_min_viewport_right {
                     let viewport_width = viewport.size().x;
-                    tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?} in {viewport:?}");
-                    let preferred_min_viewport_top = entry_bbox_top + margins.top;
-                    let preferred_max_viewport_bottom = entry_bbox_bottom - margins.bottom;
-                    if viewport.top < preferred_min_viewport_top {
-                        area.scroll_to_y(-preferred_min_viewport_top);
-                    } else if viewport.bottom > preferred_max_viewport_bottom {
-                        area.scroll_to_y(-(preferred_max_viewport_bottom + viewport_height));
-                    }
-                    let preferred_min_viewport_right = entry_bbox_right + margins.right;
-                    let preferred_max_viewport_left = entry_bbox_left - margins.left;
-                    if viewport.right < preferred_min_viewport_right {
-                        area.scroll_to_x(preferred_min_viewport_right - viewport_width);
-                    } else if viewport.left > preferred_max_viewport_left {
-                        area.scroll_to_x(preferred_max_viewport_left);
-                    }
+                    area.scroll_to_x(preferred_min_viewport_right - viewport_width);
+                } else if viewport.left > preferred_max_viewport_left {
+                    area.scroll_to_x(preferred_max_viewport_left);
                 }
             }));
         }
