@@ -156,6 +156,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![feature(associated_type_defaults)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(unboxed_closures)]

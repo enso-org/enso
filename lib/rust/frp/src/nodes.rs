@@ -1510,8 +1510,12 @@ impl<Out: Data> Source<Out> {
     }
 }
 
-/// The parameter of FRP system. It allows passing wide range of values to the `emit` function for
-/// easy of use.
+auto trait NotSame {}
+impl<T> !NotSame for (T, T) {}
+impl<T> !NotSame for (T, &T) {}
+impl<T> !NotSame for (Option<T>, T) {}
+impl<T> !NotSame for (Option<T>, &T) {}
+
 #[allow(missing_docs)]
 pub trait IntoParam<T> {
     fn into_param(self) -> T;
@@ -1541,17 +1545,15 @@ impl<T: Clone> IntoParam<Option<T>> for &T {
     }
 }
 
-impl IntoParam<String> for &str {
-    fn into_param(self) -> String {
+impl<T, S> IntoParam<T> for S
+where
+    (T, S): NotSame,
+    S: Into<T>,
+{
+    default fn into_param(self) -> T {
         self.into()
     }
 }
-//
-// impl<T, S: Into<T>> IntoParam<T> for S {
-//     fn into_param(self) -> T {
-//         self.into()
-//     }
-// }
 
 
 
