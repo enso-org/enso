@@ -1068,7 +1068,7 @@ impl component::Frp<Model> for Frp {
             // === Breadcrumbs ===
             // TODO: Clicking on any header pushes an entry to the breadcrumbs stack. This behavior
             //   would be changed in https://www.pivotaltracker.com/story/show/182675703.
-            eval_ output.header_accepted(model.breadcrumbs.push(breadcrumbs::Breadcrumb::new("Test")));
+            eval output.header_accepted((id)model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(&format!("Module{}",id.index))));
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

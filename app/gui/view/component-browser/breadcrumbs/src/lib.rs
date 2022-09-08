@@ -200,7 +200,27 @@ impl Model {
     }
 
     fn offset(&self, content_size: Vector2, size: Vector2) -> f32 {
-        (content_size.x - size.x).max(0.0)
+        let content_width = if content_size.x > size.x {
+            if let Some((row, col)) = self.grid.entry_selected.value() {
+                let position = self.grid.entry_position(row, col).x;
+                let last_column = self.column_of_the_last_entry().unwrap_or(0);
+                if col < last_column {
+                    if position < content_size.x - size.x * 0.5 {
+                        position + 0.5 * size.x
+                    } else {
+                        content_size.x
+                    }
+                } else {
+                    content_size.x
+                }
+            } else {
+                content_size.x
+            }
+        } else {
+            content_size.x
+        };
+        let right = content_width.min(size.x);
+        content_width - right
     }
 
     /// A model for the specific entry. Every second entry of the grid view is an actual
@@ -405,8 +425,8 @@ impl Breadcrumbs {
             _eval <- entries.map2(&selected, f!((entry, s) model.push(entry, *s)));
             eval selected([](id) tracing::debug!("Selected breadcrumb: {id}"));
             out.selected <+ selected;
-            offset_anim_target <- all_with(&model.grid.content_size, &input.set_size,
-                f!((content_size, size) {
+            offset_anim_target <- all_with3(&model.grid.content_size, &input.set_size, &model.grid.entry_selected,
+                f!((content_size, size, _) {
                     model.update_layout(*content_size, *size);
                     model.offset(*content_size, *size)
                 })

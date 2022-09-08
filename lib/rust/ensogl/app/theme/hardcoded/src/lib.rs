@@ -232,7 +232,8 @@ define_themes! { [light:0, dark:1]
                             background_width = 24.0, 24.0;
                             background_height = 10.0, 10.0;
                             background_corners_radius = 16.0, 16.0;
-                            background_color = Rgba(0.0, 0.0, 0.0, 0.2), Rgba(0.0, 0.0, 0.0, 0.2);
+                            background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
+                            circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 6.0, 6.0;
                         }

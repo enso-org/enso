@@ -53,17 +53,22 @@ pub mod ellipsis {
     ensogl_core::define_shape_system! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
-        (style: Style, color: Vector4) {
+        (style: Style, alpha: f32) {
             let radius = style.get_number(theme::ellipsis::circles_radius).px();
             let gap = style.get_number(theme::ellipsis::circles_gap).px();
             let background_width = style.get_number(theme::ellipsis::background_width);
             let background_height = style.get_number(theme::ellipsis::background_height);
             let background_corners_radius = style.get_number(theme::ellipsis::background_corners_radius);
             let background_color = style.get_color(theme::ellipsis::background_color);
+            let circles_color = style.get_color(theme::ellipsis::circles_color);
+            let background_color = Var::<color::Rgba>::rgba(background_color.red,background_color
+                .green,background_color.blue,alpha.clone());
+            let circles_color = Var::<color::Rgba>::rgba(circles_color.red,circles_color
+                .green,circles_color.blue,alpha);
 
-            let left = Circle(radius.clone()).fill(color.clone());
-            let center = Circle(radius.clone()).fill(color.clone());
-            let right = Circle(radius.clone()).fill(color);
+            let left = Circle(radius.clone()).fill(circles_color.clone());
+            let center = Circle(radius.clone()).fill(circles_color.clone());
+            let right = Circle(radius.clone()).fill(circles_color);
             let circles = left.translate_x(-gap.clone()) + center + right.translate_x(gap);
             let background = Rect((background_width.px(), background_height.px()));
             let background = background.corners_radius(background_corners_radius.px());
@@ -183,7 +188,7 @@ impl EntryData {
 
     fn set_default_color(&self, color: color::Rgba) {
         self.text.set_default_color(color);
-        self.ellipsis.color.set(color.into());
+        self.ellipsis.alpha.set(color.alpha);
         self.separator.color.set(color.into());
     }
 
@@ -223,7 +228,7 @@ pub struct Params {
     pub font:                     ImString,
     pub text_offset:              f32,
     pub text_size:                text::Size,
-    pub text_color:               color::Rgba,
+    pub selected_color:           color::Rgba,
     pub highlight_corners_radius: f32,
     pub greyed_out_color:         color::Rgba,
     pub greyed_out_start:         Option<usize>,
@@ -237,9 +242,9 @@ impl Default for Params {
             font:                     text::font::DEFAULT_FONT.into(),
             text_offset:              7.0,
             text_size:                12.0.into(),
-            text_color:               color::Rgba(0.0, 0.0, 0.0, 1.0),
+            selected_color:           color::Rgba(0.5, 0.5, 0.51, 1.0),
             highlight_corners_radius: 15.0,
-            greyed_out_color:         color::Rgba(0.0, 0.0, 0.0, 0.5),
+            greyed_out_color:         color::Rgba(0.79, 0.79, 0.8, 1.0),
             greyed_out_start:         None,
         }
     }
@@ -277,7 +282,7 @@ impl ensogl_grid_view::Entry for Entry {
             hover_color <- input.set_params.map(|p| p.hover_color).on_change();
             font <- input.set_params.map(|p| p.font.clone_ref()).on_change();
             text_offset <- input.set_params.map(|p| p.text_offset).on_change();
-            text_color <- input.set_params.map(|p| p.text_color).on_change();
+            text_color <- input.set_params.map(|p| p.selected_color).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
