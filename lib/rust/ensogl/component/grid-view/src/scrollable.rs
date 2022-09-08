@@ -110,6 +110,9 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
+
+            // === Viewport scrolling on selection move ===
+
             input_move_selection <- any4(
                 &input.move_selection_down,
                 &input.move_selection_left,
