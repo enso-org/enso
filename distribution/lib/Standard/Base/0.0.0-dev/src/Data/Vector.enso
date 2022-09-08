@@ -993,7 +993,7 @@ type Builder
          Make a new builder
 
              Vector.new_builder
-    new : Integer->Builder
+    new : Integer -> Builder
     new (capacity=10) = Builder_Data (ArrayList.new capacity)
 
     ## Checks if this builder is empty.
