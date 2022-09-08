@@ -225,4 +225,4 @@ parse_aggregated_problems problems =
                         Invalid_Aggregation_Data Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings_Data (problems.getCount - problems_array.length)
+            parsed + [Additional_Warnings_Data (problems.getCount - problems_array.length)]
