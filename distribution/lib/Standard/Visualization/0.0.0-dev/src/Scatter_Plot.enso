@@ -198,7 +198,7 @@ json_from_vector vec bounds limit =
 
    Arguments:
    - value: the value to be visualized.
-process_to_json_text : Any -> Text
+process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
         Column.Column_Data _ -> json_from_table  value.to_table bounds limit
