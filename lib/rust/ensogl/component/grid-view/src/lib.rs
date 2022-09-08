@@ -573,6 +573,38 @@ impl<E: Entry> GridView<E> {
             }
         }
     }
+
+    //FIXME[mc]: verify required trait bounds
+    fn viewport_position_scrolled_to_entry(&self, row: Row, col: Col, margins: Margins) -> Vector2 {
+        let pos = self.entry_position(row, col);
+        let half_size = self.entry_size(row, col) / 2.0;
+        let top = pos.y + half_size.y;
+        let bottom = pos.y - half_size.y;
+        let left = pos.x - half_size.x;
+        let right = pos.x + half_size.x;
+        let viewport = self.viewport.value();
+        let preferred_min_viewport_top = top + margins.top;
+        let preferred_max_viewport_bottom = bottom - margins.bottom;
+        let new_viewport_top = if viewport.top < preferred_min_viewport_top {
+            preferred_min_viewport_top
+        } else if viewport.bottom > preferred_max_viewport_bottom {
+            let viewport_height = viewport.size().y;
+            preferred_max_viewport_bottom + viewport_height
+        } else {
+            viewport.top
+        };
+        let preferred_min_viewport_right = right + margins.right;
+        let preferred_max_viewport_left = left - margins.left;
+        let new_viewport_left = if viewport.right < preferred_min_viewport_right {
+            let viewport_width = viewport.size().x;
+            preferred_min_viewport_right - viewport_width
+        } else if viewport.left > preferred_max_viewport_left {
+            preferred_max_viewport_left
+        } else {
+            viewport.left
+        };
+        Vector2(new_viewport_left, new_viewport_top)
+    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>

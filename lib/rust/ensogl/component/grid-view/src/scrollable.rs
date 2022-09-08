@@ -113,29 +113,9 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
             _eval <- some_entry_selected.map2(scroll_margins, f!([base_grid, area] (pos, margins) {
                 let (row, col) = pos;
-                let pos = base_grid.entry_position(*row, *col);
-                let half_size = base_grid.entry_size(*row, *col) / 2.0;
-                let top = pos.y + half_size.y;
-                let bottom = pos.y - half_size.y;
-                let left = pos.x - half_size.x;
-                let right = pos.x + half_size.x;
-                let viewport = base_grid.viewport.value();
-                let preferred_min_viewport_top = top + margins.top;
-                let preferred_max_viewport_bottom = bottom - margins.bottom;
-                if viewport.top < preferred_min_viewport_top {
-                    area.scroll_to_y(-preferred_min_viewport_top);
-                } else if viewport.bottom > preferred_max_viewport_bottom {
-                    let viewport_height = viewport.size().y;
-                    area.scroll_to_y(-(preferred_max_viewport_bottom + viewport_height));
-                }
-                let preferred_min_viewport_right = right + margins.right;
-                let preferred_max_viewport_left = left - margins.left;
-                if viewport.right < preferred_min_viewport_right {
-                    let viewport_width = viewport.size().x;
-                    area.scroll_to_x(preferred_min_viewport_right - viewport_width);
-                } else if viewport.left > preferred_max_viewport_left {
-                    area.scroll_to_x(preferred_max_viewport_left);
-                }
+                let scroll_to = base_grid.viewport_position_scrolled_to_entry(*row, *col, *margins);
+                area.scroll_to_y(-scroll_to.y);
+                area.scroll_to_x(scroll_to.x);
             }));
         }
 
