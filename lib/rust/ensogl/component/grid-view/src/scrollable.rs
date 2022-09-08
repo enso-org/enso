@@ -106,7 +106,9 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
 
         // FIXME[mc]: make FRP params
         const MARGIN_TOP: f32 = 197.0;
-        const MARGIN_BOTTOM: f32 = 17.0;
+        const MARGIN_BOTTOM: f32 = 10.0;
+        const MARGIN_LEFT: f32 = 10.0;
+        const MARGIN_RIGHT: f32 = 10.0;
 
         frp::extend! { network
             base_grid.set_viewport <+ area.viewport;
@@ -131,10 +133,10 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                     } else if viewport.bottom + MARGIN_BOTTOM > entry_bbox_bottom {
                         area.scroll_to_y(-(entry_bbox_bottom - MARGIN_BOTTOM + viewport_height));
                     }
-                    if viewport.left > entry_bbox_left {
-                        area.scroll_to_x(entry_bbox_left);
-                    } else if viewport.right < entry_bbox_right {
-                        area.scroll_to_x(entry_bbox_right - viewport_width);
+                    if viewport.left + MARGIN_LEFT > entry_bbox_left {
+                        area.scroll_to_x(entry_bbox_left - MARGIN_LEFT);
+                    } else if viewport.right - MARGIN_RIGHT < entry_bbox_right {
+                        area.scroll_to_x(entry_bbox_right + MARGIN_RIGHT - viewport_width);
                     }
                 }
             }));
