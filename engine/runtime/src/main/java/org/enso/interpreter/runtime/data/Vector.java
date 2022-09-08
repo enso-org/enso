@@ -39,8 +39,8 @@ public final class Vector implements TruffleObject {
       description = "Creates new Vector with given length and provided elements.")
   @Builtin.Specialize
   public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
-    Object[] target = new Object[(int) length];
-    for (int i = 0; i < length; i++) {
+    Object[] target = new Object[Math.toIntExact(length)];
+    for (int i = 0; i < target.length; i++) {
       try {
         final Object value = interop.execute(fun, (long) i);
         if (value instanceof DataflowError) {
