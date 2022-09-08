@@ -576,12 +576,7 @@ impl<E: Entry> GridView<E> {
     /// entry at given row and col. The area around an entry is defined as the bounding box of the
     /// entry enlarged by given margins. If there is more than one such viewport possible, return
     /// the one closest to the current viewport.
-    fn viewport_position_containing_entry(
-        &self,
-        row: Row,
-        column: Col,
-        margins: Margins,
-    ) -> Vector2 {
+    fn viewport_containing_entry(&self, row: Row, column: Col, margins: Margins) -> Vector2 {
         let pos = self.entry_position(row, column);
         let half_size = self.entry_size(row, column) / 2.0;
         let top = pos.y + half_size.y;

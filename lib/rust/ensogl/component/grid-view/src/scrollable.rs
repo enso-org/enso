@@ -112,7 +112,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             selected_entry <= base_grid.entry_selected;
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
             _eval <- selected_entry.map2(scroll_margins, f!([base_grid, area] ((row, col), margin) {
-                let scroll_to = base_grid.viewport_position_containing_entry(*row, *col, *margin);
+                let scroll_to = base_grid.viewport_containing_entry(*row, *col, *margin);
                 area.scroll_to_y(-scroll_to.y);
                 area.scroll_to_x(scroll_to.x);
             }));
