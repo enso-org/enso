@@ -819,8 +819,7 @@ type Vector a
 
              [1, 2, 3, 4].second
     second : Vector ! Index_Out_Of_Bounds_Error
-    second self = if self.length >= 2 then self.unsafe_at 1 else
-        Error.throw (Index_Out_Of_Bounds_Error_Data 1 self.length)
+    second self = self.at 1
 
     ## Get all elements in the vector except the first.
 
