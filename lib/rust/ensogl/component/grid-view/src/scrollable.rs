@@ -103,12 +103,20 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let header_layer = default();
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
+        let input = &base_grid.private.input;
 
         frp::extend! { network
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
+            tmp1 <- any(...);
+            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_down);
+            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_left);
+            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_right);
+            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_up);
+            tmp2 <= tmp1;
+            eval tmp2([]((row, col)) tracing::warn!("MCDBG TMP2 {row},{col}"));
             selected_entry <= base_grid.entry_selected;
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
             _eval <- selected_entry.map2(scroll_margins, f!([base_grid, area] ((row, col), margin) {
