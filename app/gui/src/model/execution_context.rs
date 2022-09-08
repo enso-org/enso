@@ -19,6 +19,10 @@ use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
 
+use crate::model::module;
+use crate::model::suggestion_database::entry as suggestion;
+use crate::notification::Publisher;
+use crate::prelude::*;
 
 // ==============
 // === Export ===
