@@ -30,6 +30,9 @@ use owned_ttf_parser::AsFaceRef;
 use rustybuzz;
 use std::ops::Not;
 
+pub use crate::buffer::TextRange;
+
+
 
 // =================
 // === Constants ===
@@ -273,7 +276,7 @@ ensogl_core::define_endpoints! {
         add_cursor            (Location),
         paste_string          (String),
         insert                (String),
-        set_color_bytes       (buffer::Range<UBytes>, color::Rgba),
+        set_color             (TextRange, color::Rgba),
         /// Explicitly set the color of all text.
         set_color_all         (color::Rgba),
         set_sdf_weight        (buffer::Range<UBytes>, style::SdfWeight),
@@ -537,12 +540,12 @@ impl Area {
                 let start = UBytes::from(0);
                 let end = m.buffer.last_line_end_byte_offset();
                 let all_bytes = buffer::Range::from(start..end);
-                input.set_color_bytes.emit((all_bytes,*color));
+                input.set_color.emit((all_bytes,*color));
             });
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
             //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
-            m.buffer.frp.set_color_bytes <+ input.set_color_bytes;
-            eval input.set_color_bytes ((t) m.modify_glyphs_in_range(t.0, |g| g.set_color(t.1)));
+            m.buffer.frp.set_color <+ input.set_color;
+            eval input.set_color ((t) m.modify_glyphs_in_range(&t.0, |g| g.set_color(t.1)));
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
 
@@ -550,7 +553,8 @@ impl Area {
 
             m.buffer.frp.set_sdf_weight <+ input.set_sdf_weight;
             m.buffer.frp.set_format_option <+ input.set_format_option;
-            eval input.set_sdf_weight ((t) m.modify_glyphs_in_range(t.0, |g| g.set_sdf_weight(t.1)));
+            // FIXME:
+            // eval input.set_sdf_weight ((t) m.modify_glyphs_in_range(t.0, |g| g.set_sdf_weight(t.1)));
 
 
             // === Changes ===
@@ -1043,37 +1047,41 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
-    pub fn modify_glyphs_in_range(&self, range: buffer::Range<UBytes>, f: impl Fn(&Glyph)) {
-        let range = self.buffer.offset_range_to_location(range);
-        let range = self.buffer.location_range_to_view_location_range(range);
-        let lines = self.lines.borrow();
-        if range.start.line == range.end.line {
-            let line = &lines[range.start.line.as_usize()];
-            for glyph in &line.glyphs {
-                if glyph.start_code_point.get() >= range.end.code_point_index {
-                    break;
-                }
-                if glyph.start_code_point.get() >= range.start.code_point_index {
-                    f(&glyph)
-                }
-            }
-        } else {
-            let first_line = range.start.line;
-            let second_line = first_line + ViewLine(1);
-            let last_line = range.end.line;
-            for glyph in &lines[first_line.as_usize()].glyphs {
-                if glyph.start_code_point.get() >= range.start.code_point_index {
-                    f(&glyph)
-                }
-            }
-            for line in &lines[second_line.as_usize()..last_line.as_usize()] {
+    pub fn modify_glyphs_in_range(&self, range: &TextRange, f: impl Fn(&Glyph)) {
+        warn!("modify_glyphs_in_range {:?}", range);
+        for range in self.buffer.text_to_byte_ranges(range) {
+            warn!(">> {:?}", range);
+            let range = self.buffer.offset_range_to_location(range);
+            let range = self.buffer.location_range_to_view_location_range(range);
+            let lines = self.lines.borrow();
+            if range.start.line == range.end.line {
+                let line = &lines[range.start.line.as_usize()];
                 for glyph in &line.glyphs {
-                    f(&glyph)
+                    if glyph.start_code_point.get() >= range.end.code_point_index {
+                        break;
+                    }
+                    if glyph.start_code_point.get() >= range.start.code_point_index {
+                        f(&glyph)
+                    }
                 }
-            }
-            for glyph in &lines[last_line.as_usize()].glyphs {
-                if glyph.start_code_point.get() < range.end.code_point_index {
-                    f(&glyph)
+            } else {
+                let first_line = range.start.line;
+                let second_line = first_line + ViewLine(1);
+                let last_line = range.end.line;
+                for glyph in &lines[first_line.as_usize()].glyphs {
+                    if glyph.start_code_point.get() >= range.start.code_point_index {
+                        f(&glyph)
+                    }
+                }
+                for line in &lines[second_line.as_usize()..last_line.as_usize()] {
+                    for glyph in &line.glyphs {
+                        f(&glyph)
+                    }
+                }
+                for glyph in &lines[last_line.as_usize()].glyphs {
+                    if glyph.start_code_point.get() < range.end.code_point_index {
+                        f(&glyph)
+                    }
                 }
             }
         }

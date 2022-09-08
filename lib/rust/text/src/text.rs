@@ -91,13 +91,13 @@ impl Text {
         (..self.byte_size()).into()
     }
 
-    /// Constraint the provided byte range so it will be contained of the range of this data. This
+    /// Constraint the provided byte range, so it will be contained of the range of this data. This
     /// ensures that the resulting byte range will be valid for operations on this data.
     pub fn crop_byte_range(&self, range: impl RangeBounds) -> Range<UBytes> {
         range.with_upper_bound(self.byte_size())
     }
 
-    /// Constraint the provided location so it will be contained of the range of this data. This
+    /// Constraint the provided location, so it will be contained of the range of this data. This
     /// ensures that the resulting location will be valid for operations on this data.
     pub fn snap_location(&self, location: Location) -> Location {
         use BoundsError::*;

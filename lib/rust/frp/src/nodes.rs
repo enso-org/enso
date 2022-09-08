@@ -1555,6 +1555,17 @@ where
     }
 }
 
+impl<T1, T2, S1, S2> IntoParam<(T1, T2)> for (S1, S2)
+where
+    ((T1, T2), (S1, S2)): NotSame,
+    S1: Into<T1>,
+    S2: Into<T2>,
+{
+    default fn into_param(self) -> (T1, T2) {
+        (self.0.into(), self.1.into())
+    }
+}
+
 
 
 // ===============

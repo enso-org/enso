@@ -91,9 +91,9 @@ fn init(app: Application) {
 
     warn!("=========================");
     let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
-    area.set_color_bytes(range_green, color::Rgba::red());
+    area.set_color(range_green, color::Rgba::red());
     // area.set_color_all(color::Rgba::red());
-    area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), (0.02));
+    area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 
 
     // let text = "red green blue";
@@ -105,12 +105,12 @@ fn init(app: Application) {
     // colored_area.set_default_color(color::Rgba::black());
     // colored_area.set_content(text);
     // let range_green = buffer::Range::from(UBytes(4)..UBytes(9));
-    // colored_area.set_color_bytes(range_green, color::Rgba::green());
+    // colored_area.set_color(range_green, color::Rgba::green());
     // let range_blue = buffer::Range::from(UBytes(10)..UBytes(14));
     // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
     // colored_area.set_default_color(color::Rgba::red());
 
-    // init_debug_hotkeys(&area);
+    init_debug_hotkeys(&area);
 
     mem::forget(navigator);
     mem::forget(app);
@@ -118,22 +118,24 @@ fn init(app: Application) {
     // mem::forget(colored_area);
 }
 
-// fn init_debug_hotkeys(area: &Area) {
-//     let area = area.clone_ref();
-//     let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
-//         let event = val.unchecked_into::<web::KeyboardEvent>();
-//         if event.ctrl_key() {
-//             let key = event.code();
-//             warn!("{:?}", key);
-//             if key == "KeyB" {}
-//             // } else if key == "Digit0" {
-//             // } else if key == "Digit1" {
-//             // } else if key == "Digit2" {
-//             // } else if key == "KeyP" {
-//             // } else if key == "KeyQ" {
-//             // }
-//         }
-//     });
-//     let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
-//     mem::forget(handle);
-// }
+fn init_debug_hotkeys(area: &Area) {
+    let area = area.clone_ref();
+    let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
+        let event = val.unchecked_into::<web::KeyboardEvent>();
+        if event.ctrl_key() {
+            let key = event.code();
+            warn!("{:?}", key);
+            if key == "KeyR" {
+                area.set_color(buffer::TextRange::Selections, color::Rgba::red());
+            }
+            // } else if key == "Digit0" {
+            // } else if key == "Digit1" {
+            // } else if key == "Digit2" {
+            // } else if key == "KeyP" {
+            // } else if key == "KeyQ" {
+            // }
+        }
+    });
+    let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
+    mem::forget(handle);
+}

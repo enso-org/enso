@@ -9,6 +9,7 @@
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(option_zip)]
+#![feature(derive_default_enum)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

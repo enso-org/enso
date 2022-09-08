@@ -4,6 +4,18 @@
 use crate::prelude::*;
 
 
+
+#[derive(Debug, Clone, Default, From)]
+pub enum TextRange {
+    #[default]
+    Selections,
+    BufferRange(Range<UBytes>),
+    RangeBytes(std::ops::Range<UBytes>),
+    RangeFull(std::ops::RangeFull),
+}
+
+
+
 // ==============
 // === Export ===
 // ==============
@@ -102,6 +114,13 @@ impl BufferData {
 // ==============
 // === Setter ===
 // ==============
+
+/// Generic setter for buffer data and metadata, like colors, font weight, etc.
+trait Setter2<T> {
+    /// Replace the range with the provided value. The exact meaning of this function depends on the
+    /// provided data type. See implementations provided in the `style` module.
+    fn replace2(&self, range: &TextRange, data: T);
+}
 
 /// Generic setter for buffer data and metadata, like colors, font weight, etc.
 trait Setter<T> {

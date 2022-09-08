@@ -290,6 +290,7 @@ define_format! {
     sdf_weight : SdfWeight,
 }
 
+
 impl FormatSpan {
     pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, font::NonVariableFaceHeader>> {
         let seq_width = self.width.to_vector();
@@ -337,7 +338,7 @@ impl FormatSpan {
 // =================
 
 /// Internally mutable version of `FormatSpan`.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Deref)]
 pub struct StyleCell {
     cell: RefCell<FormatSpan>,
 }

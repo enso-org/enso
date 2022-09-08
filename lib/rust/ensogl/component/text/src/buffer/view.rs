@@ -9,12 +9,15 @@ use crate::buffer::style::FormatSpan;
 use crate::buffer::Buffer;
 use crate::buffer::DefaultSetter;
 use crate::buffer::Setter;
+use crate::buffer::Setter2;
+use crate::buffer::TextRange;
 
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
 use enso_text::Text;
 use ensogl_core::data::color;
+
 
 
 // ==============
@@ -367,18 +370,12 @@ impl ViewBuffer {
     }
 
     fn offset_to_location(&self, offset: UBytes) -> Location {
-        warn!("\n\n\n offset_to_location {:?}", offset);
         let line = self.line_index_of_byte_offset_snapped(offset);
-        warn!("line: {:?}", line);
         let line_offset = offset - self.byte_offset_of_line_index(line).unwrap();
-        warn!("byte_offset_of_line_index: {:?}", self.byte_offset_of_line_index(line).unwrap());
-        warn!("line_offset: {:?}", line_offset);
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
             error!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
-        warn!("line_offset: {:?}", line_offset);
-
         let column = self.column_of_line_index_and_in_line_byte_offset_snapped(line, line_offset);
         Location(line, column)
     }
@@ -427,7 +424,7 @@ ensogl_core::define_endpoints! {
         redo                       (),
         set_default_color          (color::Rgba),
         set_default_text_size      (style::Size),
-        set_color_bytes            (buffer::Range<UBytes>, color::Rgba),
+        set_color                  (TextRange, color::Rgba),
         set_sdf_weight             (buffer::Range<UBytes>, style::SdfWeight),
         set_format_option          (buffer::Range<UBytes>, Option<style::FormatOption>),
         set_format                 (buffer::Range<UBytes>, style::Format),
@@ -506,7 +503,7 @@ impl View {
 
             eval input.set_default_color     ((t) m.set_default(*t));
             eval input.set_default_text_size ((t) m.set_default(*t));
-            eval input.set_color_bytes       (((range,color)) m.replace(range,*color));
+            eval input.set_color             (((range,color)) m.replace2(range,*color));
             eval input.set_sdf_weight        (((range,value)) m.replace(range,*value));
             eval input.set_format_option     (((range,value)) m.replace(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
@@ -549,6 +546,24 @@ impl Default for View {
 // === ViewModel ===
 // =================
 
+
+impl Setter2<Option<color::Rgba>> for ViewModel {
+    fn replace2(&self, range: &TextRange, data: Option<color::Rgba>) {
+        for range in self.text_to_byte_ranges(range) {
+            let range = self.crop_byte_range(range);
+            let range_size = UBytes::try_from(range.size()).unwrap_or_default();
+            self.data.style.borrow_mut().color.replace_resize(range, range_size, data)
+        }
+    }
+}
+
+impl Setter2<color::Rgba> for ViewModel {
+    fn replace2(&self, range: &TextRange, data: color::Rgba) {
+        self.replace2(range, Some(data))
+    }
+}
+
+
 /// Internal model for the `View`.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
@@ -573,6 +588,22 @@ impl ViewModel {
 }
 
 impl ViewModel {
+    pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
+        match range {
+            TextRange::Selections => {
+                // FIXME: Selection shape and range are the same, arent they?
+                self.byte_selections()
+                    .into_iter()
+                    .map(|t| buffer::Range::new(t.start, t.end))
+                    .collect()
+            }
+            TextRange::BufferRange(range) => vec![range.clone()],
+            // TextRange::RangeBytes(range) => range.clone(),
+            // TextRange::RangeFull(range) => self.text.byte_range(range.clone()),
+            _ => panic!(),
+        }
+    }
+
     /// Set the selection to a new value.
     pub fn set_selection(&self, selection: &selection::Group) {
         *self.selection.borrow_mut() = selection.clone();
