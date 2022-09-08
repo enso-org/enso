@@ -575,9 +575,17 @@ impl<E: Entry> GridView<E> {
     }
 
     //FIXME[mc]: verify required trait bounds
-    fn viewport_position_scrolled_to_entry(&self, row: Row, col: Col, margins: Margins) -> Vector2 {
-        let pos = self.entry_position(row, col);
-        let half_size = self.entry_size(row, col) / 2.0;
+    /// Return the position of the top-left corner of a viewport containing the entry at given row
+    /// and col. To the extent possible, the resulting viewport contains given margins around the
+    /// entry. The resulting viewport is the one closest to the current viewport.
+    fn viewport_position_containing_entry(
+        &self,
+        row: Row,
+        column: Col,
+        margins: Margins,
+    ) -> Vector2 {
+        let pos = self.entry_position(row, column);
+        let half_size = self.entry_size(row, column) / 2.0;
         let top = pos.y + half_size.y;
         let bottom = pos.y - half_size.y;
         let left = pos.x - half_size.x;

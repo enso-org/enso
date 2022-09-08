@@ -109,11 +109,10 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
-            some_entry_selected <= base_grid.entry_selected;
+            selected_entry <= base_grid.entry_selected;
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
-            _eval <- some_entry_selected.map2(scroll_margins, f!([base_grid, area] (pos, margins) {
-                let (row, col) = pos;
-                let scroll_to = base_grid.viewport_position_scrolled_to_entry(*row, *col, *margins);
+            _eval <- selected_entry.map2(scroll_margins, f!([base_grid, area] ((row, col), margin) {
+                let scroll_to = base_grid.viewport_position_containing_entry(*row, *col, *margin);
                 area.scroll_to_y(-scroll_to.y);
                 area.scroll_to_x(scroll_to.x);
             }));
