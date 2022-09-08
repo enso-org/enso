@@ -110,14 +110,22 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
-            tmp1 <- any(...);
-            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_down);
-            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_left);
-            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_right);
-            tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_up);
-            tmp2 <= tmp1;
-            eval tmp2([]((row, col)) tracing::warn!("MCDBG TMP2 {row},{col}"));
-            selected_entry <= base_grid.entry_selected;
+            input_move_selection <- any4(
+                &input.move_selection_down,
+                &input.move_selection_left,
+                &input.move_selection_right,
+                &input.move_selection_up,
+            );
+            // entry_selected_by_input_move <= base_grid.entry_selected.sample(input_move_selection);
+            selected_entry <= base_grid.entry_selected.sample(&input_move_selection);
+            // tmp1 <- any(...);
+            // tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_down);
+            // tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_left);
+            // tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_right);
+            // tmp1 <+ base_grid.entry_selected.sample(&input.move_selection_up);
+            // tmp2 <= tmp1;
+            // eval tmp2([]((row, col)) tracing::warn!("MCDBG TMP2 {row},{col}"));
+            // selected_entry <= base_grid.entry_selected;
             let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
             _eval <- selected_entry.map2(scroll_margins, f!([base_grid, area] ((row, col), margin) {
                 let scroll_to = base_grid.viewport_containing_entry(*row, *col, *margin);
