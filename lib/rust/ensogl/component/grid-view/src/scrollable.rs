@@ -104,18 +104,19 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
 
-        // FIXME[mc]: make FRP params
-        const MARGIN_TOP: f32 = 197.0;
-        const MARGIN_BOTTOM: f32 = 10.0;
-        const MARGIN_LEFT: f32 = 10.0;
-        const MARGIN_RIGHT: f32 = 10.0;
+        // const MARGIN_TOP: f32 = 197.0;
+        // const MARGIN_BOTTOM: f32 = 10.0;
+        // const MARGIN_LEFT: f32 = 10.0;
+        // const MARGIN_RIGHT: f32 = 10.0;
 
         frp::extend! { network
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
-            _eval <- base_grid.entry_selected.map(f!([base_grid, area] (optpos) {
+            let scroll_margins = &base_grid.set_preferred_margins_around_entry_when_scrolling;
+            _eval <- base_grid.entry_selected.map2(scroll_margins, f!([base_grid, area] (optpos, margins) {
+                // FIXME[mc]: use <= to unwrap Some
                 if let Some((row, col)) = optpos {
                     let pos = base_grid.entry_position(*row, *col);
                     let size = base_grid.entry_size(*row, *col);
@@ -128,15 +129,19 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                     let viewport_height = viewport.size().y;
                     let viewport_width = viewport.size().x;
                     tracing::warn!("MCDBG entry selected {row},{col} -> {size:?} @ {pos:?} in {viewport:?}");
-                    if viewport.top - MARGIN_TOP < entry_bbox_top {
-                        area.scroll_to_y(-(entry_bbox_top + MARGIN_TOP));
-                    } else if viewport.bottom + MARGIN_BOTTOM > entry_bbox_bottom {
-                        area.scroll_to_y(-(entry_bbox_bottom - MARGIN_BOTTOM + viewport_height));
+                    let preferred_min_viewport_top = entry_bbox_top + margins.top;
+                    let preferred_max_viewport_bottom = entry_bbox_bottom - margins.bottom;
+                    if viewport.top < preferred_min_viewport_top {
+                        area.scroll_to_y(-preferred_min_viewport_top);
+                    } else if viewport.bottom > preferred_max_viewport_bottom {
+                        area.scroll_to_y(-(preferred_max_viewport_bottom + viewport_height));
                     }
-                    if viewport.left + MARGIN_LEFT > entry_bbox_left {
-                        area.scroll_to_x(entry_bbox_left - MARGIN_LEFT);
-                    } else if viewport.right - MARGIN_RIGHT < entry_bbox_right {
-                        area.scroll_to_x(entry_bbox_right + MARGIN_RIGHT - viewport_width);
+                    let preferred_min_viewport_right = entry_bbox_right + margins.right;
+                    let preferred_max_viewport_left = entry_bbox_left - margins.left;
+                    if viewport.right < preferred_min_viewport_right {
+                        area.scroll_to_x(preferred_min_viewport_right - viewport_width);
+                    } else if viewport.left > preferred_max_viewport_left {
+                        area.scroll_to_x(preferred_max_viewport_left);
                     }
                 }
             }));

@@ -84,12 +84,14 @@ pub use entry::Entry;
 // === FRP ===
 // ===========
 
-// === Row and Col Aliases ===
+// === Type Aliases ===
 
 /// A row index in [`GridView`].
 pub type Row = usize;
 /// A column index  in [`GridView`].
 pub type Col = usize;
+
+pub type Margins = Viewport;
 
 
 // === Properties ===
@@ -151,6 +153,11 @@ ensogl_core::define_endpoints_2! {
         set_entries_params(EntryParams),
         /// Set the entries size. All entries have the same size.
         set_entries_size(Vector2),
+        //set_preferred_selection_region(Viewport),
+        // set_margins_for_scrolling_to_entry(Margins),
+        // set_preferred_region_for_scrolled_entry(Viewport),
+        // set_preferred_region_for_entry_when_scrolling(Viewport),
+        set_preferred_margins_around_entry_when_scrolling(Margins),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
