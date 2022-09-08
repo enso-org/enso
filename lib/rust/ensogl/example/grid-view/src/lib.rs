@@ -30,9 +30,20 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
+use ensogl_grid_view::Margins;
 use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const ENTRY_HEIGHT: f32 = 28.0;
+const VIEWPORT_HEIGHT: f32 = 300.0;
+const BASE_SCROLL_MARGIN: f32 = 10.0;
 
 
 
@@ -91,7 +102,7 @@ fn setup_grid_view(
             }
         );
     }
-    view.set_entries_size(Vector2(130.0, 28.0));
+    view.set_entries_size(Vector2(130.0, ENTRY_HEIGHT));
     let params = grid_view::simple::EntryParams {
         bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
         bg_margin: 1.0,
@@ -100,7 +111,14 @@ fn setup_grid_view(
         ..default()
     };
     view.set_entries_params(params);
-    view.scroll_frp().resize(Vector2(400.0, 300.0));
+    view.scroll_frp().resize(Vector2(400.0, VIEWPORT_HEIGHT));
+    let scroll_margins = Margins{
+        top: VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
+        bottom: BASE_SCROLL_MARGIN,
+        left: BASE_SCROLL_MARGIN,
+        right: BASE_SCROLL_MARGIN,
+    };
+    view.set_preferred_margins_around_entry_when_scrolling(scroll_margins);
     view.reset_entries(1000, 1000);
     std::mem::forget(network);
     app.display.add_child(&view);
