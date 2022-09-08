@@ -581,42 +581,6 @@ impl<E: Entry> GridView<E> {
             }
         }
     }
-
-    //FIXME[mc]: verify required trait bounds
-    /// Return the position of the top-left corner of a viewport containing the area around the
-    /// entry at given row and col. The area around an entry is defined as the bounding box of the
-    /// entry enlarged by given margins. If there is more than one such viewport possible, return
-    /// the one closest to the current viewport.
-    fn viewport_containing_entry(&self, row: Row, column: Col, margins: Margins) -> Vector2 {
-        let pos = self.entry_position(row, column);
-        let half_size = self.entry_size(row, column) / 2.0;
-        let top = pos.y + half_size.y;
-        let bottom = pos.y - half_size.y;
-        let left = pos.x - half_size.x;
-        let right = pos.x + half_size.x;
-        let viewport = self.viewport.value();
-        let preferred_min_viewport_top = top + margins.top;
-        let preferred_max_viewport_bottom = bottom - margins.bottom;
-        let new_viewport_top = if viewport.top < preferred_min_viewport_top {
-            preferred_min_viewport_top
-        } else if viewport.bottom > preferred_max_viewport_bottom {
-            let viewport_height = viewport.size().y;
-            preferred_max_viewport_bottom + viewport_height
-        } else {
-            viewport.top
-        };
-        let preferred_min_viewport_right = right + margins.right;
-        let preferred_max_viewport_left = left - margins.left;
-        let new_viewport_left = if viewport.right < preferred_min_viewport_right {
-            let viewport_width = viewport.size().x;
-            preferred_min_viewport_right - viewport_width
-        } else if viewport.left > preferred_max_viewport_left {
-            preferred_max_viewport_left
-        } else {
-            viewport.left
-        };
-        Vector2(new_viewport_left, new_viewport_top)
-    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
@@ -644,6 +608,41 @@ where
         let column_widths = &self.widget.model().column_widths;
         let base_entry_size = self.entries_size.value();
         Vector2(base_entry_size.x + column_widths.width_diff(column), base_entry_size.y)
+    }
+
+    /// Return the position of the top-left corner of a viewport containing the area around the
+    /// entry at given row and col. The area around an entry is defined as the bounding box of the
+    /// entry enlarged by given margins. If there is more than one such viewport possible, return
+    /// the one closest to the current viewport.
+    fn viewport_containing_entry(&self, row: Row, column: Col, margins: Margins) -> Vector2 {
+        let pos = self.entry_position(row, column);
+        let half_size = self.entry_size(row, column) / 2.0;
+        let top = pos.y + half_size.y;
+        let bottom = pos.y - half_size.y;
+        let left = pos.x - half_size.x;
+        let right = pos.x + half_size.x;
+        let viewport = self.viewport.value();
+        let min_viewport_top = top + margins.top;
+        let max_viewport_bottom = bottom - margins.bottom;
+        let new_viewport_top = if viewport.top < min_viewport_top {
+            min_viewport_top
+        } else if viewport.bottom > max_viewport_bottom {
+            let viewport_height = viewport.size().y;
+            max_viewport_bottom + viewport_height
+        } else {
+            viewport.top
+        };
+        let min_viewport_right = right + margins.right;
+        let max_viewport_left = left - margins.left;
+        let new_viewport_left = if viewport.right < min_viewport_right {
+            let viewport_width = viewport.size().x;
+            min_viewport_right - viewport_width
+        } else if viewport.left > max_viewport_left {
+            max_viewport_left
+        } else {
+            viewport.left
+        };
+        Vector2(new_viewport_left, new_viewport_top)
     }
 }
 
