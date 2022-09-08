@@ -195,6 +195,14 @@ impl EntryData {
         self.text.set_default_text_size(size);
     }
 
+    fn is_state_switch(&self, model: &Model) -> bool {
+        match model {
+            Model::Text(_) => self.state.get() != State::Text,
+            Model::Separator => self.state.get() != State::Separator,
+            Model::Ellipsis => self.state.get() != State::Ellipsis,
+        }
+    }
+
     fn width(&self, text_offset: f32) -> f32 {
         match self.state.get() {
             State::Text => self.text.width.value() + text_offset * 2.0,
@@ -257,6 +265,7 @@ impl ensogl_grid_view::Entry for Entry {
         let out = &frp.private().output;
         let network = frp.network();
         let color_coeff = Animation::new(&network);
+        let appear_anim = Animation::new(&network);
         fn mix(c1: &color::Rgba, c2: &color::Rgba, coefficient: &f32) -> color::Rgba {
             color::mix(*c1, *c2, *coefficient)
         }
@@ -273,13 +282,23 @@ impl ensogl_grid_view::Entry for Entry {
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.highlight_corners_radius).on_change();
+            transparent_color <- init.constant(color::Rgba::transparent());
 
             col <- input.set_location._1();
             should_grey_out <- all_with(&col, &greyed_out_from,
                 |col, from| from.map_or(false, |from| *col >= from)
             );
             color_coeff.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
-            color <- all_with3(&text_color, &greyed_out_color, &color_coeff.value, mix);
+            target_color <- all_with3(&text_color, &greyed_out_color, &color_coeff.value, mix);
+            appear_anim.target <+ init.constant(1.0);
+            model_was_set <- input.set_model.map(f!((model) data.is_state_switch(model))).on_true();
+            should_appear <- any(&init, &model_was_set);
+            eval_ should_appear({
+                appear_anim.target.emit(0.0);
+                appear_anim.skip.emit(());
+                appear_anim.target.emit(1.0);
+            });
+            color <- all_with3(&transparent_color, &target_color, &appear_anim.value, mix);
 
             contour <- all_with(&size, &margin, |size, margin| Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
