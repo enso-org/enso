@@ -166,7 +166,7 @@ mod google_fonts {
         let octocrab = enso_build::setup_octocrab().await.expect("Failed to setup GitHub client.");
         let result = enso_build::ide::web::download_google_font(&octocrab, name.as_ref(), out_dir)
             .await
-            .expect(format!("Failed to download font '{}'", name.as_ref()).as_str());
+            .expect("Failed ot download font.");
         result.into_iter().map(|content| DownloadedFile { name: content.name }).collect()
     }
 
