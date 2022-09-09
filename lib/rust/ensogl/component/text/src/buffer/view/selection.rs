@@ -183,6 +183,11 @@ impl<T: Boundary> Selection<T> {
         self.with_shape(f(self.shape))
     }
 
+    pub fn map_id(self, f: impl FnOnce(usize) -> usize) -> Self {
+        let id = f(self.id);
+        Self { id, ..self }
+    }
+
     /// Replace the start value.
     pub fn with_start(&self, start: T) -> Self {
         self.map_shape(|s| s.with_start(start))
@@ -191,6 +196,10 @@ impl<T: Boundary> Selection<T> {
     /// Replace the end value.
     pub fn with_end(&self, end: T) -> Self {
         self.map_shape(|s| s.with_end(end))
+    }
+
+    pub fn with_location(self, location: T) -> Self {
+        self.with_start(location).with_end(location)
     }
 
     /// Map the start value.

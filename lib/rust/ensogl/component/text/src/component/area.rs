@@ -804,18 +804,6 @@ impl AreaModel {
         let do_edit = changes.is_some();
         debug!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
         {
-            // tutaj robimy redraw poniewaz musimy shapowac tekst by znac nowe divy. Po tym jak
-            // poznamy divy mozemy przesuwac kursor. W obecnej implementacji to nie dziala dobrze,
-            // bo redraw dodaje litery do kursorow, ale jeszcze ich nie stworzylismy.
-
-            // dodatkowo, takie jezyki jak Tamil moga miec jeden glyph po tuknieciu kilku klawiszy.
-            // to tez jest do poprawy.
-
-            // to think: animacje kursora miedzy widgetami, selekcja "calych" widgetow (np strzalka
-            // w gore przy selekcji slidera zmienia jego wartosc, skakanie pomiedzy
-            // selekcjami sasiadujacych widgetow, co z widgetami hierarchicznymi?
-            // TODO ^^^
-
             self.update_lines_after_change(changes);
 
             let mut selection_map = self.selection_map.borrow_mut();
@@ -872,18 +860,6 @@ impl AreaModel {
                         selection.letter_width.set(7.0); // FIXME hardcoded values
                         selection.position.set_target_value(pos);
                         selection.position.skip();
-                        // let selection_network = &selection.network;
-                        // FIXME[wd]: memory leak. To be fixed with the below note as a part of
-                        //            https://github.com/enso-org/ide/issues/670 . Once fixed,
-                        //            delete code removing all cursors on Area drop.
-                        // let model = self.clone_ref();
-                        // frp::extend! { selection_network
-                        //     // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
-                        //     //            animation frame. Multiple times, once per cursor.
-                        //     //            https://github.com/enso-org/ide/issues/1031
-                        //     eval_ selection.position.value (model.redraw(true));
-                        //     selection.frp.set_color <+ self.frp_endpoints.selection_color;
-                        // }
                         selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
                         selection
                     }
