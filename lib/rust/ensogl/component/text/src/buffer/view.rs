@@ -92,8 +92,18 @@ impl<T> Modification<T> {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
 pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     #[deref]
-    change:        Change<Metric, Str>,
+    pub change:    Change<Metric, Str>,
     pub selection: Selection<Loc>,
+}
+
+impl ChangeWithSelection<UBytes, Text, Location> {
+    pub fn is_backspace_at_line_start(&self) -> bool {
+        let single_place_edit = self.selection.shape.start == self.selection.shape.end;
+        let edit_on_line_start = self.selection.shape.start.code_point_index == CodePointIndex(0);
+        let no_insert = self.change.text.is_empty();
+        let empty_range = self.change.range.is_empty();
+        single_place_edit && edit_on_line_start && no_insert && !empty_range
+    }
 }
 
 

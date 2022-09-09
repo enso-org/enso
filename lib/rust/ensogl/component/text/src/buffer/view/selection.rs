@@ -54,6 +54,20 @@ impl<T: Boundary> Shape<T> {
         (self.min()..self.max()).into()
     }
 
+    pub fn normalized(self) -> Self {
+        if self.start <= self.end {
+            self
+        } else {
+            self.reversed()
+        }
+    }
+
+    pub fn reversed(self) -> Self {
+        let start = self.end;
+        let end = self.start;
+        Self { start, end }
+    }
+
     /// Gets the earliest offset within the selection, ie the minimum of both edges.
     pub fn min(self) -> T {
         std::cmp::min(self.start, self.end)

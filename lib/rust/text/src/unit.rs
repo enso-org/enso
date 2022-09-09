@@ -406,6 +406,8 @@ pub use location::*;
 // === Location ===
 // ================
 
+// FIXME: make it parametrized (allow also for columns instead of code_point_index)
+
 mod view_location {
     use super::*;
     newtype! {

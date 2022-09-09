@@ -922,11 +922,11 @@ impl TextCell {
 
 /// A single change done to the text content.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Change<Metric = UBytes, String = Text> {
+pub struct Change<Metric = UBytes, Str = Text> {
     /// Range of old text being replaced.
     pub range: Range<Metric>,
     /// The text inserted in place of `range`.
-    pub text:  String,
+    pub text:  Str,
 }
 
 

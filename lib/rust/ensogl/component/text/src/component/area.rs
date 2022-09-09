@@ -686,6 +686,113 @@ impl AreaModel {
         }
     }
 
+    /// Implementation of lazy line redrawing. After a change, only the needed lines are redrawn.
+    /// If a change produced more lines than the current number of lines, the new lines are inserted
+    /// in appropriate positions. If a change produces fewer lines than the current number of lines,
+    /// appropriate lines are removed. Then, a minimal line redraw range is computed and performed.
+    ///
+    ///
+    /// # Smooth animations
+    /// This function also attaches unchanged lines below a cursor to the cursor for smooth vertical
+    /// animation. Please note that when cursors are moved in a non-edit mode (e.g. after pressing
+    /// an arrow key), the animations are skipped. This is a performance optimization. If we would
+    /// like to continue the animations, we would need to either attach animation system to every
+    /// glyph, or create multiple, possibly hierarchical "virtual cursors". The animations are so
+    /// fast that this is barely noticeable.
+    ///
+    /// # Possible future optimizations.
+    /// This section describes possible future optimizations that are not implemented now because
+    /// of their complexity and/or lack of use cases.
+    ///
+    /// ## Limiting the number of glyphs per line.
+    /// Currently, nothing limits the number of glyphs in line. They are computed and displayed even
+    /// if they are not visible on the screen.
+    ///
+    /// ## Redrawing parts of lines only.
+    /// Currently, the whole line is redrawn after any change. This is not optimal, especially for
+    /// lines containing a lot of visible characters. However, this is way more complex than it
+    /// seems. Let's consider the input `அட0`. If we insert `்` after `ட`, then we should get `ட்`
+    /// instead of `ட`, but we do not need to redraw neither `அ` nor `0`. Inserting a new code point
+    /// can affect any number of code points to the left and to the right of the insertion point.
+    /// Unfortunately, the current Rustybuzz implementation does not support such use cases:
+    /// https://github.com/RazrFalcon/rustybuzz/issues/54
+    fn update_lines_after_change(&self, changes: Option<&[crate::ChangeWithSelection]>) {
+        debug_span!("update_lines_after_change").in_scope(|| {
+            let view_line_range = self.buffer.view_line_range();
+            if let Some(changes) = changes {
+                let lines_to_redraw = changes
+                    .iter()
+                    .filter_map(|change_with_selection| {
+                        debug!("Change: {:#?}", change_with_selection);
+
+                        let selection = change_with_selection.selection;
+                        let view_selection = self.buffer.selection_to_view_selection(selection);
+
+                        // Compute shape. If it was a backspace at line start, we need to redraw
+                        // the previous line as well.
+                        let mut shape = view_selection.shape.normalized();
+                        if change_with_selection.is_backspace_at_line_start() {
+                            shape.start.line = shape.start.line - ViewLine(1);
+                        }
+
+                        // Count newlines in the inserted text and the line difference after the
+                        // change.
+                        let change = &change_with_selection.change;
+                        let change_str = change.text.to_string();
+                        let newlines = change_str.chars().filter(|c| *c == '\n').count();
+                        let line_diff = newlines as i32 - (shape.end.line - shape.start.line).value;
+
+                        // Measurements used for computing the line range to add or remove.
+                        let second_line_index = shape.start.line.value as usize + 1;
+                        let line_after_end_index = shape.end.line.value as usize + 1;
+                        let mut lines = self.lines.borrow_mut();
+
+                        if line_diff != 0 {
+                            // Attach unchanged lines under cursor to the cursor for a smooth
+                            // vertical animation.
+                            let selection_map = self.selection_map.borrow();
+                            let cursor = selection_map.id_map.get(&view_selection.id).unwrap();
+                            for index in line_after_end_index..lines.len() {
+                                lines[index].set_index(index - line_after_end_index);
+                                cursor.bottom_snapped_left.add_child(&lines[index]);
+                            }
+                        }
+
+                        if line_diff > 0 {
+                            // Add missing lines. They will be redrawn later. This is needed for
+                            // proper partial redraw (redrawing only the lines that changed).
+                            for i in 0..line_diff as usize {
+                                let index_to_insert = second_line_index + i;
+                                if index_to_insert < lines.len() {
+                                    lines.insert(index_to_insert, self.new_line(index_to_insert));
+                                }
+                            }
+                        } else if line_diff < 0 {
+                            // Remove lines that are no longer needed. This is needed for proper
+                            // partial redraw (redrawing only the lines that changed).
+                            let line_diff = (-line_diff) as usize;
+                            lines.drain(second_line_index..second_line_index + line_diff);
+                        }
+
+                        let range = shape.start.line..=shape.end.line + ViewLine(line_diff);
+                        debug!("Range to redraw: {:?}", range);
+                        range.intersect(&view_line_range)
+                    })
+                    .collect_vec();
+
+                let lines_to_redraw = std_ext::range::merge_overlapping_ranges(&lines_to_redraw);
+                let lines_to_redraw = lines_to_redraw.collect_vec();
+                debug!("Lines to redraw: {:#?}", lines_to_redraw);
+
+                self.resize_lines();
+                self.redraw_sorted_line_ranges(&lines_to_redraw);
+            } else {
+                self.remove_glyphs_from_cursors();
+                self.remove_lines_from_cursors();
+            }
+        })
+    }
+
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
@@ -708,143 +815,9 @@ impl AreaModel {
             // selekcjami sasiadujacych widgetow, co z widgetami hierarchicznymi?
             // TODO ^^^
 
-            let view_line_range = self.buffer.view_line_range();
+            self.update_lines_after_change(changes);
 
-            if let Some(changes) = changes {
-                // let lines_to_be_redrawn =
-
-                // for change in changes {
-                //     let change = self
-                //         .buffer
-                //         .change_with_selection_to_view_change_with_selection(change.clone());
-                //     warn!("change: {:#?}", change);
-                //     // self.buffer.line_to_view_line(change.)
-                //     // self.buffer.view_lines()
-                // }
-
-                let line_ranges = changes
-                    .iter()
-                    .filter_map(|change| {
-                        warn!("CHANGE: {:#?}", change);
-                        let change = change.clone();
-                        let change =
-                            self.buffer.change_with_selection_to_view_change_with_selection(change);
-                        let change_str = change.text.to_string();
-                        let newline_count = change_str.chars().filter(|c| *c == '\n').count();
-
-
-                        // FIXME: these checks are cumbersome to remember, make them better.
-                        let mut start_line = std::cmp::min(
-                            change.selection.shape.start.line,
-                            change.selection.shape.end.line,
-                        );
-                        let end_line = std::cmp::max(
-                            change.selection.shape.start.line,
-                            change.selection.shape.end.line,
-                        );
-                        let was_backspace_on_line_start = change.selection.shape.start
-                            == change.selection.shape.end
-                            && change.selection.shape.start.code_point_index == CodePointIndex(0)
-                            && change.text.is_empty()
-                            && !change.range.is_empty();
-                        if was_backspace_on_line_start {
-                            warn!("WAS BACKSPACE ON LINE START");
-                            start_line = start_line - ViewLine(1);
-                        }
-                        let line_diff = newline_count as i32 - (end_line.value - start_line.value);
-
-                        warn!("line_diff: {}", line_diff);
-                        warn!("??? {:#?}", self.selection_map);
-                        let selection_map = self.selection_map.borrow();
-                        let cursor = selection_map.id_map.get(&change.selection.id).unwrap(); // FIXME
-                        if line_diff > 0 {
-                            let mut lines = self.lines.borrow_mut();
-                            let next_line_index = end_line.value as usize + 1;
-                            if next_line_index < lines.len() {
-                                let mut j = 0;
-                                for index in next_line_index..lines.len() {
-                                    // lines[index].set_index(index + line_diff as usize);
-                                    lines[index].set_index(j);
-                                    cursor.bottom_snapped_left.add_child(&lines[index]);
-                                    j += 1;
-                                }
-                            }
-                            for i in 0..line_diff {
-                                let index = (start_line.value + i + 1) as usize;
-                                if index < lines.len() {
-                                    warn!("index: {}", index);
-                                    lines.insert(index, self.new_line(index));
-                                }
-                            }
-                        } else if line_diff < 0 {
-                            let line_diff = (-line_diff) as usize;
-                            let mut lines = self.lines.borrow_mut();
-                            let next_line_index = end_line.value as usize + 1;
-                            if next_line_index < lines.len() {
-                                let mut j = 0;
-                                for index in next_line_index..lines.len() {
-                                    lines[index].set_index(j);
-                                    cursor.bottom_snapped_left.add_child(&lines[index]);
-                                    // lines[index].set_index(index - line_diff);
-                                    j += 1;
-                                }
-                            }
-
-                            let next_line_index = start_line.value as usize + 1;
-                            warn!("DRAIN: {} {}", next_line_index, line_diff);
-                            if next_line_index < lines.len() {
-                                lines.drain(next_line_index..next_line_index + line_diff);
-                            }
-                        }
-
-                        let end_line = end_line + ViewLine(line_diff);
-
-                        let range = start_line..=end_line;
-                        warn!("RANGE: {:#?}", range);
-                        range.intersect(&view_line_range)
-                    })
-                    .collect_vec();
-
-                let lines_to_redraw =
-                    std_ext::range::merge_overlapping_ranges(&line_ranges).collect_vec();
-
-                // FIXME ^^^ to chyba nie dziala z wieloma kursorami jeszcze przy usuwaniu /
-                // dodawaniu linijek
-                warn!("LINES TO REDRAW: {:#?}", lines_to_redraw);
-
-                self.resize_lines();
-                self.redraw_sorted_line_ranges(&lines_to_redraw);
-
-                // mozlowe ze mozmy zrobic tak, ze jak jest redraw linijki, to bierzemy nowy ontent
-                // i ta optymalizuemy ktorel iterki sa redrawowane nie musimy
-                // wczesniej pobirac changes i ich aplikowac. po prostu wziac to przez rustybuzz i
-                // literka po literce sprawdzac czy potrzebuje redraw w literkach
-                // trzeba zapaimietac z jakich range poswstaly
-                //
-                // Wtedy moze tez da sie usunac te struktury ChangeWithLocation ktore zrobilismy
-                //
-                // moze jednak te struktury trzeb zostawic bo trzeba wiedziec jakie linijki
-                // przerysowywac
-
-                // TODO: do smaller redraws - at least only the changed lines. For longer lines this
-                //   will still be slow. However, inserting one char can change ligatures, so we
-                //   need to carefully analyse chars around.
-                // self.redraw(true); // FIXME: fix and remove - after enter not all lines are
-                // redrawn
-            } else {
-                self.remove_glyphs_from_cursors();
-                self.remove_lines_from_cursors();
-            }
             let mut selection_map = self.selection_map.borrow_mut();
-
-            // /// Mapping between selection id, `Selection`, and text location.
-            // #[derive(Clone, Debug, Default)]
-            // #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-            // pub struct SelectionMap {
-            //     id_map:       HashMap<usize, Selection>,
-            //     location_map: HashMap<unit::Line, HashMap<CodePointIndex, usize>>,
-            // }
-
 
             debug!("{:?}", selection_map);
             let mut new_selection_map = SelectionMap::default();
