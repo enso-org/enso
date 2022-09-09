@@ -469,9 +469,9 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for VisibleOffset {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
 impl<'s> span::Builder<'s> for VisibleOffset {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
@@ -1040,9 +1040,9 @@ where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for String {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for String {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for String {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for String {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for String {}
+impl<'a, 's> SpanVisitable<'s, 'a> for String {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for String {}
+impl<'a, 's> ItemVisitable<'s, 'a> for String {}
 impl<'s> span::Builder<'s> for String {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
@@ -1051,9 +1051,9 @@ impl<'s> span::Builder<'s> for String {
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for Cow<'static, str> {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
 impl<'s> span::Builder<'s> for Cow<'static, str> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span

@@ -174,7 +174,7 @@ impl SymbolsRenderPass {
         }
 
         self.symbol_registry.set_camera(&layer.camera());
-        self.symbol_registry.render_symbols(&*layer.symbols());
+        self.symbol_registry.render_symbols(&layer.symbols());
         for sublayer in layer.sublayers().iter() {
             self.render_layer(instance, sublayer, scissor_stack, was_ever_masked);
         }

@@ -82,7 +82,6 @@
 #![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
-#![feature(let_chains)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 // === Standard Linter Configuration ===
