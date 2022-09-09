@@ -217,7 +217,7 @@ impl CursorModel {
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
         for view in &[&self.view, &self.port_selection] {
-            f(*view)
+            f(view)
         }
     }
 }

@@ -851,7 +851,7 @@ impl<Host> Object<Host> for Instance<Host> {
 
 impl<Host, T: Object<Host>> Object<Host> for &T {
     fn display_object(&self) -> &Instance<Host> {
-        let t: &T = *self;
+        let t: &T = self;
         t.display_object()
     }
 }
