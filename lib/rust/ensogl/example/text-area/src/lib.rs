@@ -94,7 +94,8 @@ fn init(app: Application) {
     let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
     // area.set_color(range_green, color::Rgba::red());
     area.format(range_green, color::Rgba::red());
-    area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
+    // area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
+    area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
     // area.set_color_all(color::Rgba::red());
     // area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 

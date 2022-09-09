@@ -284,10 +284,7 @@ ensogl_core::define_endpoints! {
         add_cursor            (Location),
         paste_string          (String),
         insert                (String),
-        set_color             (TextRange, color::Rgba),
-        set_sdf_weight        (buffer::Range<UBytes>, style::SdfWeight),
         format                (TextRange, style::Property),
-        set_format            (buffer::Range<UBytes>, style::Format),
         /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
@@ -543,21 +540,18 @@ impl Area {
                 m.redraw(true);
             });
 
-            // FIXME: The color-setting operation is very slow now. For every new color, the whole
-            //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
-            m.buffer.frp.set_color <+ input.set_color;
+            // // FIXME: The color-setting operation is very slow now. For every new color, the whole
+            // //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
+            // m.buffer.frp.set_color <+ input.set_color;
             // eval input.set_color ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_color(t.1)));
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
 
             // === Style ===
 
-            m.buffer.frp.set_sdf_weight <+ input.set_sdf_weight;
             format <- input.format.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
-            eval format ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_property(t.1)));
+            eval format ((t) m.set_glyphs_property(&t.0, t.1));
             m.buffer.frp.format <+ format;
-            // FIXME:
-            // eval input.set_sdf_weight ((t) m.modify_glyphs_in_ranges(t.0, |g| g.set_sdf_weight(t.1)));
 
 
             // === Changes ===
@@ -1094,6 +1088,15 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
+    pub fn set_glyphs_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: style::Property,
+    ) {
+        let resolved_property = self.buffer.resolve_property(property);
+        self.modify_glyphs_in_ranges(ranges, |glyph| glyph.set_property(resolved_property));
+    }
+
     pub fn modify_glyphs_in_ranges(&self, ranges: &Vec<buffer::Range<UBytes>>, f: impl Fn(&Glyph)) {
         warn!("modify_glyphs_in_ranges {:?}", ranges);
         for &range in ranges {
@@ -1278,7 +1281,7 @@ impl AreaModel {
     }
 
     fn default_font_size(&self) -> style::Size {
-        *self.buffer.formatting.get().size.default()
+        self.buffer.formatting.get().size.default
     }
 
     fn new_line(&self, index: usize) -> Line {

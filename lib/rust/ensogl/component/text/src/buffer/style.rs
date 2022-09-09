@@ -58,6 +58,13 @@ macro_rules! define_format {
                 $([<$field:camel>] (Option<$field_type>)),*
             }
 
+            #[derive(Clone, Copy, Debug, From, Default)]
+            pub enum ResolvedProperty {
+                #[default]
+                Nothing,
+                $([<$field:camel>] ($field_type)),*
+            }
+
             $(
                 impl From<$field_type> for Property {
                     fn from(value: $field_type) -> Self {
@@ -161,7 +168,15 @@ macro_rules! define_format {
                         $(Property::[<$field:camel>] (t) => self.$field.replace_resize(range, range_size, t)),*
                     }
                 }
+
+                pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
+                    match property {
+                        Property::Nothing => ResolvedProperty::Nothing,
+                        $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
+                    }
+                }
             }
+
         }
 
         $(
@@ -233,8 +248,8 @@ impl StyleIterator {
 #[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Spanned<T: Copy> {
-    pub spans: enso_text::Spans<Option<T>>,
-    default:   T,
+    pub spans:   enso_text::Spans<Option<T>>,
+    pub default: T,
 }
 
 impl<T: Copy> Spanned<T> {
@@ -249,11 +264,6 @@ impl<T: Copy> Spanned<T> {
     pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
         spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
-    }
-
-    /// The default value of this property.
-    pub fn default(&self) -> &T {
-        &self.default
     }
 }
 

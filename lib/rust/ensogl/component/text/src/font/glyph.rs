@@ -6,7 +6,7 @@ use ensogl_core::display::world::*;
 
 use crate::font;
 use crate::font::VariationAxes;
-use crate::Property;
+use crate::ResolvedProperty;
 use crate::SdfWeight;
 
 use enso_text::CodePointIndex;
@@ -70,7 +70,7 @@ macro_rules! define_prop_setters_and_getters {
             $(
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
             )*
-            // self.refresh();
+            self.refresh(); // FIXME do it via dirty flag
         }
 
         $(
@@ -80,7 +80,7 @@ macro_rules! define_prop_setters_and_getters {
             pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
                 self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
-                // self.refresh();
+                self.refresh(); // FIXME do it via dirty flag
             }
 
             $(
@@ -123,10 +123,11 @@ impl Glyph {
         )
     ];
 
-    pub fn set_property(&self, property: Property) {
+    pub fn set_property(&self, property: ResolvedProperty) {
         match property {
-            Property::Color(color) => self.set_color(color.unwrap()), // FIXME unwrap
-            Property::SdfWeight(weight) => self.set_sdf_weight(weight.unwrap()), // FIXME unwrap
+            ResolvedProperty::Color(color) => self.set_color(color),
+            ResolvedProperty::Weight(weight) => self.set_weight(weight),
+            ResolvedProperty::SdfWeight(weight) => self.set_sdf_weight(weight),
             _ => panic!(),
         }
     }
@@ -195,6 +196,11 @@ impl Glyph {
             // FIXME[WD]: This should display a bad character. https://www.pivotaltracker.com/story/show/182746060
             panic!()
         }
+    }
+
+    // FIXME: remove
+    pub fn refresh(&self) {
+        self.set_glyph_id(self.glyph_id.get());
     }
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.

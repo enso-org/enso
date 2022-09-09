@@ -441,10 +441,7 @@ ensogl_core::define_endpoints! {
         redo                       (),
         set_default_color          (color::Rgba),
         set_default_text_size      (style::Size),
-        set_color                  (TextRange, color::Rgba),
-        set_sdf_weight             (buffer::Range<UBytes>, style::SdfWeight),
         format                     (Vec<buffer::Range<UBytes>>, style::Property),
-        set_format                 (buffer::Range<UBytes>, style::Format),
     }
 
     Output {
@@ -520,9 +517,7 @@ impl View {
 
             eval input.set_default_color     ((t) m.set_default(*t));
             eval input.set_default_text_size ((t) m.set_default(*t));
-            eval input.set_color             (((range,color)) m.replace2(range,*color));
-            eval input.set_sdf_weight        (((range,value)) m.replace(range,*value));
-            eval input.format                (((range,value)) m.replace3(range,*value));
+            eval input.format                (((range,value)) m.replace(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ modification;
@@ -563,34 +558,6 @@ impl Default for View {
 // === ViewModel ===
 // =================
 
-
-impl Setter2<Option<color::Rgba>> for ViewModel {
-    fn replace2(&self, range: &TextRange, data: Option<color::Rgba>) {
-        for range in self.text_to_byte_ranges(range) {
-            let range = self.crop_byte_range(range);
-            let range_size = UBytes::try_from(range.size()).unwrap_or_default();
-            self.data.formatting.borrow_mut().color.replace_resize(range, range_size, data)
-        }
-    }
-}
-
-impl Setter2<color::Rgba> for ViewModel {
-    fn replace2(&self, range: &TextRange, data: color::Rgba) {
-        self.replace2(range, Some(data))
-    }
-}
-
-impl Setter2<style::Property> for ViewModel {
-    fn replace2(&self, range: &TextRange, data: style::Property) {
-        for range in self.text_to_byte_ranges(range) {
-            let range = self.crop_byte_range(range);
-            self.data.formatting.set_property(range, data)
-        }
-    }
-}
-
-
-
 /// Internal model for the `View`.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
@@ -615,11 +582,15 @@ impl ViewModel {
 }
 
 impl ViewModel {
-    fn replace3(&self, ranges: &Vec<buffer::Range<UBytes>>, data: style::Property) {
+    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
         for range in ranges {
             let range = self.crop_byte_range(range);
-            self.data.formatting.set_property(range, data)
+            self.data.formatting.set_property(range, property)
         }
+    }
+
+    pub fn resolve_property(&self, property: style::Property) -> style::ResolvedProperty {
+        self.formatting.borrow().resolve_property(property)
     }
 
     pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
