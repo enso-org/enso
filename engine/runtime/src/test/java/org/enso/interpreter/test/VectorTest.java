@@ -63,6 +63,34 @@ public class VectorTest {
   }
 
   @Test
+  public void vectorToString() throws Exception {
+    final URI facUri = new URI("memory://vector.enso");
+    final Source src = Source.newBuilder("enso", """
+    check = [1, 2, 3]
+    """, "vector.enso")
+            .uri(facUri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var res = module.invokeMember("eval_expression", "check");
+    assertEquals("[1, 2, 3]", res.toString());
+  }
+
+  @Test
+  public void arrayToString() throws Exception {
+    final URI facUri = new URI("memory://vector.enso");
+    final Source src = Source.newBuilder("enso", """
+    check = [1, 2, 3].to_array
+    """, "vector.enso")
+            .uri(facUri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var res = module.invokeMember("eval_expression", "check");
+    assertEquals("[1, 2, 3]", res.toString());
+  }
+
+  @Test
   public void passingVectorDirectlyIntoJava() throws Exception {
     final URI uri = new URI("memory://callback.enso");
     final Source src = Source.newBuilder("enso", """

@@ -11,9 +11,14 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -151,6 +156,36 @@ public final class Vector implements TruffleObject {
     throw UnsupportedMessageException.create();
   }
 
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  String toDisplayString(boolean allowSideEffects) {
+    final InteropLibrary iop = InteropLibrary.getUncached();
+    StringBuilder sb = new StringBuilder();
+    try {
+      sb.append('[');
+      String sep = "";
+      long len = length(iop);
+      for (long i = 0; i < len; i++) {
+        sb.append(sep);
+
+        Object at = readArrayElement(i, iop, HostValueToEnsoNode.getUncached());
+        Object str = iop.toDisplayString(at, allowSideEffects);
+        if (iop.isString(str)) {
+          sb.append(iop.asString(str));
+        } else {
+          sb.append("_");
+        }
+        sep = ", ";
+      }
+      sb.append(']');
+    } catch (InvalidArrayIndexException | UnsupportedMessageException ex) {
+      StringWriter w = new StringWriter();
+      ex.printStackTrace(new PrintWriter(w));
+      sb.append("...\n").append(w.toString());
+    }
+    return sb.toString();
+  }
+
   //
   // methods for TypesLibrary
   //
@@ -168,6 +203,12 @@ public final class Vector implements TruffleObject {
   //
   // helper methods
   //
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    return toDisplayString(false);
+  }
 
   @SuppressWarnings("unchecked")
   private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {

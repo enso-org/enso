@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -136,6 +137,7 @@ public final class Array implements TruffleObject {
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public String toString() {
     return Arrays.toString(items);
   }
