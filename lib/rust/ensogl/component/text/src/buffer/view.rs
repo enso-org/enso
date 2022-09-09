@@ -201,6 +201,8 @@ impl ViewBuffer {
         Selection::new_cursor(location, id)
     }
 
+    /// Returns the last used selection or a new one if no active selection exists. This allows for
+    /// nice animations when moving cursor between lines after clicking with mouse.
     fn set_cursor(&self, location: Location) -> selection::Group {
         let opt_existing = self.selection.borrow().last().map(|t| t.with_location(location));
         opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()

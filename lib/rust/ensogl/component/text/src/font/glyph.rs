@@ -126,6 +126,7 @@ impl Glyph {
     pub fn set_property(&self, property: Property) {
         match property {
             Property::Color(color) => self.set_color(color.unwrap()), // FIXME unwrap
+            Property::SdfWeight(weight) => self.set_sdf_weight(weight.unwrap()), // FIXME unwrap
             _ => panic!(),
         }
     }

@@ -94,8 +94,9 @@ fn init(app: Application) {
     let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
     // area.set_color(range_green, color::Rgba::red());
     area.format(range_green, color::Rgba::red());
+    area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
     // area.set_color_all(color::Rgba::red());
-    area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
+    // area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 
 
     // let text = "red green blue";
@@ -128,7 +129,7 @@ fn init_debug_hotkeys(area: &Area) {
             let key = event.code();
             warn!("{:?}", key);
             if key == "KeyR" {
-                area.set_color(buffer::TextRange::Selections, color::Rgba::red());
+                area.format(buffer::TextRange::Selections, color::Rgba::red());
             }
             // } else if key == "Digit0" {
             // } else if key == "Digit1" {
