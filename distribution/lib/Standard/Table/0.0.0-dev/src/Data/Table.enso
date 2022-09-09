@@ -1128,12 +1128,11 @@ type Table
 
    An error returned when the table contains no rows.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The table is empty."
+       Pretty prints the empty table error.
+    to_display_text : Text
+    to_display_text self = "The table is empty."
 
 ## PRIVATE
 from_columns cols = Table_Data (Java_Table.new cols.to_array)

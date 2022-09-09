@@ -890,12 +890,12 @@ from_enso_options opts =
    An error representing that the bounds for a match are invalid.
 type Invalid_Bounds_Error
 
-## PRIVATE
+    ## PRIVATE
 
-   Provides a human-readable representation of the invalid bounds error.
-Invalid_Bounds_Error.to_display_text : Text
-Invalid_Bounds_Error.to_display_text =
-    "The start bound cannot be greater than the end bound."
+       Provides a human-readable representation of the invalid bounds error.
+    to_display_text : Text
+    to_display_text =
+        "The start bound cannot be greater than the end bound."
 
 ## PRIVATE
 
@@ -907,11 +907,11 @@ Invalid_Bounds_Error.to_display_text =
 type Mode_Error
     Mode_Error_Data (message : Text)
 
-## PRIVATE
+    ## PRIVATE
 
-   Provides a human-readable representation of the invalid bounds error.
-Mode_Error.to_display_text : Text
-Mode_Error.to_display_text self = self.message.to_text
+       Provides a human-readable representation of the mode error.
+    to_display_text : Text
+    to_display_text self = self.message.to_text
 
 ## PRIVATE
 
@@ -922,10 +922,9 @@ Mode_Error.to_display_text self = self.message.to_text
 type Invalid_Option_Error
     Invalid_Option_Error_Data (opt : Any)
 
-## PRIVATE
+    ## PRIVATE
 
-   Provides a human-readable representation of the invalid option error.
-Invalid_Option_Error.to_display_text : Text
-Invalid_Option_Error.to_display_text self =
-    "The option " + self.opt.to_text + " is not valid for the default regex engine."
-
+       Provides a human-readable representation of the invalid option error.
+    to_display_text : Text
+    to_display_text self =
+        "The option " + self.opt.to_text + " is not valid for the default regex engine."

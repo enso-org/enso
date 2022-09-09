@@ -169,12 +169,12 @@ type Json
 type Parse_Error
     Parse_Error_Data message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Converts the error to a display representation.
-Parse_Error.to_display_text : Text
-Parse_Error.to_display_text self =
-    "Parse error in parsing JSON: " + self.message.to_text + "."
+       Converts the error to a display representation.
+    to_display_text : Text
+    to_display_text self =
+        "Parse error in parsing JSON: " + self.message.to_text + "."
 
 ## UNSTABLE
 
@@ -182,12 +182,12 @@ Parse_Error.to_display_text self =
 type No_Such_Field_Error
     No_Such_Field_Error_Data field_name
 
-## UNSTABLE
+    ## PRIVATE
 
-   Pretty prints the no such field error.
-No_Such_Field_Error.to_display_text : Text
-No_Such_Field_Error.to_display_text self =
-    "The field " + self.field_name.to_text + " is not present in this object."
+       Pretty prints the no such field error.
+    to_display_text : Text
+    to_display_text self =
+        "The field " + self.field_name.to_text + " is not present in this object."
 
 ## UNSTABLE
 

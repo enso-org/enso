@@ -46,14 +46,15 @@ unify_vector_singleton x = case x of
    Currently the names can only include ASCII letters, numbers and the
    underscore. This is a temporary limitation simplifying name handling. It will
    be removed in a future version.
-type Unsupported_Name_Error text
+type Unsupported_Name_Error
+    Unsupported_Name_Error_Data text
 
-## UNSTABLE
+    ## PRIVATE
 
-   Creates a human-readable representation of the unsupported name error.
-Unsupported_Name_Error.to_display_text : Text
-Unsupported_Name_Error.to_display_text self =
-    "The name " + self.text + " is not currently supported by the Database library."
+       Creates a human-readable representation of the unsupported name error.
+    to_display_text : Text
+    to_display_text self =
+        "The name " + self.text + " is not currently supported by the Database library."
 
 ## PRIVATE
 
@@ -72,5 +73,5 @@ ensure_name_is_sane name =
     is_safe =
         Pattern.matches "[A-Za-z_0-9]+" name
     if is_safe then True else
-        Error.throw <| Unsupported_Name_Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
+        Error.throw <| Unsupported_Name_Error_Data (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
 

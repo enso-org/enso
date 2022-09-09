@@ -131,7 +131,7 @@ type Codepoint_Ranges
      If the predicate returns True for a given character, the loop will exit.
    Returns: either a Pair of char indices for current grapheme cluster or
      Pair Nothing (char array length) if not found.
-find_sub_range_end = text->predicate->
+find_sub_range_end text predicate =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
 
