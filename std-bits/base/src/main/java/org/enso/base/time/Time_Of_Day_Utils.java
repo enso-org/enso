@@ -1,6 +1,7 @@
 package org.enso.base.time;
 
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 
 public class Time_Of_Day_Utils implements TimeUtilsBase {
@@ -11,6 +12,8 @@ public class Time_Of_Day_Utils implements TimeUtilsBase {
   }
 
   public LocalTime end_of_time_period(LocalTime date, TemporalUnit unit) {
-    return date.truncatedTo(unit).plus(1, unit).minusNanos(1);
+    LocalTime truncated = date.truncatedTo(unit);
+    LocalTime adjusted = unit.equals(ChronoUnit.DAYS) ? truncated : truncated.plus(1, unit);
+    return adjusted.minusNanos(1);
   }
 }
