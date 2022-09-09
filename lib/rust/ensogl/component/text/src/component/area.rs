@@ -68,22 +68,19 @@ pub struct SelectionMap {
 /// **Design Notes**
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
     glyphs:         Vec<Glyph>,
     divs:           Vec<f32>,
     centers:        Vec<f32>,
+    index:          usize,
 }
 
 impl Line {
     fn new() -> Self {
-        let display_object = display::object::Instance::new();
-        let glyphs = default();
-        let divs = default();
-        let centers = default();
-        Self { display_object, glyphs, divs, centers }
+        default()
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
@@ -133,9 +130,10 @@ impl Line {
         self.glyphs.push(glyph);
     }
 
-    fn set_index(&self, index: usize) {
+    fn set_index(&mut self, index: usize) {
         let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
         self.set_position_y(y_offset);
+        self.index = index;
     }
 }
 
@@ -143,6 +141,11 @@ impl display::Object for Line {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
+}
+
+fn set_line_index(line: &display::object::Instance, index: usize) {
+    let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+    line.set_position_y(y_offset);
 }
 
 
@@ -751,12 +754,19 @@ impl AreaModel {
                         let line_diff = newline_count as i32 - (end_line.value - start_line.value);
 
                         warn!("line_diff: {}", line_diff);
+                        warn!("??? {:#?}", self.selection_map);
+                        let selection_map = self.selection_map.borrow();
+                        let cursor = selection_map.id_map.get(&change.selection.id).unwrap(); // FIXME
                         if line_diff > 0 {
                             let mut lines = self.lines.borrow_mut();
                             let next_line_index = end_line.value as usize + 1;
                             if next_line_index < lines.len() {
+                                let mut j = 0;
                                 for index in next_line_index..lines.len() {
-                                    lines[index].set_index(index + line_diff as usize);
+                                    // lines[index].set_index(index + line_diff as usize);
+                                    lines[index].set_index(j);
+                                    cursor.bottom_snapped_left.add_child(&lines[index]);
+                                    j += 1;
                                 }
                             }
                             for i in 0..line_diff {
@@ -771,8 +781,12 @@ impl AreaModel {
                             let mut lines = self.lines.borrow_mut();
                             let next_line_index = end_line.value as usize + 1;
                             if next_line_index < lines.len() {
+                                let mut j = 0;
                                 for index in next_line_index..lines.len() {
-                                    lines[index].set_index(index - line_diff);
+                                    lines[index].set_index(j);
+                                    cursor.bottom_snapped_left.add_child(&lines[index]);
+                                    // lines[index].set_index(index - line_diff);
+                                    j += 1;
                                 }
                             }
 
@@ -819,6 +833,7 @@ impl AreaModel {
                 // redrawn
             } else {
                 self.remove_glyphs_from_cursors();
+                self.remove_lines_from_cursors();
             }
             let mut selection_map = self.selection_map.borrow_mut();
 
@@ -1214,18 +1229,27 @@ impl AreaModel {
     }
 
     pub fn remove_glyphs_from_cursors(&self) {
-        let mut selection_map = self.selection_map.borrow();
+        let selection_map = self.selection_map.borrow();
         for (line, cursor_map) in &selection_map.location_map {
             for (_, cursor_id) in cursor_map {
                 let selection = selection_map.id_map.get(cursor_id).unwrap();
-                let children_count = selection.right_side.children_count();
-                warn!("CHILDREN_COUNT: {}", children_count);
                 for glyph in selection.right_side.remove_all_children() {
-                    warn!("REMOVED CHILD: {:?}", glyph);
                     self.lines.borrow_mut()[line.as_usize()].add_child(&glyph);
                     let pos_x = selection.position.target_value().x;
                     glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                 }
+            }
+        }
+    }
+
+    pub fn remove_lines_from_cursors(&self) {
+        let selection_map = self.selection_map.borrow();
+        for cursor_id in selection_map.id_map.keys() {
+            let selection = selection_map.id_map.get(cursor_id).unwrap();
+            for line in selection.bottom_snapped_left.remove_all_children() {
+                self.add_child(&line);
+                let pos_y = selection.position.target_value().y;
+                line.mod_position_y(|pos| pos + pos_y - LINE_HEIGHT / 2.0);
             }
         }
     }
@@ -1308,7 +1332,7 @@ impl AreaModel {
     }
 
     fn new_line(&self, index: usize) -> Line {
-        let line = Line::new();
+        let mut line = Line::new();
         line.set_index(index);
         self.add_child(&line);
         line

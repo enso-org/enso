@@ -10,8 +10,8 @@ use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::DEPRECATED_Animation;
 
 
-
-const DEBUG_SLOWDOWN: bool = true;
+use crate::component::area::LINE_HEIGHT; // FIXME: circular dep
+const DEBUG_SLOWDOWN: bool = false;
 
 
 // ==============
@@ -150,7 +150,7 @@ impl Selection {
         let width = DEPRECATED_Animation::new(&network);
         let edit_mode = Rc::new(Cell::new(edit_mode));
         let frp = Frp::new();
-        let spring_factor = if DEBUG_SLOWDOWN { 0.1 } else { 1.5 };
+        let spring_factor = if DEBUG_SLOWDOWN { 0.1 } else { 1.0 };
 
         position.update_spring(|spring| spring * spring_factor);
         width.update_spring(|spring| spring * spring_factor);
@@ -191,7 +191,7 @@ impl Selection {
                     let view_y      = 0.0;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
-                    bottom_snapped_left.set_position_x(-p.x);
+                    bottom_snapped_left.set_position_xy(Vector2(-p.x, -LINE_HEIGHT / 2.0));
                     view.size.set(Vector2(view_width,view_height));
                     view.set_position_xy(Vector2(view_x,view_y));
                 })
