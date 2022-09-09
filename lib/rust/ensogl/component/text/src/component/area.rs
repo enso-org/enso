@@ -132,6 +132,11 @@ impl Line {
         display_object.add_child(&glyph);
         self.glyphs.push(glyph);
     }
+
+    fn set_index(&self, index: usize) {
+        let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+        self.set_position_y(y_offset);
+    }
 }
 
 impl display::Object for Line {
@@ -705,27 +710,80 @@ impl AreaModel {
             if let Some(changes) = changes {
                 // let lines_to_be_redrawn =
 
-                for change in changes {
-                    let change = self
-                        .buffer
-                        .change_with_selection_to_view_change_with_selection(change.clone());
-                    warn!("change: {:#?}", change);
-                    // self.buffer.line_to_view_line(change.)
-                    // self.buffer.view_lines()
-                }
+                // for change in changes {
+                //     let change = self
+                //         .buffer
+                //         .change_with_selection_to_view_change_with_selection(change.clone());
+                //     warn!("change: {:#?}", change);
+                //     // self.buffer.line_to_view_line(change.)
+                //     // self.buffer.view_lines()
+                // }
 
                 let line_ranges = changes
                     .iter()
                     .filter_map(|change| {
+                        warn!("CHANGE: {:#?}", change);
                         let change = change.clone();
                         let change =
                             self.buffer.change_with_selection_to_view_change_with_selection(change);
                         let change_str = change.text.to_string();
                         let newline_count = change_str.chars().filter(|c| *c == '\n').count();
-                        let newline_count = unit::ViewLine(newline_count as i32);
                         let start_line = change.selection.shape.start.line;
-                        let end_line = change.selection.shape.end.line + newline_count;
+                        let end_line = change.selection.shape.end.line;
+                        let line_diff = newline_count as i32 - (end_line.value - start_line.value);
+                        warn!("line_diff: {}", line_diff);
+                        if line_diff > 0 {
+                            let mut lines = self.lines.borrow_mut();
+                            let next_line_index = start_line.value as usize + 1;
+                            if next_line_index < lines.len() {
+                                for index in next_line_index..lines.len() {
+                                    lines[index].set_index(index + line_diff as usize);
+                                }
+                            }
+                            for i in 0..line_diff {
+                                let index = (start_line.value + i + 1) as usize;
+                                if index < lines.len() {
+                                    warn!("index: {}", index);
+                                    lines.insert(index, self.new_line(index));
+                                }
+                            }
+                        }
+
+                        let range1 = if line_diff >= 0 {
+                            let start_line = change.selection.shape.start.line;
+                            let end_line = change.selection.shape.end.line + ViewLine(line_diff);
+                            start_line..=end_line;
+                        } else {
+                            let start_line =
+                                change.selection.shape.start.line + ViewLine(line_diff);
+                            let end_line = change.selection.shape.end.line;
+                            start_line..=end_line;
+                        };
+
+
+
+                        let newline_count = unit::ViewLine(newline_count as i32);
+                        // FIXME: these checks are cumbersome to remember, make them better.
+                        let mut start_line = std::cmp::min(
+                            change.selection.shape.start.line,
+                            change.selection.shape.end.line,
+                        );
+                        let end_line = std::cmp::max(
+                            change.selection.shape.start.line,
+                            change.selection.shape.end.line,
+                        );
+                        let end_line = end_line + newline_count;
+                        let was_backspace = change.selection.shape.start
+                            == change.selection.shape.end
+                            && change.selection.shape.start.code_point_index == CodePointIndex(0)
+                            && change.text.is_empty()
+                            && !change.range.is_empty();
+                        if was_backspace {
+                            start_line = start_line - ViewLine(1);
+                        }
                         let range = start_line..=end_line;
+                        warn!("RANGE1: {:#?}", range1);
+                        warn!("RANGE: {:#?}", range);
                         range.intersect(&view_line_range)
                     })
                     .collect_vec();
@@ -752,7 +810,8 @@ impl AreaModel {
                 // TODO: do smaller redraws - at least only the changed lines. For longer lines this
                 //   will still be slow. However, inserting one char can change ligatures, so we
                 //   need to carefully analyse chars around.
-                // self.redraw(true);
+                // self.redraw(true); // FIXME: fix and remove - after enter not all lines are
+                // redrawn
             } else {
                 self.remove_glyphs_from_cursors();
             }
@@ -887,9 +946,14 @@ impl AreaModel {
     }
 
     pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+        warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
         for range in sorted_line_ranges {
             let lines_content = self.buffer.lines_content(range.clone());
-            for (line, content) in range.clone().into_iter().zip(lines_content) {
+            for (index, line) in range.clone().into_iter().enumerate() {
+                /// FIXME: this strange getting to the content is because when removing whole line
+                /// the content is []. To be checked why.
+                let content: &str =
+                    if index < lines_content.len() { &lines_content[index] } else { "" };
                 self.redraw_line(line, content);
             }
         }
@@ -912,7 +976,7 @@ impl AreaModel {
             .into_iter()
             .enumerate()
             .map(|(view_line_index, content)| {
-                self.redraw_line(unit::ViewLine(view_line_index as i32), content)
+                self.redraw_line(unit::ViewLine(view_line_index as i32), &content)
             })
             .collect_vec();
         let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
@@ -948,7 +1012,7 @@ impl AreaModel {
         })
     }
 
-    fn redraw_line(&self, view_line_index: unit::ViewLine, content: String) -> f32 {
+    fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
         let cursor_map = self
@@ -979,7 +1043,7 @@ impl AreaModel {
         // FIXME: after removing glyph in the middle we have two the same headers here - to be
         // optimized
         for (range, requested_non_variable_variations) in
-            Self::chunks_per_font_face(font, &line_style, &content)
+            Self::chunks_per_font_face(font, &line_style, content)
         {
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
@@ -1240,8 +1304,7 @@ impl AreaModel {
 
     fn new_line(&self, index: usize) -> Line {
         let line = Line::new();
-        let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-        line.set_position_y(y_offset);
+        line.set_index(index);
         self.add_child(&line);
         line
     }

@@ -30,6 +30,11 @@ impl<T> Range<T> {
         Self { start, end }
     }
 
+    pub fn is_empty(&self) -> bool
+    where T: PartialEq {
+        self.start == self.end
+    }
+
     /// The size of the range.
     pub fn size<X>(&self) -> X
     where T: Clone + Sub<T, Output = X> {
