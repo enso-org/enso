@@ -3,10 +3,10 @@ package org.enso.base;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Array_Utils<T> {
+public class Array_Builder<T> {
   private final List<T> builder;
 
-  private Array_Utils(int capacity) {
+  private Array_Builder(int capacity) {
     this.builder = new ArrayList<>(capacity);
   }
 
@@ -22,8 +22,8 @@ public class Array_Utils<T> {
   }
 
   /** Creates new builder */
-  public static <V> Array_Utils<V> newBuilder(int capacity) {
-    return new Array_Utils<>(capacity);
+  public static <V> Array_Builder<V> newBuilder(int capacity) {
+    return new Array_Builder<>(capacity);
   }
 
   /** Is the builder empty? */

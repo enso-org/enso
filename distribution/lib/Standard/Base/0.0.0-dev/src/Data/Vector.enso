@@ -4,7 +4,7 @@ import Standard.Base.Random
 import Standard.Base.Runtime.Unsafe
 
 polyglot java import java.lang.IndexOutOfBoundsException
-polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.Array_Builder
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -990,7 +990,7 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=10) = Builder_Data (Array_Utils.newBuilder capacity)
+    new (capacity=10) = Builder_Data (Array_Builder.newBuilder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean

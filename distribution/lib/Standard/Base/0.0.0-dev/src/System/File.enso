@@ -7,7 +7,7 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
-polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
@@ -1110,7 +1110,7 @@ Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! I
 Vector.Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types_Data handler=(Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
-        byte_array = Array_Utils.ensureByteArray self.to_array
+        byte_array = Array_Builder.ensureByteArray self.to_array
 
         file = new path
         on_existing_file.write file stream->
