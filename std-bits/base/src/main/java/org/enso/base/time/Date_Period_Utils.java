@@ -9,13 +9,17 @@ public class Date_Period_Utils implements TimeUtilsBase {
     int month = temporal.get(ChronoField.MONTH_OF_YEAR);
     int quarter = (month - 1) / 3;
     int firstMonth = quarter * 3 + 1;
-    return temporal.with(ChronoField.MONTH_OF_YEAR, firstMonth).with(TemporalAdjusters.firstDayOfMonth());
+    return temporal
+        .with(ChronoField.MONTH_OF_YEAR, firstMonth)
+        .with(TemporalAdjusters.firstDayOfMonth());
   }
 
   public static Temporal quarter_end(Temporal temporal) {
     int month = temporal.get(ChronoField.MONTH_OF_YEAR);
     int quarter = (month - 1) / 3;
     int lastMonth = quarter * 3 + 3;
-    return temporal.with(ChronoField.MONTH_OF_YEAR, lastMonth).with(TemporalAdjusters.lastDayOfMonth());
+    return temporal
+        .with(ChronoField.MONTH_OF_YEAR, lastMonth)
+        .with(TemporalAdjusters.lastDayOfMonth());
   }
 }

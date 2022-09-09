@@ -211,11 +211,12 @@ public class Time_Utils {
     return (LocalTime.parse(text, formatter.withLocale(locale)));
   }
 
-  /** Normally this method could be done in Enso by pattern matching,
-   * but currently matching on Time types is not supported, so this is a workaround.
+  /**
+   * Normally this method could be done in Enso by pattern matching, but currently matching on Time
+   * types is not supported, so this is a workaround.
    *
-   * TODO once the related issue is fixed, this workaround may be replaced with pattern matching in Enso;
-   * the related Pivotal issue: https://www.pivotaltracker.com/story/show/183219169
+   * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
+   * in Enso; the related Pivotal issue: https://www.pivotaltracker.com/story/show/183219169
    */
   public static TimeUtilsBase utils_for(Value value) {
     boolean isDate = value.isDate();
