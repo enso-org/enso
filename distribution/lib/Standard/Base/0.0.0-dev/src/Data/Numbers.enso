@@ -983,9 +983,9 @@ type Integer
 type Parse_Error
     Parse_Error_Data text
 
-## UNSTABLE
+    ## UNSTABLE
 
-   Pretty print the syntax error.
-Parse_Error.to_display_text : Text
-Parse_Error.to_display_text =
-    "Could not parse " + self.text.to_text + " as a double."
+       Pretty print the syntax error.
+    to_display_text : Text
+    to_display_text =
+        "Could not parse " + self.text.to_text + " as a double."
