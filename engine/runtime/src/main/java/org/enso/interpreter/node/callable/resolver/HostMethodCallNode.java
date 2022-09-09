@@ -104,6 +104,24 @@ public abstract class HostMethodCallNode extends Node {
    */
   public static PolyglotCallType getPolyglotCallType(
       Object self, String methodName, InteropLibrary library) {
+    return getPolyglotCallType(self, methodName, library, null);
+  }
+
+  /**
+   * Returns a token instructing the caller about what mode of calling the given method should be
+   * used.
+   *
+   * @param self the method call target
+   * @param methodName the method name
+   * @param library an instance of interop library to use for interacting with the target
+   * @param methodResolverNode {@code null} or real instances of the node to resolve methods
+   * @return a {@link PolyglotCallType} to use for this target and method
+   */
+  public static PolyglotCallType getPolyglotCallType(
+      Object self,
+      String methodName,
+      InteropLibrary library,
+      MethodResolverNode methodResolverNode) {
     if (library.isDate(self)) {
       if (library.isTime(self)) {
         if (library.isTimeZone(self)) {
@@ -121,12 +139,15 @@ public abstract class HostMethodCallNode extends Node {
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.hasArrayElements(self)) {
-      var ctx = Context.get(library);
-      var arrayType = ctx.getBuiltins().array();
-      var methodResolverNode = MethodResolverNodeGen.getUncached();
-      var symbol = UnresolvedSymbol.build(methodName, ctx.getBuiltins().getScope());
-      var fn = methodResolverNode.execute(arrayType, symbol);
-      if (fn != null) {
+      if (methodResolverNode != null) {
+        var ctx = Context.get(library);
+        var arrayType = ctx.getBuiltins().array();
+        var symbol = UnresolvedSymbol.build(methodName, ctx.getBuiltins().getScope());
+        var fn = methodResolverNode.execute(arrayType, symbol);
+        if (fn != null) {
+          return PolyglotCallType.CONVERT_TO_ARRAY;
+        }
+      } else {
         return PolyglotCallType.CONVERT_TO_ARRAY;
       }
     }
