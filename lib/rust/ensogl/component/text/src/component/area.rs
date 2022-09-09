@@ -728,6 +728,8 @@ impl AreaModel {
                             self.buffer.change_with_selection_to_view_change_with_selection(change);
                         let change_str = change.text.to_string();
                         let newline_count = change_str.chars().filter(|c| *c == '\n').count();
+
+
                         // FIXME: these checks are cumbersome to remember, make them better.
                         let mut start_line = std::cmp::min(
                             change.selection.shape.start.line,
@@ -737,7 +739,17 @@ impl AreaModel {
                             change.selection.shape.start.line,
                             change.selection.shape.end.line,
                         );
+                        let was_backspace_on_line_start = change.selection.shape.start
+                            == change.selection.shape.end
+                            && change.selection.shape.start.code_point_index == CodePointIndex(0)
+                            && change.text.is_empty()
+                            && !change.range.is_empty();
+                        if was_backspace_on_line_start {
+                            warn!("WAS BACKSPACE ON LINE START");
+                            start_line = start_line - ViewLine(1);
+                        }
                         let line_diff = newline_count as i32 - (end_line.value - start_line.value);
+
                         warn!("line_diff: {}", line_diff);
                         if line_diff > 0 {
                             let mut lines = self.lines.borrow_mut();
@@ -771,40 +783,9 @@ impl AreaModel {
                             }
                         }
 
-                        let range1 = if line_diff >= 0 {
-                            let start_line = change.selection.shape.start.line;
-                            let end_line = change.selection.shape.end.line + ViewLine(line_diff);
-                            start_line..=end_line;
-                        } else {
-                            let start_line =
-                                change.selection.shape.start.line + ViewLine(line_diff);
-                            let end_line = change.selection.shape.end.line;
-                            start_line..=end_line;
-                        };
-
-
-
-                        // FIXME: these checks are cumbersome to remember, make them better.
-                        let mut start_line = std::cmp::min(
-                            change.selection.shape.start.line,
-                            change.selection.shape.end.line,
-                        );
-                        let end_line = std::cmp::max(
-                            change.selection.shape.start.line,
-                            change.selection.shape.end.line,
-                        );
                         let end_line = end_line + ViewLine(line_diff);
-                        let was_backspace_on_line_start = change.selection.shape.start
-                            == change.selection.shape.end
-                            && change.selection.shape.start.code_point_index == CodePointIndex(0)
-                            && change.text.is_empty()
-                            && !change.range.is_empty();
-                        if was_backspace_on_line_start {
-                            warn!("WAS BACKSPACE ON LINE START");
-                            start_line = start_line - ViewLine(1);
-                        }
+
                         let range = start_line..=end_line;
-                        warn!("RANGE1: {:#?}", range1);
                         warn!("RANGE: {:#?}", range);
                         range.intersect(&view_line_range)
                     })
@@ -813,6 +794,8 @@ impl AreaModel {
                 let lines_to_redraw =
                     std_ext::range::merge_overlapping_ranges(&line_ranges).collect_vec();
 
+                // FIXME ^^^ to chyba nie dziala z wieloma kursorami jeszcze przy usuwaniu /
+                // dodawaniu linijek
                 warn!("LINES TO REDRAW: {:#?}", lines_to_redraw);
 
                 self.resize_lines();

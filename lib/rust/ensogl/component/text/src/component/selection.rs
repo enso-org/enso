@@ -114,14 +114,15 @@ ensogl_core::define_endpoints! {
 /// object will make the following glyphs  animate while the selection is shrinking.
 #[derive(Clone, CloneRef)]
 pub struct Selection {
-    display_object: display::object::Instance,
-    pub right_side: display::object::Instance,
-    shape_view:     shape::View,
-    pub network:    frp::Network,
-    pub position:   DEPRECATED_Animation<Vector2>,
-    pub width:      DEPRECATED_Animation<f32>,
-    pub edit_mode:  Rc<Cell<bool>>,
-    pub frp:        Frp,
+    display_object:          display::object::Instance,
+    pub right_side:          display::object::Instance,
+    pub bottom_snapped_left: display::object::Instance,
+    shape_view:              shape::View,
+    pub network:             frp::Network,
+    pub position:            DEPRECATED_Animation<Vector2>,
+    pub width:               DEPRECATED_Animation<f32>,
+    pub edit_mode:           Rc<Cell<bool>>,
+    pub frp:                 Frp,
 }
 
 impl Debug for Selection {
@@ -141,7 +142,8 @@ impl Selection {
     /// Constructor.
     pub fn new(edit_mode: bool) -> Self {
         let display_object = display::object::Instance::new();
-        let right_side = display::object::Instance::new();
+        let right_side = default();
+        let bottom_snapped_left = default();
         let network = frp::Network::new("text_selection");
         let shape_view = shape::View::new();
         let position = DEPRECATED_Animation::new(&network);
@@ -153,8 +155,18 @@ impl Selection {
         position.update_spring(|spring| spring * spring_factor);
         width.update_spring(|spring| spring * spring_factor);
 
-        Self { display_object, right_side, shape_view, network, position, width, edit_mode, frp }
-            .init()
+        Self {
+            display_object,
+            right_side,
+            bottom_snapped_left,
+            shape_view,
+            network,
+            position,
+            width,
+            edit_mode,
+            frp,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -162,12 +174,14 @@ impl Selection {
         let view = &self.shape_view;
         let object = &self.display_object;
         let right_side = &self.right_side;
+        let bottom_snapped_left = &self.bottom_snapped_left;
         let shape_view = &self.shape_view;
         self.add_child(view);
         view.add_child(right_side);
+        view.add_child(bottom_snapped_left);
         frp::extend! { network
             _eval <- all_with(&self.position.value,&self.width.value,
-                f!([view,object,right_side](p,width){
+                f!([view,object,right_side,bottom_snapped_left](p,width){
                     let side        = width.signum();
                     let abs_width   = width.abs();
                     let width       = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
@@ -177,6 +191,7 @@ impl Selection {
                     let view_y      = 0.0;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
+                    bottom_snapped_left.set_position_x(-p.x);
                     view.size.set(Vector2(view_width,view_height));
                     view.set_position_xy(Vector2(view_x,view_y));
                 })
