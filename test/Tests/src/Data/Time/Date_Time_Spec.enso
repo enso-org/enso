@@ -344,6 +344,37 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             (create_new_datetime 2000 7 1 16 50).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 9 30 23 59 59 max_nanos)
             (create_new_datetime 2000 6 30 17 40).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 6 30 23 59 59 max_nanos)
 
+        Test.specify "should allow to find start/end of a Time_Period containing the current datetime" <|
+            d1 = create_new_datetime 2022 9 12 15 37 58 123456789
+            d1.start_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12)
+            d1.end_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12 23 59 59 max_nanos)
+            d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 0 0 0)
+            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 59 59 max_nanos)
+            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 0 0)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 max_nanos)
+            d1.start_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 0)
+            d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 max_nanos)
+
+            d2 = create_new_datetime 1970 1 1 0 0 0
+            d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
+            d2.end_of Time_Period.Day . should_equal (Date_Time.new 1970 1 1 23 59 59 max_nanos)
+            d2.start_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 59 59 max_nanos)
+            d2.start_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 59 max_nanos)
+            d2.start_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 max_nanos)
+
+            d3 = create_new_datetime 2100 12 31 23 59 59 max_nanos
+            d3.start_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31)
+            d3.end_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.start_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 0 0 0)
+            d3.end_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.start_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 0 0)
+            d3.end_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.start_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 0)
+            d3.end_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
