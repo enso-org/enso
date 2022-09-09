@@ -728,13 +728,20 @@ impl AreaModel {
                             self.buffer.change_with_selection_to_view_change_with_selection(change);
                         let change_str = change.text.to_string();
                         let newline_count = change_str.chars().filter(|c| *c == '\n').count();
-                        let start_line = change.selection.shape.start.line;
-                        let end_line = change.selection.shape.end.line;
+                        // FIXME: these checks are cumbersome to remember, make them better.
+                        let mut start_line = std::cmp::min(
+                            change.selection.shape.start.line,
+                            change.selection.shape.end.line,
+                        );
+                        let end_line = std::cmp::max(
+                            change.selection.shape.start.line,
+                            change.selection.shape.end.line,
+                        );
                         let line_diff = newline_count as i32 - (end_line.value - start_line.value);
                         warn!("line_diff: {}", line_diff);
                         if line_diff > 0 {
                             let mut lines = self.lines.borrow_mut();
-                            let next_line_index = start_line.value as usize + 1;
+                            let next_line_index = end_line.value as usize + 1;
                             if next_line_index < lines.len() {
                                 for index in next_line_index..lines.len() {
                                     lines[index].set_index(index + line_diff as usize);
@@ -746,6 +753,21 @@ impl AreaModel {
                                     warn!("index: {}", index);
                                     lines.insert(index, self.new_line(index));
                                 }
+                            }
+                        } else if line_diff < 0 {
+                            let line_diff = (-line_diff) as usize;
+                            let mut lines = self.lines.borrow_mut();
+                            let next_line_index = end_line.value as usize + 1;
+                            if next_line_index < lines.len() {
+                                for index in next_line_index..lines.len() {
+                                    lines[index].set_index(index - line_diff);
+                                }
+                            }
+
+                            let next_line_index = start_line.value as usize + 1;
+                            warn!("DRAIN: {} {}", next_line_index, line_diff);
+                            if next_line_index < lines.len() {
+                                lines.drain(next_line_index..next_line_index + line_diff);
                             }
                         }
 
@@ -762,7 +784,6 @@ impl AreaModel {
 
 
 
-                        let newline_count = unit::ViewLine(newline_count as i32);
                         // FIXME: these checks are cumbersome to remember, make them better.
                         let mut start_line = std::cmp::min(
                             change.selection.shape.start.line,
@@ -772,13 +793,14 @@ impl AreaModel {
                             change.selection.shape.start.line,
                             change.selection.shape.end.line,
                         );
-                        let end_line = end_line + newline_count;
-                        let was_backspace = change.selection.shape.start
+                        let end_line = end_line + ViewLine(line_diff);
+                        let was_backspace_on_line_start = change.selection.shape.start
                             == change.selection.shape.end
                             && change.selection.shape.start.code_point_index == CodePointIndex(0)
                             && change.text.is_empty()
                             && !change.range.is_empty();
-                        if was_backspace {
+                        if was_backspace_on_line_start {
+                            warn!("WAS BACKSPACE ON LINE START");
                             start_line = start_line - ViewLine(1);
                         }
                         let range = start_line..=end_line;
