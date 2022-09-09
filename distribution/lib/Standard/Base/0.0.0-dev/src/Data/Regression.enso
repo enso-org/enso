@@ -19,7 +19,7 @@ type Model
 ## Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument_Error | Fit_Error
 fit_least_squares known_xs known_ys model=Linear_Model =
-    Illegal_Argument_Error.handle_java_exception <| handle_fit_java_exception <| case model of
+    Illegal_Argument_Error.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
         Linear_Model intercept ->
             fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array known_ys.to_array else
                 Regression.fit_linear known_xs.to_array known_ys.to_array intercept
@@ -98,12 +98,12 @@ ln_series xs series_name="Values" =
 type Fit_Error
     Fit_Error_Data message
 
-## PRIVATE
+    ## PRIVATE
 
-   Converts the `Fit_Error` to a human-readable representation.
-Fit_Error.to_display_text : Text
-Fit_Error.to_display_text self = "Could not fit the model: " + self.message.to_text
+       Converts the `Fit_Error` to a human-readable representation.
+    to_display_text : Text
+    to_display_text self = "Could not fit the model: " + self.message.to_text
 
-## PRIVATE
-handle_fit_java_exception =
-    Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error_Data java_exception.getMessage))
+    ## PRIVATE
+    handle_java_exception =
+        Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error_Data java_exception.getMessage))

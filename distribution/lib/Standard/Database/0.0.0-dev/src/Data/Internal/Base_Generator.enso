@@ -4,7 +4,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 
 from Standard.Database.Data.Sql import Sql_Type
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Errors import Unsupported_Database_Operation_Error
 
 type Internal_Dialect
 

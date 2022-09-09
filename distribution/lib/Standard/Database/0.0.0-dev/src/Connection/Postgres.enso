@@ -2,13 +2,16 @@ from Standard.Base import all
 
 from Standard.Base.Data.Numbers import Parse_Error_Data
 
-import Standard.Database.Data.Dialect
-import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials_Data, Credentials
+import Standard.Database.Internal.Postgres.Postgres_Connection
 import Standard.Database.Connection.Connection_Options
+
+from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
+
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
+
 import Standard.Database.Connection.Client_Certificate
+
 import Standard.Database.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
@@ -20,10 +23,11 @@ type Postgres
        - host: The hostname of the database server (defaults to localhost).
        - port: The port of the database server (defaults to 5432).
        - database: The database to connect to. If empty, the default database will be used.
+       - schema: The schema to connect to. If empty, the default schema will be used.
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Postgres_Data (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    Postgres_Data (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -34,7 +38,12 @@ type Postgres
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+
+        ## Cannot use default argument values as gets in an infinite loop if you do.
+        make_new database schema =
+            Postgres_Data self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+
+        Postgres_Connection.create self.jdbc_url properties make_new
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -65,11 +74,7 @@ type Postgres
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        credentials + ssl_properties + cert_properties
-
-    ## Provides the dialect needed for creating SQL statements.
-    dialect : Dialect
-    dialect self = Dialect.postgres
+        (if self.schema == '' then [] else [Pair_Data 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based

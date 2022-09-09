@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Dialect
+import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Connection.Connection
 from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
 import Standard.Database.Connection.Connection_Options
@@ -37,7 +38,9 @@ type Redshift
         java_props = Properties.new
         properties.each pair->
             java_props.setProperty pair.first pair.second
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+
+        jdbc_connection = JDBC_Connection.create self.jdbc_url properties
+        Connection.Connection_Data jdbc_connection Dialect.redshift
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -54,11 +57,11 @@ type Redshift
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
             AWS_Profile db_user profile ->
-                [Pair 'user' db_user] + (if profile == '' then [] else [Pair 'profile' profile])
+                [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
             AWS_Key db_user access_key secret_access_key ->
-                [Pair 'user' db_user, Pair 'AccessKeyID' access_key, Pair 'SecretAccessKey' secret_access_key]
+                [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
             Credentials_Data username password ->
-                [Pair 'user' username, Pair 'password' password]
+                [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.
         ssl_properties = []
@@ -68,10 +71,6 @@ type Redshift
 
         credentials + ssl_properties + cert_properties
 
-    ## Provides the dialect needed for creating SQL statements.
-    dialect : Dialect
-    dialect self = Dialect.redshift
-
 type AWS_Credential
     ## Access Redshift using IAM via an AWS profile.
 
@@ -79,7 +78,6 @@ type AWS_Credential
        - db_user: Redshift username to connect as.
        - profile: AWS profile name (if empty uses default).
     AWS_Profile db_user:Text profile:Text=''
-
 
     ## Access Redshift using IAM via an AWS access key ID and secret access key.
 

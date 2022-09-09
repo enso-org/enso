@@ -1,0 +1,135 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Internal.Java_Exports
+from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
+
+polyglot java import java.sql.ResultSet
+
+## PRIVATE
+   Read a single column from a ResultSet into a Vector
+read_column : ResultSet -> Text -> Vector
+read_column result_set column_name =
+    if result_set.isClosed then [] else
+        index = result_set.findColumn column_name
+
+        builder = Vector.new_builder
+        go has_next = if has_next.not then Nothing else
+            builder.append (result_set.getObject index)
+            @Tail_Call go result_set.next
+
+        go result_set.next
+        builder.to_vector
+
+## PRIVATE
+   Converts a ResultSet into a Materialized_Table.
+result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
+result_set_to_table result_set expected_types=Nothing =
+    metadata = result_set.getMetaData
+    ncols = metadata.getColumnCount
+    column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
+    column_types = if expected_types.is_nothing.not then expected_types else
+        Vector.new ncols ix->
+            typeid = metadata.getColumnType ix+1
+            name = metadata.getColumnTypeName ix+1
+            Sql_Type_Data typeid name
+    column_builders = column_types.map typ->
+        create_builder typ
+    go has_next = if has_next.not then Nothing else
+        column_builders.map_with_index ix-> builder->
+            builder.fetch_and_append result_set ix+1
+        @Tail_Call go result_set.next
+    go result_set.next
+    columns = column_builders.zip column_names builder-> name->
+        builder.make_column name
+    Materialized_Table.from_columns columns
+
+## PRIVATE
+
+   Creates a builder for a column based on a provided SQL type, trying to infer
+   the best type for the builder.
+
+   Arguments:
+   - sql_type: The SQL type of the column to create a builder for.
+create_builder : Sql_Type -> Builder
+create_builder sql_type =
+    initial_size = 10
+    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
+        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
+            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
+                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
+
+type Builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    Builder_Inferred java_builder
+
+    ## PRIVATE
+
+       A builder that has a Decimal column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying double NumericBuilder object.
+    Builder_Double java_builder
+
+    ## PRIVATE
+
+       A builder that has an Integer column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying long NumericBuilder object.
+    Builder_Long java_builder
+
+    ## PRIVATE
+
+       A builder that has an Boolean column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying BoolBuilder object.
+    Builder_Boolean java_builder
+
+    ## PRIVATE
+
+       Fetches the value of ith column from the current row of the result set
+       and appends it to the builder.
+
+       Arguments:
+       - rs: the Java ResultSet from which the value will be fetched.
+       - i: the index of the column to fetch from (starting from 1 as is the
+         ResultSet convention).
+    fetch_and_append : ResultSet -> Integer -> Nothing
+    fetch_and_append self rs i = case self of
+        Builder_Inferred _ ->
+            obj = rs.getObject i
+            self.java_builder.append obj
+        Builder_Boolean _ ->
+            bool = rs.getBoolean i
+            case rs.wasNull of
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendBoolean bool
+        Builder_Long _ ->
+            long = rs.getLong i
+            case rs.wasNull of
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendLong long
+        Builder_Double _ ->
+            double = rs.getDouble i
+            case rs.wasNull of
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendDouble double
+
+    ## PRIVATE
+
+       Seals the builder and returns a built Java-column.
+
+       Argument:
+       - name: The name of the column.
+    make_column : Text -> Java_Exports.Column
+    make_column self name =
+        storage = self.java_builder.seal
+        Java_Exports.make_column name storage

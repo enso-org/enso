@@ -9,7 +9,7 @@ from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 from Standard.Database.Data.Table import combine_names, fresh_names
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems

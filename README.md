@@ -62,7 +62,7 @@ always trust the results you get.
     Enso analyses the data, suggests possible next steps, and displays related
     help and examples. It lets you build dashboards, RPA workflows, and apps,
     with no coding required. Enso ships with a robust set of libraries, allowing
-    you to work with local files, databases, HTTP services and other
+    you to work with local files, databases, HTTP services, and other
     applications in a seamless fashion.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
@@ -119,7 +119,7 @@ always trust the results you get.
 <img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/shipping/004-cargo-ship.svg">
 <ul><ul>
     <b>Runs everywhere.</b><br/>
-    Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
+    Enso is available on macOS, Windows, and GNU/Linux, and the Enso IDE runs on
     web-native technologies. In time, you'll be able to run it in the
     web-browser, giving even your tablet and phone access to your data.
   <br/><a href="https://enso.org">Learn more →<a/>
@@ -186,9 +186,9 @@ always trust the results you get.
 # Enso Source Code
 
 If you want to start _using_ Enso, please see the download links in the
-[getting started](#getting-started) section above. Alternatively you can get the
-IDE [here](https://github.com/enso-org/ide/releases) and the language itself
-[here](https://github.com/enso-org/enso-/releases). This section is intended for
+[getting started](#getting-started) section above. Alternatively, you can get
+the IDE [here](https://github.com/enso-org/ide/releases) and the language itself
+[here](https://github.com/enso-org/enso/releases). This section is intended for
 people interested in contributing to the development of Enso.
 
 Enso is a community-driven open source project which is, and will always be,
@@ -208,7 +208,7 @@ Enso consists of several sub projects:
   command line tools.
 
 - **Enso IDE:** The
-  [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is the desktop
+  [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is a desktop
   application that allows working with the visual form of Enso. It consists of
   an Electron application, a high performance WebGL UI framework, and the
   searcher which provides contextual search, hints, and documentation for all of
@@ -225,10 +225,10 @@ IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0),
 as specified in the
 [LICENSE](https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE) file.
 
-This license set was choosen to both provide you with a complete freedom to use
-Enso, create libraries, and release them under any license of your choice, while
-also allowing us to release commercial products on top of the platform,
-including Enso Cloud and Enso Enterprise server managers.
+This license set was chosen to provide you with complete freedom to use Enso,
+create libraries, and release them under any license of your choice, while also
+allowing us to release commercial products on top of the platform, including
+Enso Cloud and Enso Enterprise server managers.
 
 <br/>
 
@@ -265,5 +265,5 @@ This folder also contains a document on Enso's
 that we use when contemplating changes or additions to the language.
 
 This documentation will evolve as Enso does, both to help newcomers to the
-project understand the reasoning behind the code, but also to act as a record of
+project understand the reasoning behind the code, and also to act as a record of
 the decisions that have been made through Enso's evolution.

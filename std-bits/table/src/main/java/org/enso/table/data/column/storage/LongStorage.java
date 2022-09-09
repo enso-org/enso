@@ -71,7 +71,7 @@ public class LongStorage extends NumericStorage {
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.LONG;
   }
 

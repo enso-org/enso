@@ -63,7 +63,7 @@ public class DoubleStorage extends NumericStorage {
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.DOUBLE;
   }
 
