@@ -225,4 +225,8 @@ public class Time_Utils {
     if (isTime) return Time_Of_Day_Utils.INSTANCE;
     throw new IllegalArgumentException("Unexpected argument type: " + value);
   }
+
+  public static ZoneOffset get_datetime_offset(ZonedDateTime datetime) {
+    return datetime.getOffset();
+  }
 }

@@ -9,6 +9,7 @@ import project.Data.Time.Date_Part_Spec
 
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
+polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
@@ -374,6 +375,68 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d3.end_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
             d3.start_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 0)
             d3.end_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+
+        offset_1_h = ZoneOffset.ofTotalSeconds 3600
+        offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
+        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near DST switches" <|
+            tz = Time_Zone.parse "Europe/Warsaw"
+            d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
+            d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
+            (d1 + 1.hour) . should_equal d2
+
+            check_dates_spring date =
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 0 0 0 0 tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 max_nanos tz)
+
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 3 1 0 0 0 0 tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 3 31 23 59 59 max_nanos tz)
+
+            check_dates_spring d1
+            check_dates_spring d2
+
+            d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 1 0 0 0 tz)
+            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 1 59 59 max_nanos tz)
+            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 tz)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 59 max_nanos tz)
+
+            d2.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 3 0 0 0 tz)
+            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 3 59 59 max_nanos tz)
+
+            d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
+            d4 = d3 + 1.hour
+            IO.println d3
+            IO.println d4
+
+            d3.hour . should_equal 2
+            d4.hour . should_equal 2
+            d3.minute . should_equal 30
+            d4.minute . should_equal 30
+            d3.offset . should_equal offset_2_h
+            d4.offset . should_equal offset_1_h
+
+            check_dates_autumn date =
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 0 0 0 0 tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 23 59 59 max_nanos tz)
+
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 10 1 0 0 0 0 tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 10 31 23 59 59 max_nanos tz)
+
+            check_dates_autumn d3
+            check_dates_autumn d4
+
+            d3_start = d3.start_of Time_Period.Hour
+            d3_start . should_equal (Date_Time.new 2022 3 27 2 0 0 0 tz)
+            d3_start.offset . should_equal offset_2_h
+            d3_end = d3.end_of Time_Period.Hour
+            d3_end . should_equal (Date_Time.new 2022 3 27 2 59 59 max_nanos tz)
+            d3_end.offset . should_equal offset_2_h
+
+            d4_start = d4.start_of Time_Period.Hour
+            d4_start . should_equal (Date_Time.new 2022 3 27 2 0 0 0 tz + 1.hour)
+            d4_start.offset . should_equal offset_1_h
+            d4_end = d4.end_of Time_Period.Hour
+            d4_end . should_equal (Date_Time.new 2022 3 27 2 59 59 max_nanos tz + 1.hour)
+            d4_end.offset . should_equal offset_1_h
 
     Date_Part_Spec.spec name create_new_datetime
 
