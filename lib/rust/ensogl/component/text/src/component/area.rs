@@ -710,11 +710,12 @@ impl AreaModel {
     ///
     /// ## Redrawing parts of lines only.
     /// Currently, the whole line is redrawn after any change. This is not optimal, especially for
-    /// lines containing a lot of visible characters. However, this is way more complex than it
-    /// seems. Let's consider the input `அட0`. If we insert `்` after `ட`, then we should get `ட்`
-    /// instead of `ட`, but we do not need to redraw neither `அ` nor `0`. Inserting a new code point
-    /// can affect any number of code points to the left and to the right of the insertion point.
-    /// Unfortunately, the current Rustybuzz implementation does not support such use cases:
+    /// lines containing a lot of visible characters. However, redrawing only parts of a changed
+    /// line is way more complex than it seems. Let's consider the input `அட0`. If we insert `்`
+    /// after `ட`, then we should get `ட்` instead of `ட`, but we do not need to redraw neither
+    /// `அ` nor `0`. Inserting a new code point can affect any number of code points to the left
+    /// and to the right of the insertion point. Unfortunately, the current Rustybuzz
+    /// implementation does not support such use cases:
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
     fn update_lines_after_change(&self, changes: Option<&[crate::ChangeWithSelection]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
