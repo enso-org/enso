@@ -13,13 +13,13 @@ pub use font::Width;
 
 
 
-// ==============
-// === Macros ===
-// ==============
+// =============
+// === Units ===
+// =============
 
 /// Defines a newtype for a primitive style property, like `Bold`. See usage below to learn more.
-macro_rules! def_style_property {
-    ($name:ident($field_type:ty)) => {
+macro_rules! def_unit {
+    ($name:ident($field_type:ty) = $def:expr) => {
         /// Formatting property.
         #[derive(Clone, Copy, Debug, From, PartialEq, PartialOrd)]
         #[allow(missing_docs)]
@@ -40,8 +40,18 @@ macro_rules! def_style_property {
         pub fn $name(value: $field_type) -> $name {
             $name { value }
         }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new($def)
+            }
+        }
     };
 }
+
+def_unit!(Size(f32) = 12.0);
+def_unit!(SdfWeight(f32) = 0.0);
+
 
 /// Defines struct containing all styles information. Also defines many utils, like iterator for it.
 /// See the usage below to learn more.
@@ -289,27 +299,7 @@ impl<T: Copy> DerefMut for Spanned<T> {
 // === Formatting ===
 // =============
 
-def_style_property!(Size(f32));
-def_style_property!(Underline(bool));
-def_style_property!(SdfWeight(f32));
 
-impl Default for Size {
-    fn default() -> Self {
-        Self::new(12.0)
-    }
-}
-
-impl Default for Underline {
-    fn default() -> Self {
-        Self::new(false)
-    }
-}
-
-impl Default for SdfWeight {
-    fn default() -> Self {
-        Self::new(0.0)
-    }
-}
 
 define_format! {
     size       : Size,
@@ -317,7 +307,6 @@ define_format! {
     weight     : Weight,
     width      : Width,
     style      : Style,
-    underline  : Underline,
     sdf_weight : SdfWeight,
 }
 

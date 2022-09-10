@@ -9,7 +9,6 @@ use crate::buffer::style::Formatting;
 use crate::buffer::Buffer;
 use crate::buffer::DefaultSetter;
 use crate::buffer::Setter;
-use crate::buffer::Setter2;
 use crate::buffer::TextRange;
 
 use enso_frp as frp;

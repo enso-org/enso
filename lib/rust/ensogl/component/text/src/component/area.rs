@@ -1045,14 +1045,14 @@ impl AreaModel {
                     let glyph = &line.glyphs[code_point_index.value as usize];
                     glyph.start_code_point.set(code_point_index);
 
-                    let size = style.size.value;
+                    let size = style.size;
                     let units_per_em = ttf_face.units_per_em();
-                    let rustybuzz_scale = units_per_em as f32 / size * 1.0;
+                    let rustybuzz_scale = units_per_em as f32 / size.value * 1.0;
 
                     let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
                     glyph.set_color(style.color);
                     glyph.set_sdf_weight(style.sdf_weight.value);
-                    glyph.set_font_size(size);
+                    glyph.set_size(size);
                     glyph.set_properties(non_variable_variations);
                     glyph.set_glyph_id(glyph_id);
 
@@ -1064,7 +1064,7 @@ impl AreaModel {
                         glyph_id,
                         face,
                     );
-                    let glyph_render_offset = glyph_render_info.offset.scale(size);
+                    let glyph_render_offset = glyph_render_info.offset.scale(size.value);
                     glyph.sprite.set_position_xy(glyph_render_offset);
                     glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 

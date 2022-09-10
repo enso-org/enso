@@ -8,6 +8,7 @@ use crate::font;
 use crate::font::VariationAxes;
 use crate::ResolvedProperty;
 use crate::SdfWeight;
+use crate::Size;
 
 use enso_text::CodePointIndex;
 use ensogl_core::data::color::Rgba;
@@ -51,7 +52,7 @@ pub struct GlyphData {
     pub font:             Font,
     pub properties:       Cell<font::family::NonVariableFaceHeader>,
     pub variations:       RefCell<VariationAxes>,
-    pub font_size:        Attribute<f32>,
+    pub size:             Attribute<f32>,
     pub color:            Attribute<Vector4<f32>>,
     pub sdf_weight:       Attribute<f32>,
     pub atlas_index:      Attribute<f32>,
@@ -125,8 +126,12 @@ impl Glyph {
 
     pub fn set_property(&self, property: ResolvedProperty) {
         match property {
+            ResolvedProperty::Size(size) => self.set_size(size),
             ResolvedProperty::Color(color) => self.set_color(color),
             ResolvedProperty::Weight(weight) => self.set_weight(weight),
+            ResolvedProperty::Width(width) => self.set_width(width),
+            ResolvedProperty::Style(style) => self.set_style(style),
+            // ResolvedProperty::Underline(t) => self.set_underline(t),
             ResolvedProperty::SdfWeight(weight) => self.set_sdf_weight(weight),
             _ => panic!(),
         }
@@ -154,13 +159,14 @@ impl Glyph {
     }
 
     /// Size getter.
-    pub fn font_size(&self) -> f32 {
-        self.font_size.get()
+    pub fn size(&self) -> f32 {
+        self.size.get()
     }
 
     /// Size setter.
-    pub fn set_font_size(&self, size: f32) {
-        self.font_size.set(size);
+    pub fn set_size(&self, size: Size) {
+        let size = size.value;
+        self.size.set(size);
         let opt_glyph_info = self.font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
@@ -168,6 +174,8 @@ impl Glyph {
         );
         if let Some(glyph_info) = opt_glyph_info {
             self.sprite.size.set(glyph_info.scale.scale(size))
+        } else {
+            error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
     }
 
@@ -190,8 +198,8 @@ impl Glyph {
         if let Some(glyph_info) = opt_glyph_info {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            let font_size = self.font_size();
-            self.sprite.size.set(glyph_info.scale.scale(font_size));
+            let size = self.size();
+            self.sprite.size.set(glyph_info.scale.scale(size));
         } else {
             // FIXME[WD]: This should display a bad character. https://www.pivotaltracker.com/story/show/182746060
             panic!()
@@ -243,7 +251,7 @@ pub struct System {
     context:       Context,
     sprite_system: SpriteSystem,
     pub font:      Font,
-    font_size:     Buffer<f32>,
+    size:          Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     sdf_weight:    Buffer<f32>,
     atlas_index:   Buffer<f32>,
@@ -275,7 +283,7 @@ impl System {
             sprite_system,
             font,
             atlas: symbol.variables().add_or_panic("atlas", texture),
-            font_size: mesh.instance_scope().add_buffer("font_size"),
+            size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
             sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
@@ -289,7 +297,7 @@ impl System {
         let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
-        let font_size = self.font_size.at(instance_id);
+        let size = self.size.at(instance_id);
         let color = self.color.at(instance_id);
         let sdf_weight = self.sdf_weight.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
@@ -308,7 +316,7 @@ impl System {
                 sprite,
                 context,
                 font,
-                font_size,
+                size,
                 color,
                 sdf_weight,
                 atlas_index,
