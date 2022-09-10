@@ -246,13 +246,6 @@ type Date_Time
     zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
-    ## PRIVATE
-       Get the offset from UTC/Greenwich associated with this time.
-
-       Currently this function is used only for testing.
-    offset : ZoneOffset
-    offset self = Time_Utils.get_datetime_offset self
-
     ## Return the number of seconds from the Unix epoch.
 
        > Example

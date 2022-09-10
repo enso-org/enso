@@ -7,6 +7,7 @@ import Standard.Test
 
 import project.Data.Time.Date_Part_Spec
 
+polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.ZoneOffset
@@ -378,8 +379,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         offset_1_h = ZoneOffset.ofTotalSeconds 3600
         offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
-        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near DST switches" <|
-            tz = Time_Zone.parse "Europe/Warsaw"
+        tz = Time_Zone.parse "Europe/Warsaw"
+        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" <|
             d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
             d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
             (d1 + 1.hour) . should_equal d2
@@ -394,25 +395,34 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             check_dates_spring d1
             check_dates_spring d2
 
-            d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 1 0 0 0 tz)
-            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 1 59 59 max_nanos tz)
+            d1_start = d1.start_of Time_Period.Hour
+            d1_end = d1.end_of Time_Period.Hour
+            (d1.to_epoch_seconds - d1_start.to_epoch_seconds) . should_equal (34*60 + 15)
+            (d1_end.to_epoch_seconds - d1.to_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            d1_start . should_equal (Date_Time.new 2022 3 27 1 0 0 0 tz)
+            d1_end . should_equal (Date_Time.new 2022 3 27 1 59 59 max_nanos tz)
             d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 tz)
             d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 59 max_nanos tz)
 
-            d2.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 3 0 0 0 tz)
-            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 3 27 3 59 59 max_nanos tz)
+            d2_start = d2.start_of Time_Period.Hour
+            d2_end = d2.end_of Time_Period.Hour
+            (d2.to_epoch_seconds - d2_start.to_epoch_seconds) . should_equal (34*60 + 15)
+            (d2_end.to_epoch_seconds - d2.to_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            d2_start . should_equal (Date_Time.new 2022 3 27 3 0 0 0 tz)
+            d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 max_nanos tz)
 
+        dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundar - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: TODO"
+        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the autumn DST switch" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
-            d4 = d3 + 1.hour
-            IO.println d3
-            IO.println d4
+            d4 = d3 + (1.hour)
 
             d3.hour . should_equal 2
             d4.hour . should_equal 2
             d3.minute . should_equal 30
             d4.minute . should_equal 30
-            d3.offset . should_equal offset_2_h
-            d4.offset . should_equal offset_1_h
+            (d4.to_epoch_milliseconds - d3.to_epoch_milliseconds) . should_equal 60*60*1000
+            Time_Utils.get_datetime_offset d3 . should_equal offset_2_h
+            Time_Utils.get_datetime_offset d4 . should_equal offset_1_h
 
             check_dates_autumn date =
                 date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 0 0 0 0 tz)
@@ -425,18 +435,26 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             check_dates_autumn d4
 
             d3_start = d3.start_of Time_Period.Hour
-            d3_start . should_equal (Date_Time.new 2022 3 27 2 0 0 0 tz)
-            d3_start.offset . should_equal offset_2_h
             d3_end = d3.end_of Time_Period.Hour
-            d3_end . should_equal (Date_Time.new 2022 3 27 2 59 59 max_nanos tz)
-            d3_end.offset . should_equal offset_2_h
+            (d3.to_epoch_seconds - d3_start.to_epoch_seconds) . should_equal (30*60 + 15)
+            (d3_end.to_epoch_seconds - d3.to_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            d3_start . should_equal (Date_Time.new 2022 10 30 2 0 0 0 tz)
+            Time_Utils.get_datetime_offset d3_start . should_equal offset_2_h
+            d3_end . should_equal (Date_Time.new 2022 10 30 2 59 59 max_nanos tz)
+            Time_Utils.get_datetime_offset d3_end . should_equal offset_2_h
 
             d4_start = d4.start_of Time_Period.Hour
-            d4_start . should_equal (Date_Time.new 2022 3 27 2 0 0 0 tz + 1.hour)
-            d4_start.offset . should_equal offset_1_h
             d4_end = d4.end_of Time_Period.Hour
-            d4_end . should_equal (Date_Time.new 2022 3 27 2 59 59 max_nanos tz + 1.hour)
-            d4_end.offset . should_equal offset_1_h
+            (d4.to_epoch_seconds - d4_start.to_epoch_seconds) . should_equal (30*60 + 15)
+            (d4_end.to_epoch_seconds - d4.to_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            d4_start.hour . should_equal 2
+            d4_start.minute . should_equal 0
+            Time_Utils.get_datetime_offset d4_start . should_equal offset_1_h
+            d4_end.hour . should_equal 2
+            d4_end.minute . should_equal 59
+            d4_end.second . should_equal 59
+            d4_end.nanosecond . should_equal max_nanos
+            Time_Utils.get_datetime_offset d4_end . should_equal offset_1_h
 
     Date_Part_Spec.spec name create_new_datetime
 
