@@ -19,7 +19,7 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
     return FromPolyglotArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract org.enso.interpreter.runtime.data.Vector execute(Object arr);
+  abstract Vector execute(Object arr);
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
   Vector doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {

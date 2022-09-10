@@ -26,7 +26,7 @@ public abstract class FromArrayBuiltinVectorNode extends Node {
     return FromArrayBuiltinVectorNodeGen.create();
   }
 
-  abstract org.enso.interpreter.runtime.data.Vector execute(Object arr);
+  abstract Vector execute(Object arr);
 
   @Specialization
   Vector fromVector(Vector arr) {
