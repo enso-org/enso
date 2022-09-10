@@ -185,31 +185,16 @@ macro_rules! define_format {
                         $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
                     }
                 }
+
+                pub fn set_property_default(&mut self, property: ResolvedProperty) {
+                    match property {
+                        ResolvedProperty::Nothing => {}
+                        $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
+                    }
+                }
             }
 
         }
-
-        $(
-            impl Setter<Option<$field_type>> for Buffer {
-                fn replace(&self, range:impl enso_text::RangeBounds, data:Option<$field_type>) {
-                    let range = self.crop_byte_range(range);
-                    let range_size = UBytes::try_from(range.size()).unwrap_or_default();
-                    self.data.formatting.cell.borrow_mut().$field.replace_resize(range,range_size,data)
-                }
-            }
-
-            impl Setter<$field_type> for Buffer {
-                fn replace(&self, range:impl enso_text::RangeBounds, data:$field_type) {
-                    self.replace(range,Some(data))
-                }
-            }
-
-            impl DefaultSetter<$field_type> for Buffer {
-                fn set_default(&self, data:$field_type) {
-                    self.formatting.cell.borrow_mut().$field.default = data;
-                }
-            }
-        )*
     };
 }
 

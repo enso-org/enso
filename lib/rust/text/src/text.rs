@@ -393,6 +393,7 @@ impl Text {
         Ok(self.column_of_byte_offset(offset).unwrap())
     }
 
+    // fixme: this is not column computing!!!
     /// The column number of the given byte offset.
     pub fn column_of_byte_offset(
         &self,

@@ -93,9 +93,9 @@ fn init(app: Application) {
     warn!("=========================");
     let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
     // area.set_color(range_green, color::Rgba::red());
-    area.format(range_green, color::Rgba::red());
+    area.set_property(range_green, color::Rgba::red());
     // area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
-    area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
+    area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
     // area.set_color_all(color::Rgba::red());
     // area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 
@@ -130,7 +130,25 @@ fn init_debug_hotkeys(area: &Area) {
             let key = event.code();
             warn!("{:?}", key);
             if key == "KeyR" {
-                area.format(buffer::TextRange::Selections, color::Rgba::red());
+                if event.shift_key() {
+                    area.set_property_default(color::Rgba::red());
+                } else {
+                    area.set_property(buffer::TextRange::Selections, color::Rgba::red());
+                }
+            }
+            if key == "KeyG" {
+                if event.shift_key() {
+                    area.set_property_default(color::Rgba::green());
+                } else {
+                    area.set_property(buffer::TextRange::Selections, color::Rgba::green());
+                }
+            }
+            if key == "KeyB" {
+                if event.shift_key() {
+                    area.set_property_default(color::Rgba::blue());
+                } else {
+                    area.set_property(buffer::TextRange::Selections, color::Rgba::blue());
+                }
             }
             // } else if key == "Digit0" {
             // } else if key == "Digit1" {

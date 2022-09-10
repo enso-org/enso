@@ -7,8 +7,7 @@ use crate::buffer;
 use crate::buffer::style;
 use crate::buffer::style::Formatting;
 use crate::buffer::Buffer;
-use crate::buffer::DefaultSetter;
-use crate::buffer::Setter;
+// use crate::buffer::DefaultSetter;
 use crate::buffer::TextRange;
 
 use enso_frp as frp;
@@ -438,9 +437,10 @@ ensogl_core::define_endpoints! {
         keep_newest_cursor_only    (),
         undo                       (),
         redo                       (),
-        set_default_color          (color::Rgba),
-        set_default_text_size      (style::Size),
-        format                     (Vec<buffer::Range<UBytes>>, style::Property),
+        // set_default_color          (color::Rgba),
+        // set_default_text_size      (style::Size),
+        set_property               (Vec<buffer::Range<UBytes>>, style::Property),
+        set_property_default       (style::ResolvedProperty),
     }
 
     Output {
@@ -514,10 +514,11 @@ impl View {
             sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
             sel_on_undo       <= input.undo.map(f_!(m.undo()));
 
-            eval input.set_default_color     ((t) m.set_default(*t));
-            eval input.set_default_text_size ((t) m.set_default(*t));
-            eval input.format                (((range,value)) m.replace(range,*value));
-            eval input.set_default_color     ((color) m.set_default(*color));
+            // eval input.set_default_color     ((t) m.set_default(*t));
+            // eval input.set_default_text_size ((t) m.set_default(*t));
+            eval input.set_property          (((range,value)) m.replace(range,*value));
+            eval input.set_property_default  ((prop) m.set_property_default(*prop));
+            // eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ modification;
             // output.source.selection_edit_mode     <+ sel_on_undo;
@@ -586,6 +587,10 @@ impl ViewModel {
             let range = self.crop_byte_range(range);
             self.data.formatting.set_property(range, property)
         }
+    }
+
+    fn set_property_default(&self, property: style::ResolvedProperty) {
+        self.data.formatting.borrow_mut().set_property_default(property)
     }
 
     pub fn resolve_property(&self, property: style::Property) -> style::ResolvedProperty {

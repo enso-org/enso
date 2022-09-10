@@ -284,11 +284,12 @@ ensogl_core::define_endpoints! {
         add_cursor            (Location),
         paste_string          (String),
         insert                (String),
-        format                (TextRange, style::Property),
+        set_property          (TextRange, style::Property),
+        set_property_default  (style::ResolvedProperty),
         /// Sets the color for all text that has no explicit color set.
-        set_default_color     (color::Rgba),
+        // set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
-        set_default_text_size (style::Size),
+        // set_default_text_size (style::Size),
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
@@ -311,8 +312,9 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
-        /// Color that is used for all text that does not explicitly have a color set.
-        default_color   (color::Rgba),
+        // FIXME: this was here:
+        // /// Color that is used for all text that does not explicitly have a color set.
+        // default_color   (color::Rgba),
     }
 }
 
@@ -528,17 +530,19 @@ impl Area {
 
             // === Colors ===
 
-            eval input.set_default_color ((t)
-                m.buffer.frp.set_default_color(*t);
-                m.redraw(false) ;
-            );
-            self.frp.source.default_color <+ self.frp.set_default_color;
+            m.buffer.frp.set_property_default <+ input.set_property_default;
+            eval input.set_property_default((t) m.set_property_default(*t));
+            // eval input.set_default_color ((t)
+            //     m.buffer.frp.set_default_color(*t);
+            //     m.redraw(false) ;
+            // );
+            // self.frp.source.default_color <+ self.frp.set_default_color;
 
-            eval input.set_default_text_size ([m](t) {
-                warn!(">> set_default_text_size");
-                m.buffer.frp.set_default_text_size(*t);
-                m.redraw(true);
-            });
+            // eval input.set_default_text_size ([m](t) {
+            //     warn!(">> set_default_text_size");
+            //     m.buffer.frp.set_default_text_size(*t);
+            //     m.redraw(true);
+            // });
 
             // // FIXME: The color-setting operation is very slow now. For every new color, the whole
             // //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
@@ -549,9 +553,9 @@ impl Area {
 
             // === Style ===
 
-            format <- input.format.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
-            eval format ((t) m.set_glyphs_property(&t.0, t.1));
-            m.buffer.frp.format <+ format;
+            new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
+            eval new_prop ((t) m.set_glyphs_property(&t.0, t.1));
+            m.buffer.frp.set_property <+ new_prop;
 
 
             // === Changes ===
@@ -679,6 +683,7 @@ impl AreaModel {
             TextRange::RangeFull(_) => vec![self.buffer.full_range()],
         }
     }
+
 
     /// Implementation of lazy line redrawing. After a change, only the needed lines are redrawn.
     /// If a change produced more lines than the current number of lines, the new lines are inserted
@@ -1088,6 +1093,25 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
+    fn set_property_default(&self, property: style::ResolvedProperty) {
+        match property {
+            style::ResolvedProperty::Color(color) => {
+                let range = self.buffer.full_range();
+                let formatting = self.buffer.sub_style(range);
+                let spans = formatting.color.spans.to_vector();
+                warn!(">>> {:#?}", spans);
+                // fixme: this should iterate over glyphs, but first we should change the metric
+                // from codepoints to bytes because codepoints do not give us anything and only
+                // introduce confusion. We should also introduce column type but as it depends on
+                // the font, it should be visual-only metric
+
+                // cursors should also use byte offset so they can work in offscreen text
+            }
+            _ => panic!(),
+        }
+    }
+
+
     pub fn set_glyphs_property(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
@@ -1098,40 +1122,43 @@ impl AreaModel {
     }
 
     pub fn modify_glyphs_in_ranges(&self, ranges: &Vec<buffer::Range<UBytes>>, f: impl Fn(&Glyph)) {
-        warn!("modify_glyphs_in_ranges {:?}", ranges);
         for &range in ranges {
-            warn!(">> {:?}", range);
-            let range = self.buffer.offset_range_to_location(range);
-            let range = self.buffer.location_range_to_view_location_range(range);
-            let lines = self.lines.borrow();
-            if range.start.line == range.end.line {
-                let line = &lines[range.start.line.as_usize()];
+            self.modify_glyphs_in_range(range, &f);
+        }
+    }
+
+    pub fn modify_glyphs_in_range(&self, range: buffer::Range<UBytes>, f: impl Fn(&Glyph)) {
+        warn!("modify_glyphs_in_range {:?}", range);
+        let range = self.buffer.offset_range_to_location(range);
+        let range = self.buffer.location_range_to_view_location_range(range);
+        let lines = self.lines.borrow();
+        if range.start.line == range.end.line {
+            let line = &lines[range.start.line.as_usize()];
+            for glyph in &line.glyphs {
+                if glyph.start_code_point.get() >= range.end.code_point_index {
+                    break;
+                }
+                if glyph.start_code_point.get() >= range.start.code_point_index {
+                    f(&glyph)
+                }
+            }
+        } else {
+            let first_line = range.start.line;
+            let second_line = first_line + ViewLine(1);
+            let last_line = range.end.line;
+            for glyph in &lines[first_line.as_usize()].glyphs {
+                if glyph.start_code_point.get() >= range.start.code_point_index {
+                    f(&glyph)
+                }
+            }
+            for line in &lines[second_line.as_usize()..last_line.as_usize()] {
                 for glyph in &line.glyphs {
-                    if glyph.start_code_point.get() >= range.end.code_point_index {
-                        break;
-                    }
-                    if glyph.start_code_point.get() >= range.start.code_point_index {
-                        f(&glyph)
-                    }
+                    f(&glyph)
                 }
-            } else {
-                let first_line = range.start.line;
-                let second_line = first_line + ViewLine(1);
-                let last_line = range.end.line;
-                for glyph in &lines[first_line.as_usize()].glyphs {
-                    if glyph.start_code_point.get() >= range.start.code_point_index {
-                        f(&glyph)
-                    }
-                }
-                for line in &lines[second_line.as_usize()..last_line.as_usize()] {
-                    for glyph in &line.glyphs {
-                        f(&glyph)
-                    }
-                }
-                for glyph in &lines[last_line.as_usize()].glyphs {
-                    if glyph.start_code_point.get() < range.end.code_point_index {
-                        f(&glyph)
-                    }
+            }
+            for glyph in &lines[last_line.as_usize()].glyphs {
+                if glyph.start_code_point.get() < range.end.code_point_index {
+                    f(&glyph)
                 }
             }
         }

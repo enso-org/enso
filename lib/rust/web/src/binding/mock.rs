@@ -496,6 +496,7 @@ mock_data! { KeyboardEvent => Event
     fn code(&self) -> String;
     fn alt_key(&self) -> bool;
     fn ctrl_key(&self) -> bool;
+    fn shift_key(&self) -> bool;
 }
 
 

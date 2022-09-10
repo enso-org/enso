@@ -60,6 +60,14 @@ impl Buffer {
     pub fn new_view(&self) -> View {
         View::new(self)
     }
+
+    pub fn replace(&self, range: impl enso_text::RangeBounds, text: impl Into<Text>) {
+        let text = text.into();
+        let range = self.crop_byte_range(range);
+        let size = text.byte_size();
+        self.text.replace(range, text);
+        self.formatting.set_resize_with_default(range, size);
+    }
 }
 
 
@@ -115,33 +123,9 @@ impl BufferData {
 // === Setter ===
 // ==============
 
-
-
-/// Generic setter for buffer data and metadata, like colors, font weight, etc.
-trait Setter<T> {
-    /// Replace the range with the provided value. The exact meaning of this function depends on the
-    /// provided data type. See implementations provided in the `style` module.
-    fn replace(&self, range: impl enso_text::RangeBounds, data: T);
-}
-
-/// Generic setter for default value for metadata like colors, font weight, etc.
-trait DefaultSetter<T> {
-    /// Replace the default value of the metadata. The exact meaning of this function depends on the
-    /// provided data type. See implementations provided in the `style` module.
-    fn set_default(&self, data: T);
-}
-
-impl Setter<Text> for Buffer {
-    fn replace(&self, range: impl enso_text::RangeBounds, text: Text) {
-        let range = self.crop_byte_range(range);
-        let size = text.byte_size();
-        self.text.replace(range, text);
-        self.formatting.set_resize_with_default(range, size);
-    }
-}
-
-impl Setter<&Text> for Buffer {
-    fn replace(&self, range: impl enso_text::RangeBounds, text: &Text) {
-        self.replace(range, text.clone())
-    }
-}
+// /// Generic setter for default value for metadata like colors, font weight, etc.
+// trait DefaultSetter<T> {
+//     /// Replace the default value of the metadata. The exact meaning of this function depends on
+// the     /// provided data type. See implementations provided in the `style` module.
+//     fn set_default(&self, data: T);
+// }
