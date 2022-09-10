@@ -7,14 +7,6 @@ import java.time.temporal.TemporalUnit;
 public class Date_Time_Utils implements TimeUtilsBase {
   public static final Date_Time_Utils INSTANCE = new Date_Time_Utils();
 
-  public ZonedDateTime quarter_start(ZonedDateTime date) {
-    return (ZonedDateTime) Date_Period_Utils.quarter_start(date);
-  }
-
-  public ZonedDateTime quarter_end(ZonedDateTime date) {
-    return (ZonedDateTime) Date_Period_Utils.quarter_end(date);
-  }
-
   public ZonedDateTime start_of_time_period(ZonedDateTime date, TemporalUnit unit) {
     return date.truncatedTo(unit);
   }
