@@ -26,8 +26,7 @@ public class UnsafeAtVectorNode extends Node {
       throw new PanicException(
           ctx.getBuiltins().error().makeInvalidArrayIndexError(self, index), this);
     } catch (UnsupportedMessageException e) {
-      final Context ctx = Context.get(this);
-      throw new PanicException(ctx.getBuiltins().error().getPolyglotError().wrap(ctx, e), this);
+      throw new PanicException(e.getMessage(), this);
     }
   }
 }

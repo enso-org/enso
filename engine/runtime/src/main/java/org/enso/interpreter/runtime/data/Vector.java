@@ -22,6 +22,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -68,7 +69,7 @@ public final class Vector implements TruffleObject {
 
   @Builtin.Method(description = "Returns the length of this Vector.")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
   public final long length(InteropLibrary interop) throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }

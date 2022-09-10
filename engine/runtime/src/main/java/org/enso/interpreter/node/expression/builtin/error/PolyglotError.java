@@ -27,10 +27,6 @@ public class PolyglotError extends UniquelyConstructibleBuiltin {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 
-  public Atom wrap(Context c, UnsupportedMessageException e) {
-    return newInstance(c.getEnvironment().asGuestValue(e));
-  }
-
   public Atom wrap(Context c, DateTimeException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
