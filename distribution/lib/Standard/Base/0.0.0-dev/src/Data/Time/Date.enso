@@ -253,8 +253,8 @@ type Date
              from Standard.Base import Date, Time_Of_Day, Time_Zone
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Time_Zone.utc
-    to_time : Time_Of_Day -> Time_Zone -> Date_Time
-    to_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
+    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
+    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
 

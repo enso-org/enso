@@ -72,7 +72,7 @@ specWith name create_new_time parse_time =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            datetime = create_new_time 1 0 0 . to_time (Date.new 2000 12 21) Time_Zone.utc
+            datetime = create_new_time 1 0 0 . to_date_time (Date.new 2000 12 21) Time_Zone.utc
             datetime . year . should_equal 2000
             datetime . month . should_equal 12
             datetime . day . should_equal 21
