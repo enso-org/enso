@@ -10,12 +10,16 @@ use crate::buffer::Buffer;
 // use crate::buffer::DefaultSetter;
 use crate::buffer::TextRange;
 
+use crate::font;
+use crate::font::Font;
+use crate::font::GlyphRenderInfo;
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
 use enso_text::Text;
 use ensogl_core::data::color;
-
+use ensogl_text_font_family::NonVariableFaceHeader;
+use owned_ttf_parser::AsFaceRef;
 
 
 // ==============
@@ -109,6 +113,15 @@ impl ChangeWithSelection<UBytes, Text, Location> {
 // === ViewBuffer ===
 // ==================
 
+#[derive(Debug, Clone)]
+pub struct ShapedGlyph {
+    pub position:                rustybuzz::GlyphPosition,
+    pub info:                    rustybuzz::GlyphInfo,
+    pub render_info:             GlyphRenderInfo,
+    pub units_per_em:            u16,
+    pub non_variable_variations: NonVariableFaceHeader,
+}
+
 /// Specialized form of `Buffer` with view-related information, such as selection and undo redo
 /// history (containing also cursor movement history). This form of buffer is mainly used by `View`,
 /// but can also be combined with other `ViewBuffer`s to display cursors, selections, and edits of
@@ -120,29 +133,135 @@ pub struct ViewBuffer {
     pub buffer:            Buffer,
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<usize>>,
+    pub font:              Font,
+    pub shaped_lines:      Rc<RefCell<HashMap<Line, Vec<ShapedGlyph>>>>,
     pub history:           History,
 }
 
-impl From<Buffer> for ViewBuffer {
-    fn from(buffer: Buffer) -> Self {
+impl ViewBuffer {
+    pub fn new(font: Font) -> Self {
+        let buffer = default();
         let selection = default();
         let next_selection_id = default();
+        let shaped_lines = default();
         let history = default();
-        Self { buffer, selection, next_selection_id, history }
+        Self { buffer, selection, next_selection_id, font, shaped_lines, history }
+    }
+
+    pub fn with_shaped_line(&self, line: Line, mut f: impl FnMut(&[ShapedGlyph])) {
+        let mut shaped_lines = self.shaped_lines.borrow_mut();
+        if let Some(shaped_line) = shaped_lines.get(&line) {
+            f(shaped_line)
+        } else {
+            let shaped_line = self.shape_line(line);
+            f(&shaped_line);
+            shaped_lines.insert(line, shaped_line);
+        }
+    }
+
+    pub fn shape_line(&self, line: Line) -> Vec<ShapedGlyph> {
+        let line_range = self.byte_range_of_line_index_snapped(line);
+        let line_style = self.sub_style(line_range.start..line_range.end);
+        let content = self.single_line_content2(line);
+        let font = &self.font;
+        let mut shaped_line = vec![];
+        for (range, requested_non_variable_variations) in
+            Self::chunks_per_font_face(font, &line_style, &content)
+        {
+            let non_variable_variations_match =
+                font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
+            let non_variable_variations = non_variable_variations_match.variations;
+            if non_variable_variations_match.was_closest() {
+                warn!(
+                    "The font is not defined for the variation {:?}. Using {:?} instead.",
+                    requested_non_variable_variations, non_variable_variations
+                );
+            }
+            font.with_borrowed_face(non_variable_variations, |face| {
+                let ttf_face = face.ttf.as_face_ref();
+                let units_per_em = ttf_face.units_per_em();
+                // This is safe. Unwrap should be removed after rustybuzz is fixed:
+                // https://github.com/RazrFalcon/rustybuzz/issues/52
+                let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
+                let mut buffer = rustybuzz::UnicodeBuffer::new();
+                buffer.push_str(&content[range.start.value..range.end.value]);
+                let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+                let variable_variations = default();
+                for (&position, &info) in
+                    shaped.glyph_positions().into_iter().zip(shaped.glyph_infos())
+                {
+                    // FIXME:
+                    // let variable_variations = glyph.variations.borrow();
+                    let glyph_id = font::GlyphId(info.glyph_id as u16);
+                    let render_info = font.glyph_info_of_known_face(
+                        non_variable_variations,
+                        &variable_variations,
+                        glyph_id,
+                        face,
+                    );
+                    shaped_line.push(ShapedGlyph {
+                        position,
+                        info,
+                        render_info,
+                        units_per_em,
+                        non_variable_variations,
+                    })
+                }
+            });
+        }
+        shaped_line
+    }
+
+    pub fn chunks_per_font_face<'a>(
+        font: &'a font::Font,
+        line_style: &'a style::Formatting,
+        content: &'a str,
+    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
+        gen_iter!(move {
+            match font {
+                font::Font::NonVariable(_) =>
+                    for a in line_style.chunks_per_font_face(content) {
+                        yield a;
+                    }
+                font::Font::Variable(_) => {
+                    let range = UBytes(0)..UBytes(content.len());
+                    // For variable fonts, we do not care about non-variable variations.
+                    let non_variable_variations = font::NonVariableFaceHeader::default();
+                    yield (range, non_variable_variations);
+                }
+            }
+        })
+    }
+
+    pub fn single_line_content2(&self, line: Line) -> String {
+        let start_byte_offset = self.byte_offset_of_line_index(line).unwrap();
+        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(line);
+        let range = start_byte_offset..end_byte_offset;
+        self.lines_vec(range).first().cloned().unwrap_or_default()
     }
 }
 
-impl From<&Buffer> for ViewBuffer {
-    fn from(buffer: &Buffer) -> Self {
-        buffer.clone_ref().into()
-    }
-}
+// impl From<Buffer> for ViewBuffer {
+//     fn from(buffer: Buffer) -> Self {
+//         let selection = default();
+//         let next_selection_id = default();
+//         let history = default();
+//         let shaped_lines = default();
+//         Self { buffer, selection, next_selection_id, shaped_lines, history }
+//     }
+// }
 
-impl Default for ViewBuffer {
-    fn default() -> Self {
-        Buffer::default().into()
-    }
-}
+// impl From<&Buffer> for ViewBuffer {
+//     fn from(buffer: &Buffer) -> Self {
+//         buffer.clone_ref().into()
+//     }
+// }
+//
+// impl Default for ViewBuffer {
+//     fn default() -> Self {
+//         Buffer::default().into()
+//     }
+// }
 
 impl ViewBuffer {
     fn commit_history(&self) {
@@ -547,11 +666,11 @@ impl View {
     }
 }
 
-impl Default for View {
-    fn default() -> Self {
-        Self::new(ViewBuffer::default())
-    }
-}
+// impl Default for View {
+//     fn default() -> Self {
+//         Self::new(ViewBuffer::default())
+//     }
+// }
 
 
 

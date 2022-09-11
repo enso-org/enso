@@ -326,6 +326,21 @@ impl iter::Step for ViewLine {
 // }
 
 
+unit! {
+/// Unsigned bytes unit.
+Column::column(usize) NO_SUB
+}
+
+impl<T: Into<Column>> column::Into for Range<T> {
+    type Output = Range<Column>;
+    fn column(self) -> Self::Output {
+        let start = self.start.into();
+        let end = self.end.into();
+        Range { start, end }
+    }
+}
+
+
 
 // ==============
 // === CodePointIndex ===
@@ -334,17 +349,6 @@ impl iter::Step for ViewLine {
 // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
 //       This will make this unit safer.
 unit! {
-/// A type representing horizontal measurements expressed as number of Rust's chars (being roughly
-/// the Unicode code points.
-///
-/// See [`crate`] documentation to know more about codepoints.
-///
-/// Note: The reason of representing CodePointIndex as a code point is that our text rendering engine
-/// display each codepoint as a separate glyph (so it does not support the _grapheme clusters_).
-/// This should be fixed when doing
-/// https://www.pivotaltracker.com/n/projects/2539304/stories/180392693: after that, the column
-/// should be measured in grapheme clusters, to have Text Area cursors behave correctly (and the
-/// usages shall be then fixed, e.g. [`crate::text::Text::column_of_byte_offset`]).
 CodePointIndex::code_point_index(i32)
 }
 

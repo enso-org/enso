@@ -635,14 +635,14 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new();
+        let fonts = scene.extension::<font::Registry>();
+        let font = fonts.load(font::DEFAULT_FONT_MONO);
         let glyph_system = {
-            let fonts = scene.extension::<font::Registry>();
-            let font = fonts.load(font::DEFAULT_FONT_MONO);
-            let glyph_system = font::glyph::System::new(&scene, font);
+            let glyph_system = font::glyph::System::new(&scene, font.clone());
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
         };
-        let buffer = default();
+        let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
         let lines = default();
         let single_line = default();
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
@@ -1014,81 +1014,84 @@ impl AreaModel {
         let font = &glyph_system.font;
         let mut line_style_iter = line_style.iter();
         let mut glyph_offset_x = 0.0;
-        let mut code_point_index = 0.code_point_index();
-        // FIXME: after removing glyph in the middle we have two the same headers here - to be
-        // optimized
-        for (range, requested_non_variable_variations) in
-            Self::chunks_per_font_face(font, &line_style, content)
-        {
-            let non_variable_variations_match =
-                font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
-            let non_variable_variations = non_variable_variations_match.variations;
-            if non_variable_variations_match.was_closest() {
-                warn!(
-                    "The font is not defined for the variation {:?}. Using {:?} instead.",
-                    requested_non_variable_variations, non_variable_variations
-                );
-            }
-            // Safe because the non_variable_variations was chosen above.
-            font.with_borrowed_face(non_variable_variations, |face| {
-                let ttf_face = face.ttf.as_face_ref();
-                // This is safe. Unwrap should be removed after rustybuzz is fixed:
-                // https://github.com/RazrFalcon/rustybuzz/issues/52
-                let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
-                let mut buffer = rustybuzz::UnicodeBuffer::new();
-                buffer.push_str(&content[range.start.value..range.end.value]);
-                let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
-                let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
-                let mut prev_cluster_byte_off = UBytes(0);
-                for (glyph_position, glyph_info) in shaped_iter {
-                    let glyph_byte_start = UBytes(glyph_info.cluster as usize);
-                    let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
-                    // Drop styles assigned to skipped bytes. One byte will be skipped
-                    // during the call to `line_style_iter.next()`.
-                    line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
-                    let style = line_style_iter.next().unwrap_or_default();
-                    prev_cluster_byte_off = glyph_byte_start;
-                    if code_point_index >= CodePointIndex::from(line.glyphs.len()) {
-                        line.push_glyph(|| glyph_system.new_glyph());
-                    }
-                    // FIXME: indexing by codepoint is wrong here as glyph may have multiple code
-                    // points
-                    let glyph = &line.glyphs[code_point_index.value as usize];
-                    glyph.start_byte_offset.set(glyph_byte_start);
+        let mut column = Column(0);
+        let line_index = self.buffer.view_line_to_line(view_line_index);
 
-                    let size = style.size;
-                    let units_per_em = ttf_face.units_per_em();
-                    let rustybuzz_scale = units_per_em as f32 / size.value * 1.0;
+        let mut prev_cluster_byte_off = UBytes(0);
 
-                    let glyph_id = font::GlyphId(glyph_info.glyph_id as u16);
-                    glyph.set_color(style.color);
-                    glyph.set_sdf_weight(style.sdf_weight.value);
-                    glyph.set_size(size);
-                    glyph.set_properties(non_variable_variations);
-                    glyph.set_glyph_id(glyph_id);
-
-                    let variable_variations = glyph.variations.borrow();
-
-                    let glyph_render_info = font.glyph_info_of_known_face(
-                        non_variable_variations,
-                        &variable_variations,
-                        glyph_id,
-                        face,
-                    );
-                    let glyph_render_offset = glyph_render_info.offset.scale(size.value);
-                    glyph.sprite.set_position_xy(glyph_render_offset);
-                    glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
-
-                    glyph_offset_x += glyph_position.x_advance as f32 / rustybuzz_scale;
-                    divs.push(glyph_offset_x);
-
-                    line_object.add_child(glyph);
-
-                    code_point_index += 1.code_point_index();
+        self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
+            for shaped_glyph in shaped_glyphs {
+                let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
+                let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
+                // Drop styles assigned to skipped bytes. One byte will be skipped
+                // during the call to `line_style_iter.next()`.
+                line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
+                let style = line_style_iter.next().unwrap_or_default();
+                prev_cluster_byte_off = glyph_byte_start;
+                if column >= Column(line.glyphs.len()) {
+                    line.push_glyph(|| glyph_system.new_glyph());
                 }
-            });
-        }
-        line.glyphs.truncate(code_point_index.value as usize);
+                let glyph = &line.glyphs[column.value];
+                glyph.start_byte_offset.set(glyph_byte_start);
+
+                let size = style.size;
+                let rustybuzz_scale = shaped_glyph.units_per_em as f32 / size.value * 1.0;
+
+                let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
+                glyph.set_color(style.color);
+                glyph.set_sdf_weight(style.sdf_weight.value);
+                glyph.set_size(size);
+                glyph.set_properties(shaped_glyph.non_variable_variations);
+                glyph.set_glyph_id(glyph_id);
+
+                let variable_variations = glyph.variations.borrow();
+
+                let glyph_render_offset = shaped_glyph.render_info.offset.scale(size.value);
+                glyph.sprite.set_position_xy(glyph_render_offset);
+                glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
+
+                glyph_offset_x += shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+                divs.push(glyph_offset_x);
+
+                line_object.add_child(glyph);
+
+                column += Column(1);
+            }
+        });
+
+
+
+        // for (range, requested_non_variable_variations) in
+        //     Self::chunks_per_font_face(font, &line_style, content)
+        // {
+        //     let non_variable_variations_match =
+        //         font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
+        //     let non_variable_variations = non_variable_variations_match.variations;
+        //     if non_variable_variations_match.was_closest() {
+        //         warn!(
+        //             "The font is not defined for the variation {:?}. Using {:?} instead.",
+        //             requested_non_variable_variations, non_variable_variations
+        //         );
+        //     }
+        //
+        //
+        //     // Safe because the non_variable_variations was chosen above.
+        //     font.with_borrowed_face(non_variable_variations, |face| {
+        //         let ttf_face = face.ttf.as_face_ref();
+        //         // This is safe. Unwrap should be removed after rustybuzz is fixed:
+        //         // https://github.com/RazrFalcon/rustybuzz/issues/52
+        //         let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
+        //         let mut buffer = rustybuzz::UnicodeBuffer::new();
+        //         buffer.push_str(&content[range.start.value..range.end.value]);
+        //         let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+        //         let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
+        //
+        //         for (glyph_position, glyph_info) in shaped_iter {
+        //
+        //         }
+        //     });
+        // }
+        line.glyphs.truncate(column.value);
 
         line.set_divs(divs);
 

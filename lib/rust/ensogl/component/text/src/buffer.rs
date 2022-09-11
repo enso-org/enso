@@ -56,10 +56,10 @@ impl Buffer {
         default()
     }
 
-    /// Creates a new `View` for the buffer.
-    pub fn new_view(&self) -> View {
-        View::new(self)
-    }
+    // /// Creates a new `View` for the buffer.
+    // pub fn new_view(&self) -> View {
+    //     View::new(self)
+    // }
 
     pub fn replace(&self, range: impl enso_text::RangeBounds, text: impl Into<Text>) {
         let text = text.into();
