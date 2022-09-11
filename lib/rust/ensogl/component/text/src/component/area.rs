@@ -54,7 +54,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
-    location_map: HashMap<unit::ViewLine, HashMap<CodePointIndex, usize>>,
+    location_map: HashMap<unit::ViewLine, HashMap<UBytes, usize>>,
 }
 
 
@@ -96,17 +96,22 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
+    // FIXME: introduce Column type
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn div_by_column(&self, column: CodePointIndex) -> f32 {
-        let ix = column.as_usize().min(self.divs.len() - 1);
-        if ix < self.divs.len() {
-            self.divs[ix]
-        } else {
-            if column != CodePointIndex(0) {
-                warn!("Internal error. Incorrect text divisions.")
+    fn div_by_column(&self, column: usize) -> f32 {
+        let ix = column.min(self.divs.len() - 1);
+        self.divs[ix]
+    }
+
+    fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
+        let mut column = 0;
+        for glyph in &self.glyphs {
+            if glyph.start_byte_offset.get() == byte_offset {
+                break;
             }
-            0.0
+            column += 1;
         }
+        self.div_by_column(column)
     }
 
     fn last_div(&self) -> f32 {
@@ -818,16 +823,15 @@ impl AreaModel {
                 let selection_start_line =
                     self.buffer.line_to_view_line(buffer_selection.start.line);
                 let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
-                let get_pos_x = |line: unit::ViewLine, code_pt_ix: CodePointIndex| {
+                let get_pos_x = |line: unit::ViewLine, byte_offset: UBytes| {
                     if line >= unit::ViewLine(self.lines.len() as i32) {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
-                        self.lines.borrow()[line.as_usize()].div_by_column(code_pt_ix)
+                        self.lines.borrow()[line.as_usize()].div_by_byte_offset(byte_offset)
                     }
                 };
-                let start_x =
-                    get_pos_x(selection_start_line, buffer_selection.start.code_point_index);
-                let end_x = get_pos_x(selection_end_line, buffer_selection.end.code_point_index);
+                let start_x = get_pos_x(selection_start_line, buffer_selection.start.byte_offset);
+                let end_x = get_pos_x(selection_end_line, buffer_selection.end.byte_offset);
                 debug!("start_x {start_x}, end_x {end_x}");
                 let selection_y =
                     -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line.value as f32;
@@ -871,7 +875,7 @@ impl AreaModel {
                     .location_map
                     .entry(selection_start_line)
                     .or_default()
-                    .insert(buffer_selection.start.code_point_index, id);
+                    .insert(buffer_selection.start.byte_offset, id);
             }
             debug!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
@@ -981,6 +985,8 @@ impl AreaModel {
         })
     }
 
+    // fixme, add docs: JEDNAK nie wprowadzajmy tupu column - on moze byc liczony tylko dla
+    // renderowanego tekstu, wiec jest bezuzyteczny
     fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
@@ -1048,7 +1054,7 @@ impl AreaModel {
                     // FIXME: indexing by codepoint is wrong here as glyph may have multiple code
                     // points
                     let glyph = &line.glyphs[code_point_index.value as usize];
-                    glyph.start_code_point.set(code_point_index);
+                    glyph.start_byte_offset.set(glyph_byte_start);
 
                     let size = style.size;
                     let units_per_em = ttf_face.units_per_em();
@@ -1135,10 +1141,10 @@ impl AreaModel {
         if range.start.line == range.end.line {
             let line = &lines[range.start.line.as_usize()];
             for glyph in &line.glyphs {
-                if glyph.start_code_point.get() >= range.end.code_point_index {
+                if glyph.start_byte_offset.get() >= range.end.byte_offset {
                     break;
                 }
-                if glyph.start_code_point.get() >= range.start.code_point_index {
+                if glyph.start_byte_offset.get() >= range.start.byte_offset {
                     f(&glyph)
                 }
             }
@@ -1147,7 +1153,7 @@ impl AreaModel {
             let second_line = first_line + ViewLine(1);
             let last_line = range.end.line;
             for glyph in &lines[first_line.as_usize()].glyphs {
-                if glyph.start_code_point.get() >= range.start.code_point_index {
+                if glyph.start_byte_offset.get() >= range.start.byte_offset {
                     f(&glyph)
                 }
             }
@@ -1157,7 +1163,7 @@ impl AreaModel {
                 }
             }
             for glyph in &lines[last_line.as_usize()].glyphs {
-                if glyph.start_code_point.get() < range.end.code_point_index {
+                if glyph.start_byte_offset.get() < range.end.byte_offset {
                     f(&glyph)
                 }
             }
@@ -1186,10 +1192,9 @@ impl AreaModel {
 
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        let mut code_point_index = 0.code_point_index();
 
         for glyph in &line.glyphs {
-            cursor_map.get(&code_point_index).for_each(|id| {
+            cursor_map.get(&glyph.start_byte_offset.get()).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
                         let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
@@ -1203,8 +1208,6 @@ impl AreaModel {
                 cursor.right_side.add_child(glyph);
                 glyph.mod_position_xy(|p| p - last_cursor_target);
             }
-
-            code_point_index += 1.code_point_index();
         }
     }
 

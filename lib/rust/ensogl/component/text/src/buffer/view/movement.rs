@@ -179,7 +179,7 @@ impl ViewBuffer {
             Transform::RightSelectionBorder => shape(selection.start, selection.max()),
 
             Transform::LeftOfLine => {
-                let end = Location(selection.end.line, 0.code_point_index());
+                let end = Location(selection.end.line, UBytes(0));
                 shape(selection.start, end)
             }
 

@@ -97,7 +97,7 @@ pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
 impl ChangeWithSelection<UBytes, Text, Location> {
     pub fn is_backspace_at_line_start(&self) -> bool {
         let single_place_edit = self.selection.shape.start == self.selection.shape.end;
-        let edit_on_line_start = self.selection.shape.start.code_point_index == CodePointIndex(0);
+        let edit_on_line_start = self.selection.shape.start.byte_offset == UBytes(0);
         let no_insert = self.change.text.is_empty();
         let empty_range = self.change.range.is_empty();
         single_place_edit && edit_on_line_start && no_insert && !empty_range
@@ -391,8 +391,9 @@ impl ViewBuffer {
             error!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
-        let column = self.column_of_line_index_and_in_line_byte_offset_snapped(line, line_offset);
-        Location(line, column)
+        // fixme: tu byl snap_bytes_location_error - potrzebny?
+        let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+        Location(line, byte_offset)
     }
 
     pub fn offset_range_to_location(
@@ -674,8 +675,8 @@ impl ViewModel {
 
     pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
         let line = self.line_to_view_line(location.line);
-        let code_point_index = location.code_point_index;
-        ViewLocation { line, code_point_index }
+        let byte_offset = location.byte_offset;
+        ViewLocation { line, byte_offset }
     }
 
     pub fn location_range_to_view_location_range(

@@ -380,11 +380,11 @@ impl From<&usize> for CodePointIndex {
 
 mod location {
     use super::*;
-    newtype! {
+    newtype_no_sub! {
     /// A type representing 2d measurements.
     Location {
         line:   Line,
-        code_point_index: CodePointIndex,
+        byte_offset: UBytes,
     }}
 
     impl Location {
@@ -394,8 +394,8 @@ mod location {
         }
 
         /// CodePointIndex setter.
-        pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
-            Self { code_point_index, ..self }
+        pub fn with_byte_offset(self, byte_offset: UBytes) -> Self {
+            Self { byte_offset, ..self }
         }
     }
 }
@@ -410,11 +410,11 @@ pub use location::*;
 
 mod view_location {
     use super::*;
-    newtype! {
+    newtype_no_sub! {
     /// A type representing 2d measurements.
     ViewLocation {
         line:   ViewLine,
-        code_point_index: CodePointIndex,
+        byte_offset: UBytes,
     }}
 
     impl ViewLocation {
@@ -423,9 +423,9 @@ mod view_location {
             Self { line, ..self }
         }
 
-        /// CodePointIndex setter.
-        pub fn with_column(self, code_point_index: CodePointIndex) -> Self {
-            Self { code_point_index, ..self }
+        /// UBytes setter.
+        pub fn with_column(self, byte_offset: UBytes) -> Self {
+            Self { byte_offset, ..self }
         }
     }
 }

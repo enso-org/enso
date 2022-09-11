@@ -105,8 +105,9 @@ impl Text {
             Err(TooSmall) => self.first_line_start_location(),
             Err(TooBig) => self.last_line_end_location(),
             Ok(line) => {
-                let index = min(location.code_point_index, self.line_end_column(line).unwrap());
-                Location(line, index)
+                let byte_offset =
+                    min(location.byte_offset, self.end_byte_offset_of_line_index(line).unwrap());
+                Location(line, byte_offset)
             }
         }
     }
@@ -180,8 +181,8 @@ impl Text {
     /// The start location of the first line.
     pub fn first_line_start_location(&self) -> Location {
         let line = self.first_line_index();
-        let column = self.first_line_start_column();
-        Location(line, column)
+        let byte_offset = self.first_line_byte_offset();
+        Location(line, byte_offset)
     }
 }
 
@@ -209,13 +210,17 @@ impl Text {
     /// The start location of the last line.
     pub fn last_line_start_location(&self) -> Location {
         let line = self.last_line_index();
-        let column = self.last_line_start_column();
-        Location(line, column)
+        let byte_offset = UBytes(0);
+        Location(line, byte_offset)
     }
 
     /// The last column number of the last line.
     pub fn last_line_end_column(&self) -> CodePointIndex {
         self.column_of_byte_offset(self.byte_size()).unwrap()
+    }
+
+    pub fn last_line_end_column_byte_offset(&self) -> UBytes {
+        self.line_byte_offset_of_byte_offset(self.byte_size()).unwrap()
     }
 
     /// The byte offset of the end of the last line. Equal to the byte size of the whole text.
@@ -226,8 +231,8 @@ impl Text {
     /// The location of the last character in the text.
     pub fn last_line_end_location(&self) -> Location {
         let line = self.last_line_index();
-        let column = self.last_line_end_column();
-        Location(line, column)
+        let byte_offset = self.last_line_end_column_byte_offset();
+        Location(line, byte_offset)
     }
 }
 
@@ -311,23 +316,8 @@ impl Text {
         &self,
         location: Location,
     ) -> Result<UBytes, LocationError<UBytes>> {
-        let mut code_point_index = 0.code_point_index();
-        let mut offset = self.byte_offset_of_line_index(location.line)?;
-        let max_offset = self.end_byte_offset_of_line_index(location.line)?;
-        while code_point_index < location.code_point_index {
-            match self.next_grapheme_offset(offset) {
-                None => return Err(LocationError::LineTooShort(offset)),
-                Some(off) => {
-                    offset = off;
-                    code_point_index += 1.code_point_index();
-                }
-            }
-        }
-        if offset > max_offset {
-            Err(LocationError::LineTooShort(max_offset))
-        } else {
-            Ok(offset)
-        }
+        let line_offset = self.byte_offset_of_line_index(location.line)?;
+        Ok(line_offset + location.byte_offset)
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.
@@ -420,6 +410,18 @@ impl Text {
         }
     }
 
+    pub fn line_byte_offset_of_byte_offset(
+        &self,
+        tgt_offset: UBytes,
+    ) -> Result<UBytes, LocationError<CodePointIndex>> {
+        use self::BoundsError::*;
+        use LocationError::*;
+        let line_index = self.line_index_of_byte_offset(tgt_offset)?;
+        let mut line_offset = self.byte_offset_of_line_index(line_index)?;
+        let offset = UBytes::try_from(tgt_offset - line_offset).unwrap();
+        Ok(offset)
+    }
+
     /// The column number of the given byte offset. Snapped to the closest valid
     /// value. In case the offset points inside of a grapheme cluster, it will be snapped to its
     /// right side.
@@ -455,6 +457,7 @@ impl Text {
 
 // === Into Location ===
 
+
 impl Text {
     /// The location of text end.
     pub fn location_of_text_end(&self) -> Location {
@@ -464,13 +467,13 @@ impl Text {
         let ends_with_eol = last_char.map_or(false, |ch| ch.starts_with('\n'));
         if ends_with_eol {
             let line: Line = lines_count.into();
-            Location(line, 0.code_point_index())
+            Location(line, UBytes(0))
         } else if lines_count == 0 {
             default()
         } else {
             let line = ((lines_count - 1) as i32).line();
-            let column = self.line_end_column(line).unwrap();
-            Location(line, column)
+            let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
+            Location(line, byte_offset)
         }
     }
 
@@ -482,9 +485,8 @@ impl Text {
             error!("Internal error, wrong line byte offset.");
             UBytes(0)
         });
-        let column = self.column_of_line_index_and_in_line_byte_offset(line, line_offset);
-        let column = column.unwrap();
-        Ok(Location(line, column))
+        let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+        Ok(Location(line, byte_offset))
     }
 
     /// The location of the provided byte offset. Snapped to the closest valid

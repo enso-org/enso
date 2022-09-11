@@ -375,6 +375,29 @@ macro_rules! newtype {
 
 /// Unit definition macro. See module docs to learn more.
 #[macro_export]
+macro_rules! newtype_no_sub {
+    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
+        use std::ops::AddAssign;
+        use std::ops::SubAssign;
+
+        $crate::newtype_struct! {$(#$meta)* $name { $($field : $field_type),*}}
+
+        $crate::impl_T_x_T_to_T! {Add           :: add            for $name {$($field),*}}
+        $crate::impl_T_x_T_to_T! {SaturatingAdd :: saturating_add for $name {$($field),*}}
+
+        $crate::impl_T_x_FIELD_to_T! {Add           :: add            for $name {$($field:$field_type),*}}
+        $crate::impl_T_x_FIELD_to_T! {SaturatingAdd :: saturating_add for $name {$($field:$field_type),*}}
+
+        impl AddAssign<$name> for $name {
+            fn add_assign(&mut self, rhs:Self) {
+                *self = Self { $($field:self.$field.add(rhs.$field)),* }
+            }
+        }
+    };
+}
+
+/// Unit definition macro. See module docs to learn more.
+#[macro_export]
 macro_rules! newtype_struct {
     ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
         $crate::newtype_struct_def!   {$(#$meta)* $name { $($field : $field_type),*}}
