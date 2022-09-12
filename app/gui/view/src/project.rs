@@ -611,7 +611,6 @@ impl View {
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
             frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
 
-
             adding_committed_new_searcher <- frp.editing_committed.map(|(id,_)| *id);
             adding_committed_old_searcher <- frp.editing_committed_old_searcher.map(|(id,_)| *id);
             adding_committed <- any(&adding_committed_new_searcher,&adding_committed_old_searcher).gate(&frp.adding_new_node);
