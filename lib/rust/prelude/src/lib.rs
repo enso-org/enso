@@ -21,6 +21,7 @@
 #[cfg(feature = "futures")]
 pub mod channel;
 mod collections;
+mod convert;
 mod data;
 pub mod debug;
 pub mod env;
@@ -50,6 +51,7 @@ mod wrapper;
 pub use crate::serde::*;
 pub use crate::smallvec::*;
 pub use collections::*;
+pub use convert::*;
 pub use data::*;
 pub use debug::*;
 pub use enso_shapely::clone_ref::*;

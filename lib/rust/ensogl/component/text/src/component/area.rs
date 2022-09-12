@@ -912,9 +912,10 @@ impl AreaModel {
         let line_index = (-object_space.y / LINE_HEIGHT) as usize;
         let line_index = std::cmp::min(line_index, self.lines.len() - 1);
         let div_index = self.lines.borrow()[line_index].div_index_close_to(object_space.x);
-        let line = line_index.into();
-        let column = div_index.into();
-        Location(line, column)
+        let line = unit::Line(line_index as i32);
+        let column = Column(div_index);
+        let location = Location(line, column);
+        location.into_in_context(&self.buffer)
     }
 
     #[profile(Debug)]

@@ -495,13 +495,13 @@ mod location {
 
     impl<Offset, Line> Location<Offset, Line> {
         /// Line setter.
-        pub fn with_line(self, line: Line) -> Self {
-            Self { line, ..self }
+        pub fn with_line<Line2>(self, line: Line2) -> Location<Offset, Line2> {
+            Location { line, offset: self.offset }
         }
 
         /// CodePointIndex setter.
-        pub fn with_byte_offset(self, offset: Offset) -> Self {
-            Self { offset, ..self }
+        pub fn with_offset<Offset2>(self, offset: Offset2) -> Location<Offset2, Line> {
+            Location { line: self.line, offset }
         }
     }
 }

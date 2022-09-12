@@ -174,7 +174,7 @@ impl ViewBuffer {
                     break;
                 }
             }
-            byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
+            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 if location.line > Line(0) {
                     let line = location.line - Line(1);
                     let offset = self.end_byte_offset_of_line_index(line).unwrap();
@@ -205,7 +205,7 @@ impl ViewBuffer {
                     break;
                 }
             }
-            byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
+            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 if prev_was_exact_match {
                     let line = location.line;
                     let offset = self.end_byte_offset_of_line_index(line).unwrap();
@@ -758,13 +758,6 @@ impl View {
     }
 }
 
-// impl Default for View {
-//     fn default() -> Self {
-//         Self::new(ViewBuffer::default())
-//     }
-// }
-
-
 
 // =================
 // === ViewModel ===
@@ -984,5 +977,35 @@ impl ViewModel {
         let start = UBytes::from(0);
         let end = self.buffer.last_line_end_byte_offset();
         buffer::Range { start, end }
+    }
+}
+
+impl FromInContext<&View, Location<Column>> for Location {
+    fn from_in_context(context: &View, location: Location<Column>) -> Self {
+        context.with_shaped_line(location.line, |shaped_line| {
+            let mut byte_offset = None;
+            let mut found = false;
+            let mut column = Column(0);
+            for glyph_set in shaped_line {
+                for glyph in &glyph_set.glyphs {
+                    if column == location.offset {
+                        byte_offset = Some(UBytes(glyph.info.cluster as usize));
+                        found = true;
+                        break;
+                    }
+                    column += Column(1);
+                }
+                if found {
+                    break;
+                }
+            }
+            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
+                let offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+                if column != location.offset {
+                    warn!("Glyph byte offset mismatch.");
+                }
+                location.with_offset(offset)
+            })
+        })
     }
 }
