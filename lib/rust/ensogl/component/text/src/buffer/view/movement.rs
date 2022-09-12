@@ -153,25 +153,18 @@ impl ViewBuffer {
                 shape(selection.start, self.offset_to_location(text.byte_size())),
 
             Transform::Left => {
-                let def = shape(selection.start, default());
                 let do_move = selection.is_cursor() || modify;
                 if do_move {
-                    self.prev_grapheme_location(selection.end)
-                        .map(|t| shape(selection.start, t))
-                        .unwrap_or(def)
+                    shape(selection.start, self.prev_column_location(selection.end))
                 } else {
                     shape(selection.start, selection.min())
                 }
             }
 
             Transform::Right => {
-                let def = shape(selection.start, selection.end);
                 let do_move = selection.is_cursor() || modify;
-                warn!("def: {:?}, do_move: {}", def, do_move);
                 if do_move {
-                    self.next_grapheme_location(selection.end)
-                        .map(|t| shape(selection.start, t))
-                        .unwrap_or(def)
+                    shape(selection.start, self.next_column_location(selection.end))
                 } else {
                     shape(selection.start, selection.max())
                 }

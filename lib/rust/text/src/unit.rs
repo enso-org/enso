@@ -80,6 +80,7 @@ impl From<&UBytes> for Bytes {
 // === UBytes ===
 // ==============
 
+// FIXME: change to u32, just as rustybuzz does
 unit! {
 /// Unsigned bytes unit.
 UBytes::ubytes(usize) NO_SUB

@@ -148,14 +148,71 @@ impl ViewBuffer {
         Self { buffer, selection, next_selection_id, font, shaped_lines, history }
     }
 
-    pub fn with_shaped_line(&self, line: Line, mut f: impl FnMut(&[ShapedGlyph])) {
+    pub fn prev_column_location(&self, location: Location) -> Location {
+        self.with_shaped_line(location.line, |shaped_line| {
+            let mut byte_offset = None;
+            for glyph in shaped_line {
+                let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+                if glyph_byte_offset >= location.byte_offset {
+                    break;
+                }
+                byte_offset = Some(glyph_byte_offset);
+            }
+            byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
+                if location.line > Line(0) {
+                    let line = location.line - Line(1);
+                    let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
+                    Location { line, byte_offset }
+                } else {
+                    default()
+                }
+            })
+        })
+    }
+
+    pub fn next_column_location(&self, location: Location) -> Location {
+        self.with_shaped_line(location.line, |shaped_line| {
+            let mut byte_offset = None;
+            let mut prev_was_exact_match = false;
+            for glyph in shaped_line {
+                let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+                if glyph_byte_offset == location.byte_offset {
+                    prev_was_exact_match = true;
+                } else if glyph_byte_offset > location.byte_offset {
+                    byte_offset = Some(glyph_byte_offset);
+                    break;
+                }
+            }
+            byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
+                if prev_was_exact_match {
+                    let line = location.line;
+                    let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
+                    Location { line, byte_offset }
+                } else {
+                    let last_line = self.last_line_index();
+                    if location.line < last_line {
+                        let line = location.line + Line(1);
+                        let byte_offset = UBytes(0);
+                        Location { line, byte_offset }
+                    } else {
+                        let line = last_line;
+                        let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
+                        Location { line, byte_offset }
+                    }
+                }
+            })
+        })
+    }
+
+    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&[ShapedGlyph]) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
             f(shaped_line)
         } else {
             let shaped_line = self.shape_line(line);
-            f(&shaped_line);
+            let out = f(&shaped_line);
             shaped_lines.insert(line, shaped_line);
+            out
         }
     }
 

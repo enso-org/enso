@@ -1008,9 +1008,6 @@ impl AreaModel {
         let glyph_system = self.glyph_system.borrow();
 
         let mut divs = vec![0.0];
-        // let mut last_cursor = None;
-        // let mut last_cursor_target = default();
-
         let font = &glyph_system.font;
         let mut line_style_iter = line_style.iter();
         let mut glyph_offset_x = 0.0;
