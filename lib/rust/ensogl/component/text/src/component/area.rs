@@ -104,9 +104,12 @@ impl Line {
     }
 
     fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
+        warn!("div_by_byte_offset for {:?}", byte_offset);
         let mut column = 0;
         for glyph in &self.glyphs {
-            if glyph.start_byte_offset.get() == byte_offset {
+            warn!("glyph start byte offset: {:?}", glyph.start_byte_offset);
+            if glyph.start_byte_offset.get() >= byte_offset {
+                warn!("YES!");
                 break;
             }
             column += 1;
@@ -825,8 +828,10 @@ impl AreaModel {
                 let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
                 let get_pos_x = |line: unit::ViewLine, byte_offset: UBytes| {
                     if line >= unit::ViewLine(self.lines.len() as i32) {
+                        warn!("!!!!!!");
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
+                        warn!("div_by_byte_offset: {:?}", byte_offset);
                         self.lines.borrow()[line.as_usize()].div_by_byte_offset(byte_offset)
                     }
                 };
@@ -1017,42 +1022,44 @@ impl AreaModel {
         let mut prev_cluster_byte_off = UBytes(0);
 
         self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
-            for shaped_glyph in shaped_glyphs {
-                let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
-                let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
-                // Drop styles assigned to skipped bytes. One byte will be skipped
-                // during the call to `line_style_iter.next()`.
-                line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
-                let style = line_style_iter.next().unwrap_or_default();
-                prev_cluster_byte_off = glyph_byte_start;
-                if column >= Column(line.glyphs.len()) {
-                    line.push_glyph(|| glyph_system.new_glyph());
+            for shaped_glyph_set in shaped_glyphs {
+                for shaped_glyph in &shaped_glyph_set.glyphs {
+                    let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
+                    let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
+                    // Drop styles assigned to skipped bytes. One byte will be skipped
+                    // during the call to `line_style_iter.next()`.
+                    line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
+                    let style = line_style_iter.next().unwrap_or_default();
+                    prev_cluster_byte_off = glyph_byte_start;
+                    if column >= Column(line.glyphs.len()) {
+                        line.push_glyph(|| glyph_system.new_glyph());
+                    }
+                    let glyph = &line.glyphs[column.value];
+                    glyph.start_byte_offset.set(glyph_byte_start);
+
+                    let size = style.size;
+                    let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value * 1.0;
+
+                    let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
+                    glyph.set_color(style.color);
+                    glyph.set_sdf_weight(style.sdf_weight.value);
+                    glyph.set_size(size);
+                    glyph.set_properties(shaped_glyph_set.non_variable_variations);
+                    glyph.set_glyph_id(glyph_id);
+
+                    let variable_variations = glyph.variations.borrow();
+
+                    let glyph_render_offset = shaped_glyph.render_info.offset.scale(size.value);
+                    glyph.sprite.set_position_xy(glyph_render_offset);
+                    glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
+
+                    glyph_offset_x += shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+                    divs.push(glyph_offset_x);
+
+                    line_object.add_child(glyph);
+
+                    column += Column(1);
                 }
-                let glyph = &line.glyphs[column.value];
-                glyph.start_byte_offset.set(glyph_byte_start);
-
-                let size = style.size;
-                let rustybuzz_scale = shaped_glyph.units_per_em as f32 / size.value * 1.0;
-
-                let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
-                glyph.set_color(style.color);
-                glyph.set_sdf_weight(style.sdf_weight.value);
-                glyph.set_size(size);
-                glyph.set_properties(shaped_glyph.non_variable_variations);
-                glyph.set_glyph_id(glyph_id);
-
-                let variable_variations = glyph.variations.borrow();
-
-                let glyph_render_offset = shaped_glyph.render_info.offset.scale(size.value);
-                glyph.sprite.set_position_xy(glyph_render_offset);
-                glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
-
-                glyph_offset_x += shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
-                divs.push(glyph_offset_x);
-
-                line_object.add_child(glyph);
-
-                column += Column(1);
             }
         });
 

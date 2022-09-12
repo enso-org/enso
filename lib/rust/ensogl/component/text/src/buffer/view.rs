@@ -113,14 +113,23 @@ impl ChangeWithSelection<UBytes, Text, Location> {
 // === ViewBuffer ===
 // ==================
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ShapedGlyph {
-    pub position:                rustybuzz::GlyphPosition,
-    pub info:                    rustybuzz::GlyphInfo,
-    pub render_info:             GlyphRenderInfo,
+    pub position:    rustybuzz::GlyphPosition,
+    pub info:        rustybuzz::GlyphInfo,
+    pub render_info: GlyphRenderInfo,
+}
+
+#[derive(Debug)]
+pub struct ShapedGlyphSet {
     pub units_per_em:            u16,
     pub non_variable_variations: NonVariableFaceHeader,
+    /// Please note that shaped glyphs in this set have cumulative offsets. This means that even if
+    /// they were produced by separate calls to `rustybuzz::shape`, their `info.cluster` is summed
+    /// between the calls.
+    pub glyphs:                  Vec<ShapedGlyph>,
 }
+
 
 /// Specialized form of `Buffer` with view-related information, such as selection and undo redo
 /// history (containing also cursor movement history). This form of buffer is mainly used by `View`,
@@ -134,7 +143,7 @@ pub struct ViewBuffer {
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<usize>>,
     pub font:              Font,
-    pub shaped_lines:      Rc<RefCell<HashMap<Line, Vec<ShapedGlyph>>>>,
+    pub shaped_lines:      Rc<RefCell<HashMap<Line, Vec<ShapedGlyphSet>>>>,
     pub history:           History,
 }
 
@@ -151,12 +160,19 @@ impl ViewBuffer {
     pub fn prev_column_location(&self, location: Location) -> Location {
         self.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
-            for glyph in shaped_line {
-                let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                if glyph_byte_offset >= location.byte_offset {
+            let mut found = false;
+            for glyph_set in shaped_line {
+                for glyph in &glyph_set.glyphs {
+                    let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+                    if glyph_byte_offset >= location.byte_offset {
+                        found = true;
+                        break;
+                    }
+                    byte_offset = Some(glyph_byte_offset);
+                }
+                if found {
                     break;
                 }
-                byte_offset = Some(glyph_byte_offset);
             }
             byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
                 if location.line > Line(0) {
@@ -171,15 +187,21 @@ impl ViewBuffer {
     }
 
     pub fn next_column_location(&self, location: Location) -> Location {
+        warn!("next_column_location: {:?}", location);
         self.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut prev_was_exact_match = false;
-            for glyph in shaped_line {
-                let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                if glyph_byte_offset == location.byte_offset {
-                    prev_was_exact_match = true;
-                } else if glyph_byte_offset > location.byte_offset {
-                    byte_offset = Some(glyph_byte_offset);
+            for glyph_set in shaped_line {
+                for glyph in &glyph_set.glyphs {
+                    let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+                    if glyph_byte_offset == location.byte_offset {
+                        prev_was_exact_match = true;
+                    } else if glyph_byte_offset > location.byte_offset {
+                        byte_offset = Some(glyph_byte_offset);
+                        break;
+                    }
+                }
+                if byte_offset.is_some() {
                     break;
                 }
             }
@@ -204,7 +226,7 @@ impl ViewBuffer {
         })
     }
 
-    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&[ShapedGlyph]) -> T) -> T {
+    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&[ShapedGlyphSet]) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
             f(shaped_line)
@@ -216,12 +238,13 @@ impl ViewBuffer {
         }
     }
 
-    pub fn shape_line(&self, line: Line) -> Vec<ShapedGlyph> {
+    pub fn shape_line(&self, line: Line) -> Vec<ShapedGlyphSet> {
         let line_range = self.byte_range_of_line_index_snapped(line);
         let line_style = self.sub_style(line_range.start..line_range.end);
         let content = self.single_line_content2(line);
         let font = &self.font;
         let mut shaped_line = vec![];
+        let mut prev_cluster_byte_offset = 0;
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {
@@ -244,27 +267,30 @@ impl ViewBuffer {
                 buffer.push_str(&content[range.start.value..range.end.value]);
                 let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
                 let variable_variations = default();
-                for (&position, &info) in
-                    shaped.glyph_positions().into_iter().zip(shaped.glyph_infos())
-                {
-                    // FIXME:
-                    // let variable_variations = glyph.variations.borrow();
-                    let glyph_id = font::GlyphId(info.glyph_id as u16);
-                    let render_info = font.glyph_info_of_known_face(
-                        non_variable_variations,
-                        &variable_variations,
-                        glyph_id,
-                        face,
-                    );
-                    shaped_line.push(ShapedGlyph {
-                        position,
-                        info,
-                        render_info,
-                        units_per_em,
-                        non_variable_variations,
+                let glyphs = shaped
+                    .glyph_positions()
+                    .into_iter()
+                    .zip(shaped.glyph_infos())
+                    .map(|(&position, &info)| {
+                        let mut info = info;
+                        // FIXME:
+                        // let variable_variations = glyph.variations.borrow();
+                        let glyph_id = font::GlyphId(info.glyph_id as u16);
+                        let render_info = font.glyph_info_of_known_face(
+                            non_variable_variations,
+                            &variable_variations,
+                            glyph_id,
+                            face,
+                        );
+                        info.cluster += prev_cluster_byte_offset;
+                        ShapedGlyph { position, info, render_info }
                     })
-                }
+                    .collect();
+                let shaped_glyph_set =
+                    ShapedGlyphSet { units_per_em, non_variable_variations, glyphs };
+                shaped_line.push(shaped_glyph_set);
             });
+            prev_cluster_byte_offset = range.end.value as u32;
         }
         shaped_line
     }
@@ -457,6 +483,7 @@ impl ViewBuffer {
         );
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
+            warn!("rel_byte_selection: {:?}", rel_byte_selection);
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
             let byte_selection = byte_selection.map_shape(|t| {
                 t.map(|bytes| {
@@ -522,6 +549,9 @@ impl ViewBuffer {
             _ => selection,
         };
         debug!("transformed: {:?}", transformed);
+
+        self.shaped_lines.borrow_mut().remove(&transformed.start.line);
+
         let byte_selection = self.to_bytes_selection(transformed);
         debug!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
@@ -561,14 +591,19 @@ impl ViewBuffer {
     }
 
     fn offset_to_location(&self, offset: UBytes) -> Location {
+        // warn!("offset_to_location: {:?}", offset);
         let line = self.line_index_of_byte_offset_snapped(offset);
-        let line_offset = offset - self.byte_offset_of_line_index(line).unwrap();
+        // warn!("line: {:?}", line);
+        let line_offset = self.byte_offset_of_line_index(line).unwrap();
+        // warn!("line_offset: {:?}", line_offset);
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
             error!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
+        // warn!("line_offset: {:?}", line_offset);
         // fixme: tu byl snap_bytes_location_error - potrzebny?
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+        // warn!("byte_offset: {:?}", byte_offset);
         Location(line, byte_offset)
     }
 
