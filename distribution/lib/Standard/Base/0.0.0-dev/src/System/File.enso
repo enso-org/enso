@@ -6,6 +6,7 @@ import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
+from Standard.Base.System.File_Format import File_Format, Auto_Detect
 
 polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
@@ -245,6 +246,10 @@ type File
     with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
         Resource.bracket (self.new_input_stream open_options) (_.close) action
+
+    new_read : File_Format -> Problem_Behavior
+    new_read self format=Auto_Detect (on_problems=Report_Warning) =
+        format.read self on_problems
 
     ## Reads all bytes in this file into a byte vector.
 

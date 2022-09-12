@@ -45,6 +45,7 @@ import project.Runtime.Extensions
 import project.Runtime.State
 import project.System.Environment
 import project.System.File
+import project.System.File_Format
 import project.System.File.Existing_File_Behavior
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Mode as Regex_Mode
@@ -109,4 +110,7 @@ from project.Function export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
+from project.System.File.File_Format export Auto_Detect, Plain_Text, Bytes
 from project.Data.Index_Sub_Range export First, Last
+
+File_Format.File_Format.types = [File_Format.Plain_Text, File_Format.Bytes]
