@@ -13,7 +13,7 @@ vector_size = 2500
 iter_size = 20
 num_iterations = 3
 
-create_table : Integer->Integer->Table
+create_table : Integer -> Integer -> Table
 create_table rows (seed=1646322139) =
     faker = Faker.new seed
     key1 = ["Code", 0.up_to rows . map _-> faker.alpha 3]
