@@ -429,7 +429,7 @@ type Date_Time
 
              example_to_json = Date_Time.now.to_json
     to_json : Json.Object
-    to_json self = Json.from_pairs [["type", "Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+    to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 
