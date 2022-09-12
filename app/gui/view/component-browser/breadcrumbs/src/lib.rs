@@ -46,6 +46,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
+use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::gui::Widget;
 use ensogl_core::Animation;
@@ -65,9 +66,14 @@ mod entry;
 // === Constants ===
 // =================
 
-/// If the selected entry is to the left of this fraction of the viewport, we scroll the breadcrumbs
-/// to keep the entry visible and easily reachable.
-const SCROLLING_THRESHOLD: f32 = 0.5;
+/// We virtually divide the breadcrumbs into two regions – left and right. This constant
+/// determines the fraction of the left one.
+
+/// The border between these regions is considered a resting position of the selected entry when
+/// breadcrumbs don't fit into the viewport. We don't scroll the viewport if the selected entry is
+/// the last one or if it is placed in the right region of the viewport. This way, we avoid
+/// unnecessary scrolling when the user selects some breadcrumb close to the end of the list.
+const SCROLLING_THRESHOLD_FRACTION: f32 = 0.5;
 
 
 
@@ -85,8 +91,11 @@ type BreadcrumbId = usize;
 // === Mask ===
 // ============
 
-/// A rectangular mask used to crop the breadcrumbs' content when it doesn't fit in the designated
-/// space.
+/// A rectangular mask used to crop the breadcrumbs' content when it doesn't fit in the size set
+/// by [`Frp::set_size`]. The mask covers the visible portion of the breadcrumbs. See [Layer]
+/// documentation to learn more about masking.
+///
+/// [Layer]: ensogl_core::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
 mod mask {
     use super::*;
     use ensogl_core::display::shape::*;
@@ -150,7 +159,8 @@ impl Model {
         let mask = mask::View::new(&app.logger);
         display_object.add_child(&mask);
         let grid = GridView::new(app);
-        let params = entry::Params::default();
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
+        let params = entry::Params::from_style(&style);
         grid.set_entries_params(params);
         grid.reset_entries(1, 0);
         display_object.add_child(&grid);
@@ -191,11 +201,11 @@ impl Model {
         self.mask.size.set(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_position_xy(grid_view_center);
-        // Additional padding is added to avoid rare glitches when the last entry is
-        // cropped because it is placed right on the border of the viewport. Even 1px seems
+        let offset = self.offset(content_size, size);
+        // Additional padding is added to the viewport width to avoid rare glitches when the last
+        // entry is cropped because it is placed right on the border of the viewport. Even 1px seems
         // enough, but we add a bit more to be sure.
         let padding = 10.0;
-        let offset = self.offset(content_size, size);
         let right = offset + size.x + padding;
         let vp = Viewport { top: 0.0, bottom: -size.y, left: offset, right };
         self.grid.set_viewport(vp);
@@ -210,11 +220,12 @@ impl Model {
         let last_col = self.column_of_the_last_entry().unwrap_or(0);
         let entry_pos = self.grid.entry_position(1, selected_col).x;
         let selected_is_not_last = selected_col < last_col;
-        let scrolling_threshold_pos = content_size.x - size.x * SCROLLING_THRESHOLD;
+        let disabled_scrolling_region_width = size.x * (1.0 - SCROLLING_THRESHOLD_FRACTION);
+        let scrolling_threshold_pos = content_size.x - disabled_scrolling_region_width;
         let should_scroll = entry_pos < scrolling_threshold_pos;
         let content_truncated = content_size.x > size.x;
         let content_right = if content_truncated && selected_is_not_last && should_scroll {
-            entry_pos + SCROLLING_THRESHOLD * size.x
+            entry_pos + SCROLLING_THRESHOLD_FRACTION * size.x
         } else {
             content_size.x
         };
@@ -407,7 +418,7 @@ impl Breadcrumbs {
             init <- source_();
             eval input.show_ellipsis((b) model.show_ellipsis(*b));
             selected_grid_col <- grid.entry_selected.filter_map(|l| *l);
-            eval selected_grid_col([model]((_row, col)) {
+            eval selected_grid_col(((_row, col)) {
                 model.grey_out(Some(col + 1));
             });
             eval_ input.clear(model.clear());

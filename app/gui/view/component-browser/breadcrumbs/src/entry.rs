@@ -9,12 +9,13 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::style::Data;
 use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
 use ensogl_text as text;
-
+use ensogl_text::font::DEFAULT_FONT;
 
 
 // ==============
@@ -62,6 +63,9 @@ pub mod ellipsis {
             let bg_col = style.get_color(theme::ellipsis::background_color);
             let background_color = Var::<color::Rgba>::rgba(bg_col.red,bg_col.green,bg_col.blue,alpha);
 
+            // `.repeat()` call would be more efficient than three separate circles, but it also
+            // requires `.intersection()` to crop the infinite grid of circles, which is
+            // currently broken. See https://www.pivotaltracker.com/story/show/182593513.
             let left = Circle(radius.clone()).fill(circles_color.clone());
             let center = Circle(radius.clone()).fill(circles_color.clone());
             let right = Circle(radius).fill(circles_color);
@@ -85,19 +89,19 @@ pub mod ellipsis {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Default)]
 pub enum Model {
-    Text(ImString),
-    Separator,
     #[default]
     Ellipsis,
+    Text(ImString),
+    Separator,
 }
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, CloneRef, Debug, Default, PartialEq)]
 enum State {
-    Text,
-    Separator,
     #[default]
     Ellipsis,
+    Text,
+    Separator,
 }
 
 
@@ -144,13 +148,13 @@ impl EntryData {
 
     fn set_model(&self, model: &Model) {
         match model {
-            Model::Text(content) => self.set_content(content),
-            Model::Separator => self.set_separator(),
-            Model::Ellipsis => self.set_ellipsis(),
+            Model::Text(content) => self.switch_to_text(content),
+            Model::Separator => self.switch_to_separator(),
+            Model::Ellipsis => self.switch_to_ellipsis(),
         }
     }
 
-    fn set_content(&self, content: &str) {
+    fn switch_to_text(&self, content: &str) {
         self.text.set_content(content);
         if self.state.get() != State::Text {
             self.remove_current();
@@ -159,7 +163,7 @@ impl EntryData {
         }
     }
 
-    fn set_separator(&self) {
+    fn switch_to_separator(&self) {
         if self.state.get() != State::Separator {
             self.remove_current();
             self.display_object.add_child(&self.separator);
@@ -167,7 +171,7 @@ impl EntryData {
         }
     }
 
-    fn set_ellipsis(&self) {
+    fn switch_to_ellipsis(&self) {
         if self.state.get() != State::Ellipsis {
             self.remove_current();
             self.display_object.add_child(&self.ellipsis);
@@ -217,7 +221,7 @@ impl EntryData {
 
 /// The parameters of Breadcrumbs' entries.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Params {
     pub margin:                   f32,
     pub hover_color:              color::Rgba,
@@ -230,18 +234,31 @@ pub struct Params {
     pub greyed_out_start:         Option<usize>,
 }
 
-impl Default for Params {
-    fn default() -> Self {
+impl Params {
+    pub(crate) fn from_style(style: &StyleWatch) -> Self {
+        let margin = style.get_number(theme::entry::margin);
+        let hover_color = style.get_color(theme::entry::hover_color);
+        let font = if let Some(Data::Text(font)) = style.get(theme::entry::font) {
+            font.into()
+        } else {
+            DEFAULT_FONT.into()
+        };
+        let text_offset = style.get_number(theme::entry::text_offset);
+        let text_size = style.get_number(theme::entry::text_size).into();
+        let selected_color = style.get_color(theme::entry::selected_color);
+        let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
+        let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
+        let greyed_out_start = None;
         Self {
-            margin:                   1.0,
-            hover_color:              color::Rgba(0.0, 0.0, 0.0, 0.0),
-            font:                     text::font::DEFAULT_FONT.into(),
-            text_offset:              7.0,
-            text_size:                12.0.into(),
-            selected_color:           color::Rgba(0.5, 0.5, 0.51, 1.0),
-            highlight_corners_radius: 15.0,
-            greyed_out_color:         color::Rgba(0.79, 0.79, 0.8, 1.0),
-            greyed_out_start:         None,
+            margin,
+            hover_color,
+            font,
+            text_offset,
+            text_size,
+            selected_color,
+            highlight_corners_radius,
+            greyed_out_color,
+            greyed_out_start,
         }
     }
 }
@@ -312,7 +329,7 @@ impl ensogl_grid_view::Entry for Entry {
             eval text_size((s) data.set_default_text_size(*s));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
             width <- map2(&input.set_model, &text_offset,
-                f!([data](model, text_offset) {
+                f!((model, text_offset) {
                     data.set_model(model);
                     data.width(*text_offset)
                 })
