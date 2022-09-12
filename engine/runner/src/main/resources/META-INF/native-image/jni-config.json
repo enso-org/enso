@@ -1,0 +1,20 @@
+[
+{
+  "name":"java.lang.Boolean",
+  "methods":[{"name":"getBoolean","parameterTypes":["java.lang.String"] }]}
+,
+{
+  "name":"java.lang.ClassLoader",
+  "methods":[
+    {"name":"getPlatformClassLoader","parameterTypes":[] }, 
+    {"name":"loadClass","parameterTypes":["java.lang.String"] }
+  ]}
+,
+{
+  "name":"jdk.internal.loader.ClassLoaders$PlatformClassLoader"}
+,
+{
+  "name":"org.enso.launcher.Launcher",
+  "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]}
+
+]
