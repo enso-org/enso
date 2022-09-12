@@ -418,9 +418,7 @@ impl Breadcrumbs {
             init <- source_();
             eval input.show_ellipsis((b) model.show_ellipsis(*b));
             selected_grid_col <- grid.entry_selected.filter_map(|l| *l);
-            eval selected_grid_col(((_row, col)) {
-                model.grey_out(Some(col + 1));
-            });
+            eval selected_grid_col(((_row, col)) model.grey_out(Some(col + 1)));
             eval_ input.clear(model.clear());
             selected <- selected_grid_col.map(|(_, col)| col / 2);
             _eval <- input.push.map2(&selected, f!((b, s) model.push(b, *s)));
