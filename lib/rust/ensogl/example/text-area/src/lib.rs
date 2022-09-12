@@ -55,7 +55,7 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
@@ -67,6 +67,8 @@ fn init(app: Application) {
     // TODO: text width endpoints
     // TODO: check support for glyphs with multiple code points
     // TODO: set selection color
+    // TODO: insertowanie ą i innych
+    // TODO: chodzenie po literkach ktorych byte != 1
 
 
     // area.set_cursor_at_end();
@@ -91,11 +93,12 @@ fn init(app: Application) {
 
 
     warn!("=========================");
-    let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
+    // let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
+    // area.set_property(range_green, color::Rgba::red());
+    // area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
+
     // area.set_color(range_green, color::Rgba::red());
-    area.set_property(range_green, color::Rgba::red());
     // area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
-    area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
     // area.set_color_all(color::Rgba::red());
     // area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
 

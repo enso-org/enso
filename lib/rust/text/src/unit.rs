@@ -383,55 +383,130 @@ impl From<&usize> for CodePointIndex {
 // === Location ===
 // ================
 
+auto trait NotSame {}
+impl<T> !NotSame for (T, T) {}
+
 mod location {
     use super::*;
-    newtype_no_sub! {
-    /// A type representing 2d measurements.
-    Location {
-        line:   Line,
-        byte_offset: UBytes,
-    }}
+    use std::ops::AddAssign;
+    use std::ops::SubAssign;
+    #[doc = " A type representing 2d measurements."]
+    #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+    #[allow(missing_docs)]
+    pub struct Location<OffsetType = UBytes, LineType = Line> {
+        pub line:   LineType,
+        pub offset: OffsetType,
+    }
+    /// Smart constructor.
+    #[doc = " A type representing 2d measurements."]
+    #[allow(non_snake_case)]
+    pub fn Location<Offset, Line>(line: Line, offset: Offset) -> Location<Offset, Line> {
+        Location { line, offset }
+    }
 
-    impl Location {
+    impl<Offset: Copy, Line: Copy> From<&Location<Offset, Line>> for Location<Offset, Line> {
+        fn from(t: &Location<Offset, Line>) -> Self {
+            *t
+        }
+    }
+
+    impl<Offset: Copy, Line: Copy> From<&&Location<Offset, Line>> for Location<Offset, Line> {
+        fn from(t: &&Location<Offset, Line>) -> Self {
+            **t
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset, Line: Add> Add<Line> for Location<Offset, Line> {
+        type Output = Location<Offset, <Line as Add>::Output>;
+        fn add(self, rhs: Line) -> Self::Output {
+            Location { line: self.line.add(rhs), offset: self.offset }
+        }
+    }
+    #[allow(clippy::needless_update)]
+    impl<Offset: Copy, Line: Copy + Add> Add<Line> for &Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<Offset, <Line as Add>::Output>;
+        fn add(self, rhs: Line) -> Self::Output {
+            Location { line: self.line.add(rhs), offset: self.offset }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset: Add, Line> Add<Offset> for Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<<Offset as Add>::Output, Line>;
+        fn add(self, rhs: Offset) -> Self::Output {
+            Location { line: self.line, offset: self.offset.add(rhs) }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset: Copy + Add, Line: Copy> Add<Offset> for &Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<<Offset as Add>::Output, Line>;
+        fn add(self, rhs: Offset) -> Self::Output {
+            Location { line: self.line, offset: self.offset.add(rhs) }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset, Line: SaturatingAdd> SaturatingAdd<Line> for Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<Offset, <Line as SaturatingAdd>::Output>;
+        fn saturating_add(self, rhs: Line) -> Self::Output {
+            Location { line: self.line.saturating_add(rhs), offset: self.offset }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset: Copy, Line: Copy + SaturatingAdd> SaturatingAdd<Line> for &Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<Offset, <Line as SaturatingAdd>::Output>;
+        fn saturating_add(self, rhs: Line) -> Self::Output {
+            Location { line: self.line.saturating_add(rhs), offset: self.offset }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset: SaturatingAdd, Line> SaturatingAdd<Offset> for Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<<Offset as SaturatingAdd>::Output, Line>;
+        fn saturating_add(self, rhs: Offset) -> Self::Output {
+            Location { line: self.line, offset: self.offset.saturating_add(rhs) }
+        }
+    }
+
+    #[allow(clippy::needless_update)]
+    impl<Offset: Copy + SaturatingAdd, Line: Copy> SaturatingAdd<Offset> for &Location<Offset, Line>
+    where (Offset, Line): NotSame
+    {
+        type Output = Location<<Offset as SaturatingAdd>::Output, Line>;
+        fn saturating_add(self, rhs: Offset) -> Self::Output {
+            Location { line: self.line, offset: self.offset.saturating_add(rhs) }
+        }
+    }
+
+    impl<Offset, Line> Location<Offset, Line> {
         /// Line setter.
         pub fn with_line(self, line: Line) -> Self {
             Self { line, ..self }
         }
 
         /// CodePointIndex setter.
-        pub fn with_byte_offset(self, byte_offset: UBytes) -> Self {
-            Self { byte_offset, ..self }
+        pub fn with_byte_offset(self, offset: Offset) -> Self {
+            Self { offset, ..self }
         }
     }
 }
 pub use location::*;
 
 
-// ================
-// === Location ===
-// ================
 
-// FIXME: make it parametrized (allow also for columns instead of code_point_index)
-
-mod view_location {
-    use super::*;
-    newtype_no_sub! {
-    /// A type representing 2d measurements.
-    ViewLocation {
-        line:   ViewLine,
-        byte_offset: UBytes,
-    }}
-
-    impl ViewLocation {
-        /// Line setter.
-        pub fn with_line(self, line: ViewLine) -> Self {
-            Self { line, ..self }
-        }
-
-        /// UBytes setter.
-        pub fn with_column(self, byte_offset: UBytes) -> Self {
-            Self { byte_offset, ..self }
-        }
-    }
-}
-pub use view_location::*;
+pub type ViewLocation<Offset = UBytes> = Location<Offset, ViewLine>;

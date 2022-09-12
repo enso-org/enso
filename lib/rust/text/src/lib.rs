@@ -1,4 +1,7 @@
 #![feature(step_trait)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
+
 //! The text operation utilities.
 //!
 //! This crate contains several utility structures for operations on text:

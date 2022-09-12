@@ -835,8 +835,8 @@ impl AreaModel {
                         self.lines.borrow()[line.as_usize()].div_by_byte_offset(byte_offset)
                     }
                 };
-                let start_x = get_pos_x(selection_start_line, buffer_selection.start.byte_offset);
-                let end_x = get_pos_x(selection_end_line, buffer_selection.end.byte_offset);
+                let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
+                let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
                 debug!("start_x {start_x}, end_x {end_x}");
                 let selection_y =
                     -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line.value as f32;
@@ -880,7 +880,7 @@ impl AreaModel {
                     .location_map
                     .entry(selection_start_line)
                     .or_default()
-                    .insert(buffer_selection.start.byte_offset, id);
+                    .insert(buffer_selection.start.offset, id);
             }
             debug!("new_selection_map = {new_selection_map:#?}");
             *selection_map = new_selection_map;
@@ -1063,38 +1063,7 @@ impl AreaModel {
             }
         });
 
-
-
-        // for (range, requested_non_variable_variations) in
-        //     Self::chunks_per_font_face(font, &line_style, content)
-        // {
-        //     let non_variable_variations_match =
-        //         font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
-        //     let non_variable_variations = non_variable_variations_match.variations;
-        //     if non_variable_variations_match.was_closest() {
-        //         warn!(
-        //             "The font is not defined for the variation {:?}. Using {:?} instead.",
-        //             requested_non_variable_variations, non_variable_variations
-        //         );
-        //     }
-        //
-        //
-        //     // Safe because the non_variable_variations was chosen above.
-        //     font.with_borrowed_face(non_variable_variations, |face| {
-        //         let ttf_face = face.ttf.as_face_ref();
-        //         // This is safe. Unwrap should be removed after rustybuzz is fixed:
-        //         // https://github.com/RazrFalcon/rustybuzz/issues/52
-        //         let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
-        //         let mut buffer = rustybuzz::UnicodeBuffer::new();
-        //         buffer.push_str(&content[range.start.value..range.end.value]);
-        //         let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
-        //         let shaped_iter = shaped.glyph_positions().iter().zip(shaped.glyph_infos());
-        //
-        //         for (glyph_position, glyph_info) in shaped_iter {
-        //
-        //         }
-        //     });
-        // }
+        warn!("DIVS: {:?}", divs);
         line.glyphs.truncate(column.value);
 
         line.set_divs(divs);
@@ -1148,10 +1117,10 @@ impl AreaModel {
         if range.start.line == range.end.line {
             let line = &lines[range.start.line.as_usize()];
             for glyph in &line.glyphs {
-                if glyph.start_byte_offset.get() >= range.end.byte_offset {
+                if glyph.start_byte_offset.get() >= range.end.offset {
                     break;
                 }
-                if glyph.start_byte_offset.get() >= range.start.byte_offset {
+                if glyph.start_byte_offset.get() >= range.start.offset {
                     f(&glyph)
                 }
             }
@@ -1160,7 +1129,7 @@ impl AreaModel {
             let second_line = first_line + ViewLine(1);
             let last_line = range.end.line;
             for glyph in &lines[first_line.as_usize()].glyphs {
-                if glyph.start_byte_offset.get() >= range.start.byte_offset {
+                if glyph.start_byte_offset.get() >= range.start.offset {
                     f(&glyph)
                 }
             }
@@ -1170,7 +1139,7 @@ impl AreaModel {
                 }
             }
             for glyph in &lines[last_line.as_usize()].glyphs {
-                if glyph.start_byte_offset.get() < range.end.byte_offset {
+                if glyph.start_byte_offset.get() < range.end.offset {
                     f(&glyph)
                 }
             }

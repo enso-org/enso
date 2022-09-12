@@ -106,7 +106,7 @@ impl Text {
             Err(TooBig) => self.last_line_end_location(),
             Ok(line) => {
                 let byte_offset =
-                    min(location.byte_offset, self.end_byte_offset_of_line_index(line).unwrap());
+                    min(location.offset, self.end_byte_offset_of_line_index(line).unwrap());
                 Location(line, byte_offset)
             }
         }
@@ -317,7 +317,7 @@ impl Text {
         location: Location,
     ) -> Result<UBytes, LocationError<UBytes>> {
         let line_offset = self.byte_offset_of_line_index(location.line)?;
-        Ok(line_offset + location.byte_offset)
+        Ok(line_offset + location.offset)
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.

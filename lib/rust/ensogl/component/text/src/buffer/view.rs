@@ -101,7 +101,7 @@ pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
 impl ChangeWithSelection<UBytes, Text, Location> {
     pub fn is_backspace_at_line_start(&self) -> bool {
         let single_place_edit = self.selection.shape.start == self.selection.shape.end;
-        let edit_on_line_start = self.selection.shape.start.byte_offset == UBytes(0);
+        let edit_on_line_start = self.selection.shape.start.offset == UBytes(0);
         let no_insert = self.change.text.is_empty();
         let empty_range = self.change.range.is_empty();
         single_place_edit && edit_on_line_start && no_insert && !empty_range
@@ -164,7 +164,7 @@ impl ViewBuffer {
             for glyph_set in shaped_line {
                 for glyph in &glyph_set.glyphs {
                     let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                    if glyph_byte_offset >= location.byte_offset {
+                    if glyph_byte_offset >= location.offset {
                         found = true;
                         break;
                     }
@@ -177,8 +177,8 @@ impl ViewBuffer {
             byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
                 if location.line > Line(0) {
                     let line = location.line - Line(1);
-                    let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
-                    Location { line, byte_offset }
+                    let offset = self.end_byte_offset_of_line_index(line).unwrap();
+                    Location { line, offset }
                 } else {
                     default()
                 }
@@ -194,9 +194,9 @@ impl ViewBuffer {
             for glyph_set in shaped_line {
                 for glyph in &glyph_set.glyphs {
                     let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                    if glyph_byte_offset == location.byte_offset {
+                    if glyph_byte_offset == location.offset {
                         prev_was_exact_match = true;
-                    } else if glyph_byte_offset > location.byte_offset {
+                    } else if glyph_byte_offset > location.offset {
                         byte_offset = Some(glyph_byte_offset);
                         break;
                     }
@@ -208,18 +208,18 @@ impl ViewBuffer {
             byte_offset.map(|t| location.with_byte_offset(t)).unwrap_or_else(|| {
                 if prev_was_exact_match {
                     let line = location.line;
-                    let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
-                    Location { line, byte_offset }
+                    let offset = self.end_byte_offset_of_line_index(line).unwrap();
+                    Location { line, offset }
                 } else {
                     let last_line = self.last_line_index();
                     if location.line < last_line {
                         let line = location.line + Line(1);
-                        let byte_offset = UBytes(0);
-                        Location { line, byte_offset }
+                        let offset = UBytes(0);
+                        Location { line, offset }
                     } else {
                         let line = last_line;
-                        let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
-                        Location { line, byte_offset }
+                        let offset = self.end_byte_offset_of_line_index(line).unwrap();
+                        Location { line, offset }
                     }
                 }
             })
@@ -886,8 +886,8 @@ impl ViewModel {
 
     pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
         let line = self.line_to_view_line(location.line);
-        let byte_offset = location.byte_offset;
-        ViewLocation { line, byte_offset }
+        let offset = location.offset;
+        Location { line, offset }
     }
 
     pub fn location_range_to_view_location_range(
