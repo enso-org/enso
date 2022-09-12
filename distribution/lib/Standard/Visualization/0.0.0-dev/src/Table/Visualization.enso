@@ -15,22 +15,23 @@ import Standard.Visualization.Helpers
 
    Arguments:
    - x: The table to prepare for visualisation.
-   - max_rows: The maximum number of rows to display.
+   - start: The index of first row to display (included).
+   - end: The index of last row to display (excluded).
 
    In case of Database backed data, it materializes a fragment of the data.
-prepare_visualization : Any -> Integer -> Json
-prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
+prepare_visualization : Any -> Integer -> Integer -> Json
+prepare_visualization x start=0 end=1000 = Helpers.recover_errors <| case x of
     Dataframe_Table.Table_Data _ ->
-        dataframe = x.take (First max_rows)
+        dataframe = x.slice start end
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
         index = dataframe.index.catch Any _->
-            Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
+            Dataframe_Column.from_vector "" (Vector.new included_rows i->i+start)
         make_json dataframe [index] all_rows_count
 
     Database_Table.Table_Data _ _ _ _ ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
-        df = x.reset_index.read max_rows
+        df = x.reset_index.read start end
         # Then split into actual columns and indices.
         vis_df = df.select_columns (By_Name (x.columns.map .name))
         indices = df.select_columns (By_Name (x.indices.map .name)) . columns
@@ -39,22 +40,22 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
 
     # We display columns as 1-column tables.
     Dataframe_Column.Column_Data _ ->
-        prepare_visualization x.to_table max_rows
+        prepare_visualization x.to_table start end
     Database_Column.Column_Data _ _ _ _ _ ->
-        prepare_visualization x.to_table max_rows
+        prepare_visualization x.to_table start end
 
     # We display aggregates as their ungrouped counterparts.
     Dataframe_Column.Aggregate_Column_Data _ ->
         ungrouped = Dataframe_Column.Column_Data x.java_column.getColumn
-        prepare_visualization ungrouped.to_table max_rows
+        prepare_visualization ungrouped.to_table start end
 
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays
     Vector.Vector ->
-        truncated = x.take (First max_rows)
+        truncated = x.slice start end
         Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     Array ->
-        prepare_visualization (Vector.from_polyglot_array x) max_rows
+        prepare_visualization (Vector.from_polyglot_array x) start end
 
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->
