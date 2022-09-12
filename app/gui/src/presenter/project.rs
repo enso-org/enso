@@ -134,7 +134,7 @@ impl Model {
                 self.graph.allow_expression_auto_updates(node, true);
                 searcher.abort_editing();
             } else {
-                tracing::warn!("When porting editing the AST node of the node view {input_node} could not be found.");
+                tracing::warn!("When porting editing the AST node of the node view {input_node_view} could not be found.");
             }
         } else {
             tracing::warn!("Editing aborted without searcher controller.");
