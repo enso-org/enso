@@ -255,10 +255,6 @@ class RuntimeVisualizationsTest
       val idIncRes    = metadata.addItem(129, 8)
       val idIncMethod = metadata.addItem(102, 43)
 
-      println(s"idIncY=$idIncY")
-      println(s"idIncRes=$idIncRes")
-      println(s"idIncMethod=$idIncMethod")
-
       val code =
         metadata.appendToCode(
           """import Standard.Base.IO

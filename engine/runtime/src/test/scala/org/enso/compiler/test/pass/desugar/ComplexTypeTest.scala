@@ -85,7 +85,6 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their methods desugared to binding methods" in {
-//      println(ir.pretty)
       ir.bindings(3) shouldBe an[Definition.Method.Binding]
       val isJust = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
       isJust.methodName.name shouldEqual "is_just"

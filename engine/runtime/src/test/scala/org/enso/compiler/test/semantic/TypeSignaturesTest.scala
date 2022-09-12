@@ -45,11 +45,7 @@ trait TypeMatchers {
       expr: IR.Expression
     ): Option[(Sig, IR.Expression, String)] = (sig, expr) match {
       case (Name(n), t: IR.Name.Literal) if n == t.name =>
-        if (n == t.name) {
-          None
-        } else {
-          Some((sig, expr, "names do not match"))
-        }
+        None
       case (AnyQualName(n), _) =>
         val meta = expr.getMetadata(TypeNames)
         if (meta.isEmpty) {
