@@ -126,7 +126,7 @@ type Data_Formatter
 
     ## PRIVATE
        Clone the instance with some properties overridden.
-    clone : Boolean->Boolean->Text->Text->Boolean->[Text]->[Text]->[Text]->Locale->[Text]->[Text]->Data_Formatter
+    clone : Boolean -> Boolean -> Text -> Text -> Boolean -> [Text] -> [Text] -> [Text] -> Locale -> [Text] -> [Text] -> Data_Formatter
     clone self (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (datetime_locale=self.datetime_locale) (true_values=self.true_values) (false_values=self.false_values) =
         Data_Formatter_Data trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
 

@@ -210,12 +210,12 @@ type Illegal_Argument_Error
 type Index_Out_Of_Bounds_Error
     Index_Out_Of_Bounds_Error_Data index length
 
-## UNSTABLE
+    ## PRIVATE
 
-   Pretty prints an index out of bounds error.
-Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text self =
-    "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+       Pretty prints an index out of bounds error.
+    to_display_text : Text
+    to_display_text self =
+        "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
@@ -223,9 +223,9 @@ Index_Out_Of_Bounds_Error.to_display_text self =
 type Wrapped_Dataflow_Error
     Wrapped_Dataflow_Error_Data payload
 
-## PRIVATE
-   Throws the original error.
-Wrapped_Dataflow_Error.unwrap self = Error.throw self.payload
+    ## PRIVATE
+       Throws the original error.
+    unwrap self = Error.throw self.payload
 
 @Builtin_Type
 type Caught_Panic
@@ -537,23 +537,22 @@ type Uninitialized_State
 type No_Such_Method_Error
     No_Such_Method_Error_Data target symbol
 
-## ADVANCED
-   UNSTABLE
+    ## ADVANCED
+       UNSTABLE
 
-   Returns the method name of the method that could not be found.
+       Returns the method name of the method that could not be found.
 
-   > Example
-     Getting the method name from a no such method error.
+       > Example
+         Getting the method name from a no such method error.
 
-         import Standard.Examples
+             import Standard.Examples
 
-         example_method_name =
-             error = Examples.no_such_method
-             error.method_name
-No_Such_Method_Error.method_name : Text
-No_Such_Method_Error.method_name self =
-    Meta.meta self.symbol . name
-
+             example_method_name =
+                 error = Examples.no_such_method
+                 error.method_name
+    method_name : Text
+    method_name self =
+        Meta.meta self.symbol . name
 
 ## An error that occurred across a polyglot boundary.
 
@@ -641,11 +640,11 @@ type No_Such_Conversion_Error
 type Unimplemented_Error
     Unimplemented_Error_Data message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Converts the unimplemented error to a human-readable error message.
-Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text self = "An implementation is missing: " + self.message
+       Converts the unimplemented error to a human-readable error message.
+    to_display_text : Text
+    to_display_text self = "An implementation is missing: " + self.message
 
 ## ADVANCED
 

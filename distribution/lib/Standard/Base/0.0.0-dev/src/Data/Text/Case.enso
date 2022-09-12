@@ -1,3 +1,7 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.text.TextFoldingStrategy
+
 ## Specifies the casing options for text conversion.
 type Case
     ## All letters in lower case.
@@ -8,3 +12,19 @@ type Case
 
     ## First letter of each word in upper case, rest in lower case.
     Title
+
+## Represents case-insensitive comparison mode.
+
+   Arguments:
+   - locale: The locale used for the comparison.
+type Case_Insensitive
+    Case_Insensitive_Data locale=Locale.default
+
+## PRIVATE
+   Creates a Java `TextFoldingStrategy` from the case sensitivity setting. 
+folding_strategy : (True|Case_Insensitive) -> TextFoldingStrategy
+folding_strategy case_sensitive = case case_sensitive of
+    True -> TextFoldingStrategy.unicodeNormalizedFold
+    Case_Insensitive_Data locale ->
+        TextFoldingStrategy.caseInsensitiveFold locale.java_locale
+

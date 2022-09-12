@@ -1,12 +1,11 @@
 package org.enso.table.data.index;
 
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.Column;
-
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.Column;
 
 public class DefaultIndex extends Index {
   private final int size;

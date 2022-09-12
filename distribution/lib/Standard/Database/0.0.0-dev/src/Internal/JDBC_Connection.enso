@@ -1,0 +1,200 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
+
+import Standard.Database.Data.Sql
+from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data, Statement, Statement_Data
+from Standard.Database.Errors import Sql_Error, Sql_Error_Data, Sql_Timeout_Error, Sql_Timeout_Error_Data
+import Standard.Database.Data.Internal.Base_Generator
+import Standard.Table.Data.Storage
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Materialized_Table
+
+polyglot java import java.util.Properties
+
+polyglot java import java.sql.Connection
+polyglot java import java.sql.DatabaseMetaData
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
+
+polyglot java import org.enso.database.JDBCProxy
+
+type JDBC_Connection
+    ## PRIVATE
+    JDBC_Connection_Data connection_resource
+
+    ## PRIVATE
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close self =
+        self.connection_resource . finalize
+
+    ## PRIVATE
+
+       Open the connection to the database, then run the action wrapping any
+       SQL errors.
+    with_connection : (Connection -> Any) -> Any
+    with_connection self ~action =
+        handle_sql_errors <|
+            self.connection_resource.with action
+
+    ## PRIVATE
+
+       Open the connection to the database, then run the action passing the
+       database's metadata wrapping any SQL errors.
+    with_metadata : (DatabaseMetaData -> Any) -> Any
+    with_metadata self ~action =
+        handle_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                action metadata
+
+    ## PRIVATE
+
+       Runs the provided action with a prepared statement, adding contextual
+       information to any thrown SQL errors.
+    with_prepared_statement : Text  | Statement -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement self query action =
+        prepare template holes = self.connection_resource.with java_connection->
+            stmt = java_connection.prepareStatement template
+            Panic.catch Any (set_statement_values stmt holes) caught_panic->
+                stmt.close
+                Panic.throw caught_panic
+            stmt
+
+        go template holes =
+            handle_sql_errors related_query=template <|
+                Resource.bracket (prepare template holes) .close action
+
+        case query of
+            Text -> go query []
+            Statement_Data _ ->
+                compiled = query.prepare
+                go compiled.first compiled.second
+
+    ## PRIVATE
+
+       Given a prepared statement, gets the column names and types for the
+       result set.
+    fetch_columns : PreparedStatement -> Any
+    fetch_columns self statement =
+        self.with_prepared_statement statement stmt->
+            metadata = stmt.executeQuery.getMetaData
+
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typeid = metadata.getColumnType ix+1
+                typename = metadata.getColumnTypeName ix+1
+                [name, Sql_Type_Data typeid typename]
+
+            Vector.new metadata.getColumnCount resolve_column
+
+    ## PRIVATE
+
+       Given an insert query template and the associated Database_Table, and a
+       Materialized_Table of data, load to the database.
+    load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
+    load_table self insert_template db_table table batch_size =
+        db_types = db_table.internal_columns.map .sql_type
+        self.with_connection java_connection->
+            default_autocommit = java_connection.getAutoCommit
+            java_connection.setAutoCommit False
+            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                    num_rows = table.row_count
+                    columns = table.columns
+                    check_rows updates_array expected_size =
+                        updates = Vector.Vector_Data updates_array
+                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                            updates.each affected_rows->
+                                if affected_rows != 1 then
+                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                    0.up_to num_rows . each row_id->
+                        values = columns.map col-> col.at row_id
+                        holes = values.zip db_types
+                        set_statement_values stmt holes
+                        stmt.addBatch
+                        if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
+                    if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                java_connection.commit
+
+## PRIVATE
+
+   Creates a JDBC connection based on a URL and optionally username and
+   password.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create : Text -> Vector -> JDBC_Connection
+create url properties = handle_sql_errors <|
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
+    java_connection = JDBCProxy.getConnection url java_props
+
+    resource = Managed_Resource.register java_connection close_connection
+    JDBC_Connection_Data resource
+
+## PRIVATE
+
+   This cannot be a closure due to limitations of Managed_Resource.
+
+   Arguments:
+   - connection: The connection to close.
+close_connection : Connection -> Nothing
+close_connection connection =
+    connection.close
+
+## PRIVATE
+
+   Executes `action` and returns its result, catching any panics and if they are
+   coming from JDBC, wraps them with our own error types and returns as regular
+   data-flow errors.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action related_query=Nothing =
+    Panic.catch SQLException action caught_panic->
+        exc = caught_panic.payload.cause
+        case Java.is_instance exc SQLTimeoutException of
+            True -> Error.throw (Sql_Timeout_Error_Data exc related_query)
+            False -> Error.throw (Sql_Error_Data exc related_query)
+
+## PRIVATE
+   Sets values inside of a prepared statement.
+set_statement_values : PreparedStatement -> Vector (Pair Any Sql_Type) -> Nothing
+set_statement_values stmt holes =
+    holes.map_with_index ix-> obj->
+        position = ix + 1
+        case obj.first of
+            Nothing -> stmt.setNull position obj.second.typeid
+            _ -> stmt.setObject position obj.first
+
+## PRIVATE
+   Given a Materialized_Table, create a SQL statement to build the table.
+create_table_statement : Text -> Materialized_Table -> Boolean -> Statement
+create_table_statement name table temporary =
+    column_types = table.columns.map col-> default_storage_type col.storage_type
+    column_names = table.columns.map .name
+    col_makers = column_names.zip column_types name-> typ->
+        Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
+    create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
+    (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
+
+## PRIVATE
+   Returns the default database type corresponding to an in-memory storage type.
+default_storage_type : Storage.Type -> Sql_Type
+default_storage_type storage_type = case storage_type of
+    Storage.Text -> Sql_Type.text
+    Storage.Integer -> Sql_Type.integer
+    Storage.Decimal -> Sql_Type.double
+    Storage.Boolean -> Sql_Type.boolean
+    ## Support for mixed type columns in Table upload is currently very limited,
+       falling back to treating everything as text.
+    Storage.Any -> Sql_Type.text

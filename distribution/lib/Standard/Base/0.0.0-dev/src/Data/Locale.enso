@@ -428,7 +428,3 @@ type Locale
    - java: The java locale value.
 from_java : JavaLocale -> Locale
 from_java java = Locale_Data java
-
-## PRIVATE
-javaLocaleBuilder = JavaLocale.Builder
-
