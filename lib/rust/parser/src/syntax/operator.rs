@@ -217,7 +217,7 @@ impl<'s> ExpressionBuilder<'s> {
         use ItemType::*;
         let mut item =
             (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop().map(|t| t.to_ast()));
-        self.reduce(token::Precedence::minimum(), &mut item);
+        self.reduce(token::Precedence::min(), &mut item);
         if !self.output.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed while constructing the expression."

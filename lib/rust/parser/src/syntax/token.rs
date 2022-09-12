@@ -258,9 +258,11 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Wildcard {
             pub lift_level: usize
         },
+        AutoScope,
         Ident {
-            pub is_free: bool,
-            pub lift_level: usize
+            pub is_free:    bool,
+            pub lift_level: usize,
+            pub is_type:    bool,
         },
         Operator {
             pub properties: OperatorProperties,
@@ -274,6 +276,13 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextEscape,
     }
 }}}
+
+impl Variant {
+    /// Return whether this token can introduce a macro invocation.
+    pub fn can_start_macro(&self) -> bool {
+        !matches!(self, Variant::TextEscape(_))
+    }
+}
 
 impl Default for Variant {
     fn default() -> Self {
@@ -314,6 +323,9 @@ pub struct OperatorProperties {
     #[serde(skip)]
     #[reflect(skip)]
     is_assignment:             bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_arrow:                  bool,
 }
 
 impl OperatorProperties {
@@ -328,8 +340,8 @@ impl OperatorProperties {
     }
 
     /// Return a copy of this operator, with unary prefix parsing allowed.
-    pub fn with_unary_prefix_mode(self) -> Self {
-        Self { unary_prefix_precedence: Some(Precedence { value: 100 }), ..self }
+    pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
+        Self { unary_prefix_precedence: Some(precedence), ..self }
     }
 
     /// Return a copy of this operator, modified to be flagged as a compile time operation.
@@ -345,6 +357,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as an assignment operator.
     pub fn as_assignment(self) -> Self {
         Self { is_assignment: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an arrow operator.
+    pub fn as_arrow(self) -> Self {
+        Self { is_arrow: true, ..self }
     }
 
     /// Return this operator's binary infix precedence, if it has one.
@@ -371,6 +388,11 @@ impl OperatorProperties {
     pub fn is_assignment(&self) -> bool {
         self.is_assignment
     }
+
+    /// Return whether this operator is the arrow operator.
+    pub fn is_arrow(&self) -> bool {
+        self.is_arrow
+    }
 }
 
 /// Value that can be compared to determine which operator will bind more tightly within an
@@ -383,8 +405,13 @@ pub struct Precedence {
 
 impl Precedence {
     /// Return a precedence that is not higher than any other precedence.
-    pub fn minimum() -> Self {
+    pub fn min() -> Self {
         Precedence { value: 0 }
+    }
+
+    /// Return a precedence that is not lower than any other precedence.
+    pub fn max() -> Self {
+        Precedence { value: 100 }
     }
 }
 

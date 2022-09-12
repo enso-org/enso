@@ -121,6 +121,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Number {
             pub token: token::Number<'s>,
         },
+        /// The wildcard marker, `_`.
+        Wildcard {
+            pub token: token::Wildcard<'s>,
+        },
+        /// The auto-scoping marker, `...`.
+        AutoScope {
+            pub token: token::AutoScope<'s>,
+        },
         TextLiteral {
             pub open_quote: Option<token::TextStart<'s>>,
             pub elements: Vec<TextElement<'s>>,
@@ -243,6 +251,25 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[reflect(rename = "type")]
             pub type_: Tree<'s>,
         },
+        /// A `case` pattern-matching expression.
+        Case {
+            pub case:       token::Ident<'s>,
+            pub expression: Option<Tree<'s>>,
+            pub of:         token::Ident<'s>,
+            pub initial:    Option<Tree<'s>>,
+            pub body:       Vec<block::Line<'s>>,
+        },
+        /// An expression mapping arguments to an expression with the `->` operator.
+        Arrow {
+            pub arguments: Vec<Tree<'s>>,
+            pub arrow: token::Operator<'s>,
+            pub body: Option<Tree<'s>>,
+        },
+        /// A lambda expression.
+        Lambda {
+            pub operator: token::Operator<'s>,
+            pub arrow: Option<Tree<'s>>,
+        }
     }
 }};}
 
@@ -529,6 +556,21 @@ pub fn apply_operator<'s>(
             }
         };
         return Tree::type_annotated(lhs, opr.unwrap(), rhs);
+    }
+    if let Ok(opr) = &opr && opr.properties.is_arrow() {
+        let mut args = vec![];
+        if let Some(mut lhs) = lhs {
+            while let Tree { variant: box Variant::App(App { func, arg }), span } = lhs {
+                lhs = func;
+                let mut left_offset = span.left_offset;
+                left_offset += mem::take(&mut lhs.span.left_offset);
+                lhs.span.left_offset = left_offset;
+                args.push(arg);
+            }
+            args.push(lhs);
+            args.reverse();
+        }
+        return Tree::arrow(args, opr.clone(), rhs);
     }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {

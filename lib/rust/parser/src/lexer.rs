@@ -445,6 +445,7 @@ fn is_operator_body_char(t: char) -> bool {
 pub struct IdentInfo {
     starts_with_underscore: bool,
     lift_level:             usize,
+    starts_with_uppercase:  bool,
 }
 
 impl IdentInfo {
@@ -453,7 +454,9 @@ impl IdentInfo {
     pub fn new(repr: &str) -> Self {
         let starts_with_underscore = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        Self { starts_with_underscore, lift_level }
+        let starts_with_uppercase =
+            repr.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
+        Self { starts_with_underscore, lift_level, starts_with_uppercase }
     }
 }
 
@@ -475,7 +478,11 @@ impl token::Variant {
     #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
-        token::variant::Ident(info.starts_with_underscore, info.lift_level)
+        token::variant::Ident(
+            info.starts_with_underscore,
+            info.lift_level,
+            info.starts_with_uppercase,
+        )
     }
 
     /// Convert the provided string to ident or wildcard. The provided repr should contain valid
@@ -487,7 +494,8 @@ impl token::Variant {
             token::Variant::wildcard(info.lift_level)
         } else {
             let is_free = info.starts_with_underscore;
-            token::Variant::ident(is_free, info.lift_level)
+            let is_type = info.starts_with_uppercase;
+            token::Variant::ident(is_free, info.lift_level, is_type)
         }
     }
 }
@@ -545,17 +553,22 @@ impl<'s> Lexer<'s> {
                 self.submit_token(left.with_variant(token::Variant::operator(lhs)));
                 let rhs = analyze_operator(&right.code);
                 self.submit_token(right.with_variant(token::Variant::operator(rhs)));
-            } else {
-                let only_eq = token.code.chars().all(|t| t == '=');
-                let is_mod = token.code.ends_with('=') && !only_eq;
-                let tp = if is_mod {
-                    token::Variant::modifier()
-                } else {
-                    token::Variant::operator(analyze_operator(&token.code))
-                };
-                let token = token.with_variant(tp);
-                self.submit_token(token);
+                return;
             }
+            if token.code == "..." {
+                let token = token.with_variant(token::Variant::auto_scope());
+                self.submit_token(token);
+                return;
+            }
+            let only_eq = token.code.chars().all(|t| t == '=');
+            let is_mod = token.code.ends_with('=') && !only_eq;
+            let tp = if is_mod {
+                token::Variant::modifier()
+            } else {
+                token::Variant::operator(analyze_operator(&token.code))
+            };
+            let token = token.with_variant(tp);
+            self.submit_token(token);
         }
     }
 }
@@ -568,12 +581,17 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
     let operator = token::OperatorProperties::new();
     let binary = match token {
         // Special handling for tokens that can be unary.
-        "~" => return operator.with_unary_prefix_mode(),
-        "-" => return operator.with_unary_prefix_mode().with_binary_infix_precedence(14),
+        "\\" => return operator.with_unary_prefix_mode(token::Precedence::min()),
+        "~" => return operator.with_unary_prefix_mode(token::Precedence::max()),
+        "-" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::max())
+                .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
         "=" => 1,
         ":" => 2,
-        "->" => 3,
+        "->" =>
+            return operator.with_binary_infix_precedence(3).as_compile_time_operation().as_arrow(),
         "|" | "\\\\" | "&" => 4,
         ">>" | "<<" => 5,
         "|>" | "|>>" | "<|" | "<<|" => 6,
@@ -989,7 +1007,8 @@ pub mod test {
     pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
-        token::ident_(left_offset, code, is_free, lift_level)
+        let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase)
     }
 
     /// Constructor.

@@ -15,6 +15,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+
+
 mod metadata;
 
 use lexpr::sexp;
@@ -613,6 +615,88 @@ fn multiline_text_literals() {
 }
 
 
+// === Lambdas ===
+
+#[test]
+fn lambdas() {
+    let cases = [
+        ("\\v -> v", block![(Lambda "\\" (Arrow #((Ident v)) "->" (Ident v)))]),
+        ("\\a b -> 4", block![(Lambda "\\" (Arrow #((Ident a) (Ident b)) "->" (Number 4)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Pattern Matching ===
+
+#[test]
+fn pattern_irrefutable() {
+    let code = "Point x_val = my_point";
+    let expected = block![(Assignment (App (Ident Point) (Ident x_val)) "=" (Ident my_point))];
+    test(&code, expected);
+
+    let code = "Point _ = my_point";
+    let expected = block![(Assignment (App (Ident Point) (Wildcard)) "=" (Ident my_point))];
+    test(&code, expected);
+}
+
+#[test]
+fn case_expression() {
+    #[rustfmt::skip]
+    let code = [
+        "case a of",
+        "    Some -> 4",
+        "    Int ->",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (Case (Ident a) () #(
+         (Arrow #((Ident Some)) "->" (Number 4))
+         (Arrow #((Ident Int)) "->" ())))
+    ];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "case a of",
+        "    Vector_2d x y -> 4",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (Case (Ident a) () #((Arrow #((Ident Vector_2d) (Ident x) (Ident y)) "->" (Number 4))))
+    ];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "case self of",
+        "    Vector_2d -> 4",
+        "    _ -> 5",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (Case (Ident self) () #(
+         (Arrow #((Ident Vector_2d)) "->" (Number 4))
+         (Arrow #((Wildcard)) "->" (Number 5))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn pattern_match_auto_scope() {
+    #[rustfmt::skip]
+    let code = [
+        "case self of",
+        "    Vector_2d ... -> 4",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (Case (Ident self) () #((Arrow #((Ident Vector_2d) (AutoScope)) "->" (Number 4))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
 
 // ====================
 // === Test Support ===
@@ -670,10 +754,10 @@ where T: serde::Serialize + Reflect {
     let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
     let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
     let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
+    let wildcard_token = rust_to_meta[&token::variant::Wildcard::reflect().id];
+    let autoscope_token = rust_to_meta[&token::variant::AutoScope::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
-    let line = rust_to_meta[&tree::block::Line::reflect().id];
-    let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
         code[range].to_owned().into_boxed_str()
@@ -700,9 +784,31 @@ where T: serde::Serialize + Reflect {
         Value::Cons(cons) => cons.into_pair().0,
         _ => panic!(),
     };
+    let simplify_case = |list| {
+        let list = strip_hidden_fields(list);
+        let (_, list) = match list {
+            Value::Cons(cons) => cons.into_pair(),
+            _ => panic!(),
+        };
+        let (expression, list) = match list {
+            Value::Cons(cons) => cons.into_pair(),
+            _ => panic!(),
+        };
+        let (_, list) = match list {
+            Value::Cons(cons) => cons.into_pair(),
+            _ => panic!(),
+        };
+        Value::cons(expression, list)
+    };
+    let line = rust_to_meta[&tree::block::Line::reflect().id];
+    let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
+    let case = rust_to_meta[&tree::Case::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
+    to_s_expr.mapper(case, simplify_case);
     to_s_expr.skip(newline_token);
+    to_s_expr.skip(wildcard_token);
+    to_s_expr.skip(autoscope_token);
     tuplify(to_s_expr.value(ast_ty, &value))
 }
 
