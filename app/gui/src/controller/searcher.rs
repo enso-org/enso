@@ -661,8 +661,12 @@ impl Searcher {
                 ast::Shifted::new(pattern_offset, ast)
             }
             Some(mut expression) => {
+                const MINIMUM_PATTERN_OFFSET: usize = 1;
                 let new_argument = ast::prefix::Argument {
-                    sast:      ast::Shifted::new(pattern_offset.max(1), added_ast),
+                    sast:      ast::Shifted::new(
+                        pattern_offset.max(MINIMUM_PATTERN_OFFSET),
+                        added_ast,
+                    ),
                     prefix_id: default(),
                 };
                 expression.args.push(new_argument);
