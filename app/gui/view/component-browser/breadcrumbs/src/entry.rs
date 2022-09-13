@@ -234,9 +234,12 @@ pub struct Params {
 }
 
 impl Params {
-    pub(crate) fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
+    pub(crate) fn from_style(
+        style: &StyleWatchFrp,
+        network: &frp::Network,
+        init: frp::Source<()>,
+    ) -> frp::Sampler<Self> {
         frp::extend! { network
-            init <- source_();
             let margin = style.get_number(theme::entry::margin);
             let hover_color = style.get_color(theme::entry::hover_color);
             let font = style.get_text(theme::entry::font);
@@ -246,13 +249,13 @@ impl Params {
             let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
             let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
             greyed_out_start <- init.constant(None);
-            text_params <- all3(&text_offset,&text_size,&font);
-            colors <- all3(&hover_color,&selected_color,&greyed_out_color);
-            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,&greyed_out_start,
+            text_params <- all4(&init, &text_offset,&text_size,&font);
+            colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
+            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
+                &greyed_out_start,
                 |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
-                    DEBUG!("Text params: {text_params:?}");
-                    let (text_offset,text_size,font) = text_params;
-                    let (hover_color,selected_color,greyed_out_color) = colors;
+                    let (_, text_offset,text_size,font) = text_params;
+                    let (_, hover_color,selected_color,greyed_out_color) = colors;
                     Params {
                         margin,
                         text_offset: *text_offset,
@@ -266,10 +269,8 @@ impl Params {
                     }
                 }
             );
-            eval params([](p) {DEBUG!("Params: {p:?}")});
             params_sampler <- params.sampler();
         }
-        init.emit(());
         params_sampler
     }
 }
