@@ -576,51 +576,68 @@ impl<'s> Lexer<'s> {
 
 // === Precedence ===
 
-// FIXME: Compute precedences according to spec. Issue: #182497344
 fn analyze_operator(token: &str) -> token::OperatorProperties {
-    let operator = token::OperatorProperties::new();
-    let binary = match token {
-        // Special handling for tokens that can be unary.
-        "\\" => return operator.with_unary_prefix_mode(token::Precedence::min()),
-        "~" => return operator.with_unary_prefix_mode(token::Precedence::max()),
+    let mut operator = token::OperatorProperties::new();
+    if token.ends_with("->") && !token.starts_with("<-") {
+        operator = operator.as_right_associative();
+    }
+    match token {
+        // Operators that can be unary.
+        "\\" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min())
+                .as_compile_time_operation(),
+        "~" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::max())
+                .as_compile_time_operation(),
         "-" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
                 .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
-        "=" => 1,
-        ":" => 2,
+        "=" => return operator.with_binary_infix_precedence(1).as_assignment(),
+        ":" =>
+            return operator
+                .with_binary_infix_precedence(2)
+                .as_compile_time_operation()
+                .as_type_annotation(),
         "->" =>
             return operator.with_binary_infix_precedence(3).as_compile_time_operation().as_arrow(),
-        "|" | "\\\\" | "&" => 4,
-        ">>" | "<<" => 5,
-        "|>" | "|>>" | "<|" | "<<|" => 6,
-        // "The precedence of all other operators is determined by the operator's Precedence
-        // Character:"
-        "!" => 10,
-        "||" => 11,
-        "^" => 12,
-        "&&" => 13,
-        "+" | "++" => 14,
-        "*" | "/" | "%" => 15,
-        // FIXME: Not sure about these:
-        "==" => 1,
-        "," => 1,
-        "@" => 20,
-        "." => 21,
+        "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
+        ">>" | "<<" => return operator.with_binary_infix_precedence(5),
+        "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
+        // Other special operators.
+        "==" => return operator.with_binary_infix_precedence(1),
+        "," => return operator.with_binary_infix_precedence(1).as_compile_time_operation(),
+        "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
+        "." => return operator.with_binary_infix_precedence(21),
+        _ => (),
+    }
+    // "The precedence of all other operators is determined by the operator's Precedence Character:"
+    let mut precedence_char = None;
+    for c in token.chars() {
+        match (c, precedence_char) {
+            ('<' | '-', None) | ('-', Some('<')) => {
+                precedence_char = Some(c);
+            }
+            _ => {
+                precedence_char = Some(c);
+                break;
+            }
+        }
+    }
+    let binary = match precedence_char.unwrap() {
+        '!' => 10,
+        '|' => 11,
+        '^' => 12,
+        '&' => 13,
+        '<' | '>' => 14,
+        '+' | '-' => 15,
+        '*' | '/' | '%' => 16,
         _ => return operator,
     };
-    let mut operator = operator.with_binary_infix_precedence(binary);
-    if token == ":" || token == "," {
-        operator = operator.as_compile_time_operation();
-    }
-    if token == ":" {
-        operator = operator.as_type_annotation();
-    }
-    if token == "=" {
-        operator = operator.as_assignment();
-    }
-    operator
+    operator.with_binary_infix_precedence(binary)
 }
 
 

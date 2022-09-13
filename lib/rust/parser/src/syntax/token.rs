@@ -308,15 +308,21 @@ impl Default for Variant {
     Default
 )]
 pub struct OperatorProperties {
+    // Precedence
     #[serde(skip)]
     #[reflect(skip)]
     binary_infix_precedence:   Option<Precedence>,
     #[serde(skip)]
     #[reflect(skip)]
     unary_prefix_precedence:   Option<Precedence>,
+    // Special properties
     #[serde(skip)]
     #[reflect(skip)]
     is_compile_time_operation: bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_right_associative:      bool,
+    // Unique operators
     #[serde(skip)]
     #[reflect(skip)]
     is_type_annotation:        bool,
@@ -347,6 +353,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as a compile time operation.
     pub fn as_compile_time_operation(self) -> Self {
         Self { is_compile_time_operation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as right associative.
+    pub fn as_right_associative(self) -> Self {
+        Self { is_right_associative: true, ..self }
     }
 
     /// Return a copy of this operator, modified to be flagged as a type annotation operator.
@@ -393,6 +404,14 @@ impl OperatorProperties {
     pub fn is_arrow(&self) -> bool {
         self.is_arrow
     }
+
+    /// Return this operator's associativity.
+    pub fn associativity(&self) -> Associativity {
+        match self.is_right_associative {
+            false => Associativity::Left,
+            true => Associativity::Right,
+        }
+    }
 }
 
 /// Value that can be compared to determine which operator will bind more tightly within an
@@ -413,6 +432,15 @@ impl Precedence {
     pub fn max() -> Self {
         Precedence { value: 100 }
     }
+}
+
+/// Associativity (left or right).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Associativity {
+    /// Left-associative.
+    Left,
+    /// Right-associative.
+    Right,
 }
 
 

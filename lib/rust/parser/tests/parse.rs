@@ -339,6 +339,15 @@ fn precedence() {
     test(&code.join("\n"), expected);
 }
 
+#[test]
+fn right_associative_operators() {
+    let code = ["1 --> 2 ---> 3"];
+    let expected = block![
+        (OprApp (Number 1) (Ok "-->") (OprApp (Number 2) (Ok "--->") (Number 3)))
+    ];
+    test(&code.join("\n"), expected);
+}
+
 
 // === Unary Operators ===
 

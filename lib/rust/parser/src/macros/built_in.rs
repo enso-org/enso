@@ -289,8 +289,8 @@ impl<'s> TypeDefBodyBuilder<'s> {
 
 /// Lambda expression.
 ///
-/// The lambda operator `\` cannnot be implemented as an ordinary unary operator, but it doesn't
-/// follow the whitespace precedence rules.
+/// The lambda operator `\` is similar to a unary operator, but is implemented as a macro because it
+/// doesn't follow the whitespace precedence rules.
 pub fn lambda<'s>() -> Definition<'s> {
     crate::macro_definition! {("\\", everything()) lambda_body}
 }
@@ -347,5 +347,5 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
             _ => initial = Some(body),
         }
     }
-    syntax::Tree::case(case_, expression, of_, initial, lines)
+    Tree::case(case_, expression, of_, initial, lines)
 }
