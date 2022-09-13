@@ -40,39 +40,39 @@ spec =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should infer headers based on the first two rows" <|
-            t1 = File.read (enso_project.data / "data_small.csv") (Delimited "," headers=Infer)
+            t1 = File.read (enso_project.data / "data_small.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Code", "Index", "Flag", "Value", "ValueWithNothing", "TextWithNothing", "Hexadecimal", "Leading0s", "QuotedNumbers", "Mixed Types"]
 
-            t2 = File.read (enso_project.data / "all_text.csv") (Delimited "," headers=Infer)
+            t2 = File.read (enso_project.data / "all_text.csv") (Delimited ",")
             t2.columns.map .name . should_equal ["Column_1", "Column_2"]
             t2.at "Column_1" . to_vector . should_equal ["a", "c", "e", "g"]
             t2.at "Column_2" . to_vector . should_equal ["b", "d", "f", "h"]
 
-            t3 = File.read (enso_project.data / "two_rows1.csv") (Delimited "," headers=Infer)
+            t3 = File.read (enso_project.data / "two_rows1.csv") (Delimited ",")
             t3.columns.map .name . should_equal ["a", "b", "c"]
             t3.at "a" . to_vector . should_equal ["x"]
             t3.at "b" . to_vector . should_equal [Nothing]
             t3.at "c" . to_vector . should_equal [Nothing]
 
-            t4 = File.read (enso_project.data / "two_rows2.csv") (Delimited "," headers=Infer)
+            t4 = File.read (enso_project.data / "two_rows2.csv") (Delimited ",")
             t4.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t4.at "Column_1" . to_vector . should_equal ["a", "d"]
             t4.at "Column_2" . to_vector . should_equal ["b", "e"]
             t4.at "Column_3" . to_vector . should_equal ["c", "f"]
 
-            t5 = File.read (enso_project.data / "numbers_in_header.csv") (Delimited "," headers=Infer)
+            t5 = File.read (enso_project.data / "numbers_in_header.csv") (Delimited ",")
             t5.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t5.at "Column_1" . to_vector . should_equal ["a", "1"]
             t5.at "Column_2" . to_vector . should_equal ["b", "2"]
             t5.at "Column_3" . to_vector . should_equal [0, 3]
 
-            t6 = File.read (enso_project.data / "quoted_numbers_in_header.csv") (Delimited "," headers=Infer)
+            t6 = File.read (enso_project.data / "quoted_numbers_in_header.csv") (Delimited ",")
             t6.columns.map .name . should_equal ["1", "x"]
             t6.at "1" . to_vector . should_equal ["y"]
             t6.at "x" . to_vector . should_equal [2]
 
         Test.specify "should not use the first row as headers if it is the only row, unless specifically asked to" <|
-            t1 = File.read (enso_project.data / "one_row.csv") (Delimited "," headers=Infer)
+            t1 = File.read (enso_project.data / "one_row.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t1.at "Column_1" . to_vector . should_equal ["x"]
             t1.at "Column_2" . to_vector . should_equal ["y"]

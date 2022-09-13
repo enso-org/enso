@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 
-from Standard.Table.Excel.Section import Excel_Section, Worksheet
+from Standard.Table.Excel.Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
 from Standard.Table.Excel.Reader import read_excel
 from Standard.Table.Excel.Writer import write_excel
 
@@ -37,8 +37,8 @@ type Excel_Format
     Excel (section:Excel_Section=Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
 
     ## If the File_Format supports reading from the file, return a configured instance.
-    matches : File -> Any
-    matches file =
+    can_read : File -> Any
+    can_read self file =
         case file.extension of
             ".xlsx" -> Excel xls_format=False
             ".xlsm" -> Excel xls_format=False

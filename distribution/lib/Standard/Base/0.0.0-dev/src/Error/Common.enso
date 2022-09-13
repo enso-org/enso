@@ -672,3 +672,11 @@ type Time_Error
        Arguments:
        - error_message: The message for the error.
     Time_Error_Data error_message
+
+## Indicates that the given file's type is not supported.
+type Unsupported_File_Type
+    Unsupported_File_Type_Data filename
+
+    to_display_text : Text
+    to_display_text self =
+        "The "+self.filename+" has a type that is not supported."

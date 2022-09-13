@@ -1,44 +1,22 @@
 from Standard.Base import all
 from Standard.Base.Error.Common import unimplemented
 
-## PRIVATE
-   Reads the list of types from `File_Format` or provides a default set.
-types : Vector
-types =
-    Panic.catch No_Such_Method_Error_Data File_Format.types _->
-        [Bytes, Plain_Text]
-
 type File_Format
-    ## Does the File_Format support reading from the file?
-    matches : File -> Any
-    matches _ = Nothing
+    ## If the File_Format supports reading from the file, return a configured instance.
+    can_read : File -> Any
+    can_read _ = Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read _ _ = unimplemented "This is an interface only."
 
-type Auto_Detect
-    ## If the File_Format supports reading from the file, return a configured instance.
-    matches : File -> Any
-    matches file =
-         result = types.find t->(t.matches file)
-         if result.is_error then Nothing else result
-
-    ## PRIVATE
-       Implements the `File.read` for this `File_Format`
-    read : File -> Problem_Behavior -> Any
-    read self file on_problems =
-        reader = Auto_Detect.get_format file
-        if reader == Nothing then Error.throw (Unsupported_File_Type_Data "No File_Format supports '" + file.extension + "'") else
-            reader.read file on_problems
-
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
     ## If the File_Format supports reading from the file, return a configured instance.
-    matches : File -> Any
-    matches file =
+    can_read : File -> Any
+    can_read self file =
         case file.extension of
             ".txt" -> Plain_Text
             ".log" -> Plain_Text
@@ -52,8 +30,8 @@ type Plain_Text_Format
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
-    matches : File -> Boolean
-    matches file =
+    can_read : File -> Any
+    can_read self file =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing
@@ -66,11 +44,3 @@ type Bytes
 
 ## A setting to infer the default behaviour of some option.
 type Infer
-
-## Indicates that the given file type is not supported by the `Auto_Detect` format.
-type Unsupported_File_Type
-    Unsupported_File_Type_Data filename
-
-    to_display_text : Text
-    to_display_text self =
-        "The "+self.filename+" has a type that is not supported by the Auto_Detect format."

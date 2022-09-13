@@ -3,6 +3,8 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 
 from Standard.Table.Excel.Reader import handle_reader, make_java_headers
+from Standard.Table.Excel.Section import Worksheet, Cell_Range
+from Standard.Table.Excel.Range import Excel_Range_Data
 
 from Standard.Table.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Table.Data.Match_Columns

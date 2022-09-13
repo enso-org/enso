@@ -3,6 +3,12 @@ from Standard.Base import all
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 
 ## PRIVATE
+   Wrapper for validation of a value prior to execution.
+validate : Boolean -> Text -> Any
+validate validation ~error_message ~wrapped =
+    if validation then wrapped else Error.throw (Illegal_Argument_Error_Data error_message)
+
+## PRIVATE
 excel_2007_column_limit = 16384
 
 ## PRIVATE

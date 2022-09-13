@@ -50,8 +50,8 @@ type Delimited_Format
     Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter_Data) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## If the File_Format supports reading from the file, return a configured instance.
-    matches : File -> Any
-    matches file =
+    can_read : File -> Any
+    can_read self file =
         case file.extension of
             ".csv" -> Delimited ','
             ".tsv" -> Delimited '\t'
@@ -119,6 +119,3 @@ type Delimited_Format
     without_comments : Delimited_Format
     without_comments self =
         self.clone comment_character=Nothing
-
-## A setting to infer the default behaviour of some option.
-type Infer

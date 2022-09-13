@@ -3,6 +3,7 @@ import Standard.Base.System.File.Option
 
 import Standard.Table.Data.Table
 
+from Standard.Table.Excel.Range import Excel_Range_Data
 from Standard.Table.Excel.Section import Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
 
 from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
@@ -14,12 +15,6 @@ polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
-
-## PRIVATE
-   Wrapper for validation of a value prior to execution.
-validate : Boolean -> Text -> Any
-validate validation ~error_message ~wrapped =
-    if validation then wrapped else Error.throw (Illegal_Argument_Error_Data error_message)
 
 ## PRIVATE
 prepare_reader_table : Problem_Behavior -> Any -> Table
