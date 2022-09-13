@@ -728,7 +728,7 @@ impl Searcher {
         let new_expression = match self.data.borrow_mut().input.expression.clone() {
             None => {
                 let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
-                ast::Shifted::new(pattern_offset, ast)
+                Some(ast::Shifted::new(pattern_offset, ast))
             }
             Some(mut expression) => {
                 let new_argument = ast::prefix::Argument {
@@ -739,22 +739,11 @@ impl Searcher {
                     prefix_id: default(),
                 };
                 expression.args.push(new_argument);
-                expression
+                Some(expression)
             }
         };
-        let expr_and_method = || {
-            let input_chain = Some(new_expression);
-
-            let expression = match (self.this_var(), input_chain) {
-                (Some(this_var), Some(input)) =>
-                    apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
-                (None, Some(input)) => input.wrapped.into_ast().repr(),
-                (_, None) => "".to_owned(),
-            };
-            let intended_method = self.intended_method();
-            (expression, intended_method)
-        };
-        let (expression, intended_method) = expr_and_method();
+        let expression = self.get_expression(new_expression);
+        let intended_method = self.intended_method();
 
         self.graph.graph().module.with_node_metadata(
             self.mode.node_id(),
@@ -864,24 +853,15 @@ impl Searcher {
         if let Some(guard) = self.node_edit_guard.deref().as_ref() {
             guard.prevent_revert()
         }
-        let expr_and_method = || {
-            let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
-
-            let expression = match (self.this_var(), input_chain) {
-                (Some(this_var), Some(input)) =>
-                    apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
-                (None, Some(input)) => input.wrapped.into_ast().repr(),
-                (_, None) => "".to_owned(),
-            };
-            let intended_method = self.intended_method();
-            (expression, intended_method)
-        };
 
         let node_id = self.mode.node_id();
+        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
         self.add_required_imports()?;
-        let (expression, intended_method) = expr_and_method();
+        let expression = self.get_expression(input_chain);
+        let intended_method = self.intended_method();
+
         self.graph.graph().set_expression(node_id, expression)?;
         if let Mode::NewNode { .. } = self.mode.as_ref() {
             self.graph.graph().introduce_name_on(node_id)?;
@@ -895,6 +875,16 @@ impl Searcher {
             this.introduce_pattern(graph.clone_ref())?;
         }
         Ok(node_id)
+    }
+
+    fn get_expression(&self, input_chain: Option<ast::Shifted<ast::prefix::Chain>>) -> String {
+        let expression = match (self.this_var(), input_chain) {
+            (Some(this_var), Some(input)) =>
+                apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
+            (None, Some(input)) => input.wrapped.into_ast().repr(),
+            (_, None) => "".to_owned(),
+        };
+        expression
     }
 
     /// Adds an example to the graph.
@@ -1328,7 +1318,11 @@ impl EditGuard {
                 module.with_node_metadata(
                     self.node_id,
                     Box::new(|metadata| {
-                        metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+                        let previous_intended_method = metadata.intended_method.clone();
+                        metadata.edit_status = Some(NodeEditStatus::Edited {
+                            previous_expression,
+                            previous_intended_method,
+                        });
                     }),
                 )
             }
@@ -1371,7 +1365,7 @@ impl EditGuard {
                 tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
-            Some(NodeEditStatus::Edited { previous_expression }) => {
+            Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
                 tracing::debug!(
                     "Reverting expression of node {} to {} after aborting edit.",
                     self.node_id,
@@ -1379,6 +1373,13 @@ impl EditGuard {
                 );
                 let graph = self.graph.graph();
                 graph.set_expression(self.node_id, previous_expression)?;
+                let module = &self.graph.graph().module;
+                module.with_node_metadata(
+                    self.node_id,
+                    Box::new(|metadata| {
+                        metadata.intended_method = previous_intended_method;
+                    }),
+                )?;
             }
         };
         Ok(())
@@ -2472,7 +2473,8 @@ pub mod test {
                     assert_eq!(
                         metadata.edit_status,
                         Some(NodeEditStatus::Edited {
-                            previous_expression: node.info.expression().to_string(),
+                            previous_expression:      node.info.expression().to_string(),
+                            previous_intended_method: None,
                         })
                     );
                 }),
