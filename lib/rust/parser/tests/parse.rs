@@ -633,11 +633,11 @@ fn lambdas() {
 fn pattern_irrefutable() {
     let code = "Point x_val = my_point";
     let expected = block![(Assignment (App (Ident Point) (Ident x_val)) "=" (Ident my_point))];
-    test(&code, expected);
+    test(code, expected);
 
     let code = "Point _ = my_point";
     let expected = block![(Assignment (App (Ident Point) (Wildcard)) "=" (Ident my_point))];
-    test(&code, expected);
+    test(code, expected);
 }
 
 #[test]
