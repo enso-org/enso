@@ -26,7 +26,7 @@ pub trait Boundary = Copy + Ord + Eq;
 /// than the end. Use the `min` and `max` methods to discover the edges.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[allow(missing_docs)]
-pub struct Shape<T = Location> {
+pub struct Shape<T = Location<Column>> {
     pub start: T,
     pub end:   T,
 }
@@ -135,7 +135,7 @@ impl<T: Boundary> Shape<T> {
 /// by graphical interface to track and animate the movement of the selections.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[allow(missing_docs)]
-pub struct Selection<T = Location> {
+pub struct Selection<T = Location<Column>> {
     pub shape: Shape<T>,
     pub id:    usize,
 }
@@ -356,7 +356,7 @@ impl Group {
     /// The smallest index so that offset > region.max() for all preceding regions. Note that the
     /// index may be bigger than available indexes, which will mean that the new location should
     /// be inserted on the far right side.
-    pub fn selection_index_on_the_left_to(&self, location: Location) -> usize {
+    pub fn selection_index_on_the_left_to(&self, location: Location<Column>) -> usize {
         if self.sorted_selections.last().map(|t| location <= t.max()) == Some(true) {
             self.sorted_selections.binary_search_by(|r| r.max().cmp(&location)).unwrap_both()
         } else {

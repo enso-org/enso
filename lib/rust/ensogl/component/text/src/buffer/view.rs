@@ -92,16 +92,16 @@ impl<T> Modification<T> {
 
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
-pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
+pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location<Column>> {
     #[deref]
     pub change:    Change<Metric, Str>,
     pub selection: Selection<Loc>,
 }
 
-impl ChangeWithSelection<UBytes, Text, Location> {
+impl ChangeWithSelection<UBytes, Text, Location<Column>> {
     pub fn is_backspace_at_line_start(&self) -> bool {
         let single_place_edit = self.selection.shape.start == self.selection.shape.end;
-        let edit_on_line_start = self.selection.shape.start.offset == UBytes(0);
+        let edit_on_line_start = self.selection.shape.start.offset == Column(0);
         let no_insert = self.change.text.is_empty();
         let empty_range = self.change.range.is_empty();
         single_place_edit && edit_on_line_start && no_insert && !empty_range
@@ -130,6 +130,17 @@ pub struct ShapedGlyphSet {
     pub glyphs:                  Vec<ShapedGlyph>,
 }
 
+#[derive(Debug)]
+pub struct ShapedLine {
+    pub glyph_sets: Vec<ShapedGlyphSet>,
+}
+
+impl ShapedLine {
+    pub fn glyph_count(&self) -> usize {
+        self.glyph_sets.iter().map(|set| set.glyphs.len()).sum()
+    }
+}
+
 
 /// Specialized form of `Buffer` with view-related information, such as selection and undo redo
 /// history (containing also cursor movement history). This form of buffer is mainly used by `View`,
@@ -143,7 +154,7 @@ pub struct ViewBuffer {
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<usize>>,
     pub font:              Font,
-    pub shaped_lines:      Rc<RefCell<HashMap<Line, Vec<ShapedGlyphSet>>>>,
+    pub shaped_lines:      Rc<RefCell<HashMap<Line, ShapedLine>>>,
     pub history:           History,
 }
 
@@ -161,7 +172,7 @@ impl ViewBuffer {
         self.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
-            for glyph_set in shaped_line {
+            for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
                     let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
                     if glyph_byte_offset >= location.offset {
@@ -191,7 +202,7 @@ impl ViewBuffer {
         self.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut prev_was_exact_match = false;
-            for glyph_set in shaped_line {
+            for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
                     let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
                     if glyph_byte_offset == location.offset {
@@ -226,7 +237,7 @@ impl ViewBuffer {
         })
     }
 
-    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&[ShapedGlyphSet]) -> T) -> T {
+    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
             f(shaped_line)
@@ -238,7 +249,7 @@ impl ViewBuffer {
         }
     }
 
-    pub fn shape_line(&self, line: Line) -> Vec<ShapedGlyphSet> {
+    pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.byte_range_of_line_index_snapped(line);
         let line_style = self.sub_style(line_range.start..line_range.end);
         let content = self.single_line_content2(line);
@@ -292,7 +303,7 @@ impl ViewBuffer {
             });
             prev_cluster_byte_offset = range.end.value as u32;
         }
-        shaped_line
+        ShapedLine { glyph_sets: shaped_line }
     }
 
     pub fn chunks_per_font_face<'a>(
@@ -395,7 +406,7 @@ impl ViewBuffer {
         self.oldest_selection().snap_selections_to_start()
     }
 
-    fn new_cursor(&self, location: Location) -> Selection {
+    fn new_cursor(&self, location: Location<Column>) -> Selection {
         let id = self.next_selection_id.get();
         self.next_selection_id.set(id + 1);
         Selection::new_cursor(location, id)
@@ -403,25 +414,25 @@ impl ViewBuffer {
 
     /// Returns the last used selection or a new one if no active selection exists. This allows for
     /// nice animations when moving cursor between lines after clicking with mouse.
-    fn set_cursor(&self, location: Location) -> selection::Group {
+    fn set_cursor(&self, location: Location<Column>) -> selection::Group {
         let opt_existing = self.selection.borrow().last().map(|t| t.with_location(location));
         opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()
     }
 
-    fn add_cursor(&self, location: Location) -> selection::Group {
+    fn add_cursor(&self, location: Location<Column>) -> selection::Group {
         let mut selection = self.selection.borrow().clone();
         let selection_group = self.new_cursor(location);
         selection.merge(selection_group);
         selection
     }
 
-    fn set_newest_selection_end(&self, location: Location) -> selection::Group {
+    fn set_newest_selection_end(&self, location: Location<Column>) -> selection::Group {
         let mut group = self.selection.borrow().clone();
         group.newest_mut().for_each(|s| s.end = location);
         group
     }
 
-    fn set_oldest_selection_end(&self, location: Location) -> selection::Group {
+    fn set_oldest_selection_end(&self, location: Location<Column>) -> selection::Group {
         let mut group = self.selection.borrow().clone();
         group.oldest_mut().for_each(|s| s.end = location);
         group
@@ -577,8 +588,10 @@ impl ViewBuffer {
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-        let start = self.byte_offset_of_location_snapped(selection.start);
-        let end = self.byte_offset_of_location_snapped(selection.end);
+        let selection_start = Location::from_in_context(self, selection.start);
+        let selection_end = Location::from_in_context(self, selection.start);
+        let start = self.byte_offset_of_location_snapped(selection_start);
+        let end = self.byte_offset_of_location_snapped(selection_end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -586,6 +599,8 @@ impl ViewBuffer {
     fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
         let start = self.offset_to_location(selection.start);
         let end = self.offset_to_location(selection.end);
+        let start = Location::<Column>::from_in_context(self, start);
+        let end = Location::<Column>::from_in_context(self, end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -615,6 +630,20 @@ impl ViewBuffer {
         let end = self.offset_to_location(range.end);
         buffer::Range::new(start, end)
     }
+
+    pub fn line_last_column(&self, line: Line) -> Column {
+        self.with_shaped_line(line, |shaped_line| Column(shaped_line.glyph_count()))
+    }
+
+    pub fn last_line_last_column(&self) -> Column {
+        self.line_last_column(self.last_line_index())
+    }
+
+    pub fn last_line_last_location(&self) -> Location<Column> {
+        let line = self.last_line_index();
+        let offset = self.line_last_column(line);
+        Location { line, offset }
+    }
 }
 
 
@@ -627,10 +656,10 @@ ensogl_core::define_endpoints! {
     Input { [TRACE_ALL]
         cursors_move               (Option<Transform>),
         cursors_select             (Option<Transform>),
-        set_cursor                 (Location),
-        add_cursor                 (Location),
-        set_newest_selection_end   (Location),
-        set_oldest_selection_end   (Location),
+        set_cursor                 (Location<Column>),
+        add_cursor                 (Location<Column>),
+        set_newest_selection_end   (Location<Column>),
+        set_oldest_selection_end   (Location<Column>),
         insert                     (String),
         paste                      (Vec<String>),
         remove_all_cursors         (),
@@ -892,25 +921,24 @@ impl ViewModel {
         buffer::Range { start, end }
     }
 
-    pub fn selection_to_view_selection(
-        &self,
-        selection: Selection<Location>,
-    ) -> Selection<ViewLocation> {
-        let start = self.location_to_view_location(selection.shape.start);
-        let end = self.location_to_view_location(selection.shape.end);
+    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
+        let start_location = Location::from_in_context(self, selection.shape.start);
+        let end_location = Location::from_in_context(self, selection.shape.end);
+        let start = self.location_to_view_location(start_location);
+        let end = self.location_to_view_location(end_location);
         let shape = selection::Shape { start, end };
         let id = selection.id;
         Selection { shape, id }
     }
 
-    pub fn change_with_selection_to_view_change_with_selection<Metric, Str>(
-        &self,
-        change_with_selection: ChangeWithSelection<Metric, Str, Location>,
-    ) -> ChangeWithSelection<Metric, Str, ViewLocation> {
-        let selection = self.selection_to_view_selection(change_with_selection.selection);
-        let change = change_with_selection.change;
-        ChangeWithSelection { selection, change }
-    }
+    // pub fn change_with_selection_to_view_change_with_selection<Metric, Str>(
+    //     &self,
+    //     change_with_selection: ChangeWithSelection<Metric, Str, Location>,
+    // ) -> ChangeWithSelection<Metric, Str, ViewLocation> {
+    //     let selection = self.selection_to_view_selection(change_with_selection.selection);
+    //     let change = change_with_selection.change;
+    //     ChangeWithSelection { selection, change }
+    // }
 
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> UBytes {
@@ -1005,13 +1033,21 @@ where T: for<'t> FromInContext<&'t ViewBuffer, U>
     }
 }
 
+impl<T, U> FromInContext<&ViewModel, U> for T
+where T: for<'t> FromInContext<&'t ViewBuffer, U>
+{
+    fn from_in_context(model: &ViewModel, elem: U) -> Self {
+        T::from_in_context(&model.view_buffer, elem)
+    }
+}
+
 
 impl FromInContext<&ViewBuffer, Location> for Location<Column> {
     fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
-            for glyph_set in shaped_line {
+            for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
                     let byte_offset = UBytes(glyph.info.cluster as usize);
                     if byte_offset >= location.offset {
@@ -1044,7 +1080,7 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
-            for glyph_set in shaped_line {
+            for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
                     if column == location.offset {
                         byte_offset = Some(UBytes(glyph.info.cluster as usize));

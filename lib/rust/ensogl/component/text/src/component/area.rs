@@ -31,8 +31,8 @@ use owned_ttf_parser::AsFaceRef;
 use rustybuzz;
 use std::ops::Not;
 
+use crate::buffer::view::FromInContext;
 pub use crate::buffer::TextRange;
-
 
 
 // =================
@@ -55,7 +55,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
-    location_map: HashMap<unit::ViewLine, HashMap<UBytes, usize>>,
+    location_map: HashMap<unit::ViewLine, HashMap<Column, usize>>,
 }
 
 
@@ -99,24 +99,24 @@ impl Line {
 
     // FIXME: introduce Column type
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn div_by_column(&self, column: usize) -> f32 {
-        let ix = column.min(self.divs.len() - 1);
+    fn div_by_column(&self, column: Column) -> f32 {
+        let ix = column.value.min(self.divs.len() - 1);
         self.divs[ix]
     }
 
-    fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
-        warn!("div_by_byte_offset for {:?}", byte_offset);
-        let mut column = 0;
-        for glyph in &self.glyphs {
-            warn!("glyph start byte offset: {:?}", glyph.start_byte_offset);
-            if glyph.start_byte_offset.get() >= byte_offset {
-                warn!("YES!");
-                break;
-            }
-            column += 1;
-        }
-        self.div_by_column(column)
-    }
+    // fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
+    //     warn!("div_by_byte_offset for {:?}", byte_offset);
+    //     let mut column = 0;
+    //     for glyph in &self.glyphs {
+    //         warn!("glyph start byte offset: {:?}", glyph.start_byte_offset);
+    //         if glyph.start_byte_offset.get() >= byte_offset {
+    //             warn!("YES!");
+    //             break;
+    //         }
+    //         column += 1;
+    //     }
+    //     self.div_by_column(column)
+    // }
 
     fn last_div(&self) -> f32 {
         self.divs.last().copied().unwrap_or(0.0)
@@ -289,8 +289,8 @@ ensogl_core::define_endpoints! {
         single_line(bool),
         set_hover(bool),
 
-        set_cursor            (Location), // fixme: should use column here
-        add_cursor            (Location),
+        set_cursor            (Location<Column>), // fixme: should use column here
+        add_cursor            (Location<Column>),
         paste_string          (String),
         insert                (String),
         set_property          (TextRange, style::Property),
@@ -404,8 +404,9 @@ impl Area {
             trace loc_on_set_cursor_mouse;
             loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
             trace loc_on_add_cursor_mouse;
-            loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
-            loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse,loc_on_set_cursor_at_end);
+            // FIXME:
+            // loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
+            loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse);//,loc_on_set_cursor_at_end);
             loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
             trace loc_on_add_cursor;
 
@@ -827,13 +828,11 @@ impl AreaModel {
                 let selection_start_line =
                     self.buffer.line_to_view_line(buffer_selection.start.line);
                 let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
-                let get_pos_x = |line: unit::ViewLine, byte_offset: UBytes| {
+                let get_pos_x = |line: unit::ViewLine, column: Column| {
                     if line >= unit::ViewLine(self.lines.len() as i32) {
-                        warn!("!!!!!!");
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
-                        warn!("div_by_byte_offset: {:?}", byte_offset);
-                        self.lines.borrow()[line.as_usize()].div_by_byte_offset(byte_offset)
+                        self.lines.borrow()[line.as_usize()].div_by_column(column)
                     }
                 };
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
@@ -908,15 +907,14 @@ impl AreaModel {
         (inv_object_matrix * world_space).xy()
     }
 
-    fn get_in_text_location(&self, screen_pos: Vector2) -> Location {
+    fn get_in_text_location(&self, screen_pos: Vector2) -> Location<Column> {
         let object_space = self.to_object_space(screen_pos);
         let line_index = (-object_space.y / LINE_HEIGHT) as usize;
         let line_index = std::cmp::min(line_index, self.lines.len() - 1);
         let div_index = self.lines.borrow()[line_index].div_index_close_to(object_space.x);
         let line = unit::Line(line_index as i32);
         let column = Column(div_index);
-        let location = Location(line, column);
-        location.into_in_context(&self.buffer)
+        Location(line, column)
     }
 
     #[profile(Debug)]
@@ -1024,7 +1022,7 @@ impl AreaModel {
         let mut prev_cluster_byte_off = UBytes(0);
 
         self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
-            for shaped_glyph_set in shaped_glyphs {
+            for shaped_glyph_set in &shaped_glyphs.glyph_sets {
                 for shaped_glyph in &shaped_glyph_set.glyphs {
                     let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
                     let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
@@ -1171,8 +1169,9 @@ impl AreaModel {
         let mut last_cursor = None;
         let mut last_cursor_target = default();
 
+        let mut column = Column(0);
         for glyph in &line.glyphs {
-            cursor_map.get(&glyph.start_byte_offset.get()).for_each(|id| {
+            cursor_map.get(&column).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
                         let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
@@ -1186,6 +1185,7 @@ impl AreaModel {
                 cursor.right_side.add_child(glyph);
                 glyph.mod_position_xy(|p| p - last_cursor_target);
             }
+            column += Column(1);
         }
     }
 
@@ -1357,8 +1357,12 @@ impl AreaModel {
         &self,
         selection: buffer::selection::Selection,
     ) -> buffer::selection::Selection {
-        let start = self.buffer.snap_location(selection.start);
-        let end = self.buffer.snap_location(selection.end);
+        let start_location = Location::from_in_context(&self.buffer, selection.start);
+        let end_location = Location::from_in_context(&self.buffer, selection.end);
+        let start = self.buffer.snap_location(start_location);
+        let end = self.buffer.snap_location(end_location);
+        let start = Location::<Column>::from_in_context(&self.buffer, start);
+        let end = Location::<Column>::from_in_context(&self.buffer, end);
         selection.with_start(start).with_end(end)
     }
 
