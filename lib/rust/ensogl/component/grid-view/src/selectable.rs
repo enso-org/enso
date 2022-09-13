@@ -119,10 +119,24 @@ where
             // === Move selection by one position ===
 
             input_move_selection <- any(...);
-            input_move_selection <+ input.move_selection_up.constant(Some(Direction::Up));
-            input_move_selection <+ input.move_selection_down.constant(Some(Direction::Down));
-            input_move_selection <+ input.move_selection_left.constant(Some(Direction::Left));
-            input_move_selection <+ input.move_selection_right.constant(Some(Direction::Right));
+            input_move_selection_dir <+ input.move_selection_up.constant(Some(Direction::Up));
+            input_move_selection_dir <+ input.move_selection_down.constant(Some(Direction::Down));
+            input_move_selection_dir <+ input.move_selection_left.constant(Some(Direction::Left));
+            input_move_selection_dir <+ input.move_selection_right.constant(Some(Direction::Right));
+            let grid_size = &grid_frp.grid_size;
+            let selection = &grid_frp.entry_selected;
+            move_in_bounds_result <- input_move_selection_dir.map3(grid_size, selection, 
+                |dir, bounds, selection| {
+                    // TODO: handle Some in selection
+                    let (row, col) = selection;
+                    let (rows, cols) = bounds;
+                    dir.map(|dir| move_in_bounds_by_one_position(*row, *col, *dir, *rows, *cols));
+                }
+            );
+
+
+            sel_move_direction_and_bounds_and_current_sel <- input_move_selection.map3(
+                &grid_frp.grid_size, &grid_frp.entry_selected, |(a, b, c)| (*a, *b, *c));
             eval input_move_selection ([grid_ref](dir)
                 dir.map(|d| grid_ref.move_selection_in_bounds_by_one_position(d))
             );
@@ -164,7 +178,6 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, He
     }
 }
 
-
 impl<InnerGridView, Entry, EntryParams> GridViewTemplate<InnerGridView, Entry, EntryParams>
 where EntryParams: frp::node::Data
 {
@@ -178,6 +191,35 @@ where EntryParams: frp::node::Data
         &self.hover_handler.frp
     }
 }
+
+
+// === GridViewTemplate helpers ===
+
+// type GridLocation = Vector2<usize>;
+
+enum MoveInBoundsResult {
+    Moved { row: Row, col: Col },
+    OutOfBounds(frp::io::ArrowDirection),
+}
+
+// TODO: add note about overflow to GridView crate doc (because f32 imprecise)
+fn move_in_bounds_by_one_position(row: Row, col: Col, 
+        direction: frp::io::keyboard::ArrowDirection,
+        rows: Row, cols: Col) -> Option<MoveInBoundsResult> {
+    let row_below = row + 1;
+    let col_to_the_right = col + 1;
+    match direction {
+        Up if row > 0 => Some((row - 1, col)),
+        Down if row_below < rows => Some((row_below, col)),
+        Left if col > 0 => Some((row, col - 1)),
+        Right if col_to_the_right < cols => Some((row, col_to_the_right)),
+        _ => None,
+    }
+}
+
+
+
+// === GridViewTemplate trait implementations ===
 
 impl<InnerGridView, E: Entry, T> AsRef<T> for GridViewTemplate<InnerGridView, E, E::Params>
 where InnerGridView: AsRef<T>
