@@ -590,33 +590,16 @@ where
     /// the one closest to the current viewport.
     fn viewport_containing_entry(&self, row: Row, column: Col, margins: Margins) -> Vector2 {
         let pos = self.entry_position(row, column);
-        let half_size = self.entry_size(row, column) / 2.0;
-        let top = pos.y + half_size.y;
-        let bottom = pos.y - half_size.y;
-        let left = pos.x - half_size.x;
-        let right = pos.x + half_size.x;
-        let viewport = self.viewport.value();
-        let min_viewport_top = top + margins.top;
-        let max_viewport_bottom = bottom - margins.bottom;
-        let new_viewport_top = if viewport.top < min_viewport_top {
-            min_viewport_top
-        } else if viewport.bottom > max_viewport_bottom {
-            let viewport_height = viewport.size().y;
-            max_viewport_bottom + viewport_height
-        } else {
-            viewport.top
+        let size = self.entry_size(row, column);
+        let entry = Viewport::from_center_point_and_size(pos, size);
+        let entry_plus_margins = Viewport {
+            top: entry.top + margins.top,
+            bottom: entry.bottom - margins.bottom,
+            left: entry.left - margins.left,
+            right: entry.right + margins.right,
         };
-        let min_viewport_right = right + margins.right;
-        let max_viewport_left = left - margins.left;
-        let new_viewport_left = if viewport.right < min_viewport_right {
-            let viewport_width = viewport.size().x;
-            min_viewport_right - viewport_width
-        } else if viewport.left > max_viewport_left {
-            max_viewport_left
-        } else {
-            viewport.left
-        };
-        Vector2(new_viewport_left, new_viewport_top)
+        let moved_viewport = self.viewport.value().moved_to_contain(entry_plus_margins);
+        Vector2(moved_viewport.left, moved_viewport.top)
     }
 }
 

@@ -90,6 +90,37 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    pub fn from_center_point_and_size(pos: Vector2, size: Vector2) -> Self {
+        let half_size = size / 2.0;
+        let top = pos.y + half_size.y;
+        let bottom = pos.y - half_size.y;
+        let left = pos.x - half_size.x;
+        let right = pos.x + half_size.x;
+        Self { top, bottom, left, right }
+    }
+
+    pub fn moved_to_contain(&self, other: Self) -> Self {
+        let size = self.size();
+        let top = if self.top < other.top {
+            other.top
+        } else if self.bottom > other.bottom {
+            other.bottom + size.y
+        } else {
+            self.top
+        };
+        let bottom = top - size.y;
+        let left = if self.right < other.right {
+            other.right - size.x
+        } else if self.left > other.left {
+            other.left
+        } else {
+            self.left
+        };
+        let right = left + size.x;
+        Self { top, bottom, left, right }
+    }
+
+
     /// Clamp the given coordinates to this viewport.
     pub fn clamp(&self, pos: Vector2) -> Vector2 {
         let x = pos.x.clamp(self.left, self.right);
