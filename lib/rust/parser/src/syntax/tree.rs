@@ -269,7 +269,21 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Lambda {
             pub operator: token::Operator<'s>,
             pub arrow: Option<Tree<'s>>,
-        }
+        },
+        /// An array literal.
+        Array {
+            pub left:  token::Symbol<'s>,
+            pub first: Option<Tree<'s>>,
+            pub rest:  Vec<OperatorDelimitedTree<'s>>,
+            pub right: token::Symbol<'s>,
+        },
+        /// A tuple literal.
+        Tuple {
+            pub left:  token::Symbol<'s>,
+            pub first: Option<Tree<'s>>,
+            pub rest:  Vec<OperatorDelimitedTree<'s>>,
+            pub right: token::Symbol<'s>,
+        },
     }
 }};}
 
@@ -481,6 +495,24 @@ pub struct MultiSegmentAppSegment<'s> {
 impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.header).add(&mut self.body)
+    }
+}
+
+
+// === Array and Tuple ===
+
+/// A node following an operator.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct OperatorDelimitedTree<'s> {
+    /// The delimiting operator.
+    pub operator: token::Operator<'s>,
+    /// The expression.
+    pub body:     Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.operator).add(&mut self.body)
     }
 }
 

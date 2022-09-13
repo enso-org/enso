@@ -332,6 +332,9 @@ pub struct OperatorProperties {
     #[serde(skip)]
     #[reflect(skip)]
     is_arrow:                  bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_sequence:               bool,
 }
 
 impl OperatorProperties {
@@ -375,6 +378,11 @@ impl OperatorProperties {
         Self { is_arrow: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the sequence operator.
+    pub fn as_sequence(self) -> Self {
+        Self { is_sequence: true, ..self }
+    }
+
     /// Return this operator's binary infix precedence, if it has one.
     pub fn binary_infix_precedence(&self) -> Option<Precedence> {
         self.binary_infix_precedence
@@ -403,6 +411,11 @@ impl OperatorProperties {
     /// Return whether this operator is the arrow operator.
     pub fn is_arrow(&self) -> bool {
         self.is_arrow
+    }
+
+    /// Return whether this operator is the sequence operator.
+    pub fn is_sequence(&self) -> bool {
+        self.is_sequence
     }
 
     /// Return this operator's associativity.

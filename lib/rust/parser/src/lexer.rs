@@ -609,7 +609,11 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
         // Other special operators.
         "==" => return operator.with_binary_infix_precedence(1),
-        "," => return operator.with_binary_infix_precedence(1).as_compile_time_operation(),
+        "," =>
+            return operator
+                .with_binary_infix_precedence(1)
+                .as_compile_time_operation()
+                .as_sequence(),
         "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
         "." => return operator.with_binary_infix_precedence(21),
         _ => (),

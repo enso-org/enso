@@ -22,6 +22,8 @@ pub fn all() -> resolver::SegmentMap<'static> {
     macro_map.register(type_def());
     macro_map.register(lambda());
     macro_map.register(case());
+    macro_map.register(array());
+    macro_map.register(tuple());
     macro_map
 }
 
@@ -348,4 +350,59 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         }
     }
     Tree::case(case_, expression, of_, initial, lines)
+}
+
+/// Array literal.
+pub fn array<'s>() -> Definition<'s> {
+    crate::macro_definition! {("[", everything(), "]", nothing()) array_body}
+}
+
+fn array_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+    syntax::tree::Tree::array(left, first, rest, right)
+}
+
+/// Tuple literal.
+pub fn tuple<'s>() -> Definition<'s> {
+    crate::macro_definition! {("{", everything(), "}", nothing()) tuple_body}
+}
+
+fn tuple_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+    syntax::tree::Tree::tuple(left, first, rest, right)
+}
+
+struct GroupedSequence<'s> {
+    left:  syntax::token::Symbol<'s>,
+    first: Option<syntax::Tree<'s>>,
+    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    right: syntax::token::Symbol<'s>,
+}
+
+fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
+    use operator::resolve_operator_precedence_if_non_empty;
+    use syntax::token;
+    use syntax::tree::*;
+    let into_symbol = |token| {
+        let token::Token { left_offset, code, .. } = token;
+        token::symbol(left_offset, code)
+    };
+    let (right, mut rest) = segments.pop();
+    let right_ = into_symbol(right.header);
+    let left = rest.pop().unwrap();
+    let left_ = into_symbol(left.header);
+    let expression = left.result.tokens();
+    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let mut rest = vec![];
+    let mut lhs_ = &expression;
+    while let Some(Tree {
+                       variant: box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs: Some(rhs) }), ..
+                   }) = lhs_ && opr.properties.is_sequence() {
+        lhs_ = lhs;
+        let operator = opr.clone();
+        let body = rhs.clone();
+        rest.push(OperatorDelimitedTree { operator, body });
+    }
+    let first = lhs_.clone();
+    GroupedSequence { left: left_, first, rest, right: right_ }
 }

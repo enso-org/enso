@@ -706,6 +706,29 @@ fn pattern_match_auto_scope() {
 }
 
 
+// === Array/tuple literals ===
+
+#[test]
+fn array_literals() {
+    let cases = [
+        ("[]", block![(Array "[" () #() "]")]),
+        ("[1]", block![(Array "[" (Number 1) #() "]")]),
+        ("[1, 2]", block![(Array "[" (Number 1) #(("," (Number 2))) "]")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn tuple_literals() {
+    let cases = [
+        ("{}", block![(Tuple "{" () #() "}")]),
+        ("{1}", block![(Tuple "{" (Number 1) #() "}")]),
+        ("{1, 2}", block![(Tuple "{" (Number 1) #(("," (Number 2))) "}")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
 
 // ====================
 // === Test Support ===
