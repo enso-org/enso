@@ -321,7 +321,7 @@ type Panic
             Caught_Panic_Data _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
-        stack_with_prims = Vector.Vector_Data prim_stack
+        stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
     ## Takes any value, and if it is a dataflow error, throws it as a Panic,
@@ -447,7 +447,7 @@ type Panic
     recover : (Vector.Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            Vector.Vector_Data _ -> expected_types
+            Vector.Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->

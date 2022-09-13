@@ -16,8 +16,6 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
 import java.time.ZoneId;
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -175,7 +173,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
+      @Cached MethodResolverNode preResolveMethod,
+      @Bind("getPolyglotCallType(self, symbol.getName(), interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
@@ -234,6 +233,59 @@ public abstract class InvokeMethodNode extends BaseNode {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
     }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ARRAY",
+      },
+      rewriteOn = AbstractMethodError.class)
+  Stateful doConvertArray(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode)
+      throws AbstractMethodError {
+    var ctx = Context.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    var function = methodResolverNode.execute(arrayType, symbol);
+    if (function != null) {
+      arguments[0] = self;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } else {
+      // let's replace us with a doConvertArrayWithCheck
+      CompilerDirectives.transferToInterpreter();
+      throw new AbstractMethodError();
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop, methodResolverNode) == CONVERT_TO_ARRAY"
+      },
+      replaces = "doConvertArray")
+  Stateful doConvertArrayWithCheck(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
+    arguments[0] = self;
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(

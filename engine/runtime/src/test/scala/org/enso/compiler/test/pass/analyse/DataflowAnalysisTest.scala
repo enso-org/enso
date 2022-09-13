@@ -1260,19 +1260,15 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val callArg = ir.body
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
-      val vector = callArg.value
+      val vector = ir.body
         .asInstanceOf[IR.Application.Literal.Sequence]
 
-      val xUseId    = mkStaticDep(vector.items(0).getId)
-      val yId       = mkStaticDep(vector.items(1).getId)
-      val litId     = mkStaticDep(vector.items(2).getId)
-      val vecId     = mkStaticDep(vector.getId)
-      val callArgId = mkStaticDep(callArg.getId)
-      val appId     = mkStaticDep(ir.body.getId)
-      val lamId     = mkStaticDep(ir.getId)
+      val xUseId = mkStaticDep(vector.items(0).getId)
+      val yId    = mkStaticDep(vector.items(1).getId)
+      val litId  = mkStaticDep(vector.items(2).getId)
+      val vecId  = mkStaticDep(vector.getId)
+      val appId  = mkStaticDep(ir.body.getId)
+      val lamId  = mkStaticDep(ir.getId)
 
       // The info
       val dependents   = depInfo.dependents
@@ -1282,8 +1278,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(xUseId) shouldEqual Some(Set(vecId))
       dependents.getDirect(yId) shouldEqual Some(Set(vecId))
       dependents.getDirect(litId) shouldEqual Some(Set(vecId))
-      dependents.getDirect(vecId) shouldEqual Some(Set(callArgId))
-      dependents.getDirect(callArgId) shouldEqual Some(Set(appId))
+      dependents.getDirect(vecId) shouldEqual Some(Set(lamId))
       dependents.getDirect(appId) shouldEqual Some(Set(lamId))
 
       // Tests for dependencies

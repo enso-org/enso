@@ -1,7 +1,8 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -105,25 +106,33 @@ public class Warning implements TruffleObject {
       name = "set_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
-  public static Object set(WithWarnings value, Array warnings) {
-    return setGeneric(value.getValue(), warnings);
+  public static Object set(WithWarnings value, Object warnings, InteropLibrary interop) {
+    return setGeneric(value.getValue(), interop, warnings);
   }
 
   @Builtin.Method(
       name = "set_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize(fallback = true)
-  public static Object set(Object value, Array warnings) {
-    return setGeneric(value, warnings);
+  public static Object set(Object value, Object warnings, InteropLibrary interop) {
+    return setGeneric(value, interop, warnings);
   }
 
-  private static Object setGeneric(Object value, Array warnings) {
-    if (warnings.length() == 0) {
-      return value;
+  private static Object setGeneric(Object value, InteropLibrary interop, Object warnings) {
+    try {
+      var size = interop.getArraySize(warnings);
+      if (size == 0) {
+        return value;
+      }
+      Warning[] warningsCast = new Warning[(int) size];
+      for (int i = 0; i < warningsCast.length; i++) {
+        warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
+      }
+      return new WithWarnings(value, warningsCast);
+    } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalStateException(ex);
     }
-    Warning[] warningsCast = new Warning[(int) warnings.length()];
-    System.arraycopy(warnings.getItems(), 0, warningsCast, 0, warningsCast.length);
-    return new WithWarnings(value, warningsCast);
   }
 
   @ExportLibrary(InteropLibrary.class)

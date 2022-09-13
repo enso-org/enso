@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.builtin;
 
-import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.system.*;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 
