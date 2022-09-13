@@ -14,6 +14,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.zone.ZoneRulesException;
 
 @ExportLibrary(InteropLibrary.class)
@@ -52,6 +53,11 @@ public final class EnsoTimeZone implements TruffleObject {
   @Builtin.Method(name = "system", description = "The system default timezone.")
   public static EnsoTimeZone system() {
     return new EnsoTimeZone(ZoneId.systemDefault());
+  }
+
+  @Builtin.Method(description = "Return the text representation of this timezone.")
+  public Text toText() {
+    return Text.create(zone.toString());
   }
 
   @ExportMessage

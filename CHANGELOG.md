@@ -193,6 +193,8 @@
 - [Implemented specialized storage for the in-memory Table.][3673]
 - [Implemented `Table.distinct` for the in-memory backend.][3684]
 - [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
+- [Implemented `start_of` and `end_of` methods for date/time types allowing to
+  find start and end of a period of time containing the provided time.][3695]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -309,6 +311,7 @@
 [3647]: https://github.com/enso-org/enso/pull/3647
 [3673]: https://github.com/enso-org/enso/pull/3673
 [3684]: https://github.com/enso-org/enso/pull/3684
+[3695]: https://github.com/enso-org/enso/pull/3695
 
 #### Enso Compiler
 

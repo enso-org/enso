@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -170,6 +171,14 @@ type Time_Of_Day
     nanosecond : Integer
     nanosecond self = @Builtin_Method "Time_Of_Day.nanosecond"
 
+    ## Returns the first time within the `Time_Period` containing self.
+    start_of : Time_Period -> Time_Of_Day
+    start_of self period=Time_Period.Day = period.adjust_start self
+
+    ## Returns the last time within the `Time_Period` containing self.
+    end_of : Time_Period -> Time_Of_Day
+    end_of self period=Time_Period.Day = period.adjust_end self
+
     ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
        > Example
@@ -193,8 +202,8 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
-    to_time : Date -> Time_Zone -> Time
-    to_time self date (zone=Time_Zone.system) = self.to_time_builtin date zone
+    to_date_time : Date -> Time_Zone -> Date_Time
+    to_date_time self date (zone=Time_Zone.system) = self.to_time_builtin date zone
 
     ## Add the specified amount of time to this instant to get a new instant.
 
