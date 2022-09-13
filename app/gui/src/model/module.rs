@@ -26,6 +26,7 @@ pub mod plain;
 pub mod synchronized;
 
 pub use double_representation::module::Id;
+use double_representation::module::ImportId;
 pub use double_representation::module::QualifiedName;
 pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
@@ -363,6 +364,7 @@ pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
+    import:  HashMap<ImportId, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
@@ -515,6 +517,15 @@ pub struct UploadingFile {
     pub error:          Option<String>,
 }
 
+#[allow(missing_docs)]
+#[allow(missing_copy_implementations)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct ImportMetadata {
+    #[serde(skip_serializing_if = "core::ops::Not::not")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    pub is_temporary: bool,
+}
+
 
 // ==============
 // === Module ===
@@ -583,6 +594,13 @@ pub trait API: Debug + model::undo_redo::Aware {
         &self,
         id: ast::Id,
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
+    ) -> FallibleResult;
+
+    /// TBD
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
     ) -> FallibleResult;
 
     /// This method exists as a monomorphication for [`with_project_metadata`]. Users are encouraged

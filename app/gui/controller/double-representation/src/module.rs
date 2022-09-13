@@ -387,12 +387,15 @@ impl PartialEq<tp::QualifiedName> for QualifiedName {
 // === ImportInfo ===
 // ==================
 
+/// Id for an import.
+pub type ImportId = u64;
+
 /// Representation of a single import declaration.
 // TODO [mwu]
 // Currently only supports the unqualified imports like `import Foo.Bar`. Qualified, restricted and
 // and hiding imports are not supported by the parser yet. In future when parser and engine
 // supports them, this structure should be adjusted as well.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, Hash)]
 pub struct ImportInfo {
     /// The segments of the qualified name of the imported target.
     ///
@@ -435,6 +438,13 @@ impl ImportInfo {
     pub fn from_match(ast: known::Match) -> Option<Self> {
         ast::macros::is_match_import(&ast)
             .then(|| ImportInfo::from_target_str(ast.segs.head.body.repr().trim()))
+    }
+
+    /// TBD
+    pub fn id(&self) -> ImportId {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

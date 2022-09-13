@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::module::Content;
+use crate::model::module::ImportMetadata;
 use crate::model::module::Metadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
@@ -14,6 +15,7 @@ use crate::model::module::TextChange;
 use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
+use double_representation::module::ImportId;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
 use parser::api::SourceFile;
@@ -207,6 +209,19 @@ impl model::module::API for Module {
             let mut data = lookup.unwrap_or_default();
             fun(&mut data);
             content.metadata.ide.node.insert(id, data);
+        })
+    }
+
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult {
+        self.update_content(NotificationKind::MetadataChanged, |content| {
+            let lookup = content.metadata.ide.import.remove(&id);
+            let mut data = lookup.unwrap_or_default();
+            fun(&mut data);
+            content.metadata.ide.import.insert(id, data);
         })
     }
 

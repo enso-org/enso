@@ -14,6 +14,7 @@ use crate::notification;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
+use double_representation::module::ImportInfo;
 use double_representation::module::QualifiedName;
 use double_representation::node::NodeInfo;
 use double_representation::project;
@@ -733,6 +734,7 @@ impl Searcher {
         tracing::debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
+        self.add_required_imports(false)?;
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let expression = self.get_expression(Some(new_expression_chain));
         let intended_method = self.intended_method();
@@ -847,7 +849,7 @@ impl Searcher {
 
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
-        self.add_required_imports()?;
+        self.add_required_imports(true)?;
 
         let node_id = self.mode.node_id();
         let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
@@ -934,7 +936,7 @@ impl Searcher {
     }
 
     #[profile(Debug)]
-    fn add_required_imports(&self) -> FallibleResult {
+    fn add_required_imports(&self, permanent: bool) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments = data_borrowed.fragments_added_by_picking.iter();
         let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
@@ -946,6 +948,15 @@ impl Searcher {
         for mut import in without_enso_project {
             import.remove_main_module_segment();
             module.add_module_import(&here, self.ide.parser(), &import);
+
+            let import_info = ImportInfo::from_qualified_name(&import);
+            tracing::warn!("Adding import: {import_info:?}");
+            self.graph.graph().module.with_import_metadata(
+                import_info.id(),
+                Box::new(|import_metadata| {
+                    import_metadata.is_temporary = !permanent;
+                }),
+            )?;
         }
         self.graph.graph().module.update_ast(module.ast)
     }
