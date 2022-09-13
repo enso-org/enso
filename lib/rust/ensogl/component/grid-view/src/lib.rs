@@ -582,12 +582,31 @@ impl<E: Entry> FrpNetworkProvider for GridView<E> {
     }
 }
 
-impl<E: Entry> application::command::CommandApi for GridView<E> {
-    fn command_api(&self) -> Rc<RefCell<HashMap<String, application::command::Command>>> {
-        self.widget.command_api()
+impl<E: Entry> application::View for GridView<E>
+{
+    fn label() -> &'static str {
+        "GridView"
     }
-    fn status_api(&self) -> Rc<RefCell<HashMap<String, frp::Sampler<bool>>>> {
-        self.widget.status_api()
+
+    fn new(app: &Application) -> Self {
+        GridView::<E>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        self.widget.app()
+    }
+
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use application::shortcut::ActionType::*;
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (PressAndRepeat, "left", "move_selection_left"),
+            (PressAndRepeat, "right", "move_selection_right"),
+        ])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+            .collect()
     }
 }
 

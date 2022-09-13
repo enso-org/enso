@@ -152,8 +152,7 @@ impl<E: Entry> GridView<E> {
 impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, HeaderEntry> {
     /// Create new Selectable Grid View With Headers instance.
     pub fn new(app: &Application) -> Self {
-        let inner_grid_view = app.new_view::<header::GridView<E, HeaderEntry>>();
-        let mut this = Self::new_wrapping(app, inner_grid_view);
+        let mut this = Self::new_wrapping(app, header::GridView::<E, HeaderEntry>::new(app));
         let header_highlights = highlight::shape::View::new(Logger::new("header_highlights"));
         this.grid.add_child(&header_highlights);
         this.selection_handler.connect_with_header_shape(&header_highlights);

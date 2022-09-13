@@ -11,7 +11,6 @@ use crate::Entry;
 use crate::Properties;
 use crate::Row;
 
-use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
@@ -361,7 +360,7 @@ pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
 impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> {
     /// Create new Grid View with headers.
     pub fn new(app: &Application) -> Self {
-        let grid = crate::GridView::<E>::new(app);
+        let grid = app.new_view::<crate::GridView::<E>>();
         Self::new_wrapping(grid)
     }
 }
@@ -537,35 +536,6 @@ where
 {
     fn network(&self) -> &frp::Network {
         self.model.grid.network()
-    }
-}
-
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
-    for GridView<E, HeaderEntry>
-{
-    fn label() -> &'static str {
-        "GridViewWithHeaders"
-    }
-
-    fn new(app: &Application) -> Self {
-        GridView::<E, HeaderEntry>::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        self.model.grid.app()
-    }
-
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use application::shortcut::ActionType::*;
-        (&[
-            (PressAndRepeat, "up", "move_selection_up"),
-            (PressAndRepeat, "down", "move_selection_down"),
-            (PressAndRepeat, "left", "move_selection_left"),
-            (PressAndRepeat, "right", "move_selection_right"),
-        ])
-            .iter()
-            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
-            .collect()
     }
 }
 
