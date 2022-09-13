@@ -25,21 +25,41 @@ pub mod highlight;
 
 #[derive(Copy, Clone, Debug)]
 enum MovementTarget {
-    InBounds { row: Row, col: Col },
+    Location { row: Row, col: Col },
     OutOfBounds(frp::io::keyboard::ArrowDirection),
 }
 
 impl MovementTarget {
-    fn in_bounds(self) -> Option<(Row, Col)> {
+    /// Calculate row and column of the nearest entry in given direction from given row and col.
+    /// Returns a [`MovementTarget::Location`] if the entry is in bounds of a grid with given
+    /// amount of rows and columns. Returns [`MovementTarget::OutOfBounds`] otherwise.
+    // TODO: add note about overflow to GridView crate doc (because f32 imprecise)
+    fn in_direction(row: Row, col: Col, 
+            direction: frp::io::keyboard::ArrowDirection,
+            rows: Row, columns: Col) -> MovementTarget {
+        use frp::io::keyboard::ArrowDirection::*;
+        use MovementTarget::*;
+        let row_below = row + 1;
+        let col_to_the_right = col + 1;
+        match direction {
+            Up if row > 0 => Location { row: row - 1, col },
+            Down if row_below < rows => Location { row: row_below, col },
+            Left if col > 0 => Location { row, col: col - 1 },
+            Right if col_to_the_right < columns => Location { row, col: col_to_the_right },
+            _ => OutOfBounds(direction),
+        }
+    }
+
+    fn location(self) -> Option<(Row, Col)> {
         match self {
-            Self::InBounds { row, col } => Some((row, col)),
+            Self::Location { row, col } => Some((row, col)),
             Self::OutOfBounds(_) => None,
         }
     }
 
     fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
         match self {
-            Self::InBounds { .. } => None,
+            Self::Location { .. } => None,
             Self::OutOfBounds(dir) => Some(dir)
         }
     }
@@ -47,35 +67,9 @@ impl MovementTarget {
 
 impl Default for MovementTarget {
     fn default() -> Self {
-        Self::InBounds { row: 0, col: 0 }
+        Self::Location { row: 0, col: 0 }
     }
 }
-
-
-// === move_in_bounds_by_one_position ===
-
-/// Calculate row and column of the nearest entry in given direction from given row and col.
-    /// Move selection by one position in given direction if the resulting selection is in bounds
-    /// of the grid view as defined by [`grid_size`]. Emit
-    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
-    /// out of bounds of the grid. Do nothing if there is no selection.
-// TODO: add note about overflow to GridView crate doc (because f32 imprecise)
-fn move_in_bounds_by_one_position(row: Row, col: Col, 
-        direction: frp::io::keyboard::ArrowDirection,
-        rows: Row, cols: Col) -> MovementTarget {
-    use frp::io::keyboard::ArrowDirection::*;
-    use MovementTarget::*;
-    let row_below = row + 1;
-    let col_to_the_right = col + 1;
-    match direction {
-        Up if row > 0 => InBounds { row: row - 1, col },
-        Down if row_below < rows => InBounds { row: row_below, col },
-        Left if col > 0 => InBounds { row, col: col - 1 },
-        Right if col_to_the_right < cols => InBounds { row, col: col_to_the_right },
-        _ => OutOfBounds(direction),
-    }
-}
-
 
 
 
@@ -189,11 +183,11 @@ where
             let selection = &grid_frp.entry_selected;
             result_of_moving_sel_in_bounds <- input_move_selection_dir.map3(grid_size, selection,
                 |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
-                    move_in_bounds_by_one_position(row, col, dir, *rows, *cols)
+                    MovementTarget::in_direction(row, col, dir, *rows, *cols)
                 )
             );
             selection_after_movement <= result_of_moving_sel_in_bounds;
-            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.in_bounds()).some();
+            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.location()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
                 selection_after_movement.map(|s| s.out_of_bounds());
         }
