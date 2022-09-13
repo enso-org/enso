@@ -1006,7 +1006,7 @@ impl AreaModel {
         let line = &mut self.lines.borrow_mut()[view_line_index.as_usize()];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
+        // debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
 
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
 
@@ -1022,8 +1022,11 @@ impl AreaModel {
         let mut prev_cluster_byte_off = UBytes(0);
 
         self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
+            warn!(">> line_index: {:?}", line_index);
+            warn!(">> shaped_glyphs: {:?}", shaped_glyphs);
             for shaped_glyph_set in &shaped_glyphs.glyph_sets {
                 for shaped_glyph in &shaped_glyph_set.glyphs {
+                    warn!(">> glyph_id: {:?}", shaped_glyph.info.glyph_id);
                     let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
                     let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
                     // Drop styles assigned to skipped bytes. One byte will be skipped

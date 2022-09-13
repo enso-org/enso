@@ -168,80 +168,108 @@ impl ViewBuffer {
         Self { buffer, selection, next_selection_id, font, shaped_lines, history }
     }
 
-    pub fn prev_column_location(&self, location: Location) -> Location {
-        self.with_shaped_line(location.line, |shaped_line| {
-            let mut byte_offset = None;
-            let mut found = false;
-            for glyph_set in &shaped_line.glyph_sets {
-                for glyph in &glyph_set.glyphs {
-                    let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                    if glyph_byte_offset >= location.offset {
-                        found = true;
-                        break;
-                    }
-                    byte_offset = Some(glyph_byte_offset);
-                }
-                if found {
-                    break;
-                }
+    // pub fn prev_column_location(&self, location: Location) -> Location {
+    //     self.with_shaped_line(location.line, |shaped_line| {
+    //         let mut byte_offset = None;
+    //         let mut found = false;
+    //         for glyph_set in &shaped_line.glyph_sets {
+    //             for glyph in &glyph_set.glyphs {
+    //                 let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+    //                 if glyph_byte_offset >= location.offset {
+    //                     found = true;
+    //                     break;
+    //                 }
+    //                 byte_offset = Some(glyph_byte_offset);
+    //             }
+    //             if found {
+    //                 break;
+    //             }
+    //         }
+    //         byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
+    //             if location.line > Line(0) {
+    //                 let line = location.line - Line(1);
+    //                 let offset = self.end_byte_offset_of_line_index(line).unwrap();
+    //                 Location { line, offset }
+    //             } else {
+    //                 default()
+    //             }
+    //         })
+    //     })
+    // }
+
+    pub fn prev_column(&self, location: Location<Column>) -> Location<Column> {
+        if location.offset > Column(0) {
+            location.with_offset(location.offset - Column(1))
+        } else {
+            if location.line > Line(0) {
+                let location = location.dec_line();
+                location.with_offset(self.line_last_column(location.line))
+            } else {
+                location
             }
-            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                if location.line > Line(0) {
-                    let line = location.line - Line(1);
-                    let offset = self.end_byte_offset_of_line_index(line).unwrap();
-                    Location { line, offset }
-                } else {
-                    default()
-                }
-            })
-        })
+        }
     }
 
-    pub fn next_column_location(&self, location: Location) -> Location {
-        warn!("next_column_location: {:?}", location);
-        self.with_shaped_line(location.line, |shaped_line| {
-            let mut byte_offset = None;
-            let mut prev_was_exact_match = false;
-            for glyph_set in &shaped_line.glyph_sets {
-                for glyph in &glyph_set.glyphs {
-                    let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-                    if glyph_byte_offset == location.offset {
-                        prev_was_exact_match = true;
-                    } else if glyph_byte_offset > location.offset {
-                        byte_offset = Some(glyph_byte_offset);
-                        break;
-                    }
-                }
-                if byte_offset.is_some() {
-                    break;
-                }
+    pub fn next_column(&self, location: Location<Column>) -> Location<Column> {
+        let desired_column = location.offset + Column(1);
+        if desired_column <= self.line_last_column(location.line) {
+            location.with_offset(desired_column)
+        } else {
+            if location.line < self.last_line_index() {
+                location.inc_line().zero_offset()
+            } else {
+                location
             }
-            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                if prev_was_exact_match {
-                    let line = location.line;
-                    let offset = self.end_byte_offset_of_line_index(line).unwrap();
-                    Location { line, offset }
-                } else {
-                    let last_line = self.last_line_index();
-                    if location.line < last_line {
-                        let line = location.line + Line(1);
-                        let offset = UBytes(0);
-                        Location { line, offset }
-                    } else {
-                        let line = last_line;
-                        let offset = self.end_byte_offset_of_line_index(line).unwrap();
-                        Location { line, offset }
-                    }
-                }
-            })
-        })
+        }
     }
+
+    // pub fn next_column_location(&self, location: Location) -> Location {
+    //     warn!("next_column_location: {:?}", location);
+    //     self.with_shaped_line(location.line, |shaped_line| {
+    //         let mut byte_offset = None;
+    //         let mut prev_was_exact_match = false;
+    //         for glyph_set in &shaped_line.glyph_sets {
+    //             for glyph in &glyph_set.glyphs {
+    //                 let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
+    //                 if glyph_byte_offset == location.offset {
+    //                     prev_was_exact_match = true;
+    //                 } else if glyph_byte_offset > location.offset {
+    //                     byte_offset = Some(glyph_byte_offset);
+    //                     break;
+    //                 }
+    //             }
+    //             if byte_offset.is_some() {
+    //                 break;
+    //             }
+    //         }
+    //         byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
+    //             if prev_was_exact_match {
+    //                 let line = location.line;
+    //                 let offset = self.end_byte_offset_of_line_index(line).unwrap();
+    //                 Location { line, offset }
+    //             } else {
+    //                 let last_line = self.last_line_index();
+    //                 if location.line < last_line {
+    //                     let line = location.line + Line(1);
+    //                     let offset = UBytes(0);
+    //                     Location { line, offset }
+    //                 } else {
+    //                     let line = last_line;
+    //                     let offset = self.end_byte_offset_of_line_index(line).unwrap();
+    //                     Location { line, offset }
+    //                 }
+    //             }
+    //         })
+    //     })
+    // }
 
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
+            warn!("FOUND SHAPED LINE");
             f(shaped_line)
         } else {
+            warn!("GENERATING A NEW SHAPED LINE");
             let shaped_line = self.shape_line(line);
             let out = f(&shaped_line);
             shaped_lines.insert(line, shaped_line);
@@ -251,14 +279,17 @@ impl ViewBuffer {
 
     pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.byte_range_of_line_index_snapped(line);
+        warn!("line_range: {:?}", line_range);
         let line_style = self.sub_style(line_range.start..line_range.end);
         let content = self.single_line_content2(line);
+        warn!("content: {:?}", content);
         let font = &self.font;
         let mut shaped_line = vec![];
         let mut prev_cluster_byte_offset = 0;
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {
+            warn!("chunked content: {:?}", content);
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
             let non_variable_variations = non_variable_variations_match.variations;
@@ -440,6 +471,7 @@ impl ViewBuffer {
 
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text: impl Into<Text>) -> Modification {
+        warn!("view::insert");
         self.modify(text, None)
     }
 
@@ -488,11 +520,13 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
+        warn!("modify: text: {:?}, transform: {:?}", text, transform);
         debug!(
             "\n\n\n\n-----------------------------------------\nmodify {:?} {:?}",
             text, transform
         );
         let mut modification = Modification::default();
+        warn!("byte_selections: {:?}", self.byte_selections());
         for rel_byte_selection in self.byte_selections() {
             warn!("rel_byte_selection: {:?}", rel_byte_selection);
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
@@ -561,13 +595,14 @@ impl ViewBuffer {
         };
         debug!("transformed: {:?}", transformed);
 
-        self.shaped_lines.borrow_mut().remove(&transformed.start.line);
 
         let byte_selection = self.to_bytes_selection(transformed);
         debug!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
         debug!("range {:?}", range);
         self.buffer.replace(range, &text);
+        self.shaped_lines.borrow_mut().remove(&transformed.start.line);
+
         let new_byte_cursor_pos = range.start + text_byte_size;
         debug!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);

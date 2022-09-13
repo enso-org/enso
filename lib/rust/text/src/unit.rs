@@ -329,7 +329,7 @@ impl iter::Step for ViewLine {
 
 unit! {
 /// Unsigned bytes unit.
-Column::column(usize) NO_SUB
+Column::column(usize)
 }
 
 impl<T: Into<Column>> column::Into for Range<T> {
@@ -393,10 +393,67 @@ mod location {
     #[doc = " A type representing 2d measurements."]
     #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
     #[allow(missing_docs)]
-    pub struct Location<OffsetType = UBytes, LineType = Line> {
+    pub struct Location<Offset = UBytes, LineType = Line> {
         pub line:   LineType,
-        pub offset: OffsetType,
+        pub offset: Offset,
     }
+
+    impl<Offset, Line> Location<Offset, Line> {
+        /// Line setter.
+        pub fn with_line<Line2>(self, line: Line2) -> Location<Offset, Line2> {
+            Location { line, offset: self.offset }
+        }
+
+        /// CodePointIndex setter.
+        pub fn with_offset<Offset2>(self, offset: Offset2) -> Location<Offset2, Line> {
+            Location { line: self.line, offset }
+        }
+
+        pub fn mod_line<Line2>(self, f: impl FnOnce(Line) -> Line2) -> Location<Offset, Line2> {
+            let line = f(self.line);
+            Location { line, offset: self.offset }
+        }
+
+        pub fn mod_offset<Offset2>(
+            self,
+            f: impl FnOnce(Offset) -> Offset2,
+        ) -> Location<Offset2, Line> {
+            let offset = f(self.offset);
+            Location { line: self.line, offset }
+        }
+
+        pub fn zero_line(self) -> Location<Offset, Line>
+        where Line: From<usize> {
+            self.with_line(Line::from(0_usize))
+        }
+
+        pub fn zero_offset(self) -> Location<Offset, Line>
+        where Offset: From<usize> {
+            self.with_offset(Offset::from(0_usize))
+        }
+
+        pub fn inc_line(self) -> Location<Offset, <Line as Add>::Output>
+        where Line: Add + From<usize> {
+            self.mod_line(|t| t + Line::from(1_usize))
+        }
+
+        pub fn dec_line(self) -> Location<Offset, <Line as Sub>::Output>
+        where Line: Sub + From<usize> {
+            self.mod_line(|t| t - Line::from(1_usize))
+        }
+
+
+        pub fn inc_offset(self) -> Location<<Offset as Add>::Output, Line>
+        where Offset: Add + From<usize> {
+            self.mod_offset(|t| t + Offset::from(1_usize))
+        }
+
+        pub fn dec_offset(self) -> Location<<Offset as Sub>::Output, Line>
+        where Offset: Sub + From<usize> {
+            self.mod_offset(|t| t - Offset::from(1_usize))
+        }
+    }
+
     /// Smart constructor.
     #[doc = " A type representing 2d measurements."]
     #[allow(non_snake_case)]
@@ -490,18 +547,6 @@ mod location {
         type Output = Location<<Offset as SaturatingAdd>::Output, Line>;
         fn saturating_add(self, rhs: Offset) -> Self::Output {
             Location { line: self.line, offset: self.offset.saturating_add(rhs) }
-        }
-    }
-
-    impl<Offset, Line> Location<Offset, Line> {
-        /// Line setter.
-        pub fn with_line<Line2>(self, line: Line2) -> Location<Offset, Line2> {
-            Location { line, offset: self.offset }
-        }
-
-        /// CodePointIndex setter.
-        pub fn with_offset<Offset2>(self, offset: Offset2) -> Location<Offset2, Line> {
-            Location { line: self.line, offset }
         }
     }
 }

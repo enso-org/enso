@@ -75,20 +75,18 @@ impl ViewBuffer {
     fn vertical_motion(
         &self,
         selection: Selection,
-        line_delta: Line,
+        line_diff: Line,
         modify: bool,
     ) -> selection::Shape {
-        let move_up = line_delta < 0.line();
+        let move_up = line_diff < Line(0);
         let location = self.vertical_motion_selection_to_location(selection, move_up, modify);
-        // let column = Location::<Column>::from_in_context(self, location).offset;
-        let first_line = 0.line();
+        let first_line = Line(0);
         let last_line = self.last_line_index();
-        let desired_line = location.line + line_delta;
+        let desired_line = location.line + line_diff;
         let tgt_location = if desired_line < first_line {
             Location { line: first_line, offset: Column(0) }
         } else if desired_line > last_line {
-            let offset = self.last_line_last_column();
-            Location { line: last_line, offset }
+            Location { line: last_line, offset: self.last_line_last_column() }
         } else {
             location.with_line(desired_line)
         };
@@ -140,27 +138,32 @@ impl ViewBuffer {
         let shape = selection::Shape;
         let shape: selection::Shape = match transform {
             Transform::All => shape(default(), self.last_line_last_location()),
-            _ => panic!(),
-            // Transform::Up => self.vertical_motion(selection, (-1).line(), modify),
-            // Transform::Down => self.vertical_motion(selection, 1.line(), modify),
+            Transform::Up => self.vertical_motion(selection, (-1).line(), modify),
+            Transform::Down => self.vertical_motion(selection, 1.line(), modify),
             // Transform::StartOfDocument => shape(selection.start, default()),
             // Transform::EndOfDocument =>
             //     shape(selection.start, self.offset_to_location(text.byte_size())),
-            // Transform::Left => {
-            //     let do_move = selection.is_cursor() || modify;
-            //     if do_move {
-            //         shape(selection.start, self.prev_column_location(selection.end))
-            //     } else {
-            //         shape(selection.start, selection.min())
-            //     }
-            // }
+            Transform::Left => {
+                let do_move = selection.is_cursor() || modify;
+                if do_move {
+                    shape(selection.start, self.prev_column(selection.end))
+                } else {
+                    shape(selection.start, selection.min())
+                }
+            }
+            Transform::Right => {
+                let do_move = selection.is_cursor() || modify;
+                if do_move {
+                    shape(selection.start, self.next_column(selection.end))
+                } else {
+                    shape(selection.start, selection.max())
+                }
+            }
+
             // Transform::Right => {
             //     let do_move = selection.is_cursor() || modify;
-            //     if do_move {
-            //         shape(selection.start, self.next_column_location(selection.end))
-            //     } else {
-            //         shape(selection.start, selection.max())
-            //     }
+            //     let end = ite!(do_move, selection.end.inc_offset(), selection.max());
+            //     shape(selection.start, selection.max())
             // }
             // Transform::LeftSelectionBorder => shape(selection.start, selection.min()),
             // Transform::RightSelectionBorder => shape(selection.start, selection.max()),
@@ -216,6 +219,7 @@ impl ViewBuffer {
             //     let end = self.offset_to_location(end_offset);
             //     shape(start, end)
             // }
+            _ => panic!(),
         };
         let start = if modify { shape.start } else { shape.end };
         let end = shape.end;
