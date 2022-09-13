@@ -582,8 +582,7 @@ impl<E: Entry> FrpNetworkProvider for GridView<E> {
     }
 }
 
-impl<E: Entry> application::View for GridView<E>
-{
+impl<E: Entry> application::View for GridView<E> {
     fn label() -> &'static str {
         "GridView"
     }

@@ -360,7 +360,7 @@ pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
 impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> {
     /// Create new Grid View with headers.
     pub fn new(app: &Application) -> Self {
-        let grid = app.new_view::<crate::GridView::<E>>();
+        let grid = app.new_view::<crate::GridView<E>>();
         Self::new_wrapping(grid)
     }
 }

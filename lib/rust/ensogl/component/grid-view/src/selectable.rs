@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::header;
+use crate::Col;
 use crate::Entry;
 use crate::Row;
-use crate::Col;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
@@ -34,9 +34,13 @@ impl MovementTarget {
     /// Returns a [`MovementTarget::Location`] if the entry is in bounds of a grid with given
     /// amount of rows and columns. Returns [`MovementTarget::OutOfBounds`] otherwise.
     // TODO: add note about overflow to GridView crate doc (because f32 imprecise)
-    fn in_direction(row: Row, col: Col, 
-            direction: frp::io::keyboard::ArrowDirection,
-            rows: Row, columns: Col) -> MovementTarget {
+    fn in_direction(
+        row: Row,
+        col: Col,
+        direction: frp::io::keyboard::ArrowDirection,
+        rows: Row,
+        columns: Col,
+    ) -> MovementTarget {
         use frp::io::keyboard::ArrowDirection::*;
         use MovementTarget::*;
         let row_below = row + 1;
@@ -60,7 +64,7 @@ impl MovementTarget {
     fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
         match self {
             Self::Location { .. } => None,
-            Self::OutOfBounds(dir) => Some(dir)
+            Self::OutOfBounds(dir) => Some(dir),
         }
     }
 }
