@@ -125,21 +125,22 @@ where
             input_move_selection_dir <+ input.move_selection_right.constant(Some(Direction::Right));
             let grid_size = &grid_frp.grid_size;
             let selection = &grid_frp.entry_selected;
-            move_in_bounds_result <- input_move_selection_dir.map3(grid_size, selection, 
-                |dir, bounds, selection| {
-                    // TODO: handle Some in selection
-                    let (row, col) = selection;
-                    let (rows, cols) = bounds;
-                    dir.map(|dir| move_in_bounds_by_one_position(*row, *col, *dir, *rows, *cols));
-                }
+            result_of_moving_sel_in_bounds <- input_move_selection_dir.map3(grid_size, selection,
+                |dir, (rows, cols), selection| selection.map(|(row, col)|
+                    dir.map(|dir| move_in_bounds_by_one_position(*row, *col, *dir, *rows, *cols))
+                )
             );
+            selection_after_movement <= result_of_moving_sel_in_bounds;
+            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.moved());
+            grid_frp.private.output.selection_movement_out_of_grid_prevented <+
+                selection_after_movement.filter_map(|s| s.out_of_bounds());
 
 
-            sel_move_direction_and_bounds_and_current_sel <- input_move_selection.map3(
-                &grid_frp.grid_size, &grid_frp.entry_selected, |(a, b, c)| (*a, *b, *c));
-            eval input_move_selection ([grid_ref](dir)
-                dir.map(|d| grid_ref.move_selection_in_bounds_by_one_position(d))
-            );
+            // sel_move_direction_and_bounds_and_current_sel <- input_move_selection.map3(
+            //     &grid_frp.grid_size, &grid_frp.entry_selected, |(a, b, c)| (*a, *b, *c));
+            // eval input_move_selection ([grid_ref](dir)
+            //     dir.map(|d| grid_ref.move_selection_in_bounds_by_one_position(d))
+            // );
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
@@ -195,25 +196,48 @@ where EntryParams: frp::node::Data
 
 // === GridViewTemplate helpers ===
 
-// type GridLocation = Vector2<usize>;
-
+#[derive(Copy, Clone, Debug)]
 enum MoveInBoundsResult {
     Moved { row: Row, col: Col },
-    OutOfBounds(frp::io::ArrowDirection),
+    OutOfBounds(frp::io::keyboard::ArrowDirection),
+}
+
+impl MoveInBoundsResult {
+    fn moved(self) -> Option<(Row, Col)> {
+        match self {
+            Moved { row, col } -> Some((row, col)),
+            OutOfBounds(_) -> None,
+        }
+    }
+
+    fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
+        match self {
+            Moved { .. } -> None,
+            OutOfBounds(dir) -> Some(dir)
+        }
+    }
+}
+
+impl Default for MoveInBoundsResult {
+    fn default() -> Self {
+        Self::Moved { row: 0, col: 0 }
+    }
 }
 
 // TODO: add note about overflow to GridView crate doc (because f32 imprecise)
 fn move_in_bounds_by_one_position(row: Row, col: Col, 
         direction: frp::io::keyboard::ArrowDirection,
-        rows: Row, cols: Col) -> Option<MoveInBoundsResult> {
+        rows: Row, cols: Col) -> MoveInBoundsResult {
+    use frp::io::keyboard::ArrowDirection::*;
+    use MoveInBoundsResult::*;
     let row_below = row + 1;
     let col_to_the_right = col + 1;
     match direction {
-        Up if row > 0 => Some((row - 1, col)),
-        Down if row_below < rows => Some((row_below, col)),
-        Left if col > 0 => Some((row, col - 1)),
-        Right if col_to_the_right < cols => Some((row, col_to_the_right)),
-        _ => None,
+        Up if row > 0 => Moved { row: row - 1, col },
+        Down if row_below < rows => Moved { row: row_below, col },
+        Left if col > 0 => Moved { row, col: col - 1 },
+        Right if col_to_the_right < cols => Moved { row, col: col_to_the_right },
+        _ => OutOfBounds(direction),
     }
 }
 
