@@ -12,6 +12,11 @@
 //! highlight or headers) are available through accessors (like `header_frp` or
 //! `selection_highlight_frp`). Also, as every variant is based on the basic [`GridView`], they
 //! implement `AsRef<GridView>`.
+//!
+//! Locations in a grid are described by coordinates of [`Row`] and [`Col`] types. Correct behavior
+//! of a grid is not guaranteed for grid sizes or locations where any of the coordinates equal or
+//! exceed 10^7. That is due to loss of precision when converting such numbers to the `f32` type
+//! used for internal calculations.
 
 #![recursion_limit = "1024"]
 // === Features ===
