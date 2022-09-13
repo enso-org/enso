@@ -219,6 +219,10 @@ impl Default for MoveInBoundsResult {
     }
 }
 
+    /// Move selection by one position in given direction if the resulting selection is in bounds
+    /// of the grid view as defined by [`grid_size`]. Emit
+    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
+    /// out of bounds of the grid. Do nothing if there is no selection.
 // TODO: add note about overflow to GridView crate doc (because f32 imprecise)
 fn move_in_bounds_by_one_position(row: Row, col: Col, 
         direction: frp::io::keyboard::ArrowDirection,
