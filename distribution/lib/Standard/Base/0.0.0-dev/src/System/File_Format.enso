@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Common import unimplemented
 
 ## PRIVATE
+   Reads the list of types from `File_Format` or provides a default set.
 types : Vector
 types =
     Panic.catch No_Such_Method_Error_Data File_Format.types _->
@@ -63,5 +64,13 @@ type Bytes
     read self file on_problems =
         file.read_text self.encoding on_problems
 
+## A setting to infer the default behaviour of some option.
+type Infer
+
+## Indicates that the given file type is not supported by the `Auto_Detect` format.
 type Unsupported_File_Type
-    Unsupported_File_Type_Data (message:Text)
+    Unsupported_File_Type_Data filename
+
+    to_display_text : Text
+    to_display_text self =
+        "The "+self.filename+" has a type that is not supported by the Auto_Detect format."

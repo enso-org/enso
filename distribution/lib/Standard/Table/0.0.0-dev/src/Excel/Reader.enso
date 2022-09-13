@@ -5,7 +5,6 @@ import Standard.Table.Data.Table
 
 from Standard.Table.Excel.Section import Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
 
-from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
 
 polyglot java import org.enso.table.excel.ExcelHeaders
@@ -71,7 +70,7 @@ read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
         Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
         Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
-        Sheet sheet skip_rows row_limit ->
+        Worksheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
                 Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format

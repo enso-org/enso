@@ -210,14 +210,6 @@ type Leading_Zeros
 type Duplicate_Type_Selector
     Duplicate_Type_Selector_Data column:Text ambiguous:Boolean
 
-## Indicates that the given file type is not supported by the `Auto` format.
-type Unsupported_File_Type
-    Unsupported_File_Type_Data filename
-
-    to_display_text : Text
-    to_display_text self =
-        "The "+self.filename+" has a type that is not supported by the Auto format."
-
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
 type Existing_Data

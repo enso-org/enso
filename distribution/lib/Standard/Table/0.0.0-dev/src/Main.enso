@@ -10,7 +10,8 @@ import project.Data.Column_Name_Mapping
 import project.Data.Data_Formatter
 import project.Data.Match_Columns
 
-import project.IO.Quote_Style
+import project.Delimited.Quote_Style
+import project.Delimited.Delimited_Format
 
 import project.Excel.Section
 import project.Excel.Range
@@ -26,9 +27,10 @@ export project.Data.Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
 
-export project.IO.Quote_Style
+import project.Delimited.Quote_Style
+from project.Delimited.Delimited_Format export Delimited_Format, Delimited
 
-from project.Excel.Excel_Format export Excel
+from project.Excel.Excel_Format export Excel_Format, Excel
 from project.Excel.Section export Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
 from project.Excel.Range export Excel_Range
 
@@ -118,7 +120,7 @@ type Invalid_Format_Error
    Expand File_Format with list of types.
    This is used here to allow addition of Standard.Table formats within Standard.Base.
    It should be replaced with an expandable solution.
-File_Format.types = [Plain_Text, Excel_Format.Excel, Bytes]
+File_Format.types = [Plain_Text, Delimited_Format.Delimited, Excel_Format.Excel, Bytes]
 
 ## PRIVATE
    Implements the `Table.write` for this `File_Format`.
@@ -126,5 +128,6 @@ Auto_Detect.write_table : File -> Table -> Existing_File_Behavior -> Match_Colum
 Auto_Detect.write_table self file table on_existing_file match_columns on_problems =
     format = Auto_Detect.matches file
     if format == Nothing then Error.throw (Unsupported_File_Type_Data "No File_Format supports '" + file.extension + "'") else
-        Panic.catch No_Such_Method_Error_Data () _->
-            Error.throw (Illegal_Argument_Error "Saving a Table as " +  + " is not directly supported.)
+        Panic.catch No_Such_Method_Error_Data (format.write_table file table on_existing_file match_columns on_problems) _->
+            name = Meta.get_constructor_name <| Meta.meta format
+            Error.throw (Illegal_Argument_Error "Saving a Table as " + name + " is not supported.)

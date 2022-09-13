@@ -8,7 +8,6 @@ import Standard.Database.Data.Sql
 
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.IO.File_Format
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -929,7 +928,7 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
+         If `Auto_Detect` is specified; the file extension determines the
          specific type and uses the default settings for that type to be used.
          Details of this type are below.
        - on_existing_file: Specified how to handle if the file already exists.
@@ -960,13 +959,13 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+         - `Auto_Detect`: The file format is determined by the file extension
+            of the path argument.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+            the `write` function. If passed as format, an
+            `Illegal_Argument_Error` is raised. To write out the table as plain
+            text, the user needs to call the `Text.from Table` method and then
+            use the `Text.write` function.
 
        > Example
          Write a database table to a CSV file.
@@ -979,7 +978,7 @@ type Table
                  table = connection.access_table "Table"
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.to_dataframe.write path format on_existing_file match_columns on_problems
 

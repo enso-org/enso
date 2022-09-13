@@ -4,7 +4,6 @@ import Standard.Table.Data.Table
 
 from Standard.Table.Excel.Reader import handle_reader, make_java_headers
 
-from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Table.Data.Match_Columns
 
@@ -40,7 +39,7 @@ write_excel file table on_existing_file section headers match_columns _ xls_form
     java_headers = make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
     result = handle_writer <| case section of
-        Sheet sheet skip_rows row_limit ->
+        Worksheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
             Excel_Range_Data java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
