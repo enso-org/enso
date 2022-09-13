@@ -19,6 +19,66 @@ pub mod highlight;
 
 
 
+// ======================
+// === MovementTarget ===
+// ======================
+
+#[derive(Copy, Clone, Debug)]
+enum MovementTarget {
+    InBounds { row: Row, col: Col },
+    OutOfBounds(frp::io::keyboard::ArrowDirection),
+}
+
+impl MovementTarget {
+    fn in_bounds(self) -> Option<(Row, Col)> {
+        match self {
+            Self::InBounds { row, col } => Some((row, col)),
+            Self::OutOfBounds(_) => None,
+        }
+    }
+
+    fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
+        match self {
+            Self::InBounds { .. } => None,
+            Self::OutOfBounds(dir) => Some(dir)
+        }
+    }
+}
+
+impl Default for MovementTarget {
+    fn default() -> Self {
+        Self::InBounds { row: 0, col: 0 }
+    }
+}
+
+
+// === move_in_bounds_by_one_position ===
+
+/// Calculate row and column of the nearest entry in given direction from given row and col.
+    /// Move selection by one position in given direction if the resulting selection is in bounds
+    /// of the grid view as defined by [`grid_size`]. Emit
+    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
+    /// out of bounds of the grid. Do nothing if there is no selection.
+// TODO: add note about overflow to GridView crate doc (because f32 imprecise)
+fn move_in_bounds_by_one_position(row: Row, col: Col, 
+        direction: frp::io::keyboard::ArrowDirection,
+        rows: Row, cols: Col) -> MovementTarget {
+    use frp::io::keyboard::ArrowDirection::*;
+    use MovementTarget::*;
+    let row_below = row + 1;
+    let col_to_the_right = col + 1;
+    match direction {
+        Up if row > 0 => InBounds { row: row - 1, col },
+        Down if row_below < rows => InBounds { row: row_below, col },
+        Left if col > 0 => InBounds { row, col: col - 1 },
+        Right if col_to_the_right < cols => InBounds { row, col: col_to_the_right },
+        _ => OutOfBounds(direction),
+    }
+}
+
+
+
+
 // ================
 // === GridView ===
 // ================
@@ -133,7 +193,7 @@ where
                 )
             );
             selection_after_movement <= result_of_moving_sel_in_bounds;
-            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.moved()).some();
+            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.in_bounds()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
                 selection_after_movement.map(|s| s.out_of_bounds());
         }
@@ -186,62 +246,6 @@ where EntryParams: frp::node::Data
         &self.hover_handler.frp
     }
 }
-
-
-// === GridViewTemplate helpers ===
-
-#[derive(Copy, Clone, Debug)]
-enum MoveInBoundsResult {
-    Moved { row: Row, col: Col },
-    OutOfBounds(frp::io::keyboard::ArrowDirection),
-}
-
-impl MoveInBoundsResult {
-    fn moved(self) -> Option<(Row, Col)> {
-        match self {
-            Self::Moved { row, col } => Some((row, col)),
-            Self::OutOfBounds(_) => None,
-        }
-    }
-
-    fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
-        match self {
-            Self::Moved { .. } => None,
-            Self::OutOfBounds(dir) => Some(dir)
-        }
-    }
-}
-
-impl Default for MoveInBoundsResult {
-    fn default() -> Self {
-        Self::Moved { row: 0, col: 0 }
-    }
-}
-
-    /// Move selection by one position in given direction if the resulting selection is in bounds
-    /// of the grid view as defined by [`grid_size`]. Emit
-    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
-    /// out of bounds of the grid. Do nothing if there is no selection.
-// TODO: add note about overflow to GridView crate doc (because f32 imprecise)
-fn move_in_bounds_by_one_position(row: Row, col: Col, 
-        direction: frp::io::keyboard::ArrowDirection,
-        rows: Row, cols: Col) -> MoveInBoundsResult {
-    use frp::io::keyboard::ArrowDirection::*;
-    use MoveInBoundsResult::*;
-    let row_below = row + 1;
-    let col_to_the_right = col + 1;
-    match direction {
-        Up if row > 0 => Moved { row: row - 1, col },
-        Down if row_below < rows => Moved { row: row_below, col },
-        Left if col > 0 => Moved { row, col: col - 1 },
-        Right if col_to_the_right < cols => Moved { row, col: col_to_the_right },
-        _ => OutOfBounds(direction),
-    }
-}
-
-
-
-// === GridViewTemplate trait implementations ===
 
 impl<InnerGridView, E: Entry, T> AsRef<T> for GridViewTemplate<InnerGridView, E, E::Params>
 where InnerGridView: AsRef<T>
