@@ -20,6 +20,7 @@ import java.nio.file.{Path, Paths}
 import java.util.{HashMap, UUID}
 
 import scala.Console.err
+import scala.Console.out
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
@@ -759,7 +760,10 @@ object Main {
         case Some(main) if mainMethodName != "main" =>
           main.execute(mainType.newInstance())
         case Some(main) =>
-          main.execute()
+          val res = main.execute()
+          if (!res.isNull()) {
+            out.println(res);
+          }
         case None =>
           err.println(
             s"The module ${mainModule.getName} does not contain a `main` " +

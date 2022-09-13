@@ -1,11 +1,15 @@
 package org.enso.base;
 
+import org.enso.base.time.Date_Time_Utils;
+import org.enso.base.time.Date_Utils;
+import org.enso.base.time.TimeUtilsBase;
+import org.enso.base.time.Time_Of_Day_Utils;
+import org.graalvm.polyglot.Value;
+
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalField;
-import java.time.temporal.WeekFields;
+import java.time.temporal.*;
 import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
@@ -205,5 +209,25 @@ public class Time_Utils {
   public static LocalTime parse_time(String text, String pattern, Locale locale) {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
     return (LocalTime.parse(text, formatter.withLocale(locale)));
+  }
+
+  /**
+   * Normally this method could be done in Enso by pattern matching, but currently matching on Time
+   * types is not supported, so this is a workaround.
+   *
+   * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
+   * in Enso; the related Pivotal issue: https://www.pivotaltracker.com/story/show/183219169
+   */
+  public static TimeUtilsBase utils_for(Value value) {
+    boolean isDate = value.isDate();
+    boolean isTime = value.isTime();
+    if (isDate && isTime) return Date_Time_Utils.INSTANCE;
+    if (isDate) return Date_Utils.INSTANCE;
+    if (isTime) return Time_Of_Day_Utils.INSTANCE;
+    throw new IllegalArgumentException("Unexpected argument type: " + value);
+  }
+
+  public static ZoneOffset get_datetime_offset(ZonedDateTime datetime) {
+    return datetime.getOffset();
   }
 }

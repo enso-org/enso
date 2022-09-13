@@ -12,6 +12,11 @@
 //! highlight or headers) are available through accessors (like `header_frp` or
 //! `selection_highlight_frp`). Also, as every variant is based on the basic [`GridView`], they
 //! implement `AsRef<GridView>`.
+//!
+//! Locations in a grid are described by coordinates of [`Row`] and [`Col`] types. Correct behavior
+//! of a [`GridView`] is not guaranteed for grid sizes or locations where any of the coordinates
+//! equal or exceed 10^7. That is due to loss of precision when converting such numbers to the
+//! `f32` type used for internal calculations.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -550,35 +555,6 @@ impl<E: Entry> GridView<E> {
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
     }
-
-    /// Move selection by one position in given direction if the resulting selection is in bounds
-    /// of the grid view as defined by [`grid_size`]. Emit
-    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
-    /// out of bounds of the grid. Do nothing if there is no selection.
-    fn move_selection_in_bounds_by_one_position(
-        &self,
-        direction: frp::io::keyboard::ArrowDirection,
-    ) {
-        use frp::io::keyboard::ArrowDirection::*;
-        let frp = self.frp();
-        if let Some((row, col)) = frp.entry_selected.value() {
-            let (rows, cols) = frp.grid_size.value();
-            let row_below = row + 1;
-            let col_to_the_right = col + 1;
-            let new_selection_if_in_bounds = match direction {
-                Up if row > 0 => Some((row - 1, col)),
-                Down if row < Row::MAX && row_below < rows => Some((row_below, col)),
-                Left if col > 0 => Some((row, col - 1)),
-                Right if col < Col::MAX && col_to_the_right < cols => Some((row, col_to_the_right)),
-                _ => None,
-            };
-            if let Some(selection) = new_selection_if_in_bounds {
-                frp.select_entry(selection);
-            } else {
-                frp.private.output.selection_movement_out_of_grid_prevented.emit(Some(direction));
-            }
-        }
-    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
@@ -666,12 +642,30 @@ impl<E: Entry> FrpNetworkProvider for GridView<E> {
     }
 }
 
-impl<E: Entry> application::command::CommandApi for GridView<E> {
-    fn command_api(&self) -> Rc<RefCell<HashMap<String, application::command::Command>>> {
-        self.widget.command_api()
+impl<E: Entry> application::View for GridView<E> {
+    fn label() -> &'static str {
+        "GridView"
     }
-    fn status_api(&self) -> Rc<RefCell<HashMap<String, frp::Sampler<bool>>>> {
-        self.widget.status_api()
+
+    fn new(app: &Application) -> Self {
+        GridView::<E>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        self.widget.app()
+    }
+
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use application::shortcut::ActionType::*;
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (PressAndRepeat, "left", "move_selection_left"),
+            (PressAndRepeat, "right", "move_selection_right"),
+        ])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+            .collect()
     }
 }
 

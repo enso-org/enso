@@ -7,7 +7,7 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
-polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
@@ -728,7 +728,7 @@ type File
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children self = Vector.Vector_Data (self.list_immediate_children_array)
+    list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
 
@@ -897,7 +897,7 @@ type Input_Stream
     read_n_bytes self n = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
-            Vector.Vector_Data bytes
+            Vector.from_polyglot_array bytes
 
     ## ADVANCED
 
@@ -963,7 +963,7 @@ type Input_Stream
     with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.Vector_Data results.problems . map Encoding_Error_Data
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
@@ -1110,7 +1110,7 @@ Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! I
 Vector.Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types_Data handler=(Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
-        byte_array = Array_Utils.ensureByteArray self.to_array
+        byte_array = Array_Builder.ensureByteArray self.to_array
 
         file = new path
         on_existing_file.write file stream->

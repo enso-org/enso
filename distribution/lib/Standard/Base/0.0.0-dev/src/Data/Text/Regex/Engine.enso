@@ -66,7 +66,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
-    match self _ _ _ = Errors.unimplemented "This is an interface only."
+    match self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -76,7 +76,7 @@ type Pattern
        Arguments:
        - input: The text to check for matching.
     matches : Text -> Boolean
-    matches self _ _ = Errors.unimplemented "This is an interface only."
+    matches self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -96,7 +96,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
-    find self _ _ _ = Errors.unimplemented "This is an interface only."
+    find self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -109,7 +109,7 @@ type Pattern
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element.
     split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
-    split self _ _ _ = Errors.unimplemented "This is an interface only."
+    split self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -125,7 +125,7 @@ type Pattern
        If this method performs no replacements it will return the `input` text
        unchanged.
     replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
-    replace self _ _ _ _ = Errors.unimplemented "This is an interface only."
+    replace self _ _ _ = Errors.unimplemented "This is an interface only."
 
 ## The `Data.Text.Regex.Engine.Match` interface.
 type Match

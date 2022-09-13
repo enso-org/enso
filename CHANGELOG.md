@@ -60,6 +60,7 @@
   could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened and a
   new node is created.][3645]
+- [Proper Polyglot Vector and Array Support][3667]
 - [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
 
@@ -190,6 +191,10 @@
 - [Added various date part functions to `Date` and `Date_Time`.][3669]
 - [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
 - [Implemented specialized storage for the in-memory Table.][3673]
+- [Implemented `Table.distinct` for the in-memory backend.][3684]
+- [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
+- [Implemented `start_of` and `end_of` methods for date/time types allowing to
+  find start and end of a period of time containing the provided time.][3695]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -292,6 +297,7 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3632]: https://github.com/enso-org/enso/pull/3632
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
@@ -300,9 +306,12 @@
 [3661]: https://github.com/enso-org/enso/pull/3661
 [3665]: https://github.com/enso-org/enso/pull/3665
 [3634]: https://github.com/enso-org/enso/pull/3634
+[3667]: https://github.com/enso-org/enso/pull/3667
 [3669]: https://github.com/enso-org/enso/pull/3669
 [3647]: https://github.com/enso-org/enso/pull/3647
 [3673]: https://github.com/enso-org/enso/pull/3673
+[3684]: https://github.com/enso-org/enso/pull/3684
+[3695]: https://github.com/enso-org/enso/pull/3695
 
 #### Enso Compiler
 
@@ -344,6 +353,7 @@
   support][3658]
 - [Implement new specification of data types: `type` has a runtime
   representation, every atom has a type][3671]
+- [main = "Hello World!" is valid Enso sample][3696]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -388,6 +398,7 @@
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
+[3696]: https://github.com/enso-org/enso/pull/3696
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
