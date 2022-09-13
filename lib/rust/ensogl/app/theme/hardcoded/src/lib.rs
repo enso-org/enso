@@ -192,6 +192,9 @@ define_themes! { [light:0, dark:1]
                     content_corner_radius = 15.0, 15.0;
                     content_background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
 
+                    breadcrumbs_crop_left = 9.0, 9.0;
+                    breadcrumbs_crop_right = 3.0, 3.0;
+
                     section_divider_height = 2.0, 2.0;
                     section_heading_size = 16.0, 16.0;
                     section_heading_offset = 50.0, 50.0;

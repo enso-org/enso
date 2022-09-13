@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../../../lib/rust/frp" }
-ensogl-breadcrumbs = { path = "../breadcrumbs" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui/" }
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view/" }
@@ -20,6 +19,7 @@ ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-a
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
+ide-view-breadcrumbs = { path = "../breadcrumbs" }
 ide-view-component-group = { path = "../component-group" }
 ordered-float = "3.0.0"
 num_enum = "0.5.1"

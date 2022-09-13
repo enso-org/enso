@@ -46,7 +46,6 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
-use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::gui::Widget;
 use ensogl_core::Animation;
@@ -159,9 +158,6 @@ impl Model {
         let mask = mask::View::new(&app.logger);
         display_object.add_child(&mask);
         let grid = GridView::new(app);
-        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
-        let params = entry::Params::from_style(&style);
-        grid.set_entries_params(params);
         grid.reset_entries(1, 0);
         display_object.add_child(&grid);
         let entries: Entries = default();
@@ -174,6 +170,11 @@ impl Model {
                 })
             );
             grid.model_for_entry <+ requested_entry;
+        }
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let params = entry::Params::from_style(&style, &network);
+        frp::extend! { network
+            eval params((p) grid.set_entries_params(p));
         }
         Self { display_object, grid, entries, network, mask, show_ellipsis }
     }
@@ -250,7 +251,8 @@ impl Model {
         } else if is_separator_index {
             entry::Model::Separator
         } else if let Some(entry) = entries.borrow().get(col / 2) {
-            entry::Model::Text(entry.0.clone_ref())
+            let text: &ImString = entry.as_ref();
+            entry::Model::Text(text.clone_ref())
         } else {
             tracing::error!("Requested entry is missing in the breadcrumbs ({col})");
             entry::Model::default()
@@ -345,15 +347,9 @@ impl Model {
 
 // === Breadcrumb ===
 
-/// The breadcrumb type.
-#[derive(Debug, Clone, CloneRef, Default)]
-pub struct Breadcrumb(ImString);
-
-impl Breadcrumb {
-    /// Constructor.
-    pub fn new(label: &str) -> Self {
-        Self(ImString::new(label))
-    }
+im_string_newtype_without_serde! {
+    /// A single breadcrumb.
+    Breadcrumb
 }
 
 

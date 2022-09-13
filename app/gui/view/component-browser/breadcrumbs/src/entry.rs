@@ -3,19 +3,18 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::style::Data;
 use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
 use ensogl_text as text;
-use ensogl_text::font::DEFAULT_FONT;
 
 
 // ==============
@@ -63,9 +62,9 @@ pub mod ellipsis {
             let bg_col = style.get_color(theme::ellipsis::background_color);
             let background_color = Var::<color::Rgba>::rgba(bg_col.red,bg_col.green,bg_col.blue,alpha);
 
-            // `.repeat()` call would be more efficient than three separate circles, but it also
-            // requires `.intersection()` to crop the infinite grid of circles, which is
-            // currently broken. See https://www.pivotaltracker.com/story/show/182593513.
+            // TODO: `.repeat()` call would be more efficient than three separate circles, but it
+            //   also requires `.intersection()` to crop the infinite grid of circles, which is
+            //   currently broken. See https://www.pivotaltracker.com/story/show/182593513.
             let left = Circle(radius.clone()).fill(circles_color.clone());
             let center = Circle(radius.clone()).fill(circles_color.clone());
             let right = Circle(radius).fill(circles_color);
@@ -235,31 +234,43 @@ pub struct Params {
 }
 
 impl Params {
-    pub(crate) fn from_style(style: &StyleWatch) -> Self {
-        let margin = style.get_number(theme::entry::margin);
-        let hover_color = style.get_color(theme::entry::hover_color);
-        let font = if let Some(Data::Text(font)) = style.get(theme::entry::font) {
-            font.into()
-        } else {
-            DEFAULT_FONT.into()
-        };
-        let text_offset = style.get_number(theme::entry::text_offset);
-        let text_size = style.get_number(theme::entry::text_size).into();
-        let selected_color = style.get_color(theme::entry::selected_color);
-        let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
-        let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
-        let greyed_out_start = None;
-        Self {
-            margin,
-            hover_color,
-            font,
-            text_offset,
-            text_size,
-            selected_color,
-            highlight_corners_radius,
-            greyed_out_color,
-            greyed_out_start,
+    pub(crate) fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
+        frp::extend! { network
+            init <- source_();
+            let margin = style.get_number(theme::entry::margin);
+            let hover_color = style.get_color(theme::entry::hover_color);
+            let font = style.get_text(theme::entry::font);
+            let text_offset = style.get_number(theme::entry::text_offset);
+            let text_size = style.get_number(theme::entry::text_size);
+            let selected_color = style.get_color(theme::entry::selected_color);
+            let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
+            let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
+            greyed_out_start <- init.constant(None);
+            text_params <- all3(&text_offset,&text_size,&font);
+            colors <- all3(&hover_color,&selected_color,&greyed_out_color);
+            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,&greyed_out_start,
+                |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
+                    DEBUG!("Text params: {text_params:?}");
+                    let (text_offset,text_size,font) = text_params;
+                    let (hover_color,selected_color,greyed_out_color) = colors;
+                    Params {
+                        margin,
+                        text_offset: *text_offset,
+                        text_size: text::Size::from(*text_size),
+                        hover_color:*hover_color,
+                        font: ImString::new(font),
+                        selected_color: *selected_color,
+                        highlight_corners_radius,
+                        greyed_out_color: *greyed_out_color,
+                        greyed_out_start
+                    }
+                }
+            );
+            eval params([](p) {DEBUG!("Params: {p:?}")});
+            params_sampler <- params.sampler();
         }
+        init.emit(());
+        params_sampler
     }
 }
 

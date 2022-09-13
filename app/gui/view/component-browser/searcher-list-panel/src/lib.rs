@@ -53,7 +53,6 @@ use crate::navigator::Section;
 
 use component_group::icon;
 use enso_frp as frp;
-use ensogl_breadcrumbs as breadcrumbs;
 use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -76,6 +75,7 @@ use ensogl_scroll_area::ScrollArea;
 use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
+use ide_view_breadcrumbs as breadcrumbs;
 use ide_view_component_group as component_group;
 use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
@@ -175,6 +175,9 @@ struct Style {
     content_corner_radius:    f32,
     content_background_color: color::Rgba,
 
+    breadcrumbs_crop_left:  f32,
+    breadcrumbs_crop_right: f32,
+
     section_divider_height:      f32,
     section_heading_size:        f32,
     section_heading_offset:      f32,
@@ -224,13 +227,14 @@ impl Style {
 
     fn breadcrumbs_pos(&self) -> Vector2 {
         let breadcrumbs_height = self.menu_height;
-        let x = -self.content_width / 2.0 + self.navigator_width / 2.0 + self.content_padding;
+        let x = -self.content_width / 2.0 + self.navigator_width / 2.0 + self.breadcrumbs_crop_left;
         let y = self.content_height / 2.0 + breadcrumbs_height / 2.0 - self.content_padding;
         Vector2(x, y)
     }
 
     fn breadcrumbs_size(&self) -> Vector2 {
-        Vector2(self.content_width - self.content_padding * 2.0, self.menu_height)
+        let width = self.content_width - self.breadcrumbs_crop_left - self.breadcrumbs_crop_right;
+        Vector2(width, self.menu_height)
     }
 }
 

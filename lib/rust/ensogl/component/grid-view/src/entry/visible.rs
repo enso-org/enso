@@ -75,6 +75,12 @@ where EntryParams: frp::node::Data
     ///
     /// The new instance will have all its FRP endpoints connected to appropriate endpoints of
     /// `self` and overlay mouse events.
+    ///
+    /// The second value in the returned tuple is an `init` FRP endpoint that must be triggered
+    /// as soon as the entry is created. It is not triggered automatically to allow calling
+    /// `create_entry` without the risk of multiple RefCell borrows. Some FRP endpoints of the
+    /// entry may cause double borrows, as they are already connected to the grid view handlers
+    /// at the time of the `create_entry` call.
     pub fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
         text_layer: Option<&Layer>,
