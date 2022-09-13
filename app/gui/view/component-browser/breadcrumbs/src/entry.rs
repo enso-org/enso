@@ -3,7 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -239,48 +238,6 @@ pub struct Params {
     pub greyed_out_color:         color::Rgba,
     /// The first greyed out column. All columns to the right will also be greyed out.
     pub greyed_out_start:         Option<Col>,
-}
-
-impl Params {
-    pub(crate) fn from_style(
-        style: &StyleWatchFrp,
-        network: &frp::Network,
-        init: frp::Source<()>,
-    ) -> frp::Sampler<Self> {
-        frp::extend! { network
-            let margin = style.get_number(theme::entry::margin);
-            let hover_color = style.get_color(theme::entry::hover_color);
-            let font = style.get_text(theme::entry::font);
-            let text_padding = style.get_number(theme::entry::text_padding_left);
-            let text_size = style.get_number(theme::entry::text_size);
-            let selected_color = style.get_color(theme::entry::selected_color);
-            let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
-            let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
-            greyed_out_start <- init.constant(None);
-            text_params <- all4(&init, &text_padding,&text_size,&font);
-            colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
-            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
-                &greyed_out_start,
-                |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
-                    let (_, text_padding,text_size,font) = text_params;
-                    let (_, hover_color,selected_color,greyed_out_color) = colors;
-                    Params {
-                        margin,
-                        text_padding_left: *text_padding,
-                        text_size: text::Size::from(*text_size),
-                        hover_color:*hover_color,
-                        font_name: ImString::new(font),
-                        selected_color: *selected_color,
-                        highlight_corners_radius,
-                        greyed_out_color: *greyed_out_color,
-                        greyed_out_start
-                    }
-                }
-            );
-            params_sampler <- params.sampler();
-        }
-        params_sampler
-    }
 }
 
 // === Entry ===

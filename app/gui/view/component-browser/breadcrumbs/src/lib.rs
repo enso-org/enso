@@ -52,6 +52,7 @@ use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
+use ensogl_text as text;
 use entry::Entry;
 use grid_view::Col;
 
@@ -66,7 +67,7 @@ mod entry;
 // =================
 
 /// We virtually divide the breadcrumbs into two regions – left and right. This constant
-/// determines the fraction of the left one.
+/// determines the proportion of these regions.
 
 /// The border between these regions is considered a resting position of the selected entry when
 /// breadcrumbs don't fit into the viewport. We don't scroll the viewport if the selected entry is
@@ -173,13 +174,56 @@ impl Model {
             grid.model_for_entry <+ requested_entry;
         }
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let params = entry::Params::from_style(&style, &network, init.clone_ref());
+        let params = Self::params_from_style(&style, &network, init.clone_ref());
         frp::extend! { network
             grid.set_entries_params <+ params;
         }
         init.emit(());
         Self { display_object, grid, entries, network, mask, show_ellipsis }
     }
+
+    /// Prepare an [`frp::Sampler`] that emits the parameters for the grid view's entries on
+    /// style sheet changes.
+    fn params_from_style(
+        style: &StyleWatchFrp,
+        network: &frp::Network,
+        init: frp::Source<()>,
+    ) -> frp::Sampler<entry::Params> {
+        frp::extend! { network
+            let margin = style.get_number(theme::entry::margin);
+            let hover_color = style.get_color(theme::entry::hover_color);
+            let font = style.get_text(theme::entry::font);
+            let text_padding = style.get_number(theme::entry::text_padding_left);
+            let text_size = style.get_number(theme::entry::text_size);
+            let selected_color = style.get_color(theme::entry::selected_color);
+            let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
+            let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
+            greyed_out_start <- init.constant(None);
+            text_params <- all4(&init, &text_padding,&text_size,&font);
+            colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
+            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
+                &greyed_out_start,
+                |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
+                    let (_, text_padding,text_size,font) = text_params;
+                    let (_, hover_color,selected_color,greyed_out_color) = colors;
+                    entry::Params {
+                        margin,
+                        text_padding_left: *text_padding,
+                        text_size: text::Size::from(*text_size),
+                        hover_color:*hover_color,
+                        font_name: ImString::new(font),
+                        selected_color: *selected_color,
+                        highlight_corners_radius,
+                        greyed_out_color: *greyed_out_color,
+                        greyed_out_start
+                    }
+                }
+            );
+            params_sampler <- params.sampler();
+        }
+        params_sampler
+    }
+
 
     fn set_layers(&self, layers: Layers) {
         layers.mask.add_exclusive(&self.mask);
@@ -266,8 +310,8 @@ impl Model {
     fn grid_columns(&self) -> Col {
         let entries_count = self.entries.borrow().len();
         let is_not_empty = entries_count != 0;
-        let ellipsis = if self.show_ellipsis.get() && is_not_empty { 2 } else { 0 };
-        (entries_count * 2).saturating_sub(1) + ellipsis
+        let ellipsis_and_separator = if self.show_ellipsis.get() && is_not_empty { 2 } else { 0 };
+        (entries_count * 2).saturating_sub(1) + ellipsis_and_separator
     }
 
     /// The column index of the last right-most displayed breadcrumb. Returns [`None`] if there
@@ -276,7 +320,8 @@ impl Model {
         if self.entries.borrow().is_empty() {
             None
         } else if self.show_ellipsis.get() {
-            Some(self.grid_columns().saturating_sub(3))
+            let ellipsis_and_separator = 2;
+            Some(self.grid_columns().saturating_sub(1 + ellipsis_and_separator))
         } else {
             Some(self.grid_columns().saturating_sub(1))
         }
