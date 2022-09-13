@@ -243,11 +243,12 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
+    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
         s"Execution of function $itemName interrupted."
       case _ =>
-        s"Execution of function $itemName failed. ${error.getMessage}"
+        s"Execution of function $itemName failed ($reason)."
     }
     ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
