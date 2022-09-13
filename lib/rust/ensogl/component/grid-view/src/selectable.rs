@@ -131,21 +131,11 @@ where
                 |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
                     move_in_bounds_by_one_position(row, col, dir, *rows, *cols)
                 )
-                // |dir, (rows, cols), selection| selection.map(|(row, col)|
-                //     dir.map(|dir| move_in_bounds_by_one_position(row, col, dir, *rows, *cols))
-                // )
             );
             selection_after_movement <= result_of_moving_sel_in_bounds;
             grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.moved()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
                 selection_after_movement.map(|s| s.out_of_bounds());
-
-
-            // sel_move_direction_and_bounds_and_current_sel <- input_move_selection.map3(
-            //     &grid_frp.grid_size, &grid_frp.entry_selected, |(a, b, c)| (*a, *b, *c));
-            // eval input_move_selection ([grid_ref](dir)
-            //     dir.map(|d| grid_ref.move_selection_in_bounds_by_one_position(d))
-            // );
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }

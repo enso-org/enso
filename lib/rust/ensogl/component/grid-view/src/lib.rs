@@ -537,35 +537,6 @@ impl<E: Entry> GridView<E> {
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
     }
-
-    /// Move selection by one position in given direction if the resulting selection is in bounds
-    /// of the grid view as defined by [`grid_size`]. Emit
-    /// [`selection_movement_out_of_grid_prevented`] FRP event if moving the selection would put it
-    /// out of bounds of the grid. Do nothing if there is no selection.
-    fn move_selection_in_bounds_by_one_position(
-        &self,
-        direction: frp::io::keyboard::ArrowDirection,
-    ) {
-        use frp::io::keyboard::ArrowDirection::*;
-        let frp = self.frp();
-        if let Some((row, col)) = frp.entry_selected.value() {
-            let (rows, cols) = frp.grid_size.value();
-            let row_below = row + 1;
-            let col_to_the_right = col + 1;
-            let new_selection_if_in_bounds = match direction {
-                Up if row > 0 => Some((row - 1, col)),
-                Down if row < Row::MAX && row_below < rows => Some((row_below, col)),
-                Left if col > 0 => Some((row, col - 1)),
-                Right if col < Col::MAX && col_to_the_right < cols => Some((row, col_to_the_right)),
-                _ => None,
-            };
-            if let Some(selection) = new_selection_if_in_bounds {
-                frp.select_entry(selection);
-            } else {
-                frp.private.output.selection_movement_out_of_grid_prevented.emit(Some(direction));
-            }
-        }
-    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
