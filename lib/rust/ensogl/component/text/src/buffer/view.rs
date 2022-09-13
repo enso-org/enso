@@ -266,10 +266,10 @@ impl ViewBuffer {
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
-            warn!("FOUND SHAPED LINE");
+            warn!("FOUND SHAPED LINE {:?}", line);
             f(shaped_line)
         } else {
-            warn!("GENERATING A NEW SHAPED LINE");
+            warn!("GENERATING A NEW SHAPED LINE {:?}", line);
             let shaped_line = self.shape_line(line);
             let out = f(&shaped_line);
             shaped_lines.insert(line, shaped_line);
@@ -545,6 +545,7 @@ impl ViewBuffer {
             );
             modification.merge(self.modify_selection(selection, text.clone(), transform));
         }
+        warn!("OUT: {:?}", modification);
         modification
     }
 
@@ -601,18 +602,29 @@ impl ViewBuffer {
         let range = byte_selection.range();
         debug!("range {:?}", range);
         self.buffer.replace(range, &text);
-        self.shaped_lines.borrow_mut().remove(&transformed.start.line);
+        // FIXME: make nicer iterator
+        for line in transformed.min().line.value..=transformed.max().line.value {
+            let line = Line(line);
+            debug!("Removing line shape cache for line {:?}", line);
+            self.shaped_lines.borrow_mut().remove(&line);
+        }
+
 
         let new_byte_cursor_pos = range.start + text_byte_size;
         debug!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
         debug!("new_byte_selection {:?}", new_byte_selection);
+        let local_byte_selection = self.to_location_selection2(new_byte_selection);
+        warn!("NEW SELECTION: {:?}", local_byte_selection);
+
+        // FIXME: construct the below with the local_byte_selection information above
+        let selection_group =
+            selection::Group::from(self.to_location_selection(new_byte_selection));
         let change = Change { range, text };
         let change = ChangeWithSelection { change, selection };
         let changes = vec![change];
         debug!("change {:?}", changes);
-        let selection_group =
-            selection::Group::from(self.to_location_selection(new_byte_selection));
+
         debug!(">>> {}, {}", text_byte_size, range.size());
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
@@ -624,7 +636,7 @@ impl ViewBuffer {
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
         let selection_start = Location::from_in_context(self, selection.start);
-        let selection_end = Location::from_in_context(self, selection.start);
+        let selection_end = Location::from_in_context(self, selection.end);
         let start = self.byte_offset_of_location_snapped(selection_start);
         let end = self.byte_offset_of_location_snapped(selection_end);
         let id = selection.id;
@@ -636,6 +648,13 @@ impl ViewBuffer {
         let end = self.offset_to_location(selection.end);
         let start = Location::<Column>::from_in_context(self, start);
         let end = Location::<Column>::from_in_context(self, end);
+        let id = selection.id;
+        Selection::new(start, end, id)
+    }
+
+    fn to_location_selection2(&self, selection: Selection<UBytes>) -> Selection<Location> {
+        let start = self.offset_to_location(selection.start);
+        let end = self.offset_to_location(selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -941,7 +960,7 @@ impl ViewModel {
         Line(self.first_view_line().value + view_line.value)
     }
 
-    pub fn location_to_view_location(&self, location: Location) -> ViewLocation {
+    pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
         let line = self.line_to_view_line(location.line);
         let offset = location.offset;
         Location { line, offset }
@@ -956,11 +975,14 @@ impl ViewModel {
         buffer::Range { start, end }
     }
 
-    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
-        let start_location = Location::from_in_context(self, selection.shape.start);
-        let end_location = Location::from_in_context(self, selection.shape.end);
-        let start = self.location_to_view_location(start_location);
-        let end = self.location_to_view_location(end_location);
+    pub fn selection_to_view_selection(
+        &self,
+        selection: Selection,
+    ) -> Selection<ViewLocation<Column>> {
+        // let start_location = Location::from_in_context(self, selection.shape.start);
+        // let end_location = Location::from_in_context(self, selection.shape.end);
+        let start = self.location_to_view_location(selection.shape.start);
+        let end = self.location_to_view_location(selection.shape.end);
         let shape = selection::Shape { start, end };
         let id = selection.id;
         Selection { shape, id }

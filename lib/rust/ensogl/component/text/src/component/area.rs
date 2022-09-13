@@ -100,8 +100,11 @@ impl Line {
     // FIXME: introduce Column type
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
-        let ix = column.value.min(self.divs.len() - 1);
-        self.divs[ix]
+        if column.value < self.divs.len() {
+            self.divs[column.value]
+        } else {
+            self.divs.last().copied().unwrap_or(0.0)
+        }
     }
 
     // fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
