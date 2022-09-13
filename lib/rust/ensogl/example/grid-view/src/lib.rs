@@ -87,7 +87,7 @@ fn setup_grid_view(
                     "An attempt to select an entry outside of the grid in " dir;?
                     " direction was prevented."
                 );
-                tracing::warn!("{msg}");
+                tracing::debug!("{msg}");
             }
         );
     }
@@ -101,8 +101,7 @@ fn setup_grid_view(
     };
     view.set_entries_params(params);
     view.scroll_frp().resize(Vector2(400.0, 300.0));
-    // view.reset_entries(1000, 1000);
-    view.reset_entries(100, 100);
+    view.reset_entries(1000, 1000);
     std::mem::forget(network);
     app.display.add_child(&view);
     view
@@ -124,14 +123,10 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    // let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
-    // let with_hover_mask = [&grid_views[2]];
-    // let with_selection_mask = [&grid_views[1], &grid_views[2]];
-    // grid_views[2].frp().focus();
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(1).collect_vec();
-    let with_hover_mask = [&grid_views[0]];
-    let with_selection_mask = [&grid_views[0]];
-    grid_views[0].frp().focus();
+    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
+    let with_hover_mask = [&grid_views[2]];
+    let with_selection_mask = [&grid_views[1], &grid_views[2]];
+    grid_views[2].frp().focus();
     let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
 
     for (view, (x, y)) in grid_views.iter().zip(positions) {
@@ -139,10 +134,10 @@ fn init(app: &Application) {
         view.set_position_xy(Vector2(x, y));
     }
 
-    // let view = &grid_views[0];
-    // for i in (0..1000).step_by(2) {
-    //     view.set_column_width((i, 60.0));
-    // }
+    let view = &grid_views[0];
+    for i in (0..1000).step_by(2) {
+        view.set_column_width((i, 60.0));
+    }
 
     for view in with_hover_mask {
         view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
