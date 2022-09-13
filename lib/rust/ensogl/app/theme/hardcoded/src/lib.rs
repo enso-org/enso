@@ -244,7 +244,7 @@ define_themes! { [light:0, dark:1]
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
                             font = "default", "default";
-                            text_offset = 7.0, 7.0;
+                            text_padding_left = 7.0, 7.0;
                             text_size = 12.0, 12.0;
                             selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
                             highlight_corners_radius = 15.0, 15.0;

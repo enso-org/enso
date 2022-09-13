@@ -13,6 +13,7 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
+use ensogl_grid_view::Col;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
 use ensogl_text as text;
 
@@ -112,7 +113,10 @@ enum State {
 
 // === EntryData ===
 
-/// An internal structure of [`Entry`], which may be passed to FRP network.
+/// An internal structure of [`Entry`]. It has three visual representations: text,
+/// a separator between entries, and an ellipsis. The breadcrumbs implementation selects the needed
+/// representation for each entry in the grid view. For efficiency, text label and icons are
+/// allocated once the entry is created.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryData {
@@ -219,19 +223,22 @@ impl EntryData {
 
 // === Params ===
 
-/// The parameters of Breadcrumbs' entries.
+/// The style parameters of Breadcrumbs' entries. See [`ensogl_grid_view::Frp::set_entries_params`].
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
+    /// The margin of the entry's [`Contour`]. The [`Contour`] specifies the size of the
+    /// clickable area of the entry. If the margin is zero, the contour covers the entire entry.
     pub margin:                   f32,
     pub hover_color:              color::Rgba,
-    pub font:                     ImString,
-    pub text_offset:              f32,
+    pub font_name:                ImString,
+    pub text_padding_left:        f32,
     pub text_size:                text::Size,
     pub selected_color:           color::Rgba,
     pub highlight_corners_radius: f32,
     pub greyed_out_color:         color::Rgba,
-    pub greyed_out_start:         Option<usize>,
+    /// The first greyed out column. All columns to the right will also be greyed out.
+    pub greyed_out_start:         Option<Col>,
 }
 
 impl Params {
@@ -244,25 +251,25 @@ impl Params {
             let margin = style.get_number(theme::entry::margin);
             let hover_color = style.get_color(theme::entry::hover_color);
             let font = style.get_text(theme::entry::font);
-            let text_offset = style.get_number(theme::entry::text_offset);
+            let text_padding = style.get_number(theme::entry::text_padding_left);
             let text_size = style.get_number(theme::entry::text_size);
             let selected_color = style.get_color(theme::entry::selected_color);
             let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
             let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
             greyed_out_start <- init.constant(None);
-            text_params <- all4(&init, &text_offset,&text_size,&font);
+            text_params <- all4(&init, &text_padding,&text_size,&font);
             colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
             params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
                 &greyed_out_start,
                 |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
-                    let (_, text_offset,text_size,font) = text_params;
+                    let (_, text_padding,text_size,font) = text_params;
                     let (_, hover_color,selected_color,greyed_out_color) = colors;
                     Params {
                         margin,
-                        text_offset: *text_offset,
+                        text_padding_left: *text_padding,
                         text_size: text::Size::from(*text_size),
                         hover_color:*hover_color,
-                        font: ImString::new(font),
+                        font_name: ImString::new(font),
                         selected_color: *selected_color,
                         highlight_corners_radius,
                         greyed_out_color: *greyed_out_color,
@@ -306,8 +313,8 @@ impl ensogl_grid_view::Entry for Entry {
             size <- input.set_size.on_change();
             margin <- input.set_params.map(|p| p.margin).on_change();
             hover_color <- input.set_params.map(|p| p.hover_color).on_change();
-            font <- input.set_params.map(|p| p.font.clone_ref()).on_change();
-            text_offset <- input.set_params.map(|p| p.text_offset).on_change();
+            font <- input.set_params.map(|p| p.font_name.clone_ref()).on_change();
+            text_offset <- input.set_params.map(|p| p.text_padding_left).on_change();
             text_color <- input.set_params.map(|p| p.selected_color).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
