@@ -98,7 +98,8 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
 
   @ExportMessage
   public Object getScope(Frame frame, boolean onEnter) {
-    return new FrameScope(frame.materialize());
+    // TODO
+    return null;
   }
 
   /**
