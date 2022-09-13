@@ -60,6 +60,7 @@
   could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened and a
   new node is created.][3645]
+- [Proper Polyglot Vector and Array Support][3667]
 - [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
 
@@ -303,6 +304,7 @@
 [3661]: https://github.com/enso-org/enso/pull/3661
 [3665]: https://github.com/enso-org/enso/pull/3665
 [3634]: https://github.com/enso-org/enso/pull/3634
+[3667]: https://github.com/enso-org/enso/pull/3667
 [3669]: https://github.com/enso-org/enso/pull/3669
 [3647]: https://github.com/enso-org/enso/pull/3647
 [3673]: https://github.com/enso-org/enso/pull/3673

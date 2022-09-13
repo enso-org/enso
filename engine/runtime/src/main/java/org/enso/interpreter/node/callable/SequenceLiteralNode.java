@@ -5,6 +5,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Vector;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
 public class SequenceLiteralNode extends ExpressionNode {
@@ -37,6 +38,6 @@ public class SequenceLiteralNode extends ExpressionNode {
     for (int i = 0; i < items.length; i++) {
       itemValues[i] = items[i].executeGeneric(frame);
     }
-    return new Array(itemValues);
+    return Vector.fromArray(new Array(itemValues));
   }
 }

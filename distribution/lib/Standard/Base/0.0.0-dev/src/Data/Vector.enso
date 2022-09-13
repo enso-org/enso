@@ -1,12 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
-import Standard.Base.Polyglot.Proxy_Polyglot_Array
 import Standard.Base.Random
 import Standard.Base.Runtime.Unsafe
 
-polyglot java import java.util.ArrayList
 polyglot java import java.lang.IndexOutOfBoundsException
-polyglot java import org.enso.base.Array_Utils
+polyglot java import org.enso.base.Array_Builder
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -28,10 +26,19 @@ polyglot java import org.enso.base.Array_Utils
 
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
-new length constructor =
-    builder = (0.up_to length).fold (new_builder length) builder-> ix->
-        builder.append (constructor ix)
-    builder.to_vector
+new length constructor = @Builtin_Method "Vector.new_builtin"
+
+## ADVANCED
+
+   Converts an array into a vector by copying content of the array.
+
+   Arguments:
+   - array: The array with content to copy into the new vector.
+
+   A vector allows to store an arbitrary number of elements in linear memory. It
+   is the recommended data structure for most applications.
+from_array : Array -> Vector
+from_array array = @Builtin_Method "Vector.from_array"
 
 ## Creates a new vector of the given length, filling the elements with
    the provided constant.
@@ -91,41 +98,27 @@ new_builder (capacity=10) = Builder.new capacity
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
 from_polyglot_array : Any -> Vector Any
-from_polyglot_array arr = Vector_Data (Proxy_Polyglot_Array.Proxy_Polyglot_Array_Data arr)
+from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
-## The basic, immutable, vector type.
+##  The basic, immutable, vector type.
+    A vector allows to store an arbitrary number of elements, in linear memory.
+    It is the recommended data structure for most applications.
+
+    > Example
+      A vector containing the elements `1`, `2`, and `3`, in this order is:
+          [1, 2, 3]
+
+    > Example
+      A vector containing 50 elements, each being the number `42`, can be
+      created by:
+          Vector.fill length=50 item=42
+
+@Builtin_Type
 type Vector a
 
     ## ADVANCED
-
-       The basic, immutable, vector type.
-
-       Arguments:
-       - storage: The underlying storage.
-
-       A vector allows to store an arbitrary number of elements, in linear memory.
-       It is the recommended data structure for most applications.
-
-       > Example
-         A vector containing the elements `1`, `2`, and `3`, in this order is:
-             [1, 2, 3]
-
-       > Example
-         A vector containing 50 elements, each being the number `42`, can be
-         created by:
-             Vector.fill length=50 item=42
-    Vector_Data storage
-
-    ## PRIVATE
-    to_array self =
-        arr = self.storage.to_array
-        case Meta.meta arr of
-            Meta.Primitive_Data _ -> arr
-            _ ->
-                len = self.storage.length
-                a = Array.new len
-                Array.copy arr 0 a 0 len
-                a
+       Copies content of a vector into an Array.
+    to_array self = @Builtin_Method "Vector.to_array"
 
     ## Returns the number of elements stored in this vector.
 
@@ -134,8 +127,7 @@ type Vector a
 
              [1, 2, 3, 4].length
     length : Number
-    length self =
-        self.storage.length
+    length self = @Builtin_Method "Vector.length"
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -167,8 +159,7 @@ type Vector a
        Thus it should only be used when the access is guaranteed to be within
        bounds or with additional error handling.
     unsafe_at : Integer -> Any
-    unsafe_at self index =
-        self.storage.at index
+    unsafe_at self index = @Builtin_Method "Vector.unsafe_at"
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -188,7 +179,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.storage.at ix)
+        f = acc -> ix -> function acc (self.unsafe_at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -205,7 +196,7 @@ type Vector a
              [0, 1, 2] . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function =
-        f = acc -> ix -> function acc ix (self.storage.at ix)
+        f = acc -> ix -> function acc ix (self.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
@@ -223,7 +214,7 @@ type Vector a
     reduce self function =
         case self.not_empty of
             True -> if self.length == 1 then self.unsafe_at 0 else
-                f = acc -> ix -> function acc (self.storage.at ix)
+                f = acc -> ix -> function acc (self.at ix)
                 1.up_to self.length . fold (self.unsafe_at 0) f
             False -> Error.throw Empty_Error
 
@@ -471,7 +462,7 @@ type Vector a
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        Vector_Data arr
+        Vector.from_polyglot_array arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -582,9 +573,14 @@ type Vector a
 
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
-    == self that =
-        eq_at i = self.unsafe_at i == that.unsafe_at i
-        if self.length == that.length then 0.up_to self.length . all eq_at else False
+    == self that = case that of
+        Vector ->
+            eq_at i = self.unsafe_at i == that.unsafe_at i
+            if self.length == that.length then 0.up_to self.length . all eq_at else False
+        Array ->
+            eq_at i = self.at i == that.at i
+            if self.length == that.length then 0.up_to self.length . all eq_at else False
+        _ -> False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `self`, followed by all the elements of `that`.
@@ -602,7 +598,7 @@ type Vector a
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        Vector_Data arr
+        Vector.from_polyglot_array arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -667,7 +663,7 @@ type Vector a
                 len = slice_end - slice_start
                 arr = Array.new len
                 Array.copy self.to_array slice_start arr 0 len
-                Vector_Data arr
+                Vector.from_polyglot_array arr
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -888,7 +884,7 @@ type Vector a
 
         new_vec_arr.sort compare
 
-        Vector_Data new_vec_arr
+        Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
@@ -993,7 +989,7 @@ type Builder
 
              Vector.new_builder
     new : Integer -> Builder
-    new (capacity=10) = Builder_Data (ArrayList.new capacity)
+    new (capacity=10) = Builder_Data (Array_Builder.newBuilder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
@@ -1039,7 +1035,7 @@ type Builder
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
            `Unsupported argument types: [Array]`.
-        Array_Utils.appendToArrayList self.java_builder subrange.to_array
+        self.java_builder.appendTo subrange.to_array
 
     ## PRIVATE
        Appends a new element into this builder.

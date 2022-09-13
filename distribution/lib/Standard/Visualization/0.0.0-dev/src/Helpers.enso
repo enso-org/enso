@@ -92,7 +92,7 @@ Table.Table.all_columns : Vector
 Table.Table.all_columns self =
     index = self.index.catch_ []
     index_columns = case index of
-        Vector.Vector_Data _ -> index
+        Vector.Vector -> index
         a -> [a]
     index_columns + self.columns
 
