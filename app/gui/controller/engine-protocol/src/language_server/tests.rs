@@ -25,6 +25,7 @@ use crate::language_server::TextRange;
 use crate::language_server::Uuid;
 use crate::language_server::VisualisationConfiguration;
 use crate::language_server::API;
+
 use futures::task::LocalSpawnExt;
 use json_rpc::messages::Message;
 use json_rpc::messages::RequestMessage;

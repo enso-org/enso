@@ -17,6 +17,7 @@ use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel
 use ensogl_text as text;
 
 
+
 // ==============
 // === Shapes ===
 // ==============
