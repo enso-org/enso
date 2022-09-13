@@ -14,9 +14,9 @@
 //! implement `AsRef<GridView>`.
 //!
 //! Locations in a grid are described by coordinates of [`Row`] and [`Col`] types. Correct behavior
-//! of a grid is not guaranteed for grid sizes or locations where any of the coordinates equal or
-//! exceed 10^7. That is due to loss of precision when converting such numbers to the `f32` type
-//! used for internal calculations.
+//! of a [`GridView] is not guaranteed for grid sizes or locations where any of the coordinates
+//! equal or exceed 10^7. That is due to loss of precision when converting such numbers to the
+//! `f32` type used for internal calculations.
 
 #![recursion_limit = "1024"]
 // === Features ===
