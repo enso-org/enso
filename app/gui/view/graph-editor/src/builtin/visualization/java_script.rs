@@ -17,6 +17,7 @@ pub fn table_visualization() -> visualization::java_script::FallibleDefinition {
     let source = from_files!(
         "java_script/helpers/loading.js",
         "java_script/helpers/scrollable.js",
+        "java_script/helpers/lazy-scroll.js",
         "java_script/table.js"
     );
 

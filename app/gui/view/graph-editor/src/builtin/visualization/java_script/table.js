@@ -1,5 +1,15 @@
 /** Table visualization. */
 
+const TABLE_INITIAL_SIZE = 50;
+const TABLE_ROW_HEIGHT = 20;
+
+const TABLE_ATTRIBUTE_DATA_INDEXNUMBER = 'data-indexnumber';
+const TABLE_ROW = 'table-row';
+const TABLE_BODY = 'table-body';
+const TABLE_BODY_SELECTOR = '#table-body';
+const TABLE_ROW_SELECTOR = '.table-row';
+
+
 // ============================
 // === Style Initialisation ===
 // ============================
@@ -16,7 +26,58 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization')
+        this.lazyScroll = null;
+        this.initDom();
+        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', '0', '50')
+    }
+
+    initDom() {
+        //const visualizationElem = document.getElementById('table-visualization');
+        const tabElem = document.createElement('div');
+        tabElem.setAttributeNS(null, 'id', 'table-component');
+        tabElem.setAttributeNS(null, 'class', 'scrollable');
+        tabElem.setAttributeNS(null, 'width', '100%');
+        tabElem.setAttributeNS(null, 'height', '100%');
+
+        const table = document.createElement('table');
+
+        const tableBody = document.createElement('tbody');
+        tableBody.setAttributeNS(null, 'id', TABLE_BODY);
+
+        //this.visualizationElem = visualizationElem;
+        this.tabElem = tabElem;
+        this.tableBody = tableBody;
+
+        table.appendChild(tableBody);
+        tabElem.appendChild(table);
+        this.dom.appendChild(tabElem);
+    }
+
+    initScroll(dataLength) {
+          let lazyScroll = new LazyScroll();
+
+          // let fixedHeightParent = document.querySelector(LIST_COMPONENT_SELECTOR);
+          let fixedHeightParent = this.tabElem;
+          let parentElem = document.querySelector(TABLE_BODY_SELECTOR);
+          let rowSelector = TABLE_ROW_SELECTOR;
+          let requestDataFn = (obj) => {
+            this.setPreprocessorArguments(String(obj.offset), String(obj.offset + obj.limit));
+          };
+          let rowHeight = TABLE_ROW_HEIGHT;
+          let rowParentElem = parentElem;
+
+          lazyScroll.init({
+            fixedHeightContainerElem: fixedHeightParent,
+            parentElem: parentElem,
+            rowSelector: rowSelector,
+            requestDataFn: requestDataFn,
+            rowHeight: rowHeight,
+            rowParentElem: rowParentElem,
+            dataLength: dataLength,
+          });
+
+          console.log('initScroll', lazyScroll);
+          this.lazyScroll = lazyScroll;
     }
 
     onDataReceived(data) {
@@ -196,9 +257,9 @@ class TableVisualization extends Visualization {
             return tableOf(result, 0)
         }
 
-        while (this.dom.firstChild) {
-            this.dom.removeChild(this.dom.lastChild)
-        }
+//        while (this.dom.firstChild) {
+//            this.dom.removeChild(this.dom.lastChild)
+//        }
 
         const style_dark = `
         <style>
@@ -335,14 +396,14 @@ class TableVisualization extends Visualization {
         }
         </style>`
 
-        const tabElem = document.createElement('div')
-        tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
-        tabElem.setAttributeNS(null, 'class', 'scrollable')
-        tabElem.setAttributeNS(null, 'width', '100%')
-        tabElem.setAttributeNS(null, 'height', '100%')
-        this.tabElem = tabElem
-        this.dom.appendChild(tabElem)
-        this.updateTableSize()
+//        const tabElem = document.createElement('div')
+//        tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
+//        tabElem.setAttributeNS(null, 'class', 'scrollable')
+//        tabElem.setAttributeNS(null, 'width', '100%')
+//        tabElem.setAttributeNS(null, 'height', '100%')
+//        this.tabElem = tabElem
+//        this.dom.appendChild(tabElem)
+//        this.updateTableSize()
 
         let parsedData = data
         if (typeof data === 'string') {
@@ -354,36 +415,47 @@ class TableVisualization extends Visualization {
             style = style_dark
         }
 
-        if (parsedData.error !== undefined) {
-            tabElem.innerHTML = 'Error: ' + parsedData.error
-        } else if (parsedData.json !== undefined) {
-            const table = genTable(parsedData.json, 0, undefined)
-            tabElem.innerHTML = style + table
-        } else {
-            const table = genDataframe(parsedData)
-            let suffix = ''
-            const allRowsCount = parsedData.all_rows_count
-            if (allRowsCount !== undefined) {
-                const includedRowsCount = parsedData.data.length > 0 ? parsedData.data[0].length : 0
-                const hiddenCount = allRowsCount - includedRowsCount
-                if (hiddenCount > 0) {
-                    let rows = 'rows'
-                    if (hiddenCount === 1) {
-                        rows = 'row'
-                    }
-                    suffix =
-                        '<span class="hiddenrows">&#8230; and ' +
-                        hiddenCount +
-                        ' more ' +
-                        rows +
-                        '.</span>'
-                }
-            }
-            tabElem.innerHTML = style + table + suffix
-        }
+//        if (parsedData.error !== undefined) {
+//            tabElem.innerHTML = 'Error: ' + parsedData.error
+//        } else if (parsedData.json !== undefined) {
+//            const table = genTable(parsedData.json, 0, undefined)
+//            tabElem.innerHTML = style + table
+//        } else {
+//            const table = genDataframe(parsedData)
+//            let suffix = ''
+//            const allRowsCount = parsedData.all_rows_count
+//            if (allRowsCount !== undefined) {
+//                const includedRowsCount = parsedData.data.length > 0 ? parsedData.data[0].length : 0
+//                const hiddenCount = allRowsCount - includedRowsCount
+//                if (hiddenCount > 0) {
+//                    let rows = 'rows'
+//                    if (hiddenCount === 1) {
+//                        rows = 'row'
+//                    }
+//                    suffix =
+//                        '<span class="hiddenrows">&#8230; and ' +
+//                        hiddenCount +
+//                        ' more ' +
+//                        rows +
+//                        '.</span>'
+//                }
+//            }
+//            tabElem.innerHTML = style + table + suffix
+//        }
+
+         console.log('onDataReceived', parsedData);
+         if (!this.lazyScroll) {
+            this.initScroll(parsedData.all_rows_count);
+            console.log('scroll initialized', this.lazyScroll);
+         }
+
+         let fragment = this.mkTableFragment(TABLE_ROW_HEIGHT, parsedData);
+         console.log('fragment', fragment);
+         this.lazyScroll.renderFragment(fragment);
     }
 
     updateTableSize() {
+        console.log('updateTableSize');
         if (this.tabElem !== undefined) {
             const width = this.dom.getAttributeNS(null, 'width')
             const height = this.dom.getAttributeNS(null, 'height')
@@ -400,6 +472,35 @@ class TableVisualization extends Visualization {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
         this.updateTableSize()
+    }
+
+    mkTableFragment(rowHeight, data) {
+        let startIndex = data.indices[0][0] || 0;
+        let colsLength = data.data.length;
+        let rowsLength = data.data[0].length;
+        let fragment = document.createDocumentFragment();
+        for (let row = 0; row < rowsLength; row++) {
+          let idx = startIndex + row;
+          let totalOffset = idx * rowHeight;
+          let tr = document.createElement('tr');
+          tr.classList.add(TABLE_ROW);
+          tr.style.top = totalOffset + 'px';
+          tr.style.position = 'absolute';
+          tr.setAttribute(TABLE_ATTRIBUTE_DATA_INDEXNUMBER, idx);
+
+          let th = document.createElement('th');
+          th.appendChild(document.createTextNode(data.indices[0][row]));
+          tr.appendChild(th);
+
+          for (let col = 0; col < colsLength; col++) {
+            let td = document.createElement('td');
+            td.appendChild(document.createTextNode(data.data[col][row]));
+            tr.appendChild(td);
+          }
+          fragment.appendChild(tr);
+        }
+
+        return fragment;
     }
 }
 
