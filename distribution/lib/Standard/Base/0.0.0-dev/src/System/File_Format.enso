@@ -1,10 +1,16 @@
 from Standard.Base import all
 from Standard.Base.Error.Common import unimplemented
 
+## PRIVATE
+types : Vector
+types =
+    Panic.catch No_Such_Method_Error_Data File_Format.types _->
+        [Bytes, Plain_Text]
+
 type File_Format
     ## Does the File_Format support reading from the file?
-    matches : File -> Boolean
-    matches _ = False
+    matches : File -> Any
+    matches _ = Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -12,33 +18,30 @@ type File_Format
     read _ _ = unimplemented "This is an interface only."
 
 type Auto_Detect
-    ## PRIVATE
-    get_format : Text -> (File_Format | Nothing)
-    get_format self file =
-         result = File_Format.types.find t->(t.matches file)
+    ## If the File_Format supports reading from the file, return a configured instance.
+    matches : File -> Any
+    matches file =
+         result = types.find t->(t.matches file)
          if result.is_error then Nothing else result
-
-    ## Does the File_Format support reading from the file?
-    matches : File -> Boolean
-    matches file = Auto_Detect.get_format file.extension != Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        reader = Auto_Detect.get_format file.extension
+        reader = Auto_Detect.get_format file
         if reader == Nothing then Error.throw (Unsupported_File_Type_Data "No File_Format supports '" + file.extension + "'") else
             reader.read file on_problems
 
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
-    matches : File -> Boolean
+    ## If the File_Format supports reading from the file, return a configured instance.
+    matches : File -> Any
     matches file =
         case file.extension of
-            ".txt" -> True
-            ".log" -> True
-            _ -> False
+            ".txt" -> Plain_Text
+            ".log" -> Plain_Text
+            _ -> Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -47,11 +50,12 @@ type Plain_Text_Format
         file.read_text self.encoding on_problems
 
 type Bytes
+    ## If the File_Format supports reading from the file, return a configured instance.
     matches : File -> Boolean
     matches file =
         case file.extension of
-            ".dat" -> True
-            _ -> False
+            ".dat" -> Bytes
+            _ -> Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

@@ -110,7 +110,5 @@ from project.Function export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
-from project.System.File.File_Format export Auto_Detect, Plain_Text, Bytes
+from project.System.File_Format export File_Format, Auto_Detect, Plain_Text, Bytes
 from project.Data.Index_Sub_Range export First, Last
-
-File_Format.File_Format.types = [File_Format.Plain_Text, File_Format.Bytes]
