@@ -63,13 +63,10 @@ pub mod ellipsis {
             let bg_col = style.get_color(theme::ellipsis::background_color);
             let background_color = Var::<color::Rgba>::rgba(bg_col.red,bg_col.green,bg_col.blue,alpha);
 
-            // TODO: `.repeat()` call would be more efficient than three separate circles, but it
-            //   also requires `.intersection()` to crop the infinite grid of circles, which is
-            //   currently broken. See https://www.pivotaltracker.com/story/show/182593513.
-            let left = Circle(radius.clone()).fill(circles_color.clone());
-            let center = Circle(radius.clone()).fill(circles_color.clone());
-            let right = Circle(radius).fill(circles_color);
-            let circles = left.translate_x(-gap.clone()) + center + right.translate_x(gap);
+            let tile_size = radius.clone() * 2.0 + gap;
+            let circles = Circle(radius).repeat((tile_size.clone(), tile_size.clone()));
+            let mask = Rect((tile_size.clone() * 3.0, tile_size));
+            let circles = circles.intersection(mask).fill(circles_color);
             let background = Rect((background_width.px(), background_height.px()));
             let background = background.corners_radius(background_corners_radius.px());
             let background = background.fill(background_color);

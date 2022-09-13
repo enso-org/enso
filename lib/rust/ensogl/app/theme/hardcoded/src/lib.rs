@@ -238,7 +238,7 @@ define_themes! { [light:0, dark:1]
                             background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
                             circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
                             circles_radius = 2.0, 2.0;
-                            circles_gap = 6.0, 6.0;
+                            circles_gap = 2.0, 2.0;
                         }
                         entry {
                             margin = 1.0, 1.0;
