@@ -119,7 +119,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A numeric literal, like `10`.
         Number {
-            pub token: token::Number<'s>,
+            pub base:              Option<token::NumberBase<'s>>,
+            pub integer:           Option<token::Digits<'s>>,
+            pub fractional_digits: Option<FractionalDigits<'s>>,
         },
         /// The wildcard marker, `_`.
         Wildcard {
@@ -439,6 +441,23 @@ impl<'s> span::Builder<'s> for VisibleOffset {
     }
 }
 
+// === Number literals ===
+
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[allow(missing_docs)]
+pub struct FractionalDigits<'s> {
+    /// The dot operator.
+    pub dot:    token::Operator<'s>,
+    /// The decimal digits after the dot.
+    pub digits: token::Digits<'s>,
+}
+
+impl<'s> span::Builder<'s> for FractionalDigits<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.dot).add(&mut self.digits)
+    }
+}
+
 
 // === OprApp ===
 
@@ -548,6 +567,14 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             }
             return func;
         }
+        Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None })
+            if let box
+            Variant::Number(Number { base: None, integer, fractional_digits }) = &mut arg.variant
+        => {
+            func_.integer = mem::take(integer);
+            func_.fractional_digits = mem::take(fractional_digits);
+            return func;
+        }
         _ => (),
     }
     match &mut *arg.variant {
@@ -569,7 +596,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
 /// `ArgumentBlock`) is reinterpreted as a `BodyBlock` when it appears in the RHS of an operator
 /// expression.
 pub fn apply_operator<'s>(
-    lhs: Option<Tree<'s>>,
+    mut lhs: Option<Tree<'s>>,
     opr: Vec<token::Operator<'s>>,
     mut rhs: Option<Tree<'s>>,
 ) -> Tree<'s> {
@@ -603,6 +630,18 @@ pub fn apply_operator<'s>(
             args.reverse();
         }
         return Tree::arrow(args, opr.clone(), rhs);
+    }
+    if let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
+        && let Some(lhs) = lhs.as_mut()
+        && let box Variant::Number(lhs) = &mut lhs.variant
+        && lhs.fractional_digits.is_none()
+        && let Some(rhs) = rhs.as_mut()
+        && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
+    {
+        let integer = mem::take(&mut lhs.integer);
+        let dot = opr.clone();
+        let digits = digits.clone();
+        return Tree::number(None, integer, Some(FractionalDigits { dot, digits }));
     }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {

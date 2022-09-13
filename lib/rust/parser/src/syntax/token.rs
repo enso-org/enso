@@ -1,4 +1,3 @@
-//! A lexical token is a string with an assigned and thus identified meaning. Each token remembers
 //! its source code and can be printed back. It also contains information about the offset to the
 //! previous token if any.
 //!
@@ -269,7 +268,10 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         },
         Modifier,
         DocComment,
-        Number,
+        Digits {
+            pub base: Option<Base>
+        },
+        NumberBase,
         TextStart,
         TextEnd,
         TextSection,
@@ -322,6 +324,9 @@ pub struct OperatorProperties {
     #[serde(skip)]
     #[reflect(skip)]
     is_right_associative:      bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    can_be_decimal_operator:   bool,
     // Unique operators
     #[serde(skip)]
     #[reflect(skip)]
@@ -383,6 +388,11 @@ impl OperatorProperties {
         Self { is_sequence: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
+    pub fn with_decimal_interpretation(self) -> Self {
+        Self { can_be_decimal_operator: true, ..self }
+    }
+
     /// Return this operator's binary infix precedence, if it has one.
     pub fn binary_infix_precedence(&self) -> Option<Precedence> {
         self.binary_infix_precedence
@@ -425,6 +435,11 @@ impl OperatorProperties {
             true => Associativity::Right,
         }
     }
+
+    /// Return whether this operator can be interpreted as a decimal point.
+    pub fn can_be_decimal_operator(&self) -> bool {
+        self.can_be_decimal_operator
+    }
 }
 
 /// Value that can be compared to determine which operator will bind more tightly within an
@@ -454,6 +469,20 @@ pub enum Associativity {
     Left,
     /// Right-associative.
     Right,
+}
+
+
+// === Numbers ===
+
+/// Alternate numeric bases (decimal is the default).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize)]
+pub enum Base {
+    /// Base 2.
+    Binary,
+    /// Base 8.
+    Octal,
+    /// Base 16.
+    Hexadecimal,
 }
 
 

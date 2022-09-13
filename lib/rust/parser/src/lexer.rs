@@ -343,11 +343,28 @@ pub fn is_newline_char(t: char) -> bool {
     t == '\n' || t == '\r'
 }
 
-/// Check whether the provided character is a digit.
+/// Check whether the provided character is a decimal digit.
 #[inline(always)]
-#[allow(clippy::manual_range_contains)]
-fn is_digit(t: char) -> bool {
-    t >= '0' && t <= '9'
+fn is_decimal_digit(t: char) -> bool {
+    ('0'..='9').contains(&t)
+}
+
+/// Check whether the provided character is a binary digit.
+#[inline(always)]
+fn is_binary_digit(t: char) -> bool {
+    ('0'..='1').contains(&t)
+}
+
+/// Check whether the provided character is an octal digit.
+#[inline(always)]
+fn is_octal_digit(t: char) -> bool {
+    ('0'..='7').contains(&t)
+}
+
+/// Check whether the provided character is a hexadecimal digit.
+#[inline(always)]
+fn is_hexadecimal_digit(t: char) -> bool {
+    is_decimal_digit(t) || ('a'..='f').contains(&t) || ('A'..='F').contains(&t)
 }
 
 impl<'s> Lexer<'s> {
@@ -615,7 +632,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_compile_time_operation()
                 .as_sequence(),
         "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
-        "." => return operator.with_binary_infix_precedence(21),
+        "." => return operator.with_binary_infix_precedence(21).with_decimal_interpretation(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"
@@ -668,13 +685,42 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse a number.
     fn number(&mut self) {
+        let mut base = None;
         let token = self.token(|this| {
-            if this.take_1(is_digit) {
-                this.take_while(|t| !is_ident_split_char(t));
+            while this.take_while_1(is_decimal_digit) {
+                if this.current_char == Some('_') {
+                    this.next_input_char();
+                    continue;
+                }
+                if this.current_offset == Bytes(1) {
+                    base = match this.current_char {
+                        Some('b') => Some(token::Base::Binary),
+                        Some('o') => Some(token::Base::Octal),
+                        Some('x') => Some(token::Base::Hexadecimal),
+                        _ => None,
+                    };
+                    if base.is_some() {
+                        this.next_input_char();
+                        return;
+                    }
+                }
             }
         });
         if let Some(token) = token {
-            self.submit_token(token.with_variant(token::Variant::number()));
+            if let Some(base) = base {
+                self.submit_token(token.with_variant(token::Variant::number_base()));
+                let token = match base {
+                    token::Base::Binary => self.token(|this| this.take_while(is_binary_digit)),
+                    token::Base::Octal => self.token(|this| this.take_while(is_octal_digit)),
+                    token::Base::Hexadecimal =>
+                        self.token(|this| this.take_while(is_hexadecimal_digit)),
+                };
+                if let Some(token) = token {
+                    self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
+                }
+            } else {
+                self.submit_token(token.with_variant(token::Variant::digits(None)));
+            }
         }
     }
 }
@@ -1148,7 +1194,7 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![number_("", "10")]);
+        test_lexer("10", vec![digits_("", "10", None)]);
     }
 
     #[test]

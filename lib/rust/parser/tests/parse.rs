@@ -97,14 +97,14 @@ fn type_constructors() {
         "type Geo",
         "    Circle",
         "        radius",
-        "        4",
+        "        x",
         "    Rectangle width height",
         "    Point",
     ];
     #[rustfmt::skip]
     let expected = block![
         (TypeDef (Ident type) (Ident Geo) #()
-         #(((Circle #() #((Ident radius) (Number 4))))
+         #(((Circle #() #((Ident radius) (Ident x))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #())))
          #())
@@ -114,12 +114,12 @@ fn type_constructors() {
 
 #[test]
 fn type_methods() {
-    let code = ["type Geo", "    number =", "        23", "    area self = 1 + 1"];
+    let code = ["type Geo", "    number =", "        x", "    area self = x + x"];
     #[rustfmt::skip]
         let expected = block![
         (TypeDef (Ident type) (Ident Geo) #() #()
-         #((Function number #() "=" (BodyBlock #((Number 23))))
-           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+         #((Function number #() "=" (BodyBlock #((Ident x))))
+           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -130,23 +130,23 @@ fn type_def_full() {
         "type Geo",
         "    Circle",
         "        radius : float",
-        "        4",
+        "        x",
         "    Rectangle width height",
         "    Point",
         "",
         "    number =",
-        "        23",
-        "    area self = 1 + 1",
+        "        x",
+        "    area self = x + x",
     ];
     #[rustfmt::skip]
     let expected = block![
         (TypeDef (Ident type) (Ident Geo) #()
-         #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Number 4))))
+         #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Ident x))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #()))
            (()))
-         #((Function number #() "=" (BodyBlock #((Number 23))))
-           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+         #((Function number #() "=" (BodyBlock #((Ident x))))
+           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -173,7 +173,7 @@ fn type_def_nested() {
 
 #[test]
 fn assignment_simple() {
-    test("foo = 23", block![(Assignment (Ident foo) "=" (Number 23))]);
+    test("foo = x", block![(Assignment (Ident foo) "=" (Ident x))]);
 }
 
 
@@ -181,9 +181,9 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test("foo a = 23", block![(Function foo #((Ident a)) "=" (Number 23))]);
-    test("foo a b = 23", block![(Function foo #((Ident a) (Ident b)) "=" (Number 23))]);
-    test("foo a b c = 23", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Number 23))]);
+    test("foo a = x", block![(Function foo #((Ident a)) "=" (Ident x))]);
+    test("foo a b = x", block![(Function foo #((Ident a) (Ident b)) "=" (Ident x))]);
+    test("foo a b c = x", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Ident x))]);
 }
 
 #[test]
@@ -203,28 +203,28 @@ fn function_block_simple_args() {
 
 #[test]
 fn code_block_body() {
-    let code = ["main =", "    4"];
-    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #((Number 4))))]);
-    let code = ["main =", "      ", "    4"];
-    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
-    let code = ["main =", "    ", "    4"];
-    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
-    let code = ["main =", "  ", "    4"];
-    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
-    let code = ["main =", "", "    4"];
-    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
+    let code = ["main =", "    x"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #((Ident x))))]);
+    let code = ["main =", "      ", "    x"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Ident x))))]);
+    let code = ["main =", "    ", "    x"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Ident x))))]);
+    let code = ["main =", "  ", "    x"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Ident x))))]);
+    let code = ["main =", "", "    x"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Ident x))))]);
 
     #[rustfmt::skip]
     let code = [
         "main =",
-        "    +4",
-        "    print 23",
+        "    +x",
+        "    print x",
     ];
     #[rustfmt::skip]
     let expect = block![
         (Function main #() "=" (BodyBlock #(
-         (OprSectionBoundary (OprApp () (Ok "+") (Number 4)))
-         (App (Ident print) (Number 23)))))
+         (OprSectionBoundary (OprApp () (Ok "+") (Ident x)))
+         (App (Ident print) (Ident x)))))
     ];
     test(&code.join("\n"), expect);
 }
@@ -258,14 +258,14 @@ fn code_block_argument_list() {
     #[rustfmt::skip]
     let code = [
         "value = foo",
-        "    +1",
+        "    +x",
         "    bar",
     ];
     #[rustfmt::skip]
     let expect = block![
         (Assignment (Ident value) "="
          (ArgumentBlockApplication (Ident foo) #(
-          (OprSectionBoundary (OprApp () (Ok "+") (Number 1)))
+          (OprSectionBoundary (OprApp () (Ok "+") (Ident x)))
           (Ident bar))))
     ];
     test(&code.join("\n"), expect);
@@ -318,34 +318,40 @@ fn code_block_with_following_statement() {
 
 #[test]
 fn multiple_operator_error() {
-    let code = ["4 + + 1"];
+    let code = ["x + + x"];
     let expected = block![
-        (OprApp (Number 4) (Err (#("+" "+"))) (Number 1))
+        (OprApp (Ident x) (Err (#("+" "+"))) (Ident x))
     ];
     test(&code.join("\n"), expected);
-    let code = ["4 + + + 1"];
+    let code = ["x + + + x"];
     let expected = block![
-        (OprApp (Number 4) (Err (#("+" "+" "+"))) (Number 1))
+        (OprApp (Ident x) (Err (#("+" "+" "+"))) (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
 
 #[test]
 fn precedence() {
-    let code = ["1 * 2 + 3"];
+    let code = ["x * y + z"];
     let expected = block![
-        (OprApp (OprApp (Number 1) (Ok "*") (Number 2)) (Ok "+") (Number 3))
+        (OprApp (OprApp (Ident x) (Ok "*") (Ident y)) (Ok "+") (Ident z))
     ];
     test(&code.join("\n"), expected);
 }
 
 #[test]
 fn right_associative_operators() {
-    let code = ["1 --> 2 ---> 3"];
+    let code = ["x --> y ---> z"];
     let expected = block![
-        (OprApp (Number 1) (Ok "-->") (OprApp (Number 2) (Ok "--->") (Number 3)))
+        (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z)))
     ];
     test(&code.join("\n"), expected);
+}
+
+#[test]
+fn pipeline_operators() {
+    test("f <| a", block![(OprApp (Ident f) (Ok "<|") (Ident a))]);
+    test("a |> f", block![(OprApp (Ident a) (Ok "|>") (Ident f))]);
 }
 
 
@@ -353,18 +359,18 @@ fn right_associative_operators() {
 
 #[test]
 fn unevaluated_argument() {
-    let code = ["main ~foo = 4"];
+    let code = ["main ~foo = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Number 4))
+        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
 
 #[test]
 fn unary_operator_missing_operand() {
-    let code = ["main ~ = 4"];
+    let code = ["main ~ = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" ())) "=" (Number 4))
+        (Function main #((UnaryOprApp "~" ())) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
@@ -380,9 +386,9 @@ fn unary_operator_at_end_of_expression() {
 
 #[test]
 fn plus_negative() {
-    let code = ["x = 4+-1"];
+    let code = ["x = x+-x"];
     let expected = block![
-        (Assignment (Ident x) "=" (OprApp (Number 4) (Ok "+") (UnaryOprApp "-" (Number 1))))
+        (Assignment (Ident x) "=" (OprApp (Ident x) (Ok "+") (UnaryOprApp "-" (Ident x))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -390,8 +396,8 @@ fn plus_negative() {
 #[test]
 fn minus_binary() {
     let cases = [
-        ("x - 5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
-        ("x-5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
+        ("x - x", block![(OprApp (Ident x) (Ok "-") (Ident x))]),
+        ("x-x", block![(OprApp (Ident x) (Ok "-") (Ident x))]),
         ("x.-y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "-" (Ident y)))]),
         ("x.~y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y)))]),
     ];
@@ -404,9 +410,9 @@ fn minus_section() {
     let cases = [
         ("- x", block![(OprSectionBoundary (OprApp () (Ok "-") (Ident x)))]),
         ("(- x)", block![(Group "(" (OprSectionBoundary (OprApp () (Ok "-") (Ident x))) ")")]),
-        ("- (x * 2)", block![
+        ("- (x * x)", block![
             (OprSectionBoundary (OprApp () (Ok "-")
-             (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")")))]),
+             (Group "(" (OprApp (Ident x) (Ok "*") (Ident x)) ")")))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -415,15 +421,15 @@ fn minus_section() {
 fn minus_unary() {
     #[rustfmt::skip]
     let cases = [
-        ("f -5", block![(App (Ident f) (UnaryOprApp "-" (Number 5)))]),
-        ("-5", block![(UnaryOprApp "-" (Number 5))]),
-        ("(-5)", block![(Group "(" (UnaryOprApp "-" (Number 5)) ")")]),
-        ("-(x * 2)", block![
-            (UnaryOprApp "-" (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")"))]),
-        ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number 1)))]),
-        ("-1+2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "+") (Number 2))]),
-        ("-1*2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "*") (Number 2))]),
-        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok ".") (Ident x))]),
+        ("f -x", block![(App (Ident f) (UnaryOprApp "-" (Ident x)))]),
+        ("-x", block![(UnaryOprApp "-" (Ident x))]),
+        ("(-x)", block![(Group "(" (UnaryOprApp "-" (Ident x)) ")")]),
+        ("-(x * x)", block![
+            (UnaryOprApp "-" (Group "(" (OprApp (Ident x) (Ok "*") (Ident x)) ")"))]),
+        ("x=-x", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x)))]),
+        ("-x+x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x))]),
+        ("-x*x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x))]),
+        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -524,14 +530,14 @@ fn export() {
 #[test]
 fn metadata_raw() {
     let code = [
-        "4",
+        "x",
         "#### METADATA ####",
         r#"[[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]"#,
     ];
     let code = code.join("\n");
     let (_meta, code) = enso_parser::metadata::parse(&code).unwrap();
     let expected = block![
-        (Number 4)
+        (Ident x)
         ()
     ];
     test(code, expected);
@@ -561,12 +567,12 @@ fn type_signatures() {
 fn type_annotations() {
     #[rustfmt::skip]
     let cases = [
-        ("val = 123 : Int", block![
-            (Assignment (Ident val) "=" (TypeAnnotated (Number 123) ":" (Ident Int)))]),
-        ("val = foo (123 : Int)", block![
+        ("val = x : Int", block![
+            (Assignment (Ident val) "=" (TypeAnnotated (Ident x) ":" (Ident Int)))]),
+        ("val = foo (x : Int)", block![
             (Assignment (Ident val) "="
              (App (Ident foo)
-              (Group "(" (TypeAnnotated (Number 123) ":" (Ident Int)) ")")))]),
+              (Group "(" (TypeAnnotated (Ident x) ":" (Ident Int)) ")")))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -606,7 +612,7 @@ fn multiline_text_literals() {
 
     also part of the string
 
-3"#;
+x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
@@ -618,7 +624,7 @@ fn multiline_text_literals() {
            (Section "\n") (Section "also part of the string")
            (Section "\n") (Section ""))
         () 4)
-        (Number 3)
+        (Ident x)
     ];
     test(CODE, expected);
 }
@@ -630,7 +636,7 @@ fn multiline_text_literals() {
 fn lambdas() {
     let cases = [
         ("\\v -> v", block![(Lambda "\\" (Arrow #((Ident v)) "->" (Ident v)))]),
-        ("\\a b -> 4", block![(Lambda "\\" (Arrow #((Ident a) (Ident b)) "->" (Number 4)))]),
+        ("\\a b -> x", block![(Lambda "\\" (Arrow #((Ident a) (Ident b)) "->" (Ident x)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -654,13 +660,13 @@ fn case_expression() {
     #[rustfmt::skip]
     let code = [
         "case a of",
-        "    Some -> 4",
+        "    Some -> x",
         "    Int ->",
     ];
     #[rustfmt::skip]
     let expected = block![
         (Case (Ident a) () #(
-         (Arrow #((Ident Some)) "->" (Number 4))
+         (Arrow #((Ident Some)) "->" (Ident x))
          (Arrow #((Ident Int)) "->" ())))
     ];
     test(&code.join("\n"), expected);
@@ -668,25 +674,25 @@ fn case_expression() {
     #[rustfmt::skip]
     let code = [
         "case a of",
-        "    Vector_2d x y -> 4",
+        "    Vector_2d x y -> x",
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident a) () #((Arrow #((Ident Vector_2d) (Ident x) (Ident y)) "->" (Number 4))))
+        (Case (Ident a) () #((Arrow #((Ident Vector_2d) (Ident x) (Ident y)) "->" (Ident x))))
     ];
     test(&code.join("\n"), expected);
 
     #[rustfmt::skip]
     let code = [
         "case self of",
-        "    Vector_2d -> 4",
-        "    _ -> 5",
+        "    Vector_2d -> x",
+        "    _ -> x",
     ];
     #[rustfmt::skip]
     let expected = block![
         (Case (Ident self) () #(
-         (Arrow #((Ident Vector_2d)) "->" (Number 4))
-         (Arrow #((Wildcard)) "->" (Number 5))))
+         (Arrow #((Ident Vector_2d)) "->" (Ident x))
+         (Arrow #((Wildcard)) "->" (Ident x))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -696,11 +702,11 @@ fn pattern_match_auto_scope() {
     #[rustfmt::skip]
     let code = [
         "case self of",
-        "    Vector_2d ... -> 4",
+        "    Vector_2d ... -> x",
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident self) () #((Arrow #((Ident Vector_2d) (AutoScope)) "->" (Number 4))))
+        (Case (Ident self) () #((Arrow #((Ident Vector_2d) (AutoScope)) "->" (Ident x))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -712,8 +718,8 @@ fn pattern_match_auto_scope() {
 fn array_literals() {
     let cases = [
         ("[]", block![(Array "[" () #() "]")]),
-        ("[1]", block![(Array "[" (Number 1) #() "]")]),
-        ("[1, 2]", block![(Array "[" (Number 1) #(("," (Number 2))) "]")]),
+        ("[x]", block![(Array "[" (Ident x) #() "]")]),
+        ("[x, y]", block![(Array "[" (Ident x) #(("," (Ident y))) "]")]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -722,8 +728,23 @@ fn array_literals() {
 fn tuple_literals() {
     let cases = [
         ("{}", block![(Tuple "{" () #() "}")]),
-        ("{1}", block![(Tuple "{" (Number 1) #() "}")]),
-        ("{1, 2}", block![(Tuple "{" (Number 1) #(("," (Number 2))) "}")]),
+        ("{x}", block![(Tuple "{" (Ident x) #() "}")]),
+        ("{x, y}", block![(Tuple "{" (Ident x) #(("," (Ident y))) "}")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Numeric literals ===
+
+#[test]
+fn numbers() {
+    let cases = [
+        ("100_000", block![(Number () "100_000" ())]),
+        ("10_000.99", block![(Number () "10_000" ("." "99"))]),
+        ("0b10101010", block![(Number "0b" "10101010" ())]),
+        ("0o122137", block![(Number "0o" "122137" ())]),
+        ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -780,7 +801,8 @@ where T: serde::Serialize + Reflect {
     let ident_token = rust_to_meta[&token::variant::Ident::reflect().id];
     let operator_token = rust_to_meta[&token::variant::Operator::reflect().id];
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
-    let number_token = rust_to_meta[&token::variant::Number::reflect().id];
+    let number_token = rust_to_meta[&token::variant::Digits::reflect().id];
+    let number_base_token = rust_to_meta[&token::variant::NumberBase::reflect().id];
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
     let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
     let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
@@ -808,10 +830,10 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(text_escape_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(number_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str;
-    to_s_expr.mapper(number_token, move |token| {
-        Value::Number(token_to_str_(token).parse::<u64>().unwrap().into())
-    });
+    to_s_expr.mapper(number_base_token, move |token| Value::string(token_to_str_(token)));
     let into_car = |cons| match cons {
         Value::Cons(cons) => cons.into_pair().0,
         _ => panic!(),
