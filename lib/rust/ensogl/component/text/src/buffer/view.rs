@@ -265,16 +265,16 @@ impl ViewBuffer {
 
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
-        if let Some(shaped_line) = shaped_lines.get(&line) {
-            warn!("FOUND SHAPED LINE {:?}", line);
-            f(shaped_line)
-        } else {
-            warn!("GENERATING A NEW SHAPED LINE {:?}", line);
-            let shaped_line = self.shape_line(line);
-            let out = f(&shaped_line);
-            shaped_lines.insert(line, shaped_line);
-            out
-        }
+        // if let Some(shaped_line) = shaped_lines.get(&line) {
+        //     warn!("FOUND SHAPED LINE {:?}", line);
+        //     f(shaped_line)
+        // } else {
+        warn!("GENERATING A NEW SHAPED LINE {:?}", line);
+        let shaped_line = self.shape_line(line);
+        let out = f(&shaped_line);
+        shaped_lines.insert(line, shaped_line);
+        out
+        // }
     }
 
     pub fn shape_line(&self, line: Line) -> ShapedLine {
@@ -526,6 +526,7 @@ impl ViewBuffer {
             text, transform
         );
         let mut modification = Modification::default();
+        warn!("selections: {:?}", *self.selection.borrow());
         warn!("byte_selections: {:?}", self.byte_selections());
         for rel_byte_selection in self.byte_selections() {
             warn!("rel_byte_selection: {:?}", rel_byte_selection);
@@ -601,13 +602,9 @@ impl ViewBuffer {
         debug!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
         debug!("range {:?}", range);
+        error!("BUFFER REPLACE: {:?} {:?}", range, text);
         self.buffer.replace(range, &text);
-        // FIXME: make nicer iterator
-        for line in transformed.min().line.value..=transformed.max().line.value {
-            let line = Line(line);
-            debug!("Removing line shape cache for line {:?}", line);
-            self.shaped_lines.borrow_mut().remove(&line);
-        }
+
 
 
         let new_byte_cursor_pos = range.start + text_byte_size;
@@ -616,6 +613,21 @@ impl ViewBuffer {
         debug!("new_byte_selection {:?}", new_byte_selection);
         let local_byte_selection = self.to_location_selection2(new_byte_selection);
         warn!("NEW SELECTION: {:?}", local_byte_selection);
+
+        let redraw_start_line = transformed.min().line;
+        let redraw_end_line = transformed.max().line;
+        let redraw_end_line = std::cmp::max(redraw_end_line, local_byte_selection.end.line);
+
+        // FIXME: make it more inteligent.
+        warn!("Clearing line shape cache.");
+        mem::take(&mut *self.shaped_lines.borrow_mut());
+
+        // // FIXME: make nicer iterator
+        // for line in redraw_start_line.value..=redraw_end_line.value {
+        //     let line = Line(line);
+        //     debug!("Removing line shape cache for line {:?}", line);
+        //     self.shaped_lines.borrow_mut().remove(&line);
+        // }
 
         // FIXME: construct the below with the local_byte_selection information above
         let selection_group =
@@ -635,10 +647,15 @@ impl ViewBuffer {
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
+        warn!("to_bytes_selection: {:?}", selection);
         let selection_start = Location::from_in_context(self, selection.start);
+        warn!("selection_start: {:?}", selection_start);
         let selection_end = Location::from_in_context(self, selection.end);
+        warn!("selection_end: {:?}", selection_end);
         let start = self.byte_offset_of_location_snapped(selection_start);
+        warn!("start: {:?}", start);
         let end = self.byte_offset_of_location_snapped(selection_end);
+        warn!("end: {:?}", end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -1133,14 +1150,17 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
 
 impl FromInContext<&ViewBuffer, Location<Column>> for Location {
     fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
+        warn!("CONV: {:?}", location);
         context.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
             for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
+                    warn!(">> glyph");
                     if column == location.offset {
                         byte_offset = Some(UBytes(glyph.info.cluster as usize));
+                        warn!("FOUND column: {:?}, byte_offset: {:?}", column, byte_offset);
                         found = true;
                         break;
                     }
@@ -1150,13 +1170,17 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
                     break;
                 }
             }
-            byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                let offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+            let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 if column != location.offset {
                     warn!("Glyph byte offset mismatch.");
                 }
+                let end_byte_offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+                let location2 = Location::from_in_context(context, end_byte_offset);
+                let offset = location2.offset;
                 location.with_offset(offset)
-            })
+            });
+            warn!("RESULT: {:?}", out);
+            out
         })
     }
 }
