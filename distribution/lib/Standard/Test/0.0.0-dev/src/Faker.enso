@@ -46,7 +46,7 @@ type Faker
        Arguments:
        - length: length of text to generate
        - upper_case: use upper_case letters
-    alpha : Integer->Boolean->Text
+    alpha : Integer -> Boolean -> Text
     alpha self length=1 upper_case=False =
         alphabet = if upper_case then upper_case_letters else lower_case_letters
         self.string_value <| 0.up_to length . map _->alphabet
@@ -56,7 +56,7 @@ type Faker
        Arguments:
        - length: length of text to generate
        - upper_case: use upper_case letters
-    alpha_numeric : Integer->Boolean->Text
+    alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
         alphabet = (if upper_case then upper_case_letters else lower_case_letters) + numbers
         self.string_value <| 0.up_to length . map _->alphabet
@@ -65,7 +65,7 @@ type Faker
 
        Arguments:
        - length: length of text to generate
-    hexadecimal : Integer->Text
+    hexadecimal : Integer -> Text
     hexadecimal self length=1 =
         alphabet = "0123456789ABCDEF".char_vector
         self.string_value <| 0.up_to length . map _->alphabet
@@ -76,12 +76,12 @@ type Faker
         if self.generator.nextDouble < 0.5 then True else False
 
     ## Create a random Integer value
-    integer : Integer->Integer->Integer
+    integer : Integer -> Integer -> Integer
     integer self minimum=0 maximum=100 =
         minimum + (self.generator.nextInt (maximum - minimum))
 
     ## Create a random Decimal value
-    decimal : Decimal->Decimal->Decimal
+    decimal : Decimal -> Decimal -> Decimal
     decimal self  minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
@@ -90,11 +90,11 @@ type Faker
        Arguments:
        - items: Vector of items to pick from
        - generator: Random number generator
-    vector_item : Vector->Any
+    vector_item : Vector -> Any
     vector_item self items =
         items.at (self.generator.nextInt items.length)
 
     ## Randomly converts some values to Nothing
-    make_some_nothing : Any->Decimal->Any
+    make_some_nothing : Any -> Decimal -> Any
     make_some_nothing self value (chance=0.1) =
         if self.generator.nextDouble <= chance then Nothing else value

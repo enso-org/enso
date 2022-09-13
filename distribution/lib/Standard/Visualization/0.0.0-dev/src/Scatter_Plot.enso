@@ -93,11 +93,10 @@ type Point_Data
 
 ## PRIVATE
 type No_Fallback_Column
-
-## PRIVATE
-No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text self =
-    "No fallback column found for the scatter plot."
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
@@ -198,7 +197,7 @@ json_from_vector vec bounds limit =
 
    Arguments:
    - value: the value to be visualized.
-process_to_json_text : Any -> Text
+process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
         Column.Column_Data _ -> json_from_table  value.to_table bounds limit
