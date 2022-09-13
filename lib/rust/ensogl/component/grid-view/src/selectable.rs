@@ -235,6 +235,7 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, He
     }
 }
 
+
 impl<InnerGridView, Entry, EntryParams> GridViewTemplate<InnerGridView, Entry, EntryParams>
 where EntryParams: frp::node::Data
 {

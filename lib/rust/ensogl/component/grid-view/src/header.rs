@@ -528,17 +528,6 @@ where
     }
 }
 
-impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> FrpNetworkProvider
-    for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
-where
-    InnerGridView: FrpNetworkProvider,
-    HeaderModel: frp::node::Data,
-{
-    fn network(&self) -> &frp::Network {
-        self.model.grid.network()
-    }
-}
-
 
 
 // =============
