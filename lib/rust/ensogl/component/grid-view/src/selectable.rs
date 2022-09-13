@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::header;
 use crate::Entry;
+use crate::Row;
+use crate::Col;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
@@ -118,7 +120,7 @@ where
 
             // === Move selection by one position ===
 
-            input_move_selection <- any(...);
+            input_move_selection_dir <- any(...);
             input_move_selection_dir <+ input.move_selection_up.constant(Some(Direction::Up));
             input_move_selection_dir <+ input.move_selection_down.constant(Some(Direction::Down));
             input_move_selection_dir <+ input.move_selection_left.constant(Some(Direction::Left));
@@ -126,14 +128,17 @@ where
             let grid_size = &grid_frp.grid_size;
             let selection = &grid_frp.entry_selected;
             result_of_moving_sel_in_bounds <- input_move_selection_dir.map3(grid_size, selection,
-                |dir, (rows, cols), selection| selection.map(|(row, col)|
-                    dir.map(|dir| move_in_bounds_by_one_position(*row, *col, *dir, *rows, *cols))
+                |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
+                    move_in_bounds_by_one_position(row, col, dir, *rows, *cols)
                 )
+                // |dir, (rows, cols), selection| selection.map(|(row, col)|
+                //     dir.map(|dir| move_in_bounds_by_one_position(row, col, dir, *rows, *cols))
+                // )
             );
             selection_after_movement <= result_of_moving_sel_in_bounds;
-            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.moved());
+            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.moved()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
-                selection_after_movement.filter_map(|s| s.out_of_bounds());
+                selection_after_movement.map(|s| s.out_of_bounds());
 
 
             // sel_move_direction_and_bounds_and_current_sel <- input_move_selection.map3(
@@ -205,15 +210,15 @@ enum MoveInBoundsResult {
 impl MoveInBoundsResult {
     fn moved(self) -> Option<(Row, Col)> {
         match self {
-            Moved { row, col } -> Some((row, col)),
-            OutOfBounds(_) -> None,
+            Self::Moved { row, col } => Some((row, col)),
+            Self::OutOfBounds(_) => None,
         }
     }
 
     fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
         match self {
-            Moved { .. } -> None,
-            OutOfBounds(dir) -> Some(dir)
+            Self::Moved { .. } => None,
+            Self::OutOfBounds(dir) => Some(dir)
         }
     }
 }
