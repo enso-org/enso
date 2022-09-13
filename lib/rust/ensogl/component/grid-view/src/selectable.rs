@@ -23,6 +23,10 @@ pub mod highlight;
 // === MovementTarget ===
 // ======================
 
+/// An internal structure describing where selection would go after being moved (i.e.
+/// after navigating with arrows). If moving the selection would put it outside the grid, the
+/// [`OutOfBounds`] variant contains the direction in which the grid boundary would be crossed.
+/// Otherwise, the [`Location`] variant contains row and column in the grid.
 #[derive(Copy, Clone, Debug)]
 enum MovementTarget {
     Location { row: Row, col: Col },
@@ -33,8 +37,7 @@ impl MovementTarget {
     /// Calculate row and column of the nearest entry in given direction from given row and col.
     /// Returns a [`MovementTarget::Location`] if the entry is in bounds of a grid with given
     /// amount of rows and columns. Returns [`MovementTarget::OutOfBounds`] otherwise.
-    // TODO: add note about overflow to GridView crate doc (because f32 imprecise)
-    fn in_direction(
+    fn nearest_in_direction(
         row: Row,
         col: Col,
         direction: frp::io::keyboard::ArrowDirection,
@@ -54,6 +57,7 @@ impl MovementTarget {
         }
     }
 
+    /// In case of a [`Location`] variant, return the row and col it contains.
     fn location(self) -> Option<(Row, Col)> {
         match self {
             Self::Location { row, col } => Some((row, col)),
@@ -61,6 +65,7 @@ impl MovementTarget {
         }
     }
 
+    /// In case of an [`OutOfBounds`] variant, return the arrow direction it contains.
     fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
         match self {
             Self::Location { .. } => None,
@@ -185,12 +190,11 @@ where
             input_move_selection_dir <+ input.move_selection_right.constant(Some(Direction::Right));
             let grid_size = &grid_frp.grid_size;
             let selection = &grid_frp.entry_selected;
-            result_of_moving_sel_in_bounds <- input_move_selection_dir.map3(grid_size, selection,
+            selection_after_movement <= input_move_selection_dir.map3(grid_size, selection,
                 |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
-                    MovementTarget::in_direction(row, col, dir, *rows, *cols)
+                    MovementTarget::nearest_in_direction(row, col, dir, *rows, *cols)
                 )
             );
-            selection_after_movement <= result_of_moving_sel_in_bounds;
             grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.location()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
                 selection_after_movement.map(|s| s.out_of_bounds());
