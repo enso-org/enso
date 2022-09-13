@@ -980,8 +980,66 @@ impl ViewModel {
     }
 }
 
-impl FromInContext<&View, Location<Column>> for Location {
-    fn from_in_context(context: &View, location: Location<Column>) -> Self {
+pub trait FromInContext<Ctx, T> {
+    fn from_in_context(context: Ctx, arg: T) -> Self;
+}
+
+pub trait IntoInContext<Ctx, T> {
+    fn into_in_context(self, context: Ctx) -> T;
+}
+
+impl<Ctx, T, U> IntoInContext<Ctx, U> for T
+where U: FromInContext<Ctx, T>
+{
+    fn into_in_context(self, context: Ctx) -> U {
+        U::from_in_context(context, self)
+    }
+}
+
+
+impl<T, U> FromInContext<&View, U> for T
+where T: for<'t> FromInContext<&'t ViewBuffer, U>
+{
+    fn from_in_context(context: &View, elem: U) -> Self {
+        T::from_in_context(&context.model.view_buffer, elem)
+    }
+}
+
+
+impl FromInContext<&ViewBuffer, Location> for Location<Column> {
+    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+        context.with_shaped_line(location.line, |shaped_line| {
+            let mut column = Column(0);
+            let mut found_column = None;
+            for glyph_set in shaped_line {
+                for glyph in &glyph_set.glyphs {
+                    let byte_offset = UBytes(glyph.info.cluster as usize);
+                    if byte_offset >= location.offset {
+                        if byte_offset > location.offset {
+                            warn!("Glyph byte offset mismatch");
+                        }
+                        found_column = Some(column);
+                        break;
+                    }
+                    column += Column(1);
+                }
+                if found_column.is_some() {
+                    break;
+                }
+            }
+            found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
+                let offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+                if offset != location.offset {
+                    warn!("Glyph byte offset mismatch.");
+                }
+                location.with_offset(column)
+            })
+        })
+    }
+}
+
+impl FromInContext<&ViewBuffer, Location<Column>> for Location {
+    fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;

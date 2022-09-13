@@ -1,6 +1,7 @@
 //! Text cursor transform implementation.
 
 use crate::buffer::view::*;
+use crate::prelude::*;
 
 use crate::buffer::view::selection;
 use crate::buffer::view::word::WordCursor;
@@ -79,21 +80,19 @@ impl ViewBuffer {
     ) -> selection::Shape {
         let move_up = line_delta < 0.line();
         let location = self.vertical_motion_selection_to_location(selection, move_up, modify);
-        let min_line = 0.line();
-        let max_line = self.last_line_index();
-        let border_step = if move_up { (-1).line() } else { 1.line() };
-        let snap_top = location.line < min_line;
-        let snap_bottom = location.line > max_line;
-        let next_line = max_line + border_step;
-        let bottom = location.line + line_delta;
-        let line = if snap_top {
-            border_step
-        } else if snap_bottom {
-            next_line
+        let column = Location::<Column>::from_in_context(self, location).offset;
+        let first_line = 0.line();
+        let last_line = self.last_line_index();
+        let desired_line = location.line + line_delta;
+        let tgt_location = if desired_line < first_line {
+            Location { line: first_line, offset: UBytes(0) }
+        } else if desired_line > last_line {
+            let offset = self.last_line_end_byte_offset();
+            Location { line: last_line, offset }
         } else {
-            bottom
+            let tgt_location = location.with_line(desired_line).with_offset(column);
+            Location::from_in_context(self, tgt_location)
         };
-        let tgt_location = location.with_line(line);
         selection::Shape(selection.start, tgt_location)
     }
 
@@ -113,19 +112,19 @@ impl ViewBuffer {
         result
     }
 
-    /// Location of the previous grapheme cluster if any.
-    pub fn prev_grapheme_location(&self, location: Location) -> Option<Location> {
-        let offset = self.byte_offset_of_location_snapped(location);
-        let prev_offset = self.prev_grapheme_offset(offset);
-        prev_offset.map(|off| self.offset_to_location(off))
-    }
-
-    /// Location of the next grapheme cluster if any.
-    pub fn next_grapheme_location(&self, location: Location) -> Option<Location> {
-        let offset = self.byte_offset_of_location_snapped(location);
-        let next_offset = self.next_grapheme_offset(offset);
-        next_offset.map(|off| self.offset_to_location(off))
-    }
+    // /// Location of the previous grapheme cluster if any.
+    // pub fn prev_grapheme_location(&self, location: Location) -> Option<Location> {
+    //     let offset = self.byte_offset_of_location_snapped(location);
+    //     let prev_offset = self.prev_grapheme_offset(offset);
+    //     prev_offset.map(|off| self.offset_to_location(off))
+    // }
+    //
+    // /// Location of the next grapheme cluster if any.
+    // pub fn next_grapheme_location(&self, location: Location) -> Option<Location> {
+    //     let offset = self.byte_offset_of_location_snapped(location);
+    //     let next_offset = self.next_grapheme_offset(offset);
+    //     next_offset.map(|off| self.offset_to_location(off))
+    // }
 
     /// Compute the result of movement on one selection region.
     ///
@@ -142,16 +141,11 @@ impl ViewBuffer {
         let shape = selection::Shape;
         let shape: selection::Shape = match transform {
             Transform::All => shape(default(), self.offset_to_location(text.byte_size())),
-
             Transform::Up => self.vertical_motion(selection, (-1).line(), modify),
-
             Transform::Down => self.vertical_motion(selection, 1.line(), modify),
-
             Transform::StartOfDocument => shape(selection.start, default()),
-
             Transform::EndOfDocument =>
                 shape(selection.start, self.offset_to_location(text.byte_size())),
-
             Transform::Left => {
                 let do_move = selection.is_cursor() || modify;
                 if do_move {
@@ -160,7 +154,6 @@ impl ViewBuffer {
                     shape(selection.start, selection.min())
                 }
             }
-
             Transform::Right => {
                 let do_move = selection.is_cursor() || modify;
                 if do_move {
@@ -169,11 +162,8 @@ impl ViewBuffer {
                     shape(selection.start, selection.max())
                 }
             }
-
             Transform::LeftSelectionBorder => shape(selection.start, selection.min()),
-
             Transform::RightSelectionBorder => shape(selection.start, selection.max()),
-
             Transform::LeftOfLine => {
                 let end = Location(selection.end.line, UBytes(0));
                 shape(selection.start, end)

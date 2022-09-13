@@ -16,6 +16,7 @@ use crate::font;
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
 
+use crate::buffer::view::IntoInContext;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use ensogl_core::application;
