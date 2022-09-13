@@ -1138,3 +1138,50 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
         })
     }
 }
+
+impl FromInContext<&ViewBuffer, Location> for UBytes {
+    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+        context.byte_offset_of_line_index(location.line).unwrap() + location.offset
+    }
+}
+
+impl FromInContext<&ViewBuffer, Location<Column>> for UBytes {
+    fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
+        Location::from_in_context(context, location).into_in_context(context)
+    }
+}
+
+impl FromInContext<&ViewBuffer, UBytes> for Location {
+    fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
+        let line = context.line_index_of_byte_offset_snapped(offset);
+        let line_offset = context.byte_offset_of_line_index(line).unwrap();
+        let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
+            warn!("Internal error. Line offset overflow ({:?}).", line_offset);
+            UBytes(0)
+        });
+        let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+        Location(line, byte_offset)
+    }
+}
+
+impl FromInContext<&ViewBuffer, UBytes> for Location<Column> {
+    fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
+        Location::from_in_context(context, offset).into_in_context(context)
+    }
+}
+
+
+// // warn!("offset_to_location: {:?}", offset);
+// let line = self.line_index_of_byte_offset_snapped(offset);
+// // warn!("line: {:?}", line);
+// let line_offset = self.byte_offset_of_line_index(line).unwrap();
+// // warn!("line_offset: {:?}", line_offset);
+// let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
+// error!("Internal error. Line offset overflow ({:?}).", line_offset);
+// UBytes(0)
+// });
+// // warn!("line_offset: {:?}", line_offset);
+// // fixme: tu byl snap_bytes_location_error - potrzebny?
+// let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+// // warn!("byte_offset: {:?}", byte_offset);
+// Location(line, byte_offset)

@@ -160,11 +160,6 @@ impl ViewBuffer {
                 }
             }
 
-            // Transform::Right => {
-            //     let do_move = selection.is_cursor() || modify;
-            //     let end = ite!(do_move, selection.end.inc_offset(), selection.max());
-            //     shape(selection.start, selection.max())
-            // }
             // Transform::LeftSelectionBorder => shape(selection.start, selection.min()),
             // Transform::RightSelectionBorder => shape(selection.start, selection.max()),
             // Transform::LeftOfLine => {
@@ -202,15 +197,14 @@ impl ViewBuffer {
             //     let end = self.offset_to_location(offset);
             //     shape(selection.start, end)
             // }
-            //
-            // Transform::Word => {
-            //     let end_offset = self.byte_offset_of_location_snapped(selection.end);
-            //     let mut word_cursor = WordCursor::new(text, end_offset);
-            //     let offsets = word_cursor.select_word();
-            //     let start = self.offset_to_location(offsets.0);
-            //     let end = self.offset_to_location(offsets.1);
-            //     shape(start, end)
-            // }
+            Transform::Word => {
+                let end_offset = UBytes::from_in_context(self, selection.end);
+                let mut word_cursor = WordCursor::new(text, end_offset);
+                let offsets = word_cursor.select_word();
+                let start = Location::<Column>::from_in_context(self, offsets.0);
+                let end = Location::<Column>::from_in_context(self, offsets.1);
+                shape(start, end)
+            }
             //
             // Transform::Line => {
             //     let start_offset = self.byte_offset_of_line_index_snapped(selection.start.line);
@@ -219,7 +213,7 @@ impl ViewBuffer {
             //     let end = self.offset_to_location(end_offset);
             //     shape(start, end)
             // }
-            _ => panic!(),
+            t => panic!("TODO: {:?}", t),
         };
         let start = if modify { shape.start } else { shape.end };
         let end = shape.end;
