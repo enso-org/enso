@@ -140,13 +140,13 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             );
             entry_selected_by_input_move <= base_grid.entry_selected.sample(&input_move_selection);
             let scroll_margins = &frp.set_preferred_margins_around_entry;
-            _eval <- entry_selected_by_input_move.map2(scroll_margins,
-                f!([base_grid, area] ((row, col), margins) {
-                    let scroll_to = base_grid.viewport_containing_entry(*row, *col, *margins);
-                    area.scroll_to_y(-scroll_to.y);
-                    area.scroll_to_x(scroll_to.x);
-                })
+            scroll_to <- entry_selected_by_input_move.map2(scroll_margins,
+                f!([base_grid] ((row, col), margins)
+                    base_grid.viewport_containing_entry(*row, *col, *margins)
+                )
             );
+            area.scroll_to_x <+ scroll_to.map(|vec| vec.x);
+            area.scroll_to_y <+ scroll_to.map(|vec| -vec.y);
         }
 
         Self { area, inner_grid, frp, text_layer, header_layer, header_text_layer }
