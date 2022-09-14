@@ -25,6 +25,7 @@ use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
+use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
@@ -124,6 +125,7 @@ fn setup_simple_grid_view(
 ) -> grid_view::simple::SimpleScrollableSelectableGridView {
     let view = grid_view::simple::SimpleScrollableSelectableGridView::new(app);
     let network = configure_simple_grid_view(&view);
+    configure_scrollable_grid_view(&view);
     std::mem::forget(network);
     app.display.add_child(&view);
     view
@@ -167,22 +169,28 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
-    let with_hover_mask = [&grid_views[2]];
-    let with_selection_mask = [&grid_views[1], &grid_views[2]];
-    grid_views[2].frp().focus();
+    let grid_view_no_headers = setup_simple_grid_view(app);
+    grid_view_no_headers.frp().focus();
+    let grid_views_with_headers = std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
+    let with_hover_mask = [&grid_views_with_headers[2]];
+    let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
+    // grid_views_with_headers[2].frp().focus();
     // let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(1).collect_vec();
     // let with_hover_mask = [&grid_views[0]];
     // let with_selection_mask = [&grid_views[0]];
     // grid_views[0].frp().focus();
-    let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
+    let pair_to_vector = |(x, y)| Vector2(x, y);
+    let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vector);
 
-    for (view, (x, y)) in grid_views.iter().zip(positions) {
+    grids_layer.add_exclusive(&grid_view_no_headers);
+    grid_view_no_headers.set_position_xy(positions.next().unwrap());
+    for (view, position) in grid_views_with_headers.iter().zip(positions) {
         grids_layer.add_exclusive(view);
-        view.set_position_xy(Vector2(x, y));
+        // view.set_position_xy(Vector2(x, y));
+        view.set_position_xy(position);
     }
 
-    let view = &grid_views[0];
+    let view = &grid_views_with_headers[0];
     // for i in (0..1000).step_by(2) {
     for i in (0..100).step_by(2) {
         view.set_column_width((i, 60.0));
@@ -218,7 +226,8 @@ fn init(app: &Application) {
     );
     navigator.disable_wheel_panning();
 
-    std::mem::forget(grid_views);
+    std::mem::forget(grid_view_no_headers);
+    std::mem::forget(grid_views_with_headers);
     std::mem::forget(grids_layer);
     std::mem::forget(hover_layer);
     std::mem::forget(selection_layer);
