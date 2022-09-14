@@ -35,6 +35,12 @@ pub struct Contour {
     pub corners_radius: f32,
 }
 
+impl Contour {
+    pub fn sharp_rectangle(size: Vector2) -> Self {
+        Self { size, corners_radius: 0.0 }
+    }
+}
+
 
 
 // ===========

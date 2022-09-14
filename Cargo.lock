@@ -1671,6 +1671,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-new-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-visualization"
 version = "0.1.0"
 dependencies = [
@@ -2025,6 +2043,7 @@ dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
+ "debug-scene-new-component-list-panel-view",
  "debug-scene-visualization",
 ]
 

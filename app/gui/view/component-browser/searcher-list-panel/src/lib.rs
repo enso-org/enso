@@ -88,10 +88,7 @@ use searcher_theme::list_panel as list_panel_theme;
 
 pub mod column_grid;
 pub mod layout;
-
-
-
-mod layouting;
+pub mod layouting;
 mod navigator;
 
 pub use column_grid::LabeledAnyModelProvider;
