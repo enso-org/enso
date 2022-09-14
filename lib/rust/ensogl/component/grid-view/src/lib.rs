@@ -577,29 +577,33 @@ where
         entry::visible::position(row, column, self.entries_size.value(), column_widths)
     }
 
-    /// Return the size of the Entry instance for given row and column.
-    pub fn entry_size(&self, _row: Row, column: Col) -> Vector2 {
-        let column_widths = &self.widget.model().column_widths;
-        let base_entry_size = self.entries_size.value();
-        Vector2(base_entry_size.x + column_widths.width_diff(column), base_entry_size.y)
-    }
+    // /// Return the size of the Entry instance for given row and column.
+    // pub fn entry_size(&self, _row: Row, column: Col) -> Vector2 {
+    //     let column_widths = &self.widget.model().column_widths;
+    //     let base_entry_size = self.entries_size.value();
+    //     Vector2(base_entry_size.x + column_widths.width_diff(column), base_entry_size.y)
+    // }
 
     /// Return the position of the top-left corner of a viewport containing the area around the
-    /// entry at given row and col. The area around an entry is defined as the bounding box of the
-    /// entry enlarged by given margins. If there is more than one such viewport possible, return
-    /// the one closest to the current viewport.
-    fn viewport_containing_entry(&self, row: Row, column: Col, margins: Margins) -> Vector2 {
-        let pos = self.entry_position(row, column);
-        let size = self.entry_size(row, column);
-        let entry = Viewport::from_center_point_and_size(pos, size);
-        let entry_plus_margins = Viewport {
-            top:    entry.top + margins.top,
-            bottom: entry.bottom - margins.bottom,
-            left:   entry.left - margins.left,
-            right:  entry.right + margins.right,
-        };
-        let moved_viewport = self.viewport.value().moved_to_contain(entry_plus_margins);
-        Vector2(moved_viewport.left, moved_viewport.top)
+    /// entry at given row and column. The area around an entry is defined as the bounding box of
+    /// the entry enlarged by given margins. If there is more than one such viewport possible,
+    /// return the one closest to the current viewport.
+    fn viewport_containing_entry(&self, row: Row, col: Col, margins: Margins) -> Vector2 {
+        let column_widths = &self.widget.model().column_widths;
+        let base_entry_size = self.entries_size.value();
+        let viewport = self.viewport.value();
+        entry::visible::position_of_viewport_containing_entry(row, col, base_entry_size, column_widths, viewport, margins)
+        // let pos = self.entry_position(row, column);
+        // let size = self.entry_size(row, column);
+        // let entry = Viewport::from_center_point_and_size(pos, size);
+        // let entry_plus_margins = Viewport {
+        //     top:    entry.top + margins.top,
+        //     bottom: entry.bottom - margins.bottom,
+        //     left:   entry.left - margins.left,
+        //     right:  entry.right + margins.right,
+        // };
+        // let moved_viewport = self.viewport.value().moved_to_contain(entry_plus_margins);
+        // Vector2(moved_viewport.left, moved_viewport.top)
     }
 }
 

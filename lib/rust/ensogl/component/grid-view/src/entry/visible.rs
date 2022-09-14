@@ -6,11 +6,13 @@ use crate::entry;
 use crate::Col;
 use crate::ColumnWidths;
 use crate::Entry;
+use crate::Margins;
 use crate::Row;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_scroll_area::Viewport;
 
 
 
@@ -161,4 +163,29 @@ pub fn set_position<E: display::Object>(
     column_widths: &ColumnWidths,
 ) {
     entry.set_position_xy(position(row, col, entry_size, column_widths));
+}
+
+pub fn size(_row: Row, col: Col, base_entry_size: Vector2, column_widths: &ColumnWidths) -> Vector2 {
+    Vector2(base_entry_size.x + column_widths.width_diff(col), base_entry_size.y)
+}
+
+pub fn position_of_viewport_containing_entry(
+    row: Row, col: Col, entry_size: Vector2,
+    column_widths: &ColumnWidths,
+    viewport: Viewport,
+    margins: Margins,
+) -> Vector2 {
+    let pos = position(row, col, entry_size, column_widths);
+    // let pos = self.entry_position(row, column);
+    let size = size(row, col, entry_size, column_widths);
+    // let size = self.entry_size(row, column);
+    let entry = Viewport::from_center_point_and_size(pos, size);
+    let entry_plus_margins = Viewport {
+        top:    entry.top + margins.top,
+        bottom: entry.bottom - margins.bottom,
+        left:   entry.left - margins.left,
+        right:  entry.right + margins.right,
+    };
+    let moved_viewport = viewport.moved_to_contain(entry_plus_margins);
+    Vector2(moved_viewport.left, moved_viewport.top)
 }
