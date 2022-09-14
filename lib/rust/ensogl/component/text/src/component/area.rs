@@ -739,32 +739,37 @@ impl AreaModel {
                         debug!("Change: {:#?}", change_with_selection);
 
                         let selection = change_with_selection.selection;
-                        let view_selection = self.buffer.selection_to_view_selection(selection);
+                        // let view_selection = self.buffer.selection_to_view_selection(selection);
 
-                        // Compute shape. If it was a backspace at line start, we need to redraw
-                        // the previous line as well.
-                        let mut shape = view_selection.shape.normalized();
-                        if change_with_selection.is_backspace_at_line_start() {
-                            shape.start.line = shape.start.line - ViewLine(1);
-                        }
+                        let shape_x = self
+                            .buffer
+                            .line_to_view_line(*change_with_selection.change_range.start())
+                            ..=self
+                                .buffer
+                                .line_to_view_line(*change_with_selection.change_range.end());
+
+                        // // Compute shape. If it was a backspace at line start, we need to redraw
+                        // // the previous line as well.
+                        // let mut shape = view_selection.shape.normalized();
+                        // if change_with_selection.is_backspace_at_line_start() {
+                        //     shape.start.line = shape.start.line - ViewLine(1);
+                        // }
+
 
                         // Count newlines in the inserted text and the line difference after the
                         // change.
-                        let change = &change_with_selection.change;
-                        let change_str = change.text.to_string();
-                        let newlines = change_str.chars().filter(|c| *c == '\n').count();
-                        let line_diff = newlines as i32 - (shape.end.line - shape.start.line).value;
+                        let line_diff = change_with_selection.line_diff;
 
                         // Measurements used for computing the line range to add or remove.
-                        let second_line_index = shape.start.line.value as usize + 1;
-                        let line_after_end_index = shape.end.line.value as usize + 1;
+                        let second_line_index = (*shape_x.start()).value as usize + 1;
+                        let line_after_end_index = (*shape_x.end()).value as usize + 1;
                         let mut lines = self.lines.borrow_mut();
 
                         if line_diff != 0 {
                             // Attach unchanged lines under cursor to the cursor for a smooth
                             // vertical animation.
                             let selection_map = self.selection_map.borrow();
-                            let cursor = selection_map.id_map.get(&view_selection.id).unwrap();
+                            let cursor = selection_map.id_map.get(&selection.id).unwrap();
                             for index in line_after_end_index..lines.len() {
                                 lines[index].set_index(index - line_after_end_index);
                                 cursor.bottom_snapped_left.add_child(&lines[index]);
@@ -787,7 +792,7 @@ impl AreaModel {
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
 
-                        let range = shape.start.line..=shape.end.line + ViewLine(line_diff);
+                        let range = (*shape_x.start())..=(*shape_x.end()) + ViewLine(line_diff);
                         debug!("Range to redraw: {:?}", range);
                         range.intersect(&view_line_range)
                     })

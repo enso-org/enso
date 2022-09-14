@@ -91,22 +91,27 @@ impl<T> Modification<T> {
 }
 
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Deref)]
+#[derive(Clone, Debug, Eq, PartialEq, Deref)]
 pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location<Column>> {
     #[deref]
-    pub change:    Change<Metric, Str>,
-    pub selection: Selection<Loc>,
+    pub change:       Change<Metric, Str>,
+    pub selection:    Selection<Loc>,
+    pub change_range: RangeInclusive<Line>,
+    pub line_diff:    i32,
 }
 
-impl ChangeWithSelection<UBytes, Text, Location<Column>> {
-    pub fn is_backspace_at_line_start(&self) -> bool {
-        let single_place_edit = self.selection.shape.start == self.selection.shape.end;
-        let edit_on_line_start = self.selection.shape.start.offset == Column(0);
-        let no_insert = self.change.text.is_empty();
-        let empty_range = self.change.range.is_empty();
-        single_place_edit && edit_on_line_start && no_insert && !empty_range
+impl<Metric: Default, Str: Default, Loc: Default> Default
+    for ChangeWithSelection<Metric, Str, Loc>
+{
+    fn default() -> Self {
+        let change = default();
+        let selection = default();
+        let line_diff = default();
+        let change_range = Line(0)..=Line(0);
+        Self { change, selection, change_range, line_diff }
     }
 }
+
 
 
 // ==================
@@ -616,6 +621,7 @@ impl ViewBuffer {
         warn!("redraw_start_line: {:?}", redraw_start_line);
         warn!("redraw_end_line: {:?}", redraw_end_line);
 
+        // FIXME, rmoeve these + Line(1), as they zero in diff computation
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
         let inserted_line_count = local_byte_selection.end.line - redraw_start_line + Line(1);
 
@@ -648,7 +654,8 @@ impl ViewBuffer {
         let selection_group =
             selection::Group::from(self.to_location_selection(new_byte_selection));
         let change = Change { range, text };
-        let change = ChangeWithSelection { change, selection };
+        let change_range = redraw_start_line..=redraw_end_line;
+        let change = ChangeWithSelection { change, selection, change_range, line_diff };
         let changes = vec![change];
         debug!("change {:?}", changes);
 
