@@ -111,13 +111,6 @@ fn configure_scrollable_grid_view<InnerGridView>(
     view: &grid_view::scrollable::GridViewTemplate<InnerGridView>,
 ) {
     view.scroll_frp().resize(Vector2(400.0, VIEWPORT_HEIGHT));
-    let scroll_margins = Margins {
-        top:    VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
-        bottom: BASE_SCROLL_MARGIN,
-        left:   BASE_SCROLL_MARGIN,
-        right:  BASE_SCROLL_MARGIN,
-    };
-    view.extra_scroll_frp().set_preferred_margins_around_entry(scroll_margins);
 }
 
 fn setup_simple_grid_view(
@@ -135,8 +128,12 @@ fn setup_grid_view_with_headers(
     app: &Application,
 ) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
     let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
+    app.display.add_child(&view);
+
+
+    // === Configure simple grid view with network ===
+
     let network = configure_simple_grid_view(&view);
-    configure_scrollable_grid_view(&view);
     let header_frp = view.header_frp();
     frp::extend! { network
         requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
@@ -149,7 +146,18 @@ fn setup_grid_view_with_headers(
         header_frp.section_info <+ requested_section;
     }
     std::mem::forget(network);
-    app.display.add_child(&view);
+
+
+    // === Configure scrollable grid view with scroll margins ===
+
+    configure_scrollable_grid_view(&view);
+    let scroll_margins = Margins {
+        top:    VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
+        bottom: BASE_SCROLL_MARGIN,
+        left:   BASE_SCROLL_MARGIN,
+        right:  BASE_SCROLL_MARGIN,
+    };
+    view.extra_scroll_frp().set_preferred_margins_around_entry(scroll_margins);
     view
 }
 
@@ -174,7 +182,7 @@ fn init(app: &Application) {
     let grid_views_with_headers = std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
     let with_hover_mask = [&grid_views_with_headers[2]];
     let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
-    // grid_views_with_headers[2].frp().focus();
+    grid_views_with_headers[2].frp().focus();
     // let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(1).collect_vec();
     // let with_hover_mask = [&grid_views[0]];
     // let with_selection_mask = [&grid_views[0]];
