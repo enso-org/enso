@@ -165,6 +165,7 @@ pub fn set_position<E: display::Object>(
     entry.set_position_xy(position(row, col, entry_size, column_widths));
 }
 
+/// Get size of entry at given row and column.
 pub fn size(
     _row: Row,
     col: Col,
