@@ -592,7 +592,14 @@ where
         let column_widths = &self.widget.model().column_widths;
         let base_entry_size = self.entries_size.value();
         let viewport = self.viewport.value();
-        entry::visible::position_of_viewport_containing_entry(row, col, base_entry_size, column_widths, viewport, margins)
+        entry::visible::position_of_viewport_containing_entry(
+            row,
+            col,
+            base_entry_size,
+            column_widths,
+            viewport,
+            margins,
+        )
     }
 }
 

@@ -165,12 +165,19 @@ pub fn set_position<E: display::Object>(
     entry.set_position_xy(position(row, col, entry_size, column_widths));
 }
 
-pub fn size(_row: Row, col: Col, base_entry_size: Vector2, column_widths: &ColumnWidths) -> Vector2 {
+pub fn size(
+    _row: Row,
+    col: Col,
+    base_entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) -> Vector2 {
     Vector2(base_entry_size.x + column_widths.width_diff(col), base_entry_size.y)
 }
 
 pub fn position_of_viewport_containing_entry(
-    row: Row, col: Col, entry_size: Vector2,
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
     column_widths: &ColumnWidths,
     viewport: Viewport,
     margins: Margins,
