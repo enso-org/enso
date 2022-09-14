@@ -67,7 +67,7 @@ class ImportsTest extends CompilerTest {
       ir.imports.take(4).map(_.showCode()) shouldEqual List(
         "import Bar.Foo.Main as Foo",
         "import Bar.Foo.Main as Bar",
-        "from Bar.Foo.Main as Foo import Bar, Baz",
+        "from Bar.Foo.Main import Bar, Baz",
         "from Bar.Foo.Main as Bar import Baz, Spam"
       )
     }
@@ -76,7 +76,7 @@ class ImportsTest extends CompilerTest {
       ir.exports.take(4).map(_.showCode()) shouldEqual List(
         "export Bar.Foo.Main as Foo",
         "export Bar.Foo.Main as Bar",
-        "from Bar.Foo.Main as Foo export Bar, Baz",
+        "from Bar.Foo.Main export Bar, Baz",
         "from Bar.Foo.Main as Bar export all"
       )
     }
