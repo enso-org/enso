@@ -1,6 +1,11 @@
 from Standard.Base import Any, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format
 from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
+from Standard.Table.Delimited.Delimited_Format import Delimited
+from Standard.Table.Excel.Excel_Format import Excel
+
+types = [Plain_Text, Delimited ',', Excel, Bytes]
+
 type Auto_Detect
     ## If the File_Format supports reading from the file, return a configured instance.
     can_read : File -> Any
