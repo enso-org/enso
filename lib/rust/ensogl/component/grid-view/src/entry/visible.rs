@@ -205,27 +205,43 @@ mod tests {
     use super::*;
 
     const ENTRY_SIZE: Vector2 = Vector2(20.0, 10.0);
-    const ROW_COUNT: usize = 100;
     const COL_COUNT: usize = 100;
     const MARGINS: Margins = Margins { top: 1.0, bottom: 2.0, left: 3.0, right: 4.0 };
     const VIEWPORT_SIZE: Vector2 = Vector2(200.0, 100.0);
+    const ROW: Row = 3;
+    const COL: Col = 5;
 
     fn sample_column_widths() -> ColumnWidths {
         ColumnWidths::new(COL_COUNT)
     }
 
+    fn pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center: Vector2) -> Vector2 {
+        let viewport = Viewport::from_center_point_and_size(center, VIEWPORT_SIZE);
+        let column_widths = sample_column_widths();
+        position_of_viewport_containing_entry(ROW, COL, ENTRY_SIZE, &column_widths, viewport, MARGINS)
+    }
+
     #[test]
     fn position_of_viewport_scrolled_up_and_left_to_contain_entry() {
-        const ROW: Row = 3;
-        const COL: Col = 5;
-        let column_widths = sample_column_widths();
-        let entry_pos = position(ROW, COL, ENTRY_SIZE, &column_widths);
-        assert_approx_eq!(entry_pos.x, 110.0);
-        assert_approx_eq!(entry_pos.y, -35.0);
-        const VIEWPORT_CENTER: Vector2 = Vector2(1000.0, -1000.0);
-        let viewport = Viewport::from_center_point_and_size(VIEWPORT_CENTER, VIEWPORT_SIZE);
-        let viewport_pos = position_of_viewport_containing_entry(ROW, COL, ENTRY_SIZE, &column_widths, viewport, MARGINS);
-        assert_approx_eq!(viewport_pos.x, 97.0);
-        assert_approx_eq!(viewport_pos.y, -29.0);
+        let center = Vector2(1000.0, -1000.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, 97.0);
+        assert_approx_eq!(pos.y, -29.0);
+    }
+
+    #[test]
+    fn position_of_viewport_scrolled_down_and_right_to_contain_entry() {
+        let center = Vector2(-1000.0, 1000.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, -76.0);
+        assert_approx_eq!(pos.y, 58.0);
+    }
+
+    #[test]
+    fn position_of_viewport_not_modified_because_it_already_contains_entry() {
+        let center = Vector2(100.0, -30.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, center.x - VIEWPORT_SIZE.x / 2.0);
+        assert_approx_eq!(pos.y, center.y + VIEWPORT_SIZE.y / 2.0);
     }
 }
