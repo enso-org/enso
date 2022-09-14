@@ -215,10 +215,19 @@ mod tests {
         ColumnWidths::new(COL_COUNT)
     }
 
-    fn pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center: Vector2) -> Vector2 {
+    fn pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(
+        center: Vector2,
+    ) -> Vector2 {
         let viewport = Viewport::from_center_point_and_size(center, VIEWPORT_SIZE);
         let column_widths = sample_column_widths();
-        position_of_viewport_containing_entry(ROW, COL, ENTRY_SIZE, &column_widths, viewport, MARGINS)
+        position_of_viewport_containing_entry(
+            ROW,
+            COL,
+            ENTRY_SIZE,
+            &column_widths,
+            viewport,
+            MARGINS,
+        )
     }
 
     #[test]
