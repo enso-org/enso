@@ -74,6 +74,10 @@ fn init(app: Application) {
     // TODO: chodzenie po literkach ktorych byte != 1
     // TODO: remove line shape cache from ofscreen for lines without cursors
 
+    // ERRORS:
+    // 1. cursors on the beginning of lines 3 and 4 -> backspace -> wrong result
+    // 2. cursor after l -> enter -> backspace -> panic
+
 
     // area.set_cursor_at_end();
     //

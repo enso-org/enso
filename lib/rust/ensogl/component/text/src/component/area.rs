@@ -868,9 +868,12 @@ impl AreaModel {
                             let line_diff = ViewLine((-line_diff) as usize);
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
+                        warn!(">> 1");
 
-                        let range =
-                            (*shape_x.start())..=(*shape_x.end()) + ViewLine(line_diff as usize);
+                        let range_end = ViewLine((shape_x.end().value as i32 + line_diff) as usize);
+                        let range = (*shape_x.start())..=range_end;
+                        warn!(">> 2");
+
                         debug!("Range to redraw: {:?}", range);
                         range.intersect(&view_line_range)
                     })

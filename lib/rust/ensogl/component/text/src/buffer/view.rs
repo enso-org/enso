@@ -448,7 +448,8 @@ impl ViewBuffer {
     /// Returns the last used selection or a new one if no active selection exists. This allows for
     /// nice animations when moving cursor between lines after clicking with mouse.
     fn set_cursor(&self, location: Location<Column>) -> selection::Group {
-        let opt_existing = self.selection.borrow().last().map(|t| t.with_location(location));
+        let last_selection = self.selection.borrow().last().cloned();
+        let opt_existing = last_selection.map(|t| t.with_location(location));
         opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()
     }
 
@@ -528,7 +529,7 @@ impl ViewBuffer {
             text, transform
         );
         let mut modification = Modification::default();
-        warn!("selections: {:?}", *self.selection.borrow());
+        // warn!("selections: {:?}", *self.selection.borrow());
         warn!("byte_selections: {:?}", self.byte_selections());
         for rel_byte_selection in self.byte_selections() {
             warn!("rel_byte_selection: {:?}", rel_byte_selection);
@@ -665,7 +666,8 @@ impl ViewBuffer {
     }
 
     pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
-        self.selection.borrow().iter().map(|s| self.to_bytes_selection(*s)).collect()
+        let selections = self.selection.borrow().clone();
+        selections.iter().map(|s| self.to_bytes_selection(*s)).collect()
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
