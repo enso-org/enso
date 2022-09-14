@@ -1,4 +1,3 @@
-//! A lexical token is a string with an assigned and thus identified meaning. Each token remembers
 //! its source code and can be printed back. It also contains information about the offset to the
 //! previous token if any.
 //!
@@ -106,14 +105,14 @@ use enso_shapely_macros::tagged_enum;
 #[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
+    #[reflect(flatten, hide)]
+    pub left_offset: Offset<'s>,
+    #[reflect(flatten)]
+    pub code:        Code<'s>,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
     pub variant:     T,
-    #[reflect(flatten, hide)]
-    pub left_offset: Offset<'s>,
-    #[reflect(flatten, hide)]
-    pub code:        Code<'s>,
 }
 
 /// Constructor.
@@ -163,7 +162,7 @@ impl<'s, T> Token<'s, T> {
 
     /// Span of this token.
     pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         span::Ref { left_offset: &self.left_offset, code_length }
     }
 }
@@ -185,7 +184,7 @@ impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         Span { left_offset, code_length }
     }
 }
@@ -258,25 +257,34 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Wildcard {
             pub lift_level: usize
         },
+        AutoScope,
         Ident {
-            pub is_free: bool,
-            pub lift_level: usize
+            pub is_free:    bool,
+            pub lift_level: usize,
+            pub is_type:    bool,
         },
         Operator {
-            pub binary_infix_precedence: Option<Precedence>,
-            pub unary_prefix_precedence: Option<Precedence>,
-            pub is_type_annotation: bool,
-            pub can_form_section: bool,
+            pub properties: OperatorProperties,
         },
         Modifier,
         DocComment,
-        Number,
+        Digits {
+            pub base: Option<Base>
+        },
+        NumberBase,
         TextStart,
         TextEnd,
         TextSection,
         TextEscape,
     }
 }}}
+
+impl Variant {
+    /// Return whether this token can introduce a macro invocation.
+    pub fn can_start_macro(&self) -> bool {
+        !matches!(self, Variant::TextEscape(_))
+    }
+}
 
 impl Default for Variant {
     fn default() -> Self {
@@ -286,6 +294,153 @@ impl Default for Variant {
 
 
 // === Operator properties ===
+
+/// Properties of an operator that are identified when lexing.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Reflect,
+    Deserialize,
+    PartialOrd,
+    Ord,
+    Default
+)]
+pub struct OperatorProperties {
+    // Precedence
+    #[serde(skip)]
+    #[reflect(skip)]
+    binary_infix_precedence:   Option<Precedence>,
+    #[serde(skip)]
+    #[reflect(skip)]
+    unary_prefix_precedence:   Option<Precedence>,
+    // Special properties
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_compile_time_operation: bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_right_associative:      bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    can_be_decimal_operator:   bool,
+    // Unique operators
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_type_annotation:        bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_assignment:             bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_arrow:                  bool,
+    #[serde(skip)]
+    #[reflect(skip)]
+    is_sequence:               bool,
+}
+
+impl OperatorProperties {
+    /// Construct an operator with default properties.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Return a copy of this operator, with the given binary infix precedence.
+    pub fn with_binary_infix_precedence(self, value: usize) -> Self {
+        Self { binary_infix_precedence: Some(Precedence { value }), ..self }
+    }
+
+    /// Return a copy of this operator, with unary prefix parsing allowed.
+    pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
+        Self { unary_prefix_precedence: Some(precedence), ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a compile time operation.
+    pub fn as_compile_time_operation(self) -> Self {
+        Self { is_compile_time_operation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as right associative.
+    pub fn as_right_associative(self) -> Self {
+        Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a type annotation operator.
+    pub fn as_type_annotation(self) -> Self {
+        Self { is_type_annotation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an assignment operator.
+    pub fn as_assignment(self) -> Self {
+        Self { is_assignment: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an arrow operator.
+    pub fn as_arrow(self) -> Self {
+        Self { is_arrow: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the sequence operator.
+    pub fn as_sequence(self) -> Self {
+        Self { is_sequence: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
+    pub fn with_decimal_interpretation(self) -> Self {
+        Self { can_be_decimal_operator: true, ..self }
+    }
+
+    /// Return this operator's binary infix precedence, if it has one.
+    pub fn binary_infix_precedence(&self) -> Option<Precedence> {
+        self.binary_infix_precedence
+    }
+
+    /// Return this operator's unary prefix precedence, if it has one.
+    pub fn unary_prefix_precedence(&self) -> Option<Precedence> {
+        self.unary_prefix_precedence
+    }
+
+    /// Return whether this operator can form operator sections.
+    pub fn can_form_section(&self) -> bool {
+        !self.is_compile_time_operation
+    }
+
+    /// Return whether this operator is the type annotation operator.
+    pub fn is_type_annotation(&self) -> bool {
+        self.is_type_annotation
+    }
+
+    /// Return whether this operator is the assignment operator.
+    pub fn is_assignment(&self) -> bool {
+        self.is_assignment
+    }
+
+    /// Return whether this operator is the arrow operator.
+    pub fn is_arrow(&self) -> bool {
+        self.is_arrow
+    }
+
+    /// Return whether this operator is the sequence operator.
+    pub fn is_sequence(&self) -> bool {
+        self.is_sequence
+    }
+
+    /// Return this operator's associativity.
+    pub fn associativity(&self) -> Associativity {
+        match self.is_right_associative {
+            false => Associativity::Left,
+            true => Associativity::Right,
+        }
+    }
+
+    /// Return whether this operator can be interpreted as a decimal point.
+    pub fn can_be_decimal_operator(&self) -> bool {
+        self.can_be_decimal_operator
+    }
+}
 
 /// Value that can be compared to determine which operator will bind more tightly within an
 /// expression.
@@ -297,9 +452,37 @@ pub struct Precedence {
 
 impl Precedence {
     /// Return a precedence that is not higher than any other precedence.
-    pub fn minimum() -> Self {
+    pub fn min() -> Self {
         Precedence { value: 0 }
     }
+
+    /// Return a precedence that is not lower than any other precedence.
+    pub fn max() -> Self {
+        Precedence { value: 100 }
+    }
+}
+
+/// Associativity (left or right).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Associativity {
+    /// Left-associative.
+    Left,
+    /// Right-associative.
+    Right,
+}
+
+
+// === Numbers ===
+
+/// Alternate numeric bases (decimal is the default).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize)]
+pub enum Base {
+    /// Base 2.
+    Binary,
+    /// Base 8.
+    Octal,
+    /// Base 16.
+    Hexadecimal,
 }
 
 

@@ -119,24 +119,33 @@ impl<'g> ToSExpr<'g> {
     }
 
     fn struct_(&self, id: TypeId, data: &mut &[u8]) -> Value {
-        let mut hierarchy = vec![];
+        let mut out = vec![];
+        let hierarchy = self.graph.hierarchy(id);
         let mut child = None;
+        for id in hierarchy.iter().rev() {
+            let ty = &self.graph[id];
+            let mut fields = ty.data.as_struct().unwrap();
+            if let Some(i) = ty.child_field {
+                fields = &fields[..i];
+            }
+            out.extend(fields.iter().filter_map(|field| self.field(field, data)));
+        }
         let discriminants = &self.graph[id].discriminants;
         if !discriminants.is_empty() {
             let discriminant_index = read_u32(data);
-            let child_ = discriminants[&(discriminant_index as usize)];
-            hierarchy.push(child_);
-            child = Some(child_);
+            let id = discriminants[&(discriminant_index as usize)];
+            let fields = self.graph[id].data.as_struct().unwrap();
+            out.extend(fields.iter().filter_map(|field| self.field(field, data)));
+            child = Some(id);
         }
-        hierarchy.push(id);
-        let mut id_ = id;
-        while let Some(parent) = self.graph[id_].parent {
-            hierarchy.push(parent);
-            id_ = parent;
+        for id in hierarchy {
+            let ty = &self.graph[id];
+            if let Some(i) = ty.child_field {
+                let mut fields = ty.data.as_struct().unwrap();
+                fields = &fields[i..];
+                out.extend(fields.iter().filter_map(|field| self.field(field, data)));
+            }
         }
-        let mut out = vec![];
-        self.fields(&mut hierarchy, data, &mut out);
-        assert_eq!(hierarchy, &[]);
         let mut value = match self.skip.contains(&id) {
             true => Value::Null,
             false => Value::list(out),
@@ -158,33 +167,17 @@ impl<'g> ToSExpr<'g> {
         value
     }
 
-    fn fields(&self, hierarchy: &mut Vec<TypeId>, data: &mut &[u8], out: &mut Vec<Value>) {
-        let id = match hierarchy.pop() {
-            Some(id) => id,
-            None => return,
-        };
-        let fields = match &self.graph[id].data {
-            Data::Struct(fields) => fields,
-            Data::Primitive(_) => panic!(),
-        };
-        if self.graph[id].child_field == Some(0) || fields.is_empty() {
-            self.fields(hierarchy, data, out);
+    fn field(&self, field: &Field, data: &mut &[u8]) -> Option<Value> {
+        let value = self.value_(field.type_, data);
+        if self.skip.contains(&field.type_) {
+            return None;
         }
-        for (i, field) in fields.iter().enumerate() {
-            let skip = self.skip.contains(&field.type_);
-            if !field.name.is_empty() {
-                let car = Value::Symbol(format!(":{}", field.name).into_boxed_str());
-                let cdr = self.value_(field.type_, data);
-                if !skip {
-                    out.push(Value::cons(car, cdr));
-                }
-            } else if !skip {
-                out.push(self.value_(field.type_, data));
-            }
-            if self.graph[id].child_field == Some(i + 1) {
-                self.fields(hierarchy, data, out);
-            }
-        }
+        Some(if field.name.is_empty() {
+            value
+        } else {
+            let car = Value::Symbol(format!(":{}", field.name).into_boxed_str());
+            Value::cons(car, value)
+        })
     }
 
     fn primitive(&self, primitive: Primitive, data: &mut &[u8]) -> Value {

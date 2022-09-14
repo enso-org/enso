@@ -343,11 +343,28 @@ pub fn is_newline_char(t: char) -> bool {
     t == '\n' || t == '\r'
 }
 
-/// Check whether the provided character is a digit.
+/// Check whether the provided character is a decimal digit.
 #[inline(always)]
-#[allow(clippy::manual_range_contains)]
-fn is_digit(t: char) -> bool {
-    t >= '0' && t <= '9'
+fn is_decimal_digit(t: char) -> bool {
+    ('0'..='9').contains(&t)
+}
+
+/// Check whether the provided character is a binary digit.
+#[inline(always)]
+fn is_binary_digit(t: char) -> bool {
+    ('0'..='1').contains(&t)
+}
+
+/// Check whether the provided character is an octal digit.
+#[inline(always)]
+fn is_octal_digit(t: char) -> bool {
+    ('0'..='7').contains(&t)
+}
+
+/// Check whether the provided character is a hexadecimal digit.
+#[inline(always)]
+fn is_hexadecimal_digit(t: char) -> bool {
+    is_decimal_digit(t) || ('a'..='f').contains(&t) || ('A'..='F').contains(&t)
 }
 
 impl<'s> Lexer<'s> {
@@ -445,6 +462,7 @@ fn is_operator_body_char(t: char) -> bool {
 pub struct IdentInfo {
     starts_with_underscore: bool,
     lift_level:             usize,
+    starts_with_uppercase:  bool,
 }
 
 impl IdentInfo {
@@ -453,7 +471,9 @@ impl IdentInfo {
     pub fn new(repr: &str) -> Self {
         let starts_with_underscore = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        Self { starts_with_underscore, lift_level }
+        let starts_with_uppercase =
+            repr.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
+        Self { starts_with_underscore, lift_level, starts_with_uppercase }
     }
 }
 
@@ -475,7 +495,11 @@ impl token::Variant {
     #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
-        token::variant::Ident(info.starts_with_underscore, info.lift_level)
+        token::variant::Ident(
+            info.starts_with_underscore,
+            info.lift_level,
+            info.starts_with_uppercase,
+        )
     }
 
     /// Convert the provided string to ident or wildcard. The provided repr should contain valid
@@ -487,7 +511,8 @@ impl token::Variant {
             token::Variant::wildcard(info.lift_level)
         } else {
             let is_free = info.starts_with_underscore;
-            token::Variant::ident(is_free, info.lift_level)
+            let is_type = info.starts_with_uppercase;
+            token::Variant::ident(is_free, info.lift_level, is_type)
         }
     }
 }
@@ -541,25 +566,26 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
-                let (binary, unary) = compute_precedence(&left.code);
-                self.submit_token(
-                    left.with_variant(token::Variant::operator(binary, unary, false, true)),
-                );
-                let (_, unary) = compute_precedence(&right.code);
-                let rhs = token::Variant::operator(None, unary, false, true);
-                self.submit_token(right.with_variant(rhs));
-            } else {
-                let only_eq = token.code.chars().all(|t| t == '=');
-                let is_mod = token.code.ends_with('=') && !only_eq;
-                let tp = if is_mod {
-                    token::Variant::modifier()
-                } else {
-                    let (binary, unary) = compute_precedence(&token.code);
-                    token::Variant::operator(binary, unary, token.code == ":", token.code != ",")
-                };
-                let token = token.with_variant(tp);
-                self.submit_token(token);
+                let lhs = analyze_operator(&left.code);
+                self.submit_token(left.with_variant(token::Variant::operator(lhs)));
+                let rhs = analyze_operator(&right.code);
+                self.submit_token(right.with_variant(token::Variant::operator(rhs)));
+                return;
             }
+            if token.code == "..." {
+                let token = token.with_variant(token::Variant::auto_scope());
+                self.submit_token(token);
+                return;
+            }
+            let only_eq = token.code.chars().all(|t| t == '=');
+            let is_mod = token.code.ends_with('=') && !only_eq;
+            let tp = if is_mod {
+                token::Variant::modifier()
+            } else {
+                token::Variant::operator(analyze_operator(&token.code))
+            };
+            let token = token.with_variant(tp);
+            self.submit_token(token);
         }
     }
 }
@@ -567,36 +593,72 @@ impl<'s> Lexer<'s> {
 
 // === Precedence ===
 
-// FIXME: Compute precedences according to spec. Issue: #182497344
-fn compute_precedence(token: &str) -> (Option<token::Precedence>, Option<token::Precedence>) {
-    let binary = match token {
-        // Special handling for tokens that can be unary.
-        "~" => return (None, Some(token::Precedence { value: 100 })),
+fn analyze_operator(token: &str) -> token::OperatorProperties {
+    let mut operator = token::OperatorProperties::new();
+    if token.ends_with("->") && !token.starts_with("<-") {
+        operator = operator.as_right_associative();
+    }
+    match token {
+        // Operators that can be unary.
+        "\\" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min())
+                .as_compile_time_operation(),
+        "~" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::max())
+                .as_compile_time_operation(),
         "-" =>
-            return (Some(token::Precedence { value: 14 }), Some(token::Precedence { value: 100 })),
+            return operator
+                .with_unary_prefix_mode(token::Precedence::max())
+                .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
-        "=" => 1,
-        ":" => 2,
-        "->" => 3,
-        "|" | "\\\\" | "&" => 4,
-        ">>" | "<<" => 5,
-        "|>" | "|>>" | "<|" | "<<|" => 6,
-        // "The precedence of all other operators is determined by the operator's Precedence
-        // Character:"
-        "!" => 10,
-        "||" => 11,
-        "^" => 12,
-        "&&" => 13,
-        "+" | "++" => 14,
-        "*" | "/" | "%" => 15,
-        // FIXME: Not sure about these:
-        "==" => 1,
-        "," => 1,
-        "@" => 20,
-        "." => 21,
-        _ => return (None, None),
+        "=" => return operator.with_binary_infix_precedence(1).as_assignment(),
+        ":" =>
+            return operator
+                .with_binary_infix_precedence(2)
+                .as_compile_time_operation()
+                .as_type_annotation(),
+        "->" =>
+            return operator.with_binary_infix_precedence(3).as_compile_time_operation().as_arrow(),
+        "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
+        ">>" | "<<" => return operator.with_binary_infix_precedence(5),
+        "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
+        // Other special operators.
+        "==" => return operator.with_binary_infix_precedence(1),
+        "," =>
+            return operator
+                .with_binary_infix_precedence(1)
+                .as_compile_time_operation()
+                .as_sequence(),
+        "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
+        "." => return operator.with_binary_infix_precedence(21).with_decimal_interpretation(),
+        _ => (),
+    }
+    // "The precedence of all other operators is determined by the operator's Precedence Character:"
+    let mut precedence_char = None;
+    for c in token.chars() {
+        match (c, precedence_char) {
+            ('<' | '-', None) | ('-', Some('<')) => {
+                precedence_char = Some(c);
+            }
+            _ => {
+                precedence_char = Some(c);
+                break;
+            }
+        }
+    }
+    let binary = match precedence_char.unwrap() {
+        '!' => 10,
+        '|' => 11,
+        '^' => 12,
+        '&' => 13,
+        '<' | '>' => 14,
+        '+' | '-' => 15,
+        '*' | '/' | '%' => 16,
+        _ => return operator,
     };
-    (Some(token::Precedence { value: binary }), None)
+    operator.with_binary_infix_precedence(binary)
 }
 
 
@@ -623,13 +685,42 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse a number.
     fn number(&mut self) {
+        let mut base = None;
         let token = self.token(|this| {
-            if this.take_1(is_digit) {
-                this.take_while(|t| !is_ident_split_char(t));
+            while this.take_while_1(is_decimal_digit) {
+                if this.current_char == Some('_') {
+                    this.next_input_char();
+                    continue;
+                }
+                if this.current_offset == Bytes(1) {
+                    base = match this.current_char {
+                        Some('b') => Some(token::Base::Binary),
+                        Some('o') => Some(token::Base::Octal),
+                        Some('x') => Some(token::Base::Hexadecimal),
+                        _ => None,
+                    };
+                    if base.is_some() {
+                        this.next_input_char();
+                        return;
+                    }
+                }
             }
         });
         if let Some(token) = token {
-            self.submit_token(token.with_variant(token::Variant::number()));
+            if let Some(base) = base {
+                self.submit_token(token.with_variant(token::Variant::number_base()));
+                let token = match base {
+                    token::Base::Binary => self.token(|this| this.take_while(is_binary_digit)),
+                    token::Base::Octal => self.token(|this| this.take_while(is_octal_digit)),
+                    token::Base::Hexadecimal =>
+                        self.token(|this| this.take_while(is_hexadecimal_digit)),
+                };
+                if let Some(token) = token {
+                    self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
+                }
+            } else {
+                self.submit_token(token.with_variant(token::Variant::digits(None)));
+            }
         }
     }
 }
@@ -672,7 +763,7 @@ impl<'s> Lexer<'s> {
                 let next_line_start = self.mark();
                 let token = self.make_token(text_start, next_line_start,
                     token::Variant::TextSection(token::variant::TextSection()));
-                if !token.code.len().is_zero() {
+                if !token.code.is_empty() {
                     self.output.push(token);
                 }
                 self.text_lines(indent);
@@ -715,7 +806,7 @@ impl<'s> Lexer<'s> {
             let close_quote_start = self.mark();
             let token = self.make_token(text_start, close_quote_start.clone(),
                 token::Variant::TextSection(token::variant::TextSection()));
-            if !token.code.len().is_zero() {
+            if !token.code.is_empty() {
                 self.output.push(token);
             }
             if let Some(char) = self.current_char && char == quote_char {
@@ -983,7 +1074,8 @@ pub mod test {
     pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
-        token::ident_(left_offset, code, is_free, lift_level)
+        let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase)
     }
 
     /// Constructor.
@@ -994,8 +1086,7 @@ pub mod test {
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        let (binary, unary) = compute_precedence(code);
-        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":", code != ","))
+        Token(left_offset, code, token::Variant::operator(analyze_operator(code)))
     }
 }
 
@@ -1103,7 +1194,7 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![number_("", "10")]);
+        test_lexer("10", vec![digits_("", "10", None)]);
     }
 
     #[test]
@@ -1143,8 +1234,8 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let (_, unary) = compute_precedence("-");
-        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false, true));
+        let properties = analyze_operator("-");
+        let unary_minus = Token("", "-", token::Variant::operator(properties));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 

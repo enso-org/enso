@@ -104,7 +104,6 @@
 use crate::prelude::*;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -235,23 +234,32 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }
         _ => return tree,
     };
-    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.code == "=" {
+    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
         let mut args = vec![];
-        let mut lhs = lhs;
-        while let Tree { variant: box Variant::App(App { func, arg }), .. } = lhs {
-            lhs = func;
+        let mut lhs_ = lhs.clone();
+        while let Tree { variant: box Variant::App(App { func, arg }), .. } = lhs_ {
+            lhs_ = func.clone();
             args.push(arg.clone());
         }
         args.reverse();
-        if args.is_empty() && let Some(rhs) = rhs && !is_body_block(rhs) {
-            // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
-            // this is a variable assignment.
-            let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
-            left_offset += result.span.left_offset;
-            result.span.left_offset = left_offset;
-            return result;
+        if let Some(rhs) = rhs {
+            if let Variant::Ident(ident) = &*lhs_.variant && ident.token.variant.is_type {
+                // If the LHS is a type, this is a (destructuring) assignment.
+                let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
+                left_offset += result.span.left_offset;
+                result.span.left_offset = left_offset;
+                return result;
+            }
+            if args.is_empty() && !is_body_block(rhs) {
+                // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
+                // this is a variable assignment.
+                let mut result = Tree::assignment(lhs_, mem::take(opr), mem::take(rhs));
+                left_offset += result.span.left_offset;
+                result.span.left_offset = left_offset;
+                return result;
+            }
         }
-        if let Variant::Ident(Ident { token }) = &mut *lhs.variant {
+        if let Variant::Ident(Ident { token }) = &mut *lhs_.variant {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
             // an identifier, this is a function definition.
             let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));

@@ -38,15 +38,16 @@ public final class Parser implements AutoCloseable {
         var state = allocState();
         return new Parser(state);
     }
-    public Tree parse(String input) throws UnsupportedSyntaxException {
-        byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+
+    public Tree parse(CharSequence input) throws UnsupportedSyntaxException {
+        byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
         ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
         inputBuf.put(inputBytes);
         var serializedTree = parseInput(state, inputBuf);
         var base = getLastInputBase(state);
         var metadata = getMetadata(state);
         serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-        var message = new Message(serializedTree, inputBuf, base, metadata);
+        var message = new Message(serializedTree, input, base, metadata);
         var result = Tree.deserialize(message);
         if (message.getEncounteredUnsupportedSyntax()) {
             throw new UnsupportedSyntaxException(result);

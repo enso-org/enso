@@ -20,6 +20,10 @@ pub fn all() -> resolver::SegmentMap<'static> {
     register_export_macros(&mut macro_map);
     macro_map.register(group());
     macro_map.register(type_def());
+    macro_map.register(lambda());
+    macro_map.register(case());
+    macro_map.register(array());
+    macro_map.register(tuple());
     macro_map
 }
 
@@ -191,7 +195,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     match name {
         Some(name) => syntax::Tree::type_def(segment.header, name, params, constructors, body),
         None => {
-            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0));
+            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false));
             let result = syntax::Tree::type_def(segment.header, name, params, constructors, body);
             result.with_error("Expected identifier after `type` keyword.")
         }
@@ -283,4 +287,122 @@ impl<'s> TypeDefBodyBuilder<'s> {
         }
         Err(expression)
     }
+}
+
+/// Lambda expression.
+///
+/// The lambda operator `\` is similar to a unary operator, but is implemented as a macro because it
+/// doesn't follow the whitespace precedence rules.
+pub fn lambda<'s>() -> Definition<'s> {
+    crate::macro_definition! {("\\", everything()) lambda_body}
+}
+
+fn lambda_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    let (segment, _) = segments.pop();
+    let operator = segment.header;
+    let syntax::token::Token { left_offset, code, .. } = operator;
+    let properties = syntax::token::OperatorProperties::default();
+    let operator = syntax::token::operator(left_offset, code, properties);
+    let arrow = segment.result.tokens();
+    let arrow = resolve_operator_precedence_if_non_empty(arrow);
+    syntax::Tree::lambda(operator, arrow)
+}
+
+/// Case expression.
+pub fn case<'s>() -> Definition<'s> {
+    crate::macro_definition! {("case", everything(), "of", everything()) case_body}
+}
+
+fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    use syntax::token;
+    use syntax::tree::*;
+    let into_ident = |token| {
+        let token::Token { left_offset, code, .. } = token;
+        token::ident(left_offset, code, false, 0, false)
+    };
+    let (of, mut rest) = segments.pop();
+    let case = rest.pop().unwrap();
+    let case_ = into_ident(case.header);
+    let expression = case.result.tokens();
+    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let of_ = into_ident(of.header);
+    let body = of.result.tokens();
+    let body = resolve_operator_precedence_if_non_empty(body);
+    let mut initial = None;
+    let mut lines = vec![];
+    if let Some(body) = body {
+        match body.variant {
+            box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, arguments }) => {
+                initial = lhs;
+                lines = arguments;
+                let mut left_offset = body.span.left_offset;
+                if let Some(initial) = initial.as_mut() {
+                    left_offset += mem::take(&mut initial.span.left_offset);
+                    initial.span.left_offset = left_offset;
+                } else if let Some(first) = lines.first_mut() {
+                    left_offset += mem::take(&mut first.newline.left_offset);
+                    first.newline.left_offset = left_offset;
+                }
+            }
+            _ => initial = Some(body),
+        }
+    }
+    Tree::case(case_, expression, of_, initial, lines)
+}
+
+/// Array literal.
+pub fn array<'s>() -> Definition<'s> {
+    crate::macro_definition! {("[", everything(), "]", nothing()) array_body}
+}
+
+fn array_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+    syntax::tree::Tree::array(left, first, rest, right)
+}
+
+/// Tuple literal.
+pub fn tuple<'s>() -> Definition<'s> {
+    crate::macro_definition! {("{", everything(), "}", nothing()) tuple_body}
+}
+
+fn tuple_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+    syntax::tree::Tree::tuple(left, first, rest, right)
+}
+
+struct GroupedSequence<'s> {
+    left:  syntax::token::Symbol<'s>,
+    first: Option<syntax::Tree<'s>>,
+    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    right: syntax::token::Symbol<'s>,
+}
+
+fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
+    use operator::resolve_operator_precedence_if_non_empty;
+    use syntax::token;
+    use syntax::tree::*;
+    let into_symbol = |token| {
+        let token::Token { left_offset, code, .. } = token;
+        token::symbol(left_offset, code)
+    };
+    let (right, mut rest) = segments.pop();
+    let right_ = into_symbol(right.header);
+    let left = rest.pop().unwrap();
+    let left_ = into_symbol(left.header);
+    let expression = left.result.tokens();
+    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let mut rest = vec![];
+    let mut lhs_ = &expression;
+    while let Some(Tree {
+                       variant: box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs: Some(rhs) }), ..
+                   }) = lhs_ && opr.properties.is_sequence() {
+        lhs_ = lhs;
+        let operator = opr.clone();
+        let body = rhs.clone();
+        rest.push(OperatorDelimitedTree { operator, body });
+    }
+    let first = lhs_.clone();
+    GroupedSequence { left: left_, first, rest, right: right_ }
 }

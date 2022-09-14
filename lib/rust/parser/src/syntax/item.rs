@@ -46,7 +46,10 @@ impl<'s> Item<'s> {
         match self {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
-                token::Variant::Number(number) => Tree::number(token.with_variant(number)),
+                token::Variant::Digits(number) =>
+                    Tree::number(None, Some(token.with_variant(number)), None),
+                token::Variant::NumberBase(base) =>
+                    Tree::number(Some(token.with_variant(base)), None, None),
                 token::Variant::TextStart(open) => Tree::text_literal(
                     Some(token.with_variant(open)),
                     default(),
@@ -70,9 +73,12 @@ impl<'s> Item<'s> {
                     Some(token.with_variant(close)),
                     default(),
                 ),
+                token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
+                token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
                 _ => {
                     let message = format!("to_ast: Item::Token({token:?})");
-                    let value = Tree::ident(token.with_variant(token::variant::Ident(false, 0)));
+                    let value =
+                        Tree::ident(token.with_variant(token::variant::Ident(false, 0, false)));
                     Tree::with_unsupported(value, message)
                 }
             },
