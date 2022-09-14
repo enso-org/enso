@@ -25,7 +25,6 @@ use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
