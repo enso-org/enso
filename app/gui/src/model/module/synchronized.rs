@@ -251,6 +251,14 @@ impl API for Module {
         self.model.with_import_metadata(id, fun)
     }
 
+    fn all_import_metadata(&self) -> Vec<ImportMetadata> {
+        self.model.all_import_metadata()
+    }
+
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+        self.model.remove_import_metadata(id)
+    }
+
     fn boxed_with_project_metadata(&self, fun: Box<dyn FnOnce(&ProjectMetadata) + '_>) {
         self.model.boxed_with_project_metadata(fun)
     }

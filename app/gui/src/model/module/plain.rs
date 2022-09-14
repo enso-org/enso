@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
+use crate::model::module::ImportMetadataNotFound;
 use crate::model::module::Metadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
@@ -224,6 +225,19 @@ impl model::module::API for Module {
             content.metadata.ide.import.insert(id, data);
         })
     }
+
+    fn all_import_metadata(&self) -> Vec<ImportMetadata> {
+        let content = self.content.borrow();
+        content.metadata.ide.import.values().cloned().collect()
+    }
+
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+        self.try_updating_content(NotificationKind::MetadataChanged, |content| {
+            let lookup = content.metadata.ide.import.remove(&id);
+            lookup.ok_or_else(|| ImportMetadataNotFound(id).into())
+        })
+    }
+
 
     fn boxed_with_project_metadata(&self, fun: Box<dyn FnOnce(&ProjectMetadata) + '_>) {
         let content = self.content.borrow();

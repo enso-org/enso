@@ -523,6 +523,11 @@ impl Searcher {
         Self::new_from_graph_controller(parent, ide, project, graph, mode)
     }
 
+    /// Abort editing and perform cleanup.
+    pub fn abort_editing(&self) {
+        self.clear_temporary_imports();
+    }
+
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
@@ -727,6 +732,7 @@ impl Searcher {
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
         tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        self.clear_temporary_imports();
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
@@ -734,7 +740,10 @@ impl Searcher {
         tracing::debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        self.add_required_imports(false)?;
+        let current_fragments = &self.data.borrow().fragments_added_by_picking;
+        let fragments_added_by_picking =
+            current_fragments.iter().chain(iter::once(&picked_completion));
+        self.add_required_imports(fragments_added_by_picking, false)?;
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let expression = self.get_expression(Some(new_expression_chain));
         let intended_method = self.intended_method();
@@ -846,10 +855,12 @@ impl Searcher {
         if let Some(guard) = self.node_edit_guard.deref().as_ref() {
             guard.prevent_revert()
         }
-
+        self.clear_temporary_imports();
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
-        self.add_required_imports(true)?;
+        let data_borrowed = self.data.borrow();
+        let fragments = data_borrowed.fragments_added_by_picking.iter();
+        self.add_required_imports(fragments, true)?;
 
         let node_id = self.mode.node_id();
         let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
@@ -936,9 +947,13 @@ impl Searcher {
     }
 
     #[profile(Debug)]
-    fn add_required_imports(&self, permanent: bool) -> FallibleResult {
-        let data_borrowed = self.data.borrow();
-        let fragments = data_borrowed.fragments_added_by_picking.iter();
+    fn add_required_imports<'a>(
+        &self,
+        fragments: impl Iterator<Item = &'a FragmentAddedByPickingSuggestion>,
+        permanent: bool,
+    ) -> FallibleResult {
+        // let data_borrowed = self.data.borrow();
+        // let fragments = data_borrowed.fragments_added_by_picking.iter();
         let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
         let mut module = self.module();
         let here = self.module_qualified_name();
@@ -947,19 +962,52 @@ impl Searcher {
         let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
         for mut import in without_enso_project {
             import.remove_main_module_segment();
-            module.add_module_import(&here, self.ide.parser(), &import);
-
             let import_info = ImportInfo::from_qualified_name(&import);
-            tracing::warn!("Adding import: {import_info:?}");
+
+            let already_exists = module.iter_imports().contains(&import_info);
+            if already_exists {
+                continue;
+            }
+
+            module.add_module_import(&here, self.ide.parser(), &import);
             self.graph.graph().module.with_import_metadata(
                 import_info.id(),
                 Box::new(|import_metadata| {
                     import_metadata.is_temporary = !permanent;
+                    import_metadata.info = Some(import_info);
                 }),
             )?;
         }
         self.graph.graph().module.update_ast(module.ast)
     }
+
+    fn clear_temporary_imports(&self) {
+        let mut to_remove: Vec<_> = default();
+        let mut module = self.module();
+
+        for import_metadata in self.graph.graph().module.all_import_metadata() {
+            if import_metadata.is_temporary {
+                if let Some(import_info) = &import_metadata.info {
+                    if let Err(e) = module.remove_import(import_info) {
+                        tracing::warn!("Failed to remove import because of: {e:?}");
+                    }
+                    to_remove.push(import_info.id());
+                }
+            }
+        }
+        if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
+            tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
+        }
+
+        to_remove.iter().for_each(|id| {
+            if let Err(e) = self.graph.graph().module.remove_import_metadata(*id) {
+                tracing::warn!(
+                    "Failed to remove import metadata for import id {id} because of: {e:?}"
+                );
+            }
+        });
+    }
+
 
     /// Reload Action List.
     ///
