@@ -9,6 +9,8 @@ import project.Data.Sort_Column_Selector
 import project.Data.Column_Name_Mapping
 import project.Data.Data_Formatter
 import project.Data.Match_Columns
+import project.Data.Aggregate_Column
+
 import project.File_Read
 
 import project.Delimited.Quote_Style
@@ -27,6 +29,7 @@ export project.Data.Sort_Column
 export project.Data.Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
+export project.Data.Aggregate_Column
 
 export project.File_Read
 from project.File_Read export Auto_Detect
