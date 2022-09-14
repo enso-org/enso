@@ -557,8 +557,6 @@ impl Area {
             //     m.redraw(true);
             // });
 
-            // // FIXME: The color-setting operation is very slow now. For every new color, the whole
-            // //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
             // m.buffer.frp.set_color <+ input.set_color;
             // eval input.set_color ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_color(t.1)));
             self.frp.source.selection_color <+ self.frp.set_selection_color;
@@ -1091,6 +1089,38 @@ impl AreaModel {
                 let formatting = self.buffer.sub_style(range);
                 let spans = formatting.color.spans.to_vector();
                 warn!(">>> {:#?}", spans);
+                for span in spans.into_iter().filter(|t| t.value.is_none()) {
+                    let range =
+                        buffer::Range::<Location<Column>>::from_in_context(self, span.range);
+
+                    let mut lines = self.lines.borrow_mut();
+
+                    if range.start.line == range.end.line {
+                        let line = &mut lines[range.start.line.value as usize];
+                        for glyph in
+                            &mut line.glyphs[range.start.offset.value..range.end.offset.value]
+                        {
+                            glyph.set_property(property);
+                        }
+                    } else {
+                        let first_line = &mut lines[range.start.line.value as usize];
+                        for glyph in &mut first_line.glyphs[range.start.offset.value..] {
+                            glyph.set_property(property);
+                        }
+                        let last_line = &mut lines[range.end.line.value as usize];
+                        for glyph in &mut last_line.glyphs[..range.end.offset.value] {
+                            glyph.set_property(property);
+                        }
+                        for line_index in range.start.line.value + 1..range.end.line.value {
+                            let line = &mut lines[line_index as usize];
+                            for glyph in &mut line.glyphs[..range.end.offset.value] {
+                                glyph.set_property(property);
+                            }
+                        }
+                    }
+                    // for line in range.start.line..=range.end.line {}
+                    warn!(">> range: {:?}", range);
+                }
                 // fixme: this should iterate over glyphs, but first we should change the metric
                 // from codepoints to bytes because codepoints do not give us anything and only
                 // introduce confusion. We should also introduce column type but as it depends on
@@ -1412,6 +1442,14 @@ impl AreaModel {
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
         SmallVec::from_buf([text_symbol /* selection_symbol */])
+    }
+}
+
+impl<S, T> FromInContext<&AreaModel, S> for T
+where T: for<'t> FromInContext<&'t buffer::View, S>
+{
+    fn from_in_context(context: &AreaModel, arg: S) -> Self {
+        T::from_in_context(&context.buffer, arg)
     }
 }
 

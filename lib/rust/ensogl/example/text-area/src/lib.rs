@@ -57,9 +57,9 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content("aஓbcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
-                                       // area.set_content("abcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
-                                       // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_content("abcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
+    // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
 
@@ -99,7 +99,7 @@ fn init(app: Application) {
     warn!("=========================");
     let range_green: buffer::Range<Location<Column>> =
         buffer::Range::from(Location(Line(0), Column(1))..Location(Line(0), Column(71)));
-    area.set_property(range_green, color::Rgba::red());
+    area.set_property(range_green, color::Rgba::green());
     // area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
 
     // area.set_color(range_green, color::Rgba::red());
@@ -120,7 +120,9 @@ fn init(app: Application) {
     // colored_area.set_color(range_green, color::Rgba::green());
     // let range_blue = buffer::Range::from(UBytes(10)..UBytes(14));
     // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
-    // colored_area.set_default_color(color::Rgba::red());
+    warn!("=========================\n\n\n\n");
+
+    area.set_property_default(color::Rgba::red());
 
     init_debug_hotkeys(&area);
 

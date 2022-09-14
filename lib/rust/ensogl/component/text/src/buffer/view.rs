@@ -1229,6 +1229,15 @@ impl FromInContext<&ViewBuffer, UBytes> for Location<Column> {
     }
 }
 
+impl<S, T> FromInContext<&ViewBuffer, buffer::Range<S>> for buffer::Range<T>
+where T: for<'t> FromInContext<&'t ViewBuffer, S>
+{
+    fn from_in_context(context: &ViewBuffer, range: buffer::Range<S>) -> Self {
+        let start = range.start.into_in_context(context);
+        let end = range.end.into_in_context(context);
+        buffer::Range::new(start, end)
+    }
+}
 
 // // warn!("offset_to_location: {:?}", offset);
 // let line = self.line_index_of_byte_offset_snapped(offset);
