@@ -919,22 +919,22 @@ impl ViewModel {
         self.formatting.borrow().resolve_property(property)
     }
 
-    pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
-        match range {
-            TextRange::Selections => self
-                .byte_selections()
-                .into_iter()
-                .map(|t| {
-                    let start = std::cmp::min(t.start, t.end);
-                    let end = std::cmp::max(t.start, t.end);
-                    buffer::Range::new(start, end)
-                })
-                .collect(),
-            TextRange::BufferRange(range) => vec![range.clone()],
-            TextRange::RangeBytes(range) => vec![range.into()],
-            TextRange::RangeFull(_) => vec![self.full_range()],
-        }
-    }
+    // pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
+    //     match range {
+    //         TextRange::Selections => self
+    //             .byte_selections()
+    //             .into_iter()
+    //             .map(|t| {
+    //                 let start = std::cmp::min(t.start, t.end);
+    //                 let end = std::cmp::max(t.start, t.end);
+    //                 buffer::Range::new(start, end)
+    //             })
+    //             .collect(),
+    //         TextRange::BufferRangeUBytes(range) => vec![range.clone()],
+    //         TextRange::RangeBytes(range) => vec![range.into()],
+    //         TextRange::RangeFull(_) => vec![self.full_range()],
+    //     }
+    // }
 
     /// Set the selection to a new value.
     pub fn set_selection(&self, selection: &selection::Group) {

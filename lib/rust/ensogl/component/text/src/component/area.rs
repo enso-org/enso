@@ -691,9 +691,14 @@ impl AreaModel {
                     buffer::Range::new(start, end)
                 })
                 .collect(),
-            TextRange::BufferRange(range) => vec![range.clone()],
+            TextRange::BufferRangeUBytes(range) => vec![range.clone()],
             TextRange::RangeBytes(range) => vec![range.into()],
             TextRange::RangeFull(_) => vec![self.buffer.full_range()],
+            TextRange::BufferRangeLocationColumn(range) => {
+                let start = UBytes::from_in_context(&self.buffer, range.start);
+                let end = UBytes::from_in_context(&self.buffer, range.end);
+                vec![buffer::Range::new(start, end)]
+            }
         }
     }
 
@@ -747,13 +752,6 @@ impl AreaModel {
                             ..=self
                                 .buffer
                                 .line_to_view_line(*change_with_selection.change_range.end());
-
-                        // // Compute shape. If it was a backspace at line start, we need to redraw
-                        // // the previous line as well.
-                        // let mut shape = view_selection.shape.normalized();
-                        // if change_with_selection.is_backspace_at_line_start() {
-                        //     shape.start.line = shape.start.line - ViewLine(1);
-                        // }
 
 
                         // Count newlines in the inserted text and the line difference after the

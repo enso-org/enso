@@ -9,7 +9,8 @@ use crate::prelude::*;
 pub enum TextRange {
     #[default]
     Selections,
-    BufferRange(Range<UBytes>),
+    BufferRangeUBytes(Range<UBytes>),
+    BufferRangeLocationColumn(Range<Location<Column>>),
     RangeBytes(std::ops::Range<UBytes>),
     RangeFull(std::ops::RangeFull),
 }

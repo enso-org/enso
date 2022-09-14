@@ -24,6 +24,8 @@ use ensogl_core::prelude::*;
 use ensogl_text::traits::*;
 use wasm_bindgen::prelude::*;
 
+use crate::buffer::Line;
+use crate::buffer::Location;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -31,9 +33,9 @@ use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::style;
 use ensogl_text::Area;
+use ensogl_text::Column;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
-
 
 /// Main example runner.
 #[entry_point]
@@ -76,8 +78,8 @@ fn init(app: Application) {
     // area.set_cursor_at_end();
     //
     // area.set_format_option(
-    //     Range::new(5.ubytes(), 7.ubytes()),
-    //     style::FormatOption::Weight(style::Weight::Bold),
+    //     Range::new(Column(0), Column(3)),
+    //     style::Property::Weight(style::Weight::Bold),
     // );
     // area.set_format_option(Range::new(4.ubytes(), 6.ubytes()), style::SdfWeight(0.02));
     // area.set_sdf_weight(Range::new(7.ubytes(), 15.ubytes()), style::SdfWeight(0.04));
@@ -95,8 +97,9 @@ fn init(app: Application) {
 
 
     warn!("=========================");
-    // let range_green = buffer::Range::from(UBytes(1)..UBytes(7));
-    // area.set_property(range_green, color::Rgba::red());
+    let range_green: buffer::Range<Location<Column>> =
+        buffer::Range::from(Location(Line(0), Column(1))..Location(Line(0), Column(71)));
+    area.set_property(range_green, color::Rgba::red());
     // area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
 
     // area.set_color(range_green, color::Rgba::red());
