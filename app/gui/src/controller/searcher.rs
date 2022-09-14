@@ -725,7 +725,7 @@ impl Searcher {
         tracing::debug!("Code to insert: \"{}\"", code_to_insert);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        let new_expression = match self.data.borrow_mut().input.expression.clone() {
+        let new_expression_chain = match self.data.borrow_mut().input.expression.clone() {
             None => {
                 let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
                 Some(ast::Shifted::new(pattern_offset, ast))
@@ -742,7 +742,7 @@ impl Searcher {
                 Some(expression)
             }
         };
-        let expression = self.get_expression(new_expression);
+        let expression = self.get_expression(new_expression_chain);
         let intended_method = self.intended_method();
 
         self.graph.graph().module.with_node_metadata(
@@ -854,14 +854,14 @@ impl Searcher {
             guard.prevent_revert()
         }
 
-        let node_id = self.mode.node_id();
-        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
         self.add_required_imports()?;
+
+        let node_id = self.mode.node_id();
+        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
         let expression = self.get_expression(input_chain);
         let intended_method = self.intended_method();
-
         self.graph.graph().set_expression(node_id, expression)?;
         if let Mode::NewNode { .. } = self.mode.as_ref() {
             self.graph.graph().introduce_name_on(node_id)?;
