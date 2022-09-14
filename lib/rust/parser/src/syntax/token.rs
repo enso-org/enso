@@ -262,6 +262,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub is_free:    bool,
             pub lift_level: usize,
             pub is_type:    bool,
+            pub is_default: bool,
         },
         Operator {
             pub properties: OperatorProperties,

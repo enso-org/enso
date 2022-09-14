@@ -195,7 +195,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     match name {
         Some(name) => syntax::Tree::type_def(segment.header, name, params, constructors, body),
         None => {
-            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false));
+            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false));
             let result = syntax::Tree::type_def(segment.header, name, params, constructors, body);
             result.with_error("Expected identifier after `type` keyword.")
         }
@@ -320,7 +320,7 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use syntax::tree::*;
     let into_ident = |token| {
         let token::Token { left_offset, code, .. } = token;
-        token::ident(left_offset, code, false, 0, false)
+        token::ident(left_offset, code, false, 0, false, false)
     };
     let (of, mut rest) = segments.pop();
     let case = rest.pop().unwrap();

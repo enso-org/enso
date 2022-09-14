@@ -77,8 +77,9 @@ impl<'s> Item<'s> {
                 token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
                 _ => {
                     let message = format!("to_ast: Item::Token({token:?})");
-                    let value =
-                        Tree::ident(token.with_variant(token::variant::Ident(false, 0, false)));
+                    let value = Tree::ident(
+                        token.with_variant(token::variant::Ident(false, 0, false, false)),
+                    );
                     Tree::with_unsupported(value, message)
                 }
             },

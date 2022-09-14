@@ -463,6 +463,7 @@ pub struct IdentInfo {
     starts_with_underscore: bool,
     lift_level:             usize,
     starts_with_uppercase:  bool,
+    is_default:             bool,
 }
 
 impl IdentInfo {
@@ -473,7 +474,8 @@ impl IdentInfo {
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         let starts_with_uppercase =
             repr.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        Self { starts_with_underscore, lift_level, starts_with_uppercase }
+        let is_default = repr == "default";
+        Self { starts_with_underscore, lift_level, starts_with_uppercase, is_default }
     }
 }
 
@@ -499,6 +501,7 @@ impl token::Variant {
             info.starts_with_underscore,
             info.lift_level,
             info.starts_with_uppercase,
+            info.is_default,
         )
     }
 
@@ -512,7 +515,7 @@ impl token::Variant {
         } else {
             let is_free = info.starts_with_underscore;
             let is_type = info.starts_with_uppercase;
-            token::Variant::ident(is_free, info.lift_level, is_type)
+            token::Variant::ident(is_free, info.lift_level, is_type, info.is_default)
         }
     }
 }
@@ -1075,7 +1078,7 @@ pub mod test {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase)
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, false)
     }
 
     /// Constructor.

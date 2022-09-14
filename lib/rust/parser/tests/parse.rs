@@ -119,7 +119,7 @@ fn type_methods() {
         let expected = block![
         (TypeDef (Ident type) (Ident Geo) #() #()
          #((Function number #() "=" (BodyBlock #((Ident x))))
-           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
+           (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -146,7 +146,7 @@ fn type_def_full() {
            ((Point #() #()))
            (()))
          #((Function number #() "=" (BodyBlock #((Ident x))))
-           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
+           (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -181,9 +181,17 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test("foo a = x", block![(Function foo #((Ident a)) "=" (Ident x))]);
-    test("foo a b = x", block![(Function foo #((Ident a) (Ident b)) "=" (Ident x))]);
-    test("foo a b c = x", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Ident x))]);
+    test("foo a = x", block![(Function foo #((() (Ident a) () ())) "=" (Ident x))]);
+    #[rustfmt::skip]
+    test("foo a b = x",
+         block![(Function foo #((() (Ident a) () ()) (() (Ident b) () ())) "=" (Ident x))]);
+    #[rustfmt::skip]
+    test(
+        "foo a b c = x", block![
+            (Function foo
+             #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
+             "=" (Ident x))],
+    );
 }
 
 #[test]
@@ -193,9 +201,57 @@ fn function_block_noargs() {
 
 #[test]
 fn function_block_simple_args() {
-    test("foo a =", block![(Function foo #((Ident a)) "=" ())]);
-    test("foo a b =", block![(Function foo #((Ident a) (Ident b)) "=" ())]);
-    test("foo a b c =", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
+    test("foo a =", block![(Function foo #((() (Ident a) () ())) "=" ())]);
+    test("foo a b =", block![(Function foo #((() (Ident a) () ()) (() (Ident b) () ())) "=" ())]);
+    #[rustfmt::skip]
+    test(
+        "foo a b c =", block![
+            (Function foo
+             #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
+             "=" ())],
+    );
+}
+
+
+// === Named arguments ===
+
+#[test]
+fn named_arguments() {
+    let cases = [
+        ("f x=y", block![(NamedApp (Ident f) () x "=" (Ident y) ())]),
+        ("f (x = y)", block![(NamedApp (Ident f) "(" x "=" (Ident y) ")")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Default arguments ===
+
+#[test]
+fn default_app() {
+    let cases = [("f default", block![(DefaultApp (Ident f) default)])];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn default_arguments() {
+    #[rustfmt::skip]
+    let cases = [
+        ("f x=1 = x",
+            block![(Function f #((() (Ident x) ("=" (Number () "1" ())) ())) "=" (Ident x))]),
+        ("f (x = 1) = x",
+            block![(Function f #(("(" (Ident x) ("=" (Number () "1" ())) ")")) "=" (Ident x))]),
+        // Pattern in LHS:
+        ("f ~x=1 = x", block![
+            (Function f
+             #((() (UnaryOprApp "~" (Ident x)) ("=" (Number () "1" ())) ()))
+             "=" (Ident x))]),
+        ("f (~x = 1) = x", block![
+            (Function f
+             #(("(" (UnaryOprApp "~" (Ident x)) ("=" (Number () "1" ())) ")"))
+             "=" (Ident x))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 
@@ -361,7 +417,7 @@ fn pipeline_operators() {
 fn unevaluated_argument() {
     let code = ["main ~foo = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Ident x))
+        (Function main #((() (UnaryOprApp "~" (Ident foo)) () ())) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
@@ -370,7 +426,7 @@ fn unevaluated_argument() {
 fn unary_operator_missing_operand() {
     let code = ["main ~ = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" ())) "=" (Ident x))
+        (Function main #((() (UnaryOprApp "~" ()) () ())) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }

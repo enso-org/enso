@@ -145,6 +145,20 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub func: Tree<'s>,
             pub arg: Tree<'s>,
         },
+        /// An application using an argument name, like `summarize_transaction (price = 100)`.
+        NamedApp {
+            pub func:   Tree<'s>,
+            pub open:   Option<token::Symbol<'s>>,
+            pub name:   token::Ident<'s>,
+            pub equals: token::Operator<'s>,
+            pub arg:    Tree<'s>,
+            pub close:  Option<token::Symbol<'s>>,
+        },
+        /// Application using the `default` keyword.
+        DefaultApp {
+            pub func:    Tree<'s>,
+            pub default: token::Ident<'s>,
+        },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
         /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
         /// [`OprSectionBoundary`] variant to learn more about operator section scope.
@@ -203,7 +217,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The identifier to which the function should be bound.
             pub name: token::Ident<'s>,
             /// The argument patterns.
-            pub args: Vec<Tree<'s>>,
+            pub args: Vec<ArgumentDefinition<'s>>,
             /// The `=` token.
             pub equals: token::Operator<'s>,
             /// The body, which will typically be an inline expression or a `BodyBlock` expression.
@@ -459,6 +473,43 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 }
 
 
+// === Functions ===
+
+/// A function argument definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentDefinition<'s> {
+    /// Closing parenthesis (only present when a default is provided).
+    pub open:    Option<token::Symbol<'s>>,
+    /// The pattern being bound to an argument.
+    pub pattern: Tree<'s>,
+    /// An optional default value for an argument.
+    pub default: Option<ArgumentDefault<'s>>,
+    /// Closing parenthesis (only present when a default is provided).
+    pub close:   Option<token::Symbol<'s>>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.pattern).add(&mut self.default)
+    }
+}
+
+/// A default value specification in a function argument definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentDefault<'s> {
+    /// The `=` token.
+    pub equals:     token::Operator<'s>,
+    /// The default value.
+    pub expression: Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentDefault<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.equals).add(&mut self.expression)
+    }
+}
+
+
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
@@ -586,7 +637,27 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             block.lhs = Some(func);
             arg
         }
-        _ => Tree::app(func, arg),
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+                if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            let mut lhs = lhs.token.clone();
+            lhs.left_offset += arg.span.left_offset.clone();
+            Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
+        }
+        Variant::Group(Group { open, body: Some(body), close }) if let box
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &body.variant
+                && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            let mut open = open.clone();
+            open.left_offset += arg.span.left_offset.clone();
+            let open = Some(open);
+            let close = Some(close.clone());
+            Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
+        }
+        Variant::Ident(Ident { token }) if token.is_default => {
+            let mut token = token.clone();
+            token.left_offset += arg.span.left_offset.clone();
+            Tree::default_app(func, token)
+        }
+        _ => Tree::app(func, arg)
     }
 }
 
