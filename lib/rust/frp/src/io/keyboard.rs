@@ -41,7 +41,11 @@ impl Side {
 // ===========
 
 macro_rules! define_keys {
-    (Side { $($side:ident),* $(,)? } Regular { $($regular:ident),* $(,)? }) => {
+    (
+        Side { $($side:ident),* $(,)? }
+        Arrow { $($arrow:ident),* $(,)? }
+        Regular { $($regular:ident),* $(,)? }
+    ) => {
         /// A key representation.
         ///
         /// For reference, see the following links:
@@ -51,10 +55,20 @@ macro_rules! define_keys {
         pub enum Key {
             $($side(Side),)*
             $($regular,)*
+            Arrow (ArrowDirection),
             Character (String),
-            Other     (String),
+            Other (String),
         }
 
+
+        // === ArrowDirection ===
+
+        /// The directions of the arrow keys on a keyboard.
+        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+        #[allow(missing_docs)]
+        pub enum ArrowDirection {
+            $($arrow,)*
+        }
 
         // === KEY_NAME_MAP ===
 
@@ -68,6 +82,10 @@ macro_rules! define_keys {
                 let mut m = HashMap::new();
                 $(m.insert(stringify!($side), $side(Left));)*
                 $(m.insert(stringify!($regular), $regular);)*
+                $(
+                    let key_name = concat!("Arrow", stringify!($arrow));
+                    m.insert(key_name, Arrow(ArrowDirection::$arrow));
+                )*
                 m
             };
         }
@@ -75,12 +93,9 @@ macro_rules! define_keys {
 }
 
 define_keys! {
-    Side    {Alt,AltGr,AltGraph,Control,Meta,Shift}
+    Side    {Alt, AltGr, AltGraph, Control, Meta, Shift}
+    Arrow   {Down, Left, Right, Up}
     Regular {
-        ArrowDown,
-        ArrowLeft,
-        ArrowRight,
-        ArrowUp,
         Backspace,
         Delete,
         End,
@@ -140,6 +155,7 @@ impl Key {
 
     /// Simple, kebab-case name of a key.
     pub fn simple_name(&self) -> String {
+        use ArrowDirection as Dir;
         let fmt = |side: &Side, repr| format!("{}-{}", repr, side.simple_name());
         match self {
             Self::Alt(side) => fmt(side, "alt"),
@@ -149,10 +165,10 @@ impl Key {
             Self::Meta(side) => fmt(side, "meta"),
             Self::Shift(side) => fmt(side, "shift"),
 
-            Self::ArrowDown => "arrow-down".into(),
-            Self::ArrowLeft => "arrow-left".into(),
-            Self::ArrowRight => "arrow-right".into(),
-            Self::ArrowUp => "arrow-up".into(),
+            Self::Arrow(Dir::Down) => "arrow-down".into(),
+            Self::Arrow(Dir::Left) => "arrow-left".into(),
+            Self::Arrow(Dir::Right) => "arrow-right".into(),
+            Self::Arrow(Dir::Up) => "arrow-up".into(),
             Self::Backspace => "backspace".into(),
             Self::Delete => "delete".into(),
             Self::End => "end".into(),
