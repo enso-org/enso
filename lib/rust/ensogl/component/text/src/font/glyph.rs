@@ -12,19 +12,32 @@ use crate::Size;
 
 use enso_text::CodePointIndex;
 use enso_text::UBytes;
+use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
+use ensogl_core::frp;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
+use ensogl_core::Animation;
 use font::Font;
 use font::GlyphRenderInfo;
 use owned_ttf_parser::GlyphId;
 
 
+
+ensogl_core::define_endpoints_2! {
+    Input {
+        set_color(color::Lcha),
+    }
+    Output {
+
+    }
+}
 
 // =============
 // === Glyph ===
@@ -43,8 +56,10 @@ pub struct Glyph {
 
 /// Internal structure of [`Glyph`].
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 pub struct GlyphData {
+    #[deref]
+    pub frp:               Frp,
     pub glyph_id:          Cell<GlyphId>,
     pub start_byte_offset: Cell<UBytes>,
     pub display_object:    display::object::Instance,
@@ -58,6 +73,7 @@ pub struct GlyphData {
     pub sdf_weight:        Attribute<f32>,
     pub atlas_index:       Attribute<f32>,
     pub atlas:             Uniform<Texture>,
+    pub color_animation:   color::Animation,
 }
 
 
@@ -141,11 +157,6 @@ impl Glyph {
     /// Color getter.
     pub fn color(&self) -> Rgba {
         self.color.get().into()
-    }
-
-    /// Color setter.
-    pub fn set_color(&self, color: impl Into<Rgba>) {
-        self.color.set(color.into().into())
     }
 
     /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
@@ -294,6 +305,7 @@ impl System {
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
+        let frp = Frp::new();
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();
@@ -308,11 +320,20 @@ impl System {
         let start_byte_offset = default();
         let properties = default();
         let variations = default();
+        let color_animation = color::Animation::new(frp.network());
         display_object.add_child(&sprite);
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
+
+        let network = frp.network();
+        frp::extend! {network
+            color_animation.target <+ frp.set_color;
+            eval color_animation.value ((c) color.set(Rgba::from(c).into()));
+        }
+
         Glyph {
             data: Rc::new(GlyphData {
+                frp,
                 display_object,
                 sprite,
                 context,
@@ -326,6 +347,7 @@ impl System {
                 start_byte_offset,
                 properties,
                 variations,
+                color_animation,
             }),
         }
     }
