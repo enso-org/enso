@@ -113,10 +113,10 @@ impl Viewport {
             self.top
         };
         let bottom = top - size.y;
-        let left = if self.right < other.right {
-            other.right - size.x
-        } else if self.left > other.left {
+        let left = if self.left > other.left {
             other.left
+        } else if self.right < other.right {
+            other.right - size.x
         } else {
             self.left
         };
