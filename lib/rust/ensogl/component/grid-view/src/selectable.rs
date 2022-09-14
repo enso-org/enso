@@ -37,7 +37,7 @@ impl MovementTarget {
     /// Calculate row and column of the nearest entry in given direction from given row and col.
     /// Returns a [`MovementTarget::Location`] if the entry is in bounds of a grid with given
     /// amount of rows and columns. Returns [`MovementTarget::OutOfBounds`] otherwise.
-    fn nearest_in_direction(
+    fn next_in_direction(
         row: Row,
         col: Col,
         direction: frp::io::keyboard::ArrowDirection,
@@ -192,7 +192,7 @@ where
             let selection = &grid_frp.entry_selected;
             selection_after_movement <= input_move_selection_dir.map3(grid_size, selection,
                 |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
-                    MovementTarget::nearest_in_direction(row, col, dir, *rows, *cols)
+                    MovementTarget::next_in_direction(row, col, dir, *rows, *cols)
                 )
             );
             grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.location()).some();
