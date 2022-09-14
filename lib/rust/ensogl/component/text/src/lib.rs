@@ -23,6 +23,7 @@
 #![warn(unused_qualifications)]
 #![feature(generators)]
 #![feature(btree_drain_filter)]
+#![feature(allocator_api)]
 
 
 // ==============

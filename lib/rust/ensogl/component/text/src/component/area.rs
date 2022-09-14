@@ -164,14 +164,38 @@ fn set_line_index(line: &display::object::Instance, index: usize) {
 // === Lines ===
 // =============
 
-#[derive(Debug, Deref, DerefMut, Default, From, Into)]
+#[derive(Debug, Default, From, Into)]
 pub struct LinesVec {
     pub vec: Vec<Line>,
 }
 
 impl LinesVec {
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
+    pub fn first(&self) -> Option<&Line> {
+        self.vec.first()
+    }
+
+    pub fn last(&self) -> Option<&Line> {
+        self.vec.last()
+    }
+
     pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
         self.vec.insert(index.value as usize, line);
+    }
+
+    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
+        self.vec.resize_with(new_len, f)
+    }
+
+    // FIXME: make it more generic, see vec::drain
+    pub fn drain(
+        &mut self,
+        range: std::ops::Range<unit::ViewLine>,
+    ) -> std::vec::Drain<'_, Line, std::alloc::Global> {
+        self.vec.drain(range.start.value as usize..range.end.value as usize)
     }
 }
 
@@ -815,8 +839,7 @@ impl AreaModel {
                         } else if line_diff < 0 {
                             // Remove lines that are no longer needed. This is needed for proper
                             // partial redraw (redrawing only the lines that changed).
-                            let line_diff = (-line_diff) as usize;
-                            let second_line_index = second_line_index.value as usize;
+                            let line_diff = ViewLine(-line_diff);
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
 
