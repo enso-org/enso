@@ -83,7 +83,7 @@ find_codepoint_ranges text subrange =
                 Range_Data 0 indices.first
         By_Index indices ->
             case indices of
-                Vector.Vector_Data _ ->
+                Vector.Vector ->
                     if indices.length == 1 then resolve_index_or_range text indices.first else
                         batch_resolve_indices_or_ranges text indices
                 _ -> resolve_index_or_range text indices

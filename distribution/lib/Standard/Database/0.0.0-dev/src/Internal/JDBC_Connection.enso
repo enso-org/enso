@@ -108,7 +108,7 @@ type JDBC_Connection
                     num_rows = table.row_count
                     columns = table.columns
                     check_rows updates_array expected_size =
-                        updates = Vector.Vector_Data updates_array
+                        updates = Vector.from_polyglot_array updates_array
                         if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then

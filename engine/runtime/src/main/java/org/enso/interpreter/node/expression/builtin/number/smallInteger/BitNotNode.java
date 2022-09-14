@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(type = "Small_Integer", name = "bit_not", description = "Bitwise negation.")

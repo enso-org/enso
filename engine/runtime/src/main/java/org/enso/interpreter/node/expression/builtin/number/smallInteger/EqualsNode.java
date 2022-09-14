@@ -1,13 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @BuiltinMethod(type = "Small_Integer", name = "==", description = "Equality on numbers.")
 public abstract class EqualsNode extends Node {

@@ -287,8 +287,8 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    Base.Vector.Vector_Data field -> case json of
-        Array items -> items.map (into_helper field)
+    Base.Vector.Vector -> case json of
+        Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base.Boolean -> case json of
         Boolean v -> v

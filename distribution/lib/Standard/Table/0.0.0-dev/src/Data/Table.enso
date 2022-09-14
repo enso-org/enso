@@ -52,7 +52,7 @@ new : Vector (Vector | Column) -> Table
 new columns =
     cols = columns.map c->
         case c of
-            Vector.Vector_Data _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
+            Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
             Column.Column_Data java_col -> java_col
     from_columns cols
 
@@ -256,7 +256,7 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         Integer ->
-            java_columns = Vector.Vector_Data self.java_table.getColumns
+            java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Column_Data (java_columns.at selector)
         Text ->
             case self.java_table.getColumnOrIndexByName selector of
@@ -837,7 +837,7 @@ type Table
                  table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
     set self name column = case column of
-        Vector.Vector_Data _ ->
+        Vector.Vector ->
             self.set name (Column.from_vector name column)
         Column.Column_Data _ ->
             Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))

@@ -63,7 +63,6 @@ class Passes(
       GlobalNames,
       TypeNames,
       MethodCalls,
-      VectorLiterals,
       FullyAppliedFunctionUses,
       AliasAnalysis
     ) ++
