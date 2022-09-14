@@ -184,9 +184,7 @@ pub fn position_of_viewport_containing_entry(
     margins: Margins,
 ) -> Vector2 {
     let pos = position(row, col, entry_size, column_widths);
-    // let pos = self.entry_position(row, column);
     let size = size(row, col, entry_size, column_widths);
-    // let size = self.entry_size(row, column);
     let entry = Viewport::from_center_point_and_size(pos, size);
     let entry_plus_margins = Viewport {
         top:    entry.top + margins.top,
