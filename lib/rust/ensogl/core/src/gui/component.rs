@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::application::command::Command;
+use crate::application::command::CommandApi;
 use crate::application::Application;
 use crate::display;
 use crate::display::scene;
@@ -11,6 +13,7 @@ use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
+use crate::frp;
 
 
 // ==============
@@ -284,5 +287,16 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
 impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
     fn display_object(&self) -> &display::object::Instance<Scene> {
         &self.data.display_object
+    }
+}
+
+impl<Model: 'static, Frp: 'static + crate::application::frp::API> CommandApi
+    for Widget<Model, Frp>
+{
+    fn command_api(&self) -> Rc<RefCell<HashMap<String, Command>>> {
+        self.data.frp.public().command_api()
+    }
+    fn status_api(&self) -> Rc<RefCell<HashMap<String, frp::Sampler<bool>>>> {
+        self.data.frp.public().status_api()
     }
 }
