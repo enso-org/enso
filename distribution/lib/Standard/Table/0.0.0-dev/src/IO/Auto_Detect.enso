@@ -10,15 +10,19 @@ type Auto_Detect
     ## If the File_Format supports reading from the file, return a configured instance.
     can_read : File -> Any
     can_read self file =
-         result = types.find t->((t.can_read file) != Nothing)
-         if result.is_error then Nothing else result
+        reader idx =
+            formatter = types.at idx . can_read file
+            if formatter.is_nothing.not then formatter else
+                if idx + 1 == types.length then Nothing else
+                    @Tail_Call reader (idx + 1)
+        reader 0
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         reader = self.can_read file
-        if reader == Nothing then Error.throw (Unsupported_File_Type_Data "No File_Format supports '" + file.extension + "'") else
+        if reader == Nothing then Error.throw (Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
             reader.read file on_problems
 
     ## PRIVATE
