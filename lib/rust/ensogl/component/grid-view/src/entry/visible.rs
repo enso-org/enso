@@ -199,3 +199,33 @@ pub fn position_of_viewport_containing_entry(
     let moved_viewport = viewport.moved_to_contain(entry_plus_margins);
     Vector2(moved_viewport.left, moved_viewport.top)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ENTRY_SIZE: Vector2 = Vector2(20.0, 10.0);
+    const ROW_COUNT: usize = 100;
+    const COL_COUNT: usize = 100;
+    const MARGINS: Margins = Margins { top: 1.0, bottom: 2.0, left: 3.0, right: 4.0 };
+    const VIEWPORT_SIZE: Vector2 = Vector2(200.0, 100.0);
+
+    fn sample_column_widths() -> ColumnWidths {
+        ColumnWidths::new(COL_COUNT)
+    }
+
+    #[test]
+    fn position_of_viewport_scrolled_up_and_left_to_contain_entry() {
+        const ROW: Row = 3;
+        const COL: Col = 5;
+        let column_widths = sample_column_widths();
+        let entry_pos = position(ROW, COL, ENTRY_SIZE, &column_widths);
+        assert_approx_eq!(entry_pos.x, 110.0);
+        assert_approx_eq!(entry_pos.y, -35.0);
+        const VIEWPORT_CENTER: Vector2 = Vector2(1000.0, -1000.0);
+        let viewport = Viewport::from_center_point_and_size(VIEWPORT_CENTER, VIEWPORT_SIZE);
+        let viewport_pos = position_of_viewport_containing_entry(ROW, COL, ENTRY_SIZE, &column_widths, viewport, MARGINS);
+        assert_approx_eq!(viewport_pos.x, 97.0);
+        assert_approx_eq!(viewport_pos.y, -29.0);
+    }
+}
