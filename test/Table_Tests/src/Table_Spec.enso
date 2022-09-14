@@ -134,13 +134,11 @@ spec =
             table.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Date_Time, Storage.Any]
 
             enso_date_times = table.at "enso_dates" . map .to_date_time
-            enso_date_times.print
             enso_date_times.storage_type . should_equal Storage.Date_Time
             js_converted_dates = table.at "js_dates" . map .date
-            js_converted_dates.print
             js_converted_dates.storage_type . should_equal Storage.Date
-#            (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
-#            (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
+            (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
+            (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -166,16 +164,30 @@ spec =
             c_any = Column.from_vector 'x' [My_Data 1 6, My_Data 6 3, My_Data 2 5, My_Data 3 4, My_Data 200 300]
             c_any.map (_.frobnicate) . to_vector . should_equal [My_Data 6 1, My_Data 3 6, My_Data 5 2, My_Data 4 3, My_Data 300 200]
 
+        Test.specify "should correctly handle storage of results" <|
+            c_int = Column.from_vector 'year' [2022, 2000, 1999]
+            r = c_int . map Date_Time.new
+            r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
+            r.storage_type . should_equal Storage.Date_Time
+
         Test.specify "should allow zipping columns with a custom function" <|
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
             a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
             c = a.zip b x-> y-> x + y.to_text
             c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
+            c.storage_type . should_equal Storage.Text
 
             x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
             y = Column.from_vector 'b' [0, 0, 0, 0]
             r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
             r.to_vector.should_equal [1, 0, 0, 0]
+            r.storage_type . should_equal Storage.Integer
+
+            u = Column.from_vector 'u' [12, 13, 0]
+            v = Column.from_vector 'v' [0, 30, 45]
+            r2 = u.zip v h-> m-> Time_Of_Day.new h m
+            r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
+            r2.storage_type . should_equal Storage.Time_Of_Day
 
         Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
@@ -767,8 +779,9 @@ spec =
 
 main = Test.Suite.run_main spec
 
+## JS indexes months form 0, so we need to subtract 1.
 foreign js js_make_date year month day = """
-    return new Date(year, month, day)
+    return new Date(year, month - 1, day)
 
 foreign js js_make_object key value = """
     var obj = {}
