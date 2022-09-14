@@ -11,7 +11,8 @@ import project.Data.Data_Formatter
 import project.Data.Match_Columns
 import project.Data.Aggregate_Column
 
-import project.File_Read
+import project.IO.File_Read
+import project.IO.Auto_Detect
 
 import project.Delimited.Quote_Style
 import project.Delimited.Delimited_Format
@@ -31,8 +32,8 @@ export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
 export project.Data.Aggregate_Column
 
-export project.File_Read
-from project.File_Read export Auto_Detect
+export project.IO.File_Read
+from project.IO.Auto_Detect export Auto_Detect
 
 export project.Delimited.Quote_Style
 from project.Delimited.Delimited_Format export Delimited_Format, Delimited

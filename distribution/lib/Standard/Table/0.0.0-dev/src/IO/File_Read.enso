@@ -1,39 +1,12 @@
-from Standard.Base import Text, Any, Problem_Behavior, Plain_Text, Bytes, Nothing, Error, Panic, Meta
+from Standard.Base import Any, Text, Problem_Behavior, Plain_Text, Bytes, Nothing, Error, Panic, Meta, File, File_Format
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-import Standard.Base.System.File
-import Standard.Base.System.File_Format
-
+from Standard.Table.IO.Auto_Detect import Auto_Detect
 from Standard.Table.Delimited.Delimited_Format import Delimited
 from Standard.Table.Excel.Excel_Format import Excel
 
 types = [Plain_Text, Delimited ',', Excel, Bytes]
-
-type Auto_Detect
-    ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
-         result = types.find t->((t.can_read file) != Nothing)
-         if result.is_error then Nothing else result
-
-    ## PRIVATE
-       Implements the `File.read` for this `File_Format`
-    read : File -> Problem_Behavior -> Any
-    read self file on_problems =
-        reader = self.can_read file
-        if reader == Nothing then Error.throw (Unsupported_File_Type_Data "No File_Format supports '" + file.extension + "'") else
-            reader.read file on_problems
-
-    ## PRIVATE
-       Implements the `Table.write` for this `File_Format`.
-    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table self file table on_existing_file match_columns on_problems =
-        format = self.can_read file
-        if format == Nothing then Error.throw (File_Format.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
-            Panic.catch No_Such_Method_Error_Data (format.write_table file table on_existing_file match_columns on_problems) _->
-               name = Meta.get_constructor_name (Meta.meta format)
-               Error.throw (Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
 
 ## ALIAS Read Text File, Read File
 

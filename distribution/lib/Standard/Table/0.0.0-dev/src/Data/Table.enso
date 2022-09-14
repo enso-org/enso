@@ -12,7 +12,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.File_Read import Auto_Detect
+from Standard.Table.IO.Auto_Detect import Auto_Detect
 
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
 from Standard.Table.Delimited.Reader import read_text
