@@ -113,6 +113,17 @@ spec =
             table.at "datetimes" . storage_type . should_equal Storage.Date_Time
             table.at "just_nulls" . storage_type . should_equal Storage.Any
 
+        Test.specify "should also work with polyglot values" <|
+            js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
+            py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
+            py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
+            table = Table.new [js_dates, py_dates, py_objects]
+            table.info.at "Column" . to_vector . should_equal ["js_dates", "py_dates", "py_objects"]
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date_Time, Storage.Date, Storage.Any]
+
+            table.at "js_dates" . at 0 . year . should_equal 2022
+            table.at "py_dates" . at 1 . month . should_equal 1
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
@@ -737,3 +748,13 @@ spec =
             r.at "B" . to_vector . should_equal [2, 1, 2]
 
 main = Test.Suite.run_main spec
+
+foreign js js_make_date year month day = """
+    return new Date(year, month, day)
+
+foreign python py_make_date year month day = """
+    import datetime
+    return datetime.date(year, month, day)
+
+foreign python py_make_object key value = """
+    return {key: value}
