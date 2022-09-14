@@ -1156,9 +1156,9 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
                 }
             }
             found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                let offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+                let offset = context.line_byte_length(location.line);
                 if offset != location.offset {
-                    error!("Glyph byte offset mismatch.");
+                    error!("Glyph byte offset mismatch. Requested {} byte offset, but line {} has only {} bytes. Using max offset instead.", location.offset, location.line, offset);
                 }
                 location.with_offset(column)
             })
@@ -1187,9 +1187,12 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
             }
             let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 if column != location.offset {
-                    error!("Glyph byte offset mismatch.");
+                    error!(
+                        "Column {} requested while line {} has only {} columns. Using last column instead.",
+                        location.offset, location.line, column
+                    );
                 }
-                let end_byte_offset = context.end_byte_offset_of_line_index(location.line).unwrap();
+                let end_byte_offset = context.line_byte_length(location.line);
                 let location2 = Location::from_in_context(context, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)

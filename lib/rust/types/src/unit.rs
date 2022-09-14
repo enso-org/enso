@@ -868,7 +868,7 @@ macro_rules! impl_unit_display {
     ($name:ident :: $field:ident) => {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "{} [{}]", self.$field, stringify!($name))
+                write!(f, "{}", self.$field)
             }
         }
     };

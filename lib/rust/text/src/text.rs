@@ -214,10 +214,10 @@ impl Text {
         Location(line, byte_offset)
     }
 
-    /// The last column number of the last line.
-    pub fn last_line_end_column(&self) -> CodePointIndex {
-        self.column_of_byte_offset(self.byte_size()).unwrap()
-    }
+    // /// The last column number of the last line.
+    // pub fn last_line_end_column(&self) -> CodePointIndex {
+    //     self.column_of_byte_offset(self.byte_size()).unwrap()
+    // }
 
     pub fn last_line_end_column_byte_offset(&self) -> UBytes {
         self.line_byte_offset_of_byte_offset(self.byte_size()).unwrap()
@@ -282,6 +282,13 @@ impl Text {
         // FIXME: this will not work with \r\n!
         let next_line_prev = next_line_off.and_then(|t| self.prev_grapheme_offset(t));
         Ok(next_line_prev.unwrap_or_else(|| self.byte_size()))
+    }
+
+    // FIXME: unwraps
+    pub fn line_byte_length(&self, line: Line) -> UBytes {
+        let line_start = self.byte_offset_of_line_index(line).unwrap();
+        let line_end = self.end_byte_offset_of_line_index(line).unwrap();
+        UBytes::try_from(line_end - line_start).unwrap()
     }
 
     /// Return the offset after the last character of a given line if the line exists. Snapped to
@@ -378,38 +385,38 @@ impl Text {
 // === Into CodePointIndex ===
 
 impl Text {
-    /// The last column number of the given line.
-    pub fn line_end_column(&self, line: Line) -> Result<CodePointIndex, BoundsError> {
-        let offset = self.end_byte_offset_of_line_index(line)?;
-        Ok(self.column_of_byte_offset(offset).unwrap())
-    }
-
-    // fixme: this is not column computing!!!
-    /// The column number of the given byte offset.
-    pub fn column_of_byte_offset(
-        &self,
-        tgt_offset: UBytes,
-    ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
-        use self::BoundsError::*;
-        use LocationError::*;
-        let line_index = self.line_index_of_byte_offset(tgt_offset)?;
-        let mut offset = self.byte_offset_of_line_index(line_index)?;
-        let mut code_point_index = 0.code_point_index();
-        while offset < tgt_offset {
-            match self.next_codepoint_offset(offset) {
-                None => return Err(BoundsError(TooBig)),
-                Some(off) => {
-                    offset = off;
-                    code_point_index += 1.code_point_index();
-                }
-            }
-        }
-        if offset != tgt_offset {
-            Err(NotClusterBoundary(code_point_index))
-        } else {
-            Ok(code_point_index)
-        }
-    }
+    // /// The last column number of the given line.
+    // pub fn line_end_column(&self, line: Line) -> Result<CodePointIndex, BoundsError> {
+    //     let offset = self.end_byte_offset_of_line_index(line)?;
+    //     Ok(self.column_of_byte_offset(offset).unwrap())
+    // }
+    //
+    // // fixme: this is not column computing!!!
+    // /// The column number of the given byte offset.
+    // pub fn column_of_byte_offset(
+    //     &self,
+    //     tgt_offset: UBytes,
+    // ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
+    //     use self::BoundsError::*;
+    //     use LocationError::*;
+    //     let line_index = self.line_index_of_byte_offset(tgt_offset)?;
+    //     let mut offset = self.byte_offset_of_line_index(line_index)?;
+    //     let mut code_point_index = 0.code_point_index();
+    //     while offset < tgt_offset {
+    //         match self.next_codepoint_offset(offset) {
+    //             None => return Err(BoundsError(TooBig)),
+    //             Some(off) => {
+    //                 offset = off;
+    //                 code_point_index += 1.code_point_index();
+    //             }
+    //         }
+    //     }
+    //     if offset != tgt_offset {
+    //         Err(NotClusterBoundary(code_point_index))
+    //     } else {
+    //         Ok(code_point_index)
+    //     }
+    // }
 
     pub fn line_byte_offset_of_byte_offset(
         &self,
@@ -423,36 +430,36 @@ impl Text {
         Ok(offset)
     }
 
-    /// The column number of the given byte offset. Snapped to the closest valid
-    /// value. In case the offset points inside of a grapheme cluster, it will be snapped to its
-    /// right side.
-    pub fn column_of_byte_offset_snapped(&self, tgt_offset: UBytes) -> CodePointIndex {
-        self.snap_column_location_result(self.column_of_byte_offset(tgt_offset))
-    }
+    // /// The column number of the given byte offset. Snapped to the closest valid
+    // /// value. In case the offset points inside of a grapheme cluster, it will be snapped to its
+    // /// right side.
+    // pub fn column_of_byte_offset_snapped(&self, tgt_offset: UBytes) -> CodePointIndex {
+    //     self.snap_column_location_result(self.column_of_byte_offset(tgt_offset))
+    // }
 
-    /// The column from line number and byte offset within the line.
-    pub fn column_of_line_index_and_in_line_byte_offset(
-        &self,
-        line: Line,
-        in_line_offset: UBytes,
-    ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
-        let offset = self.byte_offset_of_line_index(line)?;
-        let tgt_offset = offset + in_line_offset;
-        let column = self.column_of_byte_offset(tgt_offset)?;
-        Ok(column)
-    }
-
-    /// The column from line number and byte offset within the line. Snapped to
-    /// the closest valid value. In case the offset points inside of a grapheme cluster, it will be
-    /// snapped to its right side.
-    pub fn column_of_line_index_and_in_line_byte_offset_snapped(
-        &self,
-        line: Line,
-        in_line_offset: UBytes,
-    ) -> CodePointIndex {
-        let column = self.column_of_line_index_and_in_line_byte_offset(line, in_line_offset);
-        self.snap_column_location_result(column)
-    }
+    // /// The column from line number and byte offset within the line.
+    // pub fn column_of_line_index_and_in_line_byte_offset(
+    //     &self,
+    //     line: Line,
+    //     in_line_offset: UBytes,
+    // ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
+    //     let offset = self.byte_offset_of_line_index(line)?;
+    //     let tgt_offset = offset + in_line_offset;
+    //     let column = self.column_of_byte_offset(tgt_offset)?;
+    //     Ok(column)
+    // }
+    //
+    // /// The column from line number and byte offset within the line. Snapped to
+    // /// the closest valid value. In case the offset points inside of a grapheme cluster, it will
+    // be /// snapped to its right side.
+    // pub fn column_of_line_index_and_in_line_byte_offset_snapped(
+    //     &self,
+    //     line: Line,
+    //     in_line_offset: UBytes,
+    // ) -> CodePointIndex {
+    //     let column = self.column_of_line_index_and_in_line_byte_offset(line, in_line_offset);
+    //     self.snap_column_location_result(column)
+    // }
 }
 
 
@@ -533,17 +540,17 @@ impl<T> From<BoundsError> for LocationError<T> {
 }
 
 impl Text {
-    /// Snaps the `LocationError<CodePointIndex>` to the closest valid column.
-    pub fn snap_column_location_error(&self, err: LocationError<CodePointIndex>) -> CodePointIndex {
-        use self::BoundsError::*;
-        use LocationError::*;
-        match err {
-            BoundsError(TooSmall) => 0.code_point_index(),
-            BoundsError(TooBig) => self.last_line_end_column(),
-            LineTooShort(column) => column,
-            NotClusterBoundary(column) => column,
-        }
-    }
+    // /// Snaps the `LocationError<CodePointIndex>` to the closest valid column.
+    // pub fn snap_column_location_error(&self, err: LocationError<CodePointIndex>) ->
+    // CodePointIndex {     use self::BoundsError::*;
+    //     use LocationError::*;
+    //     match err {
+    //         BoundsError(TooSmall) => 0.code_point_index(),
+    //         BoundsError(TooBig) => self.last_line_end_column(),
+    //         LineTooShort(column) => column,
+    //         NotClusterBoundary(column) => column,
+    //     }
+    // }
 
     /// Snaps the `LocationError<UBytes>` to the closest valid byte offset.
     pub fn snap_bytes_location_error(&self, err: LocationError<UBytes>) -> UBytes {
@@ -566,16 +573,16 @@ impl Text {
         }
     }
 
-    /// Snaps the `LocationResult<CodePointIndex>` to the closest valid column.
-    pub fn snap_column_location_result(
-        &self,
-        result: Result<CodePointIndex, LocationError<CodePointIndex>>,
-    ) -> CodePointIndex {
-        match result {
-            Ok(column) => column,
-            Err(err) => self.snap_column_location_error(err),
-        }
-    }
+    // /// Snaps the `LocationResult<CodePointIndex>` to the closest valid column.
+    // pub fn snap_column_location_result(
+    //     &self,
+    //     result: Result<CodePointIndex, LocationError<CodePointIndex>>,
+    // ) -> CodePointIndex {
+    //     match result {
+    //         Ok(column) => column,
+    //         Err(err) => self.snap_column_location_error(err),
+    //     }
+    // }
 
     /// Snaps the `LocationResult<UBytes>` to the closest valid byte offset.
     pub fn snap_bytes_location_result(
@@ -802,9 +809,9 @@ impl TextCell {
         self.cell.borrow().last_line_start_location()
     }
 
-    pub fn last_line_end_column(&self) -> CodePointIndex {
-        self.cell.borrow().last_line_end_column()
-    }
+    // pub fn last_line_end_column(&self) -> CodePointIndex {
+    //     self.cell.borrow().last_line_end_column()
+    // }
 
     pub fn last_line_end_byte_offset(&self) -> UBytes {
         self.cell.borrow().last_line_end_byte_offset()
@@ -824,6 +831,10 @@ impl TextCell {
 
     pub fn end_byte_offset_of_line_index(&self, line: Line) -> Result<UBytes, BoundsError> {
         self.cell.borrow().end_byte_offset_of_line_index(line)
+    }
+
+    pub fn line_byte_length(&self, line: Line) -> UBytes {
+        self.cell.borrow().line_byte_length(line)
     }
 
     pub fn end_byte_offset_of_line_index_snapped(&self, line: Line) -> UBytes {
@@ -876,38 +887,38 @@ impl TextCell {
         self.cell.borrow().line_index_of_byte_offset_snapped(offset)
     }
 
-    pub fn line_end_column(&self, line: Line) -> Result<CodePointIndex, BoundsError> {
-        self.cell.borrow().line_end_column(line)
-    }
+    // pub fn line_end_column(&self, line: Line) -> Result<CodePointIndex, BoundsError> {
+    //     self.cell.borrow().line_end_column(line)
+    // }
 
-    pub fn column_of_byte_offset(
-        &self,
-        tgt_offset: UBytes,
-    ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
-        self.cell.borrow().column_of_byte_offset(tgt_offset)
-    }
+    // pub fn column_of_byte_offset(
+    //     &self,
+    //     tgt_offset: UBytes,
+    // ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
+    //     self.cell.borrow().column_of_byte_offset(tgt_offset)
+    // }
 
-    pub fn column_of_byte_offset_snapped(&self, tgt_offset: UBytes) -> CodePointIndex {
-        self.cell.borrow().column_of_byte_offset_snapped(tgt_offset)
-    }
+    // pub fn column_of_byte_offset_snapped(&self, tgt_offset: UBytes) -> CodePointIndex {
+    //     self.cell.borrow().column_of_byte_offset_snapped(tgt_offset)
+    // }
 
-    pub fn column_of_line_index_and_in_line_byte_offset(
-        &self,
-        line: Line,
-        in_line_offset: UBytes,
-    ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
-        self.cell.borrow().column_of_line_index_and_in_line_byte_offset(line, in_line_offset)
-    }
+    // pub fn column_of_line_index_and_in_line_byte_offset(
+    //     &self,
+    //     line: Line,
+    //     in_line_offset: UBytes,
+    // ) -> Result<CodePointIndex, LocationError<CodePointIndex>> {
+    //     self.cell.borrow().column_of_line_index_and_in_line_byte_offset(line, in_line_offset)
+    // }
 
-    pub fn column_of_line_index_and_in_line_byte_offset_snapped(
-        &self,
-        line: Line,
-        in_line_offset: UBytes,
-    ) -> CodePointIndex {
-        self.cell
-            .borrow()
-            .column_of_line_index_and_in_line_byte_offset_snapped(line, in_line_offset)
-    }
+    // pub fn column_of_line_index_and_in_line_byte_offset_snapped(
+    //     &self,
+    //     line: Line,
+    //     in_line_offset: UBytes,
+    // ) -> CodePointIndex {
+    //     self.cell
+    //         .borrow()
+    //         .column_of_line_index_and_in_line_byte_offset_snapped(line, in_line_offset)
+    // }
 
     pub fn location_of_byte_offset(&self, offset: UBytes) -> Result<Location, BoundsError> {
         self.cell.borrow().location_of_byte_offset(offset)

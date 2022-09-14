@@ -773,7 +773,9 @@ impl AreaModel {
             TextRange::RangeFull(_) => vec![self.buffer.full_range()],
             TextRange::BufferRangeLocationColumn(range) => {
                 let start = UBytes::from_in_context(&self.buffer, range.start);
+                warn!(">> 1");
                 let end = UBytes::from_in_context(&self.buffer, range.end);
+                warn!("<< 1");
                 vec![buffer::Range::new(start, end)]
             }
         }
