@@ -577,13 +577,6 @@ where
         entry::visible::position(row, column, self.entries_size.value(), column_widths)
     }
 
-    // /// Return the size of the Entry instance for given row and column.
-    // pub fn entry_size(&self, _row: Row, column: Col) -> Vector2 {
-    //     let column_widths = &self.widget.model().column_widths;
-    //     let base_entry_size = self.entries_size.value();
-    //     Vector2(base_entry_size.x + column_widths.width_diff(column), base_entry_size.y)
-    // }
-
     /// Return the position of the top-left corner of a viewport containing the area around the
     /// entry at given row and column. The area around an entry is defined as the bounding box of
     /// the entry enlarged by given margins. If there is more than one such viewport possible,
