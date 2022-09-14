@@ -987,11 +987,11 @@ impl ViewModel {
     }
 
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
-        ViewLine((line - self.first_view_line()).value)
+        ViewLine((line - self.first_view_line()).value as usize)
     }
 
     pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
-        Line(self.first_view_line().value + view_line.value)
+        self.first_view_line() + Line(view_line.value as i32)
     }
 
     pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
@@ -1067,9 +1067,10 @@ impl ViewModel {
         self.byte_offset_of_line_index(line)
     }
 
+    // FIXME: is this snapping needed?
     /// Byte range of the given view line.
     pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
-        let line = Line(view_line.value + self.first_view_line.get().value);
+        let line = self.view_line_to_line(view_line);
         self.byte_range_of_line_index_snapped(line)
     }
 
@@ -1143,7 +1144,7 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
                     let byte_offset = UBytes(glyph.info.cluster as usize);
                     if byte_offset >= location.offset {
                         if byte_offset > location.offset {
-                            warn!("Glyph byte offset mismatch");
+                            error!("Glyph byte offset mismatch");
                         }
                         found_column = Some(column);
                         break;
@@ -1157,7 +1158,7 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
             found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 let offset = context.end_byte_offset_of_line_index(location.line).unwrap();
                 if offset != location.offset {
-                    warn!("Glyph byte offset mismatch.");
+                    error!("Glyph byte offset mismatch.");
                 }
                 location.with_offset(column)
             })
@@ -1186,7 +1187,7 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
             }
             let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 if column != location.offset {
-                    warn!("Glyph byte offset mismatch.");
+                    error!("Glyph byte offset mismatch.");
                 }
                 let end_byte_offset = context.end_byte_offset_of_line_index(location.line).unwrap();
                 let location2 = Location::from_in_context(context, end_byte_offset);

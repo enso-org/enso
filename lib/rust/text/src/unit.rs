@@ -19,7 +19,6 @@ pub mod traits {
     pub use super::code_point_index::Into as TRAIT_column_into;
     pub use super::line::Into as TRAIT_line_into;
     pub use super::ubytes::Into as TRAIT_ubytes_into;
-    pub use super::view_line::Into as TRAIT_view_line_into;
 }
 pub use traits::*;
 
@@ -239,56 +238,171 @@ impl From<&usize> for Line {
     }
 }
 
-unit! {
-/// A type representing vertical measurements.
-ViewLine::view_line(i32)
+// unit! {
+//     ViewLine::view_line(usize)
+// }
+
+use std::ops::AddAssign;
+use std::ops::SubAssign;
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ViewLine {
+    #[allow(missing_docs)]
+    pub value: usize,
+}
+
+/// Smart constructor.
+#[allow(non_snake_case)]
+pub const fn ViewLine(value: usize) -> ViewLine {
+    ViewLine { value }
+}
+
+impl From<&ViewLine> for ViewLine {
+    fn from(t: &ViewLine) -> Self {
+        *t
+    }
+}
+
+impl From<&&ViewLine> for ViewLine {
+    fn from(t: &&ViewLine) -> Self {
+        **t
+    }
+}
+
+impl From<f32> for ViewLine {
+    fn from(t: f32) -> Self {
+        if t < 0.0 {
+            error!("Negative value used to construct ViewLine.");
+            ViewLine(0)
+        } else {
+            ViewLine(t as usize)
+        }
+    }
+}
+
+
+
+impl Sub<ViewLine> for ViewLine {
+    type Output = ViewLine;
+    fn sub(self, rhs: ViewLine) -> Self::Output {
+        if self.value < rhs.value {
+            error!("Subtraction of ViewLine resulted in negative value.");
+            ViewLine(0)
+        } else {
+            ViewLine(self.value - rhs.value)
+        }
+    }
+}
+
+impl Sub<ViewLine> for &ViewLine {
+    type Output = ViewLine;
+    fn sub(self, rhs: ViewLine) -> Self::Output {
+        (*self).sub(rhs)
+    }
+}
+
+impl Sub<&ViewLine> for ViewLine {
+    type Output = ViewLine;
+    fn sub(self, rhs: &ViewLine) -> Self::Output {
+        self.sub(*rhs)
+    }
+}
+
+impl Sub<&ViewLine> for &ViewLine {
+    type Output = ViewLine;
+    fn sub(self, rhs: &ViewLine) -> Self::Output {
+        (*self).sub(*rhs)
+    }
+}
+
+impl Add<ViewLine> for ViewLine {
+    type Output = ViewLine;
+    fn add(self, rhs: ViewLine) -> Self::Output {
+        let value = self.value.add(rhs.value);
+        ViewLine { value }
+    }
+}
+
+impl Add<ViewLine> for &ViewLine {
+    type Output = ViewLine;
+    fn add(self, rhs: ViewLine) -> Self::Output {
+        (*self).add(rhs)
+    }
+}
+
+impl Add<&ViewLine> for ViewLine {
+    type Output = ViewLine;
+    fn add(self, rhs: &ViewLine) -> Self::Output {
+        self.add(*rhs)
+    }
+}
+
+impl Add<&ViewLine> for &ViewLine {
+    type Output = ViewLine;
+    fn add(self, rhs: &ViewLine) -> Self::Output {
+        (*self).add(*rhs)
+    }
+}
+
+#[allow(clippy::needless_update)]
+impl AddAssign<ViewLine> for ViewLine {
+    fn add_assign(&mut self, rhs: ViewLine) {
+        self.value.add_assign(rhs.value)
+    }
+}
+
+#[allow(clippy::needless_update)]
+impl AddAssign<&ViewLine> for ViewLine {
+    fn add_assign(&mut self, rhs: &ViewLine) {
+        self.add_assign(*rhs)
+    }
+}
+
+#[allow(clippy::needless_update)]
+impl SubAssign<ViewLine> for ViewLine {
+    fn sub_assign(&mut self, rhs: ViewLine) {
+        *self = self.sub(rhs)
+    }
+}
+
+#[allow(clippy::needless_update)]
+impl SubAssign<&ViewLine> for ViewLine {
+    fn sub_assign(&mut self, rhs: &ViewLine) {
+        self.sub_assign(*rhs)
+    }
 }
 
 impl ViewLine {
-    /// Saturating conversion to `usize`.
-    pub fn as_usize(self) -> usize {
-        self.value.max(0) as usize
-    }
-
-    /// Compute the absolute value of this line.
-    pub fn abs(self) -> Self {
-        self.value.saturating_abs().into()
-    }
-
     pub fn inc(self) -> Self {
-        (self.value + 1).into()
+        self + ViewLine(1)
     }
 }
 
-impl From<usize> for ViewLine {
-    fn from(t: usize) -> Self {
-        (t as i32).into()
-    }
-}
-
-impl From<&usize> for ViewLine {
-    fn from(t: &usize) -> Self {
-        (*t as i32).into()
-    }
-}
+// impl From<usize> for ViewLine {
+//     fn from(t: usize) -> Self {
+//         (t as i32).into()
+//     }
+// }
+//
+// impl From<&usize> for ViewLine {
+//     fn from(t: &usize) -> Self {
+//         (*t as i32).into()
+//     }
+// }
 
 impl iter::Step for ViewLine {
     fn steps_between(start: &Self, end: &Self) -> Option<usize> {
         let diff = end.value - start.value;
-        if diff < 0 {
-            None
-        } else {
-            Some(diff as usize)
-        }
+        Some(diff)
     }
 
     fn forward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_add(count as i32)?;
+        let new_value = start.value.checked_add(count)?;
         Some(ViewLine(new_value))
     }
 
     fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_sub(count as i32)?;
+        let new_value = start.value.checked_sub(count)?;
         Some(ViewLine(new_value))
     }
 }
