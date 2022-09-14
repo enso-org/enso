@@ -1,18 +1,23 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Dialect
-import Standard.Database.Connection.Connection
+import Standard.Database.Internal.SQLite.SQLite_Connection
 import Standard.Database.Connection.Connection_Options
 
-## Connect to a SQLite DB File or InMemory DB.
 type SQLite
+    ## Connect to a SQLite DB File or InMemory DB.
+
+       Arguments:
+       - location: Location of the SQLite database to connect to.
     SQLite_Data (location:(In_Memory|File|Text))
 
     ## Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
     connect : Connection_Options
     connect self options =
         properties = options.merge self.jdbc_properties
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+        SQLite_Connection.create self.jdbc_url properties
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -23,10 +28,6 @@ type SQLite
     ## Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = []
-
-    ## Provides the dialect needed for creating SQL statements.
-    dialect : Dialect
-    dialect self = Dialect.sqlite
 
 ## Connect to an in-memory SQLite database.
 type In_Memory

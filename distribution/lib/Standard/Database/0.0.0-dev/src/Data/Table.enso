@@ -21,7 +21,7 @@ from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_
 from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector

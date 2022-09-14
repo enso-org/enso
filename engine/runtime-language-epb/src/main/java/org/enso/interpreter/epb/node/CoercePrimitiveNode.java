@@ -1,12 +1,9 @@
 package org.enso.interpreter.epb.node;
 
-import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 
 @GenerateUncached
@@ -32,53 +29,53 @@ public abstract class CoercePrimitiveNode extends Node {
    */
   public abstract Object execute(Object value);
 
-  @Specialization(guards = "bools.isBoolean(bool)")
-  boolean doBoolean(Object bool, @CachedLibrary(limit = "5") InteropLibrary bools) {
-    try {
-      return bools.asBoolean(bool);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `bool` already checked to be a boolean");
-    }
+  @Specialization
+  boolean doBoolean(boolean bool) {
+    return bool;
   }
 
-  @Specialization(guards = {"numbers.isNumber(integer)", "numbers.fitsInLong(integer)"})
-  long doInteger(Object integer, @CachedLibrary(limit = "5") InteropLibrary numbers) {
-    try {
-      return numbers.asLong(integer);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `integer` is checked to be a long");
-    }
+  @Specialization
+  long doByte(byte n) {
+    return n;
   }
 
-  @Specialization(
-      guards = {
-        "numbers.isNumber(decimal)",
-        "!numbers.fitsInLong(decimal)",
-        "numbers.fitsInDouble(decimal)"
-      })
-  double doDecimal(Object decimal, @CachedLibrary(limit = "5") InteropLibrary numbers) {
-    try {
-      return numbers.asDouble(decimal);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `decimal` is checked to be a long");
-    }
+  @Specialization
+  long doShort(short n) {
+    return n;
   }
 
-  @Specialization(guards = {"characters.isString(character)", "isChar(character)"})
-  long doChar(Object character, @CachedLibrary(limit = "5") InteropLibrary characters) {
-    try {
-      return characters.asString(character).charAt(0);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `character` is checked to be a long");
-    }
+  @Specialization
+  long doInt(int n) {
+    return n;
   }
 
-  static boolean isChar(Object s) {
-    return s instanceof Character;
+  @Specialization
+  long doLong(long n) {
+    return n;
   }
 
-  @Fallback
-  Object doNonPrimitive(Object value) {
+  @Specialization
+  double doFloat(float n) {
+    return n;
+  }
+
+  @Specialization
+  double doDouble(double n) {
+    return n;
+  }
+
+  @Specialization
+  long doChar(char character) {
+    return character;
+  }
+
+  @Specialization
+  String doString(String s) {
+    return s;
+  }
+
+  @Specialization
+  Object doNonPrimitive(TruffleObject value) {
     return value;
   }
 }
