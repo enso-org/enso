@@ -584,7 +584,12 @@ where
     ///
     /// For a pictorial representation of the areas, see the documentation of the
     /// [`entry::visible::position_of_viewport_containing_entry`] function.
-    fn viewport_containing_entry(&self, row: Row, col: Col, margins: Margins) -> Vector2 {
+    fn position_of_viewport_containing_entry(
+        &self,
+        row: Row,
+        col: Col,
+        margins: Margins,
+    ) -> Vector2 {
         let column_widths = &self.widget.model().column_widths;
         let base_entry_size = self.entries_size.value();
         let viewport = self.viewport.value();
