@@ -593,10 +593,10 @@ where
         let size = self.entry_size(row, column);
         let entry = Viewport::from_center_point_and_size(pos, size);
         let entry_plus_margins = Viewport {
-            top: entry.top + margins.top,
+            top:    entry.top + margins.top,
             bottom: entry.bottom - margins.bottom,
-            left: entry.left - margins.left,
-            right: entry.right + margins.right,
+            left:   entry.left - margins.left,
+            right:  entry.right + margins.right,
         };
         let moved_viewport = self.viewport.value().moved_to_contain(entry_plus_margins);
         Vector2(moved_viewport.left, moved_viewport.top)
