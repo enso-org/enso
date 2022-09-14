@@ -70,23 +70,13 @@ fn entry_model(row: Row, col: Col) -> grid_view::simple::EntryModel {
     }
 }
 
-fn setup_grid_view(
-    app: &Application,
-) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
-    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
-    let header_frp = view.header_frp();
+fn configure_simple_grid_view(
+    view: &grid_view::simple::SimpleGridView,
+) -> frp::Network {
     frp::new_network! { network
         requested_entry <-
             view.model_for_entry_needed.map(|&(row, col)| (row, col, entry_model(row, col)));
-        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
-            let sections_size = 2 + col;
-            let section_start = row - (row % sections_size);
-            let section_end = section_start + sections_size;
-            let model = entry_model(section_start, col);
-            (section_start..section_end, col, model)
-        });
         view.model_for_entry <+ requested_entry;
-        header_frp.section_info <+ requested_section;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
         eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
@@ -111,6 +101,14 @@ fn setup_grid_view(
         ..default()
     };
     view.set_entries_params(params);
+    // view.reset_entries(1000, 1000);
+    view.reset_entries(100, 100);
+    network
+}
+
+fn configure_scrollable_grid_view<InnerGridView>(
+    view: &grid_view::scrollable::GridViewTemplate<InnerGridView>,
+) {
     view.scroll_frp().resize(Vector2(400.0, VIEWPORT_HEIGHT));
     let scroll_margins = Margins {
         top:    VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
@@ -119,8 +117,35 @@ fn setup_grid_view(
         right:  BASE_SCROLL_MARGIN,
     };
     view.extra_scroll_frp().set_preferred_margins_around_entry(scroll_margins);
-    // view.reset_entries(1000, 1000);
-    view.reset_entries(100, 100);
+}
+
+fn setup_simple_grid_view(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridView {
+    let view = grid_view::simple::SimpleScrollableSelectableGridView::new(app);
+    let network = configure_simple_grid_view(&view);
+    std::mem::forget(network);
+    app.display.add_child(&view);
+    view
+}
+
+fn setup_grid_view_with_headers(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
+    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
+    let network = configure_simple_grid_view(&view);
+    configure_scrollable_grid_view(&view);
+    let header_frp = view.header_frp();
+    frp::extend! { network
+        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
+            let sections_size = 2 + col;
+            let section_start = row - (row % sections_size);
+            let section_end = section_start + sections_size;
+            let model = entry_model(section_start, col);
+            (section_start..section_end, col, model)
+        });
+        header_frp.section_info <+ requested_section;
+    }
     std::mem::forget(network);
     app.display.add_child(&view);
     view
@@ -142,7 +167,7 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
+    let grid_views = std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
     let with_hover_mask = [&grid_views[2]];
     let with_selection_mask = [&grid_views[1], &grid_views[2]];
     grid_views[2].frp().focus();
@@ -158,7 +183,8 @@ fn init(app: &Application) {
     }
 
     let view = &grid_views[0];
-    for i in (0..1000).step_by(2) {
+    // for i in (0..1000).step_by(2) {
+    for i in (0..100).step_by(2) {
         view.set_column_width((i, 60.0));
     }
 
