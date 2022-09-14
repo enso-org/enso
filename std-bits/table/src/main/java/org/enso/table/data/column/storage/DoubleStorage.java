@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
 import java.util.List;
@@ -102,14 +103,17 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof Double) {
-      return fillMissingDouble((Double) arg);
-    } else if (arg instanceof Long) {
-      return fillMissingDouble((Long) arg);
-    } else {
-      return super.fillMissing(arg);
+  public Storage fillMissing(Value arg) {
+    if (arg.isNumber()) {
+      Object number = arg.as(Object.class);
+      if (number instanceof Double d) {
+        return fillMissingDouble(d);
+      } else if (number instanceof Long l) {
+        return fillMissingDouble(l);
+      }
     }
+
+    return super.fillMissing(arg);
   }
 
   @Override

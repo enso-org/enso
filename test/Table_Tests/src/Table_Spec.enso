@@ -113,18 +113,34 @@ spec =
             table.at "datetimes" . storage_type . should_equal Storage.Date_Time
             table.at "just_nulls" . storage_type . should_equal Storage.Any
 
-        Test.specify "should also work with polyglot values" <|
-            js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
-            py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
+        pending_python_missing = if Polyglot.is_language_installed "python" . not then
+            "Can't run Python tests, Python is not installed."
+        Test.specify "should also work with polyglot values coming from Python" pending=pending_python_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
+            py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
-            table = Table.new [js_dates, py_dates, enso_dates, py_objects]
-            table.info.at "Column" . to_vector . should_equal ["js_dates", "py_dates", "enso_dates", "py_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date_Time, Storage.Date, Storage.Date, Storage.Any]
+            table = Table.new [enso_dates, py_dates, py_objects]
+            table.info.at "Column" . to_vector . should_equal ["enso_dates", "py_dates", "py_objects"]
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Date, Storage.Any]
 
-            table.at "js_dates" . at 0 . year . should_equal 2022
-            table.at "py_dates" . at 1 . month . should_equal 1
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
+
+        Test.specify "should also work with polyglot values coming from JS" <|
+            enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
+            js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
+            js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
+            table = Table.new [enso_dates, js_dates, js_objects]
+            table.info.at "Column" . to_vector . should_equal ["enso_dates", "js_dates", "js_objects"]
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date, Storage.Date_Time, Storage.Any]
+
+            enso_date_times = table.at "enso_dates" . map .to_date_time
+            enso_date_times.print
+            enso_date_times.storage_type . should_equal Storage.Date_Time
+            js_converted_dates = table.at "js_dates" . map .date
+            js_converted_dates.print
+            js_converted_dates.storage_type . should_equal Storage.Date
+#            (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
+#            (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -753,6 +769,11 @@ main = Test.Suite.run_main spec
 
 foreign js js_make_date year month day = """
     return new Date(year, month, day)
+
+foreign js js_make_object key value = """
+    var obj = {}
+    obj[key] = value
+    return obj
 
 foreign python py_make_date year month day = """
     import datetime
