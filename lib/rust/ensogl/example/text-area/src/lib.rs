@@ -55,9 +55,9 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    // area.set_content("aஓbcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
-                                      // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("aஓbcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
+                                       // area.set_content("abcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
+                                       // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
 
@@ -70,6 +70,7 @@ fn init(app: Application) {
     // TODO: set selection color
     // TODO: insertowanie ą i innych
     // TODO: chodzenie po literkach ktorych byte != 1
+    // TODO: remove line shape cache from ofscreen for lines without cursors
 
 
     // area.set_cursor_at_end();

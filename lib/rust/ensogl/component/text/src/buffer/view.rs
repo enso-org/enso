@@ -154,7 +154,7 @@ pub struct ViewBuffer {
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<usize>>,
     pub font:              Font,
-    pub shaped_lines:      Rc<RefCell<HashMap<Line, ShapedLine>>>,
+    pub shaped_lines:      Rc<RefCell<BTreeMap<Line, ShapedLine>>>,
     pub history:           History,
 }
 
@@ -265,31 +265,28 @@ impl ViewBuffer {
 
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
-        // if let Some(shaped_line) = shaped_lines.get(&line) {
-        //     warn!("FOUND SHAPED LINE {:?}", line);
-        //     f(shaped_line)
-        // } else {
-        warn!("GENERATING A NEW SHAPED LINE {:?}", line);
-        let shaped_line = self.shape_line(line);
-        let out = f(&shaped_line);
-        shaped_lines.insert(line, shaped_line);
-        out
-        // }
+        if let Some(shaped_line) = shaped_lines.get(&line) {
+            warn!("FOUND SHAPED LINE {:?}", line);
+            f(shaped_line)
+        } else {
+            warn!("GENERATING A NEW SHAPED LINE {:?}", line);
+            let shaped_line = self.shape_line(line);
+            let out = f(&shaped_line);
+            shaped_lines.insert(line, shaped_line);
+            out
+        }
     }
 
     pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.byte_range_of_line_index_snapped(line);
-        warn!("line_range: {:?}", line_range);
         let line_style = self.sub_style(line_range.start..line_range.end);
         let content = self.single_line_content2(line);
-        warn!("content: {:?}", content);
         let font = &self.font;
         let mut shaped_line = vec![];
         let mut prev_cluster_byte_offset = 0;
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {
-            warn!("chunked content: {:?}", content);
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
             let non_variable_variations = non_variable_variations_match.variations;
@@ -616,18 +613,36 @@ impl ViewBuffer {
 
         let redraw_start_line = transformed.min().line;
         let redraw_end_line = transformed.max().line;
-        let redraw_end_line = std::cmp::max(redraw_end_line, local_byte_selection.end.line);
+        warn!("redraw_start_line: {:?}", redraw_start_line);
+        warn!("redraw_end_line: {:?}", redraw_end_line);
+
+        let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
+        let inserted_line_count = local_byte_selection.end.line - redraw_start_line + Line(1);
+
+        let line_diff = inserted_line_count.value - selected_line_count.value;
+
+
+        if line_diff != 0 {
+            let mut shaped_lines = self.shaped_lines.borrow_mut();
+            let to_update = shaped_lines.drain_filter(|line, _| *line > redraw_end_line);
+            let to_update = to_update.map(|(line, s)| (line + Line(line_diff), s)).collect_vec();
+            shaped_lines.extend(to_update);
+        }
+
+        let redraw_range = redraw_start_line.value..=(redraw_end_line.value + line_diff);
 
         // FIXME: make it more inteligent.
         warn!("Clearing line shape cache.");
-        mem::take(&mut *self.shaped_lines.borrow_mut());
+        warn!("selected_line_count: {:?}", selected_line_count);
+        warn!("inserted_line_count: {:?}", inserted_line_count);
+        warn!("redraw range: {:?}", redraw_range);
+        // mem::take(&mut *self.shaped_lines.borrow_mut());
 
-        // // FIXME: make nicer iterator
-        // for line in redraw_start_line.value..=redraw_end_line.value {
-        //     let line = Line(line);
-        //     debug!("Removing line shape cache for line {:?}", line);
-        //     self.shaped_lines.borrow_mut().remove(&line);
-        // }
+        for line in redraw_range {
+            let line = Line(line);
+            debug!("Removing line shape cache for line {:?}", line);
+            self.shaped_lines.borrow_mut().remove(&line);
+        }
 
         // FIXME: construct the below with the local_byte_selection information above
         let selection_group =
@@ -647,15 +662,10 @@ impl ViewBuffer {
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-        warn!("to_bytes_selection: {:?}", selection);
         let selection_start = Location::from_in_context(self, selection.start);
-        warn!("selection_start: {:?}", selection_start);
         let selection_end = Location::from_in_context(self, selection.end);
-        warn!("selection_end: {:?}", selection_end);
         let start = self.byte_offset_of_location_snapped(selection_start);
-        warn!("start: {:?}", start);
         let end = self.byte_offset_of_location_snapped(selection_end);
-        warn!("end: {:?}", end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -1150,17 +1160,14 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
 
 impl FromInContext<&ViewBuffer, Location<Column>> for Location {
     fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
-        warn!("CONV: {:?}", location);
         context.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
             for glyph_set in &shaped_line.glyph_sets {
                 for glyph in &glyph_set.glyphs {
-                    warn!(">> glyph");
                     if column == location.offset {
                         byte_offset = Some(UBytes(glyph.info.cluster as usize));
-                        warn!("FOUND column: {:?}, byte_offset: {:?}", column, byte_offset);
                         found = true;
                         break;
                     }
@@ -1179,7 +1186,6 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
                 let offset = location2.offset;
                 location.with_offset(offset)
             });
-            warn!("RESULT: {:?}", out);
             out
         })
     }
