@@ -3,7 +3,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Regex
-import Standard.Base.Data.Text.Regex.Mode
 
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
@@ -158,7 +157,7 @@ Text.characters self =
    - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     find. When mode is set to either `Regex_Mode.First` or `Mode.Full`, this method
      will return either a single `Match` or `Nothing`. If set to an `Integer` or
      `Mode.All`, this method will return either a `Vector Match` or `Nothing`.
    - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
@@ -206,7 +205,7 @@ Text.characters self =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".match regex
-Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
+Text.match : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
 Text.match self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.match self mode
@@ -220,7 +219,7 @@ Text.match self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothi
    - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     find. When mode is set to either `Regex_Mode.First` or `Mode.Full`, this method
      will return either a single `Match` or `Nothing`. If set to an `Integer` or
      `Mode.All`, this method will return either a `Vector Match` or `Nothing`.
    - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
@@ -282,7 +281,7 @@ Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_match
    - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     find. When mode is set to either `Regex_Mode.First` or `Mode.Full`, this method
      will return either a single `Text` or `Nothing`. If set to an `Integer` or
      `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
    - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
@@ -329,7 +328,7 @@ Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_match
          example_find =
              text = "Now I know my ABCs"
              text.find "\w{1,3}"
-Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
+Text.find : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
 Text.find self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.find self mode
@@ -903,7 +902,7 @@ Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
     Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Mode.First
+        match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
 
 ## ALIAS Check Suffix
@@ -940,7 +939,7 @@ Text.ends_with self suffix matcher=Text_Matcher_Data = case matcher of
     Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Mode.First
+        match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
 
 ## ALIAS Contains
@@ -1002,7 +1001,7 @@ Text.contains self term="" matcher=Text_Matcher_Data = case matcher of
             Text_Utils.contains_case_insensitive self term locale.java_locale
     Regex_Matcher_Data _ _ _ _ _ ->
         compiled_pattern = matcher.compile term
-        match = compiled_pattern.match self Mode.First
+        match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
 
 ## Text to JSON conversion.
@@ -1405,7 +1404,7 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher_Data
                         Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
     Regex_Matcher_Data _ _ _ _ _ -> case mode of
         Matching_Mode.First ->
-            case matcher.compile term . match self Mode.First of
+            case matcher.compile term . match self Matching_Mode.First of
                 Nothing -> Nothing
                 match -> match.span 0 . to_grapheme_span
         Matching_Mode.Last ->
