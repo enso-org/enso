@@ -179,6 +179,22 @@ pub fn size(
 /// at given row and column. The area around an entry is defined as the bounding box of the entry
 /// enlarged by given margins. If there is more than one such viewport possible, return the one
 /// closest to the given viewport. The returned viewport has the same size as given viewport.
+///
+/// In the picture below, the dashed border represents the viewport, while the solid border
+/// represents the entry contained in the viewport.
+/// ```text
+/// ┌┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
+/// ┆                     ▲             ┆
+/// ┆         margins.top │             ┆
+/// ┆                     ▼             ┆
+/// ┆ margins ┌───────────────┐ margins ┆
+/// ┆  .left  │  entry        │  .right ┆
+/// ┆ ◀─────▶ └───────────────┘ ◀─────▶ ┆
+/// ┆                     ▲             ┆
+/// ┆      margins.bottom │             ┆
+/// ┆                     ▼             ┆
+/// └┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘
+/// ```
 pub fn position_of_viewport_containing_entry(
     row: Row,
     col: Col,
