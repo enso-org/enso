@@ -175,6 +175,10 @@ pub fn size(
     Vector2(base_entry_size.x + column_widths.width_diff(col), base_entry_size.y)
 }
 
+/// Return the position of the top-left corner of a viewport containing the area around the entry
+/// at given row and column. The area around an entry is defined as the bounding box of the entry
+/// enlarged by given margins. If there is more than one such viewport possible, return the one
+/// closest to the given viewport. The returned viewport has the same size as given viewport.
 pub fn position_of_viewport_containing_entry(
     row: Row,
     col: Col,
