@@ -90,16 +90,20 @@ pub struct Viewport {
 }
 
 impl Viewport {
-    pub fn from_center_point_and_size(pos: Vector2, size: Vector2) -> Self {
+    /// Return a viewport with given center position and size.
+    pub fn from_center_point_and_size(position: Vector2, size: Vector2) -> Self {
         let half_size = size / 2.0;
-        let top = pos.y + half_size.y;
-        let bottom = pos.y - half_size.y;
-        let left = pos.x - half_size.x;
-        let right = pos.x + half_size.x;
+        let top = position.y + half_size.y;
+        let bottom = position.y - half_size.y;
+        let left = position.x - half_size.x;
+        let right = position.x + half_size.x;
         Self { top, bottom, left, right }
     }
 
-    pub fn moved_to_contain(&self, other: Self) -> Self {
+    /// Return a viewport with unchanged size, moved such that it contains the top-left corner of
+    /// the other viewport and as much of its area as fits in the size. If there is more than one
+    /// such viewport possible, return the one closest to the original viewport.
+    pub fn moved_to_contain(self, other: Self) -> Self {
         let size = self.size();
         let top = if self.top < other.top {
             other.top
