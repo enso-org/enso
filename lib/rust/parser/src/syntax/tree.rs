@@ -132,13 +132,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub token: token::AutoScope<'s>,
         },
         TextLiteral {
-            pub open_quote: Option<token::TextStart<'s>>,
+            pub open:     Option<token::TextStart<'s>>,
             pub elements: Vec<TextElement<'s>>,
-            /// Conditions when this is `None`:
-            /// - Block literal: Always.
-            /// - Inline literal: On error: EOL or EOF occurred without the string being closed.
-            pub close_quote: Option<token::TextEnd<'s>>,
-            pub trim: VisibleOffset,
+            pub close:    Option<token::TextEnd<'s>>,
+            pub trim:     VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -428,10 +425,32 @@ pub enum TextElement<'s> {
         /// The text content.
         text: token::TextSection<'s>,
     },
-    /// A \ character.
-    Escape {
+    /// An escaped character.
+    EscapeChar {
         /// The \ character.
-        backslash: token::TextEscape<'s>,
+        backslash: Option<token::TextEscapeSymbol<'s>>,
+        /// The escaped character.
+        char:      Option<token::TextEscapeChar<'s>>,
+    },
+    /// A unicode escape sequence.
+    EscapeSequence {
+        /// The backslash and format characters.
+        leader: Option<token::TextEscapeLeader<'s>>,
+        /// The opening delimiter, if present.
+        open:   Option<token::TextEscapeSequenceStart<'s>>,
+        /// The hex digits.
+        digits: Option<token::TextEscapeHexDigits<'s>>,
+        /// The closing delimiter, if present.
+        close:  Option<token::TextEscapeSequenceEnd<'s>>,
+    },
+    /// An interpolated section within a text literal.
+    Splice {
+        /// The opening ` character.
+        open:       token::Symbol<'s>,
+        /// The interpolated expression.
+        expression: Option<Tree<'s>>,
+        /// The closing ` character.
+        close:      token::Symbol<'s>,
     },
 }
 
@@ -439,7 +458,11 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         match self {
             TextElement::Section { text } => text.add_to_span(span),
-            TextElement::Escape { backslash } => backslash.add_to_span(span),
+            TextElement::EscapeChar { backslash, char } => span.add(backslash).add(char),
+            TextElement::EscapeSequence { leader, open, digits, close } =>
+                span.add(leader).add(open).add(digits).add(close),
+            TextElement::Splice { open, expression, close } =>
+                span.add(open).add(expression).add(close),
         }
     }
 }
@@ -604,18 +627,40 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             return func;
         }
         Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
-                && lhs.close_quote.is_none() && rhs.open_quote.is_none() => {
-            match rhs.elements.first_mut() {
-                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
-                Some(TextElement::Escape { backslash }) =>
-                    backslash.left_offset = arg.span.left_offset,
-                None => (),
-            }
-            lhs.elements.append(&mut rhs.elements);
-            lhs.close_quote = rhs.close_quote.take();
+                && lhs.close.is_none() && rhs.open.is_none() => {
             if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
                 lhs.trim = rhs.trim;
             }
+            match rhs.elements.first_mut() {
+                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
+                Some(TextElement::EscapeChar { char: char_, .. }) => {
+                    if let Some(char__) = char_ {
+                        char__.left_offset = arg.span.left_offset;
+                        if let Some(TextElement::EscapeChar { char, .. }) = lhs.elements.last_mut()
+                            && char.is_none() {
+                            *char = mem::take(char_);
+                            return func;
+                        }
+                    }
+                }
+                Some(TextElement::EscapeSequence { open: open_, digits: digits_, close: close_, .. }) => {
+                    if let Some(TextElement::EscapeSequence { open, digits, close, .. })
+                            = lhs.elements.last_mut() {
+                        if open.is_none() {
+                            *open = open_.clone();
+                        }
+                        if digits.is_none() {
+                            *digits = digits_.clone();
+                        }
+                        *close = close_.clone();
+                        return func;
+                    }
+                }
+                Some(TextElement::Splice { open, .. }) => open.left_offset = arg.span.left_offset,
+                None => (),
+            }
+            lhs.elements.append(&mut rhs.elements);
+            lhs.close = rhs.close.take();
             return func;
         }
         Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None })

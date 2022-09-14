@@ -276,14 +276,21 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextStart,
         TextEnd,
         TextSection,
-        TextEscape,
+        TextEscapeSymbol,
+        TextEscapeChar,
+        TextEscapeLeader,
+        TextEscapeHexDigits,
+        TextEscapeSequenceStart,
+        TextEscapeSequenceEnd,
     }
 }}}
 
 impl Variant {
     /// Return whether this token can introduce a macro invocation.
     pub fn can_start_macro(&self) -> bool {
-        !matches!(self, Variant::TextEscape(_))
+        // Prevent macro interpretation of symbols that have been lexically contextualized as text
+        // escape control characters.
+        !matches!(self, Variant::TextEscapeSymbol(_) | Variant::TextEscapeSequenceStart(_))
     }
 }
 
