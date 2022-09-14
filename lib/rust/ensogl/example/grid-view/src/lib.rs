@@ -157,6 +157,11 @@ fn setup_grid_view_with_headers(
     view
 }
 
+fn pair_to_vec2(pair: (f32, f32)) -> Vector2 {
+    let (x, y) = pair;
+    Vector2(x, y)
+}
+
 
 
 // ========================
@@ -180,8 +185,7 @@ fn init(app: &Application) {
     let with_hover_mask = [&grid_views_with_headers[2]];
     let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
     grid_views_with_headers[2].frp().focus();
-    let pair_to_vector = |(x, y)| Vector2(x, y);
-    let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vector);
+    let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vec2);
 
     grids_layer.add_exclusive(&plain_grid_view);
     plain_grid_view.set_position_xy(positions.next().unwrap());
