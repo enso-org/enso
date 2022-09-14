@@ -30,8 +30,8 @@ polyglot java import java.io.IOException
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-write_file : Table -> Delimited_Format -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
-write_file table format file on_existing_file match_columns on_problems =
+write_delimited_file : Table -> Delimited_Format -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
+write_delimited_file table format file on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
             append_to_file table format file match_columns on_problems
@@ -86,8 +86,8 @@ append_to_file table format file match_columns on_problems =
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
-write_text : Table -> Delimited_Format -> Text
-write_text table format =
+write_delimited_text : Table -> Delimited_Format -> Text
+write_delimited_text table format =
     java_writer = StringWriter.new
     write_to_writer table format java_writer
     java_writer.toString

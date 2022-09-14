@@ -35,8 +35,8 @@ polyglot java import org.enso.table.read.QuoteStrippingParser
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-read_file : Delimited_Format -> File -> Problem_Behavior -> Any
-read_file format file on_problems =
+read_delimited_file : Delimited_Format -> File -> Problem_Behavior -> Any
+read_delimited_file format file on_problems =
     ## We use the default `max_columns` setting. If we want to be able to
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
@@ -44,8 +44,8 @@ read_file format file on_problems =
     file.with_input_stream [File.Option.Read] stream->
         read_stream format stream on_problems related_file=file
 
-read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
-read_text text format on_problems =
+read_delimited_text : Text -> Delimited_Format -> Problem_Behavior -> Table
+read_delimited_text text format on_problems =
     java_reader = StringReader.new text
     read_from_reader format java_reader on_problems
 

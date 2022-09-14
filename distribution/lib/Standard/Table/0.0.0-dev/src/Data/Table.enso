@@ -15,8 +15,8 @@ import Standard.Table.Internal.Problem_Builder
 from Standard.Table.IO.Auto_Detect import Auto_Detect
 
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
-from Standard.Table.Delimited.Reader import read_text
-from Standard.Table.Delimited.Writer import write_text
+from Standard.Table.Delimited.Reader import read_delimited_text
+from Standard.Table.Delimited.Writer import write_delimited_text
 
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
@@ -1197,11 +1197,11 @@ print_table header rows indices_count format_term =
     ([" " + header_line, divider] + row_lines).join '\n'
 
 Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a Delimited then read_text that format on_problems else
+    if format.is_a Delimited then read_delimited_text that format on_problems else
         Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
 Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
-    if format.is_a Delimited then write_text that format else
+    if format.is_a Delimited then write_delimited_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
 
 ## PRIVATE

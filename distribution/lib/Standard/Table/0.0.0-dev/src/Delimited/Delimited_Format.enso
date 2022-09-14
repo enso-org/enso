@@ -2,8 +2,8 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Match_Columns
-from Standard.Table.Delimited.Reader import read_file
-from Standard.Table.Delimited.Writer import write_file
+from Standard.Table.Delimited.Reader import read_delimited_file
+from Standard.Table.Delimited.Writer import write_delimited_file
 
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
 
@@ -60,12 +60,12 @@ type Delimited_Format
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        read_file self file on_problems
+        read_delimited_file self file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
     write_table self file table on_existing_file match_columns on_problems =
-        write_file table self file on_existing_file match_columns on_problems
+        write_delimited_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
        Clone the instance with some properties overridden.
