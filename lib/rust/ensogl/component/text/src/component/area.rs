@@ -76,7 +76,6 @@ pub struct Line {
     glyphs:         Vec<Glyph>,
     divs:           Vec<f32>,
     centers:        Vec<f32>,
-    index:          usize,
 }
 
 impl Line {
@@ -142,10 +141,9 @@ impl Line {
         self.glyphs.push(glyph);
     }
 
-    fn set_index(&mut self, index: usize) {
-        let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+    fn set_index(&mut self, index: ViewLine) {
+        let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
         self.set_position_y(y_offset);
-        self.index = index;
     }
 }
 
@@ -166,10 +164,43 @@ fn set_line_index(line: &display::object::Instance, index: usize) {
 // === Lines ===
 // =============
 
+#[derive(Debug, Deref, DerefMut, Default, From, Into)]
+pub struct LinesVec {
+    pub vec: Vec<Line>,
+}
+
+impl LinesVec {
+    pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
+        self.vec.insert(index.value as usize, line);
+    }
+}
+
+
+impl Index<unit::ViewLine> for LinesVec {
+    type Output = Line;
+    fn index(&self, index: unit::ViewLine) -> &Self::Output {
+        &self.vec[index.value as usize]
+    }
+}
+
+impl IndexMut<unit::ViewLine> for LinesVec {
+    fn index_mut(&mut self, index: unit::ViewLine) -> &mut Self::Output {
+        &mut self.vec[index.value as usize]
+    }
+}
+
+impl Index<std::ops::Range<unit::ViewLine>> for LinesVec {
+    type Output = [Line];
+    fn index(&self, range: std::ops::Range<unit::ViewLine>) -> &Self::Output {
+        &self.vec[range.start.value as usize..range.end.value as usize]
+    }
+}
+
+
 /// Set of all visible lines.
 #[derive(Clone, CloneRef, Debug, Default, Deref)]
 struct Lines {
-    rc: Rc<RefCell<Vec<Line>>>,
+    rc: Rc<RefCell<LinesVec>>,
 }
 
 impl Lines {
@@ -179,12 +210,12 @@ impl Lines {
     }
 
     /// Resize the line container and use the provided function to construct missing elements.
-    pub fn resize_with(&self, size: usize, cons: impl Fn(usize) -> Line) {
+    pub fn resize_with(&self, size: usize, cons: impl Fn(ViewLine) -> Line) {
         let vec = &mut self.rc.borrow_mut();
-        let mut ix = vec.len();
+        let mut ix = ViewLine(vec.len() as i32);
         vec.resize_with(size, || {
             let line = cons(ix);
-            ix += 1;
+            ix += ViewLine(1);
             line
         })
     }
@@ -757,8 +788,8 @@ impl AreaModel {
                         let line_diff = change_with_selection.line_diff;
 
                         // Measurements used for computing the line range to add or remove.
-                        let second_line_index = (*shape_x.start()).value as usize + 1;
-                        let line_after_end_index = (*shape_x.end()).value as usize + 1;
+                        let second_line_index = shape_x.start().inc();
+                        let line_after_end_index = shape_x.end().inc();
                         let mut lines = self.lines.borrow_mut();
 
                         if line_diff != 0 {
@@ -766,7 +797,7 @@ impl AreaModel {
                             // vertical animation.
                             let selection_map = self.selection_map.borrow();
                             let cursor = selection_map.id_map.get(&selection.id).unwrap();
-                            for index in line_after_end_index..lines.len() {
+                            for index in line_after_end_index..ViewLine(lines.len() as i32) {
                                 lines[index].set_index(index - line_after_end_index);
                                 cursor.bottom_snapped_left.add_child(&lines[index]);
                             }
@@ -776,8 +807,8 @@ impl AreaModel {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
                             for i in 0..line_diff as usize {
-                                let index_to_insert = second_line_index + i;
-                                if index_to_insert < lines.len() {
+                                let index_to_insert = second_line_index + ViewLine(i as i32);
+                                if index_to_insert < ViewLine(lines.len() as i32) {
                                     lines.insert(index_to_insert, self.new_line(index_to_insert));
                                 }
                             }
@@ -785,6 +816,7 @@ impl AreaModel {
                             // Remove lines that are no longer needed. This is needed for proper
                             // partial redraw (redrawing only the lines that changed).
                             let line_diff = (-line_diff) as usize;
+                            let second_line_index = second_line_index.value as usize;
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
 
@@ -836,7 +868,7 @@ impl AreaModel {
                     if line >= unit::ViewLine(self.lines.len() as i32) {
                         self.lines.borrow().last().map(|line| line.last_div()).unwrap_or(0.0)
                     } else {
-                        self.lines.borrow()[line.as_usize()].div_by_column(column)
+                        self.lines.borrow()[line].div_by_column(column)
                     }
                 };
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
@@ -911,12 +943,16 @@ impl AreaModel {
         (inv_object_matrix * world_space).xy()
     }
 
+    fn last_line(&self) -> ViewLine {
+        ViewLine((self.lines.len() - 1) as i32)
+    }
+
     fn get_in_text_location(&self, screen_pos: Vector2) -> Location<Column> {
         let object_space = self.to_object_space(screen_pos);
-        let line_index = (-object_space.y / LINE_HEIGHT) as usize;
-        let line_index = std::cmp::min(line_index, self.lines.len() - 1);
-        let div_index = self.lines.borrow()[line_index].div_index_close_to(object_space.x);
-        let line = unit::Line(line_index as i32);
+        let view_line = ViewLine((-object_space.y / LINE_HEIGHT) as i32);
+        let view_line = std::cmp::min(view_line, self.last_line());
+        let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
+        let line = self.buffer.view_line_to_line(view_line);
         let column = Column(div_index);
         Location(line, column)
     }
@@ -1007,7 +1043,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.borrow_mut()[view_line_index.as_usize()];
+        let line = &mut self.lines.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         // debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
@@ -1092,33 +1128,35 @@ impl AreaModel {
                 for span in spans.into_iter().filter(|t| t.value.is_none()) {
                     let range =
                         buffer::Range::<Location<Column>>::from_in_context(self, span.range);
-
                     let mut lines = self.lines.borrow_mut();
 
-                    if range.start.line == range.end.line {
-                        let line = &mut lines[range.start.line.value as usize];
+                    if range.single_line() {
+                        let view_line = self.buffer.line_to_view_line(range.start.line);
+                        let line = &mut lines[view_line];
                         for glyph in
                             &mut line.glyphs[range.start.offset.value..range.end.offset.value]
                         {
                             glyph.set_property(property);
                         }
                     } else {
-                        let first_line = &mut lines[range.start.line.value as usize];
+                        let view_line = self.buffer.line_to_view_line(range.start.line);
+                        let first_line = &mut lines[view_line];
                         for glyph in &mut first_line.glyphs[range.start.offset.value..] {
                             glyph.set_property(property);
                         }
-                        let last_line = &mut lines[range.end.line.value as usize];
+                        let view_line = self.buffer.line_to_view_line(range.end.line);
+                        let last_line = &mut lines[view_line];
                         for glyph in &mut last_line.glyphs[..range.end.offset.value] {
                             glyph.set_property(property);
                         }
                         for line_index in range.start.line.value + 1..range.end.line.value {
-                            let line = &mut lines[line_index as usize];
+                            let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
+                            let line = &mut lines[view_line];
                             for glyph in &mut line.glyphs[..range.end.offset.value] {
                                 glyph.set_property(property);
                             }
                         }
                     }
-                    // for line in range.start.line..=range.end.line {}
                     warn!(">> range: {:?}", range);
                 }
                 // fixme: this should iterate over glyphs, but first we should change the metric
@@ -1154,7 +1192,7 @@ impl AreaModel {
         let range = self.buffer.location_range_to_view_location_range(range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
-            let line = &lines[range.start.line.as_usize()];
+            let line = &lines[range.start.line];
             for glyph in &line.glyphs {
                 if glyph.start_byte_offset.get() >= range.end.offset {
                     break;
@@ -1167,17 +1205,17 @@ impl AreaModel {
             let first_line = range.start.line;
             let second_line = first_line + ViewLine(1);
             let last_line = range.end.line;
-            for glyph in &lines[first_line.as_usize()].glyphs {
+            for glyph in &lines[first_line].glyphs {
                 if glyph.start_byte_offset.get() >= range.start.offset {
                     f(&glyph)
                 }
             }
-            for line in &lines[second_line.as_usize()..last_line.as_usize()] {
+            for line in &lines[second_line..last_line] {
                 for glyph in &line.glyphs {
                     f(&glyph)
                 }
             }
-            for glyph in &lines[last_line.as_usize()].glyphs {
+            for glyph in &lines[last_line].glyphs {
                 if glyph.start_byte_offset.get() < range.end.offset {
                     f(&glyph)
                 }
@@ -1203,7 +1241,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.borrow_mut()[view_line_index.as_usize()];
+        let line = &mut self.lines.borrow_mut()[view_line_index];
 
         let mut last_cursor = None;
         let mut last_cursor_target = default();
@@ -1230,11 +1268,11 @@ impl AreaModel {
 
     pub fn remove_glyphs_from_cursors(&self) {
         let selection_map = self.selection_map.borrow();
-        for (line, cursor_map) in &selection_map.location_map {
+        for (&line, cursor_map) in &selection_map.location_map {
             for (_, cursor_id) in cursor_map {
                 let selection = selection_map.id_map.get(cursor_id).unwrap();
                 for glyph in selection.right_side.remove_all_children() {
-                    self.lines.borrow_mut()[line.as_usize()].add_child(&glyph);
+                    self.lines.borrow_mut()[line].add_child(&glyph);
                     let pos_x = selection.position.target_value().x;
                     glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                 }
@@ -1331,7 +1369,7 @@ impl AreaModel {
         self.buffer.formatting.get().size.default
     }
 
-    fn new_line(&self, index: usize) -> Line {
+    fn new_line(&self, index: ViewLine) -> Line {
         let mut line = Line::new();
         line.set_index(index);
         self.add_child(&line);

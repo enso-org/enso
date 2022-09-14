@@ -206,6 +206,8 @@ impl<'de> serde::Deserialize<'de> for Chars {
 // === Line ===
 // ============
 
+// FIXME: make Line usize and separate type for LineDiff - this should not be implemented for i32
+
 // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
 //       This will make this unit safer.
 unit! {
@@ -252,6 +254,10 @@ impl ViewLine {
     pub fn abs(self) -> Self {
         self.value.saturating_abs().into()
     }
+
+    pub fn inc(self) -> Self {
+        (self.value + 1).into()
+    }
 }
 
 impl From<usize> for ViewLine {
@@ -286,45 +292,6 @@ impl iter::Step for ViewLine {
         Some(ViewLine(new_value))
     }
 }
-// impl From<Line> for ViewLine {
-//     fn from(t: Line) -> Self {
-//         t.value.into()
-//     }
-// }
-//
-// impl From<ViewLine> for Line {
-//     fn from(t: ViewLine) -> Self {
-//         t.value.into()
-//     }
-// }
-
-// impl Add<Line> for ViewLine {
-//     type Output = Line;
-//     fn add(self, rhs: Line) -> Self::Output {
-//         Line::from(self) + rhs
-//     }
-// }
-//
-// impl Add<ViewLine> for Line {
-//     type Output = Line;
-//     fn add(self, rhs: ViewLine) -> Self::Output {
-//         self + Line::from(rhs)
-//     }
-// }
-//
-// impl Sub<Line> for ViewLine {
-//     type Output = Line;
-//     fn sub(self, rhs: Line) -> Self::Output {
-//         Line::from(self) - rhs
-//     }
-// }
-//
-// impl Sub<ViewLine> for Line {
-//     type Output = Line;
-//     fn sub(self, rhs: ViewLine) -> Self::Output {
-//         self - Line::from(rhs)
-//     }
-// }
 
 
 unit! {
