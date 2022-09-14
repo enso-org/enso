@@ -100,6 +100,7 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
     };
     view.set_entries_params(params);
     view.reset_entries(1000, 1000);
+    view.frp().focus();
     network
 }
 
@@ -179,12 +180,10 @@ fn init(app: &Application) {
     let selection_layer = main_layer.create_sublayer();
 
     let plain_grid_view = setup_plain_grid_view(app);
-    plain_grid_view.frp().focus();
     let grid_views_with_headers =
         std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
     let with_hover_mask = [&grid_views_with_headers[2]];
     let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
-    grid_views_with_headers[2].frp().focus();
     let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vec2);
 
     grids_layer.add_exclusive(&plain_grid_view);
