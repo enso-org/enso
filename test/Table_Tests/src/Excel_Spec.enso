@@ -6,8 +6,8 @@ from Standard.Base.Error.Problem_Behavior import all
 import Standard.Table
 from Standard.Table import Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter_Data, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited
 
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
-from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch_Data, Column_Name_Mismatch_Data
+from Standard.Table.Data.Column_Selector import By_Index
+from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch_Data, Column_Name_Mismatch_Data
 
 import Standard.Test
 import Standard.Test.Problems
