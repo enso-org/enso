@@ -116,13 +116,15 @@ spec =
         Test.specify "should also work with polyglot values" <|
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
+            enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
-            table = Table.new [js_dates, py_dates, py_objects]
-            table.info.at "Column" . to_vector . should_equal ["js_dates", "py_dates", "py_objects"]
-            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date_Time, Storage.Date, Storage.Any]
+            table = Table.new [js_dates, py_dates, enso_dates, py_objects]
+            table.info.at "Column" . to_vector . should_equal ["js_dates", "py_dates", "enso_dates", "py_objects"]
+            table.info.at "Storage Type" . to_vector . should_equal [Storage.Date_Time, Storage.Date, Storage.Date, Storage.Any]
 
             table.at "js_dates" . at 0 . year . should_equal 2022
             table.at "py_dates" . at 1 . month . should_equal 1
+            (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
