@@ -581,6 +581,9 @@ where
     /// entry at given row and column. The area around an entry is defined as the bounding box of
     /// the entry enlarged by given margins. If there is more than one such viewport possible,
     /// return the one closest to the current viewport.
+    ///
+    /// For a pictorial representation of the areas, see the documentation of the
+    /// [`entry::visible::position_of_viewport_containing_entry`] function.
     fn viewport_containing_entry(&self, row: Row, col: Col, margins: Margins) -> Vector2 {
         let column_widths = &self.widget.model().column_widths;
         let base_entry_size = self.entries_size.value();
