@@ -21,7 +21,19 @@ trait ModifiedTest
   val output                            = new ByteArrayOutputStream()
   private[this] var testDirectory: File = _
 
-  def evalTestProject(name: String, iteration: Int): Value = {
+  /** Compile and run a project defined in the resources directory.
+    * The project may contain files that are changed in the process.
+    * The changes to files are specified via iteration suffix. E.g.,
+    * A_1.enso, A_2.enso and A_3.enso represents three states of the
+    * A.enso file.
+    *
+    * @param name name of the project to run
+    * @param iteration iteration used to identify the correct version of the module
+    * @return result of executing the project
+    */
+  def evalTestProjectIteration(name: String, iteration: Int): Value = {
+    assert(iteration > 0)
+
     val pkgPath =
       new File(getClass.getClassLoader.getResource(name).getPath)
 
