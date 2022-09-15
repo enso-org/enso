@@ -7,13 +7,16 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
-import Standard.Table.IO.File_Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
-import Standard.Table.Internal.Delimited_Reader
-import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
+
+from Standard.Table.IO.Auto_Detect import Auto_Detect
+
+from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
+import Standard.Table.Delimited.Delimited_Reader
+import Standard.Table.Delimited.Delimited_Writer
 
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
@@ -1062,9 +1065,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -1093,10 +1096,9 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
+         - `Auto_Detect`: The file format is determined by the provided file.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+           the `write` function. If passed as format, an
            `Illegal_Argument_Error` is raised. To write out the table as plain
            text, the user needs to call the `Text.from Table` method and then
            use the `Text.write` function.
@@ -1106,23 +1108,25 @@ type Table
 
              import Standard.Examples
              import Standard.Table
+             from Standard.Table import Delimited
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (File_Format.Delimited_Data delimiter="," headers=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Delimited delimiter="," headers=False)
 
        > Example
          Write a table to an XLSX file.
 
              import Standard.Examples
              import Standard.Table
+             from Standard.Table import Excel
 
-             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
+             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (File_Format.Delimited_Data delimiter=",")
+    to_csv self = Text.from self (Delimited delimiter=",")
 
 ## UNSTABLE
 
@@ -1191,12 +1195,12 @@ print_table header rows indices_count format_term =
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
 
-Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a File_Format.Delimited_Data then Delimited_Reader.read_text that format on_problems else
+Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    if format.is_a Delimited then Delimited_Reader.read_text that format on_problems else
         Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
-Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') =
-    if format.is_a File_Format.Delimited_Data then Delimited_Writer.write_text that format else
+Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
+    if format.is_a Delimited then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
 
 ## PRIVATE

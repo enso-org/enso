@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.System.File_Format
 
 import project.Data.Table
 import project.Data.Column
@@ -8,11 +9,17 @@ import project.Data.Sort_Column_Selector
 import project.Data.Column_Name_Mapping
 import project.Data.Data_Formatter
 import project.Data.Match_Columns
+import project.Data.Aggregate_Column
 
 import project.IO.File_Read
-import project.IO.File_Format
-import project.IO.Excel
-import project.IO.Quote_Style
+import project.IO.Auto_Detect
+
+import project.Delimited.Quote_Style
+import project.Delimited.Delimited_Format
+
+import project.Excel.Section
+import project.Excel.Range
+import project.Excel.Excel_Format
 
 import project.Errors
 
@@ -23,12 +30,18 @@ export project.Data.Sort_Column
 export project.Data.Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
+export project.Data.Aggregate_Column
 
 export project.IO.File_Read
-export project.IO.File_Format
-export project.IO.Quote_Style
+from project.IO.Auto_Detect export Auto_Detect
 
-from project.IO.Excel export Excel_Section, Excel_Range
+export project.Delimited.Quote_Style
+from project.Delimited.Delimited_Format export Delimited_Format, Delimited
+
+from project.Excel.Excel_Format export Excel_Format, Excel
+from project.Excel.Section export Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
+from project.Excel.Range export Excel_Range
+
 from project.Data.Data_Formatter export Data_Formatter, Data_Formatter_Data
 
 import Standard.Geo.Geo_Json
@@ -110,3 +123,4 @@ type Invalid_Format_Error
     to_display_text : Text
     to_display_text self =
         "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
+

@@ -40,6 +40,32 @@ type Primitive
 type Unresolved_Symbol
     Unresolved_Symbol_Data value
 
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a new unresolved symbol with its name changed to the provided
+       argument.
+
+       Arguments:
+       - new_name: The new name for the unresolved symbol.
+    rename : Text -> Any
+    rename self new_name =
+        create_unresolved_symbol new_name self.scope
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the name of an unresolved symbol.
+    name : Text
+    name self = get_unresolved_symbol_name self.value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the definition scope of an unresolved symbol.
+    scope : Any
+    scope self = get_unresolved_symbol_scope self.value
+
 ## UNSTABLE
    ADVANCED
 
@@ -141,33 +167,6 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
    - symbol: The unresolved symbol from which to get the scope.
 get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a new unresolved symbol with its name changed to the provided
-   argument.
-
-   Arguments:
-   - new_name: The new name for the unresolved symbol.
-Unresolved_Symbol.rename : Text -> Any
-Unresolved_Symbol.rename self new_name =
-    create_unresolved_symbol new_name self.scope
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the name of an unresolved symbol.
-Unresolved_Symbol.name : Text
-Unresolved_Symbol.name self = get_unresolved_symbol_name self.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the definition scope of an unresolved symbol.
-Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope self = get_unresolved_symbol_scope self.value
-
 
 # Constructor methods
 ## PRIVATE
@@ -349,7 +348,7 @@ type Language
     ## UNSTABLE
        ADVANCED
 
-       The Java laguage.
+       The Java language.
     Java
 
     ## UNSTABLE

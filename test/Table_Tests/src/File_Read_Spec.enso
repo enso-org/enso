@@ -1,9 +1,7 @@
 from Standard.Base import all
+from Standard.Base.System.File_Format import Unsupported_File_Type_Data
 
 import Standard.Table.IO.File_Read
-import Standard.Table.IO.File_Format
-from Standard.Table.Errors import Unsupported_File_Type_Data
-
 import Standard.Test
 import Standard.Test.Problems
 
@@ -12,20 +10,7 @@ spec =
     sample_txt = enso_project.data / "sample.txt"
     windows_log = enso_project.data / "windows.log"
 
-    Test.group "File_Format.Auto materialise" <|
-        Test.specify "should be Bytes for unknown file" <|
-            File_Format.Auto . materialise sample_xxx . should_fail_with Unsupported_File_Type_Data
-
-        Test.specify "should be Text for text file" <|
-            File_Format.Auto . materialise sample_txt . should_be_a File_Format.Plain_Text_Data
-
-        Test.specify "should be Text for log file" <|
-            File_Format.Auto . materialise windows_log . should_be_a File_Format.Plain_Text_Data
-
-        Test.specify "should detect CSV files" <|
-            File_Format.Auto . materialise (enso_project.data / "data.csv") . should_equal (File_Format.Delimited_Data ",")
-
-    Test.group "File_Format.Auto" <|
+    Test.group "Auto_Detect" <|
         Test.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
             bytes.should_fail_with Unsupported_File_Type_Data
@@ -34,31 +19,31 @@ spec =
             content = sample_txt.read
             content.should_equal "Hello World!"
 
-    Test.group "File_Format.Bytes" <|
+    Test.group "Bytes" <|
         Test.specify "should be able to read a file as Bytes" <|
-            bytes = sample_xxx.read File_Format.Bytes
+            bytes = sample_xxx.read Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by method" <|
-            bytes = File.read (sample_xxx) File_Format.Bytes
+            bytes = File.read (sample_xxx) Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by path" <|
             path = sample_xxx.path
-            bytes = File.read path File_Format.Bytes
+            bytes = File.read path Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
-    Test.group "File_Format.Plain_Text" <|
+    Test.group "Plain_Text" <|
         Test.specify "should be able to read a file as Text" <|
-            text = sample_xxx.read File_Format.Plain_Text_Data
+            text = sample_xxx.read Plain_Text
             text.should_equal "Hello World!"
 
         Test.specify "should be able to read a file as Text with Encoding" <|
-            text = windows_log.read (File_Format.Plain_Text_Data Encoding.windows_1252)
+            text = windows_log.read (Plain_Text Encoding.windows_1252)
             text.should_equal "Hello World! $¢¤¥"
 
         Test.specify "should raise a warning when invalid encoding in a Text file" <|
-            action = windows_log.read (File_Format.Plain_Text_Data Encoding.ascii) on_problems=_
+            action = windows_log.read (Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error_Data "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
