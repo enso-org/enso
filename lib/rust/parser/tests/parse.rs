@@ -308,14 +308,13 @@ fn code_block_operator() {
           #()))
     ];
     test(&code.join("\n"), expect);
-    let code = ["rect2 = rect1", "    . width = 7", "    . center", "        . x = 1"];
+    let code = ["rect1", "    . width = 7", "    . center", "        + x"];
     #[rustfmt::skip]
     let expected = block![
-        (Assignment (Ident rect2) "="
-         (OperatorBlockApplication (Ident rect1)
-          #(((Ok ".") (OprApp (Ident width) (Ok "=") (Number () "7" ())))
-            ((Ok ".") (OperatorBlockApplication (Ident center)
-                      ((Ok ".") (OprApp (Ident x) (Ok "=") (Number () "1" ()))))))))];
+        (OperatorBlockApplication (Ident rect1)
+         #(((Ok ".") (OprApp (Ident width) (Ok "=") (Number () "7" ())))
+           ((Ok ".") (OperatorBlockApplication (Ident center)
+                     #(((Ok "+") (Ident x))) #()))) #())];
     test(&code.join("\n"), expected);
 }
 
@@ -387,6 +386,17 @@ fn code_block_with_following_statement() {
         (Function main #() "=" (BodyBlock #((Ident foo))))
         (Ident bar)
     ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn operator_block_nested() {
+    let code = ["foo", "    + bar", "        - baz"];
+    #[rustfmt::skip]
+    let expected = block![
+        (OperatorBlockApplication (Ident foo)
+         #(((Ok "+") (OperatorBlockApplication (Ident bar) #(((Ok "-") (Ident baz))) #())))
+         #())];
     test(&code.join("\n"), expected);
 }
 

@@ -75,22 +75,87 @@ pub struct OperatorBlockExpression<'s> {
 
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
 fn to_operator_block_expression(
-    expression_: Tree<'_>,
+    mut tree: Tree<'_>,
 ) -> Result<OperatorBlockExpression<'_>, Tree<'_>> {
-    let tree_ = match &*expression_.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
-        _ => return Err(expression_),
-    };
-    if let Variant::OprApp(OprApp { lhs: None, opr, rhs: Some(expression) }) = &*tree_.variant {
-        if expression.span.left_offset.visible.width_in_spaces < 1 {
-            return Err(expression_);
+    let mut left_operator = None;
+    recurse_left_mut_while(&mut tree, |tree| {
+        if let Variant::OprApp(OprApp { lhs: None, opr, rhs: Some(rhs) }) = &*tree.variant
+            && rhs.span.left_offset.visible.width_in_spaces >= 1
+        {
+            let mut operator = opr.clone();
+            operator.first_operator_mut().left_offset = tree.span.left_offset.clone();
+            let expression = rhs.clone();
+            left_operator = Some(operator);
+            *tree = expression;
         }
-        let mut operator = opr.clone();
-        operator.first_operator_mut().left_offset = expression_.span.left_offset;
-        let expression = expression.clone();
-        Ok(OperatorBlockExpression { operator, expression })
-    } else {
-        Err(expression_)
+        true
+    });
+    match left_operator {
+        Some(mut operator) => {
+            let expression = match *tree.variant {
+                Variant::OprSectionBoundary(OprSectionBoundary { ast }) => {
+                    operator.first_operator_mut().left_offset += tree.span.left_offset.clone();
+                    ast
+                }
+                _ => tree,
+            };
+            Ok(OperatorBlockExpression { operator, expression })
+        }
+        None => Err(tree),
+    }
+}
+
+fn recurse_left_mut_while<'s>(
+    mut tree: &'_ mut Tree<'s>,
+    mut f: impl FnMut(&'_ mut Tree<'s>) -> bool,
+) {
+    while f(tree) {
+        tree = match &mut *tree.variant {
+            // No LHS.
+            Variant::Invalid(_)
+            | Variant::Unsupported(_)
+            | Variant::BodyBlock(_)
+            | Variant::Ident(_)
+            | Variant::Number(_)
+            | Variant::Wildcard(_)
+            | Variant::AutoScope(_)
+            | Variant::TextLiteral(_)
+            | Variant::UnaryOprApp(_)
+            | Variant::MultiSegmentApp(_)
+            | Variant::TypeDef(_)
+            | Variant::Function(_)
+            | Variant::Import(_)
+            | Variant::Export(_)
+            | Variant::Group(_)
+            | Variant::Case(_)
+            | Variant::TypeSignature(_)
+            | Variant::Lambda(_)
+            | Variant::Array(_)
+            | Variant::Tuple(_) => break,
+            // Optional LHS.
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
+            | Variant::OperatorBlockApplication(OperatorBlockApplication { lhs, .. })
+            | Variant::OprApp(OprApp { lhs, .. }) =>
+                if let Some(lhs) = lhs {
+                    lhs
+                } else {
+                    break;
+                },
+            // Unconditional LHS.
+            Variant::App(App { func: lhs, .. })
+            | Variant::NamedApp(NamedApp { func: lhs, .. })
+            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs })
+            | Variant::DefaultApp(DefaultApp { func: lhs, .. })
+            | Variant::Assignment(Assignment { pattern: lhs, .. })
+            | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
+            // Special.
+            Variant::Arrow(Arrow { arguments, .. }) =>
+                if let Some(lhs) = arguments.first_mut() {
+                    lhs
+                } else {
+                    break;
+                },
+        }
     }
 }
 

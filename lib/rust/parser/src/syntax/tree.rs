@@ -176,7 +176,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub ast: Tree<'s>,
+            pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
@@ -643,10 +643,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
+            arg.span.left_offset += mem::take(&mut func.span.left_offset);
             block.lhs = Some(func);
             arg
         }
         Variant::OperatorBlockApplication(block) if block.lhs.is_none() => {
+            arg.span.left_offset += mem::take(&mut func.span.left_offset);
             block.lhs = Some(func);
             arg
         }
