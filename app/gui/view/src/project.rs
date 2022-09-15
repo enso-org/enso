@@ -634,6 +634,8 @@ impl View {
             eval graph.visualization_preprocessor_changed([]((node_id, preproc_cfg))
                 tracing::warn!("MCDBG vis_prepr_chg ({node_id}, {preproc_cfg:?})"));
 
+            // !!!!!!!! WIP !!!!!!!!
+            graph.enable_visualization <+ node_added_by_user._0();
 
             // === Editing ===
 

@@ -125,6 +125,9 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
+        // // DEBUG
+        // let _ = self.state.update_from_view().set_node_visualization(id, path.clone());
+
         self.update_ast(
             || {
                 let ast_id =
