@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
 from Standard.Base.Error.Common import Time_Error_Data
@@ -230,6 +231,14 @@ type Date
     day_of_week self =
         Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
+    ## Returns the first date within the `Date_Period` containing self.
+    start_of : Date_Period -> Date
+    start_of self period=Date_Period.Month = period.adjust_start self
+
+    ## Returns the last date within the `Date_Period` containing self.
+    end_of : Date_Period -> Date
+    end_of self period=Date_Period.Month = period.adjust_end self
+
     ## ALIAS Date to Time
 
        Combine this date with time of day to create a point in time.
@@ -244,8 +253,8 @@ type Date
              from Standard.Base import Date, Time_Of_Day, Time_Zone
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Time_Zone.utc
-    to_time : Time_Of_Day -> Time_Zone -> Date_Time
-    to_time self time_of_day (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
+    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
+    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
 

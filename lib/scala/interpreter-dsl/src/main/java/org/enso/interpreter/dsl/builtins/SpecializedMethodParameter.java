@@ -23,6 +23,8 @@ abstract class SpecializedMethodParameter {
     } else {
       if (param.needsToInjectValueOfType()) {
         return new InjectedMethodParameter(param);
+      } else if (param.tpe().equals(CachedLibraryMethodParameter.INTEROP_LIBRARY)) {
+        return new CachedLibraryMethodParameter(param, "limit=\"1\"");
       } else {
         return new RegularMethodParameter(param);
       }
@@ -91,6 +93,33 @@ class CachedMethodParameter extends SpecializedMethodParameter {
         "Object " + param.name(),
         "@Cached(\"" + cachedExpr + "\") " + cacheNode + " " + cacheNodeParam);
   }
+}
+
+class CachedLibraryMethodParameter extends SpecializedMethodParameter {
+  private final MethodParameter param;
+  private final String cachedExpr;
+
+  public CachedLibraryMethodParameter(MethodParameter param, String cachedExpr) {
+    this.param = param;
+    this.cachedExpr = cachedExpr;
+  }
+
+  @Override
+  String paramName() {
+    return param.name();
+  }
+
+  @Override
+  public Optional<String> auxParamDef() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Stream<String> declaredParameter() {
+    return Stream.of("@CachedLibrary(" + cachedExpr + ") " + param.tpe() + " " + param.name());
+  }
+
+  public static final String INTEROP_LIBRARY = "com.oracle.truffle.api.interop.InteropLibrary";
 }
 
 class InjectedMethodParameter extends SpecializedMethodParameter {

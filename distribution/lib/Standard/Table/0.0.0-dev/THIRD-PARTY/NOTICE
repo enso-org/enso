@@ -6,11 +6,6 @@ The license file can be found at `licenses/BSD-3-Clause`.
 Copyright notices related to this dependency can be found in the directory `com.github.virtuald.curvesapi-1.07`.
 
 
-'icu4j', licensed under the Unicode/ICU License, is distributed with the Table.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-71.1`.
-
-
 'univocity-parsers', licensed under the Apache 2, is distributed with the Table.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.univocity.univocity-parsers-2.9.1`.

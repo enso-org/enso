@@ -467,10 +467,9 @@ type Map
 type No_Value_For_Key_Error
     No_Value_For_Key_Error_Data key
 
-## UNSTABLE
+    ## PRIVATE
 
-   Converts the error into a human-readable representation.
-No_Value_For_Key_Error.to_display_text : Text
-No_Value_For_Key_Error.to_display_text self =
-    "The map contained no value for the key " + self.key.to_text + "."
-
+       Converts the error into a human-readable representation.
+    to_display_text : Text
+    to_display_text self =
+        "The map contained no value for the key " + self.key.to_text + "."

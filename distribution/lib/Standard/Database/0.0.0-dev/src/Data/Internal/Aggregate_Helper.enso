@@ -4,7 +4,7 @@ from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE
    Creates an `Internal_Column` that computes the specified statistic.

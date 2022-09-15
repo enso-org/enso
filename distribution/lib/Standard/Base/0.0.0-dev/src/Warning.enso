@@ -36,7 +36,7 @@ type Warning
          nature is preserved.
     reassignments : Vector.Vector Stack_Trace_Element
     reassignments self =
-        Vector.Vector_Data self.get_reassignments . map r->
+        Vector.from_polyglot_array self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
                 True -> Source_Location_Data (Polyglot.get_source_location r)
@@ -46,7 +46,7 @@ type Warning
 
        Builtin method for getting the list of locations where the warnings was reassigned.
        Should use `Warning.reassignments` instead.
-    get_reassignments : Any
+    get_reassignments : Array Any
     get_reassignments self = @Builtin_Method "Warning.get_reassignments"
 
 ## PRIVATE
@@ -78,7 +78,7 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
 get_all : Any -> Vector.Vector Warning
-get_all value = Vector.Vector_Data (get_all_array value)
+get_all value = Vector.from_polyglot_array (get_all_array value)
 
 
 ## PRIVATE

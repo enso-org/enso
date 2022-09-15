@@ -109,11 +109,13 @@ impl FromMeta {
             let mut prefixed_name = meta::FieldName::from_snake_case("field");
             prefixed_name.append(name.clone());
             let prefixed_name = prefixed_name.to_camel_case().unwrap();
-            let field = match self.primitives.get(type_) {
+            let mut field = match self.primitives.get(type_) {
                 Some(primitive) => Field::primitive(prefixed_name, *primitive),
                 None => Field::object(prefixed_name, self.meta_to_java[type_], true),
             };
-            if !hide {
+            if *hide {
+                field.hide_in_tostring();
+            } else {
                 let mut getter_name = meta::FieldName::from_snake_case("get");
                 getter_name.append(name.clone());
                 let getter_name = getter_name.to_camel_case().unwrap();
