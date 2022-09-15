@@ -1173,10 +1173,12 @@ impl AreaModel {
                 let range = self.buffer.full_range();
                 let formatting = self.buffer.sub_style(range);
                 let spans = formatting.color.spans.to_vector();
-                warn!(">>> {:#?}", spans);
+                warn!("SPANS: {:#?}", spans);
                 for span in spans.into_iter().filter(|t| t.value.is_none()) {
+                    warn!("span: {:?}", span);
                     let range =
                         buffer::Range::<Location<Column>>::from_in_context(self, span.range);
+                    warn!("range: {:?}", range);
                     let mut lines = self.lines.borrow_mut();
 
                     if range.single_line() {
@@ -1201,7 +1203,7 @@ impl AreaModel {
                         for line_index in range.start.line.value + 1..range.end.line.value {
                             let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
                             let line = &mut lines[view_line];
-                            for glyph in &mut line.glyphs[..range.end.offset.value] {
+                            for glyph in &mut line.glyphs[..] {
                                 glyph.set_property(property);
                             }
                         }

@@ -57,7 +57,8 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
-    area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_content("abcde\nfghij"); //\nklmno\npqrst\n01234\n56789");
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
@@ -73,10 +74,6 @@ fn init(app: Application) {
     // TODO: insertowanie ą i innych
     // TODO: chodzenie po literkach ktorych byte != 1
     // TODO: remove line shape cache from ofscreen for lines without cursors
-
-    // ERRORS:
-    // 1. cursors on the beginning of lines 3 and 4 -> backspace -> wrong result
-    // 2. cursor after l -> enter -> backspace -> panic
 
 
     // area.set_cursor_at_end();
@@ -126,7 +123,7 @@ fn init(app: Application) {
     // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
     warn!("=========================\n\n\n\n");
 
-    area.set_property_default(color::Rgba::red());
+    // area.set_property_default(color::Rgba::red());
 
     init_debug_hotkeys(&area);
 
@@ -149,20 +146,20 @@ fn init_debug_hotkeys(area: &Area) {
                 } else {
                     area.set_property(buffer::TextRange::Selections, color::Rgba::red());
                 }
-            }
-            if key == "KeyG" {
+            } else if key == "KeyG" {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::green());
                 } else {
                     area.set_property(buffer::TextRange::Selections, color::Rgba::green());
                 }
-            }
-            if key == "KeyB" {
+            } else if key == "KeyB" {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::blue());
                 } else {
                     area.set_property(buffer::TextRange::Selections, color::Rgba::blue());
                 }
+            } else if key == "KeyD" {
+                area.set_property(buffer::TextRange::Selections, style::Property::Color(None));
             }
             // } else if key == "Digit0" {
             // } else if key == "Digit1" {

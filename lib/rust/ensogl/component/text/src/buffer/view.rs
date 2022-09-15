@@ -926,23 +926,6 @@ impl ViewModel {
         self.formatting.borrow().resolve_property(property)
     }
 
-    // pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
-    //     match range {
-    //         TextRange::Selections => self
-    //             .byte_selections()
-    //             .into_iter()
-    //             .map(|t| {
-    //                 let start = std::cmp::min(t.start, t.end);
-    //                 let end = std::cmp::max(t.start, t.end);
-    //                 buffer::Range::new(start, end)
-    //             })
-    //             .collect(),
-    //         TextRange::BufferRangeUBytes(range) => vec![range.clone()],
-    //         TextRange::RangeBytes(range) => vec![range.into()],
-    //         TextRange::RangeFull(_) => vec![self.full_range()],
-    //     }
-    // }
-
     /// Set the selection to a new value.
     pub fn set_selection(&self, selection: &selection::Group) {
         *self.selection.borrow_mut() = selection.clone();
@@ -984,11 +967,6 @@ impl ViewModel {
         self.view_line_count.get()
     }
 
-    // /// Range of line indexes of this buffer view.
-    // pub fn view_line_range(&self) -> Range<Line> {
-    //     self.first_view_line()..self.last_view_line()
-    // }
-
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
         ViewLine(0)..=self.line_to_view_line(self.last_view_line())
     }
@@ -1020,23 +998,12 @@ impl ViewModel {
         &self,
         selection: Selection,
     ) -> Selection<ViewLocation<Column>> {
-        // let start_location = Location::from_in_context(self, selection.shape.start);
-        // let end_location = Location::from_in_context(self, selection.shape.end);
         let start = self.location_to_view_location(selection.shape.start);
         let end = self.location_to_view_location(selection.shape.end);
         let shape = selection::Shape { start, end };
         let id = selection.id;
         Selection { shape, id }
     }
-
-    // pub fn change_with_selection_to_view_change_with_selection<Metric, Str>(
-    //     &self,
-    //     change_with_selection: ChangeWithSelection<Metric, Str, Location>,
-    // ) -> ChangeWithSelection<Metric, Str, ViewLocation> {
-    //     let selection = self.selection_to_view_selection(change_with_selection.selection);
-    //     let change = change_with_selection.change;
-    //     ChangeWithSelection { selection, change }
-    // }
 
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> UBytes {
@@ -1224,16 +1191,12 @@ impl FromInContext<&ViewBuffer, Location<Column>> for UBytes {
 
 impl FromInContext<&ViewBuffer, UBytes> for Location {
     fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
-        warn!(">> 1");
         let line = context.line_index_of_byte_offset_snapped(offset);
-        warn!(">> 2");
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
-        warn!(">> 3");
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
             warn!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
-        warn!(">> 4");
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
     }
