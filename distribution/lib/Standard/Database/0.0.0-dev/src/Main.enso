@@ -9,7 +9,7 @@ import Standard.Database.Connection.SSL_Mode
 import Standard.Database.Connection.Connection_Options
 
 import Standard.Database.Connection.Postgres_Options
-import Standard.Database.Connection.SQLite
+import Standard.Database.Connection.SQLite_Options
 import Standard.Database.Connection.Redshift_Options
 
 export Standard.Database.Data.Table
@@ -18,11 +18,11 @@ export Standard.Database.Data.Column
 export Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.Connection export Sql_Error, Sql_Timeout_Error
 
-from Standard.Database.Connection.Credentials export Credentials, Credentials_Data
+from Standard.Database.Connection.Credentials export Credentials, Username_Password
 from Standard.Database.Connection.Client_Certificate export Client_Certificate
 from Standard.Database.Connection.Connection_Options export Connection_Options
 
 from Standard.Database.Connection.Database export connect
 from Standard.Database.Connection.Postgres_Options export Postgres_Options, Postgres
-from Standard.Database.Connection.SQLite export SQLite, SQLite_Data, In_Memory
+from Standard.Database.Connection.SQLite_Options export SQLite_Options, SQLite, In_Memory
 from Standard.Database.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Profile, AWS_Key

@@ -5,7 +5,7 @@ from Standard.Base.Data.Numbers import Parse_Error_Data
 import Standard.Database.Internal.Postgres.Postgres_Connection
 import Standard.Database.Connection.Connection_Options
 
-from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
+from Standard.Database.Connection.Credentials import Credentials, Username_Password
 
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -66,7 +66,7 @@ type Postgres_Options
                         Pgpass.read self.host self.port self.database username
                     Pair_Data username password ->
                         [Pair_Data 'user' username, Pair_Data 'password' password]
-            Credentials_Data username password ->
+            Username_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl

@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
+from Standard.Database.Connection.Credentials import Credentials, Username_Password
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -60,7 +60,7 @@ type Redshift_Options
                 [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
             AWS_Key db_user access_key secret_access_key ->
                 [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
-            Credentials_Data username password ->
+            Username_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.
