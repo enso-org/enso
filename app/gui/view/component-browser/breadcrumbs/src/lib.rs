@@ -38,6 +38,7 @@
 
 use ensogl_core::prelude::*;
 
+use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -51,7 +52,7 @@ use ensogl_core::gui::Widget;
 use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
-use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
+use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
 use ensogl_text as text;
 use entry::Entry;
 use grid_view::Col;

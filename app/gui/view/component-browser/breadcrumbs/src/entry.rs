@@ -3,6 +3,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -13,7 +14,7 @@ use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
-use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::breadcrumbs as theme;
+use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
 use ensogl_text as text;
 
 
@@ -138,7 +139,7 @@ impl EntryData {
         Self { display_object, state, text, ellipsis, separator }
     }
 
-    fn remove_current(&self) {
+    fn hide_current_visual_representation(&self) {
         match self.state.get() {
             State::Text => self.text.unset_parent(),
             State::Separator => self.separator.unset_parent(),
@@ -157,7 +158,7 @@ impl EntryData {
     fn switch_to_text(&self, content: &str) {
         self.text.set_content(content);
         if self.state.get() != State::Text {
-            self.remove_current();
+            self.hide_current_visual_representation();
             self.display_object.add_child(&self.text);
             self.state.set(State::Text);
         }
@@ -165,7 +166,7 @@ impl EntryData {
 
     fn switch_to_separator(&self) {
         if self.state.get() != State::Separator {
-            self.remove_current();
+            self.hide_current_visual_representation();
             self.display_object.add_child(&self.separator);
             self.state.set(State::Separator);
         }
@@ -173,7 +174,7 @@ impl EntryData {
 
     fn switch_to_ellipsis(&self) {
         if self.state.get() != State::Ellipsis {
-            self.remove_current();
+            self.hide_current_visual_representation();
             self.display_object.add_child(&self.ellipsis);
             self.state.set(State::Ellipsis);
         }
