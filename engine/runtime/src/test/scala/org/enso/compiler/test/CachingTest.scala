@@ -3,7 +3,7 @@ package org.enso.compiler.test
 import org.enso.interpreter.test.InterpreterException
 
 class CachingTest extends ModifiedTest {
-  "Atoms and methods" should "be available for import" in {
+  "IR caching" should "should propagate invalidation" in {
     evalTestProjectIteration("Test_Caching_Invalidation", iteration = 1)
     val outLines = consumeOut
     outLines(0) shouldEqual "hmm..."
