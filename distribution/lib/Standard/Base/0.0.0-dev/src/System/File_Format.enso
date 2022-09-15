@@ -11,7 +11,7 @@ type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
     ## If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Any | Nothing
+    for_file : File -> Plain_Text_Format | Nothing
     for_file file =
         case file.extension of
             ".txt" -> Plain_Text
@@ -26,7 +26,7 @@ type Plain_Text_Format
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Any | Nothing
+    for_file : File -> Bytes | Nothing
     for_file file =
         case file.extension of
             ".dat" -> Bytes

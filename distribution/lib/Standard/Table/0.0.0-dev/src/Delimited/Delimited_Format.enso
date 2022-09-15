@@ -9,14 +9,6 @@ from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Da
 
 import Standard.Table.Delimited.Quote_Style
 
-## If the File_Format supports reading from the file, return a configured instance.
-for_file : File -> Any | Nothing
-for_file file =
-    case file.extension of
-        ".csv" -> Delimited ','
-        ".tsv" -> Delimited '\t'
-        _ -> Nothing
-
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
     ## Read delimited files such as CSVs into a Table.
@@ -56,6 +48,14 @@ type Delimited_Format
          option is only applicable for read mode and does not affect writing. It
          defaults to `Nothing` which means that comments are disabled.
     Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter_Data) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
+
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Delimited_Format | Nothing
+    for_file file =
+        case file.extension of
+            ".csv" -> Delimited ','
+            ".tsv" -> Delimited '\t'
+            _ -> Nothing
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any

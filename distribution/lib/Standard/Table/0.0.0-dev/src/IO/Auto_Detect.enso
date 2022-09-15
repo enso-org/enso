@@ -1,19 +1,19 @@
 from Standard.Base import Any, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format, Plain_Text_Format, Bytes
 from Standard.Base.Error.Common import Unsupported_File_Type, Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-import Standard.Table.Delimited.Delimited_Format
-import Standard.Table.Excel.Excel_Format
+from Standard.Table.Delimited.Delimited_Format import Delimited_Format
+from Standard.Table.Excel.Excel_Format import Excel_Format
 
 ## PRIVATE
-   Set of methods to get the configured File_Format for a file.
-format_providers = [Plain_Text_Format.for_file, Bytes.for_file, Delimited_Format.for_file, Excel_Format.for_file]
+   Set of File_Format types for read files.
+format_types = [Plain_Text_Format, Bytes, Delimited_Format, Excel_Format]
 
 ## PRIVATE
 get_format : File -> Any | Nothing
 get_format file =
     reader idx =
-        if idx >= format_providers.length then Nothing else
-            format = (format_providers.at idx) file
+        if idx >= format_types.length then Nothing else
+            format = format_types.at idx . for_file file
             if format.is_nothing.not then format else
                 @Tail_Call reader (idx + 1)
     reader 0
