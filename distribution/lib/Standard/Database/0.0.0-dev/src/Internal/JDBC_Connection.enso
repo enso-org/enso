@@ -4,7 +4,7 @@ import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
 import Standard.Database.Data.Sql
-from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data, Statement, Statement_Data
+from Standard.Database.Data.Sql import Sql_Type, Statement, Statement_Data
 from Standard.Database.Errors import Sql_Error, Sql_Error_Data, Sql_Timeout_Error, Sql_Timeout_Error_Data
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Table.Data.Storage

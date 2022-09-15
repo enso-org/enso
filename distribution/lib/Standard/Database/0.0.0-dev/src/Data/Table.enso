@@ -18,7 +18,7 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 
-from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
+from Standard.Database.Data.Column import Column, Column_Data
 from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 

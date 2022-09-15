@@ -30,10 +30,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    # type Column (name : Text) (connection : Connection)
-    #             (sql_type : Sql_Type) (expression : IR.Expression)
-    #             (context : IR.Context)
-    Column_Data name connection sql_type expression context
+    Column_Data name:Text connection:Connection sql_type:Sql_Type expression:IR.Expression context:IR.Context
 
     ## UNSTABLE
 
@@ -535,88 +532,6 @@ type Column
     ## PRIVATE
     as_internal : IR.Internal_Column
     as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
-
-type Aggregate_Column_Builder
-
-    ## UNSTABLE
-
-       Wraps a column grouped by its index.
-
-       Arguments:
-       - name: The name of the column.
-       - connection: The connection with which the column is associated.
-       - sql_type: The SQL type of the aggregate column.
-       - expression: The expressions to apply to the column.
-       - context: The SQl context in which the column exists.
-
-       Allows performing aggregation operations on the contained values.
-    # type Aggregate_Column_Builder (name : Text) (connection : Connection)
-    #                       (sql_type : Sql_Type) (expression : IR.Expression)
-    #                       (context : IR.Context)
-    Aggregate_Column_Builder_Data name connection sql_type expression context
-
-    ## UNSTABLE
-
-       Sums the values in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    sum : Text -> Column
-    sum self name_suffix='_sum' =
-        make_aggregate self "SUM" name_suffix
-
-    ## UNSTABLE
-
-       Computes the maximum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    max : Text -> Column
-    max self name_suffix='_max' =
-        make_aggregate self "MAX" name_suffix
-
-    ## UNSTABLE
-
-       Computes the minimum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    min : Text -> Column
-    min self name_suffix='_min' =
-        make_aggregate self "MIN" name_suffix
-
-    ## UNSTABLE
-
-       Computes the number of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    count : Text -> Column
-    count self name_suffix='_count' =
-        make_aggregate self "COUNT" name_suffix new_type=Sql_Type.integer
-
-    ## UNSTABLE
-
-       Computes the mean of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    mean : Text -> Column
-    mean self name_suffix='_mean' =
-        make_aggregate self "AVG" name_suffix
-
-    ## PRIVATE
-
-       A helper that returns the underlying column from before grouping.
-    ungrouped : Column
-    ungrouped self =
-        new_ctx = self.context.set_groups []
-        Column_Data self.name self.connection self.sql_type self.expression new_ctx
 
 ## PRIVATE
 

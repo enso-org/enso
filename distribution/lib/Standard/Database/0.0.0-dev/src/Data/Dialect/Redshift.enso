@@ -40,7 +40,7 @@ type Redshift_Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> Sql.Sql_Type
     resolve_target_sql_type self aggregate =
         Postgres.resolve_target_sql_type aggregate
 
