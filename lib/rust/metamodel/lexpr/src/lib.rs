@@ -34,6 +34,8 @@
 //! assert_eq!(s_expr, Value::cons(field_expr, Value::Null));
 //! ```
 
+// === Features ===
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -170,6 +172,10 @@ impl<'g> ToSExpr<'g> {
     fn field(&self, field: &Field, data: &mut &[u8]) -> Option<Value> {
         let value = self.value_(field.type_, data);
         if self.skip.contains(&field.type_) {
+            return None;
+        }
+        if let Data::Primitive(Primitive::Option(t0)) = &self.graph[field.type_].data
+                && self.skip.contains(t0) {
             return None;
         }
         Some(if field.name.is_empty() {

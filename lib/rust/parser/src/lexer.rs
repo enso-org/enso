@@ -90,13 +90,26 @@ pub struct Lexer<'s> {
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct LexerState {
-    pub current_char:               Option<char>,
-    pub current_offset:             Bytes,
-    pub last_spaces_offset:         Bytes,
+    pub current_char: Option<char>,
+    pub current_offset: Bytes,
+    pub last_spaces_offset: Bytes,
     pub last_spaces_visible_offset: VisibleOffset,
-    pub current_block_indent:       VisibleOffset,
-    pub block_indent_stack:         Vec<VisibleOffset>,
-    pub internal_error:             Option<String>,
+    pub current_block_indent: VisibleOffset,
+    pub block_indent_stack: Vec<VisibleOffset>,
+    pub internal_error: Option<String>,
+    pub stack: Vec<State>,
+}
+
+/// Suspended states.
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum State {
+    /// Reading a single-line text literal.
+    InlineText,
+    /// Reading a multi-line text literal.
+    MultilineText {
+        /// Indentation level of the quote symbol introducing the block.
+        indent: VisibleOffset,
+    },
 }
 
 impl<'s> Lexer<'s> {
@@ -463,6 +476,7 @@ pub struct IdentInfo {
     starts_with_underscore: bool,
     lift_level:             usize,
     starts_with_uppercase:  bool,
+    is_default:             bool,
 }
 
 impl IdentInfo {
@@ -473,7 +487,8 @@ impl IdentInfo {
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         let starts_with_uppercase =
             repr.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        Self { starts_with_underscore, lift_level, starts_with_uppercase }
+        let is_default = repr == "default";
+        Self { starts_with_underscore, lift_level, starts_with_uppercase, is_default }
     }
 }
 
@@ -499,6 +514,7 @@ impl token::Variant {
             info.starts_with_underscore,
             info.lift_level,
             info.starts_with_uppercase,
+            info.is_default,
         )
     }
 
@@ -512,7 +528,7 @@ impl token::Variant {
         } else {
             let is_free = info.starts_with_underscore;
             let is_type = info.starts_with_uppercase;
-            token::Variant::ident(is_free, info.lift_level, is_type)
+            token::Variant::ident(is_free, info.lift_level, is_type, info.is_default)
         }
     }
 }
@@ -734,7 +750,26 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Read a text literal.
     fn text(&mut self) {
-        // TODO: Interpolation within "'" quotes (#182496932); for now, treat them as raw.
+        if self.current_char == Some('`') {
+            match self.stack.last().copied() {
+                Some(State::InlineText) | Some(State::MultilineText { .. }) => {
+                    let splice_quote_start = self.mark();
+                    self.take_next();
+                    let splice_quote_end = self.mark();
+                    let token = self.make_token(
+                        splice_quote_start,
+                        splice_quote_end,
+                        token::Variant::Symbol(token::variant::Symbol()),
+                    );
+                    self.output.push(token);
+                    match self.stack.pop().unwrap() {
+                        State::InlineText => self.inline_quote('\''),
+                        State::MultilineText { indent } => self.text_lines(indent, true),
+                    }
+                }
+                None => return,
+            }
+        }
         let quote_char = match self.current_char {
             Some(char @ ('"' | '\'')) => char,
             _ => return,
@@ -759,14 +794,11 @@ impl<'s> Lexer<'s> {
                 let token = self.make_token(open_quote_start, text_start.clone(),
                     token::Variant::TextStart(token::variant::TextStart()));
                 self.output.push(token);
-                self.take_rest_of_line();
-                let next_line_start = self.mark();
-                let token = self.make_token(text_start, next_line_start,
-                    token::Variant::TextSection(token::variant::TextSection()));
-                if !token.code.is_empty() {
-                    self.output.push(token);
+                let interpolate = quote_char == '\'';
+                if self.text_content(None, interpolate, State::MultilineText { indent }) {
+                    return;
                 }
-                self.text_lines(indent);
+                self.text_lines(indent, interpolate);
             } else {
                 // Exactly two quote characters: Open and shut case.
                 let close_quote_end = self.mark();
@@ -779,49 +811,179 @@ impl<'s> Lexer<'s> {
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
-            let mut text_start = self.mark();
-            let token = self.make_token(open_quote_start, text_start.clone(),
+            let open_quote_end = self.mark();
+            let token = self.make_token(open_quote_start, open_quote_end,
                 token::Variant::TextStart(token::variant::TextStart()));
             self.output.push(token);
-            while let Some(char) = self.current_char {
-                if char == quote_char || is_newline_char(char) {
-                    break;
-                }
-                if char == '\\' {
-                    let escape_start = self.mark();
-                    self.take_next();
-                    if let Some(char) = self.current_char && char == quote_char {
-                        let token = self.make_token(text_start, escape_start.clone(),
-                            token::Variant::TextSection(token::variant::TextSection()));
-                        self.output.push(token);
-                        let escape_end = self.mark();
-                        let token = self.make_token(escape_start, escape_end.clone(),
-                            token::Variant::TextEscape(token::variant::TextEscape()));
-                        self.output.push(token);
-                        text_start = escape_end;
-                    }
-                }
-                self.take_next();
-            }
-            let close_quote_start = self.mark();
-            let token = self.make_token(text_start, close_quote_start.clone(),
-                token::Variant::TextSection(token::variant::TextSection()));
-            if !token.code.is_empty() {
-                self.output.push(token);
-            }
-            if let Some(char) = self.current_char && char == quote_char {
-                self.take_next();
-                let close_quote_end = self.mark();
-                let token = self.make_token(close_quote_start, close_quote_end,
-                    token::Variant::TextEnd(token::variant::TextEnd()));
-                self.output.push(token);
-            }
+            self.inline_quote(quote_char);
         }
         self.spaces_after_lexeme();
     }
 
-    /// Read the lines of a text literal, after the initial line introducing it.
-    fn text_lines(&mut self, indent: VisibleOffset) {
+    fn inline_quote(&mut self, quote_char: char) {
+        if self.text_content(Some(quote_char), quote_char == '\'', State::InlineText) {
+            return;
+        }
+        if let Some(char) = self.current_char && char == quote_char {
+            let text_end = self.mark();
+            self.take_next();
+            let close_quote_end = self.mark();
+            let token = self.make_token(text_end, close_quote_end,
+                                        token::Variant::TextEnd(token::variant::TextEnd()));
+            self.output.push(token);
+        }
+    }
+
+    fn text_content(
+        &mut self,
+        closing_char: Option<char>,
+        interpolate: bool,
+        state: State,
+    ) -> bool {
+        let mut text_start = self.mark();
+        while let Some(char) = self.current_char {
+            if is_newline_char(char) || closing_char == Some(char) {
+                break;
+            }
+            if char == '\\' {
+                let backslash_start = self.mark();
+                self.take_next();
+                if let Some(char) = self.current_char && (interpolate || closing_char == Some(char)) {
+                    self.text_escape(char, interpolate, backslash_start, &mut text_start);
+                    continue;
+                }
+            }
+            if interpolate && char == '`' {
+                let splice_quote_start = self.mark();
+                let token = self.make_token(
+                    text_start,
+                    splice_quote_start.clone(),
+                    token::Variant::TextSection(token::variant::TextSection()),
+                );
+                if !token.code.is_empty() {
+                    self.output.push(token);
+                }
+                self.take_next();
+                let splice_quote_end = self.mark();
+                let token = self.make_token(
+                    splice_quote_start,
+                    splice_quote_end.clone(),
+                    token::Variant::Symbol(token::variant::Symbol()),
+                );
+                self.output.push(token);
+                self.spaces_after_lexeme();
+                self.stack.push(state);
+                return true;
+            }
+            self.take_next();
+        }
+        let text_end = self.mark();
+        let token = self.make_token(
+            text_start,
+            text_end,
+            token::Variant::TextSection(token::variant::TextSection()),
+        );
+        if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
+            self.output.push(token);
+        }
+        false
+    }
+
+    fn text_escape(
+        &mut self,
+        char: char,
+        interpolate: bool,
+        backslash_start: (Bytes, Offset<'s>),
+        text_start: &'_ mut (Bytes, Offset<'s>),
+    ) {
+        let token = self.make_token(
+            text_start.clone(),
+            backslash_start.clone(),
+            token::Variant::TextSection(token::variant::TextSection()),
+        );
+        if !token.code.is_empty() {
+            self.output.push(token);
+        }
+        if interpolate && char == 'x' || char == 'u' || char == 'U' {
+            self.take_next();
+            let leader_end = self.mark();
+            let token = self.make_token(
+                backslash_start,
+                leader_end.clone(),
+                token::Variant::TextEscapeLeader(token::variant::TextEscapeLeader()),
+            );
+            self.output.push(token);
+            let (mut expect_len, accepts_delimiter) = match char {
+                'x' => (2, false),
+                'u' => (4, true),
+                'U' => (8, false),
+                _ => unreachable!(),
+            };
+            let delimited = accepts_delimiter && self.current_char == Some('{');
+            let mut sequence_start = leader_end.clone();
+            if delimited {
+                self.take_next();
+                sequence_start = self.mark();
+                let token = self.make_token(
+                    leader_end,
+                    sequence_start.clone(),
+                    token::Variant::TextEscapeSequenceStart(
+                        token::variant::TextEscapeSequenceStart(),
+                    ),
+                );
+                self.output.push(token);
+                expect_len = 6;
+            }
+            for _ in 0..expect_len {
+                if let Some(c) = self.current_char && is_hexadecimal_digit(c) {
+                    self.take_next();
+                } else {
+                    break;
+                }
+            }
+            let sequence_end = self.mark();
+            let token = self.make_token(
+                sequence_start,
+                sequence_end.clone(),
+                token::Variant::TextEscapeHexDigits(token::variant::TextEscapeHexDigits()),
+            );
+            self.output.push(token);
+            if delimited && self.current_char == Some('}') {
+                self.take_next();
+                let close_end = self.mark();
+                let token = self.make_token(
+                    sequence_end,
+                    close_end.clone(),
+                    token::Variant::TextEscapeSequenceEnd(token::variant::TextEscapeSequenceEnd()),
+                );
+                self.output.push(token);
+                *text_start = close_end;
+            } else {
+                *text_start = sequence_end;
+            }
+            return;
+        }
+        let backslash_end = self.mark();
+        let token = self.make_token(
+            backslash_start,
+            backslash_end.clone(),
+            token::Variant::TextEscapeSymbol(token::variant::TextEscapeSymbol()),
+        );
+        self.output.push(token);
+        self.take_next();
+        let escaped_end = self.mark();
+        let token = self.make_token(
+            backslash_end,
+            escaped_end.clone(),
+            token::Variant::TextEscapeChar(token::variant::TextEscapeChar()),
+        );
+        self.output.push(token);
+        *text_start = escaped_end;
+        self.take_next();
+    }
+
+    /// Read the lines of a text literal.
+    fn text_lines(&mut self, indent: VisibleOffset, is_interpolated: bool) {
         while self.current_char.is_some() {
             let start = self.mark();
             // Consume the newline and any spaces.
@@ -829,46 +991,43 @@ impl<'s> Lexer<'s> {
                 self.take_1('\n');
             }
             let before_space = self.mark();
-            self.spaces_after_lexeme();
-            let after_space = self.mark();
-            // Check indent, unless this is an empty line.
-            if let Some(char) = self.current_char {
-                if self.last_spaces_visible_offset <= indent && !is_newline_char(char) {
-                    let token = self.make_token(
-                        start,
-                        before_space,
-                        token::Variant::Newline(token::variant::Newline()),
-                    );
-                    self.output.push(token);
-                    return;
-                }
-            };
-            // Output the newline as a text section.
-            self.last_spaces_visible_offset = VisibleOffset(0);
-            self.last_spaces_offset = Bytes(0);
-            let token = self.make_token(
-                start,
-                before_space,
-                token::Variant::TextSection(token::variant::TextSection()),
-            );
-            self.output.push(token);
+            if start != before_space {
+                // Create a text section for the newline.
+                let newline = self.make_token(
+                    start.clone(),
+                    before_space.clone(),
+                    token::Variant::TextSection(token::variant::TextSection()),
+                );
+                self.spaces_after_lexeme();
+                // Check indent, unless this is an empty line.
+                if let Some(char) = self.current_char {
+                    if self.last_spaces_visible_offset <= indent && !is_newline_char(char) {
+                        let token = self.make_token(
+                            start,
+                            before_space,
+                            token::Variant::Newline(token::variant::Newline()),
+                        );
+                        self.output.push(token);
+                        self.spaces_after_lexeme();
+                        return;
+                    }
+                };
+                self.output.push(newline);
+            }
             // Output the line as a text section.
-            self.take_rest_of_line();
-            let next_line_start = self.mark();
-            let token = self.make_token(
-                after_space,
-                next_line_start,
-                token::Variant::TextSection(token::variant::TextSection()),
-            );
-            self.output.push(token);
+            if self.text_content(None, is_interpolated, State::MultilineText { indent }) {
+                break;
+            }
         }
     }
 
-    fn mark(&self) -> (Bytes, Offset<'s>) {
+    fn mark(&mut self) -> (Bytes, Offset<'s>) {
         let start = self.current_offset;
         let left_offset_start = start - self.last_spaces_offset;
         let offset_code = self.input.slice(left_offset_start..start);
         let visible_offset = self.last_spaces_visible_offset;
+        self.last_spaces_visible_offset = VisibleOffset(0);
+        self.last_spaces_offset = Bytes(0);
         (start, Offset(visible_offset, offset_code))
     }
 
@@ -1075,7 +1234,7 @@ pub mod test {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase)
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, false)
     }
 
     /// Constructor.

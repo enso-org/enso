@@ -119,7 +119,7 @@ fn type_methods() {
         let expected = block![
         (TypeDef (Ident type) (Ident Geo) #() #()
          #((Function number #() "=" (BodyBlock #((Ident x))))
-           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
+           (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -146,7 +146,7 @@ fn type_def_full() {
            ((Point #() #()))
            (()))
          #((Function number #() "=" (BodyBlock #((Ident x))))
-           (Function area #((Ident self)) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
+           (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -181,9 +181,17 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test("foo a = x", block![(Function foo #((Ident a)) "=" (Ident x))]);
-    test("foo a b = x", block![(Function foo #((Ident a) (Ident b)) "=" (Ident x))]);
-    test("foo a b c = x", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Ident x))]);
+    test("foo a = x", block![(Function foo #((() (Ident a) () ())) "=" (Ident x))]);
+    #[rustfmt::skip]
+    test("foo a b = x",
+         block![(Function foo #((() (Ident a) () ()) (() (Ident b) () ())) "=" (Ident x))]);
+    #[rustfmt::skip]
+    test(
+        "foo a b c = x", block![
+            (Function foo
+             #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
+             "=" (Ident x))],
+    );
 }
 
 #[test]
@@ -193,9 +201,57 @@ fn function_block_noargs() {
 
 #[test]
 fn function_block_simple_args() {
-    test("foo a =", block![(Function foo #((Ident a)) "=" ())]);
-    test("foo a b =", block![(Function foo #((Ident a) (Ident b)) "=" ())]);
-    test("foo a b c =", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
+    test("foo a =", block![(Function foo #((() (Ident a) () ())) "=" ())]);
+    test("foo a b =", block![(Function foo #((() (Ident a) () ()) (() (Ident b) () ())) "=" ())]);
+    #[rustfmt::skip]
+    test(
+        "foo a b c =", block![
+            (Function foo
+             #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
+             "=" ())],
+    );
+}
+
+
+// === Named arguments ===
+
+#[test]
+fn named_arguments() {
+    let cases = [
+        ("f x=y", block![(NamedApp (Ident f) () x "=" (Ident y) ())]),
+        ("f (x = y)", block![(NamedApp (Ident f) "(" x "=" (Ident y) ")")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Default arguments ===
+
+#[test]
+fn default_app() {
+    let cases = [("f default", block![(DefaultApp (Ident f) default)])];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn default_arguments() {
+    #[rustfmt::skip]
+    let cases = [
+        ("f x=1 = x",
+            block![(Function f #((() (Ident x) ("=" (Number () "1" ())) ())) "=" (Ident x))]),
+        ("f (x = 1) = x",
+            block![(Function f #(("(" (Ident x) ("=" (Number () "1" ())) ")")) "=" (Ident x))]),
+        // Pattern in LHS:
+        ("f ~x=1 = x", block![
+            (Function f
+             #((() (UnaryOprApp "~" (Ident x)) ("=" (Number () "1" ())) ()))
+             "=" (Ident x))]),
+        ("f (~x = 1) = x", block![
+            (Function f
+             #(("(" (UnaryOprApp "~" (Ident x)) ("=" (Number () "1" ())) ")"))
+             "=" (Ident x))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 
@@ -361,7 +417,7 @@ fn pipeline_operators() {
 fn unevaluated_argument() {
     let code = ["main ~foo = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Ident x))
+        (Function main #((() (UnaryOprApp "~" (Ident foo)) () ())) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
@@ -370,7 +426,7 @@ fn unevaluated_argument() {
 fn unary_operator_missing_operand() {
     let code = ["main ~ = x"];
     let expected = block![
-        (Function main #((UnaryOprApp "~" ())) "=" (Ident x))
+        (Function main #((() (UnaryOprApp "~" ()) () ())) "=" (Ident x))
     ];
     test(&code.join("\n"), expected);
 }
@@ -585,26 +641,25 @@ fn inline_text_literals() {
     #[rustfmt::skip]
     let cases = [
         (r#""I'm an inline raw text!""#, block![
-            (TextLiteral "\"" #((Section "I'm an inline raw text!")) "\"" 0)]),
+            (TextLiteral #((Section "I'm an inline raw text!")) 0)]),
         (r#"zero_length = """#, block![
-            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\"" 0))]),
-        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() () 0))]),
+            (Assignment (Ident zero_length) "=" (TextLiteral #() 0))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral #() 0))]),
         (r#"unclosed = "a"#, block![
-            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #((Section "a")) () 0))]),
-        (r#"'Other quote type'"#, block![(TextLiteral "'" #((Section "Other quote type")) "'" 0)]),
-        (r#""Non-escape: \n""#, block![(TextLiteral "\"" #((Section "Non-escape: \\n")) "\"" 0)]),
+            (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a")) 0))]),
+        (r#"'Other quote type'"#, block![(TextLiteral #((Section "Other quote type")) 0)]),
+        (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")) 0)]),
         (r#""String with \" escape""#, block![
             (TextLiteral
-             "\""
-             #((Section "String with ") (Escape "\\") (Section "\" escape"))
-             "\"" 0)]),
+             #((Section "String with ") (EscapeChar "\"") (Section " escape"))
+             0)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
 fn multiline_text_literals() {
-    test("'''", block![(TextLiteral "'''" #() () 0)]);
+    test("'''", block![(TextLiteral #() 0)]);
     const CODE: &str = r#"'''
     part of the string
        3-spaces indented line, part of the Text Block
@@ -616,16 +671,57 @@ x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         "'''"
          #((Section "\n") (Section "part of the string")
            (Section "\n") (Section "3-spaces indented line, part of the Text Block")
            (Section "\n") (Section "this does not end the string -> '''")
-           (Section "\n") (Section "")
+           (Section "\n")
            (Section "\n") (Section "also part of the string")
-           (Section "\n") (Section ""))
-        () 4)
+           (Section "\n"))
+        4)
         (Ident x)
     ];
+    test(CODE, expected);
+}
+
+#[test]
+fn interpolated_literals_in_inline_text() {
+    #[rustfmt::skip]
+    let cases = [
+        (r#"'Simple case.'"#, block![(TextLiteral #((Section "Simple case.")) 0)]),
+        (r#"'With a `splice`.'"#, block![(TextLiteral
+            #((Section "With a ")
+              (Splice "`" (Ident splice) "`")
+              (Section "."))
+            0)]),
+        (r#"'String with \n escape'"#, block![
+            (TextLiteral
+             #((Section "String with ") (EscapeChar "n") (Section " escape"))
+             0)]),
+        (r#"'\x0Aescape'"#, block![
+            (TextLiteral #((EscapeSequence "0A") (Section "escape")) 0)]),
+        (r#"'\u000Aescape'"#, block![
+            (TextLiteral #((EscapeSequence "000A") (Section "escape")) 0)]),
+        (r#"'\u{0000A}escape'"#, block![
+            (TextLiteral #((EscapeSequence "0000A") (Section "escape")) 0)]),
+        (r#"'\U0000000Aescape'"#, block![
+            (TextLiteral #((EscapeSequence "0000000A") (Section "escape")) 0)]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn interpolated_literals_in_multiline_text() {
+    const CODE: &str = r#"'''
+    text with a `splice`
+    and some \u000Aescapes\'"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral
+         #((Section "\n") (Section "text with a ") (Splice "`" (Ident splice) "`")
+           (Section "\n") (Section "and some ")
+                          (EscapeSequence "000A")
+                          (Section "escapes")
+                          (EscapeChar "'")) 4)];
     test(CODE, expected);
 }
 
@@ -806,7 +902,15 @@ where T: serde::Serialize + Reflect {
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
     let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
     let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
-    let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
+    let text_escape_symbol_token = rust_to_meta[&token::variant::TextEscapeSymbol::reflect().id];
+    let text_escape_char_token = rust_to_meta[&token::variant::TextEscapeChar::reflect().id];
+    let text_escape_leader_token = rust_to_meta[&token::variant::TextEscapeLeader::reflect().id];
+    let text_escape_hex_digits_token =
+        rust_to_meta[&token::variant::TextEscapeHexDigits::reflect().id];
+    let text_escape_sequence_start_token =
+        rust_to_meta[&token::variant::TextEscapeSequenceStart::reflect().id];
+    let text_escape_sequence_end_token =
+        rust_to_meta[&token::variant::TextEscapeSequenceEnd::reflect().id];
     let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
     let wildcard_token = rust_to_meta[&token::variant::Wildcard::reflect().id];
     let autoscope_token = rust_to_meta[&token::variant::AutoScope::reflect().id];
@@ -823,11 +927,10 @@ where T: serde::Serialize + Reflect {
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(symbol_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(text_start_token, move |token| Value::string(token_to_str_(token)));
+    to_s_expr.mapper(text_escape_char_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(text_end_token, move |token| Value::string(token_to_str_(token)));
-    let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(text_escape_token, move |token| Value::string(token_to_str_(token)));
+    to_s_expr
+        .mapper(text_escape_hex_digits_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
@@ -863,6 +966,12 @@ where T: serde::Serialize + Reflect {
     to_s_expr.skip(newline_token);
     to_s_expr.skip(wildcard_token);
     to_s_expr.skip(autoscope_token);
+    to_s_expr.skip(text_escape_symbol_token);
+    to_s_expr.skip(text_escape_leader_token);
+    to_s_expr.skip(text_escape_sequence_start_token);
+    to_s_expr.skip(text_escape_sequence_end_token);
+    to_s_expr.skip(text_start_token);
+    to_s_expr.skip(text_end_token);
     tuplify(to_s_expr.value(ast_ty, &value))
 }
 

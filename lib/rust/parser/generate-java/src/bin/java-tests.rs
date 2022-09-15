@@ -18,18 +18,10 @@
 
 fn main() {
     let cases = enso_parser_generate_java::generate_testcases();
-    let fmt_cases = |cases: &[Vec<u8>]| {
-        let cases: Vec<_> = cases
-            .iter()
-            .map(|case| {
-                let case: Vec<_> = case.iter().map(|byte| (*byte as i8).to_string()).collect();
-                format!("{{{}}}", case.join(", "))
-            })
-            .collect();
-        cases.join(", ")
+    let fmt_case = |case: &[u8]| {
+        let case: Vec<_> = case.iter().map(|byte| (*byte as i8).to_string()).collect();
+        format!("{{{}}}", case.join(", "))
     };
-    let accept = fmt_cases(&cases.accept);
-    let reject = fmt_cases(&cases.reject);
     let package = enso_parser_generate_java::PACKAGE;
     let serialization = enso_parser_generate_java::SERIALIZATION_SUPPORT;
     println!("package {package};");
@@ -40,12 +32,33 @@ fn main() {
     println!("import java.nio.ByteOrder;");
     println!();
     println!("class GeneratedFormatTests {{");
+    println!("    private static java.util.Vector<byte[]> accept;");
+    println!("    private static java.util.Vector<byte[]> reject;");
+    for (i, case) in cases.accept.iter().enumerate() {
+        println!("    private static byte[] accept{i}() {{");
+        println!("        return new byte[] {};", fmt_case(case));
+        println!("    }}");
+    }
+    for (i, case) in cases.reject.iter().enumerate() {
+        println!("    private static byte[] reject{i}() {{");
+        println!("        return new byte[] {};", fmt_case(case));
+        println!("    }}");
+    }
+    println!("    static {{");
+    println!("        accept = new java.util.Vector<byte[]>();");
+    for (i, _) in cases.accept.iter().enumerate() {
+        println!("        accept.add(accept{i}());");
+    }
+    println!("        reject = new java.util.Vector<byte[]>();");
+    for (i, _) in cases.reject.iter().enumerate() {
+        println!("        reject.add(reject{i}());");
+    }
+    println!("    }}");
+    println!();
     println!("    public static void main(String[] args) {{");
-    println!("        byte[][] accept = {{{accept}}};");
-    println!("        byte[][] reject = {{{reject}}};");
     println!("        int result = 0;");
-    println!("        for (int i = 0; i < accept.length; i++) {{");
-    println!("            ByteBuffer buffer = ByteBuffer.wrap(accept[i]);");
+    println!("        for (byte[] testCase : accept) {{");
+    println!("            ByteBuffer buffer = ByteBuffer.wrap(testCase);");
     println!("            buffer.order(ByteOrder.LITTLE_ENDIAN);");
     println!("            CharSequence context = \"\";");
     println!("            Message message = new Message(buffer, context, 0, 0);");
@@ -58,8 +71,8 @@ fn main() {
     println!("                result = 1;");
     println!("            }}");
     println!("        }}");
-    println!("        for (int i = 0; i < reject.length; i++) {{");
-    println!("            ByteBuffer buffer = ByteBuffer.wrap(reject[i]);");
+    println!("        for (byte[] testCase : reject) {{");
+    println!("            ByteBuffer buffer = ByteBuffer.wrap(testCase);");
     println!("            buffer.order(ByteOrder.LITTLE_ENDIAN);");
     println!("            CharSequence context = \"\";");
     println!("            Message message = new Message(buffer, context, 0, 0);");

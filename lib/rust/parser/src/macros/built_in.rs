@@ -24,6 +24,7 @@ pub fn all() -> resolver::SegmentMap<'static> {
     macro_map.register(case());
     macro_map.register(array());
     macro_map.register(tuple());
+    macro_map.register(splice());
     macro_map
 }
 
@@ -132,17 +133,10 @@ pub fn group<'s>() -> Definition<'s> {
 
 fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use operator::resolve_operator_precedence_if_non_empty;
-    use syntax::token;
-    macro_rules! into_symbol {
-        ($token:expr) => {{
-            let token::Token { left_offset, code, .. } = $token;
-            token::symbol(left_offset, code)
-        }};
-    }
     let (close, mut segments) = segments.pop();
-    let close = into_symbol!(close.header);
+    let close = into_symbol(close.header);
     let segment = segments.pop().unwrap();
-    let open = into_symbol!(segment.header);
+    let open = into_symbol(segment.header);
     let body = segment.result.tokens();
     let body = resolve_operator_precedence_if_non_empty(body);
     syntax::Tree::group(open, body, close)
@@ -195,7 +189,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     match name {
         Some(name) => syntax::Tree::type_def(segment.header, name, params, constructors, body),
         None => {
-            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false));
+            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false));
             let result = syntax::Tree::type_def(segment.header, name, params, constructors, body);
             result.with_error("Expected identifier after `type` keyword.")
         }
@@ -320,7 +314,7 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use syntax::tree::*;
     let into_ident = |token| {
         let token::Token { left_offset, code, .. } = token;
-        token::ident(left_offset, code, false, 0, false)
+        token::ident(left_offset, code, false, 0, false, false)
     };
     let (of, mut rest) = segments.pop();
     let case = rest.pop().unwrap();
@@ -381,12 +375,7 @@ struct GroupedSequence<'s> {
 
 fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
     use operator::resolve_operator_precedence_if_non_empty;
-    use syntax::token;
     use syntax::tree::*;
-    let into_symbol = |token| {
-        let token::Token { left_offset, code, .. } = token;
-        token::symbol(left_offset, code)
-    };
     let (right, mut rest) = segments.pop();
     let right_ = into_symbol(right.header);
     let left = rest.pop().unwrap();
@@ -405,4 +394,25 @@ fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
     }
     let first = lhs_.clone();
     GroupedSequence { left: left_, first, rest, right: right_ }
+}
+
+fn splice<'s>() -> Definition<'s> {
+    crate::macro_definition! {("`", everything(), "`", nothing()) splice_body}
+}
+
+fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    let (close, mut segments) = segments.pop();
+    let close = into_symbol(close.header);
+    let segment = segments.pop().unwrap();
+    let open = into_symbol(segment.header);
+    let expression = segment.result.tokens();
+    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let splice = syntax::tree::TextElement::Splice { open, expression, close };
+    syntax::Tree::text_literal(default(), vec![splice], default(), default())
+}
+
+fn into_symbol(token: syntax::token::Token) -> syntax::token::Symbol {
+    let syntax::token::Token { left_offset, code, .. } = token;
+    syntax::token::symbol(left_offset, code)
 }
