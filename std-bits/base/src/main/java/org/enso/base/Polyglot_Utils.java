@@ -27,9 +27,10 @@ public class Polyglot_Utils {
   }
 
   /** A helper functions for situations where we cannot use the Value conversion directly.
-   *
-   * Mostly happens due to the issue: TODO
-   *
+   * <p>
+   * Mostly happens due to the issue: https://github.com/oracle/graal/issues/4967
+   * Once that issue is resolved, we should probably remove this helper.
+   * <p>
    * In that case we take a generic Object, knowing that the values of interest to us will be passed as Value anyway - so we can check that and fire the conversion if needed.
    */
   public static Object convertPolyglotValue(Object item) {
