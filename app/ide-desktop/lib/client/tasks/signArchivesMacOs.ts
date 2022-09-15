@@ -194,7 +194,7 @@ class BinaryToSign implements Signable {
 
 /// Parts of the GraalVM distribution that need to be signed by us in an extra step.
 async function graalSignables(resourcesDir: string): Promise<Signable[]> {
-    const archives: [string, string[]][] = [
+    const archives: ArchivePattern[] = [
         [`Contents/Home/jmods/jdk.jartool.jmod`, ['bin/jarsigner', 'bin/jar']],
         [`Contents/Home/jmods/jdk.jdeps.jmod`, ['bin/javap', 'bin/jdeprscan', 'bin/jdeps']],
         [`Contents/Home/jmods/jdk.jstatd.jmod`, ['bin/jstatd']],
