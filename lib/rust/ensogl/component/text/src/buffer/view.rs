@@ -671,10 +671,15 @@ impl ViewBuffer {
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
+        warn!("to_bytes_selection: {:?}", selection);
         let selection_start = Location::from_in_context(self, selection.start);
+        warn!("selection_start: {:?}", selection_start);
         let selection_end = Location::from_in_context(self, selection.end);
+        warn!("selection_end: {:?}", selection_end);
         let start = self.byte_offset_of_location_snapped(selection_start);
+        warn!("start: {:?}", start);
         let end = self.byte_offset_of_location_snapped(selection_end);
+        warn!("end: {:?}", end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -1194,7 +1199,8 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
                         location.offset, location.line, column
                     );
                 }
-                let end_byte_offset = context.line_byte_length(location.line);
+                // FIXME: unwrap
+                let end_byte_offset = context.end_byte_offset_of_line_index(location.line).unwrap();
                 let location2 = Location::from_in_context(context, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)
@@ -1218,12 +1224,16 @@ impl FromInContext<&ViewBuffer, Location<Column>> for UBytes {
 
 impl FromInContext<&ViewBuffer, UBytes> for Location {
     fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
+        warn!(">> 1");
         let line = context.line_index_of_byte_offset_snapped(offset);
+        warn!(">> 2");
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
+        warn!(">> 3");
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
             warn!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
+        warn!(">> 4");
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
     }
