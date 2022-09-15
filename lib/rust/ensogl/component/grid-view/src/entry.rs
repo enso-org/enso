@@ -42,6 +42,23 @@ impl Contour {
 }
 
 
+// ===================
+// === MovedHeader ===
+// ===================
+
+#[derive(Clone, Debug)]
+pub struct MovedHeaderPosition {
+    pub position: Vector2,
+    pub y_range:  RangeInclusive<f32>,
+}
+
+impl Default for MovedHeaderPosition {
+    fn default() -> Self {
+        Self { position: default(), y_range: 0.0..=0.0 }
+    }
+}
+
+
 
 // ===========
 // === FRP ===
@@ -61,6 +78,8 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.
         set_hovered(bool),
+        //TODO[ao] docs.
+        moved_as_header(MovedHeaderPosition)
     }
     Output {
         /// Disabled entries does not react for mouse events, and cannot be selected.

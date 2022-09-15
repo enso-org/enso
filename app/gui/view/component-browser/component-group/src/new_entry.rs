@@ -15,8 +15,42 @@ use ensogl_core::display::Scene;
 use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
+use ensogl_grid_view::entry::MovedHeaderPosition;
 use ensogl_grid_view::entry::ShapeWithEntryContour;
+use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_shadow as shadow;
 use ensogl_text as text;
+
+// === Header Background ===
+
+// The background of the header. It consists of a rectangle that matches the [`background`] in
+// color and a shadow underneath it.
+pub mod background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
+        pointer_events = false;
+        (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
+            let color = Var::<color::Rgba>::from(color);
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = height.into();
+            let bg = Rect((width.clone(), height.clone())).fill(color);
+            // We use wider and shorter rect for the shadow because of the visual artifacts that
+            // will appear otherwise:
+            // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
+            //    it we keep the shadow sharp and flat for the whole width of the header.
+            // 2. Visual glitching similar to z-fighting occurs on the border of the elements
+            //    when the shadow rect has the exact same size as the background. We shrink the
+            //    height by 1 pixel to avoid it.
+            let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
+            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
+            (shadow + bg).into()
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Kind {
@@ -58,6 +92,7 @@ pub struct Style {
     pub font:                     ImString,
     pub selection_corners_radius: f32,
     pub highlight_bold:           f32,
+    pub header_shadow_size:       f32,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -222,7 +257,7 @@ impl Colors {
 pub struct Data {
     display_object: display::object::Instance,
     label:          text::Area,
-    background:     grid_view::entry::shape::View,
+    background:     background::View,
     icon:           Rc<RefCell<CurrentIcon>>,
     style:          StyleWatchFrp,
 }
@@ -231,7 +266,7 @@ impl Data {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let display_object = display::object::Instance::new(Logger::new("ComponentGroupEntry"));
         let label = app.new_view::<text::Area>();
-        let background = grid_view::entry::shape::View::new(Logger::new("ComponentGroupEntry"));
+        let background = background::View::new(Logger::new("ComponentGroupEntry"));
         let icon = CurrentIcon::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&background);
@@ -243,33 +278,36 @@ impl Data {
         Self { display_object, label, background, icon: Rc::new(RefCell::new(icon)), style }
     }
 
-    fn update_layout(&self, kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
+    fn update_layout(&self, kind: Kind, style: &Style, entry_size: Vector2) {
         let bg_width = if kind == Kind::LocalScopeEntry { entry_size.x } else { style.group_width };
         let bg_height =
-            entry_size.y - if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
-        let bg_y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
-        let bg_contour = Contour::sharp_rectangle(Vector2(bg_width, bg_height));
+            entry_size.y + if kind == Kind::Header { -style.gap_between_groups } else { 1.0 };
+        // See comment in [`Self::update_shadow`] method.
+        let shadow_addition = self.background.size.get().y - self.background.height.get();
+        let bg_sprite_height = bg_height + shadow_addition;
+        let bg_y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.5 };
         self.background.set_position_y(bg_y);
-        self.background.set_contour(bg_contour);
+        self.background.size.set(Vector2(bg_width, bg_sprite_height));
+        self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
         self.icon.borrow().set_position_xy(Vector2(left + style.icon_size / 2.0, 0.0));
         let text_x = Self::text_x_position(kind, style);
         self.label.set_position_xy(Vector2(text_x, style.text_size.raw / 2.0));
-        Contour::sharp_rectangle(Vector2(bg_width, bg_height))
     }
 
-    fn contour_offset(&self, kind: Kind, style: &Style) -> Vector2 {
+    fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
+        let height =
+            entry_size.y - if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
+        Contour::sharp_rectangle(Vector2(style.group_width, height))
+    }
+
+    fn highlight_contour(contour: Contour, style: &Style) -> Contour {
+        Contour { corners_radius: style.selection_corners_radius, ..contour }
+    }
+
+    fn contour_offset(kind: Kind, style: &Style) -> Vector2 {
         let y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
         Vector2(0.0, y)
-    }
-
-    fn highlight_contour(&self, kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let height =
-            entry_size.y - if kind == Kind::Header { style.gap_between_groups * 2.0 } else { 0.0 };
-        Contour {
-            size:           Vector2(style.group_width, height),
-            corners_radius: style.selection_corners_radius,
-        }
     }
 
     fn max_text_width(kind: Kind, style: &Style) -> f32 {
@@ -284,6 +322,34 @@ impl Data {
             left
         } else {
             left + style.icon_size + style.icon_text_padding
+        }
+    }
+
+    fn update_shadow(
+        &self,
+        header_position: &MovedHeaderPosition,
+        style: &Style,
+        entry_size: Vector2,
+    ) {
+        if header_position.position != Vector2::default() {
+            let bg_width = self.background.size.get().x;
+            let bg_height = self.background.height.get();
+            let distance_to_section_top =
+                header_position.y_range.end() - header_position.position.y;
+            let distance_to_section_bottom =
+                header_position.position.y - header_position.y_range.start();
+            // We need to render both the header background and the shadow below it, so we add
+            // `shadow_size` and base `height` to calculate the final sprite size of the
+            // `background` shape. We use `shadow_size * 2.0`, because the shadow extends by
+            // `shadow_size` in each direction around the base shape, not only down. We cap the
+            // `shadow_size` by the distance to the bottom of the component group so that the shadow
+            // is not visible outside the component group background.
+            let shadow_size = style.header_shadow_size.min(distance_to_section_bottom);
+            let bg_sprite_height = bg_height + shadow_size * 2.0;
+            self.background.size.set(Vector2(bg_width, bg_sprite_height));
+            let header_shadow_peak = entry_size.y / 2.0;
+            let height_multiplier = (distance_to_section_top / header_shadow_peak).min(1.0);
+            self.background.shadow_height_multiplier.set(height_multiplier);
         }
     }
 }
@@ -313,9 +379,11 @@ impl grid_view::Entry for View {
             style <- input.set_params.map(|p| p.style.clone()).on_change();
             kind_and_style <- all(kind, style);
             layout_data <- all(kind_and_style, input.set_size);
-            out.contour <+ layout_data.map(f!((((kind, style), entry_sz)) data.update_layout(*kind, style, *entry_sz)));
-            out.contour_offset <+ kind_and_style.map(f!(((kind, style)) data.contour_offset(*kind, style)));
-            out.highlight_contour <+ layout_data.map(f!((((kind, style), entry_sz)) data.highlight_contour(*kind, style, *entry_sz)));
+            eval layout_data ((((kind, style), entry_sz)) data.update_layout(*kind, style, *entry_sz));
+            out.contour <+ layout_data.map(|((kind, style), entry_sz)| Data::contour(*kind, style, *entry_sz));
+            out.contour_offset <+ kind_and_style.map(|(kind, style)| Data::contour_offset(*kind, style));
+            out.highlight_contour <+ out.contour.map2(&style, |contour, style| Data::highlight_contour(*contour, style));
+            out.highlight_contour_offset <+ out.contour_offset;
 
 
             // === Colors ===
@@ -329,6 +397,12 @@ impl grid_view::Entry for View {
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
             eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
+
+
+            // === Header Shadow ===
+
+            shadow_data <- all(input.moved_as_header, style, input.set_size);
+            eval shadow_data (((p, s, e)) data.update_shadow(p, s, *e));
 
 
             // === Icon and Text ===

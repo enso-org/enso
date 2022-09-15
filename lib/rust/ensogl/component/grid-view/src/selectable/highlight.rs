@@ -378,9 +378,11 @@ impl<Kind: EndpointsGetter, E: Entry> HasConstructor
             // === Highlight Position ===
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
-            position_after_highlight <- became_highlighted.map(
-                f!((&(row, col)) model.grid.entry_position(row, col))
-            );
+            position_after_highlight <- became_highlighted.map(f!([model](&(row, col)) {
+                let entry = model.grid.get_entry(row, col);
+                let entry_offset = entry.map(|e| e.frp().highlight_contour_offset.value()).unwrap_or_default();
+                model.grid.entry_position(row, col) + entry_offset
+            }));
             out.position <+ position_after_highlight;
             prev_position <- out.position.previous();
             new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);

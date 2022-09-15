@@ -19,6 +19,8 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::Scene;
+use crate::new_entry;
+
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::path::path;
 use ensogl::display::Attribute;
@@ -100,7 +102,7 @@ crate::define_icons! {
     /// A five-pointed star.
     pub mod star(Star) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let shape = FiveStar(7.0.px(),0.447);
@@ -113,7 +115,7 @@ crate::define_icons! {
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let dot = Circle(2.0.px());
@@ -129,7 +131,7 @@ crate::define_icons! {
     /// Sub-modules section button. Three rectangles placed behind each other with perspective.
     pub mod sub_modules(SubModules) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let corners_radius = 1.5;
@@ -150,7 +152,7 @@ crate::define_icons! {
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
         ensogl::define_shape_system! {
-            above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -183,7 +185,7 @@ crate::define_icons! {
     /// A rounded rectangle with an arrow pointing out to the right.
     pub mod data_output(DataOutput) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -216,7 +218,7 @@ crate::define_icons! {
     /// A rounded rectangle with the letter "A" and a text cursor.
     pub mod text_input(TextInput) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -258,7 +260,7 @@ crate::define_icons! {
     /// A rounded rectangle with the number "5" and a text cursor.
     pub mod number_input(NumberInput) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -316,7 +318,7 @@ crate::define_icons! {
     /// A table with 4x2 cells and a cursor shape in front of it.
     pub mod table_edit(TableEdit) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 // We need to create the table in two parts, left and right of the cursor to achieve
@@ -336,7 +338,7 @@ crate::define_icons! {
     /// An arrow to the left on top and an arrow to the right below.
     pub mod convert(Convert) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let upper_arrow = arrow(10.0,1.0,4.5,6.0).rotate((-PI/2.0).radians());
@@ -354,7 +356,7 @@ crate::define_icons! {
     /// A table with an eraser in front.
     pub mod dataframe_clean(DataframeClean) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let table_color = weak_color;
@@ -385,7 +387,7 @@ crate::define_icons! {
     /// A light column on the left, a dark column in the middle and a plus on the right.
     pub mod add_column(AddColumn) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let old_color = weak_color;
@@ -406,7 +408,7 @@ crate::define_icons! {
     /// A light row at the top, a dark row in the middle and a plus at the bottom.
     pub mod add_row(AddRow) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let old_color = weak_color;
@@ -427,7 +429,7 @@ crate::define_icons! {
     /// Two light columns on the left and one dark column detached on the right.
     pub mod select_column(SelectColumn) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let unselected = table(2,3).translate(((-8.0).px(),(-6.5).px()));
@@ -445,7 +447,7 @@ crate::define_icons! {
     /// Two light rows at the top and one dark row detached at the bottom.
     pub mod select_row(SelectRow) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let unselected = table(3,2).translate(((-6.5).px(),(-1.0).px()));
@@ -463,7 +465,7 @@ crate::define_icons! {
     /// A light column, a dark column and a lightning bolt on the right.
     pub mod dataframe_map_column(DataframeMapColumn) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let weak_color   = weak_color;
@@ -484,7 +486,7 @@ crate::define_icons! {
     /// A light row, a dark row and a lightning bolt below.
     pub mod dataframe_map_row(DataframeMapRow) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let weak_color   = weak_color;
@@ -506,7 +508,7 @@ crate::define_icons! {
     /// Two columns with a plus in-between.
     pub mod dataframes_join(DataframesJoin) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let column_color = weak_color;
@@ -527,7 +529,7 @@ crate::define_icons! {
     /// Two rows with a plus in-between.
     pub mod dataframes_union(DataframesUnion) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let row_color  = weak_color;
@@ -547,7 +549,7 @@ crate::define_icons! {
     /// A capital "Σ".
     pub mod sigma(Sigma) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let shape = path(2.0,&[
@@ -570,7 +572,7 @@ crate::define_icons! {
     /// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
     pub mod split_text(SplitText) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -619,7 +621,7 @@ crate::define_icons! {
     /// Some rectangles and circles in different colors.
     pub mod data_science(DataScience) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(2.0.px());
@@ -642,7 +644,7 @@ crate::define_icons! {
     /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it.
     pub mod network(Network) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(1.0.px())
@@ -665,7 +667,7 @@ crate::define_icons! {
     /// A dark rectangle containing the simple terminal prompt ">_".
     pub mod system(System) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
@@ -690,7 +692,7 @@ crate::define_icons! {
     /// Four rounded rectangles in different colors aranged in a grid.
     pub mod libraries(Libraries) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let rect0 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
@@ -719,7 +721,7 @@ crate::define_icons! {
     /// A plus and three rounded rectangles in different colors aranged in a grid.
     pub mod marketplace(Marketplace) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let plus = plus(6.5,1.5);
@@ -749,7 +751,7 @@ crate::define_icons! {
     /// left. The shape has an outline in a darker color.
     pub mod io(IO) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
@@ -772,7 +774,7 @@ crate::define_icons! {
     /// outline.
     pub mod preparation(Preparation) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
@@ -815,7 +817,7 @@ crate::define_icons! {
     /// different colors.
     pub mod join(Join) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let left_circle = Circle(5.0.px()).translate_x((-3.0).px());
@@ -840,7 +842,7 @@ crate::define_icons! {
     /// to the right.
     pub mod text(Text) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
@@ -865,7 +867,7 @@ crate::define_icons! {
     /// A clock shape.
     pub mod date_and_time(DateAndTime) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(7.75.px());
@@ -887,7 +889,7 @@ crate::define_icons! {
     /// down. Around the tip there is an ellipse outline.
     pub mod spatial(Spatial) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle   = Circle(4.5.px()).translate_y(3.5.px());
@@ -913,7 +915,7 @@ crate::define_icons! {
     /// The shape of a christal ball with a bas below.
     pub mod predictive(Predictive) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(5.5.px());
@@ -939,7 +941,7 @@ crate::define_icons! {
     /// The shape of an android.
     pub mod machine_learning(MachineLearning) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let body = Rect((10.0.px(),15.0.px()))
@@ -967,7 +969,7 @@ crate::define_icons! {
     /// outline, representing the lens and a base above that the camera is mounted on.
     pub mod computer_vision(ComputerVision) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let lens =
@@ -994,7 +996,7 @@ crate::define_icons! {
     /// replaced by a carefully designed icon in the future.
     pub mod atom(Atom) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(strong_color);
@@ -1009,7 +1011,7 @@ crate::define_icons! {
     /// replaced by a carefully designed icon in the future.
     pub mod function(Function) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
                 let shape = triangle.fill(strong_color);
@@ -1024,7 +1026,7 @@ crate::define_icons! {
     /// replaced by a carefully designed icon in the future.
     pub mod local(Local) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let dot = Circle(4.0.px());
                 let shape = dot.fill(strong_color);
@@ -1039,7 +1041,7 @@ crate::define_icons! {
     /// replaced by a carefully designed icon in the future.
     pub mod method(Method) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
@@ -1060,7 +1062,7 @@ crate::define_icons! {
     /// replaced by a carefully designed icon in the future.
     pub mod module(Module) {
         ensogl::define_shape_system! {
-           above = [crate::background, list_view::background, list_view::selection, grid_view::entry::shape, grid_view::selectable::highlight::shape];
+           above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());

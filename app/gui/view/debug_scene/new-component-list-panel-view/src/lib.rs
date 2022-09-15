@@ -214,6 +214,7 @@ pub fn main() {
                 font: "dejavusans".into(),
                 selection_corners_radius: 12.0,
                 highlight_bold: style.get_number(theme::application::component_browser::component_group::entry_list::text::highlight_bold),
+                header_shadow_size: 27.0,
             },
             dimmed_groups: default(),
         };
@@ -240,7 +241,7 @@ pub fn main() {
             new_entry::View,
         >::new(&app);
         grid_layer.add_exclusive(&grid);
-        grid.set_position_xy(Vector2(-0.5, 0.5));
+        grid.set_position_xy(Vector2(-200.0, 200.0));
         let network = frp::Network::new("new_component_list_panel_view");
         let header_frp = grid.header_frp();
         frp::extend! { network
