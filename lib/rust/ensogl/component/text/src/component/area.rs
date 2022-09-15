@@ -60,6 +60,108 @@ pub struct SelectionMap {
 
 
 
+#[derive(Debug, Default)]
+pub struct GlyphsVec {
+    vec: Vec<Glyph>,
+}
+
+impl GlyphsVec {
+    pub fn push(&mut self, glyph: Glyph) {
+        self.vec.push(glyph)
+    }
+
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
+    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Glyph) {
+        self.vec.resize_with(new_len, f)
+    }
+
+    pub fn truncate(&mut self, column: Column) {
+        self.vec.truncate(column.value)
+    }
+}
+
+impl Index<Column> for GlyphsVec {
+    type Output = Glyph;
+    fn index(&self, index: Column) -> &Self::Output {
+        &self.vec[index.value]
+    }
+}
+
+impl Index<std::ops::Range<Column>> for GlyphsVec {
+    type Output = [Glyph];
+    fn index(&self, range: std::ops::Range<Column>) -> &Self::Output {
+        &self.vec[range.start.value..range.end.value]
+    }
+}
+
+impl Index<std::ops::RangeFrom<Column>> for GlyphsVec {
+    type Output = [Glyph];
+    fn index(&self, range: std::ops::RangeFrom<Column>) -> &Self::Output {
+        &self.vec[range.start.value..]
+    }
+}
+
+impl Index<std::ops::RangeTo<Column>> for GlyphsVec {
+    type Output = [Glyph];
+    fn index(&self, range: std::ops::RangeTo<Column>) -> &Self::Output {
+        &self.vec[..range.end.value]
+    }
+}
+
+impl Index<std::ops::RangeFull> for GlyphsVec {
+    type Output = [Glyph];
+    fn index(&self, _range: std::ops::RangeFull) -> &Self::Output {
+        &self.vec[..]
+    }
+}
+
+
+
+impl IndexMut<Column> for GlyphsVec {
+    fn index_mut(&mut self, index: Column) -> &mut Self::Output {
+        &mut self.vec[index.value]
+    }
+}
+
+impl IndexMut<std::ops::Range<Column>> for GlyphsVec {
+    fn index_mut(&mut self, range: std::ops::Range<Column>) -> &mut Self::Output {
+        &mut self.vec[range.start.value..range.end.value]
+    }
+}
+
+impl IndexMut<std::ops::RangeFrom<Column>> for GlyphsVec {
+    fn index_mut(&mut self, range: std::ops::RangeFrom<Column>) -> &mut Self::Output {
+        &mut self.vec[range.start.value..]
+    }
+}
+
+impl IndexMut<std::ops::RangeTo<Column>> for GlyphsVec {
+    fn index_mut(&mut self, range: std::ops::RangeTo<Column>) -> &mut Self::Output {
+        &mut self.vec[..range.end.value]
+    }
+}
+
+impl IndexMut<std::ops::RangeFull> for GlyphsVec {
+    fn index_mut(&mut self, _range: std::ops::RangeFull) -> &mut Self::Output {
+        &mut self.vec[..]
+    }
+}
+
+
+
+impl<'t> IntoIterator for &'t GlyphsVec {
+    type Item = &'t Glyph;
+    type IntoIter = std::slice::Iter<'t, Glyph>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.vec.iter()
+    }
+}
+
+
+
 // ============
 // === Line ===
 // ============
@@ -73,7 +175,7 @@ pub struct SelectionMap {
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
-    glyphs:         Vec<Glyph>,
+    glyphs:         GlyphsVec,
     divs:           NonEmptyVec<f32>,
     centers:        Vec<f32>,
 }
@@ -1126,7 +1228,7 @@ impl AreaModel {
                     if column >= Column(line.glyphs.len()) {
                         line.push_glyph(|| glyph_system.new_glyph());
                     }
-                    let glyph = &line.glyphs[column.value];
+                    let glyph = &line.glyphs[column];
                     glyph.start_byte_offset.set(glyph_byte_start);
 
                     let size = style.size;
@@ -1156,7 +1258,7 @@ impl AreaModel {
         });
 
         warn!("DIVS: {:?}", divs);
-        line.glyphs.truncate(column.value);
+        line.glyphs.truncate(column);
 
         line.set_divs(divs);
 
@@ -1173,31 +1275,26 @@ impl AreaModel {
                 let range = self.buffer.full_range();
                 let formatting = self.buffer.sub_style(range);
                 let spans = formatting.color.spans.to_vector();
-                warn!("SPANS: {:#?}", spans);
                 for span in spans.into_iter().filter(|t| t.value.is_none()) {
-                    warn!("span: {:?}", span);
                     let range =
                         buffer::Range::<Location<Column>>::from_in_context(self, span.range);
-                    warn!("range: {:?}", range);
                     let mut lines = self.lines.borrow_mut();
 
                     if range.single_line() {
                         let view_line = self.buffer.line_to_view_line(range.start.line);
                         let line = &mut lines[view_line];
-                        for glyph in
-                            &mut line.glyphs[range.start.offset.value..range.end.offset.value]
-                        {
+                        for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
                             glyph.set_property(property);
                         }
                     } else {
                         let view_line = self.buffer.line_to_view_line(range.start.line);
                         let first_line = &mut lines[view_line];
-                        for glyph in &mut first_line.glyphs[range.start.offset.value..] {
+                        for glyph in &mut first_line.glyphs[range.start.offset..] {
                             glyph.set_property(property);
                         }
                         let view_line = self.buffer.line_to_view_line(range.end.line);
                         let last_line = &mut lines[view_line];
-                        for glyph in &mut last_line.glyphs[..range.end.offset.value] {
+                        for glyph in &mut last_line.glyphs[..range.end.offset] {
                             glyph.set_property(property);
                         }
                         for line_index in range.start.line.value + 1..range.end.line.value {
@@ -1210,12 +1307,6 @@ impl AreaModel {
                     }
                     warn!(">> range: {:?}", range);
                 }
-                // fixme: this should iterate over glyphs, but first we should change the metric
-                // from codepoints to bytes because codepoints do not give us anything and only
-                // introduce confusion. We should also introduce column type but as it depends on
-                // the font, it should be visual-only metric
-
-                // cursors should also use byte offset so they can work in offscreen text
             }
             _ => panic!(),
         }
