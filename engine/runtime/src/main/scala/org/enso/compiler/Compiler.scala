@@ -728,7 +728,7 @@ class Compiler(
           diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
         val warnCount =
           diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
-        context.getOut.println(
+        context.getErr.println(
           s"Aborting due to ${count} errors and ${warnCount} warnings."
         )
         throw new CompilationAbortedException
