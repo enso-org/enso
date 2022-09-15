@@ -728,7 +728,9 @@ class Compiler(
           diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
         val warnCount =
           diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
-        println(s"Aborting due to ${count} errors and ${warnCount} warnings.")
+        context.getErr.println(
+          s"Aborting due to ${count} errors and ${warnCount} warnings."
+        )
         throw new CompilationAbortedException
       }
     }
@@ -803,15 +805,14 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    val results = diagnostics.map { case (mod, diags) =>
+    diagnostics.find { case (mod, diags) =>
       if (diags.nonEmpty) {
         context.getOut.println(s"In module ${mod.getName}:")
         reportDiagnostics(diags, mod.getSource)
       } else {
         false
       }
-    }
-    results.exists(r => r)
+    }.nonEmpty
   }
 
   /** Reports compilation diagnostics to the standard output and throws an
