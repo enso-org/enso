@@ -27,8 +27,7 @@
      Sort the shop inventory based on the per-item price in descending order.
 
          import Standard.Examples
-         import Standard.Table.Data.Sort_Column_Selector
-         import Standard.Table.Data.Sort_Column
+         from Standard.Table import Sort_Column_Selector, Sort_Column
 
          example_sort =
             table = Examples.inventory_table

@@ -4,7 +4,7 @@ from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 import Standard.Base.System.Platform
 import Standard.Base.System.Process
-from Standard.Base.System.File.File_Permissions as File_Permissions_Module import all
+from Standard.Base.System.File.File_Permissions import all
 from Standard.Base.System.Process.Exit_Code import Exit_Success
 
 import Standard.Test

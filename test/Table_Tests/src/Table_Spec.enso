@@ -2,12 +2,11 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
 import Standard.Table
-from Standard.Table import Column, Sort_Column, Sort_Column_Selector
-from Standard.Table.Data.Table import Empty_Error
-from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data
-import Standard.Table.Data.Storage
-import Standard.Table.Data.Aggregate_Column
+from Standard.Table import Column, Sort_Column, Sort_Column_Selector, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column import all hiding First, Last
+from Standard.Table.Data.Table import Empty_Error
+from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data
+import Standard.Table.Data.Storage
 from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Errors import Floating_Point_Grouping_Data
 
