@@ -87,8 +87,8 @@ fn comments() {
 
 #[test]
 fn type_definition_no_body() {
-    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #() #() #())]);
-    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)) #() #())]);
+    test("type Bool", block![(TypeDef type Bool #() #() #())]);
+    test("type Option a", block![(TypeDef type Option #((() (Ident a) () ())) #() #())]);
 }
 
 #[test]
@@ -103,7 +103,7 @@ fn type_constructors() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef (Ident type) (Ident Geo) #()
+        (TypeDef type Geo #()
          #(((Circle #() #((Ident radius) (Ident x))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #())))
@@ -117,7 +117,7 @@ fn type_methods() {
     let code = ["type Geo", "    number =", "        x", "    area self = x + x"];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef (Ident type) (Ident Geo) #() #()
+        (TypeDef type Geo #() #()
          #((Function number #() "=" (BodyBlock #((Ident x))))
            (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
     ];
@@ -140,13 +140,25 @@ fn type_def_full() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef (Ident type) (Ident Geo) #()
+        (TypeDef type Geo #()
          #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Ident x))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #()))
            (()))
          #((Function number #() "=" (BodyBlock #((Ident x))))
            (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_def_defaults() {
+    let code = ["type Result error ok=Nothing", "    Ok value:ok = Nothing"];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type Result #((() (Ident error) () ()) (() (Ident ok) ("=" (Ident Nothing)) ()))
+         #(((Ok #((OprApp (TypeAnnotated (Ident value) ":" (Ident ok)) (Ok "=") (Ident Nothing))) #())))
+         #())
     ];
     test(&code.join("\n"), expected);
 }
@@ -161,9 +173,9 @@ fn type_def_nested() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef (Ident type) (Ident Foo) #() #()
-         #((TypeDef (Ident type) (Ident Bar) #() #() #())
-           (TypeDef (Ident type) (Ident Baz) #() #() #())))
+        (TypeDef type Foo #() #()
+         #((TypeDef type Bar #() #() #())
+           (TypeDef type Baz #() #() #())))
     ];
     test(&code.join("\n"), expected);
 }

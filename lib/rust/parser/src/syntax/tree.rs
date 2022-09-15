@@ -194,11 +194,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// - First zero or more type constructors, and their subordinate blocks.
         /// - Then a block of statements, which may define methods or type methods.
         TypeDef {
-            pub keyword: Token<'s>,
-            pub name: Tree<'s>,
-            pub params: Vec<Tree<'s>>,
+            pub keyword:      token::Ident<'s>,
+            pub name:         token::Ident<'s>,
+            pub params:       Vec<ArgumentDefinition<'s>>,
             pub constructors: Vec<TypeConstructorLine<'s>>,
-            pub block: Vec<block::Line<'s>>,
+            pub block:        Vec<block::Line<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
