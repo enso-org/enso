@@ -245,7 +245,7 @@ impl From<&usize> for Line {
 use std::ops::AddAssign;
 use std::ops::SubAssign;
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into)]
 pub struct ViewLine {
     #[allow(missing_docs)]
     pub value: usize,

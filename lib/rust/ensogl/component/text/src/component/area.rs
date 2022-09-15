@@ -60,108 +60,6 @@ pub struct SelectionMap {
 
 
 
-#[derive(Debug, Default)]
-pub struct GlyphsVec {
-    vec: Vec<Glyph>,
-}
-
-impl GlyphsVec {
-    pub fn push(&mut self, glyph: Glyph) {
-        self.vec.push(glyph)
-    }
-
-    pub fn len(&self) -> usize {
-        self.vec.len()
-    }
-
-    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Glyph) {
-        self.vec.resize_with(new_len, f)
-    }
-
-    pub fn truncate(&mut self, column: Column) {
-        self.vec.truncate(column.value)
-    }
-}
-
-impl Index<Column> for GlyphsVec {
-    type Output = Glyph;
-    fn index(&self, index: Column) -> &Self::Output {
-        &self.vec[index.value]
-    }
-}
-
-impl Index<std::ops::Range<Column>> for GlyphsVec {
-    type Output = [Glyph];
-    fn index(&self, range: std::ops::Range<Column>) -> &Self::Output {
-        &self.vec[range.start.value..range.end.value]
-    }
-}
-
-impl Index<std::ops::RangeFrom<Column>> for GlyphsVec {
-    type Output = [Glyph];
-    fn index(&self, range: std::ops::RangeFrom<Column>) -> &Self::Output {
-        &self.vec[range.start.value..]
-    }
-}
-
-impl Index<std::ops::RangeTo<Column>> for GlyphsVec {
-    type Output = [Glyph];
-    fn index(&self, range: std::ops::RangeTo<Column>) -> &Self::Output {
-        &self.vec[..range.end.value]
-    }
-}
-
-impl Index<std::ops::RangeFull> for GlyphsVec {
-    type Output = [Glyph];
-    fn index(&self, _range: std::ops::RangeFull) -> &Self::Output {
-        &self.vec[..]
-    }
-}
-
-
-
-impl IndexMut<Column> for GlyphsVec {
-    fn index_mut(&mut self, index: Column) -> &mut Self::Output {
-        &mut self.vec[index.value]
-    }
-}
-
-impl IndexMut<std::ops::Range<Column>> for GlyphsVec {
-    fn index_mut(&mut self, range: std::ops::Range<Column>) -> &mut Self::Output {
-        &mut self.vec[range.start.value..range.end.value]
-    }
-}
-
-impl IndexMut<std::ops::RangeFrom<Column>> for GlyphsVec {
-    fn index_mut(&mut self, range: std::ops::RangeFrom<Column>) -> &mut Self::Output {
-        &mut self.vec[range.start.value..]
-    }
-}
-
-impl IndexMut<std::ops::RangeTo<Column>> for GlyphsVec {
-    fn index_mut(&mut self, range: std::ops::RangeTo<Column>) -> &mut Self::Output {
-        &mut self.vec[..range.end.value]
-    }
-}
-
-impl IndexMut<std::ops::RangeFull> for GlyphsVec {
-    fn index_mut(&mut self, _range: std::ops::RangeFull) -> &mut Self::Output {
-        &mut self.vec[..]
-    }
-}
-
-
-
-impl<'t> IntoIterator for &'t GlyphsVec {
-    type Item = &'t Glyph;
-    type IntoIter = std::slice::Iter<'t, Glyph>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.vec.iter()
-    }
-}
-
-
-
 // ============
 // === Line ===
 // ============
@@ -175,7 +73,7 @@ impl<'t> IntoIterator for &'t GlyphsVec {
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
-    glyphs:         GlyphsVec,
+    glyphs:         VecIndexedBy<Glyph, Column>,
     divs:           NonEmptyVec<f32>,
     centers:        Vec<f32>,
 }
@@ -208,20 +106,6 @@ impl Line {
         }
     }
 
-    // fn div_by_byte_offset(&self, byte_offset: UBytes) -> f32 {
-    //     warn!("div_by_byte_offset for {:?}", byte_offset);
-    //     let mut column = 0;
-    //     for glyph in &self.glyphs {
-    //         warn!("glyph start byte offset: {:?}", glyph.start_byte_offset);
-    //         if glyph.start_byte_offset.get() >= byte_offset {
-    //             warn!("YES!");
-    //             break;
-    //         }
-    //         column += 1;
-    //     }
-    //     self.div_by_column(column)
-    // }
-
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
@@ -251,6 +135,14 @@ impl display::Object for Line {
     }
 }
 
+impl<'t> IntoIterator for &'t Line {
+    type Item = &'t Glyph;
+    type IntoIter = std::slice::Iter<'t, Glyph>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.glyphs.iter()
+    }
+}
+
 fn set_line_index(line: &display::object::Instance, index: usize) {
     let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
     line.set_position_y(y_offset);
@@ -262,77 +154,16 @@ fn set_line_index(line: &display::object::Instance, index: usize) {
 // === Lines ===
 // =============
 
-#[derive(Debug, From, Into)]
-pub struct LinesVec {
-    pub vec: NonEmptyVec<Line>,
-}
-
-impl LinesVec {
-    pub fn new(line: Line) -> Self {
-        let vec = NonEmptyVec::singleton(line);
-        Self { vec }
-    }
-
-    pub fn len(&self) -> usize {
-        self.vec.len()
-    }
-
-    pub fn first(&self) -> &Line {
-        self.vec.first()
-    }
-
-    pub fn last(&self) -> &Line {
-        self.vec.last()
-    }
-
-    pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
-        self.vec.insert(index.value as usize, line);
-    }
-
-    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
-        self.vec.resize_with(new_len, f)
-    }
-
-    // FIXME: make it more generic, see vec::drain
-    pub fn drain(
-        &mut self,
-        range: std::ops::Range<unit::ViewLine>,
-    ) -> std::vec::Drain<'_, Line, std::alloc::Global> {
-        self.vec.drain(range.start.value as usize..range.end.value as usize)
-    }
-}
-
-
-impl Index<unit::ViewLine> for LinesVec {
-    type Output = Line;
-    fn index(&self, index: unit::ViewLine) -> &Self::Output {
-        &self.vec[index.value as usize]
-    }
-}
-
-impl IndexMut<unit::ViewLine> for LinesVec {
-    fn index_mut(&mut self, index: unit::ViewLine) -> &mut Self::Output {
-        &mut self.vec[index.value as usize]
-    }
-}
-
-impl Index<std::ops::Range<unit::ViewLine>> for LinesVec {
-    type Output = [Line];
-    fn index(&self, range: std::ops::Range<unit::ViewLine>) -> &Self::Output {
-        &self.vec[range.start.value as usize..range.end.value as usize]
-    }
-}
-
 
 /// Set of all visible lines.
 #[derive(Clone, CloneRef, Debug, Deref)]
 struct Lines {
-    rc: Rc<RefCell<LinesVec>>,
+    rc: Rc<RefCell<NonEmptyVec<Line, unit::ViewLine>>>,
 }
 
 impl Lines {
     pub fn new(line: Line) -> Self {
-        let rc = Rc::new(RefCell::new(LinesVec::new(line)));
+        let rc = Rc::new(RefCell::new(NonEmptyVec::singleton(line)));
         Self { rc }
     }
 
@@ -358,8 +189,8 @@ impl Lines {
     }
 }
 
-impl From<LinesVec> for Lines {
-    fn from(vec: LinesVec) -> Self {
+impl From<NonEmptyVec<Line, unit::ViewLine>> for Lines {
+    fn from(vec: NonEmptyVec<Line, unit::ViewLine>) -> Self {
         let rc = Rc::new(RefCell::new(vec));
         Self { rc }
     }
@@ -853,7 +684,7 @@ impl AreaModel {
     }
 
     fn take_lines(&self) -> Lines {
-        let lines_vec = LinesVec::new(self.new_line(ViewLine(0)));
+        let lines_vec = NonEmptyVec::singleton(self.new_line(ViewLine(0)));
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
     }
@@ -1258,7 +1089,7 @@ impl AreaModel {
         });
 
         warn!("DIVS: {:?}", divs);
-        line.glyphs.truncate(column);
+        line.glyphs.truncate(column.value);
 
         line.set_divs(divs);
 
@@ -1335,8 +1166,7 @@ impl AreaModel {
         let range = self.buffer.location_range_to_view_location_range(range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
-            let line = &lines[range.start.line];
-            for glyph in &line.glyphs {
+            for glyph in &lines[range.start.line] {
                 if glyph.start_byte_offset.get() >= range.end.offset {
                     break;
                 }
@@ -1348,17 +1178,17 @@ impl AreaModel {
             let first_line = range.start.line;
             let second_line = first_line + ViewLine(1);
             let last_line = range.end.line;
-            for glyph in &lines[first_line].glyphs {
+            for glyph in &lines[first_line] {
                 if glyph.start_byte_offset.get() >= range.start.offset {
                     f(&glyph)
                 }
             }
             for line in &lines[second_line..last_line] {
-                for glyph in &line.glyphs {
+                for glyph in line {
                     f(&glyph)
                 }
             }
-            for glyph in &lines[last_line].glyphs {
+            for glyph in &lines[last_line] {
                 if glyph.start_byte_offset.get() < range.end.offset {
                     f(&glyph)
                 }
@@ -1383,13 +1213,13 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
-        let line = &mut self.lines.borrow_mut()[view_line_index];
+        let line = &self.lines.borrow()[view_line_index];
 
         let mut last_cursor = None;
         let mut last_cursor_target = default();
 
         let mut column = Column(0);
-        for glyph in &line.glyphs {
+        for glyph in line {
             cursor_map.get(&column).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
