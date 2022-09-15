@@ -8,9 +8,9 @@ import Standard.Database.Connection.Client_Certificate
 import Standard.Database.Connection.SSL_Mode
 import Standard.Database.Connection.Connection_Options
 
-import Standard.Database.Connection.Postgres
+import Standard.Database.Connection.Postgres_Options
 import Standard.Database.Connection.SQLite
-import Standard.Database.Connection.Redshift
+import Standard.Database.Connection.Redshift_Options
 
 export Standard.Database.Data.Table
 export Standard.Database.Data.Column
@@ -23,6 +23,6 @@ from Standard.Database.Connection.Client_Certificate export Client_Certificate
 from Standard.Database.Connection.Connection_Options export Connection_Options
 
 from Standard.Database.Connection.Database export connect
-from Standard.Database.Connection.Postgres export Postgres, Postgres_Data
+from Standard.Database.Connection.Postgres_Options export Postgres_Options, Postgres
 from Standard.Database.Connection.SQLite export SQLite, SQLite_Data, In_Memory
-from Standard.Database.Connection.Redshift export Redshift, Redshift_Data, AWS_Profile, AWS_Key
+from Standard.Database.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Profile, AWS_Key

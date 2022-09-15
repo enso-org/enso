@@ -14,7 +14,7 @@ polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
-type Redshift
+type Redshift_Options
     ## Connect to a AWS Redshift database.
 
        Arguments:
@@ -24,7 +24,7 @@ type Redshift
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Redshift_Data (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## Build the Connection resource.
 

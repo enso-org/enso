@@ -16,7 +16,7 @@ import Standard.Database.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
-type Postgres
+type Postgres_Options
     ## Connect to a PostgreSQL database.
 
        Arguments:
@@ -27,7 +27,7 @@ type Postgres
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Postgres_Data (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -41,7 +41,7 @@ type Postgres
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema =
-            Postgres_Data self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+            Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
 
         Postgres_Connection.create self.jdbc_url properties make_new
 
