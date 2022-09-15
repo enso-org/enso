@@ -104,7 +104,6 @@ async function signArchive(archivePath: string, binaries: string[], context: Sig
         for (const binaryPath of binariesPaths) {
             signBinary(binaryPath, context)
         }
-        
 
         if (isJar) {
             if (archiveName.includes(`runner`)) {
@@ -164,7 +163,10 @@ async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<s
 }
 
 /** Looks up for archives to sign using the given path pattern. */
-async function lookupArchivePattern(base: string, [pattern, binaries]: ArchivePattern): Promise<ArchiveToSign[]> {
+async function lookupArchivePattern(
+    base: string,
+    [pattern, binaries]: ArchivePattern
+): Promise<ArchiveToSign[]> {
     const archives = await globAbs(path.join(base, pattern))
     return archives.map(path => new ArchiveToSign(path, binaries))
 }

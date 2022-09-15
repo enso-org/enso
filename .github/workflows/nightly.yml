@@ -583,6 +583,11 @@ jobs:
           ./run ide upload --wasm-source current-ci-run --backend-source release
           --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
+          APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
+          CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse

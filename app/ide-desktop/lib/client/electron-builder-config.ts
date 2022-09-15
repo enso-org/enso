@@ -162,7 +162,7 @@ const config: Configuration = {
         if (args.platform === Platform.MAC) {
             const { packager, appOutDir } = context
             const appName = packager.appInfo.productFilename
-            
+
             // We need to manually re-sign our build artifacts before notarization.
             console.log('  • Performing additional signing of dependencies.')
             await signArchivesMacOs({
