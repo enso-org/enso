@@ -59,23 +59,29 @@ pub type UnboundClassId = crate::data_structures::vecmap::UnboundKey<Class>;
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Class {
     /// The name of the class, not including package.
-    pub name:      String,
+    pub name:                   String,
     /// Parameters of a generic class.
-    pub params:    Vec<ClassId>,
+    pub params:                 Vec<ClassId>,
     /// The parent class, if any.
-    pub parent:    Option<ClassId>,
+    pub parent:                 Option<ClassId>,
     /// Whether this class is `abstract`.
-    pub abstract_: bool,
+    pub abstract_:              bool,
     /// Whether this class is `sealed`.
-    pub sealed:    bool,
+    pub sealed:                 bool,
     /// The data fields.
-    pub fields:    Vec<Field>,
+    pub fields:                 Vec<Field>,
     /// The class's methods.
-    pub methods:   Vec<Method>,
-    builtin:       bool,
+    pub methods:                Vec<Method>,
+    builtin:                    bool,
     // Attributes
-    discriminants: BTreeMap<usize, ClassId>,
-    child_field:   Option<usize>,
+    discriminants:              BTreeMap<usize, ClassId>,
+    /// The field before which a child type's fields will be inserted in the serialized format.
+    pub child_field:            Option<usize>,
+    /// Virtual fields to insert at the beginning of the `toString` representation.
+    ///
+    /// Each value is an expression, which should evaluate to a string. It may refer to any of the
+    /// type's fields.
+    pub tostring_prefix_fields: Vec<String>,
 }
 
 impl Class {
@@ -133,6 +139,13 @@ pub enum Dynamic {
     Getter(FieldId),
     /// A read-accessor for a field, with a specified name.
     GetterNamed(FieldId, String),
+}
+
+impl Dynamic {
+    /// Construct a [`GetterNamed`].
+    pub fn getter_named(field: FieldId, name: impl Into<String>) -> Self {
+        Self::GetterNamed(field, name.into())
+    }
 }
 
 impl From<Dynamic> for Method {
