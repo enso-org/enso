@@ -8,6 +8,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
 import java.util.List;
@@ -98,9 +99,9 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof Boolean) {
-      return fillMissingBoolean((Boolean) arg);
+  public Storage fillMissing(Value arg) {
+    if (arg.isBoolean()) {
+      return fillMissingBoolean(arg.asBoolean());
     } else {
       return super.fillMissing(arg);
     }
