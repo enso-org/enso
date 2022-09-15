@@ -166,11 +166,10 @@ public class LongStorage extends NumericStorage {
   @Override
   public Storage fillMissing(Value arg) {
     if (arg.isNumber()) {
-      Object number = arg.as(Object.class);
-      if (number instanceof Double d) {
-        return fillMissingDouble(d);
-      } else if (number instanceof Long l) {
-        return fillMissingLong(l);
+      if (arg.fitsInLong()) {
+        return fillMissingLong(arg.asLong());
+      } else {
+        return fillMissingDouble(arg.asDouble());
       }
     }
 

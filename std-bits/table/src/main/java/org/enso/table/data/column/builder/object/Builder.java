@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
-import org.graalvm.polyglot.Value;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
