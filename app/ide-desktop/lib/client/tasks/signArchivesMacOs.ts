@@ -29,6 +29,8 @@ const run = (cmd: string, args: string[], cwd?: string) => {
     return child_process.execFileSync(cmd, args, { cwd }).toString()
 }
 
+type ArchivePattern = [glob.Pattern, glob.Pattern[]]
+
 /** Information we need to sign a given binary. */
 interface SigningContext {
     /** A digital identity that is stored in a key-chain that is on the calling user's keychain search list.
@@ -46,7 +48,7 @@ interface Input extends SigningContext {
     productFilename: string
 }
 
-/** Signs a single binary file. */
+/** Sign a single binary file. */
 function signBinary(targetPath: string, { entitlements, identity }: SigningContext): string {
     console.log(`Signing ${targetPath}`)
     return run(`codesign`, [
@@ -143,8 +145,8 @@ interface Signable {
  */
 class ArchiveToSign implements Signable {
     path: string
-    binaries: string[]
-    constructor(path: string, binaries: string[]) {
+    binaries: glob.Pattern[]
+    constructor(path: string, binaries: glob.Pattern[]) {
         this.path = path
         this.binaries = binaries
     }
@@ -162,22 +164,13 @@ async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<s
 }
 
 /** Looks up for archives to sign using the given path pattern. */
-async function lookupArchivePattern(base: string, pattern: glob.Pattern, binaries: string[]): Promise<ArchiveToSign[]> {
+async function lookupArchivePattern(base: string, [pattern, binaries]: ArchivePattern): Promise<ArchiveToSign[]> {
     const archives = await globAbs(path.join(base, pattern))
     return archives.map(path => new ArchiveToSign(path, binaries))
 }
 
 async function lookupArchivePatterns(base: string, archivePatterns: [glob.Pattern, string[]][]) {
-    // const lookup = ([pattern, binaries]) => lookupArchivePattern(base, pattern, binaries)
-    // return await Promise.all(archivePatterns.map(lookup)).s
-
-    // const archives = []
-    // for (const [pattern, binaries] of archivePatterns) {
-    //     archives.push(...(await lookupArchivePattern(base, pattern, binaries)))
-    // }
-    // return archives
-
-    const archivesPromises = archivePatterns.map(([pattern, binaries]) => lookupArchivePattern(base, pattern, binaries))
+    const archivesPromises = archivePatterns.map(pattern => lookupArchivePattern(base, pattern))
     const archives = await Promise.all(archivesPromises)
     return archives.flat()
 }
@@ -291,8 +284,6 @@ export default async function (context: Input) {
 
     // Sign archives.
     console.log('Signing GraalVM elemenets...')
-    // const runtimeDir = `${resourcesDir}/enso/runtime/*/`
-    // for (const graalDirEntry of await glob(runtimeDir, { absolute: true, onlyDirectories: true })) {
     for (const signable of await graalSignables(resourcesDir)) await signable.sign(context)
 
     console.log('Signing Engine elements...')
