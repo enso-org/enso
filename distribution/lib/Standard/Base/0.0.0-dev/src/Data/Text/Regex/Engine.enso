@@ -56,7 +56,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-       - mode: The matching mode to use. This must default to `Mode.All`.
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`.
 
        This method will _always_ return `Nothing` if it fails to match.
 
@@ -85,7 +85,7 @@ type Pattern
 
        Arguments:
        - input: The text to find matches in.
-       - mode: The matching mode to use. This must default to `Mode.All`
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`
 
        This method will _always_ return `Nothing` if it fails to find any
        matches.
@@ -120,11 +120,11 @@ type Pattern
        - input: The text in which to perform the replacement(s).
        - replacement: The literal text with which to replace any matches.
        - mode: The matching mode to use for finding candidates to replace. This
-         must default to `Mode.All`.
+         must default to `Regex_Mode.All`.
 
        If this method performs no replacements it will return the `input` text
        unchanged.
-    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace : Text -> Text -> Regex_Mode | Matching_Mode | Integer -> Text
     replace self _ _ _ = Errors.unimplemented "This is an interface only."
 
 ## The `Data.Text.Regex.Engine.Match` interface.
