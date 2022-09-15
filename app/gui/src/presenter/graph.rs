@@ -137,7 +137,7 @@ impl Model {
                 };
                 Some(result)
             },
-            "update node position",
+            "update node visualization",
         );
     }
 
