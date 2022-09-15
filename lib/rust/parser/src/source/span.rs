@@ -76,19 +76,16 @@ pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Code<'s>>) -> Offset<'
 }
 
 impl<'s> Offset<'s> {
-    /// Length of the offset.
-    pub fn len(&self) -> Bytes {
-        self.code.len()
-    }
-
     /// Check if the offset is 0.
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
-        self.len() == Bytes(0)
+        self.code.is_empty()
     }
 
     /// Check if the offset is bigger than 0.
+    #[inline(always)]
     pub fn exists(&self) -> bool {
-        self.len() > Bytes(0)
+        !self.is_empty()
     }
 }
 
@@ -133,11 +130,11 @@ impl<'s> std::ops::AddAssign<&Offset<'s>> for Offset<'s> {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Span<'s> {
-    #[reflect(flatten)]
+    #[reflect(hide, flatten)]
     pub left_offset: Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
-    #[reflect(hide)]
-    pub code_length: Bytes,
+    #[reflect(hide, flatten)]
+    pub code_length: code::Length,
 }
 
 impl<'s> Span<'s> {
@@ -145,6 +142,7 @@ impl<'s> Span<'s> {
     pub fn new() -> Self {
         default()
     }
+
     /// Check whether the span is empty.
     pub fn is_empty(&self) -> bool {
         self.left_offset.is_empty() && self.code_length.is_zero()
@@ -178,13 +176,14 @@ where
     T: Into<Ref<'s, 'a>>,
     's: 'a,
 {
+    #[inline(always)]
     fn concat_mut(&mut self, other: T) {
         let other = other.into();
         if self.code_length.is_zero() {
             self.left_offset += other.left_offset;
             self.code_length = other.code_length;
         } else {
-            self.code_length += other.left_offset.len() + other.code_length;
+            self.code_length += other.left_offset.code.length() + other.code_length;
         }
     }
 }
@@ -205,7 +204,7 @@ where
 pub struct Ref<'s, 'a> {
     pub left_offset: &'a Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
-    pub code_length: Bytes,
+    pub code_length: code::Length,
 }
 
 impl<'s, 'a> From<&'a Span<'s>> for Ref<'s, 'a> {
@@ -234,7 +233,7 @@ impl<'s, 'a> From<&'a Span<'s>> for Ref<'s, 'a> {
 pub struct RefMut<'s, 'a> {
     pub left_offset: &'a mut Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
-    pub code_length: Bytes,
+    pub code_length: code::Length,
 }
 
 

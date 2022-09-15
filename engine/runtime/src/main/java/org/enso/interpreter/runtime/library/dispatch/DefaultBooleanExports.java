@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.library.dispatch;
 
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;

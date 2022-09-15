@@ -159,7 +159,9 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
           }
 
           MethodParameter p = v.get(0);
-          if (!p.needsToInjectValueOfType() && !p.isTruffleInjectedParam()) {
+          if (!p.needsToInjectValueOfType()
+              && !p.isTruffleInjectedParam()
+              && !p.isTruffleCachedParam()) {
             if (v.size() > 1 && allEqual(v.stream())) {
               execParams.add(p);
             } else {

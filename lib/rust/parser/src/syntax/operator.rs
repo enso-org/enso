@@ -134,16 +134,22 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operator.
     pub fn operator(&mut self, opr: token::Operator<'s>) {
         use ItemType::*;
-        match (self.nospace, opr.binary_infix_precedence, opr.unary_prefix_precedence) {
+        let assoc = opr.properties.associativity();
+        match (
+            self.nospace,
+            opr.properties.binary_infix_precedence(),
+            opr.properties.unary_prefix_precedence(),
+        ) {
             // If an operator has a binary role, and a LHS is available, it's acting as binary.
-            (_, Some(prec), _) if self.prev_type == Some(Ast) => self.binary_operator(prec, opr),
+            (_, Some(prec), _) if self.prev_type == Some(Ast) =>
+                self.binary_operator(prec, assoc, opr),
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
             // it's acting as unary.
-            (true, _, Some(prec)) => self.push_operator(prec, Arity::Unary(opr)),
+            (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::Unary(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
             (false, None, Some(_)) => self.operand(syntax::Tree::unary_opr_app(opr, None).into()),
             // Binary operator section (no LHS).
-            (_, Some(prec), _) => self.binary_operator(prec, opr),
+            (_, Some(prec), _) => self.binary_operator(prec, assoc, opr),
             // Failed to compute a role for the operator; this should not be possible.
             (_, None, None) => {
                 // We don't know the correct precedence, so we can't structure the tree correctly.
@@ -152,27 +158,37 @@ impl<'s> ExpressionBuilder<'s> {
                 const ARBITRARY_PRECEDENCE: token::Precedence = token::Precedence { value: 20 };
                 let error = || format!("Precedence of: {:?}", opr.code);
                 self.precedence_error.get_or_insert_with(error);
-                self.binary_operator(ARBITRARY_PRECEDENCE, opr);
+                self.binary_operator(ARBITRARY_PRECEDENCE, assoc, opr);
             }
         }
     }
 
     /// Extend the expression with a binary operator, by pushing it to the `operator_stack` or
     /// emitting a multiple-operator error.
-    fn binary_operator(&mut self, precedence: token::Precedence, opr: token::Operator<'s>) {
+    fn binary_operator(
+        &mut self,
+        prec: token::Precedence,
+        assoc: token::Associativity,
+        opr: token::Operator<'s>,
+    ) {
         if self.prev_type == Some(ItemType::Opr)
                 && let Some(prev_opr) = self.operator_stack.last_mut()
                 && let Arity::Binary(oprs) = &mut prev_opr.opr {
             oprs.push(opr);
             return;
         }
-        self.push_operator(precedence, Arity::Binary(vec![opr]));
+        self.push_operator(prec, assoc, Arity::Binary(vec![opr]));
     }
 
     /// Add an operator to the stack; [`reduce`] the stack first, as appropriate for the specified
     /// precedence.
-    fn push_operator(&mut self, precedence: token::Precedence, opr: Arity<'s>) {
-        let opr = Operator { precedence, opr };
+    fn push_operator(
+        &mut self,
+        precedence: token::Precedence,
+        associativity: token::Associativity,
+        opr: Arity<'s>,
+    ) {
+        let opr = Operator { precedence, associativity, opr };
         if self.prev_type != Some(ItemType::Opr) {
             // If the previous item was also an operator, this must be a unary operator following a
             // binary operator; we cannot reduce the stack because the unary operator must be
@@ -191,13 +207,16 @@ impl<'s> ExpressionBuilder<'s> {
     /// operators in the `operator_stack` that have precedence greater than or equal to the
     /// specified value, consuming LHS values from the `output` stack as needed.
     fn reduce(&mut self, prec: token::Precedence, rhs: &mut Option<syntax::Tree<'s>>) {
-        while let Some(opr) = self.operator_stack.pop_if(|opr| opr.precedence >= prec) {
+        while let Some(opr) = self.operator_stack.pop_if(|opr| {
+            opr.precedence > prec
+                || (opr.precedence == prec && opr.associativity == token::Associativity::Left)
+        }) {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
                 Arity::Unary(opr) => syntax::Tree::unary_opr_app(opr, rhs_),
                 Arity::Binary(opr) => {
                     let lhs = self.output.pop().map(|t| t.to_ast());
-                    let can_form_section = opr.len() != 1 || opr[0].can_form_section;
+                    let can_form_section = opr.len() != 1 || opr[0].properties.can_form_section();
                     self.was_section_used = self.was_section_used
                         || (can_form_section && (lhs.is_none() || rhs_.is_none()));
                     syntax::tree::apply_operator(lhs, opr, rhs_)
@@ -213,7 +232,7 @@ impl<'s> ExpressionBuilder<'s> {
         use ItemType::*;
         let mut item =
             (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop().map(|t| t.to_ast()));
-        self.reduce(token::Precedence::minimum(), &mut item);
+        self.reduce(token::Precedence::min(), &mut item);
         if !self.output.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed while constructing the expression."
@@ -245,8 +264,9 @@ enum ItemType {
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug)]
 struct Operator<'s> {
-    precedence: token::Precedence,
-    opr:        Arity<'s>,
+    precedence:    token::Precedence,
+    associativity: token::Associativity,
+    opr:           Arity<'s>,
 }
 
 /// Classifies the role of an operator.

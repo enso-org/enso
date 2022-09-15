@@ -3,7 +3,9 @@
 use crate::prelude::*;
 
 use crate::header;
+use crate::Col;
 use crate::Entry;
+use crate::Row;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
@@ -14,6 +16,69 @@ use ensogl_core::display;
 // ==============
 
 pub mod highlight;
+
+
+
+// ======================
+// === MovementTarget ===
+// ======================
+
+/// An internal structure describing where selection would go after being moved (i.e.
+/// after navigating with arrows). If moving the selection would put it outside the grid, the
+/// [`OutOfBounds`] variant contains the direction in which the grid boundary would be crossed.
+/// Otherwise, the [`Location`] variant contains row and column in the grid.
+#[derive(Copy, Clone, Debug)]
+enum MovementTarget {
+    Location { row: Row, col: Col },
+    OutOfBounds(frp::io::keyboard::ArrowDirection),
+}
+
+impl MovementTarget {
+    /// Calculate row and column of the nearest entry in given direction from given row and col.
+    /// Returns a [`MovementTarget::Location`] if the entry is in bounds of a grid with given
+    /// amount of rows and columns. Returns [`MovementTarget::OutOfBounds`] otherwise.
+    fn next_in_direction(
+        row: Row,
+        col: Col,
+        direction: frp::io::keyboard::ArrowDirection,
+        rows: Row,
+        columns: Col,
+    ) -> MovementTarget {
+        use frp::io::keyboard::ArrowDirection::*;
+        use MovementTarget::*;
+        let row_below = row + 1;
+        let col_to_the_right = col + 1;
+        match direction {
+            Up if row > 0 => Location { row: row - 1, col },
+            Down if row_below < rows => Location { row: row_below, col },
+            Left if col > 0 => Location { row, col: col - 1 },
+            Right if col_to_the_right < columns => Location { row, col: col_to_the_right },
+            _ => OutOfBounds(direction),
+        }
+    }
+
+    /// In case of a [`Location`] variant, return the row and col it contains.
+    fn location(self) -> Option<(Row, Col)> {
+        match self {
+            Self::Location { row, col } => Some((row, col)),
+            Self::OutOfBounds(_) => None,
+        }
+    }
+
+    /// In case of an [`OutOfBounds`] variant, return the arrow direction it contains.
+    fn out_of_bounds(self) -> Option<frp::io::keyboard::ArrowDirection> {
+        match self {
+            Self::Location { .. } => None,
+            Self::OutOfBounds(dir) => Some(dir),
+        }
+    }
+}
+
+impl Default for MovementTarget {
+    fn default() -> Self {
+        Self::Location { row: 0, col: 0 }
+    }
+}
 
 
 
@@ -97,6 +162,7 @@ where
         highlight::HasConstructor<InnerGridView = InnerGridView>,
 {
     fn new_wrapping(app: &Application, grid: InnerGridView) -> Self {
+        use frp::io::keyboard::ArrowDirection as Direction;
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
         let header_highlights = Immutable(None);
         let selection_handler = highlight::SelectionHandler::new_connected(app, &grid);
@@ -105,12 +171,33 @@ where
         selection_handler.connect_with_shape(&highlights);
         hover_handler.connect_with_shape(&highlights);
 
-        let grid_frp = grid.as_ref().frp();
+        let grid_ref = grid.as_ref();
+        let grid_frp = grid_ref.frp();
         let network = grid_frp.network();
+        let input = &grid_frp.private.input;
         frp::extend! { network
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
             });
+
+
+            // === Move selection by one position ===
+
+            input_move_selection_dir <- any(...);
+            input_move_selection_dir <+ input.move_selection_up.constant(Some(Direction::Up));
+            input_move_selection_dir <+ input.move_selection_down.constant(Some(Direction::Down));
+            input_move_selection_dir <+ input.move_selection_left.constant(Some(Direction::Left));
+            input_move_selection_dir <+ input.move_selection_right.constant(Some(Direction::Right));
+            let grid_size = &grid_frp.grid_size;
+            let selection = &grid_frp.entry_selected;
+            selection_after_movement <= input_move_selection_dir.map3(grid_size, selection,
+                |dir, (rows, cols), selection| selection.zip(*dir).map(|((row, col), dir)|
+                    MovementTarget::next_in_direction(row, col, dir, *rows, *cols)
+                )
+            );
+            grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.location()).some();
+            grid_frp.private.output.selection_movement_out_of_grid_prevented <+
+                selection_after_movement.map(|s| s.out_of_bounds());
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }

@@ -1267,23 +1267,13 @@ type Aggregate_Column
 
 ## UNSTABLE
 
-   Pretty-prints the index out of bounds error.
-Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text self =
-    ix_text = self.index.to_text
-    len_text = self.length.to_text
-    "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."
-
-## UNSTABLE
-
    An error for when the column contains no elements.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The column is empty."
+       Pretty prints the empty column error.
+    to_display_text : Text
+    to_display_text self = "The column is empty."
 
 ## PRIVATE
 

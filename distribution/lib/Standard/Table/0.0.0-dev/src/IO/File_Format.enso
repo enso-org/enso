@@ -21,7 +21,7 @@ import Standard.Table.IO.Quote_Style
 type Auto
     ## ADVANCED
        Gets the underlying File_Format for the specified file
-    materialise : File->File_Format
+    materialise : File -> File_Format
     materialise self file =
         extension = file.extension
 
@@ -129,12 +129,12 @@ type Delimited
     ## PRIVATE
        Clone the instance with some properties overridden.
        Note: This function is internal until such time as Atom cloning with modification is built into Enso.
-    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
+    clone : Text -> Text -> (Boolean|Infer) -> Data_Formatter -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Data self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
-    with_quotes : Text->Text->Boolean->Delimited
+    with_quotes : Text -> Text -> Boolean -> Delimited
     with_quotes self quote='"' quote_escape=quote always_quote=False =
         self.clone quote_style=(Quote_Style.With_Quotes always_quote=always_quote quote=quote quote_escape=quote_escape)
 
