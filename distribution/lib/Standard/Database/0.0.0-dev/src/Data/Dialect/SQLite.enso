@@ -1,8 +1,8 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Database.Data.SQL import Sql_Type, Statement
-import Standard.Database.Data.Sql
+from Standard.Database.Data.SQL import SQL_Type, Statement
+import Standard.Database.Data.SQL
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
@@ -42,7 +42,7 @@ type SQLite_Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
 
     ## PRIVATE
@@ -80,14 +80,14 @@ make_internal_generator_dialect =
    You may need to transform it with `resolve_aggregate` first.
 resolve_target_sql_type aggregate = case aggregate of
     Group_By c _ -> c.sql_type
-    Count _ -> Sql_Type.integer
+    Count _ -> SQL_Type.integer
     Count_Distinct columns _ _ ->
-        if columns.length == 1 then Sql_Type.integer else
+        if columns.length == 1 then SQL_Type.integer else
             unsupported "Count_Distinct on multiple columns"
-    Count_Not_Nothing _ _ -> Sql_Type.integer
-    Count_Nothing _ _ -> Sql_Type.integer
-    Count_Not_Empty _ _ -> Sql_Type.integer
-    Count_Empty _ _ -> Sql_Type.integer
+    Count_Not_Nothing _ _ -> SQL_Type.integer
+    Count_Nothing _ _ -> SQL_Type.integer
+    Count_Not_Empty _ _ -> SQL_Type.integer
+    Count_Empty _ _ -> SQL_Type.integer
     Percentile _ _ _ -> unsupported "Percentile"
     Mode _ _ -> unsupported "Mode"
     First _ _ _ _ -> unsupported "First"
@@ -96,10 +96,10 @@ resolve_target_sql_type aggregate = case aggregate of
     Minimum c _ -> c.sql_type
     Shortest _ _ -> unsupported "Shortest"
     Longest _ _ -> unsupported "Longest"
-    Standard_Deviation _ _ _ -> Sql_Type.real
-    Concatenate _ _ _ _ _ _ -> Sql_Type.text
+    Standard_Deviation _ _ _ -> SQL_Type.real
+    Concatenate _ _ _ _ _ _ -> SQL_Type.text
     Sum c _ -> c.sql_type
-    Average _ _ -> Sql_Type.real
+    Average _ _ -> SQL_Type.real
     Median _ _ -> unsupported "Median"
 
 ## PRIVATE

@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Error.Common as Errors
 from Standard.Table import Aggregate_Column
-from Standard.Database.Data.SQL import Statement, Sql_Type
+from Standard.Database.Data.SQL import Statement, SQL_Type
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Dialect.Postgres
 import Standard.Database.Data.Dialect.Redshift
@@ -31,7 +31,7 @@ type Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE

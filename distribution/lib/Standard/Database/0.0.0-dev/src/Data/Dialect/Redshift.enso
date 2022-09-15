@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
 
-from Standard.Database.Data.SQL import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Postgres
 import Standard.Database.Data.Internal.Base_Generator
@@ -40,7 +40,7 @@ type Redshift_Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self aggregate =
         Postgres.resolve_target_sql_type aggregate
 

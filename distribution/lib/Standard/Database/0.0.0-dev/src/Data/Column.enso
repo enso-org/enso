@@ -7,7 +7,7 @@ import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
-from Standard.Database.Data.SQL import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Data.Table import Integrity_Error
 from Standard.Database.Errors import Unsupported_Database_Operation_Error
 
@@ -30,7 +30,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Column_Data name:Text connection:Connection sql_type:Sql_Type expression:IR.Expression context:IR.Context
+    Column_Data name:Text connection:Connection sql_type:SQL_Type expression:IR.Expression context:IR.Context
 
     ## UNSTABLE
 
@@ -111,7 +111,7 @@ type Column
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
-    make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
+    make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> Column
     make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         case operand of
@@ -136,7 +136,7 @@ type Column
        - op_kind: The kind of the unary operator.
        - new_type: The type of the SQL column that results from applying the
          operator.
-    make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
+    make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
     make_unary_op self op_kind new_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         new_expr = IR.Operation op_kind [self.expression]
@@ -229,7 +229,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     == : Column | Any -> Column
-    == self other = self.make_binary_op "=" other new_type=Sql_Type.boolean
+    == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -242,7 +242,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     != : Column | Any -> Column
-    != self other = self.make_binary_op "!=" other new_type=Sql_Type.boolean
+    != self other = self.make_binary_op "!=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -255,7 +255,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     >= : Column | Any -> Column
-    >= self other = self.make_binary_op ">=" other new_type=Sql_Type.boolean
+    >= self other = self.make_binary_op ">=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -268,7 +268,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     <= : Column | Any -> Column
-    <= self other = self.make_binary_op "<=" other new_type=Sql_Type.boolean
+    <= self other = self.make_binary_op "<=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -281,7 +281,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     > : Column | Any -> Column
-    > self other = self.make_binary_op ">" other new_type=Sql_Type.boolean
+    > self other = self.make_binary_op ">" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -294,7 +294,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     < : Column | Any -> Column
-    < self other = self.make_binary_op "<" other new_type=Sql_Type.boolean
+    < self other = self.make_binary_op "<" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -387,7 +387,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing self = self.make_unary_op "ISNULL" new_type=Sql_Type.boolean
+    is_missing self = self.make_unary_op "ISNULL" new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -499,7 +499,7 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     starts_with : Column | Text -> Column
-    starts_with self other = self.make_binary_op "starts_with" other new_type=Sql_Type.boolean
+    starts_with self other = self.make_binary_op "starts_with" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -513,7 +513,7 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     ends_with : Column | Text -> Column
-    ends_with self other = self.make_binary_op "ends_with" other new_type=Sql_Type.boolean
+    ends_with self other = self.make_binary_op "ends_with" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -527,7 +527,7 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     contains : Column | Text -> Column
-    contains self other = self.make_binary_op "contains" other new_type=Sql_Type.boolean
+    contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
 
     ## PRIVATE
     as_internal : IR.Internal_Column
@@ -543,7 +543,7 @@ type Column
    - operation: The name of the aggregation operation.
    - name_suffix: The suffix to apply to the name of the aggregate column.
    - new_type: The SQL type of the result column.
-make_aggregate : Column -> Text -> Text -> Sql_Type -> Column
+make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = new_type.if_nothing column.sql_type
     expr = IR.Operation operation [column.expression]
@@ -563,7 +563,7 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
    - expected_type: The expected SQL type of the column.
    - expr: The expression for the query.
    - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> Sql_Type -> IR.Expression -> IR.Context -> Column
+lift_aggregate : Text -> Connection -> SQL_Type -> IR.Expression -> IR.Context -> Column
 lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A

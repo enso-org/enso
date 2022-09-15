@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database.Data.SQL import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Data.Dialect
@@ -97,7 +97,7 @@ type SQLite_Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Statement -> Vector Sql_Type -> Materialized_Table
+    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.connection.execute_query query expected_types
 
@@ -121,7 +121,7 @@ type SQLite_Connection
 
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
         self.connection.fetch_columns table_name

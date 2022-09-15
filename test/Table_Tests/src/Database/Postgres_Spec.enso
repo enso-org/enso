@@ -9,7 +9,7 @@ from Standard.Table.Data.Aggregate_Column import all hiding First
 
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
-from Standard.Database.Data.SQL import Sql_Type
+from Standard.Database.Data.SQL import SQL_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry_Data
 import Standard.Database.Internal.Postgres.Pgpass
 
@@ -120,33 +120,33 @@ postgres_specific_spec connection db_name pending =
         t = connection.access_table name
         Test.specify "Concatenate, Shortest and Longest" <|
             r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
-            r.columns.at 0 . sql_type . should_equal Sql_Type.text
-            r.columns.at 1 . sql_type . should_equal Sql_Type.text
-            r.columns.at 2 . sql_type . should_equal Sql_Type.text
+            r.columns.at 0 . sql_type . should_equal SQL_Type.text
+            r.columns.at 1 . sql_type . should_equal SQL_Type.text
+            r.columns.at 2 . sql_type . should_equal SQL_Type.text
 
         Test.specify "Counts" <|
             r = t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
             r.column_count . should_equal 6
             r.columns.each column->
-                column.sql_type . should_equal Sql_Type.bigint
+                column.sql_type . should_equal SQL_Type.bigint
 
         Test.specify "Sum" <|
             r = t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
-            r.columns.at 0 . sql_type . should_equal Sql_Type.bigint
-            r.columns.at 1 . sql_type . should_equal Sql_Type.bigint
-            r.columns.at 2 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 3 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 4 . sql_type . should_equal Sql_Type.real
-            r.columns.at 5 . sql_type . should_equal Sql_Type.double
+            r.columns.at 0 . sql_type . should_equal SQL_Type.bigint
+            r.columns.at 1 . sql_type . should_equal SQL_Type.bigint
+            r.columns.at 2 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 3 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 4 . sql_type . should_equal SQL_Type.real
+            r.columns.at 5 . sql_type . should_equal SQL_Type.double
 
         Test.specify "Average" <|
             r = t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
-            r.columns.at 0 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 1 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 2 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 3 . sql_type . should_equal Sql_Type.numeric
-            r.columns.at 4 . sql_type . should_equal Sql_Type.double
-            r.columns.at 5 . sql_type . should_equal Sql_Type.double
+            r.columns.at 0 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 1 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 2 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 3 . sql_type . should_equal SQL_Type.numeric
+            r.columns.at 4 . sql_type . should_equal SQL_Type.double
+            r.columns.at 5 . sql_type . should_equal SQL_Type.double
 
         connection.execute_update 'DROP TABLE "'+name+'"'
 

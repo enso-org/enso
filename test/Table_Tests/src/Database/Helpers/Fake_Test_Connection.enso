@@ -2,10 +2,10 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Database.Data.Table as Database_Table
-from Standard.Database.Data.SQL import Statement
+from Standard.Database.Data.SQL import Statement, SQL_Type
 
 type Fake_Test_Connection
-    # type Fake_Test_Connection (tables : Map Text (Vector [Text, Sql_Type]))
+    # type Fake_Test_Connection (tables : Map Text (Vector [Text, SQL_Type]))
     #                           (dialect : Text)
     Fake_Test_Connection_Data tables dialect
 

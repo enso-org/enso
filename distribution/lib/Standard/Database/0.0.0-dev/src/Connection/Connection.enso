@@ -7,7 +7,7 @@ import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
 
-from Standard.Database.Data.SQL import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 from Standard.Database.Errors import SQL_Error
@@ -120,7 +120,7 @@ type Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Statement -> Vector Sql_Type -> Materialized_Table
+    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement query stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -147,7 +147,7 @@ type Connection
 
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
