@@ -308,6 +308,15 @@ fn code_block_operator() {
           #()))
     ];
     test(&code.join("\n"), expect);
+    let code = ["rect2 = rect1", "    . width = 7", "    . center", "        . x = 1"];
+    #[rustfmt::skip]
+    let expected = block![
+        (Assignment (Ident rect2) "="
+         (OperatorBlockApplication (Ident rect1)
+          #(((Ok ".") (OprApp (Ident width) (Ok "=") (Number () "7" ())))
+            ((Ok ".") (OperatorBlockApplication (Ident center)
+                      ((Ok ".") (OprApp (Ident x) (Ok "=") (Number () "1" ()))))))))];
+    test(&code.join("\n"), expected);
 }
 
 #[test]
@@ -420,6 +429,17 @@ fn right_associative_operators() {
 fn pipeline_operators() {
     test("f <| a", block![(OprApp (Ident f) (Ok "<|") (Ident a))]);
     test("a |> f", block![(OprApp (Ident a) (Ok "|>") (Ident f))]);
+}
+
+#[test]
+fn accessor_operator() {
+    // Test that the accessor operator `.` is treated like any other operator.
+    let cases = [
+        ("Console.", block![(OprSectionBoundary (OprApp (Ident Console) (Ok ".") ()))]),
+        (".", block![(OprSectionBoundary (OprApp () (Ok ".") ()))]),
+        (".log", block![(OprSectionBoundary (OprApp () (Ok ".") (Ident log)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 
