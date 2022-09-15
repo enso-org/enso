@@ -604,6 +604,8 @@ impl View {
             // === Adding Node ===
 
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
+            eval node_added_by_user([]((node_id, _, _))
+                tracing::warn!("MCDBG node_added_by_user ({node_id})"));
             searcher_for_adding <- node_added_by_user.map(
                 |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
             );
@@ -624,6 +626,13 @@ impl View {
                 graph.select_node(node);
             });
             eval adding_aborted  ((node) graph.remove_node(node));
+
+            eval graph.visualization_shown([]((node_id, metadata))
+                tracing::warn!("MCDBG vis_shown ({node_id}, {metadata:?})"));
+            eval graph.visualization_hidden([](node_id)
+                tracing::warn!("MCDBG vis_hidden ({node_id})"));
+            eval graph.visualization_preprocessor_changed([]((node_id, preproc_cfg))
+                tracing::warn!("MCDBG vis_prepr_chg ({node_id}, {preproc_cfg:?})"));
 
 
             // === Editing ===
