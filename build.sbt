@@ -658,6 +658,12 @@ lazy val `text-buffer` = project
     )
   )
 
+val generateRustParserLib = TaskKey[Unit]("generateRustParserLib", "Generates parser native library")
+val generateRustParserLibSettings = generateRustParserLib := {
+    import sys.process._
+    Seq("cargo", "build", "-p", "enso-parser-jni") !
+}
+
 val generateRustParser = TaskKey[Unit]("generateRustParser", "Generates parser sources")
 val generateRustParserSettings = generateRustParser := {
     import sys.process._
@@ -669,9 +675,11 @@ lazy val `syntax-rust-definition` = project
   .configs(Test)
   .settings(
     compile := ((Compile / compile) dependsOn generateRustParser).value,
+    compile := ((Compile / compile) dependsOn generateRustParserLib).value,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     frgaalJavaCompilerSetting,
     generateRustParserSettings,
+    generateRustParserLibSettings,
     libraryDependencies ++= Seq(
     ),
   )
