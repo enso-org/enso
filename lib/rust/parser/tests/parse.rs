@@ -116,7 +116,7 @@ fn type_constructors() {
 fn type_methods() {
     let code = ["type Geo", "    number =", "        x", "    area self = x + x"];
     #[rustfmt::skip]
-        let expected = block![
+    let expected = block![
         (TypeDef (Ident type) (Ident Geo) #() #()
          #((Function number #() "=" (BodyBlock #((Ident x))))
            (Function area #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))

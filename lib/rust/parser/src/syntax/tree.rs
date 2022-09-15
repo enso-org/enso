@@ -626,41 +626,9 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             app.rhs = Some(arg);
             return func;
         }
-        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
-                && lhs.close.is_none() && rhs.open.is_none() => {
-            if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
-                lhs.trim = rhs.trim;
-            }
-            match rhs.elements.first_mut() {
-                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
-                Some(TextElement::EscapeChar { char: char_, .. }) => {
-                    if let Some(char__) = char_ {
-                        char__.left_offset = arg.span.left_offset;
-                        if let Some(TextElement::EscapeChar { char, .. }) = lhs.elements.last_mut()
-                            && char.is_none() {
-                            *char = mem::take(char_);
-                            return func;
-                        }
-                    }
-                }
-                Some(TextElement::EscapeSequence { open: open_, digits: digits_, close: close_, .. }) => {
-                    if let Some(TextElement::EscapeSequence { open, digits, close, .. })
-                            = lhs.elements.last_mut() {
-                        if open.is_none() {
-                            *open = open_.clone();
-                        }
-                        if digits.is_none() {
-                            *digits = digits_.clone();
-                        }
-                        *close = close_.clone();
-                        return func;
-                    }
-                }
-                Some(TextElement::Splice { open, .. }) => open.left_offset = arg.span.left_offset,
-                None => (),
-            }
-            lhs.elements.append(&mut rhs.elements);
-            lhs.close = rhs.close.take();
+        Variant::TextLiteral(lhs) if lhs.close.is_none()
+                && let Tree { variant: box Variant::TextLiteral(rhs), span } = arg => {
+            join_text_literals(lhs, rhs, span);
             return func;
         }
         Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None })
@@ -704,6 +672,48 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         }
         _ => Tree::app(func, arg)
     }
+}
+
+fn join_text_literals<'s>(
+    lhs: &'_ mut TextLiteral<'s>,
+    mut rhs: TextLiteral<'s>,
+    rhs_span: Span<'s>,
+) {
+    if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
+        lhs.trim = rhs.trim;
+    }
+    match rhs.elements.first_mut() {
+        Some(TextElement::Section { text }) => text.left_offset = rhs_span.left_offset,
+        Some(TextElement::EscapeChar { char: char_, .. }) =>
+            if let Some(char__) = char_ {
+                char__.left_offset = rhs_span.left_offset;
+                if let Some(TextElement::EscapeChar { char, .. }) = lhs.elements.last_mut()
+                    && char.is_none() {
+                    *char = mem::take(char_);
+                    return;
+                }
+            },
+        Some(TextElement::EscapeSequence {
+            open: open_, digits: digits_, close: close_, ..
+        }) => {
+            if let Some(TextElement::EscapeSequence { open, digits, close, .. }) =
+                lhs.elements.last_mut()
+            {
+                if open.is_none() {
+                    *open = open_.clone();
+                }
+                if digits.is_none() {
+                    *digits = digits_.clone();
+                }
+                *close = close_.clone();
+                return;
+            }
+        }
+        Some(TextElement::Splice { open, .. }) => open.left_offset = rhs_span.left_offset,
+        None => (),
+    }
+    lhs.elements.append(&mut rhs.elements);
+    lhs.close = rhs.close.take();
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.
