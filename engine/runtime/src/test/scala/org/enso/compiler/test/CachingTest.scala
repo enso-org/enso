@@ -1,9 +1,11 @@
 package org.enso.compiler.test
 
+import org.apache.commons.lang3.SystemUtils
 import org.enso.interpreter.test.InterpreterException
 
 class CachingTest extends ModifiedTest {
   "IR caching" should "should propagate invalidation" in {
+    assume(!SystemUtils.IS_OS_WINDOWS)
     evalTestProjectIteration("Test_Caching_Invalidation", iteration = 1)
     val outLines = consumeOut
     outLines(0) shouldEqual "hmm..."
