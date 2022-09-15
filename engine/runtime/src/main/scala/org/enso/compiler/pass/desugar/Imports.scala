@@ -52,7 +52,7 @@ case object Imports extends IRPass {
                 name = newName.copy(parts = parts :+ mainModuleName),
                 rename = computeRename(
                   i.rename,
-                  i.onlyNames.nonEmpty,
+                  i.onlyNames.nonEmpty || i.isAll,
                   parts(1).asInstanceOf[IR.Name.Literal]
                 )
               )
@@ -76,7 +76,7 @@ case object Imports extends IRPass {
                 name = newName.copy(parts = parts :+ mainModuleName),
                 rename = computeRename(
                   ex.rename,
-                  ex.onlyNames.nonEmpty,
+                  ex.onlyNames.nonEmpty || ex.isAll,
                   parts(1).asInstanceOf[IR.Name.Literal]
                 )
               )
@@ -115,10 +115,10 @@ case object Imports extends IRPass {
 
   private def computeRename(
     originalRename: Option[IR.Name.Literal],
-    onlyNames: Boolean,
+    onlyNamesOrAll: Boolean,
     qualName: IR.Name.Literal
   ): Option[IR.Name.Literal] =
-    originalRename.orElse(Option.unless(onlyNames)(qualName))
+    originalRename.orElse(Option.unless(onlyNamesOrAll)(qualName))
 
   val currentProjectAlias = "project"
 
