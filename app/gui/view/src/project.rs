@@ -634,19 +634,16 @@ impl View {
             eval graph.visualization_preprocessor_changed([]((node_id, preproc_cfg))
                 tracing::warn!("MCDBG vis_prepr_chg ({node_id}, {preproc_cfg:?})"));
 
-            // !!!!!!!! WIP !!!!!!!!
-            graph.enable_visualization <+ node_added_by_user._0();
-            temporary_visualization_shown <- any(...);
-            temporary_visualization_shown <+ node_added_by_user._0().some();
-            eval temporary_visualization_shown([](v)
-                tracing::warn!("MCDBG tmp_vis_shown ({v:?})"));
-            temporary_visualization_shown <+ graph.visualization_shown.constant(None);
-            temporary_visualization_shown <+ graph.visualization_hidden.constant(None);
-            close_temporary_visualization <= temporary_visualization_shown.sample(&adding_finished);
-            // close_temporary_visualization <= adding_finished.sample(&temporary_visualization_shown);
-            graph.disable_visualization <+ close_temporary_visualization;
-            // // close_visualization <= close_temporary_visualization;
-            // // graph.disable_visualization <+ close_visualization;
+            // // !!!!!!!! WIP !!!!!!!!
+            // graph.enable_visualization <+ node_added_by_user._0();
+            // temporary_visualization_shown <- any(...);
+            // temporary_visualization_shown <+ node_added_by_user._0().some();
+            // eval temporary_visualization_shown([](v)
+            //     tracing::warn!("MCDBG tmp_vis_shown ({v:?})"));
+            // temporary_visualization_shown <+ graph.visualization_shown.constant(None);
+            // temporary_visualization_shown <+ graph.visualization_hidden.constant(None);
+            // close_temporary_visualization <= temporary_visualization_shown.sample(&adding_finished);
+            // graph.disable_visualization <+ close_temporary_visualization;
 
             // === Editing ===
 
