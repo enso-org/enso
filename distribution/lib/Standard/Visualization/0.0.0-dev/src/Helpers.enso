@@ -1,8 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
+from Standard.Table import Table, Column
 import Standard.Table.Data.Storage
-import Standard.Table.Data.Table
 
 ## PRIVATE
 
