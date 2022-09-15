@@ -354,6 +354,7 @@
 - [Implement new specification of data types: `type` has a runtime
   representation, every atom has a type][3671]
 - [main = "Hello World!" is valid Enso sample][3696]
+- [Invalidate module's IR cache if imported module changed][3703]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -399,6 +400,7 @@
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
 [3696]: https://github.com/enso-org/enso/pull/3696
+[3696]: https://github.com/enso-org/enso/pull/3703
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -218,7 +218,23 @@ class Compiler(
     initialize()
     modules.foreach(m => parseModule(m))
 
-    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
+    var requiredModules = modules.flatMap { module =>
+      val modules = runImportsAndExportsResolution(module)
+      if (
+        module
+          .wasLoadedFromCache() && modules.exists(!_.wasLoadedFromCache())
+      ) {
+        logger.log(
+          Compiler.defaultLogLevel,
+          s"Some imported modules' caches were invalided, forcing invalidation of ${module.getName.toString}"
+        )
+        module.getCache.invalidate(context)
+        parseModule(module)
+        runImportsAndExportsResolution(module)
+      } else {
+        modules
+      }
+    }
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
@@ -432,6 +448,7 @@ class Compiler(
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.setLoadedFromCache(false)
     module.setHasCrossModuleLinks(true)
   }
 
