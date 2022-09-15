@@ -8,9 +8,8 @@ import Standard.Table as Materialized_Table
 from Standard.Table.Data.Aggregate_Column import all hiding First
 
 from Standard.Database import all
-import Standard.Database
-from Standard.Database.Errors import Sql_Error
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Errors import SQL_Error
+from Standard.Database.Data.SQL import Sql_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry_Data
 import Standard.Database.Internal.Postgres.Pgpass
 
@@ -209,7 +208,7 @@ table_spec =
             ## Default certificate should not accept the self signed certificate.
             ca_fail = Database.connect (Postgres db_host db_port db_name credentials=(Username_Password db_user db_password) use_ssl=SSL_Mode.Verify_CA)
             ca_fail.is_error . should_equal True
-            ca_fail.catch Sql_Error . is_a Sql_Error . should_equal True
+            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
         Test.specify "should connect be able to verify the host name against the certificate" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Username_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
@@ -220,7 +219,7 @@ table_spec =
         Test.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
             ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Username_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
             ca_fail.is_error . should_equal True
-            ca_fail.catch Sql_Error . is_a Sql_Error . should_equal True
+            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
     case db_name.is_nothing of
         True ->

@@ -3,7 +3,7 @@ from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 
 from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Data.SQL import Sql_Type
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE

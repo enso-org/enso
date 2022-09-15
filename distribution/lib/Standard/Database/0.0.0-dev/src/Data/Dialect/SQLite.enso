@@ -1,7 +1,7 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Data.SQL import Sql_Type, Statement
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
@@ -33,7 +33,7 @@ type SQLite_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Sql.Statement
+    generate_sql : Query -> Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -108,31 +108,31 @@ unsupported name =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    Sql.code "COALESCE(SUM(" ++ arg.paren ++ Sql.code " IS NULL), 0)"
+    SQL.code "COALESCE(SUM(" ++ arg.paren ++ SQL.code " IS NULL), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " == '')), 0)"
+    SQL.code "COALESCE(SUM((" ++ arg.paren ++ SQL.code " IS NULL) OR (" ++ arg.paren ++ SQL.code " == '')), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '')), 0)"
+    SQL.code "COALESCE(SUM((" ++ arg.paren ++ SQL.code " IS NOT NULL) AND (" ++ arg.paren ++ SQL.code " != '')), 0)"
 
 ## PRIVATE
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
-    sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
-    square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
-    var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / " ++ n
-    Sql.code "SQRT(" ++ var ++ Sql.code ")"
+    sum_of_squares = SQL.code "SUM(" ++ arg.paren ++ SQL.code "*" ++ arg.paren ++ SQL.code ")"
+    square_of_sums = SQL.code "SUM(" ++ arg ++ SQL.code ") * SUM(" ++ arg ++ SQL.code ")"
+    n = SQL.code "CAST(COUNT(" ++ arg ++ SQL.code ") AS REAL)"
+    var = SQL.code "(" ++ sum_of_squares ++ SQL.code " - (" ++ square_of_sums ++ SQL.code " / " ++ n ++ SQL.code ")) / " ++ n
+    SQL.code "SQRT(" ++ var ++ SQL.code ")"
 
 ## PRIVATE
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
-    sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
-    square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
-    var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / (" ++ n ++ Sql.code " - 1)"
-    Sql.code "SQRT(" ++ var ++ Sql.code ")"
+    sum_of_squares = SQL.code "SUM(" ++ arg.paren ++ SQL.code "*" ++ arg.paren ++ SQL.code ")"
+    square_of_sums = SQL.code "SUM(" ++ arg ++ SQL.code ") * SUM(" ++ arg ++ SQL.code ")"
+    n = SQL.code "CAST(COUNT(" ++ arg ++ SQL.code ") AS REAL)"
+    var = SQL.code "(" ++ sum_of_squares ++ SQL.code " - (" ++ square_of_sums ++ SQL.code " / " ++ n ++ SQL.code ")) / (" ++ n ++ SQL.code " - 1)"
+    SQL.code "SQRT(" ++ var ++ SQL.code ")"
 
 ## PRIVATE
    This is a prototype that doesn't work correctly. Left for reference for
@@ -152,46 +152,46 @@ window_aggregate window_type ignore_null args =
         result_expr = args.head
         order_exprs = args.tail
 
-        filter_clause = if ignore_null.not then Sql.code "" else
-            Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
+        filter_clause = if ignore_null.not then SQL.code "" else
+            SQL.code " FILTER (WHERE " ++ result_expr.paren ++ SQL.code " IS NOT NULL)"
 
-        Sql.code window_type+"(" ++ result_expr ++ Sql.code ")" ++ filter_clause ++ Sql.code " OVER (ORDER BY " ++ Sql.join "," order_exprs ++ Sql.code ")"
+        SQL.code window_type+"(" ++ result_expr ++ SQL.code ")" ++ filter_clause ++ SQL.code " OVER (ORDER BY " ++ SQL.join "," order_exprs ++ SQL.code ")"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
+        SQL.code "group_concat(" ++ expr ++ SQL.code ", " ++ separator ++ SQL.code ")"
     concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
-    True -> Sql.code "COUNT(DISTINCT (" ++ args.first ++ Sql.code "))"
+    True -> SQL.code "COUNT(DISTINCT (" ++ args.first ++ SQL.code "))"
     False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
     True ->
         arg = args.first
-        count = Sql.code "COUNT(DISTINCT " ++ arg ++ Sql.code ")"
-        all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ Sql.code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
-        count ++ Sql.code " + " ++ all_nulls_case
+        count = SQL.code "COUNT(DISTINCT " ++ arg ++ SQL.code ")"
+        all_nulls_case = SQL.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ SQL.code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ SQL.code " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+    res = str ++ (SQL.code " LIKE (") ++ sub ++ (SQL.code " || '%')")
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+    res = str ++ (SQL.code " LIKE ('%' || ") ++ sub ++ (SQL.code ")")
     res.paren
 
 ## PRIVATE
 make_contains_expr expr substring =
-    Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+    SQL.code "instr(" ++ expr ++ SQL.code ", " ++ substring ++ SQL.code ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr

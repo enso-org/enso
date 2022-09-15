@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Error.Common as Errors
 from Standard.Table import Aggregate_Column
-import Standard.Database.Data.Sql
+from Standard.Database.Data.SQL import Statement, Sql_Type
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Dialect.Postgres
 import Standard.Database.Data.Dialect.Redshift
@@ -23,7 +23,7 @@ type Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Sql.Statement
+    generate_sql : Query -> Statement
     generate_sql self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -31,7 +31,7 @@ type Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql.Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
