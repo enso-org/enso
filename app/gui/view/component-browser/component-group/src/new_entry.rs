@@ -248,14 +248,19 @@ impl Data {
         let bg_height =
             entry_size.y - if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
         let bg_y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
-        let contour = Contour::sharp_rectangle(Vector2(bg_width, bg_height));
+        let bg_contour = Contour::sharp_rectangle(Vector2(bg_width, bg_height));
         self.background.set_position_y(bg_y);
-        self.background.set_contour(contour);
+        self.background.set_contour(bg_contour);
         let left = -entry_size.x / 2.0 + style.padding;
         self.icon.borrow().set_position_xy(Vector2(left + style.icon_size / 2.0, 0.0));
         let text_x = Self::text_x_position(kind, style);
         self.label.set_position_xy(Vector2(text_x, style.text_size.raw / 2.0));
-        contour
+        Contour::sharp_rectangle(Vector2(bg_width, bg_height))
+    }
+
+    fn contour_offset(&self, kind: Kind, style: &Style) -> Vector2 {
+        let y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
+        Vector2(0.0, y)
     }
 
     fn highlight_contour(&self, kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
@@ -309,6 +314,7 @@ impl grid_view::Entry for View {
             kind_and_style <- all(kind, style);
             layout_data <- all(kind_and_style, input.set_size);
             out.contour <+ layout_data.map(f!((((kind, style), entry_sz)) data.update_layout(*kind, style, *entry_sz)));
+            out.contour_offset <+ kind_and_style.map(f!(((kind, style)) data.contour_offset(*kind, style)));
             out.highlight_contour <+ layout_data.map(f!((((kind, style), entry_sz)) data.highlight_contour(*kind, style, *entry_sz)));
 
 
@@ -337,7 +343,7 @@ impl grid_view::Entry for View {
             data.label.set_sdf_bold <+ highlight_range.map2(&style, |range, s| (*range, text::style::SdfBold::new(s.highlight_bold)));
             data.label.set_default_text_size <+ style.map(|s| s.text_size);
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
-            data.label.set_font <+ style.map(|s| s.font.to_string());
+            data.label.set_font <+ style.map(|s| s.font.to_string()).on_change();
         }
         Self { frp, data }
     }

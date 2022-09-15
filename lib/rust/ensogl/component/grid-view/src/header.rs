@@ -99,10 +99,11 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
         column_widths: &ColumnWidths,
     ) -> Vector2 {
         let contour = self.entry.entry.frp().contour.value();
+        let contour_offset = self.entry.entry.frp().contour_offset.value();
         let max_y = entry::visible::position_y(self.section_rows.start, entry_size);
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
-        let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0;
-        let y = (viewport.top - contour.size.y / 2.0).min(max_y).max(min_y);
+        let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0 - contour_offset.y;
+        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).min(max_y).max(min_y);
         Vector2(entry::visible::position_x(col, entry_size, column_widths), y)
     }
 }
@@ -214,8 +215,10 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let widths = &self.column_widths;
         let header = visible_headers.get(&col);
         let separator_if_header_visible = header.map(|h| {
-            h.header_position(col, entry_size, viewport, widths).y
-                - h.entry.entry.frp().contour.value().size.y / 2.0
+            let base_pos = h.header_position(col, entry_size, viewport, widths);
+            let contour = h.entry.entry.frp().contour.value();
+            let offset = h.entry.entry.frp().contour_offset.value();
+            base_pos.y + offset.y - contour.size.y / 2.0
         });
         separator_if_header_visible.unwrap_or(viewport.top)
     }

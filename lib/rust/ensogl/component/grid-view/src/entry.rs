@@ -67,9 +67,13 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         disabled(bool),
         /// Entry's contour. Defines what part of the entry will react for mouse events.
         contour(Contour),
+        /// Offset of the `contour`'s center from the base entry position.
+        contour_offset(Vector2),
         /// In [selectable](crate::selectable) grid views, this defines the shape of the
         /// selection/hover highlight in case when this entry is selected.
         highlight_contour(Contour),
+        /// Offset of the `highlight_contour`'s center from the base entry position.
+        highlight_contour_offset(Vector2),
         /// Override column's width. If multiple entries from the same column emit this event,
         /// only the last one is applied. See [`crate::GridView`] documentation for more details.
         override_column_width(f32),
