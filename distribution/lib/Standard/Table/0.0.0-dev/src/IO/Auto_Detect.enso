@@ -1,27 +1,30 @@
-from Standard.Base import Any, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format, Plain_Text, Bytes
-from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
+from Standard.Base import Any, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format, Plain_Text_Format, Bytes
+from Standard.Base.Error.Common import Unsupported_File_Type, Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-from Standard.Table.Delimited.Delimited_Format import Delimited
-from Standard.Table.Excel.Excel_Format import Excel
+import Standard.Table.Delimited.Delimited_Format
+import Standard.Table.Excel.Excel_Format
 
-types = [Plain_Text, Delimited ',', Excel, Bytes]
+## PRIVATE
+   Set of methods to get the configured File_Format for a file.
+format_providers = [Plain_Text_Format.for_file, Bytes.for_file, Delimited_Format.for_file, Excel_Format.for_file]
+
+## PRIVATE
+get_format : File -> Any | Nothing
+get_format file =
+    reader idx =
+        if idx >= format_providers.length then Nothing else
+            format = (format_providers.at idx) file
+            if format.is_nothing.not then format else
+                @Tail_Call reader (idx + 1)
+    reader 0
 
 type Auto_Detect
-    ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
-        reader idx =
-            formatter = types.at idx . can_read file
-            if formatter.is_nothing.not then formatter else
-                if idx + 1 == types.length then Nothing else
-                    @Tail_Call reader (idx + 1)
-        reader 0
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
-    read : File -> Problem_Behavior -> Any
+    read : File -> Problem_Behavior -> Any ! Unsupported_File_Type
     read self file on_problems =
-        reader = self.can_read file
+        reader = get_format file
         if reader == Nothing then Error.throw (Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
             reader.read file on_problems
 
@@ -29,7 +32,7 @@ type Auto_Detect
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
     write_table self file table on_existing_file match_columns on_problems =
-        format = self.can_read file
+        format = get_format file
         if format == Nothing then Error.throw (Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
             Panic.catch No_Such_Method_Error_Data (format.write_table file table on_existing_file match_columns on_problems) _->
                name = Meta.get_constructor_name (Meta.meta format)

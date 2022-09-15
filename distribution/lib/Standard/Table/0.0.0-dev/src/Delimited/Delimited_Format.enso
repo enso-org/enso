@@ -2,12 +2,20 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Match_Columns
-from Standard.Table.Delimited.Reader import read_delimited_file
-from Standard.Table.Delimited.Writer import write_delimited_file
+import Standard.Table.Delimited.Delimited_Reader
+import Standard.Table.Delimited.Delimited_Writer
 
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
 
 import Standard.Table.Delimited.Quote_Style
+
+## If the File_Format supports reading from the file, return a configured instance.
+for_file : File -> Any | Nothing
+for_file file =
+    case file.extension of
+        ".csv" -> Delimited ','
+        ".tsv" -> Delimited '\t'
+        _ -> Nothing
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
@@ -49,23 +57,15 @@ type Delimited_Format
          defaults to `Nothing` which means that comments are disabled.
     Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter_Data) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
-    ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
-        case file.extension of
-            ".csv" -> Delimited ','
-            ".tsv" -> Delimited '\t'
-            _ -> Nothing
-
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        read_delimited_file self file on_problems
+        Delimited_Reader.read_file self file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
     write_table self file table on_existing_file match_columns on_problems =
-        write_delimited_file table self file on_existing_file match_columns on_problems
+        Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
        Clone the instance with some properties overridden.

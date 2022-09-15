@@ -2,10 +2,6 @@ from Standard.Base import all
 from Standard.Base.Error.Common import unimplemented
 
 type File_Format
-    ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read _ = Nothing
-
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -15,8 +11,8 @@ type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
     ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
+    for_file : File -> Any | Nothing
+    for_file file =
         case file.extension of
             ".txt" -> Plain_Text
             ".log" -> Plain_Text
@@ -30,8 +26,8 @@ type Plain_Text_Format
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
+    for_file : File -> Any | Nothing
+    for_file file =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing

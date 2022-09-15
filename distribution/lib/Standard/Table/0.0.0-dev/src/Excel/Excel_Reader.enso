@@ -60,8 +60,8 @@ handle_reader file reader =
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
-read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_excel file section headers on_problems xls_format=False =
+read_file : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_file file section headers on_problems xls_format=False =
     reader stream = case section of
         Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
         Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)

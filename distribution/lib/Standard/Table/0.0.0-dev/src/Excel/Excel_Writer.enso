@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 
-from Standard.Table.Excel.Reader import handle_reader, make_java_headers
+from Standard.Table.Excel.Excel_Reader import handle_reader, make_java_headers
 from Standard.Table.Excel.Section import Worksheet, Cell_Range
 from Standard.Table.Excel.Range import Excel_Range_Data
 
@@ -32,8 +32,8 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    Writes a Table to an Excel file.
 
    Arguments:
-write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
-write_excel file table on_existing_file section headers match_columns _ xls_format=False =
+write_file : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
+write_file file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
         handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 

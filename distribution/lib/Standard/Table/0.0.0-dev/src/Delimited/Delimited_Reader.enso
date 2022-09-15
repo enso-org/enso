@@ -35,8 +35,8 @@ polyglot java import org.enso.table.read.QuoteStrippingParser
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-read_delimited_file : Delimited_Format -> File -> Problem_Behavior -> Any
-read_delimited_file format file on_problems =
+read_file : Delimited_Format -> File -> Problem_Behavior -> Any
+read_file format file on_problems =
     ## We use the default `max_columns` setting. If we want to be able to
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
@@ -44,8 +44,8 @@ read_delimited_file format file on_problems =
     file.with_input_stream [File.Option.Read] stream->
         read_stream format stream on_problems related_file=file
 
-read_delimited_text : Text -> Delimited_Format -> Problem_Behavior -> Table
-read_delimited_text text format on_problems =
+read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
+read_text text format on_problems =
     java_reader = StringReader.new text
     read_from_reader format java_reader on_problems
 
@@ -89,13 +89,13 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
-        reader = prepare_delimited_reader java_reader format max_columns on_problems
+        reader = prepare_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
         parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map translate_reader_problem
         on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
 
 ## PRIVATE
-prepare_delimited_reader java_reader format max_columns on_problems newline_override=Nothing =
+prepare_reader java_reader format max_columns on_problems newline_override=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -176,7 +176,7 @@ detect_metadata file format =
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
                    reached and restart parsing with an increased limit.
-                reader = prepare_delimited_reader newline_detecting_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
+                reader = prepare_reader newline_detecting_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
                 defined_columns = reader.getDefinedColumnNames
                 headers = case defined_columns of
                     Nothing ->

@@ -3,16 +3,27 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 
 from Standard.Table.Excel.Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
-from Standard.Table.Excel.Reader import read_excel
-from Standard.Table.Excel.Writer import write_excel
+import Standard.Table.Excel.Excel_Reader
+import Standard.Table.Excel.Excel_Writer
+
+## If the File_Format supports reading from the file, return a configured instance.
+for_file : File -> Any | Nothing
+for_file file =
+    is_xls = should_treat_as_xls_format Infer file
+    if is_xls.is_error then Nothing else
+        Excel xls_format=is_xls
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.
-is_xls_format : (Boolean|Infer) -> File -> Boolean
-is_xls_format xls_format file =
+should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean | Illegal_Argument
+should_treat_as_xls_format xls_format file =
     if xls_format != Infer then xls_format else
-        extension = file.extension
-        (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
+        case file.extension of
+            ".xlsx" -> False
+            ".xlsm" -> False
+            ".xls" -> True
+            ".xlt" -> True
+            _ -> Error.throw (Illegal_Argument_Error_Data ("Unknown file extension for Excel file (" + file.extension + ")"))
 
 ## Read the file to a `Table` from an Excel file
 type Excel_Format
@@ -36,28 +47,18 @@ type Excel_Format
          `Infer` will attempt to deduce this from the extension of the filename.
     Excel (section:Excel_Section=Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
 
-    ## If the File_Format supports reading from the file, return a configured instance.
-    can_read : File -> Any
-    can_read self file =
-        case file.extension of
-            ".xlsx" -> Excel xls_format=False
-            ".xlsm" -> Excel xls_format=False
-            ".xls" -> Excel xls_format=True
-            ".xlt" -> Excel xls_format=True
-            _ -> Nothing
-
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
-        format = is_xls_format self.xls_format file
-        read_excel file self.section self.headers on_problems format
+        format = should_treat_as_xls_format self.xls_format file
+        Excel_Reader.read_file file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
     write_table self file table on_existing_file match_columns on_problems =
-        format = is_xls_format self.xls_format file
+        format = should_treat_as_xls_format self.xls_format file
 
         case self.section of
             Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
             Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
-            _ -> write_excel file table on_existing_file self.section self.headers match_columns on_problems format
+            _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format

@@ -925,9 +925,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `Auto_Detect` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -956,8 +956,7 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `Auto_Detect`: The file format is determined by the file extension
-            of the path argument.
+         - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
             the `write` function. If passed as format, an
             `Illegal_Argument_Error` is raised. To write out the table as plain
