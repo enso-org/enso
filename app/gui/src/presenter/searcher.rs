@@ -97,7 +97,7 @@ impl Model {
     #[profile(Debug)]
     fn input_changed(&self, new_input: &str) {
         if let Err(err) = self.controller.set_input(new_input.to_owned()) {
-            tracing::error!("Error while setting new searcher input: {}", err);
+            tracing::error!("Error while setting new searcher input: {err}.");
         }
     }
 
@@ -111,7 +111,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {}", err);
+                tracing::error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -121,7 +121,7 @@ impl Model {
     /// API.
     fn entry_selected_as_suggestion(&self, entry_id: view::searcher::entry::Id) {
         if let Err(error) = self.controller.preview_entry_as_suggestion(entry_id) {
-            tracing::warn!("Failed to preview  entry {entry_id:?} because of error: {error:?}");
+            tracing::warn!("Failed to preview entry {entry_id:?} because of error: {error:?}.");
         }
     }
 
@@ -131,7 +131,7 @@ impl Model {
             None => self.controller.commit_node().map(Some),
         };
         result.unwrap_or_else(|err| {
-            tracing::error!("Error while executing action: {}", err);
+            tracing::error!("Error while executing action: {err}.");
             None
         })
     }
@@ -154,7 +154,9 @@ impl Model {
     fn suggestion_selected(&self, entry_id: list_panel::EntryId) {
         let suggestion = self.suggestion_for_entry_id(entry_id).unwrap();
         if let Err(error) = self.controller.preview_suggestion(suggestion) {
-            tracing::warn!("Failed to preview suggestion {entry_id:?} because of error: {error:?}");
+            tracing::warn!(
+                "Failed to preview suggestion {entry_id:?} because of error: {error:?}."
+            );
         }
     }
 
@@ -178,7 +180,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {}", err);
+                tracing::error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -192,7 +194,7 @@ impl Model {
             self.suggestion_accepted(entry_id);
         }
         self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-            tracing::error!("Error while committing node expression: {}", err);
+            tracing::error!("Error while committing node expression: {err}.");
             None
         })
     }
@@ -476,8 +478,7 @@ impl Searcher {
             if source_node.is_none() {
                 if let Err(e) = searcher_controller.set_input("".to_string()) {
                     tracing::error!(
-                        "Failed to clear input when creating searcher for a new node: {:?}",
-                        e
+                        "Failed to clear input when creating searcher for a new node: {e:?}."
                     );
                 }
             }

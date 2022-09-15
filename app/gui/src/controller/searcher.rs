@@ -607,7 +607,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
-        tracing::debug!("Manually setting input to {}.", new_input);
+        tracing::debug!("Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
         let new_expr = parsed_input.expression.repr();
@@ -649,14 +649,32 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        tracing::info!("Picking suggestion: {:?}", picked_suggestion);
+        tracing::info!("Picking suggestion: {picked_suggestion:?}.");
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
+        tracing::debug!("Code to insert: \"{code_to_insert}\"");
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        let new_expression = match self.data.borrow_mut().input.expression.take() {
+        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
+        let new_parsed_input = ParsedInput {
+            expression:     Some(new_expression_chain),
+            pattern_offset: 1,
+            pattern:        "".to_string(),
+        };
+        let new_input = new_parsed_input.repr();
+        self.data.borrow_mut().input = new_parsed_input;
+        self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
+        self.reload_list();
+        Ok(new_input)
+    }
+
+    fn create_new_expression_chain(
+        &self,
+        added_ast: Ast,
+        pattern_offset: usize,
+    ) -> ast::Shifted<ast::prefix::Chain> {
+        match self.data.borrow_mut().input.expression.take() {
             None => {
                 let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
                 ast::Shifted::new(pattern_offset, ast)
@@ -672,17 +690,7 @@ impl Searcher {
                 expression.args.push(new_argument);
                 expression
             }
-        };
-        let new_parsed_input = ParsedInput {
-            expression:     Some(new_expression),
-            pattern_offset: 1,
-            pattern:        "".to_string(),
-        };
-        let new_input = new_parsed_input.repr();
-        self.data.borrow_mut().input = new_parsed_input;
-        self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
-        self.reload_list();
-        Ok(new_input)
+        }
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
@@ -701,7 +709,7 @@ impl Searcher {
 
     /// Preview the suggestion in the searcher.
     pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
-        tracing::debug!("Previewing entry: {:?}", index);
+        tracing::debug!("Previewing entry: {index:?}.");
         let error = || NoSuchAction { index };
         let suggestion = {
             let data = self.data.borrow();
@@ -717,40 +725,23 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
-        tracing::debug!("Previewing suggestion: {:?}", picked_suggestion);
+        tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
+        tracing::debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        let new_expression_chain = match self.data.borrow_mut().input.expression.clone() {
-            None => {
-                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
-                Some(ast::Shifted::new(pattern_offset, ast))
-            }
-            Some(mut expression) => {
-                let new_argument = ast::prefix::Argument {
-                    sast:      ast::Shifted::new(
-                        pattern_offset.max(MINIMUM_PATTERN_OFFSET),
-                        added_ast,
-                    ),
-                    prefix_id: default(),
-                };
-                expression.args.push(new_argument);
-                Some(expression)
-            }
-        };
-        let expression = self.get_expression(new_expression_chain);
+        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
+        let expression = self.get_expression(Some(new_expression_chain));
         let intended_method = self.intended_method();
 
         self.graph.graph().module.with_node_metadata(
             self.mode.node_id(),
             Box::new(|md| md.intended_method = intended_method),
         )?;
-        tracing::debug!("Previewing expression: {:?}", expression);
-
+        tracing::debug!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -824,7 +815,7 @@ impl Searcher {
             let list = data.actions.list().ok_or_else(error)?;
             list.get_cloned(index).ok_or_else(error)?.action
         };
-        tracing::debug!("Previewing action: {:?}", action);
+        tracing::debug!("Previewing action: {action:?}");
         Ok(())
     }
 
@@ -1391,8 +1382,7 @@ impl Drop for EditGuard {
         if self.revert_expression.get() {
             self.revert_node_expression_edit().unwrap_or_else(|e| {
                 tracing::error!(
-                    "Failed to revert node edit after editing ended because of an error: {}",
-                    e
+                    "Failed to revert node edit after editing ended because of an error: {e}"
                 )
             });
         } else {
@@ -1401,8 +1391,7 @@ impl Drop for EditGuard {
         if self.graph.graph().node_exists(self.node_id) {
             self.clear_node_edit_metadata().unwrap_or_else(|e| {
                 tracing::error!(
-                "Failed to clear node edit metadata after editing ended because of an error: {}",
-                e
+                "Failed to clear node edit metadata after editing ended because of an error: {e}"
             )
             });
         }
