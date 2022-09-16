@@ -128,6 +128,9 @@ pub struct ShapedGlyph {
 #[derive(Debug)]
 pub struct ShapedGlyphSet {
     pub units_per_em:            u16,
+    pub ascender:                i16,
+    pub descender:               i16,
+    pub line_gap:                i16,
     pub non_variable_variations: NonVariableFaceHeader,
     /// Please note that shaped glyphs in this set have cumulative offsets. This means that even if
     /// they were produced by separate calls to `rustybuzz::shape`, their `info.cluster` is summed
@@ -304,6 +307,9 @@ impl ViewBuffer {
             font.with_borrowed_face(non_variable_variations, |face| {
                 let ttf_face = face.ttf.as_face_ref();
                 let units_per_em = ttf_face.units_per_em();
+                let ascender = ttf_face.ascender();
+                let descender = ttf_face.descender();
+                let line_gap = ttf_face.line_gap();
                 // This is safe. Unwrap should be removed after rustybuzz is fixed:
                 // https://github.com/RazrFalcon/rustybuzz/issues/52
                 let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
@@ -330,8 +336,14 @@ impl ViewBuffer {
                         ShapedGlyph { position, info, render_info }
                     })
                     .collect();
-                let shaped_glyph_set =
-                    ShapedGlyphSet { units_per_em, non_variable_variations, glyphs };
+                let shaped_glyph_set = ShapedGlyphSet {
+                    units_per_em,
+                    ascender,
+                    descender,
+                    line_gap,
+                    non_variable_variations,
+                    glyphs,
+                };
                 shaped_line.push(shaped_glyph_set);
             });
             prev_cluster_byte_offset = range.end.value as u32;

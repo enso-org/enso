@@ -29,6 +29,7 @@ use crate::buffer::Location;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::shape::*;
 use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::style;
@@ -36,6 +37,29 @@ use ensogl_text::Area;
 use ensogl_text::Column;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
+
+
+// ==============
+// === Shapes ===
+// ==============
+
+mod shape {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let circle1    = Circle(2.px());
+            let shape      = circle1.fill(color::Rgb::new(1.0, 0.0, 0.0));
+            shape.into()
+        }
+    }
+}
+
+
+
+// ===================
+// === Entry Point ===
+// ===================
+
 
 /// Main example runner.
 #[entry_point]
@@ -49,6 +73,12 @@ pub fn main() {
 fn init(app: Application) {
     use ensogl_text::Range;
     use ensogl_text::UBytes;
+
+    let view1 = shape::View::new();
+    view1.size.set(Vector2::new(30.0, 30.0));
+    view1.mod_position(|t| *t = Vector3::new(-100.0, 0.0, 0.0));
+    app.display.add_child(&view1);
+    mem::forget(view1);
 
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);

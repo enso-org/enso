@@ -76,6 +76,7 @@ pub struct Line {
     glyphs:         VecIndexedBy<Glyph, Column>,
     divs:           NonEmptyVec<f32>,
     centers:        Vec<f32>,
+    gap:            usize,
 }
 
 impl Line {
@@ -942,6 +943,55 @@ impl AreaModel {
         self
     }
 
+    // Output is the first well postioned line or the next line after the last visible line.
+    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> ViewLine {
+        // fn set_index(&mut self, index: ViewLine) {
+        //     let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+        //     self.set_position_y(y_offset);
+        // }
+        let last_line_index = self.lines.last_line_index();
+        let lines = self.lines.borrow();
+        while line_index <= last_line_index {
+            let line = &lines[line_index];
+            let current_pos_y = line.position().y;
+            let new_posy = if line_index == ViewLine(0) {
+                0.0
+            } else {
+                let prev_line_index = ViewLine(line_index.value - 1);
+                let prev_line = &lines[prev_line_index];
+                prev_line.position().y - line.gap as f32
+            };
+            if current_pos_y == new_posy {
+                break;
+            }
+            line.set_position_y(new_posy);
+            line_index += ViewLine(1);
+        }
+        line_index
+    }
+
+    fn position_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+        let mut first_ok_line_index2 = None;
+        let mut line_index_to_position = ViewLine(0);
+        for range in sorted_line_ranges {
+            line_index_to_position = match first_ok_line_index2 {
+                None => *range.start(),
+                Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
+            };
+            if line_index_to_position <= *range.end() {
+                loop {
+                    let first_ok_line_index =
+                        self.position_lines_starting_with(line_index_to_position);
+                    first_ok_line_index2 = Some(first_ok_line_index);
+                    if first_ok_line_index >= *range.end() {
+                        break;
+                    }
+                    line_index_to_position = first_ok_line_index + ViewLine(1);
+                }
+            }
+        }
+    }
+
     pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
         warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
         for range in sorted_line_ranges {
@@ -954,6 +1004,7 @@ impl AreaModel {
                 self.redraw_line(line, content);
             }
         }
+        self.position_sorted_line_ranges(sorted_line_ranges);
     }
 
     pub fn resize_lines(&self) {
@@ -965,6 +1016,7 @@ impl AreaModel {
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self, size_may_change: bool) {
+        error!("!!! USING REDRAW, THIS IS DEPRECTAED !!!");
         debug!("redraw {:?}", size_may_change);
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
@@ -1040,6 +1092,7 @@ impl AreaModel {
 
         let mut prev_cluster_byte_off = UBytes(0);
 
+        let mut line_gap: Option<f32> = None;
         self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
             warn!(">> line_index: {:?}", line_index);
             warn!(">> shaped_glyphs: {:?}", shaped_glyphs);
@@ -1060,7 +1113,18 @@ impl AreaModel {
                     glyph.start_byte_offset.set(glyph_byte_start);
 
                     let size = style.size;
-                    let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value * 1.0;
+                    let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
+
+                    warn!(
+                        "ascender: {:?}, descender: {:?}",
+                        shaped_glyph_set.ascender, shaped_glyph_set.descender
+                    );
+                    let glyph_line_gap = (shaped_glyph_set.ascender - shaped_glyph_set.descender
+                        + shaped_glyph_set.line_gap)
+                        as f32
+                        / rustybuzz_scale;
+
+                    line_gap = Some(line_gap.unwrap_or_default().max(glyph_line_gap));
 
                     let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
                     glyph.set_color(style.color);
@@ -1085,6 +1149,10 @@ impl AreaModel {
             }
         });
 
+        warn!("LINE GAP: {:?}", line_gap);
+
+        // FIXME:
+        line.gap = line_gap.unwrap().round() as usize;
         warn!("DIVS: {:?}", divs);
         line.glyphs.truncate(column.value);
 
