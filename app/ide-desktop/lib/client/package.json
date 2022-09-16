@@ -22,7 +22,7 @@
     "mime-types": "^2.1.35",
     "@electron/remote": "^2.0.8",
     "electron-is-dev": "^1.2.0",
-    "yargs": "^15.3.0"
+    "yargs": "^16.2.0"
   },
   "devDependencies": {
     "electron": "17.1.0",
@@ -36,7 +36,6 @@
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
-    "build": "ts-node bundle.ts",
-    "dist": "ts-node electron-builder-config.ts"
+    "build": "ts-node bundle.ts"
   }
 }
