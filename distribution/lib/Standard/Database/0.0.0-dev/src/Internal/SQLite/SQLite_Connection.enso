@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Database.Data.SQL import SQL_Type, Statement
+import Standard.Database.Data.SQL_Query
 
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Data.Dialect
@@ -26,16 +27,6 @@ type SQLite_Connection
        The connection is not usable afterwards.
     close : Nothing
     close self = self.connection.close
-
-    ## UNSTABLE
-
-       Accesses a table within the database, returning an object that can be
-       used to create queries for that table.
-
-       Arguments:
-       - name: name of the table to access
-    access_table : Text -> Database_Table
-    access_table self name = self.connection.access_table name
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
@@ -87,6 +78,15 @@ type SQLite_Connection
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
+    ## UNSTABLE
+
+       Query the database, returning an object that can be used to retrieve create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    query : Text | SQL_Query -> Text -> Database_Table
+    query self sql_query alias="" = self.connection.query sql_query alias
+
     ## ADVANCED
 
        Executes a raw query and returns the result as an in-memory Table.
@@ -113,18 +113,6 @@ type SQLite_Connection
     execute_update : Text | Statement -> Integer
     execute_update self query =
         self.connection.execute_update query
-
-    ## PRIVATE
-
-       A helper function that fetches column names and sql types associated with
-       them for a table in the database.
-
-       Arguments:
-       - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, SQL_Type]
-    fetch_columns : Text -> Vector Any
-    fetch_columns self table_name =
-        self.connection.fetch_columns table_name
 
     ## PRIVATE
        UNSTABLE

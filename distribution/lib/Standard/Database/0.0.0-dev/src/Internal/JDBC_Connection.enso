@@ -80,7 +80,7 @@ type JDBC_Connection
 
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : PreparedStatement -> Any
+    fetch_columns : Text  | Statement -> Any
     fetch_columns self statement =
         self.with_prepared_statement statement stmt->
             metadata = stmt.executeQuery.getMetaData

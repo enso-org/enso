@@ -3,16 +3,22 @@ from Standard.Base import all
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Database.Data.Table as Database_Table
 from Standard.Database.Data.SQL import Statement, SQL_Type
+import Standard.Database.Data.Internal.IR
 
 type Fake_Test_Connection
     # type Fake_Test_Connection_Data (tables : Map Text (Vector [Text, SQL_Type])) (dialect : Text)
     Fake_Test_Connection_Data tables dialect
 
-    ## PRIVATE
-    access_table : Text -> Database_Table
-    access_table self name =
+    ## UNSTABLE
+
+       Query the database, returning an object that can be used to retrieve create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    query : Text | SQL_Query -> Text -> Database_Table
+    query self sql_query alias="" =
         columns = self.tables.get name
-        Database_Table.make_table self name columns
+        Database_Table.make_table self name columns (IR.context_for_table name)
 
     ## PRIVATE
     close : Nothing

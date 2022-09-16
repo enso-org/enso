@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Database.Internal.IR
 import Standard.Database.Data.SQL
+import Standard.Database.Data.SQL_Query
 import Standard.Database.Data.Table as Database_Table
 
 import Standard.Table.Data.Table as Materialized_Table
@@ -13,6 +14,7 @@ from Standard.Database.Internal.Result_Set import read_column, result_set_to_tab
 from Standard.Database.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
+polyglot java import java.util.UUID
 
 type Connection
     ## PRIVATE
@@ -32,17 +34,6 @@ type Connection
     close : Nothing
     close self = self.jdbc_connection.close
 
-    ## UNSTABLE
-
-       Accesses a table within the database, returning an object that can be
-       used to create queries for that table.
-
-       Arguments:
-       - name: name of the table to access
-    access_table : Text -> Database_Table
-    access_table self name = handle_sql_errors <|
-        columns = self.fetch_columns name
-        Database_Table.make_table self name columns
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
@@ -111,6 +102,28 @@ type Connection
             if all_fields then renamed else
                 renamed.select_columns (Column_Selector.By_Name ["Database", "Schema", "Name", "Type", "Description"])
 
+    ## UNSTABLE
+
+       Query the database, returning an object that can be used to retrieve create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    query : Text | SQL_Query -> Text -> Database_Table
+    query self sql_query alias="" = handle_sql_errors <|
+        case sql_query of
+            Text ->
+                self.query alias=alias <|
+                    if self.tables.at 'name' . contains sql_query then (SQL_Query.Table_Name sql_query) else
+                        SQL_Query.Raw sql_query
+            SQL_Query.Raw_SQL raw_sql ->
+                columns = self.jdbc_connection.fetch_columns raw_sql
+                ctx = IR.context_for_query raw_sql (if alias == "" then (UUID.randomUUID.to_text) else alias)
+                Database_Table.make_table self name columns ctx
+            SQL_Query.Table_Name name ->
+                ctx = IR.context_for_table table_name (if alias == "" then table_name else alias)
+                columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (IR.Select_All ctx))
+                Database_Table.make_table self name columns ctx
+
     ## ADVANCED
 
        Executes a raw query and returns the result as an in-memory Table.
@@ -176,7 +189,7 @@ type Connection
         create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql
 
-        db_table = if create_table.is_error then create_table else self.access_table name
+        db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
             pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
             insert_query = self.dialect.generate_sql <| IR.Insert name pairs

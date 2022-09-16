@@ -905,7 +905,7 @@ type Table
     insert self values =
         table_name = case self.context.from_spec of
             IR.From_Table name _ -> name
-            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
@@ -968,7 +968,7 @@ type Table
 
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
-                 table = connection.access_table "Table"
+                 table = connection.query (Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
@@ -1000,10 +1000,10 @@ type Integrity_Error
    - connection: The connection to a database.
    - table_name: The name of the table to get.
    - columns: The names of the columns to get.
-# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Table
-make_table : Connection -> Text -> Vector -> Table
-make_table connection table_name columns =
-    ctx = IR.context_for_table table_name
+   - ctx: The context to use for the table.
+# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> IR.Context -> Table
+make_table : Connection -> Text -> Vector -> IR.Context -> Table
+make_table connection table_name columns ctx =
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
     Table_Data table_name connection cols ctx
 
