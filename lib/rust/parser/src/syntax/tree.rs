@@ -176,7 +176,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub ast:       Tree<'s>,
+            pub elided: u32,
+            pub ast:    Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
@@ -641,7 +642,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         }
         _ => (),
     }
-    match &mut *arg.variant {
+    let mut section = None;
+    if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &*func.variant {
+        section = Some(func.clone());
+        func = ast.clone();
+    }
+    let ast_ = match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
             arg.span.left_offset += mem::take(&mut func.span.left_offset);
             block.lhs = Some(func);
@@ -673,6 +679,14 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
+    };
+    if let Some(mut section) = section {
+        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &mut *section.variant {
+            *ast = ast_;
+        }
+        section
+    } else {
+        ast_
     }
 }
 
@@ -771,6 +785,13 @@ pub fn apply_operator<'s>(
         let digits = digits.clone();
         return Tree::number(None, integer, Some(FractionalDigits { dot, digits }));
     }
+    let mut section = None;
+    if let Some(lhs_) = &lhs {
+        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &*lhs_.variant {
+            section = Some(lhs_.clone());
+            lhs = Some(ast.clone());
+        }
+    }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
@@ -781,7 +802,15 @@ pub fn apply_operator<'s>(
             }
         }
     }
-    Tree::opr_app(lhs, opr, rhs)
+    let ast_ = Tree::opr_app(lhs, opr, rhs);
+    if let Some(mut section) = section {
+        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &mut *section.variant {
+            *ast = ast_;
+        }
+        section
+    } else {
+        ast_
+    }
 }
 
 
@@ -966,6 +995,20 @@ define_visitor!(Span, visit_span);
 define_visitor_no_mut!(Item, visit_item);
 
 crate::with_token_definition!(define_visitor_for_tokens());
+
+
+// === Primitives ===
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for u32 {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for u32 {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for u32 {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for u32 {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for u32 {}
+impl<'s> span::Builder<'s> for u32 {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
 
 
 // === TreeVisitable special cases ===

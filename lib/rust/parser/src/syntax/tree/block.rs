@@ -92,11 +92,14 @@ fn to_operator_block_expression(
     });
     match left_operator {
         Some(mut operator) => {
+            if let Variant::OprSectionBoundary(OprSectionBoundary { elided, .. }) =
+                &mut *tree.variant
+            {
+                operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
+                *elided -= 1;
+            }
             let expression = match *tree.variant {
-                Variant::OprSectionBoundary(OprSectionBoundary { ast }) => {
-                    operator.first_operator_mut().left_offset += tree.span.left_offset.clone();
-                    ast
-                }
+                Variant::OprSectionBoundary(OprSectionBoundary { ast, elided: 0 }) => ast,
                 _ => tree,
             };
             Ok(OperatorBlockExpression { operator, expression })
@@ -144,7 +147,7 @@ fn recurse_left_mut_while<'s>(
             // Unconditional LHS.
             Variant::App(App { func: lhs, .. })
             | Variant::NamedApp(NamedApp { func: lhs, .. })
-            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs })
+            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
             | Variant::DefaultApp(DefaultApp { func: lhs, .. })
             | Variant::Assignment(Assignment { pattern: lhs, .. })
             | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,

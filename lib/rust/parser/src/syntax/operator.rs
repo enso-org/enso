@@ -106,7 +106,7 @@ fn resolve_operator_precedence_internal<'s>(
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default)]
 struct ExpressionBuilder<'s> {
-    was_section_used: bool,
+    section_used:     u32,
     output:           Vec<syntax::Item<'s>>,
     operator_stack:   Vec<Operator<'s>>,
     prev_type:        Option<ItemType>,
@@ -217,8 +217,9 @@ impl<'s> ExpressionBuilder<'s> {
                 Arity::Binary(opr) => {
                     let lhs = self.output.pop().map(|t| t.to_ast());
                     let can_form_section = opr.len() != 1 || opr[0].properties.can_form_section();
-                    self.was_section_used = self.was_section_used
-                        || (can_form_section && (lhs.is_none() || rhs_.is_none()));
+                    if can_form_section {
+                        self.section_used += lhs.is_none() as u32 + rhs_.is_none() as u32;
+                    }
                     syntax::tree::apply_operator(lhs, opr, rhs_)
                 }
             };
@@ -238,11 +239,11 @@ impl<'s> ExpressionBuilder<'s> {
                 "Internal error. Not all tokens were consumed while constructing the expression."
             );
         }
-        let out = if self.was_section_used {
-            // This can't fail: `was_section_used` won't be true unless we had at least one input,
+        let out = if self.section_used != 0 {
+            // This can't fail: `section_used` won't be non-zero unless we had at least one input,
             // and if we have at least one input, we have output.
             let out = item.unwrap();
-            Some(syntax::Tree::opr_section_boundary(out))
+            Some(syntax::Tree::opr_section_boundary(self.section_used, out))
         } else {
             item
         };

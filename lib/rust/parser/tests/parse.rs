@@ -59,9 +59,9 @@ fn parentheses_simple() {
 
 #[test]
 fn section_simple() {
-    let expected_lhs = block![(OprSectionBoundary (OprApp () (Ok "+") (Ident a)))];
+    let expected_lhs = block![(OprSectionBoundary 1 (OprApp () (Ok "+") (Ident a)))];
     test("+ a", expected_lhs);
-    let expected_rhs = block![(OprSectionBoundary (OprApp (Ident a) (Ok "+") ()))];
+    let expected_rhs = block![(OprSectionBoundary 1 (OprApp (Ident a) (Ok "+") ()))];
     test("a +", expected_rhs);
 }
 
@@ -79,7 +79,7 @@ fn parentheses_nested() {
 
 #[test]
 fn comments() {
-    test("# a b c", block![() ()]);
+    test("# a b c", block![()()]);
 }
 
 
@@ -291,7 +291,7 @@ fn code_block_body() {
     #[rustfmt::skip]
     let expect = block![
         (Function main #() "=" (BodyBlock #(
-         (OprSectionBoundary (OprApp () (Ok "+") (Ident x)))
+         (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
          (App (Ident print) (Ident x)))))
     ];
     test(&code.join("\n"), expect);
@@ -341,7 +341,7 @@ fn code_block_argument_list() {
     let expect = block![
         (Assignment (Ident value) "="
          (ArgumentBlockApplication (Ident foo) #(
-          (OprSectionBoundary (OprApp () (Ok "+") (Ident x)))
+          (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
           (Ident bar))))
     ];
     test(&code.join("\n"), expect);
@@ -400,6 +400,17 @@ fn operator_block_nested() {
     test(&code.join("\n"), expected);
 }
 
+#[test]
+fn operator_section_in_operator_block() {
+    let code = ["foo", "    + bar +"];
+    #[rustfmt::skip]
+    let expected = block![
+        (OperatorBlockApplication (Ident foo)
+         #(((Ok "+") (OprSectionBoundary 1 (OprApp (Ident bar) (Ok "+") ()))))
+         #())];
+    test(&code.join("\n"), expected);
+}
+
 
 // === Binary Operators ===
 
@@ -445,11 +456,30 @@ fn pipeline_operators() {
 fn accessor_operator() {
     // Test that the accessor operator `.` is treated like any other operator.
     let cases = [
-        ("Console.", block![(OprSectionBoundary (OprApp (Ident Console) (Ok ".") ()))]),
-        (".", block![(OprSectionBoundary (OprApp () (Ok ".") ()))]),
-        (".log", block![(OprSectionBoundary (OprApp () (Ok ".") (Ident log)))]),
+        ("Console.", block![(OprSectionBoundary 1 (OprApp (Ident Console) (Ok ".") ()))]),
+        (".", block![(OprSectionBoundary 2 (OprApp () (Ok ".") ()))]),
+        (".log", block![(OprSectionBoundary 1 (OprApp () (Ok ".") (Ident log)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn operator_sections() {
+    #[rustfmt::skip]
+    test(".map (+2 * 3) *7", block![
+        (OprSectionBoundary 1
+         (App (App (OprApp () (Ok ".") (Ident map))
+                   (Group "("
+                    (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "2" ()))
+                    (Ok "*") (Number () "3" ()))) ")"))
+              (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "7" ())))))]);
+    #[rustfmt::skip]
+    test(".sum 1", block![
+        (OprSectionBoundary 1 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ())))]);
+    #[rustfmt::skip]
+    test("+1 + x", block![
+        (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "1" ()))
+                              (Ok "+") (Ident x)))]);
 }
 
 
@@ -506,10 +536,10 @@ fn minus_binary() {
 fn minus_section() {
     #[rustfmt::skip]
     let cases = [
-        ("- x", block![(OprSectionBoundary (OprApp () (Ok "-") (Ident x)))]),
-        ("(- x)", block![(Group "(" (OprSectionBoundary (OprApp () (Ok "-") (Ident x))) ")")]),
+        ("- x", block![(OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x)))]),
+        ("(- x)", block![(Group "(" (OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x))) ")")]),
         ("- (x * x)", block![
-            (OprSectionBoundary (OprApp () (Ok "-")
+            (OprSectionBoundary 1 (OprApp () (Ok "-")
              (Group "(" (OprApp (Ident x) (Ok "*") (Ident x)) ")")))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));

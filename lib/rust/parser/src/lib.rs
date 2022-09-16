@@ -221,10 +221,9 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         return Tree::invalid(err, Tree { variant, span });
     }
     let tree_ = match &mut tree {
-        Tree { variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast }), span } => {
-            left_offset += &span.left_offset;
-            ast
-        }
+        Tree {
+            variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }), ..
+        } => ast,
         _ => &mut tree,
     };
     let opr_app = match tree_ {
