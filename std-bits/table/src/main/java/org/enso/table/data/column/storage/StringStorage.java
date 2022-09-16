@@ -107,14 +107,14 @@ public class StringStorage extends SpecializedStorage<String> {
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.startsWith(b);
+            return Text_Utils.starts_with(a, b);
           }
         });
     t.add(
         new StringBooleanOp(Maps.ENDS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.endsWith(b);
+            return Text_Utils.ends_with(a, b);
           }
         });
     t.add(

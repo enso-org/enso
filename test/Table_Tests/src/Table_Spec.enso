@@ -251,14 +251,14 @@ spec =
             x==y . to_vector . should_equal [False, True, True]
 
             z = Column.from_vector 'z' ['śląsk', 's\u0301ciana', 'sanok', 'rzeczywistość', 'ostros\u0301c\u0301']
-            z.starts_with 'ś' . to_vector . should_equal [False, False, True, False, False]
+            z.starts_with 's' . to_vector . should_equal [False, False, True, False, False]
             z.starts_with 'ś' . to_vector . should_equal [True, True, False, False, False]
             z.starts_with 's\u0301' . to_vector . should_equal [True, True, False, False, False]
-            z.starts_with 's' . to_vector . should_equal [False, False, False, False, False]
+            z.starts_with 'ą' . to_vector . should_equal [False, False, False, False, False]
             z.ends_with 'ść' . to_vector . should_equal [False, False, False, True, True]
             z.ends_with 's\u0301c\u0301' . to_vector . should_equal [False, False, False, True, True]
             z.ends_with 'ok' . to_vector . should_equal [False, False, True, False, False]
-            z.contains 's' . to_vector . should_equal [True, False, True, False, False]
+            z.contains 's' . to_vector . should_equal [True, False, True, True, True]
             z.contains 'ś' . to_vector . should_equal [True, True, False, True, True]
             z.contains 's\u0301' . to_vector . should_equal [True, True, False, True, True]
 
