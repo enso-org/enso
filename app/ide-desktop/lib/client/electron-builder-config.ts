@@ -168,7 +168,7 @@ const config: Configuration = {
             await signArchivesMacOs({
                 appOutDir: appOutDir,
                 productFilename: appName,
-                entitlements: './entitlements.mac.plist',
+                entitlements: context.packager.config.mac.entitlements,
                 identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
             })
 

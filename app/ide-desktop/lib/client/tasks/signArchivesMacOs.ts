@@ -110,9 +110,8 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 
 /** Information we need to sign a given binary. */
 interface SigningContext {
-    /** A digital identity that is stored in a key-chain that is on the calling user's keychain search list.
-     *
-     * We rely on this already being set up by the Electron Builder.
+    /** A digital identity that is stored in a keychain that is on the calling user's keychain
+     * search list. We rely on this already being set up by the Electron Builder.
      */
     identity: string
     /** Path to the entitlements file. */
@@ -209,7 +208,7 @@ class ArchiveToSign implements Signable {
         return lookupHelper(path => new ArchiveToSign(path, binaries))(base, pattern)
     }
 
-    /** Looks up for archives to sign using the given path pattern. */
+    /** Looks up for archives to sign using the given path patterns. */
     static lookupMany = lookupManyHelper(ArchiveToSign.lookup)
 }
 
@@ -238,8 +237,10 @@ class BinaryToSign implements Signable {
         ])
     }
 
+    /** Looks up for binaries to sign using the given path pattern. */
     static lookup = lookupHelper(path => new BinaryToSign(path))
 
+    /** Looks up for binaries to sign using the given path patterns. */
     static lookupMany = lookupManyHelper(BinaryToSign.lookup)
 }
 
@@ -259,7 +260,9 @@ async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<s
     return paths
 }
 
-/** Glob patterns relative to a given base directory. Base directory is allowed to be a pattern as well. */
+/** Glob patterns relative to a given base directory. Base directory is allowed to be a pattern as
+ * well.
+ **/
 async function globAbsIn(
     base: glob.Pattern,
     pattern: glob.Pattern,
@@ -330,5 +333,5 @@ export default async function (context: Input) {
 
     // Finally re-sign the top-level enso.
     const topLevelExecutable = new BinaryToSign(path.join(contentsDir, 'MacOS', productFilename))
-    topLevelExecutable.sign(context)
+    await topLevelExecutable.sign(context)
 }
