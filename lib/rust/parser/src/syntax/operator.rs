@@ -220,7 +220,7 @@ impl<'s> ExpressionBuilder<'s> {
                     if can_form_section {
                         self.section_used += lhs.is_none() as u32 + rhs_.is_none() as u32;
                     }
-                    syntax::tree::apply_operator(lhs, opr, rhs_)
+                    syntax::tree::apply_operator(lhs, opr, rhs_, self.nospace)
                 }
             };
             *rhs = Some(ast);

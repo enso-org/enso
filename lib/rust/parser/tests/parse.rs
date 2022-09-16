@@ -904,6 +904,9 @@ fn numbers() {
     let cases = [
         ("100_000", block![(Number () "100_000" ())]),
         ("10_000.99", block![(Number () "10_000" ("." "99"))]),
+        ("1 . 0", block![(OprApp (Number () "1" ()) (Ok ".") (Number () "0" ()))]),
+        ("1 .0", block![(App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ()))))]),
+        ("1. 0", block![(OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))]),
         ("0b10101010", block![(Number "0b" "10101010" ())]),
         ("0o122137", block![(Number "0o" "122137" ())]),
         ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),

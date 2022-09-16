@@ -741,6 +741,7 @@ pub fn apply_operator<'s>(
     mut lhs: Option<Tree<'s>>,
     opr: Vec<token::Operator<'s>>,
     mut rhs: Option<Tree<'s>>,
+    nospace: bool,
 ) -> Tree<'s> {
     let opr = match opr.len() {
         0 => return apply(lhs.unwrap(), rhs.unwrap()),
@@ -773,7 +774,8 @@ pub fn apply_operator<'s>(
         }
         return Tree::arrow(args, opr.clone(), rhs);
     }
-    if let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
+    if nospace
+        && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
         && let Some(lhs) = lhs.as_mut()
         && let box Variant::Number(lhs) = &mut lhs.variant
         && lhs.fractional_digits.is_none()
