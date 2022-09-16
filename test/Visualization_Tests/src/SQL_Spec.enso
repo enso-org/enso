@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Database import all
 import Standard.Database
 
-import Standard.Visualization.Sql.Visualization as Visualization
+import Standard.Visualization.SQL.Visualization as Visualization
 
 import Standard.Test
 

@@ -181,8 +181,7 @@ type SQL_Fragment
        - sql_type: The expected SQL type of `object`.
        - object: A value that will be interpolated into the query, interpreted
          as having the type `sql_type`.
-    # type SQL_Interpolation (sql_type : SQL_Type) (object : Any)
-    SQL_Interpolation sql_type object
+    SQL_Interpolation sql_type:SQL_Type object:Any
 
 type Statement
 
@@ -271,7 +270,7 @@ type Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    # type Builder (fragments : Vector_Builder.Vector_Builder SQL_Fragment)
+    # type Builder_Data (fragments : Vector_Builder.Vector_Builder SQL_Fragment)
     Builder_Data fragments
 
     ## UNSTABLE
