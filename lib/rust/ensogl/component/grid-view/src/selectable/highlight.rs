@@ -229,6 +229,26 @@ where InnerGrid: AsRef<crate::GridView<E>>
         }
         init.emit(())
     }
+
+    fn entry_highlight_position(&self, row: Row, col: Col) -> Vector2 {
+        let grid = self.grid.as_ref();
+        let entry = grid.get_entry(row, col);
+        let offset = entry.map(|e| e.frp().highlight_contour_offset.value());
+        tracing::debug!("Entry offset {offset:?}");
+        grid.entry_position(row, col) + offset.unwrap_or_default()
+    }
+}
+
+impl<E: Entry, Header: Entry<Params = E::Params>> Data<header::GridView<E, Header>, E> {
+    fn header_or_entry_highlight_position(&self, row: Row, col: Col) -> Vector2 {
+        let header_pos = self.grid.header_position(row, col).map(|pos| {
+            let header = self.grid.get_header(row, col);
+            let offset = header.map(|e| e.frp().highlight_contour_offset.value());
+            tracing::debug!("Header offset {offset:?}");
+            pos + offset.unwrap_or_default()
+        });
+        header_pos.unwrap_or_else(|| self.entry_highlight_position(row, col))
+    }
 }
 
 
@@ -378,11 +398,9 @@ impl<Kind: EndpointsGetter, E: Entry> HasConstructor
             // === Highlight Position ===
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
-            position_after_highlight <- became_highlighted.map(f!([model](&(row, col)) {
-                let entry = model.grid.get_entry(row, col);
-                let entry_offset = entry.map(|e| e.frp().highlight_contour_offset.value()).unwrap_or_default();
-                model.grid.entry_position(row, col) + entry_offset
-            }));
+            position_after_highlight <- became_highlighted.map(f!((&(row, col))
+                model.entry_highlight_position(row, col)
+            ));
             out.position <+ position_after_highlight;
             prev_position <- out.position.previous();
             new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
@@ -464,10 +482,10 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
             position_after_highlight <- became_highlighted.map(
-                f!((&(row, col)) model.grid.header_or_entry_position(row, col))
+                f!((&(row, col)) model.header_or_entry_highlight_position(row, col))
             );
             position_after_header_disconnect <- should_disconnect_header.map(
-                f!((&(row, col)) model.grid.header_or_entry_position(row, col))
+                f!((&(row, col)) model.header_or_entry_highlight_position(row, col))
             );
             highligthed_header_pos_change <- headers_frp.header_position_changed.map2(
                 &frp.entry_highlighted,

@@ -36,7 +36,8 @@ pub struct Contour {
 }
 
 impl Contour {
-    pub fn sharp_rectangle(size: Vector2) -> Self {
+    /// Create a contour without rounded corners.
+    pub fn sharp(size: Vector2) -> Self {
         Self { size, corners_radius: 0.0 }
     }
 }
@@ -46,9 +47,14 @@ impl Contour {
 // === MovedHeader ===
 // ===================
 
+/// The information about position of header being pushed down. See
+/// [`header::GridView`](crate::header::GridView) documentation for information about headers.
 #[derive(Clone, Debug)]
 pub struct MovedHeaderPosition {
+    /// The position of header in grid's space.
     pub position: Vector2,
+    /// The possible y positions of the header. The header cannot be above its base position and
+    /// cannot be over next section.
     pub y_range:  RangeInclusive<f32>,
 }
 
@@ -78,7 +84,8 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.
         set_hovered(bool),
-        //TODO[ao] docs.
+        /// The entry is a header which was pushed down to be visible during scrolling.
+        /// See [`header::GridView`](crate::header::GridView) documentation for more info.
         moved_as_header(MovedHeaderPosition)
     }
     Output {

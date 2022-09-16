@@ -40,7 +40,6 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::frp;
@@ -50,7 +49,6 @@ use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme::application::component_browser::searcher::list_panel::section::column_grid;
 use ensogl_text as text;
-use ide_view_component_group as component_group;
 use ide_view_component_group::icon;
 use ide_view_component_group::new_entry;
 use ide_view_component_group::new_entry::Kind;
@@ -61,9 +59,7 @@ use ide_view_component_list_panel::layout::GroupElement;
 use ide_view_component_list_panel::layout::Layout;
 use ide_view_component_list_panel::layout::HEADER_HEIGHT_IN_ROWS;
 use ide_view_component_list_panel::layouting;
-use ide_view_component_list_panel::ComponentBrowserPanel;
-use ide_view_component_list_panel::LabeledAnyModelProvider;
-use js_sys::Math;
+
 
 
 // ====================
@@ -174,7 +170,7 @@ impl EntryModelProvider {
 #[allow(dead_code)]
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
-        let app = &Application::new("root");
+        let app = Application::new("root");
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);
 
@@ -197,7 +193,7 @@ pub fn main() {
         let entry_size = Vector2(133.0, 30.0);
         let params = new_entry::Params {
             style: new_entry::Style {
-                color_intensities: new_entry::ColorIntensities {
+                color_intensities: new_entry::style::ColorIntensities {
                     text: 1.0,
                     background: style.get_number(theme::application::component_browser::component_group::background_color_intensity),
                     dimmed: style.get_number(theme::application::component_browser::component_group::dimmed_color_intensity),
@@ -220,7 +216,7 @@ pub fn main() {
         };
         let selection_params = new_entry::Params {
             style: new_entry::Style {
-                color_intensities: new_entry::ColorIntensities {
+                color_intensities: new_entry::style::ColorIntensities {
                     text:  style.get_number(theme::application::component_browser::component_group::background_color_intensity),
                     background: style.get_number(theme::application::component_browser::component_group::selection_color_intensity),
                     dimmed: style.get_number(theme::application::component_browser::component_group::dimmed_color_intensity),

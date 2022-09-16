@@ -1,9 +1,12 @@
+//! A module containing definition for Component Browser Entry [`View`] and related structures.
+
 use crate::prelude::*;
 
 use crate::icon;
-
+use crate::new_entry::style::Colors;
 use crate::set::GroupId;
 use crate::set::SectionId;
+
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -12,21 +15,53 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Scene;
-use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::MovedHeaderPosition;
-use ensogl_grid_view::entry::ShapeWithEntryContour;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 
-// === Header Background ===
 
-// The background of the header. It consists of a rectangle that matches the [`background`] in
-// color and a shadow underneath it.
+// ==============
+// === Export ===
+// ==============
+
+pub mod style;
+
+pub use crate::new_entry::style::Style;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The number of pixels the entries inside one group overlap each other.
+///
+/// The entries need to overlap, otherwise we see artifacts at their boundaries.
+const ENTRIES_OVERLAP_PX: f32 = 1.0;
+/// The padding between entry background and declared entry contour.
+///
+/// Cannot be `0.0`, because the background is clipped more sharply than the selection shape, making
+/// selection extending a bit over the background what looks bad.
+const CONTOUR_PADDING: f32 = 0.5;
+
+
+
+// ==================
+// === Background ===
+// ==================
+
+/// The background of the Component Browser Entry. It consists of a rectangle and an optional shadow
+/// underneath it. The shadow is shown under the group headers which are pushed down to be visible
+/// in the viewport.
 pub mod background {
     use super::*;
+
+    // We don't use the usual padding of sprites, because we clip the shadow under the background
+    // and clipping the shadow shape with `*` operator causes glitches.
+    // See https://www.pivotaltracker.com/story/show/182593513
 
     ensogl::define_shape_system! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
@@ -35,7 +70,7 @@ pub mod background {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let bg = Rect((width.clone(), height.clone())).fill(color);
+            let bg = Rect((&width, &height)).fill(color);
             // We use wider and shorter rect for the shadow because of the visual artifacts that
             // will appear otherwise:
             // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
@@ -52,14 +87,32 @@ pub mod background {
     }
 }
 
+
+
+// =============
+// === Model ===
+// =============
+
+// === Kind ===
+
+/// The kind of entry:
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Kind {
+    /// A standard entry with icon and caption.
     #[default]
     Entry,
+    /// A group header; there is no icon, the text id stronger and there is a gap above header
+    /// being a group separator.
     Header,
+    /// The entry in LocalScope section which leave no gap to the left or right.
     LocalScopeEntry,
 }
 
+
+// === Model ===
+
+/// The [model](grid_view::entry::Entry) for Component Browser Entry.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub kind:        Kind,
@@ -70,31 +123,16 @@ pub struct Model {
     pub group_id:    GroupId,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ColorIntensities {
-    pub text:            f32,
-    pub background:      f32,
-    pub hover_highlight: f32,
-    pub dimmed:          f32,
-    pub icon_strong:     f32,
-    pub icon_weak:       f32,
-}
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Style {
-    pub color_intensities:        ColorIntensities,
-    pub group_width:              f32,
-    pub gap_between_groups:       f32,
-    pub padding:                  f32,
-    pub icon_size:                f32,
-    pub text_size:                text::Size,
-    pub icon_text_padding:        f32,
-    pub font:                     ImString,
-    pub selection_corners_radius: f32,
-    pub highlight_bold:           f32,
-    pub header_shadow_size:       f32,
-}
 
+// ==============
+// === Params ===
+// ==============
+
+// === DimmedGroups ===
+
+/// Information about which groups shall be dimmed out.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum DimmedGroups {
     #[default]
@@ -113,6 +151,11 @@ impl DimmedGroups {
     }
 }
 
+
+// === Params ===
+
+/// The [parameters](grid_view::entry::Entry) of Component Browser Entry.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
     pub style:         Style,
@@ -120,8 +163,15 @@ pub struct Params {
 }
 
 
-/// The structure keeping a currently displayed icon in Component Group Entry [`View`]. Remembering
-/// id allows us to skip icon generation when not changed.
+
+// ============
+// === Data ===
+// ============
+
+// === CurrentIcon ===
+
+/// The structure keeping a currently displayed icon in Component Group Entry [`View`], remembering
+/// the position, id, and colors.
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
@@ -146,10 +196,6 @@ impl Default for CurrentIcon {
 }
 
 impl CurrentIcon {
-    fn new() -> Self {
-        default()
-    }
-
     fn update(&mut self, new_icon: Option<icon::Id>) {
         if self.id != new_icon {
             self.id = new_icon;
@@ -191,68 +237,9 @@ impl display::Object for CurrentIcon {
 }
 
 
+// === Data ===
 
-/// Colors used in the Component Group View.
-///
-/// This structure, used in both can be created from single "main color" input. Each of
-/// these colors will be computed by mixing "main color" with application background - for details,
-/// see [`Colors::from_main_color`].
-///
-/// `icon_strong` and `icon_weak` parameters represent the more/less contrasting parts of the
-/// [icon](crate::icon::Any), they do not represent highlighted state of the icon.
-#[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
-pub struct Colors {
-    pub background:      frp::Sampler<color::Rgba>,
-    pub hover_highlight: frp::Sampler<color::Rgba>,
-    pub text:            frp::Sampler<color::Rgba>,
-    pub icon_strong:     frp::Sampler<color::Rgba>,
-    pub icon_weak:       frp::Sampler<color::Rgba>,
-}
-
-impl Colors {
-    pub fn from_main_color(
-        network: &frp::Network,
-        style_watch: &StyleWatchFrp,
-        color: &frp::Stream<color::Rgba>,
-        style: &frp::Stream<Style>,
-        is_dimmed: &frp::Stream<bool>,
-    ) -> Self {
-        fn mix((c1, c2): &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
-            color::mix(*c1, *c2, *coefficient)
-        }
-        let app_bg = style_watch.get_color(ensogl_hardcoded_theme::application::background);
-        let style = style.clone_ref();
-
-        let intensity = Animation::new(network);
-        frp::extend! { network
-            init <- source_();
-
-            text_intensity <- style.map(|p| p.color_intensities.text);
-            bg_intensity <- style.map(|p| p.color_intensities.background);
-            hover_hg_intensity <- style.map(|p| p.color_intensities.hover_highlight);
-            dimmed_intensity <- style.map(|p| p.color_intensities.dimmed);
-            icon_strong_intensity <- style.map(|p| p.color_intensities.icon_strong);
-            icon_weak_intensity <- style.map(|p| p.color_intensities.icon_weak);
-
-            one <- init.constant(1.0);
-            let is_dimmed = is_dimmed.clone_ref();
-            intensity.target <+ is_dimmed.switch(&one, &dimmed_intensity);
-            app_bg <- all(&app_bg, &init)._0();
-            app_bg_and_input <- all(&app_bg, color);
-            main <- app_bg_and_input.all_with(&intensity.value, mix);
-            app_bg_and_main <- all(&app_bg, &main);
-            background <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
-            hover_highlight <- app_bg_and_main.all_with(&hover_hg_intensity, mix).sampler();
-            text <- app_bg_and_main.all_with(&text_intensity, mix).sampler();
-            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
-            icon_strong <- app_bg_and_main.all_with(&icon_strong_intensity, mix).sampler();
-        }
-        init.emit(());
-        Self { icon_weak, icon_strong, text, background, hover_highlight }
-    }
-}
-
+/// The data of Component Browser Entry [`View`], passed to its FRP nodes.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Data {
     display_object: display::object::Instance,
@@ -279,26 +266,33 @@ impl Data {
     }
 
     fn update_layout(&self, kind: Kind, style: &Style, entry_size: Vector2) {
+        // For explanation how differend kinds of entry should behave, see documentation of
+        // [`Kind`].
         let bg_width = if kind == Kind::LocalScopeEntry { entry_size.x } else { style.group_width };
-        let bg_height =
-            entry_size.y + if kind == Kind::Header { -style.gap_between_groups } else { 1.0 };
+        let bg_height = entry_size.y
+            + if kind == Kind::Header { -style.gap_between_groups } else { ENTRIES_OVERLAP_PX };
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.5 };
+        let bg_y = if kind == Kind::Header {
+            -style.gap_between_groups / 2.0
+        } else {
+            ENTRIES_OVERLAP_PX / 2.0
+        };
         self.background.set_position_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
-        self.icon.borrow().set_position_xy(Vector2(left + style.icon_size / 2.0, 0.0));
+        self.icon.borrow().set_position_x(left + style.icon_size / 2.0);
         let text_x = Self::text_x_position(kind, style);
         self.label.set_position_xy(Vector2(text_x, style.text_size.raw / 2.0));
     }
 
     fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let height =
-            entry_size.y - if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
-        Contour::sharp_rectangle(Vector2(style.group_width, height))
+        let padding = CONTOUR_PADDING * 2.0;
+        let optional_gap = if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
+        let height = entry_size.y - optional_gap - padding;
+        Contour::sharp(Vector2(style.group_width, height))
     }
 
     fn highlight_contour(contour: Contour, style: &Style) -> Contour {
@@ -354,6 +348,20 @@ impl Data {
     }
 }
 
+
+
+// ============
+// === View ===
+// ============
+
+/// Component Browser Entry View.
+///
+/// This is a parameter of the [Grid View](grid_view) inside Component Browser Panel List,
+/// parametrized by [`Params`] and whose model is [`Model`].
+///
+/// The entries (except [local scope entries](`Kind::LocalScopeEntry`) have width equal to the
+/// column width declared in [`Style`]. Making grid column  broader can create a nice vertical gaps
+/// between columns. The horizontal gaps are left by the header entries (having a bit lower height).
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
     frp:  grid_view::entry::EntryFrp<Self>,
@@ -379,18 +387,23 @@ impl grid_view::Entry for View {
             style <- input.set_params.map(|p| p.style.clone()).on_change();
             kind_and_style <- all(kind, style);
             layout_data <- all(kind_and_style, input.set_size);
-            eval layout_data ((((kind, style), entry_sz)) data.update_layout(*kind, style, *entry_sz));
-            out.contour <+ layout_data.map(|((kind, style), entry_sz)| Data::contour(*kind, style, *entry_sz));
-            out.contour_offset <+ kind_and_style.map(|(kind, style)| Data::contour_offset(*kind, style));
-            out.highlight_contour <+ out.contour.map2(&style, |contour, style| Data::highlight_contour(*contour, style));
+            eval layout_data ((((kind, style), entry_sz))
+                data.update_layout(*kind, style, *entry_sz)
+            );
+            out.contour <+ layout_data.map(|((kind, style), entry_sz)| {
+                Data::contour(*kind, style, *entry_sz)
+            });
+            out.contour_offset <+ kind_and_style.map(|(k, s)| Data::contour_offset(*k, s));
+            out.highlight_contour <+ out.contour.map2(&style, |c, s| Data::highlight_contour(*c, s));
             out.highlight_contour_offset <+ out.contour_offset;
 
 
             // === Colors ===
 
             color <- input.set_model.map(|m| m.color);
-            color_intensities <- style.map(|s| s.color_intensities);
-            is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| p.dimmed_groups.is_group_dimmed(m.group_id));
+            is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
+                p.dimmed_groups.is_group_dimmed(m.group_id)
+            });
             let colors = Colors::from_main_color(network, &data.style, &color, &style, &is_dimmed);
             eval colors.background ((c) data.background.color.set(c.into()));
             data.label.set_default_color <+ colors.text;
@@ -413,8 +426,15 @@ impl grid_view::Entry for View {
             data.label.set_content_truncated <+ all(caption, max_text_width);
             content_changed <- data.label.content.constant(());
             style_changed <- style.constant(());
-            highlight_range <= all_with3(&input.set_model, &content_changed, &style_changed, |m, (), ()| m.highlighted.deref().clone());
-            data.label.set_sdf_bold <+ highlight_range.map2(&style, |range, s| (*range, text::style::SdfBold::new(s.highlight_bold)));
+            highlight_range <= all_with3(
+                &input.set_model,
+                &content_changed,
+                &style_changed,
+                |m, (), ()| m.highlighted.deref().clone()
+            );
+            data.label.set_sdf_bold <+ highlight_range.map2(&style, |range, s| {
+                (*range, text::style::SdfBold::new(s.highlight_bold))
+            });
             data.label.set_default_text_size <+ style.map(|s| s.text_size);
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
             data.label.set_font <+ style.map(|s| s.font.to_string()).on_change();
