@@ -1,6 +1,7 @@
 import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
@@ -659,29 +660,36 @@ lazy val `text-buffer` = project
   )
 
 val generateRustParserLib = TaskKey[Unit]("generateRustParserLib", "Generates parser native library")
-val generateRustParserLibSettings = generateRustParserLib := {
+`syntax-rust-definition` / generateRustParserLib := {
     import sys.process._
     Seq("cargo", "build", "-p", "enso-parser-jni") !
 }
 
-val generateRustParser = TaskKey[Unit]("generateRustParser", "Generates parser sources")
-val generateRustParserSettings = generateRustParser := {
-    import sys.process._
-    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", "lib/rust/parser/generate-java/java/org/enso/syntax2/") !
+def generateRustParser(base: File): Seq[File] = {
+  import scala.jdk.CollectionConverters._
+  import java.nio.file.Paths
+
+  import sys.process._
+  val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
+  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  if (!fullPkg.exists()) {
+    fullPkg.mkdirs()
+  }
+  Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+
+  FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
 
 lazy val `syntax-rust-definition` = project
   .in(file("lib/rust/parser"))
   .configs(Test)
   .settings(
-    compile := ((Compile / compile) dependsOn generateRustParser).value,
+    Compile / sourceGenerators += Def.task {
+      generateRustParser((Compile / sourceManaged).value)
+    }.taskValue,
     compile := ((Compile / compile) dependsOn generateRustParserLib).value,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     frgaalJavaCompilerSetting,
-    generateRustParserSettings,
-    generateRustParserLibSettings,
-    libraryDependencies ++= Seq(
-    ),
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
