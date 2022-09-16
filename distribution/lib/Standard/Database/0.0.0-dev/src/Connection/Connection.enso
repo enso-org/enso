@@ -150,7 +150,7 @@ type Connection
     # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
-        query = IR.Select_All (IR.make_ctx_from table_name)
+        query = IR.Select_All (IR.context_for_table table_name)
         compiled = self.dialect.generate_sql query
         self.jdbc_connection.fetch_columns compiled
 

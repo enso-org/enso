@@ -1004,7 +1004,7 @@ type Integrity_Error
 # make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Table
 make_table : Connection -> Text -> Vector -> Table
 make_table connection table_name columns =
-    ctx = IR.make_ctx_from table_name
+    ctx = IR.context_for_table table_name
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
     Table_Data table_name connection cols ctx
 
