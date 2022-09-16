@@ -55,7 +55,7 @@ use std::fmt::Write;
 
 
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 
 
@@ -370,15 +370,15 @@ impl<'g> ProgramBuilder<'g> {
             Data::Struct(fields) => fields,
             _ => panic!(),
         };
+        if ty.child_field == Some(0) {
+            self.child(id, hierarchy, basecase)
+        }
         for (i, field) in fields.iter().enumerate() {
-            if ty.child_field == Some(i) {
-                self.child(id, hierarchy, basecase)
-            }
             self.type_(field.type_, basecase);
             self.debug_prev(format!(".{}", &field.name));
-        }
-        if fields.is_empty() && ty.child_field.is_some() {
-            self.child(id, hierarchy, basecase)
+            if ty.child_field == Some(i + 1) {
+                self.child(id, hierarchy, basecase)
+            }
         }
     }
 

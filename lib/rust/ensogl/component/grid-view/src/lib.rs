@@ -12,6 +12,11 @@
 //! highlight or headers) are available through accessors (like `header_frp` or
 //! `selection_highlight_frp`). Also, as every variant is based on the basic [`GridView`], they
 //! implement `AsRef<GridView>`.
+//!
+//! Locations in a grid are described by coordinates of [`Row`] and [`Col`] types. Correct behavior
+//! of a [`GridView`] is not guaranteed for grid sizes or locations where any of the coordinates
+//! equal or exceed 10^7. That is due to loss of precision when converting such numbers to the
+//! `f32` type used for internal calculations.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -64,6 +69,7 @@ pub mod prelude {
 use crate::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
@@ -120,34 +126,42 @@ impl Properties {
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
-        /// Declare what area of the GridView is visible. The area position is relative to left-top
-        /// corner of the Grid View.
-        set_viewport(Viewport),
+        accept_entry(Row, Col),
+        hover_entry(Option<(Row, Col)>),
+        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
+        /// event for given row and column. After that the entry will be visible.
+        model_for_entry(Row, Col, EntryModel),
+        /// Move selection one position down.
+        move_selection_down(),
+        /// Move selection one position to the left.
+        move_selection_left(),
+        /// Move selection one position to the right.
+        move_selection_right(),
+        /// Move selection one position up.
+        move_selection_up(),
+        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
+        /// [`reset_entries`], it does not detach any entry.
+        request_model_for_visible_entries(),
+        /// Reset entries, providing new number of rows and columns. All currently displayed entries
+        /// will be detached and their models re-requested.
+        reset_entries(Row, Col),
         /// Set new size of the grid. If the number of rows or columns is reduced, the entries are
         /// removed from the view. If it is extended, new model for entries may be requested if
         /// needed.
         resize_grid(Row, Col),
-        /// Reset entries, providing new number of rows and columns. All currently displayed entries
-        /// will be detached and their models re-requested.
-        reset_entries(Row, Col),
-        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
-        /// event for given row and column. After that the entry will be visible.
-        model_for_entry(Row, Col, EntryModel),
-        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
-        /// [`reset_entries`], it does not detach any entry.
-        request_model_for_visible_entries(),
-        /// Set the entries size. All entries have the same size.
-        set_entries_size(Vector2),
+        select_entry(Option<(Row, Col)>),
         /// Set the width of the specified column.
         set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
+        /// Set the entries size. All entries have the same size.
+        set_entries_size(Vector2),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
-        select_entry(Option<(Row, Col)>),
-        hover_entry(Option<(Row, Col)>),
-        accept_entry(Row, Col),
+        /// Declare what area of the GridView is visible. The area position is relative to left-top
+        /// corner of the Grid View.
+        set_viewport(Viewport),
     }
 
     Output {
@@ -165,6 +179,9 @@ ensogl_core::define_endpoints_2! {
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
         column_resized(Col, f32),
+        /// Event emitted after a request was made to move the selection in a direction, but the
+        /// currently selected entry is the last one in the grid in that direction.
+        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowDirection>),
     }
 }
 
@@ -561,6 +578,39 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
 {
     fn display_object(&self) -> &display::object::Instance {
         self.widget.display_object()
+    }
+}
+
+impl<E: Entry> FrpNetworkProvider for GridView<E> {
+    fn network(&self) -> &frp::Network {
+        self.widget.network()
+    }
+}
+
+impl<E: Entry> application::View for GridView<E> {
+    fn label() -> &'static str {
+        "GridView"
+    }
+
+    fn new(app: &Application) -> Self {
+        GridView::<E>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        self.widget.app()
+    }
+
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use application::shortcut::ActionType::*;
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (PressAndRepeat, "left", "move_selection_left"),
+            (PressAndRepeat, "right", "move_selection_right"),
+        ])
+            .iter()
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+            .collect()
     }
 }
 

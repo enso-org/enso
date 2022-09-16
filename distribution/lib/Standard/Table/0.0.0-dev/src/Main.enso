@@ -16,7 +16,7 @@ import project.IO.Quote_Style
 
 import project.Errors
 
-from project.Data.Table export new, from_rows, join, concat, Table, Table_Data
+from project.Data.Table export new, from_columns, from_rows, join, concat, Table, Table_Data
 export project.Data.Column
 export project.Data.Column_Selector
 export project.Data.Sort_Column
@@ -104,9 +104,9 @@ Json.Json.to_table self fields=Nothing = case self of
 type Invalid_Format_Error
     Invalid_Format_Error_Data input message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Provides a human-readable representation of the Invalid_Format_Error.
-Invalid_Format_Error.to_display_text : Text
-Invalid_Format_Error.to_display_text self =
-    "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
+       Provides a human-readable representation of the Invalid_Format_Error.
+    to_display_text : Text
+    to_display_text self =
+        "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."

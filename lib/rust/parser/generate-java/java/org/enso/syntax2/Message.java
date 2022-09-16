@@ -5,12 +5,13 @@ import java.nio.charset.StandardCharsets;
 
 final class Message {
     private final java.nio.ByteBuffer buffer;
-    private final java.nio.ByteBuffer context;
+    private final CharSequence context;
     private final int base;
     private final long metadata;
     private boolean encounteredUnsupportedSyntax;
+    private long position;
 
-    Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn, long metadataIn) {
+    Message(java.nio.ByteBuffer bufferIn, CharSequence contextIn, long baseIn, long metadataIn) {
         buffer = bufferIn;
         context = contextIn;
         base = (int)baseIn;
@@ -40,7 +41,7 @@ final class Message {
         return new String(dst, StandardCharsets.UTF_8);
     }
 
-    java.nio.ByteBuffer context() {
+    CharSequence context() {
         return context;
     }
 
@@ -76,5 +77,14 @@ final class Message {
             return null;
         }
         return new java.util.UUID(high, low);
+    }
+
+    long position() {
+        return position;
+    }
+
+    long advance(long delta) {
+        position += delta;
+        return position;
     }
 }

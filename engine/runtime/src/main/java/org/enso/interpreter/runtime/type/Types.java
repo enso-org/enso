@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-// import org.enso.interpreter.runtime.ConstantsGen;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -49,6 +48,7 @@ import org.enso.polyglot.data.TypeGraph;
   Ref.class,
   PanicException.class,
   PanicSentinel.class,
+  Vector.class,
   Warning.class,
   EnsoFile.class,
   EnsoDate.class,

@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Date_Period
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -326,6 +328,24 @@ type Date_Time
     day_of_week self =
         Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
+    ## Returns the first date within the `Time_Period` or `Date_Period`
+       containing self.
+    start_of : (Date_Period|Time_Period) -> Date_Time
+    start_of self period=Date_Period.Month =
+        adjusted = period.adjust_start self
+        case period.is_date_period of
+            True -> Time_Period.Day.adjust_start adjusted
+            False -> adjusted
+
+    ## Returns the last date within the `Time_Period` or `Date_Period`
+       containing self.
+    end_of : (Date_Period|Time_Period) -> Date_Time
+    end_of self period=Date_Period.Month =
+        adjusted = period.adjust_end self
+        case period.is_date_period of
+            True -> Time_Period.Day.adjust_end adjusted
+            False -> adjusted
+
     ## ALIAS Time to Date
 
        Convert this point in time to date, discarding the time of day
@@ -409,7 +429,7 @@ type Date_Time
 
              example_to_json = Date_Time.now.to_json
     to_json : Json.Object
-    to_json self = Json.from_pairs [["type", "Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+    to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 

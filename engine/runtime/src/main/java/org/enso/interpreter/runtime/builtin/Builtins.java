@@ -1,6 +1,13 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -17,6 +24,7 @@ import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
+import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
@@ -71,6 +79,7 @@ public class Builtins {
   private final Builtin polyglot;
   private final Builtin text;
   private final Builtin array;
+  private final Builtin vector;
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
@@ -111,6 +120,7 @@ public class Builtins {
     polyglot = builtins.get(Polyglot.class);
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
+    vector = builtins.get(Vector.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
@@ -480,6 +490,11 @@ public class Builtins {
   /** @return the Array constructor. */
   public Type array() {
     return array.getType();
+  }
+
+  /** @return the Array constructor. */
+  public Type vector() {
+    return vector.getType();
   }
 
   /** @return the Ref constructor. */

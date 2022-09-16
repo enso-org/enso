@@ -47,7 +47,7 @@ spec =
         Test.specify "send Enso date into Java" <|
             ensodate = Date.new 2022 04 01
             javatime = LocalTime.of 10 26
-            javatimedate = javatime . to_time ensodate
+            javatimedate = javatime . to_date_time ensodate
             april1st = javatimedate . date
             april1st.year.should_equal 2022
             april1st.month.should_equal 4

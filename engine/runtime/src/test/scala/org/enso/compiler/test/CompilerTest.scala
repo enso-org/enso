@@ -208,19 +208,6 @@ trait CompilerRunner {
         None
       )
     }
-
-//    /** Creates a module containing both an atom and a method that use the
-//      * provided expression.
-//      *
-//      * The expression is used in the default for an atom argument, as in
-//      * [[asAtomDefaultArg()]], and in the body of a method, as in
-//      * [[asMethod()]].
-//      *
-//      * @return a module containing an atom def and method def using `expr`
-//      */
-//    def asModuleDefs: IR.Module = {
-//      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
-//    }
   }
 
   /** Builds a module context with a mocked module for testing purposes.
