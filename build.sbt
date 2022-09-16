@@ -6,6 +6,7 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
+import sbt.nio.FileStamper.LastModified
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
@@ -662,10 +663,21 @@ lazy val `text-buffer` = project
 val generateRustParserLib = TaskKey[Unit]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
     import sys.process._
-    Seq("cargo", "build", "-p", "enso-parser-jni") !
+    if ((`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
+      Seq("cargo", "build", "-p", "enso-parser-jni") !
+    }
 }
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
 
-def generateRustParser(base: File): Seq[File] = {
+val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+`syntax-rust-definition` / generateParserJavaSources := {
+  generateRustParser((`syntax-rust-definition` / Compile / sourceManaged).value, (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+}
+`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+
+def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
   import scala.jdk.CollectionConverters._
   import java.nio.file.Paths
 
@@ -675,8 +687,9 @@ def generateRustParser(base: File): Seq[File] = {
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
-  Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
-
+  if (changes.hasChanges) {
+    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+  }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
 
@@ -684,9 +697,7 @@ lazy val `syntax-rust-definition` = project
   .in(file("lib/rust/parser"))
   .configs(Test)
   .settings(
-    Compile / sourceGenerators += Def.task {
-      generateRustParser((Compile / sourceManaged).value)
-    }.taskValue,
+    Compile / sourceGenerators += generateParserJavaSources,
     compile := ((Compile / compile) dependsOn generateRustParserLib).value,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     frgaalJavaCompilerSetting,
