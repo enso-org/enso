@@ -41,8 +41,6 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
         ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
         macro_definition! {
         ("from", everything(), "import", everything(), "hiding", everything()) import_body},
-        macro_definition! {
-        ("from", everything(), "as", everything(), "import", everything()) import_body},
         macro_definition! {("from", everything(), "import", everything()) import_body},
     ];
     for def in defs {

@@ -559,12 +559,6 @@ fn import() {
              ((Ident import) (Ident all))
              ()
              ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
-        ("from Standard.Table as Column_Module import Column", block![
-            (Import ()
-             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
-             ((Ident as) (Ident Column_Module))
-             ((Ident import) (Ident Column))
-             () ())]),
         ("polyglot java import java.lang.Float", block![
             (Import
              ((Ident polyglot) (Ident java))
