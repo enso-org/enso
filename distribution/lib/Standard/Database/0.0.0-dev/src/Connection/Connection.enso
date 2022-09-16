@@ -5,8 +5,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.Data.Column_Name_Mapping
-import Standard.Table.Data.Column_Selector
+from Standard.Table import Column_Selector, Column_Name_Mapping
 
 from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors

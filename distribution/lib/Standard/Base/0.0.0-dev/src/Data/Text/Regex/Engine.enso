@@ -56,7 +56,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-       - mode: The matching mode to use. This must default to `Mode.All`.
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`.
 
        This method will _always_ return `Nothing` if it fails to match.
 
@@ -65,7 +65,7 @@ type Pattern
          return type is either a single `Match` object. When asked to match in a
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
-    match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
+    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector.Vector Match | Nothing
     match self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -85,7 +85,7 @@ type Pattern
 
        Arguments:
        - input: The text to find matches in.
-       - mode: The matching mode to use. This must default to `Mode.All`
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`
 
        This method will _always_ return `Nothing` if it fails to find any
        matches.
@@ -95,7 +95,7 @@ type Pattern
          return type is either a single `Match` object. When asked to match in a
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
-    find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
+    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector.Vector Text | Nothing
     find self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -104,11 +104,11 @@ type Pattern
 
        Arguments:
        - input: The text to splut based on the pattern described by `self`.
-       - mode: The splitting mode to use. This must default to `Mode.All`.
+       - mode: The splitting mode to use. This must default to `Regex_Mode.All`.
 
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element.
-    split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
+    split : Text -> (Regex_Mode.First | Integer | Regex_Mode.All) -> Vector.Vector Text
     split self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -120,11 +120,11 @@ type Pattern
        - input: The text in which to perform the replacement(s).
        - replacement: The literal text with which to replace any matches.
        - mode: The matching mode to use for finding candidates to replace. This
-         must default to `Mode.All`.
+         must default to `Regex_Mode.All`.
 
        If this method performs no replacements it will return the `input` text
        unchanged.
-    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace : Text -> Text -> Regex_Mode | Matching_Mode | Integer -> Text
     replace self _ _ _ = Errors.unimplemented "This is an interface only."
 
 ## The `Data.Text.Regex.Engine.Match` interface.

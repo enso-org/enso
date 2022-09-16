@@ -8,25 +8,21 @@ import Standard.Database.Data.Sql
 
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.IO.File_Format
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
+
+from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-
-import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
+
 from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
 from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
-from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
-from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
-import Standard.Table.Data.Column_Name_Mapping
+
 import Standard.Table.Data.Position
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-import Standard.Table.Data.Match_Columns
 
 polyglot java import java.sql.JDBCType
 
@@ -929,9 +925,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -960,13 +956,12 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+         - `Auto_Detect`: The file format is determined by the provided file.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+            the `write` function. If passed as format, an
+            `Illegal_Argument_Error` is raised. To write out the table as plain
+            text, the user needs to call the `Text.from Table` method and then
+            use the `Text.write` function.
 
        > Example
          Write a database table to a CSV file.
@@ -979,7 +974,7 @@ type Table
                  table = connection.access_table "Table"
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.to_dataframe.write path format on_existing_file match_columns on_problems
 
