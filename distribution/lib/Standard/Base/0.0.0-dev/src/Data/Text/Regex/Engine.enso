@@ -19,7 +19,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 
-from Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine export Default
+from Standard.Base.Data.Text.Regex.Engine.Default export Default
 
 ## The `Data.Text.Regex.Engine.Engine` interface.
 type Engine
