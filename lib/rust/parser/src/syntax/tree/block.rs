@@ -99,7 +99,11 @@ fn to_operator_block_expression(
                 *elided -= 1;
             }
             let expression = match *tree.variant {
-                Variant::OprSectionBoundary(OprSectionBoundary { ast, elided: 0 }) => ast,
+                Variant::OprSectionBoundary(OprSectionBoundary {
+                    ast,
+                    elided: 0,
+                    wildcards: 0,
+                }) => ast,
                 _ => tree,
             };
             Ok(OperatorBlockExpression { operator, expression })

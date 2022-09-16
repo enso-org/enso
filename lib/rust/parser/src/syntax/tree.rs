@@ -176,8 +176,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub elided: u32,
-            pub ast:    Tree<'s>,
+            pub elided:    u32,
+            pub wildcards: u32,
+            pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
@@ -813,6 +814,17 @@ pub fn apply_operator<'s>(
     } else {
         ast_
     }
+}
+
+/// Wrap the given tree in an operator section, unless it is an expression type that doesn't form
+/// the given type of operator sections.
+pub fn operator_section(elided: u32, wildcards: u32, ast: Tree) -> Tree {
+    if elided == 0 {
+        if let Variant::Arrow(_) = &*ast.variant {
+            return ast;
+        }
+    }
+    Tree::opr_section_boundary(elided, wildcards, ast)
 }
 
 

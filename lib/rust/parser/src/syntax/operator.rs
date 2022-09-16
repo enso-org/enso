@@ -106,7 +106,8 @@ fn resolve_operator_precedence_internal<'s>(
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default)]
 struct ExpressionBuilder<'s> {
-    section_used:     u32,
+    elided:           u32,
+    wildcards:        u32,
     output:           Vec<syntax::Item<'s>>,
     operator_stack:   Vec<Operator<'s>>,
     prev_type:        Option<ItemType>,
@@ -117,6 +118,10 @@ struct ExpressionBuilder<'s> {
 impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, item: syntax::Item<'s>) {
+        if let syntax::Item::Token(token) = &item
+                && let token::Variant::Wildcard(_) = &token.variant {
+            self.wildcards += 1;
+        }
         let item = if self.prev_type == Some(ItemType::Ast) {
             // Multiple non-operators next to each other.
             let lhs = self.output.pop().unwrap();
@@ -218,7 +223,7 @@ impl<'s> ExpressionBuilder<'s> {
                     let lhs = self.output.pop().map(|t| t.to_ast());
                     let can_form_section = opr.len() != 1 || opr[0].properties.can_form_section();
                     if can_form_section {
-                        self.section_used += lhs.is_none() as u32 + rhs_.is_none() as u32;
+                        self.elided += lhs.is_none() as u32 + rhs_.is_none() as u32;
                     }
                     syntax::tree::apply_operator(lhs, opr, rhs_, self.nospace)
                 }
@@ -239,11 +244,11 @@ impl<'s> ExpressionBuilder<'s> {
                 "Internal error. Not all tokens were consumed while constructing the expression."
             );
         }
-        let out = if self.section_used != 0 {
-            // This can't fail: `section_used` won't be non-zero unless we had at least one input,
-            // and if we have at least one input, we have output.
+        let out = if self.elided != 0 || self.wildcards != 0 {
+            // This can't fail: `elided` + `wildcards` won't be non-zero unless we had at least one
+            // input, and if we have at least one input, we have output.
             let out = item.unwrap();
-            Some(syntax::Tree::opr_section_boundary(self.section_used, out))
+            Some(syntax::tree::operator_section(self.elided, self.wildcards, out))
         } else {
             item
         };
