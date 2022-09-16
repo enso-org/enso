@@ -1,7 +1,7 @@
 /** Table visualization. */
 
-const TABLE_INITIAL_SIZE = 50;
-const TABLE_ROW_HEIGHT = 20;
+const TABLE_INITIAL_SIZE = 1000;
+const TABLE_ROW_HEIGHT = 30;
 
 const TABLE_ATTRIBUTE_DATA_INDEXNUMBER = 'data-indexnumber';
 const TABLE_ROW = 'table-row';
@@ -9,6 +9,140 @@ const TABLE_BODY = 'table-body';
 const TABLE_BODY_SELECTOR = '#table-body';
 const TABLE_ROW_SELECTOR = '.table-row';
 
+const TABLE_STYLE_DARK = `
+        <style>
+        table, .hiddenrows {
+            font-family: DejaVuSansMonoBook, sans-serif;
+            font-size: 12px;
+        }
+
+        table {
+            border-spacing: 1px;
+            padding: 1px;
+        }
+
+        table > tbody > tr:first-child > th:first-child,
+        table > tbody > tr:first-child > td:first-child {
+            border-top-left-radius: 9px;
+        }
+
+        table > tbody > tr:first-child > th:last-child,
+        table > tbody > tr:first-child > td:last-child {
+            border-top-right-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:first-child,
+        table > tbody > tr:last-child > td:first-child {
+            border-bottom-left-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:last-child,
+        table > tbody > tr:last-child > td:last-child {
+            border-bottom-right-radius: 9px;
+        }
+
+        td {
+            color: rgba(255, 255, 255, 0.9);
+            padding: 0;
+        }
+
+        td.plaintext,
+        th {
+            padding: 5px;
+        }
+
+        th,
+        td {
+            border: 1px solid transparent;
+            background-clip: padding-box;
+        }
+
+        th, .hiddenrows {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
+        td {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        th {
+            background-color: rgba(255, 255, 200, 0.1);
+        }
+
+        .hiddenrows {
+            margin-left: 5px;
+            margin-top: 5px;
+        }
+        </style>
+        `
+
+const TABLE_STYLE_LIGHT = `
+        <style>
+        table, .hiddenrows {
+            font-family: DejaVuSansMonoBook, sans-serif;
+            font-size: 12px;
+        }
+
+        table {
+            border-spacing: 1px;
+            padding: 1px;
+        }
+
+        table > tbody > tr:first-child > th:first-child,
+        table > tbody > tr:first-child > td:first-child {
+            border-top-left-radius: 9px;
+        }
+
+        table > tbody > tr:first-child > th:last-child,
+        table > tbody > tr:first-child > td:last-child {
+            border-top-right-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:first-child,
+        table > tbody > tr:last-child > td:first-child {
+            border-bottom-left-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:last-child,
+        table > tbody > tr:last-child > td:last-child {
+            border-bottom-right-radius: 9px;
+        }
+
+        td {
+            color: rgba(0, 0, 0, 0.7);
+            padding: 0;
+        }
+
+        td.plaintext,
+            th {
+            padding: 5px;
+        }
+
+        th,
+            td {
+            border: 1px solid transparent;
+            background-clip: padding-box;
+        }
+
+        th, .hiddenrows {
+            color: rgba(0, 0, 0, 0.9);
+            font-weight: 400;
+        }
+
+        td {
+            background-color: rgba(0, 0, 0, 0.025);
+        }
+
+        th {
+            background-color: rgba(30, 30, 20, 0.1);
+        }
+
+        .hiddenrows {
+            margin-left: 5px;
+            margin-top: 5px;
+        }
+        </style>`
 
 // ============================
 // === Style Initialisation ===
@@ -28,11 +162,18 @@ class TableVisualization extends Visualization {
         super(data)
         this.lazyScroll = null;
         this.initDom();
-        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', '0', '50')
     }
 
     initDom() {
-        //const visualizationElem = document.getElementById('table-visualization');
+        let style = TABLE_STYLE_LIGHT
+        if (document.getElementById('root').classList.contains('dark-theme')) {
+            style = TABLE_STYLE_DARK
+        }
+
+        if (this.tabElem) {
+            this.tabElem.remove();
+        }
+
         const tabElem = document.createElement('div');
         tabElem.setAttributeNS(null, 'id', 'table-component');
         tabElem.setAttributeNS(null, 'class', 'scrollable');
@@ -44,27 +185,34 @@ class TableVisualization extends Visualization {
         const tableBody = document.createElement('tbody');
         tableBody.setAttributeNS(null, 'id', TABLE_BODY);
 
-        //this.visualizationElem = visualizationElem;
         this.tabElem = tabElem;
         this.tableBody = tableBody;
 
         table.appendChild(tableBody);
+        tabElem.innerHTML = style;
         tabElem.appendChild(table);
         this.dom.appendChild(tabElem);
+
+        this.updateTableSize();
     }
 
     initScroll(dataLength) {
+          this.initDom();
           let lazyScroll = new LazyScroll();
 
-          // let fixedHeightParent = document.querySelector(LIST_COMPONENT_SELECTOR);
           let fixedHeightParent = this.tabElem;
           let parentElem = document.querySelector(TABLE_BODY_SELECTOR);
           let rowSelector = TABLE_ROW_SELECTOR;
-          let requestDataFn = (obj) => {
-            this.setPreprocessorArguments(String(obj.offset), String(obj.offset + obj.limit));
+          let requestDataFn = (start, end) => {
+            this.setPreprocessorArguments(String(start), String(end + 1));
           };
           let rowHeight = TABLE_ROW_HEIGHT;
           let rowParentElem = parentElem;
+
+          let childs = parentElem.querySelectorAll(rowSelector);
+          for (let i = 0; i < childs.length; i++) {
+            childs[i].remove();
+          }
 
           lazyScroll.init({
             fixedHeightContainerElem: fixedHeightParent,
@@ -261,141 +409,6 @@ class TableVisualization extends Visualization {
 //            this.dom.removeChild(this.dom.lastChild)
 //        }
 
-        const style_dark = `
-        <style>
-        table, .hiddenrows {
-            font-family: DejaVuSansMonoBook, sans-serif;
-            font-size: 12px;
-        }
-
-        table {
-            border-spacing: 1px;
-            padding: 1px;
-        }
-
-        table > tbody > tr:first-child > th:first-child,
-        table > tbody > tr:first-child > td:first-child {
-            border-top-left-radius: 9px;
-        }
-
-        table > tbody > tr:first-child > th:last-child,
-        table > tbody > tr:first-child > td:last-child {
-            border-top-right-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:first-child,
-        table > tbody > tr:last-child > td:first-child {
-            border-bottom-left-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:last-child,
-        table > tbody > tr:last-child > td:last-child {
-            border-bottom-right-radius: 9px;
-        }
-
-        td {
-            color: rgba(255, 255, 255, 0.9);
-            padding: 0;
-        }
-
-        td.plaintext,
-        th {
-            padding: 5px;
-        }
-
-        th,
-        td {
-            border: 1px solid transparent;
-            background-clip: padding-box;
-        }
-
-        th, .hiddenrows {
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 400;
-        }
-
-        td {
-            background-color: rgba(255, 255, 255, 0.03);
-        }
-
-        th {
-            background-color: rgba(255, 255, 200, 0.1);
-        }
-
-        .hiddenrows {
-            margin-left: 5px;
-            margin-top: 5px;
-        }
-        </style>
-        `
-
-        const style_light = `
-        <style>
-        table, .hiddenrows {
-            font-family: DejaVuSansMonoBook, sans-serif;
-            font-size: 12px;
-        }
-
-        table {
-            border-spacing: 1px;
-            padding: 1px;
-        }
-
-        table > tbody > tr:first-child > th:first-child,
-        table > tbody > tr:first-child > td:first-child {
-            border-top-left-radius: 9px;
-        }
-
-        table > tbody > tr:first-child > th:last-child,
-        table > tbody > tr:first-child > td:last-child {
-            border-top-right-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:first-child,
-        table > tbody > tr:last-child > td:first-child {
-            border-bottom-left-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:last-child,
-        table > tbody > tr:last-child > td:last-child {
-            border-bottom-right-radius: 9px;
-        }
-
-        td {
-            color: rgba(0, 0, 0, 0.7);
-            padding: 0;
-        }
-
-        td.plaintext,
-            th {
-            padding: 5px;
-        }
-
-        th,
-            td {
-            border: 1px solid transparent;
-            background-clip: padding-box;
-        }
-
-        th, .hiddenrows {
-            color: rgba(0, 0, 0, 0.9);
-            font-weight: 400;
-        }
-
-        td {
-            background-color: rgba(0, 0, 0, 0.025);
-        }
-
-        th {
-            background-color: rgba(30, 30, 20, 0.1);
-        }
-
-        .hiddenrows {
-            margin-left: 5px;
-            margin-top: 5px;
-        }
-        </style>`
-
 //        const tabElem = document.createElement('div')
 //        tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
 //        tabElem.setAttributeNS(null, 'class', 'scrollable')
@@ -408,11 +421,6 @@ class TableVisualization extends Visualization {
         let parsedData = data
         if (typeof data === 'string') {
             parsedData = JSON.parse(data)
-        }
-
-        let style = style_light
-        if (document.getElementById('root').classList.contains('dark-theme')) {
-            style = style_dark
         }
 
 //        if (parsedData.error !== undefined) {
@@ -444,8 +452,16 @@ class TableVisualization extends Visualization {
 //        }
 
          console.log('onDataReceived', parsedData);
-         if (!this.lazyScroll) {
-            this.initScroll(parsedData.all_rows_count);
+
+        if (parsedData.error !== undefined) {
+            //this.tabElem.innerHTML = 'Error: ' + parsedData.error;
+            this.lazyScroll = null;
+            return;
+        }
+
+         let parsedDataRowsCount = parsedData.all_rows_count;
+         if (!this.lazyScroll || this.lazyScroll.settings.dataLength !== parsedDataRowsCount) {
+            this.initScroll(parsedDataRowsCount);
             console.log('scroll initialized', this.lazyScroll);
          }
 
@@ -461,11 +477,14 @@ class TableVisualization extends Visualization {
             const height = this.dom.getAttributeNS(null, 'height')
             const tblViewStyle = `width: ${width - 5}px;
                  height: ${height - 5}px;
-                 overflow: scroll;
-                 padding:2.5px;`
+                 overflow: auto;
+                 position: relative;
+                 padding: 2.5px;`
             this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
             this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         }
+
+        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', '0', String(TABLE_INITIAL_SIZE));
     }
 
     setSize(size) {
