@@ -5,8 +5,8 @@ from Standard.Database.Data.SQL import SQL_Type, Statement
 import Standard.Database.Data.SQL
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
-import Standard.Database.Data.Internal.Base_Generator
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.IR
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE

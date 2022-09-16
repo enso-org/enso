@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.IR
 
 import Standard.Database.Data.SQL
 from Standard.Database.Data.SQL import Builder

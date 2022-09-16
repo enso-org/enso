@@ -1,9 +1,9 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Database.Data.Internal.Helpers
-import Standard.Database.Data.Internal.Aggregate_Helper
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.Helpers
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
 import Standard.Table.Data.Column as Materialized_Column
@@ -19,7 +19,7 @@ import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 
 from Standard.Database.Data.Column import Column, Column_Data
-from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
+from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Table.Data.Position

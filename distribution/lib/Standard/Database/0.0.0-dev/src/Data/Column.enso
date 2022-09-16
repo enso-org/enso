@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.Helpers
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.Helpers
+import Standard.Database.Internal.IR
 import Standard.Database.Data.Table
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Sort_Column_Selector
