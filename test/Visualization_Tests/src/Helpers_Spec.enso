@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table
+import Standard.Table
 
 import Standard.Visualization.Helpers
 
