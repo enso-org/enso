@@ -4,7 +4,7 @@ from Standard.Table import Aggregate_Column
 
 from Standard.Database.Data.SQL import SQL_Type, Statement
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Dialect.Postgres
+import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.Base_Generator
 
 ## PRIVATE
@@ -12,7 +12,7 @@ import Standard.Database.Internal.Base_Generator
    The dialect for Redshift connections.
 redshift : Dialect
 redshift =
-    Redshift_Dialect_Data Postgres.make_internal_generator_dialect
+    Redshift_Dialect_Data Postgres_Dialect.make_internal_generator_dialect
 
 ## PRIVATE
 

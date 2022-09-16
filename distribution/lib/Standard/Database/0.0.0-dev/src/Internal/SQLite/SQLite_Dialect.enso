@@ -4,7 +4,6 @@ from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.SQL import SQL_Type, Statement
 import Standard.Database.Data.SQL
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.IR
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
@@ -161,7 +160,7 @@ window_aggregate window_type ignore_null args =
 concat_ops =
     make_raw_concat_expr expr separator =
         SQL.code "group_concat(" ++ expr ++ SQL.code ", " ++ separator ++ SQL.code ")"
-    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 

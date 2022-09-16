@@ -4,9 +4,9 @@ import Standard.Base.Error.Common as Errors
 from Standard.Table import Aggregate_Column
 from Standard.Database.Data.SQL import Statement, SQL_Type
 import Standard.Database.Internal.IR
-import Standard.Database.Data.Dialect.Postgres
-import Standard.Database.Data.Dialect.Redshift
-import Standard.Database.Data.Dialect.SQLite
+import Standard.Database.Internal.Postgres.Postgres_Dialect
+import Standard.Database.Internal.Redshift.Redshift_Dialect
+import Standard.Database.Internal.SQLite.SQLite_Dialect
 
 ## PRIVATE
 
@@ -46,18 +46,16 @@ type Dialect
 
    The dialect of SQLite databases.
 sqlite : Dialect
-sqlite = SQLite.sqlite
+sqlite = SQLite_Dialect.sqlite
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
 postgres : Dialect
-postgres = Postgres.postgres
+postgres = Postgres_Dialect.postgres
 
 ## PRIVATE
 
    The dialect of Redshift databases.
 redshift : Dialect
-redshift = Redshift.redshift
-
-
+redshift = Redshift_Dialect.redshift
