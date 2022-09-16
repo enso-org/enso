@@ -42,7 +42,7 @@ type Redshift_Dialect
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self aggregate =
-        Postgres.resolve_target_sql_type aggregate
+        Postgres_Dialect.resolve_target_sql_type aggregate
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -51,4 +51,4 @@ type Redshift_Dialect
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres.make_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
