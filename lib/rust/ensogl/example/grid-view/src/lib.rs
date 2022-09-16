@@ -81,6 +81,15 @@ fn setup_grid_view(
         eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
         eval entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
         eval view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
+        eval view.selection_movement_out_of_grid_prevented ([](dir)
+            if let Some(dir) = dir {
+                let msg = iformat!(
+                    "An attempt to select an entry outside of the grid in " dir;?
+                    " direction was prevented."
+                );
+                tracing::debug!("{msg}");
+            }
+        );
     }
     view.set_entries_size(Vector2(130.0, 28.0));
     let params = grid_view::simple::EntryParams {
@@ -117,6 +126,7 @@ fn init(app: &Application) {
     let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
     let with_hover_mask = [&grid_views[2]];
     let with_selection_mask = [&grid_views[1], &grid_views[2]];
+    grid_views[2].frp().focus();
     let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
 
     for (view, (x, y)) in grid_views.iter().zip(positions) {

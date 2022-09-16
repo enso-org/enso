@@ -96,6 +96,18 @@ fn class_fields_<'v, 's: 'v, 'c: 'v>(
     out.extend(fields);
 }
 
+pub fn class_fields_split<'v, 's: 'v, 'c: 'v>(
+    graph: &'s TypeGraph,
+    class: &'c Class,
+) -> Option<(Vec<&'v Field>, Vec<&'v Field>)> {
+    let index = Some(class.child_field?);
+    let mut pre = vec![];
+    let mut post = vec![];
+    class_fields_(graph, class, &mut pre, None, index);
+    class_fields_(graph, class, &mut post, index, None);
+    Some((pre, post))
+}
+
 /// Given a [`TypeGraph`] and a definition of a field's contents ([`FieldData`]), produce what is
 /// referred to in the Java AST specification as an an `UnannType`[1]. This value is suitable for
 /// use as the type portion of a field declaration, local variable declaration, formal parameter, or
@@ -282,6 +294,14 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let ty_name = &class.name;
     writeln!(body, "StringBuilder {string_builder} = new StringBuilder();").unwrap();
     writeln!(body, "{string_builder}.append(\"{ty_name}[\");").unwrap();
+    let mut class = Some(class);
+    while let Some(class_) = class {
+        for expr in &class_.tostring_prefix_fields {
+            writeln!(body, "{string_builder}.append({expr});").unwrap();
+            writeln!(body, "{string_builder}.append(\", \");").unwrap();
+        }
+        class = class_.parent.map(|id| &graph[id]);
+    }
     writeln!(body, "{}", fields.join(&format!("\n{string_builder}.append(\", \");\n"))).unwrap();
     writeln!(body, "{string_builder}.append(\"]\");").unwrap();
     writeln!(body, "return {string_builder}.toString();").unwrap();

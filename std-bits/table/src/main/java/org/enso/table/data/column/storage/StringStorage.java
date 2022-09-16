@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
+import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
 
@@ -51,8 +52,8 @@ public class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof String) {
+  public Storage fillMissing(Value arg) {
+    if (arg.isString()) {
       return fillMissingHelper(arg, new StringBuilder(size()));
     } else {
       return super.fillMissing(arg);

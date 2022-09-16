@@ -3,7 +3,7 @@ from Standard.Base.Data.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Data.Index_Sub_Range
 
 from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector
-from Standard.Table.Errors as Table_Errors import all
+from Standard.Table.Errors import all
 from Standard.Table.Data.Column_Selector import all
 from Standard.Table.Data.Position import all
 

@@ -121,7 +121,7 @@ type Data_Formatter
 
        Arguments:
        - locale: The locale to use when parsing dates and times.
-    with_locale : Locale -> Delimited
+    with_locale : Locale -> Data_Formatter_Data
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
 
     ## PRIVATE
