@@ -238,6 +238,27 @@ impl From<&usize> for Line {
     }
 }
 
+impl std::iter::Step for Line {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        if start.value <= end.value {
+            Some((end.value - start.value) as usize)
+        } else {
+            None
+        }
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_add(count as i32)?;
+        Some(new_value.into())
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_sub(count as i32)?;
+        Some(new_value.into())
+    }
+}
+
+
 // unit! {
 //     ViewLine::view_line(usize)
 // }

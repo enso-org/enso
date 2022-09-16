@@ -96,8 +96,6 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
-    // FIXME: introduce Column type
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
         if column.value < self.divs.len() {
             self.divs[column.value]
@@ -106,7 +104,6 @@ impl Line {
         }
     }
 
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
@@ -571,8 +568,8 @@ impl Area {
             // === Style ===
 
             new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
-            eval new_prop ((t) m.set_glyphs_property(&t.0, t.1));
             m.buffer.frp.set_property <+ new_prop;
+            eval new_prop ((t) m.set_property(&t.0, t.1));
 
 
             // === Changes ===
@@ -1102,6 +1099,15 @@ impl AreaModel {
 
     fn set_property_default(&self, property: style::ResolvedProperty) {
         match property {
+            style::ResolvedProperty::Weight(weight) => {
+                let range = self.buffer.full_range();
+                let formatting = self.buffer.sub_style(range);
+                let spans = formatting.weight.spans.to_vector();
+
+                let ranges = spans.into_iter().filter(|t| t.value.is_none()).map(|span| span.range);
+
+                self.clear_cache_and_redraw_lines(ranges);
+            }
             style::ResolvedProperty::Color(color) => {
                 let range = self.buffer.full_range();
                 let formatting = self.buffer.sub_style(range);
@@ -1143,6 +1149,38 @@ impl AreaModel {
         }
     }
 
+    pub fn clear_cache_and_redraw_lines(
+        &self,
+        ranges: impl IntoIterator<Item = buffer::Range<UBytes>>,
+    ) {
+        let view_line_ranges = ranges
+            .into_iter()
+            .map(|range| {
+                let range = buffer::Range::<Location<Column>>::from_in_context(self, range);
+                let line_range = range.start.line..=range.end.line;
+                let view_line_start = self.buffer.line_to_view_line(range.start.line);
+                let view_line_end = self.buffer.line_to_view_line(range.end.line);
+                let view_line_range = view_line_start..=view_line_end;
+                for line_index in line_range {
+                    self.buffer.shaped_lines.borrow_mut().remove(&line_index);
+                }
+                view_line_range
+            })
+            .collect_vec();
+
+        self.redraw_sorted_line_ranges(&view_line_ranges);
+    }
+
+    pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
+        match property {
+            style::Property::Color(_) => self.set_glyphs_property(ranges, property),
+            style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
+            style::Property::Weight(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::Style(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::Size(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            _ => panic!(),
+        }
+    }
 
     pub fn set_glyphs_property(
         &self,

@@ -84,6 +84,7 @@ macro_rules! define_prop_setters_and_getters {
 
         /// Set `NonVariableFaceHeader` of the glyph.
         pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
+            warn!("set_properties: {:?}", props);
             self.properties.set(props.clone());
             $(
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
