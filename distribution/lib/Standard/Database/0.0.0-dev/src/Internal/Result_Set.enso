@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
-from Standard.Database.Data.SQL import SQL_Type
+from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data
 
 polyglot java import java.sql.ResultSet
 
