@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -66,16 +67,26 @@ public class StringStorage extends SpecializedStorage<String> {
         new MapOperation<>(Maps.EQ) {
           @Override
           public Storage runMap(SpecializedStorage<String> storage, Object arg) {
-            BitSet r = new BitSet();
-            BitSet missing = new BitSet();
-            for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null) {
-                missing.set(i);
-              } else if (storage.getItem(i).equals(arg)) {
-                r.set(i);
+            if (arg instanceof String s) {
+              BitSet r = new BitSet();
+              BitSet missing = new BitSet();
+              for (int i = 0; i < storage.size(); i++) {
+                if (storage.getItem(i) == null) {
+                  missing.set(i);
+                } else if (Text_Utils.equals(storage.getItem(i), s)) {
+                  r.set(i);
+                }
               }
+              return new BoolStorage(r, missing, storage.size(), false);
+            } else {
+              BitSet missing = new BitSet();
+              for (int i = 0; i < storage.size(); i++) {
+                if (storage.isNa(i)) {
+                  missing.set(i);
+                }
+              }
+              return new BoolStorage(new BitSet(), missing, storage.size(), false);
             }
-            return new BoolStorage(r, missing, storage.size(), false);
           }
 
           @Override
@@ -85,7 +96,7 @@ public class StringStorage extends SpecializedStorage<String> {
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
-              } else if (storage.getItem(i).equals(arg.getItemBoxed(i))) {
+              } else if (arg.getItemBoxed(i) instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
@@ -110,7 +121,7 @@ public class StringStorage extends SpecializedStorage<String> {
         new StringBooleanOp(Maps.CONTAINS) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.contains(b);
+            return Text_Utils.contains(a, b);
           }
         });
     return t;
