@@ -38,7 +38,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
-import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Polyglot.Java
 
 polyglot java import java.lang.IllegalArgumentException
@@ -214,13 +213,12 @@ type Pattern
          Match the first instance of the pattern `".."` in the input.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile ".." []
                  input = "abcdefghij"
-                 pattern.match input mode=Mode.First
+                 pattern.match input mode=Regex_Mode.First
 
        > Example
          Match up to the first 3 instances of the pattern `".."` in the input.
@@ -248,17 +246,16 @@ type Pattern
          Check if the pattern `".*"` matches on the entire input.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
-                 pattern.match input mode=Mode.Full
-    match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
-    match self input mode=Mode.All =
+                 pattern.match input mode=Regex_Mode.Full
+    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector.Vector Match | Nothing
+    match self input mode=Regex_Mode.All =
         do_match_mode mode start end = case mode of
-            Mode.First ->
+            Matching_Mode.First ->
                 internal_matcher = self.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
@@ -287,7 +284,7 @@ type Pattern
                 vector = builder.to_vector
 
                 if vector.is_empty then Nothing else vector
-            Mode.All ->
+            Regex_Mode.All ->
                 builder = Vector.new_builder
 
                 go : Integer -> Nothing
@@ -307,15 +304,15 @@ type Pattern
                 vector = builder.to_vector
 
                 if vector.is_empty then Nothing else vector
-            Mode.Full ->
+            Regex_Mode.Full ->
                 internal_matcher = self.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
                     Match_Data internal_matcher start end input
-            Mode.Bounded _ _ _ -> Panic.throw <|
+            Regex_Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error_Data "Modes cannot be recursive."
 
         case mode of
-            Mode.Bounded start end sub_mode ->
+            Regex_Mode.Bounded start end sub_mode ->
                 if start < end then do_match_mode sub_mode start end else
                     Panic.throw Invalid_Bounds_Error
             _ -> do_match_mode mode 0 (Text_Utils.char_length input)
@@ -339,7 +336,7 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches self input = case self.match input mode=Mode.Full of
+    matches self input = case self.match input mode=Regex_Mode.Full of
         Match_Data _ _ _ _ -> True
         Vector.Vector -> True
         _ -> False
@@ -366,13 +363,12 @@ type Pattern
          Find the first instance of the pattern `".."` in the input.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile ".." []
                  input = "abcdefghij"
-                 pattern.find input mode=Mode.First
+                 pattern.find input mode=Matching_Mode.First
 
        > Example
          Find up to the first 3 instances of the pattern `".."` in the input.
@@ -400,15 +396,14 @@ type Pattern
          Find if the pattern `".*"` matches on the entire input.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
-                 pattern.find input mode=Mode.Full
-    find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
-    find self input mode=Mode.All =
+                 pattern.find input mode=Regex_Mode.Full
+    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector.Vector Text | Nothing
+    find self input mode=Regex_Mode.All =
         matches = self.match input mode
         case matches of
             Match_Data _ _ _ _ -> matches.group 0
@@ -430,13 +425,12 @@ type Pattern
          Split the input on the first instance of the pattern `"aa"`.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile "aa" []
                  input = "abaaabbaabba"
-                 pattern.match input mode=Mode.First
+                 pattern.match input mode=Matching_Mode.First
 
        > Example
          Split on up to the first 3 instances of the pattern `"a"` in the input.
@@ -459,22 +453,24 @@ type Pattern
                  pattern = engine.compile "a" []
                  input = "bacadaeaf"
                  pattern.match input
-    split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
-    split self input mode=Mode.All =
+    split : Text -> Matching_Mode | Regex_Mode | Integer -> Vector.Vector Text
+    split self input mode=Regex_Mode.All =
         # Java uses this to mean the max length of the resulting array, so we
         # add 1.
         limit = case mode of
-            Mode.First -> 2
+            Matching_Mode.First -> 2
             Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error_Data "Cannot match a negative number of times."
 
                 mode + 1
-            Mode.All -> -1
-            Mode.Full -> Panic.throw <|
+            Regex_Mode.All -> -1
+            Regex_Mode.Full -> Panic.throw <|
                 Mode_Error_Data "Splitting on a full match yields an empty text."
-            Mode.Bounded _ _ _ -> Panic.throw <|
+            Regex_Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error_Data "Splitting on a bounded region is not well-defined."
+            Matching_Mode.Last -> Panic.throw <|
+                Mode_Error_Data "Splitting on the last match is not supported."
 
         splits = self.internal_pattern.split input limit
         Vector.from_polyglot_array splits
@@ -497,13 +493,12 @@ type Pattern
          the text `"REPLACED"`.
 
              import Standard.Base.Data.Text.Regex.Engine.Default
-             import Standard.Base.Data.Text.Regex.Mode
 
              example_match =
                  engine = Default.new
                  pattern = engine.compile ".." []
                  input = "abcdefghij"
-                 pattern.replace input "REPLACED" mode=Mode.First
+                 pattern.replace input "REPLACED" mode=Matching_Mode.First
 
        > Example
          Replace up to the first 3 instances of the pattern `"aa"` in the input
@@ -528,10 +523,10 @@ type Pattern
                  pattern = engine.compile "aa []
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
-    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full | Matching_Mode.Last) -> Text
-    replace self input replacement mode=Mode.All =
+    replace : Text -> Text -> Regex_Mode | Matching_Mode | Integer -> Text
+    replace self input replacement mode=Regex_Mode.All =
         do_replace_mode mode start end = case mode of
-            Mode.First ->
+            Matching_Mode.First ->
                 internal_matcher = self.build_matcher input start end
                 internal_matcher.replaceFirst replacement
             Integer ->
@@ -549,12 +544,12 @@ type Pattern
                 go mode
                 internal_matcher.appendTail buffer
                 buffer.to_text
-            Mode.All ->
+            Regex_Mode.All ->
                 internal_matcher = self.build_matcher input start end
                 internal_matcher.replaceAll replacement
-            Mode.Full ->
-                case self.match input mode=Mode.Full of
-                    Match_Data _ _ _ _ -> self.replace input replacement Mode.First
+            Regex_Mode.Full ->
+                case self.match input mode=Regex_Mode.Full of
+                    Match_Data _ _ _ _ -> self.replace input replacement Matching_Mode.First
                     Nothing -> input
             Matching_Mode.Last ->
                 all_matches = self.match input
@@ -574,11 +569,11 @@ type Pattern
                     go 0
                     internal_matcher.appendTail buffer
                     buffer.to_text
-            Mode.Bounded _ _ _ -> Panic.throw <|
+            Regex_Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error_Data "Modes cannot be recursive."
 
         case mode of
-            Mode.Bounded _ _ _ -> Panic.throw <|
+            Regex_Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error_Data "Bounded replacements are not well-formed."
             _ -> do_replace_mode mode 0 (Text_Utils.char_length input)
 
