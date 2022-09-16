@@ -239,6 +239,19 @@ type Date
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
+    ## Counts workdays between self (inclusive) and the provided end date
+       (exclusive).
+
+       > Example
+         Count the number of workdays between two dates.
+
+             from Standard.Base import Date
+
+             example_workdays = Date.new 2020 1 1 . workdays_until (Date.new 2020 1 5)
+    work_days_until : Date -> Vector Date -> Integer
+    work_days_until self end holidays=[] =
+        unimplemented "TODO"
+
     ## ALIAS Date to Time
 
        Combine this date with time of day to create a point in time.
@@ -270,6 +283,26 @@ type Date
     + : Duration -> Date
     + self amount = if amount.is_time then Error.throw (Time_Error_Data "Date does not support time intervals") else
         (Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period) . internal_local_date
+
+    ## Shift the date by the specified amount of business days.
+
+       For the purpose of this method, the business days are defined to be
+       Monday through Friday.
+
+       Arguments:
+       - amount: The number of business days to shift the date by. If `amount`
+         is zero, the current date is returned, unless it is a weekend or a
+         holiday, in which case the next business day is returned.
+       - holidays: An optional list of dates of custom holidays that should also
+         be skipped. If it is not provided, only weekends are skipped.
+
+       > Example
+         Shift the date by 5 business days.
+
+             example_shift = Date.new 2020 2 3 . add_work_day 5
+    add_work_days : Integer -> Vector Date -> Date
+    add_work_days self days=1 holidays=[] =
+        unimplemented "TODO"
 
     ## Subtract the specified amount of time from this instant to get another
        date.
