@@ -378,9 +378,6 @@ ensogl_core::define_endpoints! {
 // === Area ===
 // ============
 
-/// Hardcoded line height. To be generalized in the future.
-pub const LINE_HEIGHT: f32 = 14.0;
-
 /// The visual text area implementation.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]

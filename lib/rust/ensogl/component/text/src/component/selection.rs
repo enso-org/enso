@@ -11,8 +11,6 @@ use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::Animation;
 use ensogl_core::DEPRECATED_Animation;
 
-
-use crate::component::area::LINE_HEIGHT; // FIXME: circular dep
 const DEBUG_SLOWDOWN: bool = false;
 
 
@@ -203,22 +201,15 @@ impl Selection {
         frp::extend! { network
             _eval <- all_with(&self.position.value,&self.width.value,
                 f!([view,object,right_side,bottom_snapped_left](p,width){
-                    let side        = width.signum();
-                    let abs_width   = width.abs();
-                    let width       = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
-                    let view_width  = CURSOR_PADDING * 2.0 + width;
-                    let view_height = CURSOR_PADDING * 2.0 + crate::component::area::LINE_HEIGHT;
-                    let view_x      = (abs_width/2.0) * side;
-                    let view_y      = 0.0;
+                    let side       = width.signum();
+                    let abs_width  = width.abs();
+                    let width      = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
+                    let view_width = CURSOR_PADDING * 2.0 + width;
+                    let view_x     = (abs_width/2.0) * side;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
                     bottom_snapped_left.set_position_xy(Vector2(-p.x, 0.0));
-                    // view.size.set(Vector2(view_width,view_height));
-                    view.size.modify(|t| {
-                        let out = Vector2(view_width,t.y);
-                        warn!("Setting size2: {:?}", out);
-                        out
-                    });
+                    view.size.modify(|t| Vector2(view_width,t.y));
                     view.set_position_x(view_x);
                 })
             );
