@@ -952,8 +952,6 @@ impl Searcher {
         fragments: impl Iterator<Item = &'a FragmentAddedByPickingSuggestion>,
         permanent: bool,
     ) -> FallibleResult {
-        // let data_borrowed = self.data.borrow();
-        // let fragments = data_borrowed.fragments_added_by_picking.iter();
         let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
         let mut module = self.module();
         let here = self.module_qualified_name();
