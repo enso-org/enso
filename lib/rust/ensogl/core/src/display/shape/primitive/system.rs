@@ -281,6 +281,10 @@ where
     pub fn get(&self) -> T::Item {
         self.cache.get()
     }
+
+    pub fn modify(&self, f: impl FnOnce(T::Item) -> T::Item) {
+        self.set(f(self.get()))
+    }
 }
 
 /// Internal utilities for managing [`DynamicParam`]s. You would normally not need to ever use it

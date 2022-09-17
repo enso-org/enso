@@ -866,7 +866,6 @@ impl AreaModel {
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
             } else {
                 self.remove_glyphs_from_cursors();
-                // self.remove_lines_from_cursors();
             }
         })
     }
@@ -903,6 +902,7 @@ impl AreaModel {
                         self.lines.borrow()[line].div_by_column(column)
                     }
                 };
+
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
                 let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
                 debug!("start_x {start_x}, end_x {end_x}");
@@ -912,6 +912,7 @@ impl AreaModel {
                 debug!("pos {pos}");
                 let width = end_x - start_x;
                 debug!("width {width}");
+                let metrics = self.lines.borrow()[selection_start_line].metrics;
                 let selection = match selection_map.id_map.remove(&id) {
                     Some(selection) => {
                         let select_left = selection.width.simulator.target_value() < 0.0;
@@ -927,6 +928,8 @@ impl AreaModel {
                         }
                         debug!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
                         selection.position.set_target_value(pos);
+                        selection.frp.set_ascender(metrics.ascender);
+                        selection.frp.set_descender(metrics.descender);
                         selection
                     }
                     None => {
@@ -934,6 +937,8 @@ impl AreaModel {
                         self.add_child(&selection);
                         selection.letter_width.set(7.0); // FIXME hardcoded values
                         selection.position.set_target_value(pos);
+                        selection.frp.set_ascender(metrics.ascender);
+                        selection.frp.set_descender(metrics.descender);
                         selection.position.skip();
                         selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
                         selection
