@@ -5,11 +5,11 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
-  Cons,
+//  Cons,
   ModuleMethod,
-  ModuleReference,
-  PolyglotSymbol,
-  Type
+  ModuleReference
+//  PolyglotSymbol,
+//  Type
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -77,16 +77,16 @@ class BindingAnalysisTest extends CompilerTest {
 
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
-      metadata.definedEntities should contain theSameElementsAs List(
-        Type("Foo", List("Mk_Foo"), false),
-        Type("Bar", List(), false),
-        Type("Baz", List(), false),
-        Cons("Mk_Foo", 3, false),
-        PolyglotSymbol("MyClass"),
-        PolyglotSymbol("Renamed_Class"),
-        ModuleMethod("enso_project"),
-        ModuleMethod("foo")
-      )
+//      metadata.definedEntities should contain theSameElementsAs List(
+//        Type("Foo", List("Mk_Foo"), false),
+//        Type("Bar", List(), false),
+//        Type("Baz", List(), false),
+//        Cons("Mk_Foo", 3, false),
+//        PolyglotSymbol("MyClass"),
+//        PolyglotSymbol("Renamed_Class"),
+//        ModuleMethod("enso_project"),
+//        ModuleMethod("foo")
+//      )
       metadata.currentModule shouldEqual ModuleReference.Concrete(ctx.module)
     }
 

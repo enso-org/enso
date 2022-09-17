@@ -70,7 +70,7 @@ public abstract class Builtin {
         constructors[i] = conses.get(i).build(scope, type);
       }
     }
-    type.generateGetters(language, Arrays.asList(constructors));
+    type.generateGetters(language);
     postInitialize();
   }
 

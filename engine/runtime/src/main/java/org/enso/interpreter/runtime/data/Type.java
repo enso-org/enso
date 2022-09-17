@@ -34,6 +34,7 @@ public class Type implements TruffleObject {
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
+  private final Map<String, AtomConstructor> constructors;
 
   private boolean gettersGenerated;
 
@@ -43,11 +44,8 @@ public class Type implements TruffleObject {
     this.definitionScope = definitionScope;
     this.supertype = supertype;
     this.builtin = builtin;
-    if (eigentype != null) {
-      this.eigentype = eigentype;
-    } else {
-      this.eigentype = this;
-    }
+    this.eigentype = Objects.requireNonNullElse(eigentype, this);
+    this.constructors = new HashMap<>();
   }
 
   public static Type createSingleton(
@@ -124,21 +122,25 @@ public class Type implements TruffleObject {
     return supertype;
   }
 
-  public void generateGetters(Language language, List<AtomConstructor> constructors) {
+  public void generateGetters(Language language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
     var roots = new HashMap<String, RootNode>();
     if (constructors.size() != 1) {
       var names = new HashMap<String, List<GetFieldWithMatchNode.GetterPair>>();
-      constructors.forEach(
-          cons -> {
-            Arrays.stream(cons.getFields())
-                .forEach(
-                    field -> {
-                      var items = names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
-                      items.add(new GetFieldWithMatchNode.GetterPair(cons, field.getPosition()));
-                    });
-          });
+      constructors
+          .values()
+          .forEach(
+              cons -> {
+                Arrays.stream(cons.getFields())
+                    .forEach(
+                        field -> {
+                          var items =
+                              names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
+                          items.add(
+                              new GetFieldWithMatchNode.GetterPair(cons, field.getPosition()));
+                        });
+              });
       names.forEach(
           (name, fields) -> {
             roots.put(
@@ -147,7 +149,7 @@ public class Type implements TruffleObject {
                     language, name, this, fields.toArray(new GetFieldWithMatchNode.GetterPair[0])));
           });
     } else {
-      var cons = constructors.get(0);
+      var cons = constructors.values().toArray(AtomConstructor[]::new)[0];
       Arrays.stream(cons.getFields())
           .forEach(
               field -> {
@@ -199,5 +201,13 @@ public class Type implements TruffleObject {
 
   public Type getEigentype() {
     return eigentype;
+  }
+
+  public void registerConstructor(AtomConstructor constructor) {
+    constructors.put(constructor.getName(), constructor);
+  }
+
+  public Map<String, AtomConstructor> getConstructors() {
+    return constructors;
   }
 }

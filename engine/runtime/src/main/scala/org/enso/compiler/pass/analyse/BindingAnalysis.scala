@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -57,7 +57,13 @@ case object BindingAnalysis extends IRPass {
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))
         BindingsMap.Type(
           sumType.name.name,
-          sumType.members.map(_.name.name),
+          sumType.members.map(m =>
+            Cons(
+              m.name.name,
+              m.arguments.length,
+              m.arguments.forall(_.defaultValue.isDefined)
+            )
+          ),
           isBuiltinType
         )
     }

@@ -75,12 +75,12 @@ import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
 import org.enso.compiler.core.IR.Name.Special
+import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedModule}
 import org.enso.interpreter.runtime.data.Type
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
-import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -152,18 +152,31 @@ class IrToTruffle(
   private def processModule(module: IR.Module): Unit = {
     generateMethods()
     generateReExportBindings(module)
-    module
-      .unsafeGetMetadata(
-        BindingAnalysis,
-        "No binding analysis at the point of codegen."
-      )
-      .resolvedExports
+    val bindingsMap =
+      module
+        .unsafeGetMetadata(
+          BindingAnalysis,
+          "No binding analysis at the point of codegen."
+        )
+
+    bindingsMap.resolvedExports
+      .collect { case ExportedModule(ResolvedModule(module), _, _) =>
+        module
+      }
       .foreach { exp =>
-        moduleScope.addExport(exp.module.unsafeAsModule().getScope)
+        moduleScope.addExport(exp.unsafeAsModule().getScope)
       }
     val imports = module.imports
     val methodDefs = module.bindings.collect {
       case method: IR.Module.Scope.Definition.Method.Explicit => method
+    }
+
+    bindingsMap.resolvedImports.foreach { imp =>
+      imp.target match {
+        case BindingsMap.ResolvedType(_, _) =>
+        case ResolvedModule(module) =>
+          moduleScope.addImport(module.unsafeAsModule().getScope)
+      }
     }
 
     // Register the imports in scope
@@ -173,11 +186,8 @@ class IrToTruffle(
           poly.getVisibleName,
           context.getEnvironment.lookupHostSymbol(i.getJavaName)
         )
-      case i: Import.Module =>
-        this.moduleScope.addImport(
-          context.getCompiler.processImport(i.name.name, i.location, source)
-        )
-      case _: Error =>
+      case _: Import.Module =>
+      case _: Error         =>
     }
 
     val typeDefs = module.bindings.collect {
@@ -186,9 +196,10 @@ class IrToTruffle(
 
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
-      val atomDefs = tpDef.members
+      val atomDefs    = tpDef.members
+      val runtimeType = moduleScope.getTypes.get(tpDef.name.name)
       val atomConstructors =
-        atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
+        atomDefs.map(cons => runtimeType.getConstructors.get(cons.name.name))
       atomConstructors
         .zip(atomDefs)
         .foreach { case (atomCons, atomDefn) =>
@@ -247,8 +258,7 @@ class IrToTruffle(
             )
           }
         }
-      val tp = moduleScope.getTypes.get(tpDef.name.name)
-      tp.generateGetters(language, atomConstructors.asJava)
+      runtimeType.generateGetters(language)
     }
 
     // Register the method definitions in scope
@@ -624,10 +634,9 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-              val runtimeCons = definitionModule
-                .unsafeAsModule()
-                .getScope
+            case BindingsMap.ResolvedConstructor(definitionType, cons) =>
+              val runtimeCons = definitionType
+                .unsafeToRuntimeType()
                 .getConstructors
                 .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
@@ -933,11 +942,11 @@ class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedConstructor(mod, cons)
+                        BindingsMap.ResolvedConstructor(tp, cons)
                       )
                     ) =>
                   val atomCons =
-                    mod.unsafeAsModule().getScope.getConstructors.get(cons.name)
+                    tp.unsafeToRuntimeType().getConstructors.get(cons.name)
                   val r = if (atomCons == context.getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
                   } else if (atomCons == context.getBuiltins.bool().getFalse) {
@@ -1183,10 +1192,9 @@ class IrToTruffle(
                 ConstantObjectNode.build(
                   tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
                 )
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                val c = definitionModule
-                  .unsafeAsModule()
-                  .getScope
+              case BindingsMap.ResolvedConstructor(definitionType, cons) =>
+                val c = definitionType
+                  .unsafeToRuntimeType()
                   .getConstructors
                   .get(cons.name)
                 if (c == null) {

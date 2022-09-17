@@ -1,4 +1,4 @@
 type C
     Mk_C x
 
-c_mod_method a = Mk_C 42+a
+c_mod_method a = C.Mk_C 42+a

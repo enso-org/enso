@@ -36,7 +36,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           throw new CompilerError("Unknown @Builtin_Type " + tp.name)
         }
         if (
-          Set(tp.members: _*) != Set(
+          Set(tp.members: _*).map(_.name) != Set(
             builtinType.getConstructors.toIndexedSeq: _*
           )
             .map(_.getName)
@@ -45,7 +45,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
             s"Wrong constructors declared in the builtin ${tp.name}."
           )
         }
-        builtinType.getConstructors.foreach(scope.registerConstructor)
+        builtinType.getConstructors.foreach(builtinType.getType.registerConstructor)
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope, true)
       } else {
@@ -55,9 +55,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           Type.createSingleton(tp.name, scope, builtins.any(), false)
         }
         scope.registerType(rtp)
-        tp.members.foreach { name =>
-          val constructor = new AtomConstructor(name, scope, rtp)
-          scope.registerConstructor(constructor)
+        tp.members.foreach { cons =>
+          val constructor = new AtomConstructor(cons.name, scope, rtp)
+          rtp.registerConstructor(constructor)
         }
       }
     }

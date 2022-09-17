@@ -14,7 +14,7 @@ class ImportsTest extends PackageTest {
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestNonImportedOverloads"
-    ) should have message "Method `method` of Mk_X could not be found."
+    ) should have message "Method `method` of X.Mk_X could not be found."
   }
 
   "Import statements" should "report errors when they cannot be resolved" in {
@@ -81,10 +81,10 @@ class ImportsTest extends PackageTest {
   "Import statements" should "allow for importing submodules" in {
     evalTestProject("TestSubmodules") shouldEqual 42
     val outLines = consumeOut
-    outLines(0) shouldEqual "(Foo 10)"
-    outLines(1) shouldEqual "(Mk_C 52)"
+    outLines(0) shouldEqual "(Meh.Foo 10)"
+    outLines(1) shouldEqual "(C.Mk_C 52)"
     outLines(2) shouldEqual "20"
-    outLines(3) shouldEqual "(Mk_C 10)"
+    outLines(3) shouldEqual "(C.Mk_C 10)"
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
@@ -94,5 +94,13 @@ class ImportsTest extends PackageTest {
     val outLines = consumeOut
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+  }
+
+  "Constructors" should "be importable" in {
+    evalTestProject("Test_Type_Imports").toString shouldEqual "(Maybe.Some 10)"
+  }
+
+  "Constructors" should "be exportable" in {
+    evalTestProject("Test_Type_Exports").toString shouldEqual "(Maybe.Some 10)"
   }
 }

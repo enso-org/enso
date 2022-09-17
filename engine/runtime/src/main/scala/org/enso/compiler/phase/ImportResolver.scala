@@ -4,7 +4,12 @@ import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{
+  ModuleReference,
+  ResolvedModule,
+  ResolvedType,
+  Type
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -77,7 +82,9 @@ class ImportResolver(compiler: Compiler) {
           // continue with updated stack
           go(
             stack.pushAll(
-              currentLocal.resolvedImports.map(_.module.unsafeAsModule()).distinct
+              currentLocal.resolvedImports
+                .map(_.target.module.unsafeAsModule())
+                .distinct
             ),
             seen += current
           )
@@ -86,6 +93,26 @@ class ImportResolver(compiler: Compiler) {
     }
 
     go(mutable.Stack(module), mutable.Set())
+  }
+
+  private def tryResolveAsType(
+    name: IR.Name.Qualified
+  ): Option[ResolvedType] = {
+    val tp  = name.parts.last.name
+    val mod = name.parts.dropRight(1).map(_.name).mkString(".")
+    compiler.getModule(mod).flatMap { mod =>
+      compiler.ensureParsed(mod)
+      mod.getIr
+        .unsafeGetMetadata(
+          BindingAnalysis,
+          "impossible: just ensured it's parsed"
+        )
+        .definedEntities
+        .find(_.name == tp)
+        .collect { case t: Type =>
+          ResolvedType(ModuleReference.Concrete(mod), t)
+        }
+    }
   }
 
   private def tryResolveImport(
@@ -116,18 +143,23 @@ class ImportResolver(compiler: Compiler) {
                 BindingsMap.ResolvedImport(
                   imp,
                   exp,
-                  ModuleReference.Concrete(module)
+                  ResolvedModule(ModuleReference.Concrete(module))
                 )
               )
             )
           case None =>
-            (
-              IR.Error.ImportExport(
-                imp,
-                IR.Error.ImportExport.ModuleDoesNotExist(impName)
-              ),
-              None
-            )
+            tryResolveAsType(imp.name) match {
+              case Some(tp) =>
+                (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
+              case None =>
+                (
+                  IR.Error.ImportExport(
+                    imp,
+                    IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                  ),
+                  None
+                )
+            }
         }
       case Left(loadingError) =>
         (

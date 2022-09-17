@@ -7,25 +7,25 @@ type Panic
 
 @Builtin_Type
 type Syntax_Error
-    Syntax_Error_Data message
+    Value message
 @Builtin_Type
 type Polyglot_Error
-    Polyglot_Error_Data cause
+    Value cause
 @Builtin_Type
 type Arithmetic_Error
-    Arithmetic_Error_Data message
+    Value message
 @Builtin_Type
 type Type_Error
-    Type_Error_Data expected actual name
+    Value expected actual name
 @Builtin_Type
 type Compile_Error
-    Compile_Error_Data message
+    Value message
 @Builtin_Type
 type Inexhaustive_Pattern_Match_Error
-    Inexhaustive_Pattern_Match_Error_Data scrutinee
+    Value scrutinee
 @Builtin_Type
 type Arity_Error
-    Arity_Error_Data expected_min expected_max actual
+    Value expected_min expected_max actual
 
 @Builtin_Type
 type Error

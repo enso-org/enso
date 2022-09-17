@@ -7080,10 +7080,10 @@ object IR {
                 s"The name ${originalName.name} is ambiguous. Possible candidates are:"
               val lines = candidates.map {
                 case BindingsMap.ResolvedConstructor(
-                      definitionModule,
+                      definitionType,
                       cons
                     ) =>
-                  s"    Constructor ${cons.name} defined in module ${definitionModule.getName};"
+                  s"    Constructor ${cons.name} defined in module ${definitionType.module.getName};"
                 case BindingsMap.ResolvedModule(module) =>
                   s"    The module ${module.getName};"
                 case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>

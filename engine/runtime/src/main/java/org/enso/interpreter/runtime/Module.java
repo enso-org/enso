@@ -528,12 +528,6 @@ public class Module implements TruffleObject {
       }
     }
 
-    private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      String name = Types.extractArguments(args, String.class);
-      return scope.getConstructors().get(name);
-    }
-
     private static Type getType(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(args, String.class);
@@ -617,9 +611,6 @@ public class Module implements TruffleObject {
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           return result == null ? context.getBuiltins().nothing() : result;
-        case MethodNames.Module.GET_CONSTRUCTOR:
-          scope = module.compileScope(context);
-          return getConstructor(scope, arguments);
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
           return getType(scope, arguments);
@@ -664,7 +655,6 @@ public class Module implements TruffleObject {
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.Module.GET_METHOD)
-        || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
@@ -682,7 +672,6 @@ public class Module implements TruffleObject {
   Object getMembers(boolean includeInternal) {
     return new Array(
         MethodNames.Module.GET_METHOD,
-        MethodNames.Module.GET_CONSTRUCTOR,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,

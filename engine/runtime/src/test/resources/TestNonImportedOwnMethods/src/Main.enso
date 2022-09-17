@@ -6,4 +6,4 @@ type X
 
 X.method self = 10
 
-main = Nothing.util (Mk_X 1)
+main = Nothing.util (X.Mk_X 1)
