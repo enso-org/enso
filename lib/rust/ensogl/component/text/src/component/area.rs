@@ -876,88 +876,100 @@ impl AreaModel {
     ) {
         let do_edit = changes.is_some();
         debug!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
-        {
-            self.update_lines_after_change(changes);
-
-            let mut selection_map = self.selection_map.borrow_mut();
-
-            debug!("{:?}", selection_map);
-            let mut new_selection_map = SelectionMap::default();
-
-            for buffer_selection in buffer_selections {
-                debug!(">>1 {:?}", buffer_selection);
-                let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
-                debug!(">>2 {:?}", buffer_selection);
-                let id = buffer_selection.id;
-                let selection_start_line =
-                    self.buffer.line_to_view_line(buffer_selection.start.line);
-                let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
-                let get_pos_x = |line: unit::ViewLine, column: Column| {
-                    if line > self.lines.last_line_index() {
-                        *self.lines.borrow().last().divs.last()
-                    } else {
-                        self.lines.borrow()[line].div_by_column(column)
-                    }
-                };
-
-                let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
-                let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
-                debug!("start_x {start_x}, end_x {end_x}");
-                let selection_y = self.lines.borrow()[selection_start_line].target_y_pos();
-                debug!("selection_y {selection_y}");
-                let pos = Vector2(start_x, selection_y);
-                debug!("pos {pos}");
-                let width = end_x - start_x;
-                debug!("width {width}");
-                let metrics = self.lines.borrow()[selection_start_line].metrics;
-                let selection = match selection_map.id_map.remove(&id) {
-                    Some(selection) => {
-                        let select_left = selection.width.simulator.target_value() < 0.0;
-                        let select_right = selection.width.simulator.target_value() > 0.0;
-                        let tgt_pos_x = selection.position.simulator.target_value().x;
-                        let tgt_width = selection.width.simulator.target_value();
-                        let mid_point = tgt_pos_x + tgt_width / 2.0;
-                        let go_left = pos.x < mid_point;
-                        let go_right = pos.x > mid_point;
-                        let need_flip = (select_left && go_left) || (select_right && go_right);
-                        if width == 0.0 && need_flip {
-                            selection.flip_sides()
-                        }
-                        debug!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
-                        selection.position.set_target_value(pos);
-                        selection.frp.set_ascender(metrics.ascender);
-                        selection.frp.set_descender(metrics.descender);
-                        selection
-                    }
-                    None => {
-                        let selection = Selection::new(do_edit);
-                        self.add_child(&selection);
-                        selection.letter_width.set(7.0); // FIXME hardcoded values
-                        selection.position.set_target_value(pos);
-                        selection.frp.set_ascender(metrics.ascender);
-                        selection.frp.set_descender(metrics.descender);
-                        selection.position.skip();
-                        selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
-                        selection
-                    }
-                };
-                selection.width.set_target_value(width);
-                selection.edit_mode.set(do_edit);
-                selection.start_time.set(time);
-                new_selection_map.id_map.insert(id, selection);
-                new_selection_map
-                    .location_map
-                    .entry(selection_start_line)
-                    .or_default()
-                    .insert(buffer_selection.start.offset, id);
-            }
-            debug!("new_selection_map = {new_selection_map:#?}");
-            *selection_map = new_selection_map;
-        }
+        self.update_lines_after_change(changes);
+        self.replace_selections(buffer_selections, do_edit, Some(time));
         if do_edit {
             self.add_glyphs_to_cursors();
         }
         // self.redraw(true)
+    }
+
+    fn update_selections(&self) {
+        let buffer_selections = self.buffer.selections();
+        self.replace_selections(&buffer_selections, false, None);
+    }
+
+    fn replace_selections(
+        &self,
+        buffer_selections: &buffer::selection::Group,
+        do_edit: bool,
+        time: Option<f32>,
+    ) {
+        let mut selection_map = self.selection_map.borrow_mut();
+
+        debug!("{:?}", selection_map);
+        let mut new_selection_map = SelectionMap::default();
+
+        for buffer_selection in buffer_selections {
+            debug!(">>1 {:?}", buffer_selection);
+            let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
+            debug!(">>2 {:?}", buffer_selection);
+            let id = buffer_selection.id;
+            let selection_start_line = self.buffer.line_to_view_line(buffer_selection.start.line);
+            let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
+            let get_pos_x = |line: unit::ViewLine, column: Column| {
+                if line > self.lines.last_line_index() {
+                    *self.lines.borrow().last().divs.last()
+                } else {
+                    self.lines.borrow()[line].div_by_column(column)
+                }
+            };
+
+            let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
+            let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
+            debug!("start_x {start_x}, end_x {end_x}");
+            let selection_y = self.lines.borrow()[selection_start_line].target_y_pos();
+            debug!("selection_y {selection_y}");
+            let pos = Vector2(start_x, selection_y);
+            debug!("pos {pos}");
+            let width = end_x - start_x;
+            debug!("width {width}");
+            let metrics = self.lines.borrow()[selection_start_line].metrics;
+            let selection = match selection_map.id_map.remove(&id) {
+                Some(selection) => {
+                    let select_left = selection.width.simulator.target_value() < 0.0;
+                    let select_right = selection.width.simulator.target_value() > 0.0;
+                    let tgt_pos_x = selection.position.simulator.target_value().x;
+                    let tgt_width = selection.width.simulator.target_value();
+                    let mid_point = tgt_pos_x + tgt_width / 2.0;
+                    let go_left = pos.x < mid_point;
+                    let go_right = pos.x > mid_point;
+                    let need_flip = (select_left && go_left) || (select_right && go_right);
+                    if width == 0.0 && need_flip {
+                        selection.flip_sides()
+                    }
+                    debug!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
+                    selection.position.set_target_value(pos);
+                    selection.frp.set_ascender(metrics.ascender);
+                    selection.frp.set_descender(metrics.descender);
+                    selection
+                }
+                None => {
+                    let selection = Selection::new(do_edit);
+                    self.add_child(&selection);
+                    selection.letter_width.set(7.0); // FIXME hardcoded values
+                    selection.position.set_target_value(pos);
+                    selection.frp.set_ascender(metrics.ascender);
+                    selection.frp.set_descender(metrics.descender);
+                    selection.position.skip();
+                    selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
+                    selection
+                }
+            };
+            selection.width.set_target_value(width);
+            selection.edit_mode.set(do_edit);
+            if let Some(time) = time {
+                selection.start_time.set(time);
+            }
+            new_selection_map.id_map.insert(id, selection);
+            new_selection_map
+                .location_map
+                .entry(selection_start_line)
+                .or_default()
+                .insert(buffer_selection.start.offset, id);
+        }
+        debug!("new_selection_map = {new_selection_map:#?}");
+        *selection_map = new_selection_map;
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -1298,6 +1310,7 @@ impl AreaModel {
             .collect_vec();
 
         self.redraw_sorted_line_ranges(&view_line_ranges);
+        self.update_selections();
     }
 
     pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
