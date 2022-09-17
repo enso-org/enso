@@ -1,13 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
 
 /** A column storing strings. */
 public class StringStorage extends SpecializedStorage<String> {
@@ -67,26 +66,16 @@ public class StringStorage extends SpecializedStorage<String> {
         new MapOperation<>(Maps.EQ) {
           @Override
           public Storage runMap(SpecializedStorage<String> storage, Object arg) {
-            if (arg instanceof String s) {
-              BitSet r = new BitSet();
-              BitSet missing = new BitSet();
-              for (int i = 0; i < storage.size(); i++) {
-                if (storage.getItem(i) == null) {
-                  missing.set(i);
-                } else if (Text_Utils.equals(storage.getItem(i), s)) {
-                  r.set(i);
-                }
+            BitSet r = new BitSet();
+            BitSet missing = new BitSet();
+            for (int i = 0; i < storage.size(); i++) {
+              if (storage.getItem(i) == null) {
+                missing.set(i);
+              } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
+                r.set(i);
               }
-              return new BoolStorage(r, missing, storage.size(), false);
-            } else {
-              BitSet missing = new BitSet();
-              for (int i = 0; i < storage.size(); i++) {
-                if (storage.isNa(i)) {
-                  missing.set(i);
-                }
-              }
-              return new BoolStorage(new BitSet(), missing, storage.size(), false);
             }
+            return new BoolStorage(r, missing, storage.size(), false);
           }
 
           @Override
@@ -96,7 +85,8 @@ public class StringStorage extends SpecializedStorage<String> {
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
-              } else if (arg.getItemBoxed(i) instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
+              } else if (arg.getItemBoxed(i) instanceof String s
+                  && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
