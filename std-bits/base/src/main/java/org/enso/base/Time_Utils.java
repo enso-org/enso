@@ -236,6 +236,14 @@ public class Time_Utils {
    * If start is before end, it will return 0.
    */
   public static long days_between(LocalDate start, LocalDate end) {
-    return Duration.between(start, end).toDays();
+    return ChronoUnit.DAYS.between(start, end);
+  }
+
+  public static LocalDate start_of_week(LocalDate date) {
+    return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+  }
+
+  public static LocalDate start_of_next_week(LocalDate date) {
+    return date.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
   }
 }

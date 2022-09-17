@@ -423,10 +423,11 @@ type Date_Time
        > Example
          Shift the date by 5 business days.
 
-             example_shift = Date.new 2020 2 3 . add_work_day 5
+             example_shift = Date_Time.new 2020 2 3 11 45 . add_work_day 5
     add_work_days : Integer -> Vector Date -> Date_Time
     add_work_days self days=1 holidays=[] =
-        unimplemented "TODO"
+        diff = Time_Utils.days_between self.date (self.date.add_work_days days holidays)
+        self + diff.days
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
