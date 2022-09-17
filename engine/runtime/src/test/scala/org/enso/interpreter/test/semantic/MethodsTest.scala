@@ -158,11 +158,11 @@ class MethodsTest extends InterpreterTest {
           |type Foo
           |    Mk_Foo a
           |
-          |    new a = Mk_Foo a
+          |    new a = Foo.Mk_Foo a
           |
           |main = Foo.new 123
           |""".stripMargin
-      eval(code).toString shouldEqual "(Mk_Foo 123)"
+      eval(code).toString shouldEqual "(Foo.Mk_Foo 123)"
     }
 
     "not be callable on types when non-static" in {
@@ -186,13 +186,13 @@ class MethodsTest extends InterpreterTest {
           |type Foo
           |    Mk_Foo a
           |
-          |    new a = Mk_Foo a
+          |    new a = Foo.Mk_Foo a
           |
-          |main = Mk_Foo 123 . new 123
+          |main = Foo.Mk_Foo 123 . new 123
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
-      ) should have message "Method `new` of Mk_Foo could not be found."
+      ) should have message "Method `new` of Foo.Mk_Foo could not be found."
     }
   }
 }

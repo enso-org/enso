@@ -84,7 +84,7 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |from Standard.Base.Data.List import all
+          |from Standard.Base.Data.List.List import all
           |
           |main =
           |    x = Cons 1 2
@@ -102,10 +102,10 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(121, 109)
-      val id2  = meta.addItem(167, 7)
-      val id3  = meta.addItem(187, 9)
-      val id4  = meta.addItem(224, 5)
+      val id1  = meta.addItem(126, 109)
+      val id2  = meta.addItem(172, 7)
+      val id3  = meta.addItem(192, 9)
+      val id4  = meta.addItem(229, 5)
 
       instrumenter.assertNodeExists(id1, "9")
       instrumenter.assertNodeExists(id2, "3")

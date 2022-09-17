@@ -41,7 +41,7 @@ class CaseTest extends InterpreterTest {
           |""".stripMargin
 
       val msg =
-        "Compile error: Cannot match on Cons using 1 field (expecting 2)"
+        "Compile error: Cannot match on List.Cons using 1 field (expecting 2)"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
   }

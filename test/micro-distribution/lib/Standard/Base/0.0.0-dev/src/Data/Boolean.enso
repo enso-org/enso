@@ -1,3 +1,6 @@
+import Standard.Base.Data.Boolean.Boolean
+from Standard.Base.Data.Boolean.Boolean export True, False
+
 @Builtin_Type
 type Boolean
     True

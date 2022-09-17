@@ -169,16 +169,6 @@ case class BindingsMap(
     }).map(_._1)
   }
 
-  private def handleAmbiguity(
-    candidates: List[ResolvedName]
-  ): Either[ResolutionError, ResolvedName] = {
-    candidates.distinct match {
-      case List()   => Left(ResolutionNotFound)
-      case List(it) => Right(it)
-      case items    => Left(ResolutionAmbiguous(items))
-    }
-  }
-
   /** Resolves a name in the context of current module.
     *
     * @param name the name to resolve.
@@ -190,7 +180,7 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedName] = {
     val local = findLocalCandidates(name)
     if (local.nonEmpty) {
-      return handleAmbiguity(local)
+      return BindingsMap.handleAmbiguity(local)
     }
     val qualifiedImps = findQualifiedImportCandidates(name)
     if (qualifiedImps.nonEmpty) {
@@ -217,19 +207,18 @@ case class BindingsMap(
         val consName = rest.last
         val modNames = rest.init
         resolveName(firstModuleName).flatMap {
-          case ResolvedModule(mod) =>
-            val firstModBindings: BindingsMap = getBindingsFrom(mod)
-            var currentModule                 = firstModBindings
+          case scoped: ImportTarget =>
+            var currentScope = scoped
             for (modName <- modNames) {
-              val resolution = currentModule.resolveExportedName(modName)
+              val resolution = currentScope.resolveExportedSymbol(modName)
               resolution match {
                 case Left(err) => return Left(err)
-                case Right(ResolvedModule(mod)) =>
-                  currentModule = getBindingsFrom(mod)
+                case Right(t: ImportTarget) =>
+                  currentScope = t
                 case _ => return Left(ResolutionNotFound)
               }
             }
-            currentModule.resolveExportedName(consName)
+            currentScope.resolveExportedSymbol(consName)
           case _ => Left(ResolutionNotFound)
         }
     }
@@ -302,17 +291,13 @@ case class BindingsMap(
 
 object BindingsMap {
 
-  private def getBindingsFrom(module: ModuleReference): BindingsMap = {
-    module match {
-      case ModuleReference.Concrete(module) =>
-        module.getIr.unsafeGetMetadata(
-          BindingAnalysis,
-          "imported module has no binding map info"
-        )
-      case ModuleReference.Abstract(_) =>
-        throw new CompilerError(
-          "Bindings cannot be obtained from an abstract module reference."
-        )
+  private def handleAmbiguity(
+    candidates: List[ResolvedName]
+  ): Either[ResolutionError, ResolvedName] = {
+    candidates.distinct match {
+      case List()   => Left(ResolutionNotFound)
+      case List(it) => Right(it)
+      case items    => Left(ResolutionAmbiguous(items))
     }
   }
 
@@ -667,7 +652,11 @@ object BindingsMap {
     override def toAbstract:                       ImportTarget
     override def toConcrete(moduleMap: ModuleMap): Option[ImportTarget]
     def findExportedSymbolsFor(name: String):      List[ResolvedName]
-    def exportedSymbols:                           Map[String, List[ResolvedName]]
+    def resolveExportedSymbol(
+      name: String
+    ): Either[ResolutionError, ResolvedName] =
+      BindingsMap.handleAmbiguity(findExportedSymbolsFor(name))
+    def exportedSymbols: Map[String, List[ResolvedName]]
   }
 
   /** A representation of a resolved import statement.

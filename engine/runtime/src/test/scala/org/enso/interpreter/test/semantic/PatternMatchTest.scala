@@ -16,7 +16,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for simple patterns" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    f = case _ of
@@ -31,17 +31,17 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |type My_Atom
-          |    Mk_My_Atom a
+          |    Mk a
           |
           |main =
           |    f = case _ of
-          |        Mk_My_Atom a -> a
+          |        My_Atom.Mk a -> a
           |        _ -> -100
           |
-          |    f (Mk_My_Atom 50) + f Nil
+          |    f (My_Atom.Mk 50) + f Nil
           |""".stripMargin
 
       eval(code) shouldEqual -50
@@ -51,14 +51,14 @@ class PatternMatchTest extends InterpreterTest {
       val code =
         """
           |type My_Atom
-          |    Mk_My_Atom a
+          |    Mk a
           |
           |main =
           |    f = case _ of
-          |        Mk_My_Atom a -> a
+          |        My_Atom.Mk a -> a
           |        a -> a + 5
           |
-          |    f (Mk_My_Atom 50) + f 30
+          |    f (My_Atom.Mk 50) + f 30
           |""".stripMargin
 
       eval(code) shouldEqual 85
@@ -79,7 +79,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for level one nested patterns" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |type MyAtom
           |
@@ -96,7 +96,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for deeply nested patterns" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |type MyAtom
           |
@@ -120,7 +120,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "correctly result in errors for incomplete matches" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |type MyAtom
           |
@@ -137,23 +137,23 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for pattern matches in pattern matches" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |type My_Atom
-          |    Mk_My_Atom a
+          |    Mk a
           |type One
-          |    Mk_One a
+          |    Mk a
           |type Two
-          |    Mk_Two a
+          |    Mk a
           |
           |main =
           |    f = case _ of
-          |        Mk_My_Atom a -> case a of
-          |            Mk_One Nil -> 50
+          |        My_Atom.Mk a -> case a of
+          |            One.Mk Nil -> 50
           |            _ -> 30
           |        _ -> 20
           |
-          |    f (Mk_My_Atom (Mk_One Nil))
+          |    f (My_Atom.Mk (One.Mk Nil))
           |""".stripMargin
 
       eval(code) shouldEqual 50
