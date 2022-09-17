@@ -740,10 +740,13 @@ impl Searcher {
         tracing::debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        let current_fragments = &self.data.borrow().fragments_added_by_picking;
-        let fragments_added_by_picking =
-            current_fragments.iter().chain(iter::once(&picked_completion));
-        self.add_required_imports(fragments_added_by_picking, false)?;
+        {
+            // This block serves to limit the borrow of `self.data`.
+            let current_fragments = &self.data.borrow().fragments_added_by_picking;
+            let fragments_added_by_picking =
+                current_fragments.iter().chain(iter::once(&picked_completion));
+            self.add_required_imports(fragments_added_by_picking, false)?;
+        }
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let expression = self.get_expression(Some(new_expression_chain));
         let intended_method = self.intended_method();
