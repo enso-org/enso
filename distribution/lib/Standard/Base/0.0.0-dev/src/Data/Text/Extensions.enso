@@ -40,13 +40,7 @@ polyglot java import org.enso.base.Encoding_Utils
 
          "건반(Korean)".length
 Text.length : Integer
-Text.length self =
-    iterator = BreakIterator.getCharacterInstance
-    iterator.setText self
-
-    count accum iter = if iter == -1 then accum else
-        @Tail_Call count (accum + 1) iterator.next
-    count 0 iterator.next
+Text.length self = Text_Utils.grapheme_length self
 
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 
@@ -900,8 +894,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
     Text_Matcher_Data case_sensitivity -> case case_sensitivity of
-        True ->
-            self.take (Text_Sub_Range.First prefix.length) == prefix
+        True -> Text_Utils.starts_with self prefix
         Case_Insensitive_Data locale ->
             self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher_Data _ _ _ _ _ ->
@@ -937,8 +930,7 @@ Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
 Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher_Data = case matcher of
     Text_Matcher_Data case_sensitivity -> case case_sensitivity of
-        True ->
-            self.take (Text_Sub_Range.Last suffix.length) == suffix
+        True -> Text_Utils.ends_with self suffix
         Case_Insensitive_Data locale ->
             self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher_Data _ _ _ _ _ ->
