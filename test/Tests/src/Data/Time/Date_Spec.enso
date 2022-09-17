@@ -228,19 +228,19 @@ spec_with name create_new_date parse_date =
         duplicated_holiday_november year =
             holiday_november year + holiday_november year + holiday_november year
         Test.specify "should allow to compute the number of working days until a date, skipping custom set holidays" <|
-            holiday_february = Vector.new 29 (create_new_date 2000 2 _)
+            holiday_february = Vector.new 29 (i -> create_new_date 2000 2 i+1)
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 3 1) holiday_february . should_equal 0
             create_new_date 2000 2 10 . work_days_until (create_new_date 2000 2 12) holiday_february . should_equal 0
             create_new_date 2000 2 10 . work_days_until (create_new_date 2000 2 11) holiday_february . should_equal 0
             create_new_date 2000 2 10 . work_days_until (create_new_date 2000 2 10) holiday_february . should_equal 0
-            create_new_date 2000 1 30 . work_days_until (create_new_date 2000 3 2) holiday_february . should_equal 3
+            create_new_date 2000 1 30 . work_days_until (create_new_date 2000 3 2) holiday_february . should_equal 2
 
-            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 11 30) (holiday_november 2000) . should_equal 20
-            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 11 30) (holiday_november 2020) . should_equal 22
-            create_new_date 1999 11 1 . work_days_until (create_new_date 1999 11 30) (holiday_november 1999) . should_equal 19
-            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 11 30) (duplicated_holiday_november 2000) . should_equal 20
-            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 11 30) (duplicated_holiday_november 2020) . should_equal 22
-            create_new_date 1999 11 1 . work_days_until (create_new_date 1999 11 30) (duplicated_holiday_november 1999) . should_equal 19
+            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (holiday_november 2000) . should_equal 20
+            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (holiday_november 2020) . should_equal 22
+            create_new_date 1999 11 1 . work_days_until (create_new_date 1999 12 1) (holiday_november 1999) . should_equal 19
+            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (duplicated_holiday_november 2000) . should_equal 20
+            create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (duplicated_holiday_november 2020) . should_equal 22
+            create_new_date 1999 11 1 . work_days_until (create_new_date 1999 12 1) (duplicated_holiday_november 1999) . should_equal 19
 
         Test.specify "should allow to shift the date by N working days" <|
             # 2000-2-1 is a Tuesday

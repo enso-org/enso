@@ -251,8 +251,13 @@ type Date
     work_days_until : Date -> Vector Date -> Integer
     work_days_until self end holidays=[] =
         weekdays = week_days_between self end
-        # TODO holidays!
-        weekdays
+        ## We count holidays that occurred within the period, but not on the
+           weekends (as weekend days have already been excluded from the count).
+           We also need to ensure we exclude each holiday only once, even if the
+           user provided it multiple times.
+        overlapping_holidays = holidays.filter holiday->
+            fits_in_range self end holiday && (is_weekend holiday).not
+        weekdays - overlapping_holidays.distinct.length
 
     ## ALIAS Date to Time
 
@@ -417,3 +422,12 @@ week_days_between start end =
             # We count the days in the last week, not including the weekend.
             last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
             full_weeks_between * 5 + first_week_days + last_week_days
+
+## PRIVATE
+is_weekend date =
+    dow = date.day_of_week
+    (dow == Day_Of_Week.Saturday) || (dow == Day_Of_Week.Sunday)
+
+## PRIVATE
+fits_in_range start end date =
+    (start <= date) && (date < end)
