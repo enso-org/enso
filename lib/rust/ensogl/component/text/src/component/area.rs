@@ -77,6 +77,9 @@ pub struct Line {
     divs:           NonEmptyVec<f32>,
     centers:        Vec<f32>,
     metrics:        LineMetrics,
+    // Detached lines are not children of the text area. They can be attached to other entities,
+    // like cursors for the cursor animation time.
+    detached:       bool,
 }
 
 impl Line {
@@ -785,9 +788,25 @@ impl AreaModel {
                             // vertical animation.
                             let selection_map = self.selection_map.borrow();
                             let cursor = selection_map.id_map.get(&selection.id).unwrap();
-                            for index in line_after_end_index..ViewLine(lines.len()) {
-                                lines[index].set_index(index - line_after_end_index);
-                                cursor.bottom_snapped_left.add_child(&lines[index]);
+                            if line_after_end_index < ViewLine(lines.len()) {
+                                let line_after_end = &lines[line_after_end_index];
+                                // tu cos jest nie tak - po wcisnieciu entera, kolejna linijka nie
+                                // ustawia sie dobrze
+                                let off = line_after_end.position().y;
+                                // + line_after_end.metrics.ascender
+                                // + line_after_end.metrics.descender;
+                                for index in line_after_end_index..ViewLine(lines.len()) {
+                                    let line = &mut lines[index];
+
+                                    line.detached = true;
+                                    line.mod_position_y(|y| {
+                                        let newpos = y - off;
+                                        warn!("Fixing position of line {:?} with off {:?}. New pos: {:?}", index, off, newpos);
+                                        newpos
+                                    });
+                                    // line.set_index(index - line_after_end_index);
+                                    cursor.bottom_snapped_left.add_child(line);
+                                }
                             }
                         }
 
@@ -865,8 +884,7 @@ impl AreaModel {
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
                 let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
                 debug!("start_x {start_x}, end_x {end_x}");
-                let selection_y =
-                    -LINE_HEIGHT / 2.0 - LINE_HEIGHT * selection_start_line.value as f32;
+                let selection_y = self.lines.borrow()[selection_start_line].position().y;
                 debug!("selection_y {selection_y}");
                 let pos = Vector2(start_x, selection_y);
                 debug!("pos {pos}");
@@ -957,11 +975,14 @@ impl AreaModel {
     }
 
     // Output is the first well postioned line or the next line after the last visible line.
-    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> ViewLine {
+    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> Option<ViewLine> {
         let last_line_index = self.lines.last_line_index();
         let lines = self.lines.borrow();
         while line_index <= last_line_index {
             let line = &lines[line_index];
+            if line.detached {
+                return None;
+            }
             let current_pos_y = line.position().y;
             let new_posy = if line_index == ViewLine(0) {
                 -line.metrics.ascender
@@ -978,7 +999,7 @@ impl AreaModel {
             line.set_position_y(new_posy);
             line_index += ViewLine(1);
         }
-        line_index
+        Some(line_index)
     }
 
     fn position_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
@@ -991,13 +1012,16 @@ impl AreaModel {
             };
             if line_index_to_position <= *range.end() {
                 loop {
-                    let first_ok_line_index =
-                        self.position_lines_starting_with(line_index_to_position);
-                    first_ok_line_index2 = Some(first_ok_line_index);
-                    if first_ok_line_index >= *range.end() {
-                        break;
+                    match self.position_lines_starting_with(line_index_to_position) {
+                        None => return,
+                        Some(first_ok_line_index) => {
+                            first_ok_line_index2 = Some(first_ok_line_index);
+                            if first_ok_line_index >= *range.end() {
+                                break;
+                            }
+                            line_index_to_position = first_ok_line_index + ViewLine(1);
+                        }
                     }
-                    line_index_to_position = first_ok_line_index + ViewLine(1);
                 }
             }
         }
@@ -1027,28 +1051,25 @@ impl AreaModel {
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self, size_may_change: bool) {
-        error!("!!! USING REDRAW, THIS IS DEPRECTAED !!!");
-        debug!("redraw {:?}", size_may_change);
-        let lines = self.buffer.view_lines();
-        let line_count = lines.len();
-        self.lines.resize_with(line_count, |ix| self.new_line(ix));
-        let widths = lines
-            .into_iter()
-            .enumerate()
-            .map(|(view_line_index, content)| {
-                self.redraw_line(unit::ViewLine(view_line_index), &content)
-            })
-            .collect_vec();
-        let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
-        if size_may_change {
-            let height = self.calculate_height();
-            self.frp_endpoints.source.width.emit(width);
-            self.frp_endpoints.source.height.emit(height);
-        }
-    }
-
-    fn calculate_height(&self) -> f32 {
-        self.lines.len() as f32 * LINE_HEIGHT
+        panic!();
+        // error!("!!! USING REDRAW, THIS IS DEPRECTAED !!!");
+        // debug!("redraw {:?}", size_may_change);
+        // let lines = self.buffer.view_lines();
+        // let line_count = lines.len();
+        // self.lines.resize_with(line_count, |ix| self.new_line(ix));
+        // let widths = lines
+        //     .into_iter()
+        //     .enumerate()
+        //     .map(|(view_line_index, content)| {
+        //         self.redraw_line(unit::ViewLine(view_line_index), &content)
+        //     })
+        //     .collect_vec();
+        // let width = widths.into_iter().max_by(|x, y|
+        // x.partial_cmp(y).unwrap()).unwrap_or_default(); if size_may_change {
+        //     let height = self.calculate_height();
+        //     self.frp_endpoints.source.width.emit(width);
+        //     self.frp_endpoints.source.height.emit(height);
+        // }
     }
 
     pub fn chunks_per_font_face<'a>(
@@ -1059,6 +1080,7 @@ impl AreaModel {
         gen_iter!(move {
             match font {
                 font::Font::NonVariable(_) =>
+                // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
                     for a in line_style.chunks_per_font_face(content) {
                         yield a;
                     }
@@ -1072,8 +1094,6 @@ impl AreaModel {
         })
     }
 
-    // fixme, add docs: JEDNAK nie wprowadzajmy tupu column - on moze byc liczony tylko dla
-    // renderowanego tekstu, wiec jest bezuzyteczny
     fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) -> f32 {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
@@ -1125,11 +1145,6 @@ impl AreaModel {
 
                     let size = style.size;
                     let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
-
-                    warn!(
-                        "ascender: {:?}, descender: {:?}",
-                        shaped_glyph_set.ascender, shaped_glyph_set.descender
-                    );
 
                     let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
                     let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
@@ -1347,9 +1362,8 @@ impl AreaModel {
             cursor_map.get(&column).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
-                        let pos_y = LINE_HEIGHT / 2.0 - LINE_VERTICAL_OFFSET;
                         last_cursor = Some(cursor.clone_ref());
-                        last_cursor_target = Vector2(glyph.position().x, pos_y);
+                        last_cursor_target = Vector2(glyph.position().x, 0.0);
                     }
                 }
             });
@@ -1383,8 +1397,11 @@ impl AreaModel {
             for line in selection.bottom_snapped_left.remove_all_children() {
                 self.add_child(&line);
                 let pos_y = selection.position.target_value().y;
-                line.mod_position_y(|pos| pos + pos_y - LINE_HEIGHT / 2.0);
+                line.mod_position_y(|pos| pos + pos_y);
             }
+        }
+        for line in &mut *self.lines.borrow_mut() {
+            line.detached = false;
         }
     }
 
@@ -1467,7 +1484,7 @@ impl AreaModel {
 
     fn new_line_helper(display_object: &display::object::Instance, index: ViewLine) -> Line {
         let mut line = Line::new();
-        line.set_index(index);
+        // line.set_index(index);
         display_object.add_child(&line);
         line
     }

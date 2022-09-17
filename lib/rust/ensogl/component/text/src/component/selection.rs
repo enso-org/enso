@@ -191,7 +191,7 @@ impl Selection {
                     let view_y      = 0.0;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
-                    bottom_snapped_left.set_position_xy(Vector2(-p.x, -LINE_HEIGHT / 2.0));
+                    bottom_snapped_left.set_position_xy(Vector2(-p.x, 0.0));
                     view.size.set(Vector2(view_width,view_height));
                     view.set_position_xy(Vector2(view_x,view_y));
                 })
