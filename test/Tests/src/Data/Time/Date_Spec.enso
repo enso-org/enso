@@ -176,6 +176,18 @@ spec_with name create_new_date parse_date =
             (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
             (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
+        Test.specify "should allow to compute the number of working days until a later date" <|
+            # weekends, inclusive/exclusive ends tests
+            Nothing
+        Test.specify "should allow to compute the number of working days until a date, skipping custom set holidays" <|
+            # all holidays test
+            Nothing
+        Test.specify "should allow to shift the date by N working days" <|
+            # 0 days and weekday vs weekend
+            Nothing
+        Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
+            Nothing
+
     Date_Part_Spec.spec name create_new_date
 
 
