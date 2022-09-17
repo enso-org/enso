@@ -605,7 +605,7 @@ pub trait API: Debug + model::undo_redo::Aware {
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
     ) -> FallibleResult;
 
-    /// TBD
+    /// Modify metadata of given import.
     fn with_import_metadata(
         &self,
         id: ImportId,

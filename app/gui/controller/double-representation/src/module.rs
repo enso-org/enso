@@ -440,7 +440,10 @@ impl ImportInfo {
             .then(|| ImportInfo::from_target_str(ast.segs.head.body.repr().trim()))
     }
 
-    /// TBD
+    /// Return the ID of the import.
+    ///
+    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI internal and not
+    /// known in the engine.
     pub fn id(&self) -> ImportId {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
