@@ -77,9 +77,6 @@ pub struct Line {
     divs:           NonEmptyVec<f32>,
     centers:        Vec<f32>,
     metrics:        LineMetrics,
-    // Detached lines are not children of the text area. They can be attached to other entities,
-    // like cursors for the cursor animation time.
-    detached:       bool,
 }
 
 impl Line {
@@ -783,32 +780,19 @@ impl AreaModel {
                         let line_after_end_index = shape_x.end().inc();
                         let mut lines = self.lines.borrow_mut();
 
-                        if line_diff != 0 {
-                            // Attach unchanged lines under cursor to the cursor for a smooth
-                            // vertical animation.
-                            let selection_map = self.selection_map.borrow();
-                            let cursor = selection_map.id_map.get(&selection.id).unwrap();
-                            if line_after_end_index < ViewLine(lines.len()) {
-                                let line_after_end = &lines[line_after_end_index];
-                                // tu cos jest nie tak - po wcisnieciu entera, kolejna linijka nie
-                                // ustawia sie dobrze
-                                let off = line_after_end.position().y;
-                                // + line_after_end.metrics.ascender
-                                // + line_after_end.metrics.descender;
-                                for index in line_after_end_index..ViewLine(lines.len()) {
-                                    let line = &mut lines[index];
-
-                                    line.detached = true;
-                                    line.mod_position_y(|y| {
-                                        let newpos = y - off;
-                                        warn!("Fixing position of line {:?} with off {:?}. New pos: {:?}", index, off, newpos);
-                                        newpos
-                                    });
-                                    // line.set_index(index - line_after_end_index);
-                                    cursor.bottom_snapped_left.add_child(line);
-                                }
-                            }
-                        }
+                        // if line_diff != 0 {
+                        //     // Attach unchanged lines under cursor to the cursor for a smooth
+                        //     // vertical animation.
+                        //     let selection_map = self.selection_map.borrow();
+                        //     let cursor = selection_map.id_map.get(&selection.id).unwrap();
+                        //     if line_after_end_index < ViewLine(lines.len()) {
+                        //         let line_after_end = &mut lines[line_after_end_index];
+                        //         let off = line_after_end.position().y;
+                        //         for index in line_after_end_index..ViewLine(lines.len()) {
+                        //             // cursor.bottom_snapped_left.add_child(&lines[index]);
+                        //         }
+                        //     }
+                        // }
 
                         if line_diff > 0 {
                             // Add missing lines. They will be redrawn later. This is needed for
@@ -844,7 +828,7 @@ impl AreaModel {
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
             } else {
                 self.remove_glyphs_from_cursors();
-                self.remove_lines_from_cursors();
+                // self.remove_lines_from_cursors();
             }
         })
     }
@@ -953,6 +937,7 @@ impl AreaModel {
     }
 
     fn get_in_text_location(&self, screen_pos: Vector2) -> Location<Column> {
+        // self.remove_lines_from_cursors();
         let object_space = self.to_object_space(screen_pos);
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
@@ -962,6 +947,7 @@ impl AreaModel {
             }
             view_line += ViewLine(1);
         }
+        let view_line = std::cmp::min(view_line, self.lines.last_line_index());
         let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
         let line = self.buffer.view_line_to_line(view_line);
         let column = Column(div_index);
@@ -979,21 +965,19 @@ impl AreaModel {
         let last_line_index = self.lines.last_line_index();
         let lines = self.lines.borrow();
         while line_index <= last_line_index {
+            warn!("positioning line {:?}", line_index);
             let line = &lines[line_index];
-            if line.detached {
-                return None;
-            }
             let current_pos_y = line.position().y;
             let new_posy = if line_index == ViewLine(0) {
                 -line.metrics.ascender
             } else {
                 let prev_line_index = ViewLine(line_index.value - 1);
                 let prev_line = &lines[prev_line_index];
-                prev_line.position().y + prev_line.metrics.descender
-                    - line.metrics.ascender
-                    - line.metrics.gap
+                let offset = prev_line.metrics.descender - line.metrics.ascender - line.metrics.gap;
+                prev_line.position().y + offset
             };
             if current_pos_y == new_posy {
+                warn!("no change");
                 break;
             }
             line.set_position_y(new_posy);
@@ -1010,13 +994,17 @@ impl AreaModel {
                 None => *range.start(),
                 Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
             };
-            if line_index_to_position <= *range.end() {
+            // We are positioning one more line, because if a line is removed, the las line to
+            // redraw can be placed in the same position and the next line still needs to be
+            // positioned.
+            let range_end = *range.end() + ViewLine(1);
+            if line_index_to_position <= range_end {
                 loop {
                     match self.position_lines_starting_with(line_index_to_position) {
                         None => return,
                         Some(first_ok_line_index) => {
                             first_ok_line_index2 = Some(first_ok_line_index);
-                            if first_ok_line_index >= *range.end() {
+                            if first_ok_line_index >= range_end {
                                 break;
                             }
                             line_index_to_position = first_ok_line_index + ViewLine(1);
@@ -1390,20 +1378,20 @@ impl AreaModel {
         }
     }
 
-    pub fn remove_lines_from_cursors(&self) {
-        let selection_map = self.selection_map.borrow();
-        for cursor_id in selection_map.id_map.keys() {
-            let selection = selection_map.id_map.get(cursor_id).unwrap();
-            for line in selection.bottom_snapped_left.remove_all_children() {
-                self.add_child(&line);
-                let pos_y = selection.position.target_value().y;
-                line.mod_position_y(|pos| pos + pos_y);
-            }
-        }
-        for line in &mut *self.lines.borrow_mut() {
-            line.detached = false;
-        }
-    }
+    // pub fn remove_lines_from_cursors(&self) {
+    //     let selection_map = self.selection_map.borrow();
+    //     for cursor_id in selection_map.id_map.keys() {
+    //         let selection = selection_map.id_map.get(cursor_id).unwrap();
+    //         let pos_y = selection.position.target_value().y;
+    //         for line in selection.bottom_snapped_left.remove_all_children() {
+    //             self.add_child(&line);
+    //             line.mod_position_y(|pos| pos + pos_y);
+    //         }
+    //     }
+    //     for line in &mut *self.lines.borrow_mut() {
+    //         line.detached = false;
+    //     }
+    // }
 
 
     // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
