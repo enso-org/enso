@@ -236,6 +236,6 @@ public class Time_Utils {
    * If start is before end, it will return 0.
    */
   public static long days_between(LocalDate start, LocalDate end) {
-    Duration.between(start, end).toDays()
+    return Duration.between(start, end).toDays();
   }
 }
