@@ -33,6 +33,11 @@ use std::ops::Not;
 
 use crate::buffer::view::FromInContext;
 pub use crate::buffer::TextRange;
+use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::Animation;
+
+use enso_frp::stream::ValueProvider;
+
 
 
 // =================
@@ -64,14 +69,28 @@ pub struct SelectionMap {
 // === Line ===
 // ============
 
+mod line {
+    use super::*;
+    ensogl_core::define_endpoints_2! {
+        Input {
+            set_y(f32),
+        }
+        Output {}
+    }
+}
+
 /// Visual line representation.
 ///
 /// **Design Notes**
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
-#[derive(Debug, Default)]
+#[derive(Debug, Deref)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
+    #[deref]
+    frp:            line::Frp,
+    y_pos_anim:     Animation<f32>,
+    y_target:       Rc<Cell<f32>>,
     display_object: display::object::Instance,
     glyphs:         VecIndexedBy<Glyph, Column>,
     divs:           NonEmptyVec<f32>,
@@ -81,7 +100,26 @@ pub struct Line {
 
 impl Line {
     fn new() -> Self {
-        default()
+        let frp = line::Frp::new();
+        let network = frp.network();
+        let y_pos_anim = Animation::new(network);
+        let y_target = Rc::new(Cell::new(0.0));
+        let display_object = display::object::Instance::new();
+        let glyphs = default();
+        let divs = default();
+        let centers = default();
+        let metrics = default();
+        frp::extend! {network
+            trace frp.set_y;
+            eval frp.set_y((y) y_target.set(*y));
+            y_pos_anim.target <+ frp.set_y;
+            eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
+        }
+        Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers, metrics }
+    }
+
+    pub fn target_y_pos(&self) -> f32 {
+        self.y_target.get()
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
@@ -121,10 +159,10 @@ impl Line {
         self.glyphs.push(glyph);
     }
 
-    fn set_index(&mut self, index: ViewLine) {
-        let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-        self.set_position_y(y_offset);
-    }
+    // fn set_index(&mut self, index: ViewLine) {
+    //     let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+    //     self.set_position_y(y_offset);
+    // }
 }
 
 impl display::Object for Line {
@@ -141,10 +179,10 @@ impl<'t> IntoIterator for &'t Line {
     }
 }
 
-fn set_line_index(line: &display::object::Instance, index: usize) {
-    let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-    line.set_position_y(y_offset);
-}
+// fn set_line_index(line: &display::object::Instance, index: usize) {
+//     let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+//     line.set_position_y(y_offset);
+// }
 
 
 
@@ -787,7 +825,7 @@ impl AreaModel {
                         //     let cursor = selection_map.id_map.get(&selection.id).unwrap();
                         //     if line_after_end_index < ViewLine(lines.len()) {
                         //         let line_after_end = &mut lines[line_after_end_index];
-                        //         let off = line_after_end.position().y;
+                        //         let off = line_after_end.target_y_pos();
                         //         for index in line_after_end_index..ViewLine(lines.len()) {
                         //             // cursor.bottom_snapped_left.add_child(&lines[index]);
                         //         }
@@ -868,7 +906,7 @@ impl AreaModel {
                 let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
                 let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
                 debug!("start_x {start_x}, end_x {end_x}");
-                let selection_y = self.lines.borrow()[selection_start_line].position().y;
+                let selection_y = self.lines.borrow()[selection_start_line].target_y_pos();
                 debug!("selection_y {selection_y}");
                 let pos = Vector2(start_x, selection_y);
                 debug!("pos {pos}");
@@ -942,7 +980,7 @@ impl AreaModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
-            if line.position().y + line.metrics.descender < object_space.y {
+            if line.target_y_pos() + line.metrics.descender < object_space.y {
                 break;
             }
             view_line += ViewLine(1);
@@ -967,20 +1005,20 @@ impl AreaModel {
         while line_index <= last_line_index {
             warn!("positioning line {:?}", line_index);
             let line = &lines[line_index];
-            let current_pos_y = line.position().y;
+            let current_pos_y = line.target_y_pos();
             let new_posy = if line_index == ViewLine(0) {
                 -line.metrics.ascender
             } else {
                 let prev_line_index = ViewLine(line_index.value - 1);
                 let prev_line = &lines[prev_line_index];
                 let offset = prev_line.metrics.descender - line.metrics.ascender - line.metrics.gap;
-                prev_line.position().y + offset
+                prev_line.target_y_pos() + offset
             };
             if current_pos_y == new_posy {
                 warn!("no change");
                 break;
             }
-            line.set_position_y(new_posy);
+            line.set_y(new_posy);
             line_index += ViewLine(1);
         }
         Some(line_index)
