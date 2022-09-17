@@ -306,10 +306,19 @@ type Date
        > Example
          Shift the date by 5 business days.
 
-             example_shift = Date.new 2020 2 3 . add_work_day 5
+             example_shift = Date.new 2020 2 3 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date
     add_work_days self days=1 holidays=[] =
-        unimplemented "TODO"
+        # TODO Terrible hack, do it in a sane way!
+        is_holiday = (self.work_days_until (self + 1.days) holidays) == 0
+        estimated_days = (days * 7 . div 5) + if is_holiday then 1 else 0
+        overlapping_holidays_in_range = holidays.filter holiday->
+            fits_in_range self (self + estimated_days.days) holiday && (is_weekend holiday).not
+        end = self + estimated_days.days + overlapping_holidays_in_range.distinct.length.days
+        included_days = self.work_days_until end holidays
+        diff = days - included_days
+        if diff == 0 then end else
+            end.add_work_days diff holidays
 
     ## Subtract the specified amount of time from this instant to get another
        date.
