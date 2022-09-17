@@ -1,5 +1,7 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Text_Utils;
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -12,6 +14,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.operations.Distinct;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,7 +80,7 @@ public class Table {
    */
   public Column getColumnByName(String name) {
     for (Column column : columns) {
-      if (column.getName().equals(name)) {
+      if (Text_Utils.equals(column.getName(), name)) {
         return column;
       }
     }
@@ -96,7 +99,7 @@ public class Table {
       return column;
     }
 
-    if (getIndex().getName().equals(name)) {
+    if (Text_Utils.equals(getIndex().getName(), name)) {
       return getIndex().toColumn();
     }
 
@@ -137,7 +140,7 @@ public class Table {
   public Table addOrReplaceColumn(Column newColumn) {
     int existingIx = -1;
     for (int i = 0; i < columns.length; i++) {
-      if (columns[i].getName().equals(newColumn.getName())) {
+      if (Text_Utils.equals(columns[i].getName(), newColumn.getName())) {
         existingIx = i;
         break;
       }
@@ -187,7 +190,7 @@ public class Table {
       newColumns.add(indexCol.withIndex(ix));
     }
     for (Column column : columns) {
-      if (!column.getName().equals(col.getName())) {
+      if (!Text_Utils.equals(column.getName(), col.getName())) {
         newColumns.add(column.withIndex(ix));
       }
     }
@@ -229,6 +232,26 @@ public class Table {
     MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
     OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
     return this.applyMask(mask);
+  }
+
+  /**
+   * Creates a new table keeping only rows with distinct key columns.
+   *
+   * @param keyColumns set of columns to use as an Index
+   * @param textFoldingStrategy a strategy for folding text columns
+   * @return a table where duplicate rows with the same key are removed
+   */
+  public Table distinct(Column[] keyColumns, TextFoldingStrategy textFoldingStrategy) {
+    var problems = new AggregatedProblems();
+    var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), keyColumns, textFoldingStrategy, problems);
+    int cardinality = rowsToKeep.cardinality();
+    Column[] newColumns = new Column[this.columns.length];
+    Index newIx = index.mask(rowsToKeep, cardinality);
+    for (int i = 0; i < this.columns.length; i++) {
+      newColumns[i] = this.columns[i].mask(newIx, rowsToKeep, cardinality);
+    }
+
+    return new Table(newColumns, newIx, problems);
   }
 
   /**
@@ -377,7 +400,7 @@ public class Table {
     for (var table : tables) {
       for (var column : table.getColumns()) {
         var matchingBuilder =
-            builders.stream().filter(bldr -> bldr.name.equals(column.getName())).findFirst();
+            builders.stream().filter(bldr -> Text_Utils.equals(bldr.name, column.getName())).findFirst();
         NamedBuilder builder;
         if (matchingBuilder.isPresent()) {
           builder = matchingBuilder.get();
@@ -393,7 +416,7 @@ public class Table {
       }
       for (var builder : builders) {
         var columnExists =
-            Arrays.stream(table.getColumns()).anyMatch(col -> col.getName().equals(builder.name));
+            Arrays.stream(table.getColumns()).anyMatch(col -> Text_Utils.equals(col.getName(), builder.name));
         if (!columnExists) {
           builder.builder.appendNulls(table.rowCount());
         }

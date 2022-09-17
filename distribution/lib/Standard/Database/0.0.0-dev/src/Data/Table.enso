@@ -8,25 +8,21 @@ import Standard.Database.Data.Sql
 
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.IO.File_Format
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
+
+from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-
-import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
+
 from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
 from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
-from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
-import Standard.Table.Data.Column_Name_Mapping
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+
 import Standard.Table.Data.Position
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-import Standard.Table.Data.Match_Columns
 
 polyglot java import java.sql.JDBCType
 
@@ -547,6 +543,38 @@ type Table
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
 
+    ## Returns the distinct set of rows within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns, the
+       first row of each such set is returned.
+
+       For the in-memory table, the unique rows will be in the order they
+       occurred in the input (this is not guaranteed for database operations).
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitive: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Grouping` warning.
+    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
+        _ = [columns, case_sensitive, on_problems]
+        Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
+
     ## UNSTABLE
 
        Efficiently joins two tables based on either the index or a key column.
@@ -897,9 +925,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -928,13 +956,12 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+         - `Auto_Detect`: The file format is determined by the provided file.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+            the `write` function. If passed as format, an
+            `Illegal_Argument_Error` is raised. To write out the table as plain
+            text, the user needs to call the `Text.from Table` method and then
+            use the `Text.write` function.
 
        > Example
          Write a database table to a CSV file.
@@ -947,7 +974,7 @@ type Table
                  table = connection.access_table "Table"
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.to_dataframe.write path format on_existing_file match_columns on_problems
 

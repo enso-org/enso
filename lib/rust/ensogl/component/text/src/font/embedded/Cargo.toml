@@ -13,7 +13,9 @@ enso-prelude = { path = "../../../../../../prelude" }
 ensogl-text-font-family = { path = "../../font/family" }
 
 [build-dependencies]
+enso-build = { git = "https://github.com/enso-org/ci-build", branch = "develop" }
 enso-build-utilities = { path = "../../../../../../../../build/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }
+tokio = { version = "1.19.2", features = ["macros"] }
 zip = { version = "0.5" }
 owned_ttf_parser = "0.15.1"

@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
+from Standard.Table import Table, Column
+import Standard.Table
+
 import Standard.Visualization.Helpers
 from Standard.Base.Data.Index_Sub_Range import Sample
 
@@ -93,11 +94,10 @@ type Point_Data
 
 ## PRIVATE
 type No_Fallback_Column
-
-## PRIVATE
-No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text self =
-    "No fallback column found for the scatter plot."
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
@@ -198,12 +198,12 @@ json_from_vector vec bounds limit =
 
    Arguments:
    - value: the value to be visualized.
-process_to_json_text : Any -> Text
+process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
         Column.Column_Data _ -> json_from_table  value.to_table bounds limit
         Table.Table_Data _   -> json_from_table  value bounds limit
-        Vector.Vector_Data _ -> json_from_vector value bounds limit
+        Vector.Vector -> json_from_vector value bounds limit
         _               -> json_from_vector value.to_vector bounds limit
 
     json.to_text

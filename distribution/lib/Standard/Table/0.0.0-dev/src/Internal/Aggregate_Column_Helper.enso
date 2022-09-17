@@ -176,7 +176,7 @@ type Internal_Missing_Column_Error
 
 ## PRIVATE
    Creates a Java Aggregator for the Aggregate_Column
-java_aggregator : Aggregate_Column->Aggregator
+java_aggregator : Aggregate_Column -> Aggregator
 java_aggregator name column =
     case column of
         Group_By c _ -> GroupByAggregator.new name c.java_column

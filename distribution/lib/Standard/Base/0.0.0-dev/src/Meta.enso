@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base
 
 ## UNSTABLE
    ADVANCED
@@ -39,6 +40,32 @@ type Primitive
    - value: The value of the unresolved symbol in the meta representation.
 type Unresolved_Symbol
     Unresolved_Symbol_Data value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a new unresolved symbol with its name changed to the provided
+       argument.
+
+       Arguments:
+       - new_name: The new name for the unresolved symbol.
+    rename : Text -> Any
+    rename self new_name =
+        create_unresolved_symbol new_name self.scope
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the name of an unresolved symbol.
+    name : Text
+    name self = get_unresolved_symbol_name self.value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the definition scope of an unresolved symbol.
+    scope : Any
+    scope self = get_unresolved_symbol_scope self.value
 
 ## UNSTABLE
    ADVANCED
@@ -85,7 +112,7 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields self = Vector.Vector_Data (get_atom_fields self.value)
+Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
@@ -142,33 +169,6 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
 get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
-## UNSTABLE
-   ADVANCED
-
-   Returns a new unresolved symbol with its name changed to the provided
-   argument.
-
-   Arguments:
-   - new_name: The new name for the unresolved symbol.
-Unresolved_Symbol.rename : Text -> Any
-Unresolved_Symbol.rename self new_name =
-    create_unresolved_symbol new_name self.scope
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the name of an unresolved symbol.
-Unresolved_Symbol.name : Text
-Unresolved_Symbol.name self = get_unresolved_symbol_name self.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the definition scope of an unresolved symbol.
-Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope self = get_unresolved_symbol_scope self.value
-
-
 # Constructor methods
 ## PRIVATE
 
@@ -203,7 +203,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
-Constructor.fields self = Vector.Vector_Data (get_constructor_fields self.value)
+Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
 
 ## UNSTABLE
    ADVANCED
@@ -349,7 +349,7 @@ type Language
     ## UNSTABLE
        ADVANCED
 
-       The Java laguage.
+       The Java language.
     Java
 
     ## UNSTABLE

@@ -58,7 +58,7 @@ public final class Parser implements AutoCloseable {
         var base = getLastInputBase(state);
         var metadata = getMetadata(state);
         serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-        var message = new Message(serializedTree, inputBuf, base, metadata);
+        var message = new Message(serializedTree, input, base, metadata);
         var result = Tree.deserialize(message);
         if (message.getEncounteredUnsupportedSyntax()) {
             throw new UnsupportedSyntaxException(result);

@@ -1,0 +1,160 @@
+from Standard.Base import all
+
+from Standard.Database.Data.Sql import Sql_Type, Statement
+
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Data.Dialect
+from Standard.Database.Connection.Connection import Connection_Data
+
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Materialized_Table
+
+from Standard.Database.Errors import Sql_Error
+
+type SQLite_Connection
+    ## PRIVATE
+
+       A SQLite database connection.
+
+       Arguments:
+       - connection: the underlying connection.
+    SQLite_Connection_Data connection
+
+    ## Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close self = self.connection.close
+
+    ## UNSTABLE
+
+       Accesses a table within the database, returning an object that can be
+       used to create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    access_table : Text -> Database_Table
+    access_table self name = self.connection.access_table name
+
+    ## Returns the list of databases (or catalogs) for the connection.
+    databases : [Text]
+    databases self = [Nothing]
+
+    ## Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.connection.database
+
+    ## Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    set_database : Text -> Connection ! Sql_Error
+    set_database self database =
+        if database == self.database then self else
+            Sql_Error.throw_sql_error "Changing database is not supported."
+
+    ## Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : [Text]
+    schemas self = [Nothing]
+
+    ## Returns the name of the current schema.
+    schema : Text
+    schema self = self.connection.schema
+
+    ## Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    set_schema : Text -> Connection ! Sql_Error
+    set_schema self schema =
+        if schema == self.schema then self else
+            Sql_Error.throw_sql_error "Changing schema is not supported."
+
+    ## Gets a list of the table types
+    table_types : [Text]
+    table_types self = self.connection.table_types
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - all_fields: Return all the fields in the metadata table.
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        self.connection.tables name_like database schema types all_fields
+
+    ## ADVANCED
+
+       Executes a raw query and returns the result as an in-memory Table.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of
+       .Statement
+         representing the query to execute.
+       - expected_types: an optional array of expected types of each column;
+         meant only for internal use.
+    execute_query : Text | Statement -> Vector Sql_Type -> Materialized_Table
+    execute_query self query expected_types=Nothing =
+        self.connection.execute_query query expected_types
+
+    ## ADVANCED
+
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Statement
+         representing the query to execute.
+    execute_update : Text | Statement -> Integer
+    execute_update self query =
+        self.connection.execute_update query
+
+    ## PRIVATE
+
+       A helper function that fetches column names and sql types associated with
+       them for a table in the database.
+
+       Arguments:
+       - table_name: The name of the table to fetch the column metadata for.
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns : Text -> Vector Any
+    fetch_columns self table_name =
+        self.connection.fetch_columns table_name
+
+    ## PRIVATE
+       UNSTABLE
+       This is a prototype function used in our test suites. It may change.
+
+       It creates a new table in the database with the given name (will fail if
+       the table already existed), inserts the contents of the provided
+       in-memory table and returns a handle to the newly created table.
+
+       Arguments:
+       - name: The name of the table to create.
+       - table: An In-Memory table specifying the contents to upload. Schema of
+         the created database table is based on the column types of this table.
+       - temporary: Specifies whether the table should be marked as temporary. A
+         temporary table will be dropped after the connection closes and will
+         usually not be visible to other connections.
+       - batch_size: Specifies how many rows should be uploaded in a single
+         batch.
+    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
+    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <|
+        self.connection.upload_table name table temporary batch_size
+
+## PRIVATE
+
+   Creates a SQLite connection based on a JDBC URL and properties.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create : Text -> Vector -> SQLite_Connection
+create url properties =
+    jdbc_connection = JDBC_Connection.create url properties
+    SQLite_Connection_Data (Connection_Data jdbc_connection Dialect.sqlite)

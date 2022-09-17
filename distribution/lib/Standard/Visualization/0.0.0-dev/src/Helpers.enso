@@ -1,8 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
+from Standard.Table import Table, Column
 import Standard.Table.Data.Storage
-import Standard.Table.Data.Table
 
 ## PRIVATE
 
@@ -88,11 +87,11 @@ recover_errors ~body =
    Returns all the columns in the table, including indices.
 
    Index columns are placed before other columns.
-Table.Table.all_columns : Vector
-Table.Table.all_columns self =
+Table.all_columns : Vector
+Table.all_columns self =
     index = self.index.catch_ []
     index_columns = case index of
-        Vector.Vector_Data _ -> index
+        Vector.Vector -> index
         a -> [a]
     index_columns + self.columns
 
@@ -104,8 +103,8 @@ Table.Table.all_columns self =
 
    Arguments:
    - text: the case-insensitive name of the searched column.
-Table.Table.lookup_ignore_case : Text -> Column ! Nothing
-Table.Table.lookup_ignore_case self name =
+Table.lookup_ignore_case : Text -> Column ! Nothing
+Table.lookup_ignore_case self name =
     self.all_columns.find <| col->
         col.name.equals_ignore_case name
 

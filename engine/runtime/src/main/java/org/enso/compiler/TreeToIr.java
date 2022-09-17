@@ -1,16 +1,19 @@
 package org.enso.compiler;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
-import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Literal$Number;
@@ -33,12 +36,15 @@ import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.syntax.text.Location;
+import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Either;
+import org.enso.syntax2.FractionalDigits;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.MultipleOperatorError;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Token.Operator;
 import org.enso.syntax2.Tree;
+
 import scala.Option;
 import scala.collection.immutable.List;
 
@@ -295,7 +301,7 @@ final class TreeToIr {
           getIdentifiedLocation(fn),
           meta(), diag()
         );
-        var args = translateArgumentsDefinition(fn.getArgs());
+        var args = translateArgumentsDefs(fn.getArgs());
         var body = translateExpression(fn.getBody(), false);
 
         yield new IR$Module$Scope$Definition$Method$Binding(
@@ -376,6 +382,13 @@ final class TreeToIr {
     };
   }
 
+  private List<IR.DefinitionArgument> translateArgumentsDefs(java.util.List<ArgumentDefinition> args) {
+    ArrayList<Tree> params = new ArrayList<>();
+    for (var d : args) {
+      params.add(d.getPattern());
+    }
+    return translateArgumentsDefinition(params);
+  }
   private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params) {
       List<IR.DefinitionArgument> args = nil();
       for (var p : params) {
@@ -569,7 +582,7 @@ final class TreeToIr {
             yield prefix;
           }
           default -> {
-            if (op.getBinaryInfixPrecedence() != null) {
+            if (op.getProperties() != null) {
               var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
               var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);
               yield new IR$Application$Operator$Binary(
@@ -593,11 +606,7 @@ final class TreeToIr {
         var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
         yield fn;
       }
-      case Tree.Number n -> new IR$Literal$Number(
-        // translateDecimalLiteral(inputAst, intPart, fracPart)
-        Option.empty(), n.getToken().codeRepr(),
-        getIdentifiedLocation(n), meta(), diag()
-      );
+      case Tree.Number n -> translateDecimalLiteral(n, n.getInteger(), n.getFractionalDigits());
       case Tree.Ident id -> {
         var exprId = translateIdent(id, isMethod);
         if (moreArgs.isEmpty()) {
@@ -812,25 +821,36 @@ final class TreeToIr {
     }
     */
   }
-  /*
-  def translateDecimalLiteral(
-    ast: AST,
-    int: AST.Literal.Number,
-    frac: AST.Literal.Number
-  ): Expression = {
-    if (int.base.isDefined && int.base.get != "10") {
-      Error.Syntax(
-        int,
-        Error.Syntax.UnsupportedSyntax("non-base-10 decimal literals")
-      )
-    } else if (frac.base.isDefined && frac.base.get != "10") {
-      Error.Syntax(frac, Error.Syntax.InvalidBaseInDecimalLiteral)
+
+  IR.Expression translateDecimalLiteral(
+    Tree ast,
+    Token.Digits intPart,
+    FractionalDigits fracPart
+  ) {
+    if (intPart.getBase() != null && !"10".equals(intPart.getBase())) {
+      return new IR$Error$Syntax(
+        intPart,
+        new IR$Error$Syntax$UnsupportedSyntax("non-base-10 decimal literals"),
+        meta(), diag()
+      );
     } else {
-      Literal.Number(
-        None,
-        s"${int.shape.int}.${frac.shape.int}",
-        getIdentifiedLocation(ast)
-      )
+      if (fracPart != null && fracPart.getDigits().getBase() != null) {
+        if (!"10".equals(fracPart.getDigits().getBase())) {
+          return new IR$Error$Syntax(
+            intPart,
+            IR$Error$Syntax$InvalidBaseInDecimalLiteral$.MODULE$,
+            meta(), diag()
+          );
+        }
+      }
+      String literal = fracPart != null ?
+          intPart.codeRepr() + "." + fracPart.getDigits().codeRepr() :
+          intPart.codeRepr();
+      return new IR$Literal$Number(
+        Option.empty(),
+        literal,
+        getIdentifiedLocation(ast), meta(), diag()
+      );
     }
   }
 
@@ -1697,42 +1717,17 @@ final class TreeToIr {
     );
   }
 
-  private static final Field codeReprBegin;
-  private static final Field codeReprLen;
-  private static final Field spanLeftOffsetVisible;
-  private static final Field spanCodeLength;
-  static {
-    try {
-      codeReprBegin = Token.class.getDeclaredField("fieldCodeReprBegin");
-      codeReprLen = Token.class.getDeclaredField("fieldCodeReprLen");
-      spanLeftOffsetVisible = Tree.class.getDeclaredField("fieldSpanLeftOffsetVisible");
-      spanCodeLength = Tree.class.getDeclaredField("fieldSpanCodeLength");
-      codeReprBegin.setAccessible(true);
-      codeReprLen.setAccessible(true);
-      spanLeftOffsetVisible.setAccessible(true);
-      spanCodeLength.setAccessible(true);
-    } catch (NoSuchFieldException ex) {
-      throw new ExceptionInInitializerError(ex);
-    }
-  }
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
     if (ast == null) {
       return Option.empty();
     }
-    try {
-      int begin, len;
-      if (ast instanceof Tree.Ident id) {
-        var token = id.getToken();
-        begin = (int) codeReprBegin.getLong(token);
-        len = (int) codeReprLen.getLong(token);
-      } else {
-        begin = (int) spanLeftOffsetVisible.getLong(ast);
-        len = (int) spanCodeLength.getLong(ast);
-      }
-      return Option.apply(new IdentifiedLocation(new Location(begin, begin + len), Option.empty()));
-    } catch (IllegalArgumentException | IllegalAccessException ex) {
-      throw new IllegalStateException(ex);
+    int begin, len;
+    {
+      begin = Math.toIntExact(ast.getStartCode());
+      int end = Math.toIntExact(ast.getEndCode());
+      len = end - begin;
     }
+    return Option.apply(new IdentifiedLocation(new Location(begin, begin + len), Option.empty()));
   }
   private MetadataStorage meta() {
     return MetadataStorage.apply(nil());

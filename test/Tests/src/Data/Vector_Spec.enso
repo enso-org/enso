@@ -59,9 +59,11 @@ spec = Test.group "Vectors" <|
         built_from_py = Vector.from_polyglot_array generate_py_array
         built_from_py . should_equal [1, 2, 3, 4, Nothing]
 
-    Test.specify "should allow creation from arrays without mutability for nested arrays" pending="Polyglot Arrays/Vector rewrite" <|
+    Test.specify "should allow creation from nested arrays from JavaScript" <|
         built_from_js = Vector.from_polyglot_array generate_nested_js_array
         built_from_js . should_equal [[1, 2, 3], [4, 5]]
+
+    Test.specify "should allow creation from nested arrays from Python" pending=pending_python_missing <|
         built_from_py = Vector.from_polyglot_array generate_nested_py_array
         built_from_py . should_equal [[1, 2, 3], [4, 5]]
 
@@ -426,7 +428,7 @@ spec = Test.group "Vectors" <|
         vec = Vector.fill 1000 0
         text = vec.to_default_visualization_data
         json = Json.parse text
-        as_vec = json.into (Vector.Vector_Data Number)
+        as_vec = json.into (Vector.fill 1 Number)
         as_vec.should_equal <| Vector.fill 100 0
 
     Test.specify "should pad elements" <|
@@ -476,5 +478,35 @@ spec = Test.group "Vectors" <|
         input = "beta".utf_8
         expected = "abet".utf_8
         input.sort . should_equal expected
+
+    v1 = [1, 2, 3]
+    a1 = v1.to_array
+
+    v2 = [1, 2, 3]
+    a2 = v2.to_array
+
+    Test.specify "vector1 should be equal to vector1" <|
+        v1.should_equal v1
+
+    Test.specify "vector1 should be equal to vector2" <|
+        v1.should_equal v2
+
+    Test.specify "vector1 should be equal to array1" <|
+        v1.should_equal a1
+
+    Test.specify "vector1 should be equal to array2" <|
+        v1.should_equal a2
+
+    Test.specify "array1 should be equal to vector1" <|
+        a1.should_equal v1
+
+    Test.specify "array1 should be equal to vector2" <|
+        a1.should_equal v2
+
+    Test.specify "array1 should be equal to array1" <|
+        a1.should_equal a1
+
+    Test.specify "array1 should be equal to array2" <|
+        a1.should_equal a2
 
 main = Test.Suite.run_main spec

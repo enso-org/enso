@@ -1,0 +1,80 @@
+from Standard.Base import all
+
+polyglot java import java.sql.SQLException
+
+## Indicates that a requested operation is not supported, for example because a
+   particular database backend does not support it.
+type Unsupported_Database_Operation_Error
+    Unsupported_Database_Operation_Error_Data message
+
+    ## UNSTABLE
+
+       Convert the SQL error to a textual representation.
+    to_text : Text
+    to_text self =
+        "Unsupported database operation: " + self.message
+
+    ## UNSTABLE
+
+       Pretty print the error.
+    to_display_text : Text
+    to_display_text self =
+        "Unsupported database operation: " + self.message
+
+type Sql_Error
+    ## UNSTABLE
+
+       Indicates an error with executing a query, update or connecting to the
+       database.
+
+       Arguments:
+       - java_exception: The underlying exception.
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    Sql_Error_Data java_exception related_query=Nothing
+
+    ## UNSTABLE
+
+       Convert the SQL error to a textual representation.
+    to_text : Text
+    to_text self =
+        query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
+        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
+
+    ## UNSTABLE
+
+       Pretty print the SQL error.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+    ## PRIVATE
+
+       Throws an error as if a SQL Exception was thrown.
+    throw_sql_error : Text -> Sql_Error
+    throw_sql_error message =
+        Error.throw (Sql_Error_Data (SQLException.new message))
+
+type Sql_Timeout_Error
+    ## UNSTABLE
+
+       Indicates that an operation has timed out.
+
+       Arguments:
+       - java_exception: The underlying exception.
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    Sql_Timeout_Error_Data java_exception related_query=Nothing
+
+    ## UNSTABLE
+
+       Convert the timeout error to a textual representation.
+    to_text : Text
+    to_text self =
+        query = if self.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "The SQL connection timed out: " + self.java_exception.getMessage + "." + query
+
+    ## UNSTABLE
+
+       Pretty print the timeout error.
+    to_display_text : Text
+    to_display_text self = self.to_text

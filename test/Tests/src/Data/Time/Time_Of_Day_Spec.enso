@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error_Data
 
 import Standard.Test
@@ -71,7 +72,7 @@ specWith name create_new_time parse_time =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            datetime = create_new_time 1 0 0 . to_time (Date.new 2000 12 21) Time_Zone.utc
+            datetime = create_new_time 1 0 0 . to_date_time (Date.new 2000 12 21) Time_Zone.utc
             datetime . year . should_equal 2000
             datetime . month . should_equal 12
             datetime . day . should_equal 21
@@ -115,6 +116,39 @@ specWith name create_new_time parse_time =
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
+
+        max_nanos = 999999999
+        Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|
+            d1 = create_new_time 15 37 58 123456789
+            d1.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
+            d1.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d1.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 0 0 0)
+            d1.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 59 59 max_nanos)
+            d1.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 0 0)
+            d1.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 59 max_nanos)
+            d1.start_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 0)
+            d1.end_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 max_nanos)
+
+            d2 = create_new_time 0 0 0
+            d2.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
+            d2.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d2.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 0 0 0)
+            d2.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 59 59 max_nanos)
+            d2.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 0 0)
+            d2.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 59 max_nanos)
+            d2.start_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 0)
+            d2.end_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 max_nanos)
+
+            d3 = create_new_time 23 59 59 max_nanos
+            d3.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
+            d3.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 0 0 0)
+            d3.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 0 0)
+            d3.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.start_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 0)
+            d3.end_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+
 
 enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanoOfSecond

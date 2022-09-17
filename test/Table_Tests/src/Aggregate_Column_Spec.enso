@@ -31,7 +31,8 @@ spec = Test.group "Aggregate Columns" <|
         result =
             acc = Aggregate_Column_Helper.java_aggregator "Name" resolved
             indexes = Vector.new table.row_count v->v
-            acc.aggregate indexes.to_array
+            Illegal_Argument_Error.handle_java_exception <|
+                acc.aggregate indexes.to_array
 
         if epsilon != False then ((result - expected_result).abs < epsilon).should_be_true else
             result.should_equal expected_result
