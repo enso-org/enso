@@ -66,7 +66,7 @@ type Postgres_Options
                         Pgpass.read self.host self.port self.database username
                     Pair_Data username password ->
                         [Pair_Data 'user' username, Pair_Data 'password' password]
-            Username_Password username password ->
+            Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl

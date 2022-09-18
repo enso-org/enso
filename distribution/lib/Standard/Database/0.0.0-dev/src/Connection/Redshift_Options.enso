@@ -60,7 +60,7 @@ type Redshift_Options
                 [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
             AWS_Key db_user access_key secret_access_key ->
                 [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
-            Username_Password username password ->
+            Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.

@@ -214,7 +214,7 @@ type From_Spec
        A query source that holds a raw SQL statement.
 
        Arguments:
-       - raw_sql: the full name identifying the table in the database.
+       - raw_sql: the raw SQL code of a query used as a source for this table.
        - alias: the name upon which the table can be referred to in other
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
