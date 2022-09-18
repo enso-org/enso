@@ -1238,55 +1238,69 @@ impl AreaModel {
             // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
-    fn set_property_default(&self, property: style::ResolvedProperty) {
-        match property {
-            style::ResolvedProperty::Weight(weight) => {
-                let range = self.buffer.full_range();
-                let formatting = self.buffer.sub_style(range);
-                let spans = formatting.weight.spans.to_vector();
+    fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
+        if let Some(tag) = property.tag() {
+            let range = self.buffer.full_range();
+            let formatting = self.buffer.sub_style(range);
+            let span_ranges = formatting.span_ranges_of_default_values(tag);
+            for span_range in span_ranges {
+                let range = buffer::Range::<Location<Column>>::from_in_context(self, span_range);
+                let mut lines = self.lines.borrow_mut();
 
-                let ranges = spans.into_iter().filter(|t| t.value.is_none()).map(|span| span.range);
-
-                self.clear_cache_and_redraw_lines(ranges);
-            }
-            style::ResolvedProperty::Color(color) => {
-                let range = self.buffer.full_range();
-                let formatting = self.buffer.sub_style(range);
-                let spans = formatting.color.spans.to_vector();
-                for span in spans.into_iter().filter(|t| t.value.is_none()) {
-                    let range =
-                        buffer::Range::<Location<Column>>::from_in_context(self, span.range);
-                    let mut lines = self.lines.borrow_mut();
-
-                    if range.single_line() {
-                        let view_line = self.buffer.line_to_view_line(range.start.line);
+                if range.single_line() {
+                    let view_line = self.buffer.line_to_view_line(range.start.line);
+                    let line = &mut lines[view_line];
+                    for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
+                        glyph.set_property(property);
+                    }
+                } else {
+                    let view_line = self.buffer.line_to_view_line(range.start.line);
+                    let first_line = &mut lines[view_line];
+                    for glyph in &mut first_line.glyphs[range.start.offset..] {
+                        glyph.set_property(property);
+                    }
+                    let view_line = self.buffer.line_to_view_line(range.end.line);
+                    let last_line = &mut lines[view_line];
+                    for glyph in &mut last_line.glyphs[..range.end.offset] {
+                        glyph.set_property(property);
+                    }
+                    for line_index in range.start.line.value + 1..range.end.line.value {
+                        let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
                         let line = &mut lines[view_line];
-                        for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
+                        for glyph in &mut line.glyphs[..] {
                             glyph.set_property(property);
-                        }
-                    } else {
-                        let view_line = self.buffer.line_to_view_line(range.start.line);
-                        let first_line = &mut lines[view_line];
-                        for glyph in &mut first_line.glyphs[range.start.offset..] {
-                            glyph.set_property(property);
-                        }
-                        let view_line = self.buffer.line_to_view_line(range.end.line);
-                        let last_line = &mut lines[view_line];
-                        for glyph in &mut last_line.glyphs[..range.end.offset] {
-                            glyph.set_property(property);
-                        }
-                        for line_index in range.start.line.value + 1..range.end.line.value {
-                            let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
-                            let line = &mut lines[view_line];
-                            for glyph in &mut line.glyphs[..] {
-                                glyph.set_property(property);
-                            }
                         }
                     }
-                    warn!(">> range: {:?}", range);
                 }
+                warn!(">> range: {:?}", range);
             }
-            _ => panic!(),
+        }
+    }
+
+    fn set_property_default_with_line_redraw(&self, property: style::ResolvedProperty) {
+        if let Some(tag) = property.tag() {
+            let range = self.buffer.full_range();
+            let formatting = self.buffer.sub_style(range);
+            let span_ranges = formatting.span_ranges_of_default_values(tag);
+            self.clear_cache_and_redraw_lines(span_ranges);
+        }
+    }
+
+    fn set_property_default(&self, property: style::ResolvedProperty) {
+        match property {
+            style::ResolvedProperty::Nothing => {}
+            style::ResolvedProperty::Size(_) =>
+                self.set_property_default_with_line_redraw(property),
+            style::ResolvedProperty::Color(_) =>
+                self.set_property_default_without_line_redraw(property),
+            style::ResolvedProperty::Weight(_) =>
+                self.set_property_default_with_line_redraw(property),
+            style::ResolvedProperty::Width(_) =>
+                self.set_property_default_with_line_redraw(property),
+            style::ResolvedProperty::Style(_) =>
+                self.set_property_default_with_line_redraw(property),
+            style::ResolvedProperty::SdfWeight(_) =>
+                self.set_property_default_without_line_redraw(property),
         }
     }
 

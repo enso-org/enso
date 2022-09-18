@@ -1545,6 +1545,16 @@ impl<T: Clone> IntoParam<Option<T>> for &T {
     }
 }
 
+impl<T: Clone, S> IntoParam<Option<T>> for S
+where
+    S: Into<T>,
+    (Option<T>, S): NotSame,
+{
+    fn into_param(self) -> Option<T> {
+        Some(self.into())
+    }
+}
+
 impl<T, S> IntoParam<T> for S
 where
     (T, S): NotSame,

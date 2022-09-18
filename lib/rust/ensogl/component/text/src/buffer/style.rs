@@ -56,11 +56,11 @@ def_unit!(SdfWeight(f32) = 0.0);
 /// Defines struct containing all styles information. Also defines many utils, like iterator for it.
 /// See the usage below to learn more.
 macro_rules! define_format {
-    ($($field:ident : $field_type:ty),* $(,)?) => {
+    ($($field:ident : $field_type:ty),* $(,)?) => {paste! {
 
         // === Format ===
 
-        paste! {
+
             #[derive(Clone, Copy, Debug, From, Default)]
             pub enum Property {
                 #[default]
@@ -73,6 +73,29 @@ macro_rules! define_format {
                 #[default]
                 Nothing,
                 $([<$field:camel>] ($field_type)),*
+            }
+
+            #[derive(Clone, Copy, Debug, From)]
+            pub enum PropertyTag {
+                $([<$field:camel>]),*
+            }
+
+            impl Property {
+                pub fn tag(&self) -> Option<PropertyTag> {
+                    match self {
+                        Self::Nothing => None,
+                        $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
+                    }
+                }
+            }
+
+            impl ResolvedProperty {
+                pub fn tag(&self) -> Option<PropertyTag> {
+                    match self {
+                        Self::Nothing => None,
+                        $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
+                    }
+                }
             }
 
             $(
@@ -90,7 +113,7 @@ macro_rules! define_format {
             //         }}
             //     }
             // }
-        }
+
 
 
         #[derive(Clone, Copy, Debug, Default, From)]
@@ -167,6 +190,15 @@ macro_rules! define_format {
                 $(let $field = self.$field.to_vector().into_iter();)*
                 StyleIterator::new(StyleIteratorComponents {$($field),*})
             }
+
+            pub fn span_ranges_of_default_values(&self, tag:PropertyTag) -> Vec<Range<UBytes>> {
+                match tag {
+                    $(PropertyTag::[<$field:camel>] => {
+                        let spans = self.$field.spans.to_vector();
+                        spans.into_iter().filter(|t| t.value.is_none()).map(|t| t.range).collect_vec()
+                    })*
+                }
+            }
         }
 
         impl Formatting {
@@ -195,7 +227,7 @@ macro_rules! define_format {
             }
 
         }
-    };
+    }};
 }
 
 // // FIXME: TODO: make it working for other types, not owned by this crate.
