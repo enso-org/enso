@@ -208,27 +208,33 @@ macro_rules! define_format {
         }
 
         impl Formatting {
-            paste! {
-                pub fn set_property(&mut self, range:Range<UBytes>, property: Property) {
-                    let range_size = UBytes::try_from(range.size()).unwrap_or_default();
-                    match property {
-                        $(Property::[<$field:camel>] (t) => self.$field.replace_resize(range, range_size, t)),*
-                    }
-                }
-
-                pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
-                    match property {
-                        $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
-                    }
-                }
-
-                pub fn set_property_default(&mut self, property: ResolvedProperty) {
-                    match property {
-                        $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
-                    }
+            pub fn set_property(&mut self, range:Range<UBytes>, property: Property) {
+                let range_size = UBytes::try_from(range.size()).unwrap_or_default();
+                match property {
+                    $(Property::[<$field:camel>] (t) => self.$field.replace_resize(range, range_size, t)),*
                 }
             }
 
+            pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
+                match property {
+                    $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
+                }
+            }
+
+            pub fn set_property_default(&mut self, property: ResolvedProperty) {
+                match property {
+                    $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
+                }
+            }
+
+            pub fn mod_property(&mut self, range:Range<UBytes>, property: PropertyDiff) {
+                match property {
+                    PropertyDiff::Size(diff) => self.size.modify_resolved(range, |p|p.apply_diff(diff)),
+                }
+                // match property {
+                //     $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
+                // }
+            }
         }
     }};
 }
@@ -282,7 +288,7 @@ pub struct Spanned<T: Copy> {
     pub default: T,
 }
 
-impl<T: Copy> Spanned<T> {
+impl<T: Copy + Debug> Spanned<T> {
     /// Return new property narrowed to the given range.
     pub fn sub(&self, range: Range<UBytes>) -> Self {
         let spans = self.spans.sub(range);
@@ -294,6 +300,10 @@ impl<T: Copy> Spanned<T> {
     pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
         spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
+    }
+
+    pub fn modify_resolved(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
+        self.spans.modify(range, |t| Some(f(t.unwrap_or(self.default))))
     }
 }
 
@@ -328,6 +338,28 @@ define_format! {
     width      : Width,
     style      : Style,
     sdf_weight : SdfWeight,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct SizeDiff {
+    pub value: f32,
+}
+
+pub fn SizeDiff(value: f32) -> SizeDiff {
+    SizeDiff { value }
+}
+
+#[derive(Clone, Copy, Debug, From)]
+pub enum PropertyDiff {
+    Size(SizeDiff),
+}
+
+impl Size {
+    pub fn apply_diff(&self, diff: SizeDiff) -> Self {
+        let value = self.value + diff.value;
+        let value = if value < 0.0 { 0.0 } else { value };
+        Size { value }
+    }
 }
 
 
@@ -414,5 +446,9 @@ impl FormattingCell {
 
     pub fn set_property(&self, range: Range<UBytes>, property: Property) {
         self.cell.borrow_mut().set_property(range, property)
+    }
+
+    pub fn mod_property(&self, range: Range<UBytes>, property: PropertyDiff) {
+        self.cell.borrow_mut().mod_property(range, property)
     }
 }

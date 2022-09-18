@@ -340,6 +340,7 @@ ensogl_core::define_endpoints! {
         insert                (String),
         set_property          (TextRange, Option<style::Property>),
         set_property_default  (Option<style::ResolvedProperty>),
+        mod_property          (TextRange, Option<style::PropertyDiff>),
         /// Sets the color for all text that has no explicit color set.
         // set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
@@ -606,6 +607,10 @@ impl Area {
             new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ((t) m.set_property(&t.0, t.1));
+
+            mod_prop <- input.mod_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
+            m.buffer.frp.mod_property <+ mod_prop;
+            eval mod_prop ((t) m.mod_property(&t.0, t.1));
 
 
             // === Changes ===
@@ -1338,6 +1343,19 @@ impl AreaModel {
                 self.clear_cache_and_redraw_lines(ranges.iter().copied())
             } else {
                 self.set_glyphs_property(ranges, property)
+            }
+        }
+    }
+
+    pub fn mod_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: Option<style::PropertyDiff>,
+    ) {
+        if let Some(property) = property {
+            match property {
+                style::PropertyDiff::Size(_) =>
+                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
             }
         }
     }

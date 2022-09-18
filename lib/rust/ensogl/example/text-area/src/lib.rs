@@ -219,7 +219,15 @@ fn init_debug_hotkeys(area: &Area) {
                 if event.shift_key() {
                     area.set_property_default(style::Size(16.0));
                 } else {
-                    area.set_property(buffer::TextRange::Selections, style::Size(16.0));
+                    // area.set_property(buffer::TextRange::Selections, style::Size(16.0));
+                    area.mod_property(buffer::TextRange::Selections, style::SizeDiff(2.0));
+                }
+            } else if key == "Minus" {
+                if event.shift_key() {
+                    area.set_property_default(style::Size(16.0));
+                } else {
+                    // area.set_property(buffer::TextRange::Selections, style::Size(16.0));
+                    area.mod_property(buffer::TextRange::Selections, style::SizeDiff(-2.0));
                 }
             }
             // } else if key == "Digit0" {

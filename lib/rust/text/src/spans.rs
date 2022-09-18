@@ -19,7 +19,7 @@ pub struct Spans<T: Clone> {
     raw: rope::Spans<T>,
 }
 
-impl<T: Clone> Spans<T> {
+impl<T: Clone + Debug> Spans<T> {
     /// The number of bytes of this span.
     pub fn len(&self) -> UBytes {
         self.raw.len().into()
@@ -38,9 +38,25 @@ impl<T: Clone> Spans<T> {
     /// `value`. Use with caution, as it can easily lead to wrong amount of bytes covered by the
     /// span.
     pub fn replace_resize(&mut self, range: Range<UBytes>, length: UBytes, value: T) {
+        warn!("replace_resize, range: {:?}, length: {:?}, value: {:?}", range, length, value);
         let mut builder = rope::spans::Builder::new(length.value);
         builder.add_span(.., value);
         self.raw.edit(range.into_rope_interval(), builder.build())
+    }
+
+    pub fn modify(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
+        let subseq = self.raw.subseq(range.into_rope_interval());
+        warn!("SUBSEQ: {subseq:?}");
+        for t in subseq.iter() {
+            let sub_start: UBytes = t.0.start.into();
+            let sub_end: UBytes = t.0.end.into();
+            let start = range.start + sub_start;
+            let end = range.start + sub_end;
+            let range = Range::new(start, end);
+            let size = UBytes::try_from(range.size()).unwrap();
+            self.replace_resize(range, size, f(t.1.clone()));
+            warn!("T: {t:?}");
+        }
     }
 
     /// Return all spans contained in the provided range.

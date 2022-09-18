@@ -788,6 +788,7 @@ ensogl_core::define_endpoints! {
         // set_default_color          (color::Rgba),
         // set_default_text_size      (style::Size),
         set_property               (Vec<buffer::Range<UBytes>>, Option<style::Property>),
+        mod_property               (Vec<buffer::Range<UBytes>>, Option<style::PropertyDiff>),
         set_property_default       (Option<style::ResolvedProperty>),
     }
 
@@ -865,7 +866,9 @@ impl View {
             // eval input.set_default_color     ((t) m.set_default(*t));
             // eval input.set_default_text_size ((t) m.set_default(*t));
             eval input.set_property          (((range,value)) m.replace(range,*value));
+            eval input.mod_property          (((range,value)) m.mod_property(range,*value));
             eval input.set_property_default  ((prop) m.set_property_default(*prop));
+
             // eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ modification;
@@ -928,6 +931,19 @@ impl ViewModel {
             for range in ranges {
                 let range = self.crop_byte_range(range);
                 self.data.formatting.set_property(range, property)
+            }
+        }
+    }
+
+    fn mod_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: Option<style::PropertyDiff>,
+    ) {
+        if let Some(property) = property {
+            for range in ranges {
+                let range = self.crop_byte_range(range);
+                self.data.formatting.mod_property(range, property)
             }
         }
     }
