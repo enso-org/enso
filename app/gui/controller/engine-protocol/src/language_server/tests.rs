@@ -1,14 +1,14 @@
-use std::future::Future;
+use super::*;
 
 use futures::task::LocalSpawnExt;
-use serde_json::json;
-use serde_json::Value;
-
 use json_rpc::messages::Message;
 use json_rpc::messages::RequestMessage;
 use json_rpc::test_util::transport::mock::MockTransport;
+use serde_json::json;
+use serde_json::Value;
+use std::future::Future;
 
-use super::*;
+
 
 // ===============
 // === Fixture ===

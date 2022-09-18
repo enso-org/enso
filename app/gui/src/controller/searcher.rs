@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::controller::breadcrumbs::Breadcrumbs;
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::searcher::component::group;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
@@ -32,8 +33,8 @@ use parser::Parser;
 pub mod action;
 pub mod component;
 
-use crate::controller::searcher::component::group;
 pub use action::Action;
+
 
 
 // =================
