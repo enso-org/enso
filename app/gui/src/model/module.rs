@@ -369,12 +369,15 @@ pub struct IdeMetadata {
 }
 
 /// Metadata about a nodes edit status.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
 pub enum NodeEditStatus {
     /// The node was edited and had a previous expression.
     Edited {
         /// Expression of the node before the edit was started.
-        previous_expression: String,
+        previous_expression:      String,
+        /// Intended method of the node before editing (if known).
+        previous_intended_method: Option<MethodId>,
     },
     /// The node was created and did not previously exist.
     Created,
