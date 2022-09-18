@@ -125,7 +125,8 @@ mod line {
 
                 metrics_on_set_is_last <- frp.set_metrics.sample(&frp.set_is_last);
                 metrics_new <- any(&frp.set_metrics, &metrics_on_set_is_last);
-                descent_new <- all_with(&baseline_new, &metrics_new, |baseline,metrics| baseline + metrics.descender);
+                descent_new <- all_with(&baseline_new, &metrics_new, |baseline,metrics|
+                    baseline + metrics.descender);
                 descent_if_last <- descent_new.gate(&frp.set_is_last);
                 frp.private.output.descent_if_last <+ descent_if_last.on_change();
                 frp.private.output.metrics <+ frp.set_metrics.on_change();
@@ -983,7 +984,7 @@ impl AreaModel {
                 self.resize_lines();
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
             } else {
-                self.remove_glyphs_from_cursors();
+                self.detach_glyphs_from_cursors();
             }
         })
     }
@@ -1000,7 +1001,7 @@ impl AreaModel {
         self.update_lines_after_change(changes);
         self.replace_selections(buffer_selections, do_edit, Some(time));
         if do_edit {
-            self.add_glyphs_to_cursors();
+            self.attach_glyphs_to_cursors();
         }
         // self.redraw(true)
     }
@@ -1183,7 +1184,7 @@ impl AreaModel {
         }
     }
 
-    pub fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+    fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
         warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
         for range in sorted_line_ranges {
             let lines_content = self.buffer.lines_content(range.clone());
@@ -1524,7 +1525,7 @@ impl AreaModel {
         }
     }
 
-    pub fn add_glyphs_to_cursors(&self) {
+    pub fn attach_glyphs_to_cursors(&self) {
         for line in ViewLine(0)..ViewLine(self.buffer.view_lines().len()) {
             self.add_line_glyphs_to_cursors(line)
         }
@@ -1543,7 +1544,8 @@ impl AreaModel {
         debug!("cursor_map {:?}", cursor_map);
         let line = &self.lines.borrow()[view_line_index];
 
-        let mut last_cursor = None;
+        let mut last_glyph = None;
+        let mut last_cursor: Option<Selection> = None;
         let mut last_cursor_target = default();
 
         let mut column = Column(0);
@@ -1551,6 +1553,9 @@ impl AreaModel {
             cursor_map.get(&column).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
+                        if let Some(last_cursor) = &last_cursor {
+                            last_cursor.frp.set_last_attached_glyph(mem::take(&mut last_glyph));
+                        }
                         last_cursor = Some(cursor.clone_ref());
                         last_cursor_target = Vector2(glyph.position().x, 0.0);
                     }
@@ -1560,12 +1565,16 @@ impl AreaModel {
             if let Some(cursor) = &last_cursor {
                 cursor.right_side.add_child(glyph);
                 glyph.mod_position_xy(|p| p - last_cursor_target);
+                last_glyph = Some(glyph.downgrade());
             }
             column += Column(1);
         }
+        if let Some(last_cursor) = &last_cursor {
+            last_cursor.frp.set_last_attached_glyph(mem::take(&mut last_glyph));
+        }
     }
 
-    pub fn remove_glyphs_from_cursors(&self) {
+    pub fn detach_glyphs_from_cursors(&self) {
         let selection_map = self.selection_map.borrow();
         for (&line, cursor_map) in &selection_map.location_map {
             for (_, cursor_id) in cursor_map {
@@ -1578,22 +1587,6 @@ impl AreaModel {
             }
         }
     }
-
-    // pub fn remove_lines_from_cursors(&self) {
-    //     let selection_map = self.selection_map.borrow();
-    //     for cursor_id in selection_map.id_map.keys() {
-    //         let selection = selection_map.id_map.get(cursor_id).unwrap();
-    //         let pos_y = selection.position.target_value().y;
-    //         for line in selection.bottom_snapped_left.remove_all_children() {
-    //             self.add_child(&line);
-    //             line.mod_position_y(|pos| pos + pos_y);
-    //         }
-    //     }
-    //     for line in &mut *self.lines.borrow_mut() {
-    //         line.detached = false;
-    //     }
-    // }
-
 
     // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
     /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered

@@ -10,6 +10,8 @@ use ensogl_core::display;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::Animation;
 use ensogl_core::DEPRECATED_Animation;
+// FIXME: circular dep?
+use crate::font::glyph::WeakGlyph;
 
 const DEBUG_SLOWDOWN: bool = false;
 
@@ -98,6 +100,11 @@ ensogl_core::define_endpoints_2! {
         set_color (color::Rgb),
         set_ascender (f32),
         set_descender (f32),
+        set_last_attached_glyph (Option<WeakGlyph>),
+    }
+
+    Output {
+        right_side_of_last_attached_glyph (f32),
     }
 }
 
@@ -116,16 +123,15 @@ ensogl_core::define_endpoints_2! {
 /// object will make the following glyphs  animate while the selection is shrinking.
 #[derive(Clone, CloneRef)]
 pub struct Selection {
-    pub frp:                 Frp,
-    display_object:          display::object::Instance,
-    pub right_side:          display::object::Instance,
-    pub bottom_snapped_left: display::object::Instance,
-    shape_view:              shape::View,
-    pub position:            DEPRECATED_Animation<Vector2>,
-    pub width:               DEPRECATED_Animation<f32>,
-    pub ascender:            Animation<f32>,
-    pub descender:           Animation<f32>,
-    pub edit_mode:           Rc<Cell<bool>>,
+    pub frp:        Frp,
+    display_object: display::object::Instance,
+    pub right_side: display::object::Instance,
+    shape_view:     shape::View,
+    pub position:   DEPRECATED_Animation<Vector2>,
+    pub width:      DEPRECATED_Animation<f32>,
+    pub ascender:   Animation<f32>,
+    pub descender:  Animation<f32>,
+    pub edit_mode:  Rc<Cell<bool>>,
 }
 
 impl Debug for Selection {
@@ -147,8 +153,7 @@ impl Selection {
         let frp = Frp::new();
         let network = frp.network();
         let display_object = display::object::Instance::new();
-        let right_side = default();
-        let bottom_snapped_left = default();
+        let right_side = display::object::Instance::new();
         let shape_view = shape::View::new();
         let position = DEPRECATED_Animation::new(&network);
         let width = DEPRECATED_Animation::new(&network);
@@ -171,12 +176,22 @@ impl Selection {
                     shape_view.size.modify(|t| Vector2(t.x, CURSOR_PADDING * 2.0 + height));
                 })
             );
+
+            line_width_can_change <- any_(&frp.set_last_attached_glyph, &position.value);
+            w <- frp.set_last_attached_glyph.sample(&line_width_can_change).map(f!([display_object, right_side](glyph) {
+                if let Some(glyph) = glyph.as_ref().and_then(|glyph| glyph.upgrade()) {
+                    let glyph_right_x = glyph.position().x + glyph.width();
+                    let origin_x = display_object.position().x + right_side.position().x;
+                    let right_x = origin_x + glyph_right_x;
+                    warn!("LAST GLYPH X: {:?}", right_x);
+                }
+                0_usize
+            }));
         }
 
         Self {
             display_object,
             right_side,
-            bottom_snapped_left,
             shape_view,
             position,
             width,
@@ -193,14 +208,12 @@ impl Selection {
         let view = &self.shape_view;
         let object = &self.display_object;
         let right_side = &self.right_side;
-        let bottom_snapped_left = &self.bottom_snapped_left;
         let shape_view = &self.shape_view;
         self.add_child(view);
         self.add_child(right_side);
-        view.add_child(bottom_snapped_left);
         frp::extend! { network
             _eval <- all_with(&self.position.value,&self.width.value,
-                f!([view,object,right_side,bottom_snapped_left](p,width){
+                f!([view,object,right_side](p,width){
                     let side       = width.signum();
                     let abs_width  = width.abs();
                     let width      = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
@@ -208,7 +221,6 @@ impl Selection {
                     let view_x     = (abs_width/2.0) * side;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
-                    bottom_snapped_left.set_position_xy(Vector2(-p.x, 0.0));
                     view.size.modify(|t| Vector2(view_width,t.y));
                     view.set_position_x(view_x);
                 })

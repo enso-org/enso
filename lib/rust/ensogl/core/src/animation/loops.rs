@@ -64,8 +64,6 @@ impl TimeInfo {
 // === RawLoop ===
 // ===============
 
-thread_local!(pub static LOOPS_COUNT: RefCell<usize> = RefCell::new(0));
-
 
 // === Types ===
 
@@ -117,7 +115,6 @@ pub struct RawLoopData<OnFrame> {
 impl<OnFrame> RawLoopData<OnFrame> {
     /// Constructor.
     fn new(on_frame: OnFrame) -> Self {
-        LOOPS_COUNT.with_borrow_mut(|count| *count += 1);
         // event!(WARN, "NEW LOOP {}", LOOPS_COUNT.with_borrow(|count| *count));
         let js_on_frame = default();
         let js_on_frame_handle_id = default();
@@ -138,8 +135,6 @@ impl<OnFrame> RawLoopData<OnFrame> {
 
 impl<OnFrame> Drop for RawLoopData<OnFrame> {
     fn drop(&mut self) {
-        LOOPS_COUNT.with_borrow_mut(|count| *count -= 1);
-        // event!(WARN, "LOOP DROP {}", LOOPS_COUNT.with_borrow(|count| *count));
         web::window.cancel_animation_frame_or_panic(self.js_on_frame_handle_id);
     }
 }

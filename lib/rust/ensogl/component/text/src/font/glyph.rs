@@ -43,6 +43,17 @@ ensogl_core::define_endpoints_2! {
 // === Glyph ===
 // =============
 
+#[derive(Clone, CloneRef, Debug)]
+pub struct WeakGlyph {
+    data: Weak<GlyphData>,
+}
+
+impl WeakGlyph {
+    pub fn upgrade(&self) -> Option<Glyph> {
+        self.data.upgrade().map(|data| Glyph { data })
+    }
+}
+
 /// Glyph texture. Contains all letters encoded in MSDF format.
 pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
@@ -52,6 +63,12 @@ pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Glyph {
     data: Rc<GlyphData>,
+}
+
+impl Glyph {
+    pub fn downgrade(&self) -> WeakGlyph {
+        WeakGlyph { data: Rc::downgrade(&self.data) }
+    }
 }
 
 /// Internal structure of [`Glyph`].
@@ -153,6 +170,10 @@ impl Glyph {
             ResolvedProperty::SdfWeight(weight) => self.set_sdf_weight(weight),
             _ => panic!(),
         }
+    }
+
+    pub fn width(&self) -> f32 {
+        self.sprite.size.get().x
     }
 
     /// Color getter.

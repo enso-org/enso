@@ -712,7 +712,6 @@ impl Extensions {
 pub struct UpdateStatus {
     pub scene_was_dirty:          bool,
     pub pointer_position_changed: bool,
-    pub animations_running:       bool,
 }
 
 
@@ -1126,9 +1125,6 @@ impl Scene {
     // FIXME:
     #[allow(unused_assignments)]
     pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
-        let animation_count = crate::animation::LOOPS_COUNT.with_borrow(|t| *t);
-        let animations_running = animation_count > 1; // Main loop is always running.
-                                                      // event!(WARN, "{:?}", animation_count);
         if let Some(context) = &*self.context.borrow() {
             debug_span!("Updating.").in_scope(|| {
                 let mut scene_was_dirty = false;
@@ -1149,7 +1145,7 @@ impl Scene {
                 // FIXME: setting it to true for now in order to make cursor blinking work.
                 //   Text cursor animation is in GLSL. To be handled properly in this PR.
                 let scene_was_dirty = true;
-                UpdateStatus { scene_was_dirty, pointer_position_changed, animations_running }
+                UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
         } else {
             default()
