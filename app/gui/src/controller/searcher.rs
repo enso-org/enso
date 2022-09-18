@@ -1630,12 +1630,14 @@ pub mod test {
             let list_builder_with_favs =
                 component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let node_metadata_guard = default();
+            let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
                 logger,
                 database,
                 ide: Rc::new(ide),
                 data: default(),
+                breadcrumbs,
                 notifier: default(),
                 mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
