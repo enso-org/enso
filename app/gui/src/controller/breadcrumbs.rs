@@ -1,7 +1,8 @@
 //! A module containing a controller for the breadcrumbs panel of the component browser.
 
-use crate::controller::searcher::component;
 use crate::prelude::*;
+
+use crate::controller::searcher::component;
 
 
 

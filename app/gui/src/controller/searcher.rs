@@ -34,7 +34,6 @@ pub mod action;
 pub mod breadcrumbs;
 pub mod component;
 
-use crate::controller::searcher::component::group;
 pub use action::Action;
 
 
