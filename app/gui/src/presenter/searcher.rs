@@ -19,6 +19,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel;
+use ide_view::component_browser::list_panel::EnteredModule;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
@@ -150,8 +151,10 @@ impl Model {
 
     /// Should be called if a suggestion is selected but not used yet.
     fn suggestion_selected(&self, entry_id: list_panel::EntryId) {
-        let suggestion = self.suggestion_for_entry_id(entry_id).unwrap();
-        self.controller.preview_suggestion(suggestion);
+        match self.suggestion_for_entry_id(entry_id) {
+            Ok(suggestion) => self.controller.preview_suggestion(suggestion),
+            Err(err) => tracing::warn!("Error while previewing suggestion: {err}."),
+        }
     }
 
     fn suggestion_accepted(
@@ -180,6 +183,27 @@ impl Model {
         }
     }
 
+    fn module_entered(&self, module: EnteredModule) {
+        self.enter_module(module);
+    }
+
+    fn enter_module(&self, module: EnteredModule) -> Option<()> {
+        match module {
+            EnteredModule::Entry(group, entry_id) => {
+                let view_id = list_panel::EntryId { group, entry_id };
+                let component = self.component_by_view_id(view_id)?;
+                let id = component.id()?;
+                self.controller.enter_module(&id);
+            }
+            EnteredModule::Group(group_id) => {
+                let group = self.group_by_view_id(group_id)?;
+                let id = group.component_id?;
+                self.controller.enter_module(&id);
+            }
+        }
+        Some(())
+    }
+
     fn expression_accepted(
         &self,
         entry_id: Option<view::component_browser::list_panel::EntryId>,
@@ -205,25 +229,24 @@ impl Model {
         &self,
         id: view::component_browser::list_panel::GroupId,
     ) -> Option<controller::searcher::component::Group> {
-        let components = self.controller.components();
         let opt_group = match id.section {
-            SectionId::Favorites => components.favorites.get(id.index),
-            SectionId::LocalScope => (id.index == 0).as_some_from(|| &components.local_scope),
-            SectionId::SubModules => components.top_modules().get(id.index),
+            SectionId::Favorites => self.controller.favorites().get(id.index).cloned(),
+            SectionId::LocalScope => (id.index == 0).as_some_from(|| self.controller.local_scope()),
+            SectionId::SubModules => self.controller.top_modules().get(id.index).cloned(),
         };
-        opt_group.cloned()
+        opt_group
     }
 
     fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
-        provider::from_component_group_list(self.controller.components().top_modules())
+        provider::from_component_group_list(&self.controller.top_modules())
     }
 
     fn create_favorites_providers(&self) -> Vec<LabeledAnyModelProvider> {
-        provider::from_component_group_list(&self.controller.components().favorites)
+        provider::from_component_group_list(&self.controller.favorites())
     }
 
     fn create_local_scope_provider(&self) -> LabeledAnyModelProvider {
-        provider::from_component_group(&self.controller.components().local_scope)
+        provider::from_component_group(&self.controller.local_scope())
     }
 
     fn documentation_of_component(
@@ -344,6 +367,7 @@ impl Searcher {
 
                     eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval list_view.suggestion_selected((entry) model.suggestion_selected(*entry));
+                    eval list_view.module_entered((id) model.module_entered(*id));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {

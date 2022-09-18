@@ -3,6 +3,7 @@
 use crate::model::traits::*;
 use crate::prelude::*;
 
+use crate::controller::breadcrumbs::Breadcrumbs;
 use crate::controller::graph::FailedToCreateNode;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
@@ -31,8 +32,8 @@ use parser::Parser;
 pub mod action;
 pub mod component;
 
+use crate::controller::searcher::component::group;
 pub use action::Action;
-
 
 
 // =================
@@ -492,6 +493,7 @@ impl Data {
 pub struct Searcher {
     logger: Logger,
     data: Rc<RefCell<Data>>,
+    breadcrumbs: Breadcrumbs,
     notifier: notification::Publisher<Notification>,
     graph: controller::ExecutedGraph,
     mode: Immutable<Mode>,
@@ -557,12 +559,14 @@ impl Searcher {
         let module_name = graph.module_qualified_name(&*project);
         let list_builder_with_favs =
             component_list_builder_with_favorites(&database, &module_name, &*favorites);
+        let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
             logger,
             graph,
             this_arg,
             ide,
             data: Rc::new(RefCell::new(data)),
+            breadcrumbs,
             notifier: default(),
             mode: Immutable(mode),
             database: project.suggestion_db(),
@@ -598,6 +602,43 @@ impl Searcher {
     /// Get the current component list.
     pub fn components(&self) -> component::List {
         self.data.borrow().components.clone_ref()
+    }
+
+    /// The list of modules and their content displayed in `Modules` section of the browser.
+    pub fn top_modules(&self) -> group::AlphabeticalList {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.currently_selected() {
+            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.top_modules().clone_ref()
+        }
+    }
+
+    /// The list of components displayed in `Favorites` section of the browser.
+    ///
+    /// The favorites section is not empty only if the root module is selected.
+    pub fn favorites(&self) -> group::List {
+        if self.breadcrumbs.is_top_module() {
+            self.components().favorites
+        } else {
+            default()
+        }
+    }
+
+    /// The list of components displayed in `Local Scope` section of the browser.
+    pub fn local_scope(&self) -> group::Group {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.currently_selected() {
+            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.local_scope
+        }
+    }
+
+    /// Enter the specified module. The displayed content of the browser will be updated.
+    pub fn enter_module(&self, module: &component::Id) {
+        self.breadcrumbs.push(*module);
+        self.notifier.notify(Notification::NewActionList);
     }
 
     /// Set the Searcher Input.
