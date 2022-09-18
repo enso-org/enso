@@ -606,7 +606,7 @@ impl Searcher {
         self.data.borrow().components.clone_ref()
     }
 
-    /// The list of modules and their content displayed in `Modules` section of the browser.
+    /// The list of modules and their content displayed in `Submodules` section of the browser.
     pub fn top_modules(&self) -> group::AlphabeticalList {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.currently_selected() {
