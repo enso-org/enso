@@ -85,12 +85,12 @@ type Postgres_Connection
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## UNSTABLE
-
-       Query the database, returning an object that can be used to retrieve create queries for that table.
+    ## Query the database, returning an object that can be used to retrieve create queries for that table.
 
        Arguments:
-       - name: name of the table to access
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+       - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Database_Table
     query self sql_query alias="" = self.connection.query sql_query alias
 
