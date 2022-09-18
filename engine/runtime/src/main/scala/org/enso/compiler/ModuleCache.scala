@@ -122,6 +122,20 @@ class ModuleCache(private val module: Module) {
       }
     }
 
+  /** Invalidates all caches associated with the module.
+    *
+    * @param context the langage context in which loading is taking place
+    */
+  def invalidate(context: Context): Unit = {
+    this.synchronized {
+      implicit val logger: TruffleLogger = context.getLogger(this.getClass)
+      getIrCacheRoots(context).foreach { roots =>
+        invalidateCache(roots.globalCacheRoot)
+        invalidateCache(roots.localCacheRoot)
+      }
+    }
+  }
+
   // === Internals ============================================================
 
   /** Saves the cache into the provided `cacheRoot`.

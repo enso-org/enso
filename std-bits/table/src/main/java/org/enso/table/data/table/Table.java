@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -79,7 +80,7 @@ public class Table {
    */
   public Column getColumnByName(String name) {
     for (Column column : columns) {
-      if (column.getName().equals(name)) {
+      if (Text_Utils.equals(column.getName(), name)) {
         return column;
       }
     }
@@ -98,7 +99,7 @@ public class Table {
       return column;
     }
 
-    if (getIndex().getName().equals(name)) {
+    if (Text_Utils.equals(getIndex().getName(), name)) {
       return getIndex().toColumn();
     }
 
@@ -139,7 +140,7 @@ public class Table {
   public Table addOrReplaceColumn(Column newColumn) {
     int existingIx = -1;
     for (int i = 0; i < columns.length; i++) {
-      if (columns[i].getName().equals(newColumn.getName())) {
+      if (Text_Utils.equals(columns[i].getName(), newColumn.getName())) {
         existingIx = i;
         break;
       }
@@ -189,7 +190,7 @@ public class Table {
       newColumns.add(indexCol.withIndex(ix));
     }
     for (Column column : columns) {
-      if (!column.getName().equals(col.getName())) {
+      if (!Text_Utils.equals(column.getName(), col.getName())) {
         newColumns.add(column.withIndex(ix));
       }
     }
@@ -399,7 +400,7 @@ public class Table {
     for (var table : tables) {
       for (var column : table.getColumns()) {
         var matchingBuilder =
-            builders.stream().filter(bldr -> bldr.name.equals(column.getName())).findFirst();
+            builders.stream().filter(bldr -> Text_Utils.equals(bldr.name, column.getName())).findFirst();
         NamedBuilder builder;
         if (matchingBuilder.isPresent()) {
           builder = matchingBuilder.get();
@@ -415,7 +416,7 @@ public class Table {
       }
       for (var builder : builders) {
         var columnExists =
-            Arrays.stream(table.getColumns()).anyMatch(col -> col.getName().equals(builder.name));
+            Arrays.stream(table.getColumns()).anyMatch(col -> Text_Utils.equals(col.getName(), builder.name));
         if (!columnExists) {
           builder.builder.appendNulls(table.rowCount());
         }

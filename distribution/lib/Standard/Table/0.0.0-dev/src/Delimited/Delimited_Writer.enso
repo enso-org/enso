@@ -3,13 +3,12 @@ import Standard.Base.System
 import Standard.Base.Error.Common as Errors
 
 import Standard.Table.Data.Table
-from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
-from Standard.Table.IO.File_Format import Infer
+from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 import Standard.Table.Data.Storage
-import Standard.Table.IO.Quote_Style
-from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
-import Standard.Table.Internal.Delimited_Reader
+from Standard.Table.Delimited.Delimited_Format import Delimited_Format
+import Standard.Table.Delimited.Quote_Style
+from Standard.Table.Delimited.Delimited_Reader import Existing_Headers, No_Headers, detect_metadata
 import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter
@@ -31,7 +30,7 @@ polyglot java import java.io.IOException
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-write_file : Table -> File_Format.Delimited -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
+write_file : Table -> Delimited_Format -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
 write_file table format file on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
@@ -45,11 +44,11 @@ write_file table format file on_existing_file match_columns on_problems =
    against the ones already in the file.
 
    If the file does not exist or is empty, it acts like a regular overwrite.
-append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
+append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument_Error_Data <|
         inferring_format = format.with_line_endings Infer
-        metadata = Delimited_Reader.detect_metadata file inferring_format
+        metadata = detect_metadata file inferring_format
         preexisting_headers = metadata.headers
         effective_line_separator = case format.line_endings of
             Infer -> metadata.line_separator.if_nothing default_line_separator_for_writing.to_text
@@ -87,7 +86,7 @@ append_to_file table format file match_columns on_problems =
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
-write_text : Table -> File_Format.Delimited -> Text
+write_text : Table -> Delimited_Format -> Text
 write_text table format =
     java_writer = StringWriter.new
     write_to_writer table format java_writer
@@ -108,7 +107,7 @@ write_text table format =
      or `Nothing`. It is used for more detailed error reporting.
    - separator_override: An optional override for the line separator to use
      instead of the one from `format`.
-write_to_stream : Table -> File_Format.Delimited -> Output_Stream -> Problem_Behavior -> File | Nothing -> Text | Nothing -> Boolean -> Any
+write_to_stream : Table -> Delimited_Format -> Output_Stream -> Problem_Behavior -> File | Nothing -> Text | Nothing -> Boolean -> Any
 write_to_stream table format stream on_problems related_file=Nothing separator_override=Nothing needs_leading_newline=False =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
@@ -129,7 +128,7 @@ write_to_stream table format stream on_problems related_file=Nothing separator_o
    - java_writer: A Java `Writer` to which characters will be written.
    - separator_override: An optional override for the line separator to use
      instead of the one from `format`.
-write_to_writer : Table -> File_Format.Delimited -> Writer -> Text | Nothing -> Boolean -> Any
+write_to_writer : Table -> Delimited_Format -> Writer -> Text | Nothing -> Boolean -> Any
 write_to_writer table format java_writer separator_override=Nothing needs_leading_newline=False =
     column_formatters = Panic.recover Illegal_Argument_Error_Data <| case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of

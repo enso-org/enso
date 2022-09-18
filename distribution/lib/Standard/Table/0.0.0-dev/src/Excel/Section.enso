@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+from Standard.Table.Excel.Range import Excel_Range
+
+type Excel_Section
+    ## Gets a list of sheets within a workbook.
+    Sheet_Names
+
+    ## Gets a list of named ranges within a workbook.
+    Range_Names
+
+    ## Gets the data from a specific sheet. Column names are the Excel column
+       names.
+    Worksheet (sheet:(Integer|Text)=1) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+
+    ## Gets a specific range (taking either a defined name or external style
+       address) from the workbook.
+       If it is a single cell, it will be treated as the top left cell and will
+       expand right and down to cover the connected cells.
+    Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)

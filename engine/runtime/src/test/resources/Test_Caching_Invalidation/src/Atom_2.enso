@@ -1,0 +1,1 @@
+foo a = "ABC"+a.to_text

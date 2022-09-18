@@ -8,6 +8,7 @@ import Standard.Table as Materialized_Table
 from Standard.Table.Data.Aggregate_Column import all hiding First
 
 from Standard.Database import all
+import Standard.Database
 from Standard.Database.Errors import Sql_Error
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry_Data
