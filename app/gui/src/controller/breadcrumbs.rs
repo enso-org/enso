@@ -16,7 +16,7 @@ use crate::controller::searcher::component;
 ///
 /// TODO: The actual implementation would be finished in
 ///   [Breadcrumbs Panel integration task](https://www.pivotaltracker.com/story/show/182675703).
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
     currently_selected: Rc<Cell<Option<component::Id>>>,
 }
@@ -24,7 +24,7 @@ pub struct Breadcrumbs {
 impl Breadcrumbs {
     /// Constructor.
     pub fn new() -> Self {
-        Self { currently_selected: default() }
+        default()
     }
 
     /// Push the new breadcrumb to the breadcrumbs panel.
