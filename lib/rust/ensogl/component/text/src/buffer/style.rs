@@ -61,17 +61,13 @@ macro_rules! define_format {
         // === Format ===
 
 
-            #[derive(Clone, Copy, Debug, From, Default)]
+            #[derive(Clone, Copy, Debug, From)]
             pub enum Property {
-                #[default]
-                Nothing,
                 $([<$field:camel>] (Option<$field_type>)),*
             }
 
-            #[derive(Clone, Copy, Debug, From, Default)]
+            #[derive(Clone, Copy, Debug, From)]
             pub enum ResolvedProperty {
-                #[default]
-                Nothing,
                 $([<$field:camel>] ($field_type)),*
             }
 
@@ -83,7 +79,6 @@ macro_rules! define_format {
             impl Property {
                 pub fn tag(&self) -> Option<PropertyTag> {
                     match self {
-                        Self::Nothing => None,
                         $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
                     }
                 }
@@ -92,7 +87,6 @@ macro_rules! define_format {
             impl ResolvedProperty {
                 pub fn tag(&self) -> Option<PropertyTag> {
                     match self {
-                        Self::Nothing => None,
                         $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
                     }
                 }
@@ -206,21 +200,18 @@ macro_rules! define_format {
                 pub fn set_property(&mut self, range:Range<UBytes>, property: Property) {
                     let range_size = UBytes::try_from(range.size()).unwrap_or_default();
                     match property {
-                        Property::Nothing => {}
                         $(Property::[<$field:camel>] (t) => self.$field.replace_resize(range, range_size, t)),*
                     }
                 }
 
                 pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
                     match property {
-                        Property::Nothing => ResolvedProperty::Nothing,
                         $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
                     }
                 }
 
                 pub fn set_property_default(&mut self, property: ResolvedProperty) {
                     match property {
-                        ResolvedProperty::Nothing => {}
                         $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
                     }
                 }

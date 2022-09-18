@@ -338,8 +338,8 @@ ensogl_core::define_endpoints! {
         add_cursor            (Location<Column>),
         paste_string          (String),
         insert                (String),
-        set_property          (TextRange, style::Property),
-        set_property_default  (style::ResolvedProperty),
+        set_property          (TextRange, Option<style::Property>),
+        set_property_default  (Option<style::ResolvedProperty>),
         /// Sets the color for all text that has no explicit color set.
         // set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
@@ -1286,21 +1286,22 @@ impl AreaModel {
         }
     }
 
-    fn set_property_default(&self, property: style::ResolvedProperty) {
-        match property {
-            style::ResolvedProperty::Nothing => {}
-            style::ResolvedProperty::Size(_) =>
-                self.set_property_default_with_line_redraw(property),
-            style::ResolvedProperty::Color(_) =>
-                self.set_property_default_without_line_redraw(property),
-            style::ResolvedProperty::Weight(_) =>
-                self.set_property_default_with_line_redraw(property),
-            style::ResolvedProperty::Width(_) =>
-                self.set_property_default_with_line_redraw(property),
-            style::ResolvedProperty::Style(_) =>
-                self.set_property_default_with_line_redraw(property),
-            style::ResolvedProperty::SdfWeight(_) =>
-                self.set_property_default_without_line_redraw(property),
+    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
+        if let Some(property) = property {
+            match property {
+                style::ResolvedProperty::Size(_) =>
+                    self.set_property_default_with_line_redraw(property),
+                style::ResolvedProperty::Color(_) =>
+                    self.set_property_default_without_line_redraw(property),
+                style::ResolvedProperty::Weight(_) =>
+                    self.set_property_default_with_line_redraw(property),
+                style::ResolvedProperty::Width(_) =>
+                    self.set_property_default_with_line_redraw(property),
+                style::ResolvedProperty::Style(_) =>
+                    self.set_property_default_with_line_redraw(property),
+                style::ResolvedProperty::SdfWeight(_) =>
+                    self.set_property_default_without_line_redraw(property),
+            }
         }
     }
 
@@ -1328,15 +1329,24 @@ impl AreaModel {
         self.update_selections();
     }
 
-    pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
-        match property {
-            style::Property::Nothing => {}
-            style::Property::Size(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            style::Property::Color(_) => self.set_glyphs_property(ranges, property),
-            style::Property::Weight(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            style::Property::Width(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            style::Property::Style(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
+    pub fn set_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: Option<style::Property>,
+    ) {
+        if let Some(property) = property {
+            match property {
+                style::Property::Size(_) =>
+                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+                style::Property::Color(_) => self.set_glyphs_property(ranges, property),
+                style::Property::Weight(_) =>
+                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+                style::Property::Width(_) =>
+                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+                style::Property::Style(_) =>
+                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+                style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
+            }
         }
     }
 

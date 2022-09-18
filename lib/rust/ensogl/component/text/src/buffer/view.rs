@@ -787,8 +787,8 @@ ensogl_core::define_endpoints! {
         redo                       (),
         // set_default_color          (color::Rgba),
         // set_default_text_size      (style::Size),
-        set_property               (Vec<buffer::Range<UBytes>>, style::Property),
-        set_property_default       (style::ResolvedProperty),
+        set_property               (Vec<buffer::Range<UBytes>>, Option<style::Property>),
+        set_property_default       (Option<style::ResolvedProperty>),
     }
 
     Output {
@@ -923,15 +923,19 @@ impl ViewModel {
 }
 
 impl ViewModel {
-    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
-        for range in ranges {
-            let range = self.crop_byte_range(range);
-            self.data.formatting.set_property(range, property)
+    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<style::Property>) {
+        if let Some(property) = property {
+            for range in ranges {
+                let range = self.crop_byte_range(range);
+                self.data.formatting.set_property(range, property)
+            }
         }
     }
 
-    fn set_property_default(&self, property: style::ResolvedProperty) {
-        self.data.formatting.borrow_mut().set_property_default(property)
+    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
+        if let Some(property) = property {
+            self.data.formatting.borrow_mut().set_property_default(property)
+        }
     }
 
     pub fn resolve_property(&self, property: style::Property) -> style::ResolvedProperty {
