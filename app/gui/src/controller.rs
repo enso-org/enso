@@ -9,6 +9,7 @@
 // === Export ===
 // ==============
 
+pub mod breadcrumbs;
 pub mod graph;
 pub mod ide;
 pub mod module;
