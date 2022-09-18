@@ -73,133 +73,243 @@ mod line {
     use super::*;
     ensogl_core::define_endpoints_2! {
         Input {
+            set_metrics(LineMetrics),
+            // FIXME: change name to baseline
             set_y(f32),
+            set_is_last(bool),
         }
-        Output {}
-    }
-}
-
-/// Visual line representation.
-///
-/// **Design Notes**
-/// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
-/// inside of the text area, it allows us to binary search the place of the mouse pointer.
-#[derive(Debug, Deref)]
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-pub struct Line {
-    #[deref]
-    frp:            line::Frp,
-    y_pos_anim:     Animation<f32>,
-    y_target:       Rc<Cell<f32>>,
-    display_object: display::object::Instance,
-    glyphs:         VecIndexedBy<Glyph, Column>,
-    divs:           NonEmptyVec<f32>,
-    centers:        Vec<f32>,
-    metrics:        LineMetrics,
-}
-
-impl Line {
-    fn new() -> Self {
-        let frp = line::Frp::new();
-        let network = frp.network();
-        let y_pos_anim = Animation::new(network);
-        let y_target = Rc::new(Cell::new(0.0));
-        let display_object = display::object::Instance::new();
-        let glyphs = default();
-        let divs = default();
-        let centers = default();
-        let metrics = default();
-        frp::extend! {network
-            trace frp.set_y;
-            eval frp.set_y((y) y_target.set(*y));
-            y_pos_anim.target <+ frp.set_y;
-            eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
+        Output {
+            metrics(LineMetrics),
+            baseline_if_last(f32),
+            descent_if_last(f32),
         }
-        Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers, metrics }
     }
 
-    pub fn target_y_pos(&self) -> f32 {
-        self.y_target.get()
-    }
-
-    /// Set the division points (offsets between letters). Also updates center points.
+    /// Visual line representation.
+    ///
+    /// **Design Notes**
+    /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when
+    /// clicking inside of the text area, it allows us to binary search the place of the mouse
+    /// pointer.
+    #[derive(Debug, Deref)]
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn set_divs(&mut self, divs: NonEmptyVec<f32>) {
-        let div_iter = divs.iter();
-        let div_iter_skipped = divs.iter().skip(1);
-        self.centers = div_iter.zip(div_iter_skipped).map(|(t, s)| (t + s) / 2.0).collect();
-        self.divs = divs;
+    pub struct Line {
+        #[deref]
+        pub frp:            line::Frp,
+        pub y_pos_anim:     Animation<f32>,
+        pub y_target:       Rc<Cell<f32>>,
+        pub display_object: display::object::Instance,
+        pub glyphs:         VecIndexedBy<Glyph, Column>,
+        pub divs:           NonEmptyVec<f32>,
+        pub centers:        Vec<f32>,
     }
 
-    fn div_index_close_to(&self, offset: f32) -> usize {
-        self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
-    }
+    impl Line {
+        pub fn new() -> Self {
+            let frp = line::Frp::new();
+            let network = frp.network();
+            let y_pos_anim = Animation::new(network);
+            let y_target = Rc::new(Cell::new(0.0));
+            let display_object = display::object::Instance::new();
+            let glyphs = default();
+            let divs = default();
+            let centers = default();
+            frp::extend! {network
+                eval frp.set_y((y) y_target.set(*y));
+                y_pos_anim.target <+ frp.set_y;
+                eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
+                baseline_pos_on_set_is_last <- y_pos_anim.value.sample(&frp.set_is_last);
+                baseline_new <- any(&y_pos_anim.value, &baseline_pos_on_set_is_last);
+                baseline_pos_if_last <- baseline_new.gate(&frp.set_is_last);
+                frp.private.output.baseline_if_last <+ baseline_pos_if_last.on_change();
 
-    fn div_by_column(&self, column: Column) -> f32 {
-        if column.value < self.divs.len() {
-            self.divs[column.value]
-        } else {
-            *self.divs.last()
+                metrics_on_set_is_last <- frp.set_metrics.sample(&frp.set_is_last);
+                metrics_new <- any(&frp.set_metrics, &metrics_on_set_is_last);
+                descent_new <- all_with(&baseline_new, &metrics_new, |baseline,metrics| baseline + metrics.descender);
+                descent_if_last <- descent_new.gate(&frp.set_is_last);
+                frp.private.output.descent_if_last <+ descent_if_last.on_change();
+                frp.private.output.metrics <+ frp.set_metrics.on_change();
+            }
+            Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers }
         }
-    }
 
-    fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
-        let display_object = self.display_object().clone_ref();
-        self.glyphs.resize_with(size, move || {
+        pub fn metrics(&self) -> LineMetrics {
+            self.metrics.value()
+        }
+
+        pub fn target_y_pos(&self) -> f32 {
+            self.y_target.get()
+        }
+
+        /// Set the division points (offsets between letters). Also updates center points.
+        #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+        pub fn set_divs(&mut self, divs: NonEmptyVec<f32>) {
+            let div_iter = divs.iter();
+            let div_iter_skipped = divs.iter().skip(1);
+            self.centers = div_iter.zip(div_iter_skipped).map(|(t, s)| (t + s) / 2.0).collect();
+            self.divs = divs;
+        }
+
+        pub fn div_index_close_to(&self, offset: f32) -> usize {
+            self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
+        }
+
+        pub fn div_by_column(&self, column: Column) -> f32 {
+            if column.value < self.divs.len() {
+                self.divs[column.value]
+            } else {
+                *self.divs.last()
+            }
+        }
+
+        pub fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
+            let display_object = self.display_object().clone_ref();
+            self.glyphs.resize_with(size, move || {
+                let glyph = cons();
+                display_object.add_child(&glyph);
+                glyph
+            });
+        }
+
+        pub fn push_glyph(&mut self, cons: impl Fn() -> Glyph) {
+            let display_object = self.display_object().clone_ref();
             let glyph = cons();
             display_object.add_child(&glyph);
-            glyph
-        });
+            self.glyphs.push(glyph);
+        }
+
+        // fn set_index(&mut self, index: ViewLine) {
+        //     let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+        //     self.set_position_y(y_offset);
+        // }
     }
 
-    fn push_glyph(&mut self, cons: impl Fn() -> Glyph) {
-        let display_object = self.display_object().clone_ref();
-        let glyph = cons();
-        display_object.add_child(&glyph);
-        self.glyphs.push(glyph);
+    impl display::Object for Line {
+        fn display_object(&self) -> &display::object::Instance {
+            &self.display_object
+        }
     }
 
-    // fn set_index(&mut self, index: ViewLine) {
-    //     let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-    //     self.set_position_y(y_offset);
+    impl<'t> IntoIterator for &'t Line {
+        type Item = &'t Glyph;
+        type IntoIter = std::slice::Iter<'t, Glyph>;
+        fn into_iter(self) -> Self::IntoIter {
+            self.glyphs.iter()
+        }
+    }
+
+    // fn set_line_index(line: &display::object::Instance, index: usize) {
+    //     let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
+    //     line.set_position_y(y_offset);
     // }
 }
-
-impl display::Object for Line {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl<'t> IntoIterator for &'t Line {
-    type Item = &'t Glyph;
-    type IntoIter = std::slice::Iter<'t, Glyph>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.glyphs.iter()
-    }
-}
-
-// fn set_line_index(line: &display::object::Instance, index: usize) {
-//     let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-//     line.set_position_y(y_offset);
-// }
-
+pub use line::Line;
 
 
 // =============
 // === Lines ===
 // =============
 
+#[derive(Debug)]
+pub struct LinesVec {
+    vec: NonEmptyVec<Line, unit::ViewLine>,
+}
+
+impl LinesVec {
+    pub fn new(line: Line) -> Self {
+        line.set_is_last(true);
+        let vec = NonEmptyVec::singleton(line);
+        Self { vec }
+    }
+
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
+    pub fn first(&self) -> &Line {
+        self.vec.first()
+    }
+
+    pub fn last(&self) -> &Line {
+        self.vec.last()
+    }
+
+    fn last_line_index(&self) -> ViewLine {
+        // This is safe because we are using [`NonEmptyVec`] to store lines.
+        ViewLine((self.len() - 1))
+    }
+
+    pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
+        let modifies_last_line = index > self.last_line_index();
+        if modifies_last_line {
+            self.vec.last().set_is_last(false);
+        }
+        self.vec.insert(index, line);
+        if modifies_last_line {
+            self.vec.last().set_is_last(true);
+        }
+    }
+
+    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
+        if new_len != self.len() {
+            self.vec.last().set_is_last(false);
+            self.vec.resize_with(new_len, f);
+            self.vec.last().set_is_last(true);
+        }
+    }
+
+    pub fn drain(&mut self, range: Range<unit::ViewLine>) -> Vec<Line> {
+        let modifies_last_line = range.end > self.last_line_index();
+        if modifies_last_line {
+            self.vec.last().set_is_last(false);
+        }
+        let drain = self.vec.drain(range).collect_vec();
+        if modifies_last_line {
+            self.vec.last().set_is_last(true);
+        }
+        drain
+    }
+}
+
+impl<'a> IntoIterator for &'a LinesVec {
+    type Item = &'a Line;
+    type IntoIter = slice::Iter<'a, Line>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.vec.iter()
+    }
+}
+
+impl std::ops::Index<unit::ViewLine> for LinesVec {
+    type Output = Line;
+    fn index(&self, index: unit::ViewLine) -> &Self::Output {
+        &self.vec[index]
+    }
+}
+
+impl std::ops::Index<std::ops::Range<unit::ViewLine>> for LinesVec {
+    type Output = [Line];
+    fn index(&self, index: std::ops::Range<unit::ViewLine>) -> &Self::Output {
+        &self.vec[index]
+    }
+}
+
+impl std::ops::IndexMut<unit::ViewLine> for LinesVec {
+    fn index_mut(&mut self, index: unit::ViewLine) -> &mut Self::Output {
+        &mut self.vec[index]
+    }
+}
+
+
 
 /// Set of all visible lines.
 #[derive(Clone, CloneRef, Debug, Deref)]
 struct Lines {
-    rc: Rc<RefCell<NonEmptyVec<Line, unit::ViewLine>>>,
+    rc: Rc<RefCell<LinesVec>>,
 }
 
 impl Lines {
     pub fn new(line: Line) -> Self {
-        let rc = Rc::new(RefCell::new(NonEmptyVec::singleton(line)));
+        let rc = Rc::new(RefCell::new(LinesVec::new(line)));
         Self { rc }
     }
 
@@ -225,8 +335,8 @@ impl Lines {
     }
 }
 
-impl From<NonEmptyVec<Line, unit::ViewLine>> for Lines {
-    fn from(vec: NonEmptyVec<Line, unit::ViewLine>) -> Self {
+impl From<LinesVec> for Lines {
+    fn from(vec: LinesVec) -> Self {
         let rc = Rc::new(RefCell::new(vec));
         Self { rc }
     }
@@ -359,7 +469,7 @@ ensogl_core::define_endpoints! {
         /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
     }
-    Output {
+    Output {[TRACE_ALL]
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
@@ -399,7 +509,7 @@ impl Area {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
-        let data = Rc::new(AreaModel::new(app, &frp.output));
+        let data = Rc::new(AreaModel::new(app, &frp.output, &frp.network));
         Self { data, frp }.init()
     }
 
@@ -440,18 +550,13 @@ impl Area {
             // === Set / Add cursor ===
 
             mouse_on_set_cursor      <- mouse.position.sample(&input.set_cursor_at_mouse_position);
-            trace mouse_on_set_cursor;
             mouse_on_add_cursor      <- mouse.position.sample(&input.add_cursor_at_mouse_position);
-            trace mouse_on_add_cursor;
             loc_on_set_cursor_mouse  <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
-            trace loc_on_set_cursor_mouse;
             loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
-            trace loc_on_add_cursor_mouse;
             // FIXME:
             // loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
             loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse);//,loc_on_set_cursor_at_end);
             loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
-            trace loc_on_add_cursor;
 
             eval loc_on_set_cursor ((loc) m.buffer.frp.set_cursor(loc));
             eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
@@ -561,9 +666,7 @@ impl Area {
 
             key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_modifier_down);
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
-            trace key_to_insert;
             str_to_insert <- any(&input.insert, &key_to_insert);
-            trace str_to_insert;
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ([input](s) {
                 input.set_cursor(&default());
@@ -656,7 +759,7 @@ impl Area {
 }
 
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct LineMetrics {
     pub ascender:  f32,
     pub descender: f32,
@@ -676,6 +779,7 @@ pub struct AreaModel {
     //            be replaced with proper object management.
     layer: Rc<CloneRefCell<display::scene::Layer>>,
 
+    frp_network:    frp::Network,
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
@@ -687,7 +791,11 @@ pub struct AreaModel {
 
 impl AreaModel {
     /// Constructor.
-    pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
+    pub fn new(
+        app: &Application,
+        frp_endpoints: &FrpEndpoints,
+        frp_network: &frp::Network,
+    ) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let selection_map = default();
@@ -712,11 +820,13 @@ impl AreaModel {
         scene.layers.main.remove_symbol(symbol);
         scene.layers.label.add_exclusive(symbol);
 
+        let frp_network = frp_network.clone_ref();
         let frp_endpoints = frp_endpoints.clone_ref();
 
         Self {
             app,
             layer,
+            frp_network,
             frp_endpoints,
             buffer,
             display_object,
@@ -728,8 +838,14 @@ impl AreaModel {
         .init()
     }
 
+    #[profile(Debug)]
+    fn init(self) -> Self {
+        self.init_line(self.lines.borrow().first());
+        self
+    }
+
     fn take_lines(&self) -> Lines {
-        let lines_vec = NonEmptyVec::singleton(self.new_line(ViewLine(0)));
+        let lines_vec = LinesVec::new(self.new_line(ViewLine(0)));
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
     }
@@ -929,7 +1045,7 @@ impl AreaModel {
             debug!("pos {pos}");
             let width = end_x - start_x;
             debug!("width {width}");
-            let metrics = self.lines.borrow()[selection_start_line].metrics;
+            let metrics = self.lines.borrow()[selection_start_line].metrics();
             let selection = match selection_map.id_map.remove(&id) {
                 Some(selection) => {
                     let select_left = selection.width.simulator.target_value() < 0.0;
@@ -999,7 +1115,7 @@ impl AreaModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
-            if line.target_y_pos() + line.metrics.descender < object_space.y {
+            if line.target_y_pos() + line.metrics().descender < object_space.y {
                 break;
             }
             view_line += ViewLine(1);
@@ -1011,12 +1127,6 @@ impl AreaModel {
         Location(line, column)
     }
 
-    #[profile(Debug)]
-    fn init(self) -> Self {
-        // self.redraw(true);
-        self
-    }
-
     // Output is the first well postioned line or the next line after the last visible line.
     fn position_lines_starting_with(&self, mut line_index: ViewLine) -> Option<ViewLine> {
         let last_line_index = self.lines.last_line_index();
@@ -1026,11 +1136,12 @@ impl AreaModel {
             let line = &lines[line_index];
             let current_pos_y = line.target_y_pos();
             let new_posy = if line_index == ViewLine(0) {
-                -line.metrics.ascender
+                -line.metrics().ascender
             } else {
                 let prev_line_index = ViewLine(line_index.value - 1);
                 let prev_line = &lines[prev_line_index];
-                let offset = prev_line.metrics.descender - line.metrics.ascender - line.metrics.gap;
+                let offset =
+                    prev_line.metrics().descender - line.metrics().ascender - line.metrics().gap;
                 prev_line.target_y_pos() + offset
             };
             if current_pos_y == new_posy {
@@ -1230,7 +1341,8 @@ impl AreaModel {
         warn!("LINE metrics: {:?}", line_metrics);
 
         // FIXME:
-        line.metrics = line_metrics.unwrap();
+        line.set_metrics(line_metrics.unwrap());
+        warn!("WAS LINE LAST? {:?}", line.set_is_last.value());
         warn!("DIVS: {:?}", divs);
         line.glyphs.truncate(column.value);
 
@@ -1567,7 +1679,16 @@ impl AreaModel {
     }
 
     fn new_line(&self, index: ViewLine) -> Line {
-        Self::new_line_helper(&self.display_object, index)
+        let line = Self::new_line_helper(&self.display_object, index);
+        self.init_line(&line);
+        line
+    }
+
+    fn init_line(&self, line: &Line) {
+        let network = &self.frp_network;
+        frp::extend! { network
+            self.frp_endpoints.source.height <+ line.descent_if_last;
+        }
     }
 
     fn copy(&self, selections: &[String]) {
