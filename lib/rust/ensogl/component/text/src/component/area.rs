@@ -1310,17 +1310,19 @@ impl AreaModel {
             .collect_vec();
 
         self.redraw_sorted_line_ranges(&view_line_ranges);
+        // Adjust selection sizes after glyphs redrawing.
         self.update_selections();
     }
 
     pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
         match property {
-            style::Property::Color(_) => self.set_glyphs_property(ranges, property),
-            style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
-            style::Property::Weight(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            style::Property::Style(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::Nothing => {}
             style::Property::Size(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            _ => panic!(),
+            style::Property::Color(_) => self.set_glyphs_property(ranges, property),
+            style::Property::Weight(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::Width(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::Style(_) => self.clear_cache_and_redraw_lines(ranges.iter().copied()),
+            style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
         }
     }
 
