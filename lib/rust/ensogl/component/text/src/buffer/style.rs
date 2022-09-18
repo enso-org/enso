@@ -76,19 +76,31 @@ macro_rules! define_format {
                 $([<$field:camel>]),*
             }
 
-            impl Property {
-                pub fn tag(&self) -> Option<PropertyTag> {
-                    match self {
-                        $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
+            impl From<Property> for PropertyTag {
+                fn from(property: Property) -> Self {
+                    match property {
+                        $(Property::[<$field:camel>](_) => Self::[<$field:camel>]),*
                     }
                 }
             }
 
-            impl ResolvedProperty {
-                pub fn tag(&self) -> Option<PropertyTag> {
-                    match self {
-                        $(Self::[<$field:camel>](_) => Some(PropertyTag::[<$field:camel>])),*
+            impl From<ResolvedProperty> for PropertyTag {
+                fn from(property: ResolvedProperty) -> Self {
+                    match property {
+                        $(ResolvedProperty::[<$field:camel>](_) => Self::[<$field:camel>]),*
                     }
+                }
+            }
+
+            impl Property {
+                pub fn tag(self) -> PropertyTag {
+                    self.into()
+                }
+            }
+
+            impl ResolvedProperty {
+                pub fn tag(self) -> PropertyTag {
+                    self.into()
                 }
             }
 

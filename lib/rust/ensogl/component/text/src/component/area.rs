@@ -1239,68 +1239,55 @@ impl AreaModel {
     }
 
     fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
-        if let Some(tag) = property.tag() {
-            let range = self.buffer.full_range();
-            let formatting = self.buffer.sub_style(range);
-            let span_ranges = formatting.span_ranges_of_default_values(tag);
-            for span_range in span_ranges {
-                let range = buffer::Range::<Location<Column>>::from_in_context(self, span_range);
-                let mut lines = self.lines.borrow_mut();
+        let range = self.buffer.full_range();
+        let formatting = self.buffer.sub_style(range);
+        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
+        for span_range in span_ranges {
+            let range = buffer::Range::<Location<Column>>::from_in_context(self, span_range);
+            let mut lines = self.lines.borrow_mut();
 
-                if range.single_line() {
-                    let view_line = self.buffer.line_to_view_line(range.start.line);
+            if range.single_line() {
+                let view_line = self.buffer.line_to_view_line(range.start.line);
+                let line = &mut lines[view_line];
+                for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
+                    glyph.set_property(property);
+                }
+            } else {
+                let view_line = self.buffer.line_to_view_line(range.start.line);
+                let first_line = &mut lines[view_line];
+                for glyph in &mut first_line.glyphs[range.start.offset..] {
+                    glyph.set_property(property);
+                }
+                let view_line = self.buffer.line_to_view_line(range.end.line);
+                let last_line = &mut lines[view_line];
+                for glyph in &mut last_line.glyphs[..range.end.offset] {
+                    glyph.set_property(property);
+                }
+                for line_index in range.start.line.value + 1..range.end.line.value {
+                    let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
                     let line = &mut lines[view_line];
-                    for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
+                    for glyph in &mut line.glyphs[..] {
                         glyph.set_property(property);
-                    }
-                } else {
-                    let view_line = self.buffer.line_to_view_line(range.start.line);
-                    let first_line = &mut lines[view_line];
-                    for glyph in &mut first_line.glyphs[range.start.offset..] {
-                        glyph.set_property(property);
-                    }
-                    let view_line = self.buffer.line_to_view_line(range.end.line);
-                    let last_line = &mut lines[view_line];
-                    for glyph in &mut last_line.glyphs[..range.end.offset] {
-                        glyph.set_property(property);
-                    }
-                    for line_index in range.start.line.value + 1..range.end.line.value {
-                        let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
-                        let line = &mut lines[view_line];
-                        for glyph in &mut line.glyphs[..] {
-                            glyph.set_property(property);
-                        }
                     }
                 }
-                warn!(">> range: {:?}", range);
             }
+            warn!(">> range: {:?}", range);
         }
     }
 
     fn set_property_default_with_line_redraw(&self, property: style::ResolvedProperty) {
-        if let Some(tag) = property.tag() {
-            let range = self.buffer.full_range();
-            let formatting = self.buffer.sub_style(range);
-            let span_ranges = formatting.span_ranges_of_default_values(tag);
-            self.clear_cache_and_redraw_lines(span_ranges);
-        }
+        let range = self.buffer.full_range();
+        let formatting = self.buffer.sub_style(range);
+        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
+        self.clear_cache_and_redraw_lines(span_ranges);
     }
 
     fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
         if let Some(property) = property {
-            match property {
-                style::ResolvedProperty::Size(_) =>
-                    self.set_property_default_with_line_redraw(property),
-                style::ResolvedProperty::Color(_) =>
-                    self.set_property_default_without_line_redraw(property),
-                style::ResolvedProperty::Weight(_) =>
-                    self.set_property_default_with_line_redraw(property),
-                style::ResolvedProperty::Width(_) =>
-                    self.set_property_default_with_line_redraw(property),
-                style::ResolvedProperty::Style(_) =>
-                    self.set_property_default_with_line_redraw(property),
-                style::ResolvedProperty::SdfWeight(_) =>
-                    self.set_property_default_without_line_redraw(property),
+            if Self::property_change_requires_line_redraw(property) {
+                self.set_property_default_with_line_redraw(property)
+            } else {
+                self.set_property_default_without_line_redraw(property)
             }
         }
     }
@@ -1329,23 +1316,28 @@ impl AreaModel {
         self.update_selections();
     }
 
+    fn property_change_requires_line_redraw(property: impl Into<style::PropertyTag>) -> bool {
+        let tag = property.into();
+        match tag {
+            style::PropertyTag::Size => true,
+            style::PropertyTag::Color => false,
+            style::PropertyTag::Weight => true,
+            style::PropertyTag::Width => true,
+            style::PropertyTag::Style => true,
+            style::PropertyTag::SdfWeight => false,
+        }
+    }
+
     pub fn set_property(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
         property: Option<style::Property>,
     ) {
         if let Some(property) = property {
-            match property {
-                style::Property::Size(_) =>
-                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-                style::Property::Color(_) => self.set_glyphs_property(ranges, property),
-                style::Property::Weight(_) =>
-                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-                style::Property::Width(_) =>
-                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-                style::Property::Style(_) =>
-                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-                style::Property::SdfWeight(_) => self.set_glyphs_property(ranges, property),
+            if Self::property_change_requires_line_redraw(property) {
+                self.clear_cache_and_redraw_lines(ranges.iter().copied())
+            } else {
+                self.set_glyphs_property(ranges, property)
             }
         }
     }
