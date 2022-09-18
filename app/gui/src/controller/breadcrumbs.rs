@@ -33,7 +33,7 @@ impl Breadcrumbs {
 
     /// Returns true if the currently selected breadcrumb is the root one.
     pub fn is_top_module(&self) -> bool {
-        self.currently_selected.get().is_some()
+        self.currently_selected.get().is_none()
     }
 
     /// Returns a currently selected breadcrumb id.
