@@ -10,9 +10,8 @@ use crate::controller::searcher::component;
 // === Breadcrumbs ===
 // ===================
 
-/// Breadcrumbs controller.
-///
-/// This object is responsible for interactions between the breadcrumbs and the searcher controller.
+/// A controller that keeps the path of entered modules in the Searcher and provides the
+/// functionality of the breadcrumbs panel.
 ///
 /// TODO: The actual implementation would be finished in
 ///   [Breadcrumbs Panel integration task](https://www.pivotaltracker.com/story/show/182675703).

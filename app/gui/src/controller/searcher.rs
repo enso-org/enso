@@ -3,7 +3,6 @@
 use crate::model::traits::*;
 use crate::prelude::*;
 
-use crate::controller::breadcrumbs::Breadcrumbs;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::searcher::component::group;
 use crate::model::module::MethodId;
@@ -13,6 +12,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -31,6 +31,7 @@ use parser::Parser;
 // ==============
 
 pub mod action;
+pub mod breadcrumbs;
 pub mod component;
 
 pub use action::Action;
