@@ -199,7 +199,7 @@ pub fn main() {
                     dimmed: style.get_number(theme::application::component_browser::component_group::dimmed_color_intensity),
                     icon_strong: 1.0,
                     icon_weak: style.get_number(theme::application::component_browser::component_group::entry_list::icon::weak_color_intensity),
-                    hover_highlight: style.get_number(theme::application::component_browser::component_group::entry_list::icon::weak_color_intensity) / 2.0,
+                    hover_highlight: style.get_number(theme::application::component_browser::component_group::entry_list::icon::weak_color_intensity) * 0.8,
                 },
                 group_width: entry_size.x,
                 gap_between_groups: 3.0,
