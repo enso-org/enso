@@ -8,7 +8,6 @@ final class Message {
   private final CharSequence context;
   private final int base;
   private final long metadata;
-  private boolean encounteredUnsupportedSyntax;
   private long position;
 
   Message(java.nio.ByteBuffer bufferIn, CharSequence contextIn, long baseIn, long metadataIn) {
@@ -61,14 +60,6 @@ final class Message {
 
   String getLocation() {
     return "Message[buffer=" + buffer.position() + "]";
-  }
-
-  boolean getEncounteredUnsupportedSyntax() {
-    return encounteredUnsupportedSyntax;
-  }
-
-  void markEncounteredUnsupportedSyntax() {
-    encounteredUnsupportedSyntax = true;
   }
 
   java.util.UUID getUuid(long nodeOffset, long nodeLength) {

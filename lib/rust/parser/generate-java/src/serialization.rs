@@ -20,9 +20,9 @@ const TREE_BEGIN: &str = "fieldSpanLeftOffsetCodeReprBegin";
 const TREE_LEN: &str = "fieldSpanLeftOffsetCodeReprLen";
 
 /// Derive deserialization for all types in the typegraph.
-pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId, unsupported: ClassId) {
+pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     let source = "source";
-    impl_deserialize(graph, tree, token, unsupported, source);
+    impl_deserialize(graph, tree, token, source);
     graph[token].methods.push(impl_getter(CODE_GETTER));
     graph[tree].methods.push(impl_getter(CODE_GETTER));
 }
@@ -30,13 +30,7 @@ pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId, unsupported:
 
 // === Deserialization Methods ===
 
-fn impl_deserialize(
-    graph: &mut TypeGraph,
-    tree: ClassId,
-    token: ClassId,
-    unsupported: ClassId,
-    source: &str,
-) {
+fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source: &str) {
     // Add UUIDs to types
     let uuid = Class::builtin("java.util.UUID", vec![]);
     let uuid = graph.classes.insert(uuid);
@@ -123,11 +117,6 @@ fn impl_deserialize(
         let class = &graph[id];
         let mut deserialization =
             bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
-        if id == unsupported {
-            deserialization.pre_hook(|bincode::HookInput { message }| {
-                format!("{message}.markEncounteredUnsupportedSyntax();\n")
-            });
-        }
         if id == tree || class.parent == Some(tree) {
             deserialization.materialize(tree_source, context_materializer());
             deserialization.materialize(tree_id, uuid_materializer());

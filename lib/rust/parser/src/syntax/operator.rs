@@ -267,7 +267,7 @@ impl<'s> ExpressionBuilder<'s> {
             item
         };
         if let Some(error) = self.precedence_error {
-            return Some(syntax::Tree::with_unsupported(out.unwrap(), error));
+            panic!("Unsupported syntax: {}", &error);
         }
         out
     }

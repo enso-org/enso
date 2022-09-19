@@ -78,11 +78,12 @@ impl<'s> Item<'s> {
                 token::Variant::Symbol(s) =>
                     Tree::group(default(), default(), Some(token.with_variant(s))),
                 _ => {
-                    let message = format!("to_ast: Item::Token({token:?})");
+                    let message =
+                        format!("Internal error: unimplemented to_ast: Item::Token({token:?})");
                     let value = Tree::ident(
                         token.with_variant(token::variant::Ident(false, 0, false, false)),
                     );
-                    Tree::with_unsupported(value, message)
+                    Tree::with_error(value, message)
                 }
             },
             Item::Tree(ast) => ast,

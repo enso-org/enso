@@ -85,11 +85,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub error: Error,
             pub ast: Tree<'s>,
         },
-        /// Indicates a subtree in which an unimplemented case was reached.
-        Unsupported {
-            pub error: String,
-            pub ast: Tree<'s>,
-        },
         /// A sequence of lines introduced by a line ending in an operator.
         BodyBlock {
             /// The lines of the block.
@@ -361,12 +356,6 @@ impl<'s> Tree<'s> {
     /// Constructor.
     pub fn with_error(self, message: impl Into<Cow<'static, str>>) -> Self {
         Tree::invalid(Error::new(message), self)
-    }
-
-    /// Constructor.
-    pub fn with_unsupported(self, message: String) -> Self {
-        eprintln!("Unsupported syntax: {}", &message);
-        Tree::unsupported(message, self)
     }
 }
 
@@ -832,7 +821,6 @@ pub fn recurse_left_mut_while<'s>(
         tree = match &mut *tree.variant {
             // No LHS.
             Variant::Invalid(_)
-            | Variant::Unsupported(_)
             | Variant::BodyBlock(_)
             | Variant::Ident(_)
             | Variant::Number(_)
