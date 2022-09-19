@@ -307,6 +307,10 @@ ensogl::define_endpoints_2! {
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
+        // FIXME[mc]: doc - incl. info how differs from enable_visualization
+        enable_preview (),
+        // FIXME[mc]: doc - incl. info how differs from disable_visualization
+        disable_preview (),
         /// Indicate whether preview visualisations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
@@ -840,9 +844,13 @@ impl Node {
             outout_hover            <- model.output.on_port_hover.map(|s| s.is_on());
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
-            preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
-            preview_visible         <- preview_visible && has_expression;
-            preview_visible         <- preview_visible.on_change();
+            hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
+            // preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
+            // preview_visible         <- preview_visible && has_expression;
+            preview_enabled_frp <- bool(&input.disable_preview, &input.enable_preview);
+            has_expression_and_hover_onset_active <- has_expression && hover_onset_active;
+            preview_visible <- has_expression_and_hover_onset_active || preview_enabled_frp;
+            preview_visible <- preview_visible.on_change();
 
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
