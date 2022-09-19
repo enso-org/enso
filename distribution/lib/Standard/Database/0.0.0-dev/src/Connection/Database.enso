@@ -2,11 +2,12 @@ from Standard.Base import all
 
 from Standard.Database.Connection.Connection_Options import Connection_Options, Connection_Options_Data
 
-import Standard.Database.Connection.Postgres
-import Standard.Database.Connection.SQLite
-import Standard.Database.Connection.Redshift
+from Standard.Database.Connection.Postgres_Options import Postgres_Options
+from Standard.Database.Connection.SQLite_Options import SQLite_Options
+from Standard.Database.Connection.Redshift_Options import Redshift_Options
 
-from Standard.Database.Connection.Connection import Connection, Sql_Error
+from Standard.Database.Connection.Connection import Connection
+from Standard.Database.Errors import SQL_Error
 
 ## UNSTABLE
 
@@ -15,6 +16,6 @@ from Standard.Database.Connection.Connection import Connection, Sql_Error
    Arguments:
    - details: Connection_Details to use to connect.
    - options: Any overriding options to use.
-connect : (Postgres|SQLite|Redshift) -> Connection_Options -> Connection ! Sql_Error
+connect : (Postgres_Options|SQLite_Options|Redshift_Options) -> Connection_Options -> Connection ! SQL_Error
 connect details options=Connection_Options_Data =
     details.connect options

@@ -1,10 +1,10 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Database.Data.Internal.Helpers
-import Standard.Database.Data.Internal.Aggregate_Helper
-import Standard.Database.Data.Internal.IR
-import Standard.Database.Data.Sql
+import Standard.Database.Internal.Helpers
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.IR
+from Standard.Database.Data.SQL import Statement, SQL_Type
 
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
@@ -18,8 +18,8 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 
-from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
-from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
+from Standard.Database.Data.Column import Column, Column_Data
+from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Table.Data.Position
@@ -38,10 +38,7 @@ type Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    # type Table (name : Text) (connection : Connection)
-    #            (internal_columns : Vector Internal_Column)
-    #            (context : IR.Context)
-    Table_Data name connection internal_columns context
+    Table_Data name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
 
     ## UNSTABLE
 
@@ -810,7 +807,7 @@ type Table
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this table.
-    to_sql : Sql.Statement
+    to_sql : Statement
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
@@ -1003,10 +1000,10 @@ type Integrity_Error
    - connection: The connection to a database.
    - table_name: The name of the table to get.
    - columns: The names of the columns to get.
-# make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
+# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Table
 make_table : Connection -> Text -> Vector -> Table
 make_table connection table_name columns =
-    ctx = IR.make_ctx_from table_name
+    ctx = IR.context_for_table table_name
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
     Table_Data table_name connection cols ctx
 

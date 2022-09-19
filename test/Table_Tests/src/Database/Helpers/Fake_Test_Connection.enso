@@ -2,10 +2,10 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Database.Data.Table as Database_Table
+from Standard.Database.Data.SQL import Statement, SQL_Type
 
 type Fake_Test_Connection
-    # type Fake_Test_Connection (tables : Map Text (Vector [Text, Sql_Type]))
-    #                           (dialect : Text)
+    # type Fake_Test_Connection_Data (tables : Map Text (Vector [Text, SQL_Type])) (dialect : Text)
     Fake_Test_Connection_Data tables dialect
 
     ## PRIVATE
@@ -19,17 +19,17 @@ type Fake_Test_Connection
     close self = Nothing
 
     ## PRIVATE
-    explain_query_plan : Sql.Statement -> Text
+    explain_query_plan : Statement -> Text
     explain_query_plan self _ =
         Error.throw "Materialization not supported on fake connection."
 
     ## PRIVATE
-    execute_query : Text | Sql.Statement -> Materialized_Table
+    execute_query : Text | Statement -> Materialized_Table
     execute_query self _ =
         Error.throw "Materialization not supported on fake connection."
 
     ## PRIVATE
-    execute_update : Text | Sql.Statement -> Integer
+    execute_update : Text | Statement -> Integer
     execute_update self _ =
         Error.throw "Materialization not supported on fake connection."
 

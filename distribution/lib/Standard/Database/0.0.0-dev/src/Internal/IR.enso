@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Database.Data.SQL import SQL_Type
 
 ## PRIVATE
 
@@ -29,7 +30,7 @@ type Expression
          It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    Constant (sql_type : Sql.Sql_Type) (value : Any)
+    Constant (sql_type : SQL_Type) (value : Any)
 
     ## PRIVATE
 
@@ -210,6 +211,18 @@ type From_Spec
 
     ## PRIVATE
 
+       A query source that holds a raw SQL statement.
+
+       Arguments:
+       - raw_sql: the raw SQL code of a query used as a source for this table.
+       - alias: the name upon which the table can be referred to in other
+         parts of the query, this is especially useful for example in
+         self-joins, allowing to differentiate between different instances of
+         the same table.
+    From_Query (raw_sql : Text) (alias : Text)
+
+    ## PRIVATE
+
        A query source that performs a join operation on two sources.
 
        Arguments:
@@ -335,10 +348,22 @@ type Query
    additional processing.
 
    Arguments:
-   - table_name: The name of the tanle for which the context is being created.
-make_ctx_from : Text -> Context
-make_ctx_from table_name =
-    Context_Data (From_Table table_name table_name) [] [] [] [] Nothing
+   - table_name: The name of the table for which the context is being created.
+   - alias: An alias name to use for table within the query.
+context_for_table : Text -> Text -> Context
+context_for_table table_name alias=table_name =
+    Context_Data (From_Table table_name alias) [] [] [] [] Nothing
+
+## PRIVATE
+
+   Creates a query context that runs a raw SQL query.
+
+   Arguments:
+   - raw_sql: The name of the table for which the context is being created.
+   - alias: An alias name to use for table within the query.
+context_for_query : Text -> Text -> Context
+context_for_query raw_sql alias =
+    Context_Data (From_Query raw_sql alias) [] [] [] [] Nothing
 
 ## PRIVATE
 
@@ -357,7 +382,7 @@ subquery_as_ctx subquery =
    Arguments:
    - sql_type: The SQL type of the value.
    - x: The value to turn into a constant.
-make_constant : Sql.Sql_Type -> Any -> Expression
+make_constant : SQL_Type -> Any -> Expression
 make_constant sql_type x =
     Constant sql_type x
 

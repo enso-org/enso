@@ -1,16 +1,16 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.IR
-import Standard.Database.Data.Sql
+import Standard.Database.Internal.IR
+import Standard.Database.Data.SQL
 import Standard.Database.Data.Table as Database_Table
 
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
 
-from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
+from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
-from Standard.Database.Errors import Sql_Error
+from Standard.Database.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 
@@ -59,10 +59,10 @@ type Connection
 
        Arguments:
         - database: The name of the database to connect to.
-    set_database : Text -> Connection ! Sql_Error
+    set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
-            Sql_Error.throw_sql_error "Changing database is not supported."
+            SQL_Error.throw_sql_error "Changing database is not supported."
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -79,10 +79,10 @@ type Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    set_schema : Text -> Connection ! Sql_Error
+    set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
-            Sql_Error.throw_sql_error "Changing schema is not supported."
+            SQL_Error.throw_sql_error "Changing schema is not supported."
 
     ## Gets a list of the table types
     table_types : [Text]
@@ -116,11 +116,11 @@ type Connection
        Executes a raw query and returns the result as an in-memory Table.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of Sql.Statement
+       - query: either raw SQL code as Text or an instance of SQL.Statement
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table
+    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement query stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -132,9 +132,9 @@ type Connection
        returns 0 for other types of queries (like creating or altering tables).
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of Sql.Statement
+       - query: either raw SQL code as Text or an instance of SQL.Statement
          representing the query to execute.
-    execute_update : Text | Sql.Statement -> Integer
+    execute_update : Text | SQL.Statement -> Integer
     execute_update self query =
         self.jdbc_connection.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
@@ -147,10 +147,10 @@ type Connection
 
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, Sql.Sql_Type]
+    # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
-        query = IR.Select_All (IR.make_ctx_from table_name)
+        query = IR.Select_All (IR.context_for_table table_name)
         compiled = self.dialect.generate_sql query
         self.jdbc_connection.fetch_columns compiled
 
