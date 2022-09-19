@@ -63,6 +63,9 @@
 - [Proper Polyglot Vector and Array Support][3667]
 - [IDE uses new visualization API.][3661]
 - [Visualization of long textual values improved][3665]
+- [Selecting a suggestion from the searcher or component browser now updates the
+  visualisation of the edited node to preview the results of applying the
+  suggestion.][3691]
 
 #### EnsoGL (rendering engine)
 
@@ -311,6 +314,7 @@
 [3647]: https://github.com/enso-org/enso/pull/3647
 [3673]: https://github.com/enso-org/enso/pull/3673
 [3684]: https://github.com/enso-org/enso/pull/3684
+[3691]: https://github.com/enso-org/enso/pull/3691
 [3695]: https://github.com/enso-org/enso/pull/3695
 
 #### Enso Compiler
@@ -355,6 +359,7 @@
   representation, every atom has a type][3671]
 - [main = "Hello World!" is valid Enso sample][3696]
 - [Invalidate module's IR cache if imported module changed][3703]
+- [Don't rename imported Main module that only imports names][3710]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -401,6 +406,7 @@
 [3671]: https://github.com/enso-org/enso/pull/3671
 [3696]: https://github.com/enso-org/enso/pull/3696
 [3696]: https://github.com/enso-org/enso/pull/3703
+[3696]: https://github.com/enso-org/enso/pull/3710
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

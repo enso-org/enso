@@ -5,7 +5,7 @@ import Standard.Table
 from Standard.Table import Column, Sort_Column, Sort_Column_Selector, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data
+from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 import Standard.Table.Data.Storage
 from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Errors import Floating_Point_Grouping_Data
@@ -139,6 +139,16 @@ spec =
             (js_converted_dates == table.at "enso_dates").to_vector . should_equal [True, True]
             (enso_date_times == table.at "js_dates").to_vector . should_equal [True, True]
 
+        Test.specify "should handle Unicode normalization when accessing table columns" <|
+            col1 = ['s\u0301ciana', [1, 2, 3]]
+            col2 = ['café', [4, 5, 6]]
+            t = Table.new [col1, col2]
+            t.at 'ściana' . to_vector . should_equal [1, 2, 3]
+            t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
+            t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
+            t.at 'café' . to_vector . should_equal [4, 5, 6]
+            t.at 'sciana' . should_fail_with No_Such_Column_Error_Data
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
@@ -229,6 +239,28 @@ spec =
             a.contains "c" . to_vector . should_equal [False, True, Nothing, True, True]
             a.contains c . to_vector . should_equal [True, True, Nothing, Nothing, True]
             a.contains Nothing . to_vector . should_equal nils
+
+        Test.specify "should take Unicode normalization into account in Text operations" <|
+            x = Column.from_vector 'x' ['s', 'ś', 's\u0301']
+            y = Column.from_vector 'y' ['s\u0301', 's\u0301', 'ś']
+
+            x=='s' . to_vector . should_equal [True, False, False]
+            x=='ś' . to_vector . should_equal [False, True, True]
+            x=='s\u0301' . to_vector . should_equal [False, True, True]
+            x=='ą' . to_vector . should_equal [False, False, False]
+            x==y . to_vector . should_equal [False, True, True]
+
+            z = Column.from_vector 'z' ['śląsk', 's\u0301ciana', 'sanok', 'rzeczywistość', 'ostros\u0301c\u0301']
+            z.starts_with 's' . to_vector . should_equal [False, False, True, False, False]
+            z.starts_with 'ś' . to_vector . should_equal [True, True, False, False, False]
+            z.starts_with 's\u0301' . to_vector . should_equal [True, True, False, False, False]
+            z.starts_with 'ą' . to_vector . should_equal [False, False, False, False, False]
+            z.ends_with 'ść' . to_vector . should_equal [False, False, False, True, True]
+            z.ends_with 's\u0301c\u0301' . to_vector . should_equal [False, False, False, True, True]
+            z.ends_with 'ok' . to_vector . should_equal [False, False, True, False, False]
+            z.contains 's' . to_vector . should_equal [True, False, True, True, True]
+            z.contains 'ś' . to_vector . should_equal [True, True, False, True, True]
+            z.contains 's\u0301' . to_vector . should_equal [True, True, False, True, True]
 
     Test.group "Masking Tables" <|
         Test.specify "should allow selecting table rows based on a boolean column" <|
@@ -462,7 +494,6 @@ spec =
             r.at 'objs' . to_vector . should_equal [Cons 1 2, Cons 10 30, Cons 6 7, Cons 2 3, Cons 8 9]
             df.at 'objs' . to_vector . should_equal objs
 
-
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
             c = Column.from_vector 'foo' [1, 7, Nothing, 4, 8, Nothing]
@@ -486,6 +517,10 @@ spec =
             cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
             r = c.sort comparator=cmp
             r.to_vector.should_equal [My_Data 1 2, My_Data 3 4, My_Data 1 0, My_Data 2 5, My_Data 6 3, Nothing]
+
+        Test.specify 'should handle Unicode characters correctly' <|
+            c = Column.from_vector 'c' ['z', 'a', 'd', 'f', 's', 'e\u0301', 'ś', 'ą', 's\u0301', 'w', 'b']
+            c.sort.to_vector . should_equal ['a', 'ą', 'b', 'd', 'e\u0301', 'f', 's', 's\u0301', 'ś', 'w', 'z']
 
     Test.group "Concatenating Tables" <|
         Test.specify 'should concat tables with the same schema' <|
@@ -688,6 +723,17 @@ spec =
             t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
             t4.info.at "Storage Type" . to_vector . should_equal [Storage.Any, Storage.Decimal, Storage.Decimal]
+
+        Test.specify "should take Unicode normalization into account when grouping by Text" <|
+            texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
+            ints = ["ints", [1, 2, 4, 8, 16, 32]]
+            table = Table.new [texts, ints]
+            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "texts"])
+            r1.at "texts" . to_vector . should_equal ['sciana', 'ściana', 'łąka']
+            r1.at "Sum ints" . to_vector . should_equal [32, 11, 20]
+
+            r2 = table.aggregate [Count_Distinct "texts"]
+            r2.at "Count Distinct texts" . to_vector . should_equal [3]
 
     ## We have a separate set of tests for In-Memory distinct as it gives us
        more guarantees: preserving order of rows and always selecting the first
