@@ -140,4 +140,7 @@ type Time_Zone
 
     ## Compares two Zones for equality.
     == : Time_Zone -> Boolean
-    == self that = Time_Utils.equals_zone self that
+    == self that =
+        case that of
+            Time_Zone -> Time_Utils.equals_zone self that
+            _ -> False

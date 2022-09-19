@@ -3,6 +3,10 @@ import Standard.Base
 
 import Standard.Base.System.Platform
 
+polyglot java import java.lang.Object as JObject
+polyglot java import java.lang.Exception as JException
+polyglot java import java.io.IOException
+polyglot java import java.util.ArrayList
 polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
@@ -80,12 +84,46 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.is_an err Error . should_be_true
         Meta.is_a err Text . should_be_false
 
+    Test.specify "should allow for returning the type of a value" <|
+        Meta.type_of 42 . should_equal Integer
+        Meta.type_of 2.81 . should_equal Decimal
+        Meta.type_of 2.81 . should_not_equal Integer
+
+        # Can't compare like
+        # Meta.type_of [1,2,3] . should_equal Vector.Vector
+        # because it tries to compare lengths, where RHS is a type
+        Meta.is_a (Meta.type_of [1,2,3]) Vector.Vector . should_be_true
+
+        Meta.type_of "foo" . should_equal Text
+        Meta.type_of "0" . should_not_equal Integer
+
+        Meta.type_of True . should_equal Boolean
+        Meta.type_of False . should_not_equal Any
+
+        Meta.is_a (Meta.type_of Date.now) Date.Date . should_be_true
+        Meta.is_a (Meta.type_of Date_Time.now) Date_Time.Date_Time . should_be_true
+        Meta.is_a (Meta.type_of Date_Time.now) Date.Date . should_be_false
+        Meta.is_a (Meta.type_of Time_Of_Day.now) Time_Of_Day.Time_Of_Day . should_be_true
+        Meta.is_a (Meta.type_of Time_Of_Day.now) Date.Date . should_be_false
+        Meta.is_a (Meta.type_of Date_Time.now.zone) Time_Zone.Time_Zone . should_be_true
+        Meta.is_a (Meta.type_of Date_Time.now.zone) Date.Date . should_be_false
+
+        list = ArrayList.new
+        list.add 123
+        Meta.type_of list . should_not_equal JObject
+        Meta.type_of list . should_equal ArrayList
+
+        e = IOException.new "meh"
+        Meta.type_of list . should_not_equal JObject
+        Meta.type_of e . should_equal IOException
+        Meta.type_of e . should_not_equal JException
+
     location_pending = case Platform.os of
         Platform.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:87:15-40"
+        loc = "Meta_Spec.enso:125:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

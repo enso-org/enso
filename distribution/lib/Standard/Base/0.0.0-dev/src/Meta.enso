@@ -343,6 +343,40 @@ java_instance_check value typ =
 is_an : Any -> Any -> Boolean
 is_an value typ = is_a value typ
 
+## UNSTABLE
+   ADVANCED
+
+   Returns the type of the given value.
+
+   Arguments:
+   - value: the value to get the type of.
+type_of : Any -> Any
+type_of value =
+    if is_error value then Base.Error else
+        case value of
+            Base.Polyglot -> Meta.type_of_polyglot_builtin value
+            Integer -> Integer
+            Decimal -> Decimal
+            Number  -> Number
+            _ ->
+                Meta.type_of_builtin value
+
+## PRIVATE
+
+   Returns the type of the polyglot value.
+
+   Arguments:
+   - value: the value to get the type of.
+type_of_polyglot_builtin value = @Builtin_Method "Meta.type_of_polyglot_builtin"
+
+## PRIVATE
+
+   A builtin method returning the type of a non-polyglot value.
+
+   Arguments:
+   - value: the value to get the type of.
+type_of_builtin value = @Builtin_Method "Meta.type_of_builtin"
+
 ## Represents a polyglot language.
 type Language
 
