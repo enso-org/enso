@@ -3977,11 +3977,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ide-view-breadcrumbs"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+]
+
+[[package]]
 name = "ide-view-component-browser"
 version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "ensogl-text",
+ "ide-view-breadcrumbs",
  "ide-view-component-group",
  "ide-view-component-list-panel",
 ]
@@ -4018,6 +4030,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
+ "ide-view-breadcrumbs",
  "ide-view-component-group",
  "num_enum",
  "ordered-float",

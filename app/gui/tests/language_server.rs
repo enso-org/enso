@@ -29,6 +29,7 @@ use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 
 
+
 /// The endpoint at which the Language Server should be accepting WS connections.
 const SERVER_ENDPOINT: &str = "ws://localhost:30616";
 
