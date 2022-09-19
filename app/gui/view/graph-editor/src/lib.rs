@@ -1604,6 +1604,10 @@ impl GraphEditorModelWithNetwork {
 
             // TODO: !!!!!!!! WIP !!!!!!!!
             // node.enable_preview <+ init;
+            first_edit_and_no_visualization_change <- node_model.input.frp.editing.sample(&init);
+            eval first_edit_and_no_visualization_change ([](v)
+                tracing::warn!("MCDBG first_edit... v={v:?}") // NOT WORKING :(
+            );
             node.disable_preview <+ node_model.input.frp.editing.filter(|e| !*e).constant(());
             node.disable_preview <+ node.visualization_enabled.constant(());
 
