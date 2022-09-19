@@ -4,6 +4,7 @@ import Standard.Base.Runtime.Ref
 import Standard.Table as Materialized_Table
 
 from Standard.Database import all
+import Standard.Database
 from Standard.Database.Errors import Sql_Error_Data
 
 import Standard.Test

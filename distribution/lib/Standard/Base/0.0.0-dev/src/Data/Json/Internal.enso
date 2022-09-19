@@ -1,4 +1,5 @@
 from Standard.Base import all hiding Number, Boolean, Array
+import Standard.Base
 
 import Standard.Base.Data.Numbers as Base_Number
 import Standard.Base.Runtime.Ref

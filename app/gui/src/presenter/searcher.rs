@@ -97,7 +97,7 @@ impl Model {
     #[profile(Debug)]
     fn input_changed(&self, new_input: &str) {
         if let Err(err) = self.controller.set_input(new_input.to_owned()) {
-            tracing::error!("Error while setting new searcher input: {}", err);
+            tracing::error!("Error while setting new searcher input: {err}.");
         }
     }
 
@@ -111,7 +111,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {}", err);
+                tracing::error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -120,7 +120,9 @@ impl Model {
     /// Should be called if an entry is selected but not used yet. Only used for the old searcher
     /// API.
     fn entry_selected_as_suggestion(&self, entry_id: view::searcher::entry::Id) {
-        self.controller.preview_entry_as_suggestion(entry_id);
+        if let Err(error) = self.controller.preview_entry_as_suggestion(entry_id) {
+            tracing::warn!("Failed to preview entry {entry_id:?} because of error: {error:?}.");
+        }
     }
 
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
@@ -129,7 +131,7 @@ impl Model {
             None => self.controller.commit_node().map(Some),
         };
         result.unwrap_or_else(|err| {
-            tracing::error!("Error while executing action: {}", err);
+            tracing::error!("Error while executing action: {err}.");
             None
         })
     }
@@ -151,7 +153,11 @@ impl Model {
     /// Should be called if a suggestion is selected but not used yet.
     fn suggestion_selected(&self, entry_id: list_panel::EntryId) {
         let suggestion = self.suggestion_for_entry_id(entry_id).unwrap();
-        self.controller.preview_suggestion(suggestion);
+        if let Err(error) = self.controller.preview_suggestion(suggestion) {
+            tracing::warn!(
+                "Failed to preview suggestion {entry_id:?} because of error: {error:?}."
+            );
+        }
     }
 
     fn suggestion_accepted(
@@ -174,7 +180,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {}", err);
+                tracing::error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -188,7 +194,7 @@ impl Model {
             self.suggestion_accepted(entry_id);
         }
         self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-            tracing::error!("Error while committing node expression: {}", err);
+            tracing::error!("Error while committing node expression: {err}.");
             None
         })
     }
@@ -404,7 +410,6 @@ impl Searcher {
         let created_node = graph_controller.add_node(new_node)?;
 
         graph.assign_node_view_explicitly(input, created_node);
-        graph.allow_expression_auto_updates(created_node, false);
 
         let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
 
@@ -425,14 +430,19 @@ impl Searcher {
         let SearcherParams { input, .. } = parameters;
         let ast_node = graph.ast_node_of_view(input);
 
-        match ast_node {
+        let mode = match ast_node {
             Some(node_id) => Ok(Mode::EditNode { node_id }),
             None => {
                 let (new_node, source_node) =
                     Self::create_input_node(parameters, graph, graph_editor, graph_controller)?;
                 Ok(Mode::NewNode { node_id: new_node, source_node })
             }
+        };
+        let target_node = mode.as_ref().map(|mode| mode.node_id());
+        if let Ok(target_node) = target_node {
+            graph.allow_expression_auto_updates(target_node, false);
         }
+        mode
     }
 
     /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
@@ -468,8 +478,7 @@ impl Searcher {
             if source_node.is_none() {
                 if let Err(e) = searcher_controller.set_input("".to_string()) {
                     tracing::error!(
-                        "Failed to clear input when creating searcher for a new node: {:?}",
-                        e
+                        "Failed to clear input when creating searcher for a new node: {e:?}."
                     );
                 }
             }
@@ -508,6 +517,11 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes.
     pub fn abort_editing(self) {}
+
+    /// Returns the node view that is being edited by the searcher.
+    pub fn input_view(&self) -> ViewNodeId {
+        self.model.input_view
+    }
 
     /// Returns true if the entry under given index is one of the examples.
     pub fn is_entry_an_example(&self, entry: view::searcher::entry::Id) -> bool {

@@ -1,12 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
 
 /** A column storing strings. */
 public class StringStorage extends SpecializedStorage<String> {
@@ -71,7 +71,7 @@ public class StringStorage extends SpecializedStorage<String> {
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null) {
                 missing.set(i);
-              } else if (storage.getItem(i).equals(arg)) {
+              } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
@@ -85,7 +85,8 @@ public class StringStorage extends SpecializedStorage<String> {
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
-              } else if (storage.getItem(i).equals(arg.getItemBoxed(i))) {
+              } else if (arg.getItemBoxed(i) instanceof String s
+                  && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
@@ -96,21 +97,21 @@ public class StringStorage extends SpecializedStorage<String> {
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.startsWith(b);
+            return Text_Utils.starts_with(a, b);
           }
         });
     t.add(
         new StringBooleanOp(Maps.ENDS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.endsWith(b);
+            return Text_Utils.ends_with(a, b);
           }
         });
     t.add(
         new StringBooleanOp(Maps.CONTAINS) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.contains(b);
+            return Text_Utils.contains(a, b);
           }
         });
     return t;
