@@ -370,6 +370,7 @@ pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
+    #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     import:  HashMap<ImportId, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
