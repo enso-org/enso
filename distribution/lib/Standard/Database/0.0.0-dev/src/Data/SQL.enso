@@ -194,7 +194,7 @@ type Statement
 
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
-    Statement_Data (internal_fragments:Vector SQL_Fragment)
+    Statement_Data (internal_fragments:(Vector SQL_Fragment))
 
     ## UNSTABLE
 
@@ -269,7 +269,7 @@ type Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    Builder_Data (fragments : Vector_Builder.Vector_Builder SQL_Fragment)
+    Builder_Data (fragments:(Vector_Builder.Vector_Builder SQL_Fragment))
 
     ## UNSTABLE
 
