@@ -10,11 +10,13 @@
  */
 
 import path from 'node:path'
+import child_process from 'node:child_process'
 import fs from 'node:fs/promises'
 import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 'electron-builder'
 import builder from 'electron-builder'
+import { notarize } from 'electron-notarize'
+import signArchivesMacOs from './tasks/signArchivesMacOs.js'
 
-import { require_env } from '../../utils.js'
 import { project_manager_bundle } from './paths.js'
 import build from '../../build.json' assert { type: 'json' }
 import yargs from 'yargs'
@@ -147,9 +149,38 @@ const config: Configuration = {
     },
     afterAllArtifactBuild: path.join('tasks', 'computeHashes.cjs'),
 
-    // TODO [mwu]: Temporarily disabled, signing should be revised.
-    //             In particular, engine should handle signing of its artifacts.
-    // afterPack: 'tasks/prepareToSign.js',
+    afterPack: ctx => {
+        if (args.platform === Platform.MAC) {
+            // Make the subtree writable so we can sign the binaries.
+            // This is needed because GraalVM distribution comes with read-only binaries.
+            child_process.execFileSync('chmod', ['-R', 'u+w', ctx.appOutDir])
+        }
+    },
+
+    afterSign: async context => {
+        // Notarization for macOS.
+        if (args.platform === Platform.MAC) {
+            const { packager, appOutDir } = context
+            const appName = packager.appInfo.productFilename
+
+            // We need to manually re-sign our build artifacts before notarization.
+            console.log('  • Performing additional signing of dependencies.')
+            await signArchivesMacOs({
+                appOutDir: appOutDir,
+                productFilename: appName,
+                entitlements: context.packager.config.mac.entitlements,
+                identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
+            })
+
+            console.log('  • Notarizing.')
+            notarize({
+                appBundleId: packager.platformSpecificBuildOptions.appId,
+                appPath: `${appOutDir}/${appName}.app`,
+                appleId: process.env.APPLEID,
+                appleIdPassword: process.env.APPLEIDPASS,
+            })
+        }
+    },
 
     publish: null,
 }
