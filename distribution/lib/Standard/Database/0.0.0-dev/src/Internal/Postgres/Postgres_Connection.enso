@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database.Data.Sql import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Data.Dialect
@@ -9,7 +9,7 @@ from Standard.Database.Connection.Connection import Connection_Data
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
-from Standard.Database.Errors import Sql_Error
+from Standard.Database.Errors import SQL_Error
 
 from Standard.Database.Internal.Result_Set import read_column
 
@@ -56,7 +56,7 @@ type Postgres_Connection
 
        Arguments:
         - database: The name of the database to connect to.
-    set_database : Text -> Connection ! Sql_Error
+    set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
             self.make_new database Nothing
@@ -73,7 +73,7 @@ type Postgres_Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    set_schema : Text -> Connection ! Sql_Error
+    set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
             self.make_new Nothing schema
@@ -104,7 +104,7 @@ type Postgres_Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Statement -> Vector Sql_Type -> Materialized_Table
+    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.connection.execute_query query expected_types
 
@@ -128,7 +128,7 @@ type Postgres_Connection
 
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
         self.connection.fetch_columns table_name
