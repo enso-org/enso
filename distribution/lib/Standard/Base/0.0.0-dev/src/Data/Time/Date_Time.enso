@@ -346,19 +346,6 @@ type Date_Time
             True -> Time_Period.Day.adjust_end adjusted
             False -> adjusted
 
-    ## Counts workdays between self (inclusive) and the provided end date
-       (exclusive).
-
-       > Example
-         Count the number of workdays between two dates.
-
-             from Standard.Base import Date
-
-             example_workdays = Date.new 2020 1 1 . workdays_until (Date.new 2020 1 5)
-    work_days_until : Date_Time -> Vector Date -> Integer
-    work_days_until self end holidays=[] =
-        self.date.work_days_until end.date holidays
-
     ## ALIAS Time to Date
 
        Convert this point in time to date, discarding the time of day
