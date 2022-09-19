@@ -137,6 +137,18 @@ public class Types {
       return ConstantsGen.MANAGED_RESOURCE;
     } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
+    } else if (TypesGen.isVector(value)) {
+      return ConstantsGen.VECTOR;
+    } else if (TypesGen.isEnsoDate(value)) {
+      return ConstantsGen.DATE;
+    } else if (TypesGen.isEnsoDateTime(value)) {
+      return ConstantsGen.DATE_TIME;
+    } else if (TypesGen.isEnsoTimeOfDay(value)) {
+      return ConstantsGen.TIME_OF_DAY;
+    } else if (TypesGen.isEnsoTimeZone(value)) {
+      return ConstantsGen.TIME_ZONE;
+    } else if (TypesGen.isEnsoFile(value)) {
+      return ConstantsGen.FILE;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
