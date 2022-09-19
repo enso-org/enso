@@ -21,5 +21,6 @@
 // === Export ===
 // ==============
 
+pub use ide_view_breadcrumbs as breadcrumbs;
 pub use ide_view_component_group as component_group;
 pub use ide_view_component_list_panel as list_panel;
