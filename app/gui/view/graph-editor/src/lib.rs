@@ -1604,6 +1604,7 @@ impl GraphEditorModelWithNetwork {
 
             // TODO: !!!!!!!! WIP !!!!!!!!
             // node.enable_preview <+ init;
+            node.disable_preview <+ node_model.input.frp.editing.filter(|e| !*e).constant(());
 
 
             // === View Mode ===
