@@ -43,7 +43,8 @@ pub use crate::new_entry::style::Style;
 const ENTRIES_OVERLAP_PX: f32 = 1.0;
 /// The padding between entry background and declared entry contour.
 ///
-/// Cannot be `0.0` because the background is clipped more tightly than the selection shape, which means that the selection extends over the background. This looks bad.
+/// Cannot be `0.0` because the background is clipped more tightly than the selection shape, which
+/// means that the selection extends over the background. This looks bad.
 const CONTOUR_PADDING: f32 = 0.5;
 
 
@@ -291,7 +292,7 @@ impl Data {
         let padding = CONTOUR_PADDING * 2.0;
         let optional_gap = if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
         let height = entry_size.y - optional_gap - padding;
-        Contour::sharp(Vector2(style.group_width, height))
+        Contour::rectangular(Vector2(style.group_width, height))
     }
 
     fn highlight_contour(contour: Contour, style: &Style) -> Contour {

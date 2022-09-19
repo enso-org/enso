@@ -27,7 +27,7 @@ pub mod visible;
 // === Contour ===
 // ===============
 
-/// A structure describing entry contour.
+/// A structure describing entry contour - a rectangle with rounded corners.
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Contour {
@@ -37,7 +37,7 @@ pub struct Contour {
 
 impl Contour {
     /// Create a contour without rounded corners.
-    pub fn sharp(size: Vector2) -> Self {
+    pub fn rectangular(size: Vector2) -> Self {
         Self { size, corners_radius: 0.0 }
     }
 }
