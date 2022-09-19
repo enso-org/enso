@@ -3,9 +3,8 @@ import Standard.Base.Runtime.Ref
 
 import Standard.Table as Materialized_Table
 
-from Standard.Database import all
 import Standard.Database
-from Standard.Database.Connection.Connection import Sql_Error
+from Standard.Database import all
 
 import Standard.Test
 
@@ -83,7 +82,7 @@ connect_via_json_config =
         db_name = uri.at 2
 
         user = creds.get 'db_user'
-        Redshift_Data db_uri db_port db_name credentials=(AWS_Key user access_key secret_key)
+        Redshift db_uri db_port db_name credentials=(AWS_Key user access_key secret_key)
 
 connect_via_aws_environment db_host_port =
     db_host_port_split = uri_parse db_host_port
@@ -98,7 +97,7 @@ connect_via_aws_environment db_host_port =
     credentials = if (access_key.is_nothing || secret_key.is_nothing) then AWS_Profile db_user (Environment.get "AWS_PROFILE" . if_nothing '') else
         AWS_Key db_user access_key secret_key
 
-    Redshift_Data db_uri db_port db_name credentials=credentials
+    Redshift db_uri db_port db_name credentials=credentials
 
 uri_parse uri =
     host_db_split = uri.split '/'

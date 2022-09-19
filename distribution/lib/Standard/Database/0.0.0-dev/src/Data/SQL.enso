@@ -19,7 +19,7 @@ empty = Builder_Data (Vector_Builder.empty)
    - text: The raw SQL code.
 code : Text -> Builder
 code text =
-    vec = if text.is_empty then [] else [Sql_Code_Part text]
+    vec = if text.is_empty then [] else [SQL_Code_Part text]
     Builder_Data (Vector_Builder.from_vector vec)
 
 ## UNSTABLE
@@ -30,8 +30,8 @@ code text =
    - sql_type: The expected SQL type of `object`.
    - object: The object to be interpolated into the query as if it has the type
      given by `sql_type`.
-interpolation : Sql_Type -> Any -> Builder
-interpolation sql_type object = Builder_Data (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
+interpolation : SQL_Type -> Any -> Builder
+interpolation sql_type object = Builder_Data (Vector_Builder.from_vector [SQL_Interpolation sql_type object])
 
 ## UNSTABLE
 
@@ -50,66 +50,66 @@ join separator statements =
         (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
 ## Represents an internal SQL data-type.
-type Sql_Type
+type SQL_Type
 
     ## Represents an internal SQL data-type.
 
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
        - name: a database-specific type name, used for pretty printing.
-    Sql_Type_Data typeid name
+    SQL_Type_Data typeid name
 
     == self that = case that of
-        Sql_Type_Data that_id _ ->
+        SQL_Type_Data that_id _ ->
             self.typeid == that_id
         _ -> False
 
     ## The SQL representation of `Boolean` type.
-    boolean : Sql_Type
-    boolean = Sql_Type_Data Types.BOOLEAN "BOOLEAN"
+    boolean : SQL_Type
+    boolean = SQL_Type_Data Types.BOOLEAN "BOOLEAN"
 
     ## The SQL representation of `Integer` type.
-    integer : Sql_Type
-    integer = Sql_Type_Data Types.INTEGER "INTEGER"
+    integer : SQL_Type
+    integer = SQL_Type_Data Types.INTEGER "INTEGER"
 
     ## The SQL representation of the `BIGINT` type.
-    bigint : Sql_Type
-    bigint = Sql_Type_Data Types.BIGINT "BIGINT"
+    bigint : SQL_Type
+    bigint = SQL_Type_Data Types.BIGINT "BIGINT"
 
     ## The SQL representation of the `SMALLINT` type.
-    smallint : Sql_Type
-    smallint = Sql_Type_Data Types.SMALLINT "SMALLINT"
+    smallint : SQL_Type
+    smallint = SQL_Type_Data Types.SMALLINT "SMALLINT"
 
     ## The SQL type representing decimal numbers.
-    decimal : Sql_Type
-    decimal = Sql_Type_Data Types.DECIMAL "DECIMAL"
+    decimal : SQL_Type
+    decimal = SQL_Type_Data Types.DECIMAL "DECIMAL"
 
     ## The SQL type representing decimal numbers.
-    real : Sql_Type
-    real = Sql_Type_Data Types.REAL "REAL"
+    real : SQL_Type
+    real = SQL_Type_Data Types.REAL "REAL"
 
     ## The SQL type representing double-precision floating-point numbers.
-    double : Sql_Type
-    double = Sql_Type_Data Types.DOUBLE "DOUBLE PRECISION"
+    double : SQL_Type
+    double = SQL_Type_Data Types.DOUBLE "DOUBLE PRECISION"
 
     ## The SQL type representing a general numeric type.
-    numeric : Sql_Type
-    numeric = Sql_Type_Data Types.NUMERIC "NUMERIC"
+    numeric : SQL_Type
+    numeric = SQL_Type_Data Types.NUMERIC "NUMERIC"
 
     ## The SQL type representing one of the suppported textual types.
-    varchar : Sql_Type
-    varchar = Sql_Type_Data Types.VARCHAR "VARCHAR"
+    varchar : SQL_Type
+    varchar = SQL_Type_Data Types.VARCHAR "VARCHAR"
 
     ## UNSTABLE
        The SQL type representing one of the suppported textual types.
 
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
-    text : Sql_Type
-    text = Sql_Type_Data Types.VARCHAR "VARCHAR"
+    text : SQL_Type
+    text = SQL_Type_Data Types.VARCHAR "VARCHAR"
 
     ## The SQL type representing a binary object.
-    blob : Sql_Type
-    blob = Sql_Type_Data Types.BLOB "BLOB"
+    blob : SQL_Type
+    blob = SQL_Type_Data Types.BLOB "BLOB"
 
     ## PRIVATE
 
@@ -159,10 +159,10 @@ type Sql_Type
 
    A fragment of a SQL query.
 
-   It can either be a Sql_Code_Part that represents raw SQL code or
-   Sql_Interpolation which represents an object that will be interpolated into
+   It can either be a SQL_Code_Part that represents raw SQL code or
+   SQL_Interpolation which represents an object that will be interpolated into
    the query.
-type Sql_Fragment
+type SQL_Fragment
 
     ## UNSTABLE
 
@@ -170,8 +170,7 @@ type Sql_Fragment
 
        Arguments:
        - code: A fragment of SQL code.
-    # type Sql_Code_Part (code : Text)
-    Sql_Code_Part code
+    SQL_Code_Part code:Text
 
     ## UNSTABLE
 
@@ -182,8 +181,7 @@ type Sql_Fragment
        - sql_type: The expected SQL type of `object`.
        - object: A value that will be interpolated into the query, interpreted
          as having the type `sql_type`.
-    # type Sql_Interpolation (sql_type : Sql_Type) (object : Any)
-    Sql_Interpolation sql_type object
+    SQL_Interpolation sql_type:SQL_Type object:Any
 
 type Statement
 
@@ -196,28 +194,27 @@ type Statement
 
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
-    # type Statement (internal_fragments : Vector Sql_Fragment)
-    Statement_Data internal_fragments
+    Statement_Data (internal_fragments:(Vector SQL_Fragment))
 
     ## UNSTABLE
 
        A vector of code fragments.
 
        Consists of two types of values:
-       - Sql_Code_Part, representing parts of raw SQL code and
-       - Sql_Interpolation, representing objects that will be interpolated in
+       - SQL_Code_Part, representing parts of raw SQL code and
+       - SQL_Interpolation, representing objects that will be interpolated in
          between the SQL code.
-    fragments : Vector Sql_Fragment
+    fragments : Vector SQL_Fragment
     fragments self = self.internal_fragments
 
     ## UNSAFE
        UNSTABLE
        ADVANCED
 
-       This function returns a raw Sql string for the query, manually handling
+       This function returns a raw SQL string for the query, manually handling
        the interpolation that is normally handled by the database engine itself.
 
-       It should be used EXTREMELY carefully - the returned Sql code should
+       It should be used EXTREMELY carefully - the returned SQL code should
        always be read by a human to ensure that it does what is expected before
        executing it in any REPLs or other database interfaces.
 
@@ -225,9 +222,9 @@ type Statement
     unsafe_to_raw_sql : Text
     unsafe_to_raw_sql self =
         strings = self.internal_fragments . map <| case _ of
-            Sql_Code_Part code -> code
+            SQL_Code_Part code -> code
             # TODO at some point we may try more sophisticated serialization based on data type
-            Sql_Interpolation _ obj -> case obj of
+            SQL_Interpolation _ obj -> case obj of
                 Number -> obj.to_text
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
@@ -239,11 +236,11 @@ type Statement
     # prepare : [Text, Vector Any]
     prepare self =
         to_code fragment = case fragment of
-            Sql_Code_Part code -> code
-            Sql_Interpolation _ _ -> "?"
+            SQL_Code_Part code -> code
+            SQL_Interpolation _ _ -> "?"
         to_subst fragment = case fragment of
-            Sql_Code_Part _ -> []
-            Sql_Interpolation typ obj -> [[obj, typ]]
+            SQL_Code_Part _ -> []
+            SQL_Interpolation typ obj -> [[obj, typ]]
         sql = self.fragments.map to_code . join ""
         substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
@@ -254,8 +251,8 @@ type Statement
     to_json : Json
     to_json self =
         jsonify fragment = case fragment of
-            Sql_Code_Part code -> Json.from_pairs [["sql_code", code]]
-            Sql_Interpolation typ obj ->
+            SQL_Code_Part code -> Json.from_pairs [["sql_code", code]]
+            SQL_Interpolation typ obj ->
                 inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
                 Json.from_pairs [["sql_interpolation", inner]]
         fragments = Json.Array (self.internal_fragments.map jsonify)
@@ -272,8 +269,7 @@ type Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    # type Builder (fragments : Vector_Builder.Vector_Builder Sql_Fragment)
-    Builder_Data fragments
+    Builder_Data (fragments:(Vector_Builder.Vector_Builder SQL_Fragment))
 
     ## UNSTABLE
 
@@ -329,29 +325,29 @@ type Builder
 
    Arguments:
    - fragments: The fragments to be merged together.
-optimize_fragments : Vector Sql_Fragment -> Vector Sql_Fragment
+optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder
     go elem =
-        last_part = State.get Sql_Code_Part
+        last_part = State.get SQL_Code_Part
         case elem of
-            Sql_Code_Part code ->
+            SQL_Code_Part code ->
                 new_part = case last_part of
-                    Nothing -> Sql_Code_Part code
-                    Sql_Code_Part other -> Sql_Code_Part other+code
-                State.put Sql_Code_Part new_part
-            Sql_Interpolation _ _ ->
+                    Nothing -> SQL_Code_Part code
+                    SQL_Code_Part other -> SQL_Code_Part other+code
+                State.put SQL_Code_Part new_part
+            SQL_Interpolation _ _ ->
                 case last_part of
                     Nothing -> Nothing
-                    Sql_Code_Part _ ->
+                    SQL_Code_Part _ ->
                         builder.append last_part
-                        State.put Sql_Code_Part Nothing
+                        State.put SQL_Code_Part Nothing
                 builder.append elem
-    State.run Sql_Code_Part Nothing <|
+    State.run SQL_Code_Part Nothing <|
         fragments.each go
-        last_part = State.get Sql_Code_Part
+        last_part = State.get SQL_Code_Part
         case last_part of
             Nothing -> Nothing
-            Sql_Code_Part _ -> builder.append last_part
+            SQL_Code_Part _ -> builder.append last_part
     builder.to_vector
 
