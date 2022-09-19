@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Aggregate_Column
 import Standard.Table
 
-from Standard.Database import SQLite_Data
+from Standard.Database import SQLite
 import Standard.Database
 import Standard.Database.Data.Table as Database_Table
 
