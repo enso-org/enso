@@ -5,6 +5,8 @@ use crate::system::web::traits::*;
 
 use crate::system::web;
 use crate::types::unit2::Duration;
+use enso_callback as callback;
+use enso_callback::traits::*;
 
 use web::Closure;
 
@@ -36,12 +38,6 @@ impl TimeInfo {
     /// Constructor.
     pub fn new() -> Self {
         default()
-    }
-
-    /// Check whether the time info was initialized. See the documentation of the struct to learn
-    /// more.
-    pub fn is_initialized(&self) -> bool {
-        self.animation_loop_start != 0.ms()
     }
 
     /// Creates a new [`TimeInfo`] for the next frame with the provided time. The frame time will
@@ -115,7 +111,6 @@ pub struct RawLoopData<OnFrame> {
 impl<OnFrame> RawLoopData<OnFrame> {
     /// Constructor.
     fn new(on_frame: OnFrame) -> Self {
-        // event!(WARN, "NEW LOOP {}", LOOPS_COUNT.with_borrow(|count| *count));
         let js_on_frame = default();
         let js_on_frame_handle_id = default();
         Self { on_frame, js_on_frame, js_on_frame_handle_id }
@@ -140,6 +135,19 @@ impl<OnFrame> Drop for RawLoopData<OnFrame> {
 }
 
 
+#[derive(Clone, Debug)]
+pub struct Loop {
+    handle: callback::Handle,
+}
+
+impl Loop {
+    pub fn new(callback: impl OnFrameCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add(callback));
+        Self { handle }
+    }
+}
+
+
 
 // ============
 // === Loop ===
@@ -153,46 +161,56 @@ pub trait OnFrameCallback = FnMut(TimeInfo) + 'static;
 
 // === Definition ===
 
+thread_local! {
+    pub static LOOP_REGISTRY: LoopRegistry = LoopRegistry::new();
+}
+
 /// An animation loop. Runs the provided [`OnFrame`] callback on every animation frame.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-pub struct Loop<OnFrame> {
-    animation_loop: RawLoop<OnFrameClosure<OnFrame>>,
-    time_info:      Rc<Cell<TimeInfo>>,
+pub struct LoopRegistry {
+    callbacks:      callback::registry::CopyMut1<Duration>,
+    animation_loop: RawLoop<OnFrameClosure>,
 }
 
-impl<OnFrame> Loop<OnFrame>
-where OnFrame: OnFrameCallback
-{
+impl LoopRegistry {
     /// Constructor.
-    pub fn new(on_frame: OnFrame) -> Self {
-        let time_info = Rc::new(Cell::new(TimeInfo::new()));
-        let animation_loop = RawLoop::new(on_frame_closure(on_frame, time_info.clone_ref()));
-        Self { animation_loop, time_info }
+    pub fn new() -> Self {
+        let callbacks = default();
+        let animation_loop = RawLoop::new(on_frame_closure(&callbacks));
+        Self { callbacks, animation_loop }
+    }
+
+    pub fn add(&self, mut callback: impl OnFrameCallback) -> callback::Handle {
+        let js_performance = web::window.performance_or_panic();
+        let mut is_initialized = false;
+        let mut time_info = TimeInfo::default();
+        self.callbacks.add(move |current_time: Duration| {
+            // FIXME: change to f64
+            let current_time = (js_performance.now() as f32).ms();
+            let prev_time = time_info;
+            let prev_start = prev_time.animation_loop_start;
+            let animation_loop_start = if is_initialized { prev_start } else { current_time };
+            let since_animation_loop_started = current_time - animation_loop_start;
+            let previous_frame =
+                since_animation_loop_started - prev_time.since_animation_loop_started;
+            let time =
+                TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
+            time_info = time;
+            is_initialized = true;
+            callback(time);
+        })
     }
 }
 
 /// Callback for an animation frame.
-pub type OnFrameClosure<OnFrame> = impl FnMut(Duration);
-fn on_frame_closure<OnFrame>(
-    mut on_frame: OnFrame,
-    time_info: Rc<Cell<TimeInfo>>,
-) -> OnFrameClosure<OnFrame>
-where
-    OnFrame: OnFrameCallback,
-{
+pub type OnFrameClosure = impl FnMut(Duration);
+fn on_frame_closure(callbacks: &callback::registry::CopyMut1<Duration>) -> OnFrameClosure {
+    let callbacks = callbacks.clone_ref();
     move |current_time: Duration| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
-        let prev_time = time_info.get();
-        let is_initialized = prev_time.is_initialized();
-        let prev_start = prev_time.animation_loop_start;
-        let animation_loop_start = if is_initialized { prev_start } else { current_time };
-        let since_animation_loop_started = current_time - animation_loop_start;
-        let previous_frame = since_animation_loop_started - prev_time.since_animation_loop_started;
-        let time = TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-        time_info.set(time);
-        on_frame(time);
+        callbacks.run_all(current_time);
     }
 }
 
@@ -229,6 +247,7 @@ impl<OnFrame, OnTooManyFramesSkipped> FixedFrameRateSampler<OnFrame, OnTooManyFr
     ) -> Self {
         let max_skipped_frames = 200; // FIXME !!!!!!!!!!!!!!!!!!!!!!! Revert to "2" after testing.
         let frame_time = (1000.0 / fps).ms();
+        warn!("new FixedFrameRateSampler");
         let local_time = default();
         // The first call to this sampler will be with frame time 0, which would drop this
         // `time_buffer` to 0.
@@ -261,13 +280,22 @@ where
 {
     extern "rust-call" fn call_mut(&mut self, args: (TimeInfo,)) -> Self::Output {
         let mut time = args.0;
+        warn!("time: {:?}", time);
+        warn!("since_animation_loop_started: {:?}", time.since_animation_loop_started);
+        warn!("local_time = {:?}", self.local_time);
+
         self.time_buffer += time.since_animation_loop_started - self.local_time;
 
-        let frame_time_2 = self.frame_time * 0.5;
-        let skipped_frames = ((self.time_buffer - frame_time_2) / self.frame_time) as usize;
+        let half_frame_time = self.frame_time * 0.5;
+        let skipped_frames = ((self.time_buffer - half_frame_time) / self.frame_time) as usize;
         let too_many_frames_skipped = skipped_frames > self.max_skipped_frames;
+        warn!(
+            "too_many_frames_skipped: {} > {} = {}",
+            skipped_frames, self.max_skipped_frames, too_many_frames_skipped
+        );
         if !too_many_frames_skipped {
             for _ in 0..skipped_frames {
+                warn!("self.local_time += self.frame_time, local_time: {:?}", self.local_time);
                 self.local_time += self.frame_time;
                 self.time_buffer -= self.frame_time;
                 let animation_loop_start = time.animation_loop_start;
@@ -277,15 +305,23 @@ where
                     TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
                 self.callback.call_mut((time2,));
             }
-            let not_too_fast_refresh_rate = self.time_buffer >= -frame_time_2;
+            let not_too_fast_refresh_rate = self.time_buffer >= -half_frame_time;
             if not_too_fast_refresh_rate {
                 self.time_buffer -= self.frame_time;
             }
             time.previous_frame = time.since_animation_loop_started - self.local_time;
             self.local_time = time.since_animation_loop_started;
+            warn!(
+                "[1] self.local_time = time.since_animation_loop_started, local_time: {:?}",
+                self.local_time
+            );
             (self.callback)(time);
         } else {
             self.local_time = time.since_animation_loop_started;
+            warn!(
+                "[2] self.local_time = time.since_animation_loop_started, local_time: {:?}",
+                self.local_time
+            );
             self.time_buffer = 0.ms();
             (self.on_too_many_frames_skipped)();
         }
@@ -302,14 +338,14 @@ where
 pub trait OnTooManyFramesSkippedCallback = FnMut() + 'static;
 
 /// Loop with a `FixedFrameRateSampler` attached.
-pub type FixedFrameRateLoop<OnFrame, OnTooManyFramesSkipped> =
-    Loop<FixedFrameRateSampler<OnFrame, OnTooManyFramesSkipped>>;
+pub type FixedFrameRateLoop = Loop;
 
-impl<OnFrame: OnFrameCallback, OnTooManyFramesSkipped: OnTooManyFramesSkippedCallback>
-    FixedFrameRateLoop<OnFrame, OnTooManyFramesSkipped>
-{
+impl FixedFrameRateLoop {
     /// Constructor.
-    pub fn new_with_fixed_frame_rate(
+    pub fn new_with_fixed_frame_rate<
+        OnFrame: OnFrameCallback,
+        OnTooManyFramesSkipped: OnTooManyFramesSkippedCallback,
+    >(
         fps: f32,
         on_frame: OnFrame,
         on_too_many_frames_skipped: OnTooManyFramesSkipped,
