@@ -848,8 +848,9 @@ impl Node {
             // preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
             // preview_visible         <- preview_visible && has_expression;
             preview_enabled_frp <- bool(&input.disable_preview, &input.enable_preview);
-            has_expression_and_hover_onset_active <- has_expression && hover_onset_active;
-            preview_visible <- has_expression_and_hover_onset_active || preview_enabled_frp;
+            hover_preview_visible <- has_expression && hover_onset_active;
+            hover_preview_visible <- hover_preview_visible.on_change();
+            preview_visible <- hover_preview_visible || preview_enabled_frp;
             preview_visible <- preview_visible.on_change();
 
             visualization_visible            <- visualization_enabled || preview_visible;
@@ -867,8 +868,8 @@ impl Node {
 
             // Ensure the preview is visible above all other elements, but the normal visualisation
             // is below nodes.
-            layer_on_hover     <- preview_visible.on_false().map(|_| visualization::Layer::Default);
-            layer_on_not_hover <- preview_visible.on_true().map(|_| visualization::Layer::Front);
+            layer_on_hover     <- hover_preview_visible.on_false().map(|_| visualization::Layer::Default);
+            layer_on_not_hover <- hover_preview_visible.on_true().map(|_| visualization::Layer::Front);
             layer              <- any(layer_on_hover,layer_on_not_hover);
             model.visualization.frp.set_layer <+ layer;
 
