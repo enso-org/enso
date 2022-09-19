@@ -95,6 +95,7 @@ pub mod layout;
 mod layouting;
 mod navigator;
 
+pub use breadcrumbs::BreadcrumbId;
 pub use column_grid::LabeledAnyModelProvider;
 pub use component_group::set::EnteredModule;
 pub use component_group::set::GroupId;
@@ -935,6 +936,7 @@ define_endpoints_2! {
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
+        push_breadcrumb(ImString),
         /// The component browser is displayed on screen.
         show(),
         /// The component browser is hidden from screen.
@@ -948,6 +950,7 @@ define_endpoints_2! {
         /// The last selected suggestion.
         suggestion_selected(EntryId),
         size(Vector2),
+        selected_breadcrumb(BreadcrumbId),
     }
 }
 
@@ -1069,6 +1072,12 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
+
+
+            // === Breadcrumbs ===
+
+            eval input.push_breadcrumb((breadcrumb) model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(breadcrumb)));
+            output.selected_breadcrumb <+ model.breadcrumbs.selected;
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

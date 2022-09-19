@@ -84,7 +84,7 @@ const SCROLLING_THRESHOLD_FRACTION: f32 = 0.5;
 
 type GridView = grid_view::selectable::GridView<Entry>;
 type Entries = Rc<RefCell<Vec<Breadcrumb>>>;
-type BreadcrumbId = usize;
+pub type BreadcrumbId = usize;
 
 
 

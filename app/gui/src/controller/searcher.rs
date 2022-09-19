@@ -610,7 +610,7 @@ impl Searcher {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
     pub fn top_modules(&self) -> group::AlphabeticalList {
         let components = self.components();
-        if let Some(selected) = self.breadcrumbs.currently_selected() {
+        if let Some(selected) = self.breadcrumbs.selected() {
             components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
             components.top_modules().clone_ref()
@@ -631,7 +631,7 @@ impl Searcher {
     /// The list of components displayed in `Local Scope` section of the browser.
     pub fn local_scope(&self) -> group::Group {
         let components = self.components();
-        if let Some(selected) = self.breadcrumbs.currently_selected() {
+        if let Some(selected) = self.breadcrumbs.selected() {
             components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
             components.local_scope
@@ -641,6 +641,11 @@ impl Searcher {
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) {
         self.breadcrumbs.push(*module);
+        self.notifier.notify(Notification::NewActionList);
+    }
+
+    pub fn select_breadcrumb(&self, id: usize) {
+        self.breadcrumbs.select(id);
         self.notifier.notify(Notification::NewActionList);
     }
 

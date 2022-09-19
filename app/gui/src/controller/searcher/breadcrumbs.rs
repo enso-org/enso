@@ -12,12 +12,10 @@ use crate::controller::searcher::component;
 
 /// A controller that keeps the path of entered modules in the Searcher and provides the
 /// functionality of the breadcrumbs panel.
-///
-/// TODO: The actual implementation would be finished in
-///   [Breadcrumbs Panel integration task](https://www.pivotaltracker.com/story/show/182675703).
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
-    currently_selected: Rc<Cell<Option<component::Id>>>,
+    list:     Rc<RefCell<Vec<component::Id>>>,
+    selected: Rc<Cell<usize>>,
 }
 
 impl Breadcrumbs {
@@ -28,16 +26,33 @@ impl Breadcrumbs {
 
     /// Push the new breadcrumb to the breadcrumbs panel.
     pub fn push(&self, id: component::Id) {
-        self.currently_selected.set(Some(id));
+        DEBUG!("Pushing breadcrumb: {id:?}.");
+        let selected = self.selected.get();
+        let mut borrowed = self.list.borrow_mut();
+        if selected != borrowed.len() {
+            borrowed.truncate(selected);
+        }
+        borrowed.push(id);
+        self.select(borrowed.len());
+    }
+
+    pub fn select(&self, id: usize) {
+        DEBUG!("Select: {id}");
+        self.selected.set(id);
     }
 
     /// Returns true if the currently selected breadcrumb is the root one.
     pub fn is_top_module(&self) -> bool {
-        self.currently_selected.get().is_none()
+        self.selected.get() == 0
     }
 
     /// Returns a currently selected breadcrumb id.
-    pub fn currently_selected(&self) -> Option<component::Id> {
-        self.currently_selected.get()
+    pub fn selected(&self) -> Option<component::Id> {
+        if self.is_top_module() {
+            None
+        } else {
+            let index = self.selected.get();
+            self.list.borrow().get(index - 1).cloned()
+        }
     }
 }

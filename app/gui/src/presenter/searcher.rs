@@ -19,6 +19,7 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel;
+use ide_view::component_browser::list_panel::BreadcrumbId;
 use ide_view::component_browser::list_panel::EnteredModule;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
@@ -190,6 +191,16 @@ impl Model {
         }
     }
 
+    fn breadcrumb_selected(&self, id: BreadcrumbId) {
+        self.controller.select_breadcrumb(id);
+    }
+
+    fn push_breadcrumb(&self, name: ImString) {
+        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
+            browser.model().list.push_breadcrumb(name);
+        }
+    }
+
     fn module_entered(&self, module: EnteredModule) {
         self.enter_module(module);
     }
@@ -200,11 +211,15 @@ impl Model {
                 let view_id = list_panel::EntryId { group, entry_id };
                 let component = self.component_by_view_id(view_id)?;
                 let id = component.id()?;
+                let name = ImString::new(component.name());
+                self.push_breadcrumb(name);
                 self.controller.enter_module(&id);
             }
             EnteredModule::Group(group_id) => {
                 let group = self.group_by_view_id(group_id)?;
                 let id = group.component_id?;
+                let name = group.name.clone_ref();
+                self.push_breadcrumb(name);
                 self.controller.enter_module(&id);
             }
         }
@@ -375,6 +390,7 @@ impl Searcher {
                     eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval list_view.suggestion_selected((entry) model.suggestion_selected(*entry));
                     eval list_view.module_entered((id) model.module_entered(*id));
+                    eval list_view.selected_breadcrumb((id) model.breadcrumb_selected(*id));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
