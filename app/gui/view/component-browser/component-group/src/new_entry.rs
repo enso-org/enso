@@ -43,8 +43,7 @@ pub use crate::new_entry::style::Style;
 const ENTRIES_OVERLAP_PX: f32 = 1.0;
 /// The padding between entry background and declared entry contour.
 ///
-/// Cannot be `0.0`, because the background is clipped more sharply than the selection shape, making
-/// selection extending a bit over the background what looks bad.
+/// Cannot be `0.0` because the background is clipped more tightly than the selection shape, which means that the selection extends over the background. This looks bad.
 const CONTOUR_PADDING: f32 = 0.5;
 
 
