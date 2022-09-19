@@ -1,8 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table
-from Standard.Table import Column, File_Format, Data_Formatter_Data, Quote_Style
-from Standard.Table.IO.File_Format import Delimited_Data
+from Standard.Table import Column, Data_Formatter_Data, Quote_Style, Delimited
 from Standard.Table.Errors import all
 
 import Standard.Test
@@ -17,7 +16,7 @@ spec =
             c_2 = ["b", ['2', Nothing, '8', '11']]
             c_3 = ["c", [Nothing, '6', '9', '12']]
             expected_table = Table.new [c_1, c_2, c_3]
-            simple_empty = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=True value_formatter=Nothing)
+            simple_empty = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=True value_formatter=Nothing)
             simple_empty.should_equal expected_table
 
         Test.specify "should load a simple table without headers" <|
@@ -25,11 +24,11 @@ spec =
             c_2 = ["Column_2", ['b', '2', Nothing, '8', '11']]
             c_3 = ["Column_3", ['c', Nothing, '6', '9', '12']]
             expected_table = Table.new [c_1, c_2, c_3]
-            simple_empty = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False value_formatter=Nothing)
+            simple_empty = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False value_formatter=Nothing)
             simple_empty.should_equal expected_table
 
         Test.specify "should work in presence of missing headers" <|
-            action on_problems = File.read (enso_project.data / "missing_header.csv") (Delimited_Data "," headers=True value_formatter=Nothing) on_problems
+            action on_problems = File.read (enso_project.data / "missing_header.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
             tester table =
                 table.columns.map .name . should_equal ["a", "Column_1", "c", "Column_2", "d"]
                 table.at "a" . to_vector . should_equal ["1"]
@@ -41,61 +40,61 @@ spec =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should infer headers based on the first two rows" <|
-            t1 = File.read (enso_project.data / "data_small.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t1 = File.read (enso_project.data / "data_small.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Code", "Index", "Flag", "Value", "ValueWithNothing", "TextWithNothing", "Hexadecimal", "Leading0s", "QuotedNumbers", "Mixed Types"]
 
-            t2 = File.read (enso_project.data / "all_text.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t2 = File.read (enso_project.data / "all_text.csv") (Delimited ",")
             t2.columns.map .name . should_equal ["Column_1", "Column_2"]
             t2.at "Column_1" . to_vector . should_equal ["a", "c", "e", "g"]
             t2.at "Column_2" . to_vector . should_equal ["b", "d", "f", "h"]
 
-            t3 = File.read (enso_project.data / "two_rows1.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t3 = File.read (enso_project.data / "two_rows1.csv") (Delimited ",")
             t3.columns.map .name . should_equal ["a", "b", "c"]
             t3.at "a" . to_vector . should_equal ["x"]
             t3.at "b" . to_vector . should_equal [Nothing]
             t3.at "c" . to_vector . should_equal [Nothing]
 
-            t4 = File.read (enso_project.data / "two_rows2.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t4 = File.read (enso_project.data / "two_rows2.csv") (Delimited ",")
             t4.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t4.at "Column_1" . to_vector . should_equal ["a", "d"]
             t4.at "Column_2" . to_vector . should_equal ["b", "e"]
             t4.at "Column_3" . to_vector . should_equal ["c", "f"]
 
-            t5 = File.read (enso_project.data / "numbers_in_header.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t5 = File.read (enso_project.data / "numbers_in_header.csv") (Delimited ",")
             t5.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t5.at "Column_1" . to_vector . should_equal ["a", "1"]
             t5.at "Column_2" . to_vector . should_equal ["b", "2"]
             t5.at "Column_3" . to_vector . should_equal [0, 3]
 
-            t6 = File.read (enso_project.data / "quoted_numbers_in_header.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t6 = File.read (enso_project.data / "quoted_numbers_in_header.csv") (Delimited ",")
             t6.columns.map .name . should_equal ["1", "x"]
             t6.at "1" . to_vector . should_equal ["y"]
             t6.at "x" . to_vector . should_equal [2]
 
         Test.specify "should not use the first row as headers if it is the only row, unless specifically asked to" <|
-            t1 = File.read (enso_project.data / "one_row.csv") (Delimited_Data "," headers=File_Format.Infer)
+            t1 = File.read (enso_project.data / "one_row.csv") (Delimited ",")
             t1.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
             t1.at "Column_1" . to_vector . should_equal ["x"]
             t1.at "Column_2" . to_vector . should_equal ["y"]
             t1.at "Column_3" . to_vector . should_equal ["z"]
 
-            t2 = File.read (enso_project.data / "one_row.csv") (Delimited_Data "," headers=True)
+            t2 = File.read (enso_project.data / "one_row.csv") (Delimited "," headers=True)
             t2.columns.map .name . should_equal ["x", "y", "z"]
             t2.row_count .  should_equal 0
             t2.at "x" . to_vector . should_equal []
 
         Test.specify "should be able to load even an empty file" <|
-            table = File.read (enso_project.data / "empty.txt") (Delimited_Data "," headers=True value_formatter=Nothing)
+            table = File.read (enso_project.data / "empty.txt") (Delimited "," headers=True value_formatter=Nothing)
             table.columns.map .name . should_equal []
             table.row_count . should_equal 0
 
         Test.specify "should correctly handle file opening issues" <|
             nonexistent_file = enso_project.data / "a_filename_that_does_not_exist.foobar"
-            r1 = File.read nonexistent_file (Delimited_Data "," headers=True value_formatter=Nothing)
+            r1 = File.read nonexistent_file (Delimited "," headers=True value_formatter=Nothing)
             r1.should_fail_with File.File_Not_Found
 
             directory = enso_project.data
-            r2 = File.read directory (Delimited_Data "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
+            r2 = File.read directory (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
             r2.should_fail_with File.IO_Error
 
         Test.specify "should work with all kinds of line endings" <|
@@ -106,7 +105,7 @@ spec =
                 text.write (path name)
 
             test_file name =
-                table = File.read (path name) (Delimited_Data "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
+                table = File.read (path name) (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['d', '1']
                 table.at 'b' . to_vector . should_equal ['e', '2']
@@ -121,7 +120,7 @@ spec =
 
             # Currently mixed line endings are not supported.
             'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
-            File.read (path 'mixed.csv') (Delimited_Data "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row_Data
+            File.read (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row_Data
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
@@ -131,7 +130,7 @@ spec =
             text = lines.join '\n'
             text.write file
 
-            format = Delimited_Data ',' headers=False value_formatter=(Data_Formatter_Data trim_values=False)
+            format = Delimited ',' headers=False value_formatter=(Data_Formatter_Data trim_values=False)
 
             reference_table = Table.new [["Column_1", ["a", "d", "1"]], ["Column_2", ["b", "e", "2"]], ["Column_3", ["c", "f", "3"]]]
             collapsed_table = Table.new <|
@@ -153,14 +152,14 @@ spec =
             file_2.delete
 
         Test.specify "should work with Windows-1252 encoding" <|
-            table = File.read (enso_project.data / "windows.csv") (Delimited_Data "," headers=True encoding=Encoding.windows_1252) Problem_Behavior.Report_Error
+            table = File.read (enso_project.data / "windows.csv") (Delimited "," headers=True encoding=Encoding.windows_1252) Problem_Behavior.Report_Error
             table.columns.map .name . should_equal ['a', 'b', 'c']
             table.at 'a' . to_vector . should_equal ['$¢']
             table.at 'b' . to_vector . should_equal ['¤']
             table.at 'c' . to_vector . should_equal ['¥']
 
         Test.specify "should work with UTF-16 encoding" <|
-            table = File.read (enso_project.data / "utf16.csv") (Delimited_Data "," headers=True encoding=Encoding.utf_16_be) Problem_Behavior.Report_Error
+            table = File.read (enso_project.data / "utf16.csv") (Delimited "," headers=True encoding=Encoding.utf_16_be) Problem_Behavior.Report_Error
             table.columns.map .name . should_equal ['ą', '🚀b', 'ć😎']
             table.at 'ą' . to_vector . should_equal ['ą']
             table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
@@ -171,7 +170,7 @@ spec =
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
             utf8_bytes.write_bytes utf8_file
             action_1 on_problems =
-                utf8_file.read (Delimited_Data "," headers=True) on_problems
+                utf8_file.read (Delimited "," headers=True) on_problems
             tester_1 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['ą']
@@ -182,7 +181,7 @@ spec =
             utf8_file.delete
 
             action_2 on_problems =
-                (enso_project.data / "utf16_invalid.csv").read (Delimited_Data "," headers=True encoding=Encoding.utf_16_be) on_problems
+                (enso_project.data / "utf16_invalid.csv").read (Delimited "," headers=True encoding=Encoding.utf_16_be) on_problems
             tester_2 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 # This column does not raise a problem - the '\uFFFD' is simply present in the input file.
@@ -194,7 +193,7 @@ spec =
             Problems.test_problem_handling action_2 problems_2 tester_2
 
         Test.specify "should handle duplicated columns" <|
-            action on_problems = File.read (enso_project.data / "duplicated_columns.csv") (Delimited_Data "," headers=True value_formatter=Nothing) on_problems
+            action on_problems = File.read (enso_project.data / "duplicated_columns.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
             tester table =
                 table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
                 table.at 'a' . to_vector . should_equal ['1']
@@ -203,27 +202,27 @@ spec =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle quotes" <|
-            t1 = File.read (enso_project.data / "double_quoted.csv") (Delimited_Data "," headers=True value_formatter=Nothing)
+            t1 = File.read (enso_project.data / "double_quoted.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.at 'a' . to_vector . should_equal ['a, x', '"a']
             t1.at 'c' . to_vector . should_equal ['3', '"']
 
-            t2 = File.read (enso_project.data / "escape_quoted.csv") (Delimited_Data "," headers=True value_formatter=Nothing . with_quotes quote_escape="\")
+            t2 = File.read (enso_project.data / "escape_quoted.csv") (Delimited "," headers=True value_formatter=Nothing . with_quotes quote_escape="\")
             t2.at 'a' . to_vector . should_equal ['a"b', 'a\\\"z']
 
-            t3 = File.read (enso_project.data / "no_quoting.csv") (Delimited_Data "," headers=True value_formatter=Nothing . without_quotes)
+            t3 = File.read (enso_project.data / "no_quoting.csv") (Delimited "," headers=True value_formatter=Nothing . without_quotes)
             t3.at 'a' . to_vector . should_equal ['"y']
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
 
         Test.specify "should support rows spanning multiple lines if quoted" <|
-            t1 = File.read (enso_project.data / "multiline_quoted.csv") (Delimited_Data "," headers=True value_formatter=Nothing)
+            t1 = File.read (enso_project.data / "multiline_quoted.csv") (Delimited "," headers=True value_formatter=Nothing)
             t1.at 'a' . to_vector . should_equal ['1', '4']
             t1.at 'b' . to_vector . should_equal ['start\n\ncontinue', '5']
             t1.at 'c' . to_vector . should_equal ['3', '6']
 
         Test.specify "should behave correctly in presence of a mismatched quote" <|
             action_1 on_problems =
-                File.read (enso_project.data / "mismatched_quote.csv") (Delimited_Data "," headers=True value_formatter=Nothing) on_problems
+                File.read (enso_project.data / "mismatched_quote.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
 
             tester_1 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -234,7 +233,7 @@ spec =
             Problems.test_problem_handling action_1 problems_1 tester_1
 
             action_2 on_problems =
-                File.read (enso_project.data / "mismatched_quote2.csv") (Delimited_Data "," headers=True value_formatter=Nothing) on_problems
+                File.read (enso_project.data / "mismatched_quote2.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
 
             tester_2 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -246,7 +245,7 @@ spec =
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
-                File.read (enso_project.data / "varying_rows.csv") (Delimited_Data "," headers=True keep_invalid_rows=keep_invalid_rows value_formatter=Nothing) on_problems
+                File.read (enso_project.data / "varying_rows.csv") (Delimited "," headers=True keep_invalid_rows=keep_invalid_rows value_formatter=Nothing) on_problems
 
             tester_kept table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -266,7 +265,7 @@ spec =
 
         Test.specify "should aggregate invalid rows over some limit" <|
             action on_problems =
-                File.read (enso_project.data / "many_invalid_rows.csv") (Delimited_Data "," headers=True keep_invalid_rows=False value_formatter=Nothing) on_problems
+                File.read (enso_project.data / "many_invalid_rows.csv") (Delimited "," headers=True keep_invalid_rows=False value_formatter=Nothing) on_problems
 
             tester table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -277,45 +276,45 @@ spec =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow to skip rows" <|
-            t1 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False skip_rows=3 value_formatter=Nothing)
+            t1 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False skip_rows=3 value_formatter=Nothing)
             t1.at "Column_1" . to_vector . should_equal ['7', '10']
 
-            t2 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=True skip_rows=3 value_formatter=Nothing)
+            t2 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=True skip_rows=3 value_formatter=Nothing)
             t2.columns.map .name . should_equal ['7', '8', '9']
             t2.at "7" . to_vector . should_equal ['10']
 
         Test.specify "should allow to set a limit of rows to read" <|
-            t1 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False row_limit=2 value_formatter=Nothing)
+            t1 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False row_limit=2 value_formatter=Nothing)
             t1.at "Column_1" . to_vector . should_equal ['a', '1']
 
-            t2 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=True row_limit=2 value_formatter=Nothing)
+            t2 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=True row_limit=2 value_formatter=Nothing)
             t2.at "a" . to_vector . should_equal ['1', '4']
 
-            t3 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False skip_rows=3 row_limit=1 value_formatter=Nothing)
+            t3 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False skip_rows=3 row_limit=1 value_formatter=Nothing)
             t3.at "Column_1" . to_vector . should_equal ['7']
 
-            t4 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False row_limit=0 value_formatter=Nothing)
+            t4 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False row_limit=0 value_formatter=Nothing)
             t4.columns.map .name . should_equal ['Column_1', 'Column_2', 'Column_3']
             t4.row_count . should_equal 0
 
-            t5 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=True row_limit=0 value_formatter=Nothing)
+            t5 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=True row_limit=0 value_formatter=Nothing)
             t5.columns.map .name . should_equal ['a', 'b', 'c']
             t5.at 'a' . to_vector . should_equal []
             t5.row_count . should_equal 0
 
-            t6 = File.read (enso_project.data / "simple_empty.csv") (Delimited_Data "," headers=False skip_rows=3 row_limit=1000 value_formatter=Nothing)
+            t6 = File.read (enso_project.data / "simple_empty.csv") (Delimited "," headers=False skip_rows=3 row_limit=1000 value_formatter=Nothing)
             t6.at "Column_1" . to_vector . should_equal ['7', '10']
 
         Test.specify "should check arguments" <|
             path = (enso_project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            path.read (Delimited_Data "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited_Data "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited_Data "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited_Data 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument_Error_Data
+            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument_Error_Data
+            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument_Error_Data
+            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument_Error_Data
+            path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should correctly guess column types" <|
-            t = (enso_project.data / "data_small.csv") . read (Delimited_Data "," headers=True)
+            t = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True)
             t.at "Code" . to_vector . should_equal ["gxl", "wca", "nfw", "der"]
             t.at "Index" . to_vector . should_equal [7, 0, 1, 7]
             t.at "Flag" . to_vector . should_equal [True, False, True, True]
@@ -327,7 +326,7 @@ spec =
             t.at "QuotedNumbers" . to_vector . should_equal ["1", "2", Nothing, "34"]
             t.at "Mixed Types" . to_vector . should_equal ["33", Nothing, "45", "True"]
 
-            t2 = (enso_project.data / "data_small.csv") . read (Delimited_Data "," headers=True value_formatter=(Data_Formatter_Data allow_leading_zeros=True))
+            t2 = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True value_formatter=(Data_Formatter_Data allow_leading_zeros=True))
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
         Test.specify "should be able to detect types automatically" <|
@@ -346,7 +345,7 @@ spec =
                 a,b,c
                 1,2,3
                 4,5,6
-            t1 = Table.Table.from text1 (format = Delimited_Data ",")
+            t1 = Table.Table.from text1 (format = Delimited ",")
             t1.columns.map .name . should_equal ["a", "b", "c"]
             t1.at "a" . to_vector . should_equal [1, 4]
             t1.at "b" . to_vector . should_equal [2, 5]
@@ -367,32 +366,32 @@ spec =
             table_hash = Table.new [["a", [";1", "5"]], ["42", [2, 6]], ["c # comment??", ["3", "7;comment?"]]]
             table_semicolon = Table.new [["#", ["a", "5"]], ["x", [42, 6]], ["y", ["c # comment??", "7;comment?"]]]
 
-            File.read (enso_project.data / "comments.csv") (Delimited_Data ',' . with_comments . with_headers) . should_equal table_hash
-            File.read (enso_project.data / "comments.csv") (Delimited_Data ',' . with_comments ';' . with_headers) . should_equal table_semicolon
+            File.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments . with_headers) . should_equal table_hash
+            File.read (enso_project.data / "comments.csv") (Delimited ',' . with_comments ';' . with_headers) . should_equal table_semicolon
 
         Test.specify "should allow to build the Delimited configuration using builders" <|
-            Delimited_Data "," . clone . should_equal (Delimited_Data ",")
-            Delimited_Data "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited_Data "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)
-            Delimited_Data "," . clone quote_style=Quote_Style.No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited_Data "," headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes)
+            Delimited "," . clone . should_equal (Delimited ",")
+            Delimited "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)
+            Delimited "," . clone quote_style=Quote_Style.No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited "," headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes)
 
-            Delimited_Data '\t' . with_quotes "|" . should_equal (Delimited_Data '\t' quote_style=(Quote_Style.With_Quotes quote='|' quote_escape='|'))
-            Delimited_Data '\t' . with_quotes "-" '\\' True . should_equal (Delimited_Data '\t' quote_style=(Quote_Style.With_Quotes always_quote=True quote='-' quote_escape='\\'))
-            Delimited_Data '\t' . without_quotes . should_equal (Delimited_Data '\t' quote_style=Quote_Style.No_Quotes)
+            Delimited '\t' . with_quotes "|" . should_equal (Delimited '\t' quote_style=(Quote_Style.With_Quotes quote='|' quote_escape='|'))
+            Delimited '\t' . with_quotes "-" '\\' True . should_equal (Delimited '\t' quote_style=(Quote_Style.With_Quotes always_quote=True quote='-' quote_escape='\\'))
+            Delimited '\t' . without_quotes . should_equal (Delimited '\t' quote_style=Quote_Style.No_Quotes)
 
-            Delimited_Data ',' . with_headers . should_equal (Delimited_Data ',' headers=True)
-            Delimited_Data ',' . without_headers . should_equal (Delimited_Data ',' headers=False)
-            Delimited_Data "," skip_rows=123 headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes . with_headers . should_equal (Delimited_Data "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=True)
-            Delimited_Data "," skip_rows=123 headers=True value_formatter=Nothing quote_style=Quote_Style.No_Quotes . without_headers . should_equal (Delimited_Data "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=False)
+            Delimited ',' . with_headers . should_equal (Delimited ',' headers=True)
+            Delimited ',' . without_headers . should_equal (Delimited ',' headers=False)
+            Delimited "," skip_rows=123 headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes . with_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=True)
+            Delimited "," skip_rows=123 headers=True value_formatter=Nothing quote_style=Quote_Style.No_Quotes . without_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=False)
 
-            Delimited_Data ',' . with_parsing . should_equal (Delimited_Data ',')
-            Delimited_Data ',' . without_parsing . should_equal (Delimited_Data ',' value_formatter=Nothing)
+            Delimited ',' . with_parsing . should_equal (Delimited ',')
+            Delimited ',' . without_parsing . should_equal (Delimited ',' value_formatter=Nothing)
             custom_formatter = Data_Formatter_Data true_values=["A", "B", "C"] false_values=["D", "E", "F"]
-            Delimited_Data ',' . with_parsing custom_formatter . should_equal (Delimited_Data ',' value_formatter=custom_formatter)
-            Delimited_Data ',' row_limit=456 . without_parsing . should_equal (Delimited_Data ',' value_formatter=Nothing row_limit=456)
+            Delimited ',' . with_parsing custom_formatter . should_equal (Delimited ',' value_formatter=custom_formatter)
+            Delimited ',' row_limit=456 . without_parsing . should_equal (Delimited ',' value_formatter=Nothing row_limit=456)
 
-            Delimited_Data ',' . with_comments . should_equal (Delimited_Data ',' comment_character='#')
-            Delimited_Data ',' . with_comments ';' . should_equal (Delimited_Data ',' comment_character=';')
-            Delimited_Data ',' comment_character='#' . without_comments . should_equal (Delimited_Data ',' comment_character=Nothing)
-            Delimited_Data ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited_Data ',' line_endings=Line_Ending_Style.Unix)
+            Delimited ',' . with_comments . should_equal (Delimited ',' comment_character='#')
+            Delimited ',' . with_comments ';' . should_equal (Delimited ',' comment_character=';')
+            Delimited ',' comment_character='#' . without_comments . should_equal (Delimited ',' comment_character=Nothing)
+            Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited ',' line_endings=Line_Ending_Style.Unix)
 
 main = Test.Suite.run_main spec

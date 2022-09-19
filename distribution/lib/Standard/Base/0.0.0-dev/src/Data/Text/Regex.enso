@@ -9,7 +9,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
 
 ## Compile the provided `expression` into a regex pattern that can be used for

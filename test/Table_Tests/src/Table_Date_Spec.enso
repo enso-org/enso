@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table
-from Standard.Table import Column, File_Format, Data_Formatter_Data
+from Standard.Table import Column, Delimited, Data_Formatter_Data
 import Standard.Table.Data.Storage
 
 import Standard.Test
@@ -40,14 +40,14 @@ spec =
         Test.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "prime_ministers.csv").read_text
-            delimited = Text.from expected format=(File_Format.Delimited_Data "," line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
         Test.specify "should serialise dates with format" <|
             test_table = Table.new [c_from]
             expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n'
             data_formatter = Data_Formatter_Data . with_datetime_formats date_formats=["dd.MM.yyyy"]
-            delimited = Text.from test_table format=(File_Format.Delimited_Data "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
 main = Test.Suite.run_main spec
