@@ -1,14 +1,15 @@
-use std::future::Future;
+use crate::language_server::*;
+use enso_prelude::*;
 
 use futures::task::LocalSpawnExt;
-use serde_json::json;
-use serde_json::Value;
-
 use json_rpc::messages::Message;
 use json_rpc::messages::RequestMessage;
 use json_rpc::test_util::transport::mock::MockTransport;
+use serde_json::json;
+use serde_json::Value;
+use std::future::Future;
 
-use super::*;
+
 
 // ===============
 // === Fixture ===
@@ -40,7 +41,7 @@ fn test_file_event_notification() {
     let mut events = Box::pin(fixture.client.events());
     events.expect_pending();
 
-    let root_id = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
+    let root_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000");
     let root_id = root_id.expect("Couldn't parse uuid.");
     let expected_event = FileEvent {
         path: Path { root_id, segments: vec!["Main.txt".into()] },
@@ -101,7 +102,7 @@ fn test_request<Fun, Fut, T>(
 
 #[test]
 fn test_file_requests() {
-    let root_id = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
+    let root_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000");
     let root_id = root_id.expect("Couldn't parse uuid.");
     let main = Path { root_id, segments: vec!["Main.txt".into()] };
     let target = Path { root_id, segments: vec!["Target.txt".into()] };
@@ -267,7 +268,7 @@ fn test_protocol_connection() {
         content_roots: vec![ContentRoot::Project { id: default() }],
     };
     test_request(
-        |client| client.init_protocol_connection(&uuid::Uuid::default()),
+        |client| client.init_protocol_connection(&Uuid::default()),
         "session/initProtocolConnection",
         json!({
             "clientId" : "00000000-0000-0000-0000-000000000000"
@@ -284,7 +285,7 @@ fn test_protocol_connection() {
 
 #[test]
 fn test_acquire_capability() {
-    let root_id = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
+    let root_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000");
     let root_id = root_id.expect("Couldn't parse uuid.");
     let unit_json = json!(null);
 
@@ -357,12 +358,12 @@ fn test_computed_value_update() {
 
 #[test]
 fn test_execution_context() {
-    let root_id = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
+    let root_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000");
     let root_id = root_id.expect("Couldn't parse uuid.");
     let main = Path { root_id, segments: vec!["Main.txt".into()] };
     let unit_json = json!(null);
 
-    let context_id = uuid::Uuid::default();
+    let context_id = Uuid::default();
     let method = "executionContext/canModify".to_string();
     let register_options = RegisterOptions::ExecutionContextId { context_id };
     let can_modify = CapabilityRegistration { method, register_options };
@@ -399,7 +400,7 @@ fn test_execution_context() {
         unit_json.clone(),
         (),
     );
-    let expression_id = uuid::Uuid::default();
+    let expression_id = Uuid::default();
     let local_call = LocalCall { expression_id };
     let stack_item = StackItem::LocalCall(local_call);
     test_request(
@@ -422,8 +423,8 @@ fn test_execution_context() {
         unit_json.clone(),
         (),
     );
-    let visualisation_id = uuid::Uuid::default();
-    let expression_id = uuid::Uuid::default();
+    let visualisation_id = Uuid::default();
+    let expression_id = Uuid::default();
     let visualization_function = "foo";
     let visualization_module = "[Foo.Bar.Baz]";
     let expression = MethodPointer {

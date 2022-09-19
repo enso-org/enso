@@ -1,12 +1,10 @@
 //! This module consists of all structures describing Execution Context.
 
-use std::collections::HashMap;
+use crate::prelude::*;
 
-use flo_stream::Subscriber;
-use mockall::automock;
-use serde::Deserialize;
-use serde::Serialize;
-use uuid::Uuid;
+use crate::model::module;
+use crate::model::suggestion_database::entry as suggestion;
+use crate::notification::Publisher;
 
 use double_representation::identifier::Identifier;
 use double_representation::project;
@@ -18,11 +16,13 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
+use flo_stream::Subscriber;
+use mockall::automock;
+use serde::Deserialize;
+use serde::Serialize;
+use std::collections::HashMap;
+use uuid::Uuid;
 
-use crate::model::module;
-use crate::model::suggestion_database::entry as suggestion;
-use crate::notification::Publisher;
-use crate::prelude::*;
 
 // ==============
 // === Export ===
