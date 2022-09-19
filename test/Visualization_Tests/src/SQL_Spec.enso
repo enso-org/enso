@@ -3,14 +3,14 @@ from Standard.Base import all
 from Standard.Database import all
 import Standard.Database
 
-import Standard.Visualization.Sql.Visualization as Visualization
+import Standard.Visualization.SQL.Visualization as Visualization
 
 import Standard.Test
 
 visualization_spec connection =
     connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
     t = connection.access_table "T"
-    Test.group "Sql Visualization" <|
+    Test.group "SQL Visualization" <|
         Test.specify "should provide type metadata for interpolations" <|
             q = t.where ((t.at "B" == 2) && (t.at "A" == True)) . at "C"
             vis = Visualization.prepare_visualization q
@@ -23,7 +23,7 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    connection = Database.connect (SQLite_Data file)
+    connection = Database.connect (SQLite file)
     visualization_spec connection
     connection.close
     file.delete

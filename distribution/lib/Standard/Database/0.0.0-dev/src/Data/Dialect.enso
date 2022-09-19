@@ -2,11 +2,11 @@ from Standard.Base import all
 
 import Standard.Base.Error.Common as Errors
 from Standard.Table import Aggregate_Column
-import Standard.Database.Data.Sql
-import Standard.Database.Data.Internal.IR
-import Standard.Database.Data.Dialect.Postgres
-import Standard.Database.Data.Dialect.Redshift
-import Standard.Database.Data.Dialect.SQLite
+from Standard.Database.Data.SQL import Statement, SQL_Type
+import Standard.Database.Internal.IR
+import Standard.Database.Internal.Postgres.Postgres_Dialect
+import Standard.Database.Internal.Redshift.Redshift_Dialect
+import Standard.Database.Internal.SQLite.SQLite_Dialect
 
 ## PRIVATE
 
@@ -16,20 +16,14 @@ import Standard.Database.Data.Dialect.SQLite
    support differing SQL dialects.
 type Dialect
     ## PRIVATE
-       This is a fake constructor to make the compiler accept this type
-       definition. It can and should be removed once interface definitions are
-       allowed.
-    Dialect_Data
-    ## PRIVATE
        Name of the dialect.
     name : Text
     name self = Errors.unimplemented "This is an interface only."
 
-
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Sql.Statement
+    generate_sql : Query -> Statement
     generate_sql self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -37,7 +31,7 @@ type Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -52,18 +46,16 @@ type Dialect
 
    The dialect of SQLite databases.
 sqlite : Dialect
-sqlite = SQLite.sqlite
+sqlite = SQLite_Dialect.sqlite
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
 postgres : Dialect
-postgres = Postgres.postgres
+postgres = Postgres_Dialect.postgres
 
 ## PRIVATE
 
    The dialect of Redshift databases.
 redshift : Dialect
-redshift = Redshift.redshift
-
-
+redshift = Redshift_Dialect.redshift

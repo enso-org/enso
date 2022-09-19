@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
-from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
+from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data
 
 polyglot java import java.sql.ResultSet
 
@@ -32,7 +32,7 @@ result_set_to_table result_set expected_types=Nothing =
         Vector.new ncols ix->
             typeid = metadata.getColumnType ix+1
             name = metadata.getColumnTypeName ix+1
-            Sql_Type_Data typeid name
+            SQL_Type_Data typeid name
     column_builders = column_types.map typ->
         create_builder typ
     go has_next = if has_next.not then Nothing else
@@ -51,7 +51,7 @@ result_set_to_table result_set expected_types=Nothing =
 
    Arguments:
    - sql_type: The SQL type of the column to create a builder for.
-create_builder : Sql_Type -> Builder
+create_builder : SQL_Type -> Builder
 create_builder sql_type =
     initial_size = 10
     if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
