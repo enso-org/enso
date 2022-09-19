@@ -1069,11 +1069,6 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
-
-            // === Breadcrumbs ===
-            // TODO: Clicking on any header pushes an entry to the breadcrumbs stack. This behavior
-            //   would be changed in https://www.pivotaltracker.com/story/show/182675703.
-            eval output.header_accepted((id)model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(&format!("Module{}",id.index))));
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());
