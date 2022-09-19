@@ -220,10 +220,11 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         let variant = Box::new(Variant::TypeAnnotated(annotated));
         return Tree::invalid(err, Tree { variant, span });
     }
-    let tree_ = match &mut tree {
-        Tree {
-            variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }), ..
-        } => ast,
+    let tree_ = match &mut *tree.variant {
+        Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) => {
+            left_offset += tree.span.left_offset.clone();
+            ast
+        }
         _ => &mut tree,
     };
     let opr_app = match tree_ {
@@ -239,16 +240,14 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             if let Variant::Ident(ident) = &*lhs_.variant && ident.token.variant.is_type {
                 // If the LHS is a type, this is a (destructuring) assignment.
                 let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
-                left_offset += result.span.left_offset;
-                result.span.left_offset = left_offset;
+                result.span.left_offset += left_offset;
                 return result;
             }
             if args.is_empty() && !is_body_block(rhs) {
                 // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
                 // this is a variable assignment.
                 let mut result = Tree::assignment(lhs_, mem::take(opr), mem::take(rhs));
-                left_offset += result.span.left_offset;
-                result.span.left_offset = left_offset;
+                result.span.left_offset += left_offset;
                 return result;
             }
         }
@@ -256,8 +255,7 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
             // an identifier, this is a function definition.
             let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));
-            left_offset += result.span.left_offset;
-            result.span.left_offset = left_offset;
+            result.span.left_offset += left_offset;
             return result;
         }
     }
@@ -319,14 +317,14 @@ pub fn parse_argument_definition(expression: syntax::Tree) -> syntax::tree::Argu
             ArgumentDefinition { open, pattern, default, close }
         }
         box Variant::Group(Group {
-            mut open,
+            open: Some(mut open),
             body:
                 Some(Tree {
                     variant:
                         box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
                     ..
                 }),
-            close,
+            close: Some(close),
         }) if opr.properties.is_assignment() => {
             let equals = opr;
             open.left_offset += expression.span.left_offset;

@@ -242,9 +242,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An expression grouped by matched parentheses.
         Group {
-            pub open:  token::Symbol<'s>,
+            pub open:  Option<token::Symbol<'s>>,
             pub body:  Option<Tree<'s>>,
-            pub close: token::Symbol<'s>,
+            pub close: Option<token::Symbol<'s>>,
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
@@ -515,7 +515,7 @@ pub struct ArgumentDefinition<'s> {
 
 impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.pattern).add(&mut self.default)
+        span.add(&mut self.open).add(&mut self.pattern).add(&mut self.default).add(&mut self.close)
     }
 }
 
@@ -623,11 +623,6 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match &mut *func.variant {
-        Variant::OprApp(app)
-        if let Ok(opr) = &app.opr && !opr.properties.can_form_section() && app.rhs.is_none() => {
-            app.rhs = Some(arg);
-            return func;
-        }
         Variant::TextLiteral(lhs) if lhs.close.is_none()
                 && let Tree { variant: box Variant::TextLiteral(rhs), span } = arg => {
             join_text_literals(lhs, rhs, span);
@@ -650,12 +645,20 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     let ast_ = match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
-            arg.span.left_offset += mem::take(&mut func.span.left_offset);
+            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
+            if let Some(first) = block.arguments.first_mut() {
+                first.newline.left_offset += arg_left_offset;
+            }
             block.lhs = Some(func);
             arg
         }
         Variant::OperatorBlockApplication(block) if block.lhs.is_none() => {
-            arg.span.left_offset += mem::take(&mut func.span.left_offset);
+            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
+            if let Some(first) = block.expressions.first_mut() {
+                first.newline.left_offset += arg_left_offset;
+            }
             block.lhs = Some(func);
             arg
         }
@@ -665,7 +668,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             lhs.left_offset += arg.span.left_offset.clone();
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
-        Variant::Group(Group { open, body: Some(body), close }) if let box
+        Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }) if let box
         Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &body.variant
                 && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut open = open.clone();
@@ -710,6 +713,7 @@ fn join_text_literals<'s>(
                     return;
                 }
             },
+        Some(TextElement::EscapeSequence { leader: Some(_), .. }) => (),
         Some(TextElement::EscapeSequence {
             open: open_, digits: digits_, close: close_, ..
         }) => {
@@ -726,7 +730,7 @@ fn join_text_literals<'s>(
                 return;
             }
         }
-        Some(TextElement::Splice { open, .. }) => open.left_offset = rhs_span.left_offset,
+        Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
         None => (),
     }
     lhs.elements.append(&mut rhs.elements);
@@ -778,15 +782,15 @@ pub fn apply_operator<'s>(
     if nospace
         && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
         && let Some(lhs) = lhs.as_mut()
-        && let box Variant::Number(lhs) = &mut lhs.variant
-        && lhs.fractional_digits.is_none()
+        && let box Variant::Number(lhs_) = &mut lhs.variant
+        && lhs_.fractional_digits.is_none()
         && let Some(rhs) = rhs.as_mut()
         && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
     {
-        let integer = mem::take(&mut lhs.integer);
         let dot = opr.clone();
         let digits = digits.clone();
-        return Tree::number(None, integer, Some(FractionalDigits { dot, digits }));
+        lhs_.fractional_digits = Some(FractionalDigits { dot, digits });
+        return lhs.clone();
     }
     let mut section = None;
     if let Some(lhs_) = &lhs {
@@ -798,6 +802,9 @@ pub fn apply_operator<'s>(
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
+                if let Some(first) = block.arguments.first_mut() {
+                    first.newline.left_offset += mem::take(&mut rhs_.span.left_offset);
+                }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
                 let rhs_ = block::body_from_lines(arguments);

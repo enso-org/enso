@@ -290,7 +290,12 @@ impl Variant {
     pub fn can_start_macro(&self) -> bool {
         // Prevent macro interpretation of symbols that have been lexically contextualized as text
         // escape control characters.
-        !matches!(self, Variant::TextEscapeSymbol(_) | Variant::TextEscapeSequenceStart(_))
+        !matches!(
+            self,
+            Variant::TextEscapeSymbol(_)
+                | Variant::TextEscapeSequenceStart(_)
+                | Variant::TextSection(_)
+        )
     }
 }
 

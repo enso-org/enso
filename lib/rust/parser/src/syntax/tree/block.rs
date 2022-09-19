@@ -374,15 +374,16 @@ where I: Iterator<Item = Item<'s>>
                 Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
                     let token = token::newline(left_offset, code);
                     let newline = mem::replace(&mut self.newline, token);
-                    if newline.code.is_empty() && self.line.is_empty() {
-                        // The block started with a real newline; ignore the implicit newline.
-                        continue;
+                    // If the block started with a real newline, ignore the implicit newline.
+                    if !(newline.code.is_empty()
+                        && newline.left_offset.code.is_empty()
+                        && self.line.is_empty())
+                    {
+                        return self.parse_current_line(newline).into();
                     }
-                    return self.parse_current_line(newline).into();
                 }
                 _ => {
                     self.line.push(item);
-                    continue;
                 }
             }
         }

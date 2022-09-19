@@ -137,7 +137,7 @@ fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let open = into_symbol(segment.header);
     let body = segment.result.tokens();
     let body = resolve_operator_precedence_if_non_empty(body);
-    syntax::Tree::group(open, body, close)
+    syntax::Tree::group(Some(open), body, Some(close))
 }
 
 /// Type definitions.
@@ -155,6 +155,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
             token.left_offset += span.left_offset;
             token
         }
+        Some(other) => return other.with_error("Expected identifier after `type` keyword."),
         _ => {
             let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
             return placeholder.with_error("Expected identifier after `type` keyword.");
@@ -182,6 +183,16 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
                     break;
                 }
                 box Variant::Ident(..) => {
+                    params.push(crate::parse_argument_definition(rest.clone()));
+                    break;
+                }
+                box Variant::Group(..) => {
+                    params.push(crate::parse_argument_definition(rest.clone()));
+                    break;
+                }
+                box Variant::OprApp(OprApp { opr: Ok(opr), .. })
+                    if opr.properties.is_assignment() =>
+                {
                     params.push(crate::parse_argument_definition(rest.clone()));
                     break;
                 }
@@ -249,7 +260,7 @@ impl<'s> TypeDefBodyBuilder<'s> {
         (self.constructors, self.body)
     }
 
-    /// Interpret the given expression as an `TypeConstructorDef`, if its syntax is compatible.
+    /// Interpret the given expression as a `TypeConstructorDef`, if its syntax is compatible.
     fn to_constructor_line(
         expression: syntax::Tree<'_>,
     ) -> Result<syntax::tree::TypeConstructorDef<'_>, syntax::Tree<'_>> {
@@ -403,15 +414,21 @@ fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let mut rest = vec![];
     let mut lhs_ = &expression;
+    let mut left_offset = crate::source::span::Offset::default();
     while let Some(Tree {
-                       variant: box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs: Some(rhs) }), ..
+                       variant: box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs: Some(rhs) }), span
                    }) = lhs_ && opr.properties.is_sequence() {
         lhs_ = lhs;
         let operator = opr.clone();
         let body = rhs.clone();
         rest.push(OperatorDelimitedTree { operator, body });
+        left_offset += span.left_offset.clone();
     }
-    let first = lhs_.clone();
+    rest.reverse();
+    let mut first = lhs_.clone();
+    if let Some(first) = &mut first {
+        first.span.left_offset += left_offset;
+    }
     GroupedSequence { left: left_, first, rest, right: right_ }
 }
 

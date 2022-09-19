@@ -61,6 +61,10 @@ pub fn resolve_operator_precedence_if_non_empty<'s>(
         if let syntax::item::Item::Block(_) = item {
             return true;
         }
+        if let syntax::item::Item::Token(Token { variant: token::Variant::Operator(opr), .. })
+                = item && opr.properties.is_sequence() {
+            return true;
+        }
         false
     };
     for item in items {

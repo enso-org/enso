@@ -89,6 +89,17 @@ fn comments() {
 fn type_definition_no_body() {
     test("type Bool", block![(TypeDef type Bool #() #() #())]);
     test("type Option a", block![(TypeDef type Option #((() (Ident a) () ())) #() #())]);
+    test("type Option (a)", block![
+        (TypeDef type Option #((() (Group "(" (Ident a) ")") () ())) #() #())]);
+    test("type Foo (a : Int)", block![
+        (TypeDef type Foo #((()
+         (Group "(" (TypeAnnotated (Ident a) ":" (Ident Int)) ")") () ())) #() #())]);
+    test("type A a=0", block![
+        (TypeDef type A #((() (Ident a) ("=" (Number () "0" ())) ())) #() #())]);
+    test("type Existing_Headers (column_names : Vector Text)", block![
+        (TypeDef type Existing_Headers #((()
+         (Group "(" (TypeAnnotated (Ident column_names) ":" (App (Ident Vector) (Ident Text))) ")")
+         () ())) #() #())]);
 }
 
 #[test]
@@ -193,7 +204,7 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test("foo a = x", block![(Function foo #((() (Ident a) () ())) "=" (Ident x))]);
+    test(" foo a = x", block![(Function foo #((() (Ident a) () ())) "=" (Ident x))]);
     #[rustfmt::skip]
     test("foo a b = x",
          block![(Function foo #((() (Ident a) () ()) (() (Ident b) () ())) "=" (Ident x))]);
@@ -204,6 +215,7 @@ fn function_inline_simple_args() {
              #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
              "=" (Ident x))],
     );
+    test(" foo _ = x", block![(Function foo #((() (Wildcard) () ())) "=" (Ident x))]);
 }
 
 #[test]
@@ -731,6 +743,7 @@ fn inline_text_literals() {
             (TextLiteral #((Section "I'm an inline raw text!")) 0)]),
         (r#"zero_length = """#, block![
             (Assignment (Ident zero_length) "=" (TextLiteral #() 0))]),
+        (r#""type""#, block![(TextLiteral #((Section "type")) 0)]),
         (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral #() 0))]),
         (r#"unclosed = "a"#, block![
             (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a")) 0))]),
@@ -740,6 +753,11 @@ fn inline_text_literals() {
             (TextLiteral
              #((Section "String with ") (EscapeChar "\"") (Section " escape"))
              0)]),
+        (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
+         (EscapeSequence "0915")
+         (EscapeSequence "094D")
+         (EscapeSequence "0937")
+         (EscapeSequence "093F")) 0)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -747,12 +765,12 @@ fn inline_text_literals() {
 #[test]
 fn multiline_text_literals() {
     test("'''", block![(TextLiteral #() 0)]);
-    const CODE: &str = r#"'''
+    const CODE: &str = r#""""
     part of the string
        3-spaces indented line, part of the Text Block
     this does not end the string -> '''
 
-    also part of the string
+    `also` part of the string
 
 x"#;
     #[rustfmt::skip]
@@ -762,7 +780,7 @@ x"#;
            (Section "\n") (Section "3-spaces indented line, part of the Text Block")
            (Section "\n") (Section "this does not end the string -> '''")
            (Section "\n")
-           (Section "\n") (Section "also part of the string")
+           (Section "\n") (Section "`also` part of the string")
            (Section "\n"))
         4)
         (Ident x)
@@ -780,6 +798,8 @@ fn interpolated_literals_in_inline_text() {
               (Splice "`" (Ident splice) "`")
               (Section "."))
             0)]),
+        (r#"'` SpliceWithLeadingWhitespace`'"#, block![(TextLiteral
+            #((Splice "`" (Ident SpliceWithLeadingWhitespace) "`")) 0)]),
         (r#"'String with \n escape'"#, block![
             (TextLiteral
              #((Section "String with ") (EscapeChar "n") (Section " escape"))
@@ -798,7 +818,15 @@ fn interpolated_literals_in_inline_text() {
 
 #[test]
 fn interpolated_literals_in_multiline_text() {
-    const CODE: &str = r#"'''
+    let code = r#"'''
+    `splice` at start"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral
+         #((Section "\n") (Section "") (Splice "`" (Ident splice) "`") (Section " at start")) 4)];
+    test(code, expected);
+
+    let code = r#"'''
     text with a `splice`
     and some \u000Aescapes\'"#;
     #[rustfmt::skip]
@@ -809,7 +837,7 @@ fn interpolated_literals_in_multiline_text() {
                           (EscapeSequence "000A")
                           (Section "escapes")
                           (EscapeChar "'")) 4)];
-    test(CODE, expected);
+    test(code, expected);
 }
 
 
@@ -903,6 +931,9 @@ fn array_literals() {
         ("[]", block![(Array "[" () #() "]")]),
         ("[x]", block![(Array "[" (Ident x) #() "]")]),
         ("[x, y]", block![(Array "[" (Ident x) #(("," (Ident y))) "]")]),
+        ("[x, y, z]", block![(Array "[" (Ident x) #(("," (Ident y)) ("," (Ident z))) "]")]),
+        ("[ x , y ]", block![(Array "[" (Ident x) #(("," (Ident y))) "]")]),
+        ("[ x , y , z ]", block![(Array "[" (Ident x) #(("," (Ident y)) ("," (Ident z))) "]")]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -931,6 +962,20 @@ fn numbers() {
         ("0b10101010", block![(Number "0b" "10101010" ())]),
         ("0o122137", block![(Number "0o" "122137" ())]),
         ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),
+        ("pi = 3.14", block![(Assignment (Ident pi) "=" (Number () "3" ("." "14")))])
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+// === Whitespace ===
+
+#[test]
+fn trailing_whitespace() {
+    let cases = [
+        ("a ", block![(Ident a) ()]),
+        ("a \n", block![(Ident a) ()]),
+        ("a = \n x", block![(Function a #() "=" (BodyBlock #((Ident x))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }

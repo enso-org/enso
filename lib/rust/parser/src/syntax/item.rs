@@ -122,6 +122,8 @@ impl<'s> Item<'s> {
                 ),
                 token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
                 token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+                token::Variant::Symbol(s) =>
+                    Tree::group(default(), default(), Some(token.with_variant(s))),
                 _ => {
                     let message = format!("to_ast: Item::Token({token:?})");
                     let value = Tree::ident(

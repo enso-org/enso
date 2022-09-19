@@ -750,28 +750,14 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Read a text literal.
     fn text(&mut self) {
-        if self.current_char == Some('`') {
-            match self.stack.last().copied() {
-                Some(State::InlineText) | Some(State::MultilineText { .. }) => {
-                    let splice_quote_start = self.mark();
-                    self.take_next();
-                    let splice_quote_end = self.mark();
-                    let token = self.make_token(
-                        splice_quote_start,
-                        splice_quote_end,
-                        token::Variant::Symbol(token::variant::Symbol()),
-                    );
-                    self.output.push(token);
-                    match self.stack.pop().unwrap() {
-                        State::InlineText => self.inline_quote('\''),
-                        State::MultilineText { indent } => self.text_lines(indent, true),
-                    }
-                }
-                None => return,
-            }
-        }
         let quote_char = match self.current_char {
             Some(char @ ('"' | '\'')) => char,
+            Some('`') => {
+                if let Some(state) = self.stack.pop() {
+                    self.end_splice(state);
+                }
+                return;
+            }
             _ => return,
         };
         let indent = self.last_spaces_visible_offset;
@@ -834,6 +820,22 @@ impl<'s> Lexer<'s> {
         }
     }
 
+    fn end_splice(&mut self, state: State) {
+        let splice_quote_start = self.mark();
+        self.take_next();
+        let splice_quote_end = self.mark();
+        let token = self.make_token(
+            splice_quote_start,
+            splice_quote_end,
+            token::Variant::Symbol(token::variant::Symbol()),
+        );
+        self.output.push(token);
+        match state {
+            State::InlineText => self.inline_quote('\''),
+            State::MultilineText { indent } => self.text_lines(indent, true),
+        }
+    }
+
     fn text_content(
         &mut self,
         closing_char: Option<char>,
@@ -860,7 +862,7 @@ impl<'s> Lexer<'s> {
                     splice_quote_start.clone(),
                     token::Variant::TextSection(token::variant::TextSection()),
                 );
-                if !token.code.is_empty() {
+                if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
                     self.output.push(token);
                 }
                 self.take_next();
@@ -871,7 +873,6 @@ impl<'s> Lexer<'s> {
                     token::Variant::Symbol(token::variant::Symbol()),
                 );
                 self.output.push(token);
-                self.spaces_after_lexeme();
                 self.stack.push(state);
                 return true;
             }
@@ -1167,6 +1168,14 @@ impl<'s> Lexer<'s> {
         while self.end_block().is_some() {
             let block_end = self.marker_token(token::Variant::block_end());
             self.submit_token(block_end);
+        }
+        if self.last_spaces_visible_offset != VisibleOffset(0) {
+            let left_offset_start = self.current_offset - self.last_spaces_offset;
+            let offset_code = self.input.slice(left_offset_start..self.current_offset);
+            let visible_offset = self.last_spaces_visible_offset;
+            let offset = Offset(visible_offset, offset_code);
+            let eof = token::variant::Variant::Newline(token::variant::Newline());
+            self.submit_token(Token(offset, "", eof));
         }
         let mut internal_error = self.internal_error.take();
         if self.current_char != None {
