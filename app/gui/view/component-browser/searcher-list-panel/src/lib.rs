@@ -96,6 +96,7 @@ mod layouting;
 mod navigator;
 
 pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::EnteredModule;
 pub use component_group::set::GroupId;
 pub use ensogl_core::prelude;
 
@@ -941,11 +942,11 @@ define_endpoints_2! {
     }
     Output{
         selected(Option<Selected>),
+        module_entered(EnteredModule),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
         /// The last selected suggestion.
         suggestion_selected(EntryId),
-        header_accepted(GroupId),
         size(Vector2),
     }
 }
@@ -1002,7 +1003,7 @@ impl component::Frp<Model> for Frp {
             output.suggestion_selected <+ selected.map(|selected| selected.and_then(|selected| selected.as_entry_id())).unwrap();
             output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
-            output.header_accepted <+ groups.header_accepted;
+            output.module_entered <+ groups.module_entered;
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
 
@@ -1068,11 +1069,6 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
-
-            // === Breadcrumbs ===
-            // TODO: Clicking on any header pushes an entry to the breadcrumbs stack. This behavior
-            //   would be changed in https://www.pivotaltracker.com/story/show/182675703.
-            eval output.header_accepted((id)model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(&format!("Module{}",id.index))));
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

@@ -51,6 +51,7 @@ pub const STYLE_PATH: &str = theme::HERE.str;
 pub struct Model {
     pub icon:             icon::Id,
     pub highlighted_text: GlyphHighlightedLabelModel,
+    pub is_enterable:     bool,
 }
 
 impl From<String> for Model {
@@ -58,6 +59,7 @@ impl From<String> for Model {
         Model {
             icon:             icon::Id::Star,
             highlighted_text: GlyphHighlightedLabelModel { label, highlighted: default() },
+            is_enterable:     false,
         }
     }
 }
