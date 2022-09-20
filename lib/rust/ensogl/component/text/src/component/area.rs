@@ -1547,12 +1547,12 @@ impl AreaModel {
 
     pub fn attach_glyphs_to_cursors(&self) {
         for line in ViewLine(0)..ViewLine(self.buffer.view_lines().len()) {
-            self.add_line_glyphs_to_cursors(line)
+            self.attach_line_glyphs_to_cursors(line)
         }
     }
 
-    fn add_line_glyphs_to_cursors(&self, view_line_index: unit::ViewLine) {
-        debug!("add_line_glyphs_to_cursors {:?}", view_line_index);
+    fn attach_line_glyphs_to_cursors(&self, view_line_index: unit::ViewLine) {
+        debug!("attach_line_glyphs_to_cursors {:?}", view_line_index);
 
         let cursor_map = self
             .selection_map
@@ -1564,7 +1564,7 @@ impl AreaModel {
         debug!("cursor_map {:?}", cursor_map);
         let line = &self.lines.borrow()[view_line_index];
 
-        let mut last_glyph = None;
+        let mut attached_glyphs = vec![];
         let mut last_cursor: Option<Selection> = None;
         let mut last_cursor_target = default();
 
@@ -1574,7 +1574,9 @@ impl AreaModel {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
                     if cursor.edit_mode.get() {
                         if let Some(last_cursor) = &last_cursor {
-                            last_cursor.frp.set_last_attached_glyph(mem::take(&mut last_glyph));
+                            last_cursor
+                                .frp
+                                .set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
                         }
                         last_cursor = Some(cursor.clone_ref());
                         last_cursor_target = Vector2(glyph.position().x, 0.0);
@@ -1584,13 +1586,14 @@ impl AreaModel {
 
             if let Some(cursor) = &last_cursor {
                 cursor.right_side.add_child(glyph);
+                glyph.attached_to_cursor.set(true);
                 glyph.mod_position_xy(|p| p - last_cursor_target);
-                last_glyph = Some(glyph.downgrade());
+                attached_glyphs.push(glyph.downgrade());
             }
             column += Column(1);
         }
         if let Some(last_cursor) = &last_cursor {
-            last_cursor.frp.set_last_attached_glyph(mem::take(&mut last_glyph));
+            last_cursor.frp.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
         }
     }
 
@@ -1599,12 +1602,15 @@ impl AreaModel {
         for (&line, cursor_map) in &selection_map.location_map {
             for (_, cursor_id) in cursor_map {
                 let selection = selection_map.id_map.get(cursor_id).unwrap();
-                for glyph in selection.right_side.remove_all_children() {
-                    self.lines.borrow_mut()[line].add_child(&glyph);
-                    let pos_x = selection.position.target_value().x;
-                    glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                for glyph in &*selection.frp.set_attached_glyphs.value() {
+                    if let Some(glyph) = glyph.upgrade() {
+                        self.lines.borrow_mut()[line].add_child(&glyph);
+                        let pos_x = selection.position.target_value().x;
+                        glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                        glyph.attached_to_cursor.set(false);
+                    }
                 }
-                selection.frp.set_last_attached_glyph(None);
+                selection.frp.set_attached_glyphs(Rc::new(vec![]));
             }
         }
     }
@@ -1614,8 +1620,8 @@ impl AreaModel {
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
-                let width =
-                    line.glyphs.last().map(|g| g.position().x + g.width()).unwrap_or_default();
+                let last_glyph = line.glyphs.iter().rev().find(|g| !g.attached_to_cursor.get());
+                let width = last_glyph.map(|g| g.position().x + g.width()).unwrap_or_default();
                 if width > max_width {
                     max_width = width;
                 }

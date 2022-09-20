@@ -113,14 +113,16 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+// ===========
+// === FRP ===
+// ===========
 
 crate::define_endpoints_2! {
-    Input {
-    }
     Output {
         after_rendering(),
     }
 }
+
 
 // =========================
 // === WorldDataWithLoop ===
@@ -184,6 +186,7 @@ impl Deref for WorldDataWithLoop {
 // === Callbacks ===
 // =================
 
+// FIXME: move these callbacks to the FRP interface.
 /// Callbacks that are run during rendering of the frame.
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]

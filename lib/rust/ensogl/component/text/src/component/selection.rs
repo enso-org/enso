@@ -100,7 +100,7 @@ ensogl_core::define_endpoints_2! {
         set_color (color::Rgb),
         set_ascender (f32),
         set_descender (f32),
-        set_last_attached_glyph (Option<WeakGlyph>),
+        set_attached_glyphs (Rc<Vec<WeakGlyph>>),
     }
 
     Output {
@@ -177,9 +177,9 @@ impl Selection {
                 })
             );
 
-            line_width_can_change <- any_(&frp.set_last_attached_glyph, &position.value);
-            rhs_last_glyph <- frp.set_last_attached_glyph.sample(&line_width_can_change).map(f!([display_object, right_side](glyph) {
-                if let Some(glyph) = glyph.as_ref().and_then(|glyph| glyph.upgrade()) {
+            line_width_can_change <- any_(&frp.set_attached_glyphs, &position.value);
+            rhs_last_glyph <- frp.set_attached_glyphs.sample(&line_width_can_change).map(f!([display_object, right_side](glyphs) {
+                if let Some(glyph) = glyphs.last().and_then(|glyph| glyph.upgrade()) {
                     let glyph_right_x = glyph.position().x + glyph.width();
                     let origin_x = display_object.position().x + right_side.position().x;
                     origin_x + glyph_right_x

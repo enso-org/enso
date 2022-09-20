@@ -76,21 +76,25 @@ impl Glyph {
 #[derive(Debug, Deref)]
 pub struct GlyphData {
     #[deref]
-    pub frp:               Frp,
-    pub glyph_id:          Cell<GlyphId>,
-    pub start_byte_offset: Cell<UBytes>,
-    pub display_object:    display::object::Instance,
-    pub sprite:            Sprite,
-    pub context:           Context,
-    pub font:              Font,
-    pub properties:        Cell<font::family::NonVariableFaceHeader>,
-    pub variations:        RefCell<VariationAxes>,
-    pub size:              Attribute<f32>,
-    pub color:             Attribute<Vector4<f32>>,
-    pub sdf_weight:        Attribute<f32>,
-    pub atlas_index:       Attribute<f32>,
-    pub atlas:             Uniform<Texture>,
-    pub color_animation:   color::Animation,
+    pub frp:                Frp,
+    pub glyph_id:           Cell<GlyphId>,
+    pub start_byte_offset:  Cell<UBytes>,
+    pub display_object:     display::object::Instance,
+    pub sprite:             Sprite,
+    pub context:            Context,
+    pub font:               Font,
+    pub properties:         Cell<font::family::NonVariableFaceHeader>,
+    pub variations:         RefCell<VariationAxes>,
+    pub size:               Attribute<f32>,
+    pub color:              Attribute<Vector4<f32>>,
+    pub sdf_weight:         Attribute<f32>,
+    pub atlas_index:        Attribute<f32>,
+    pub atlas:              Uniform<Texture>,
+    pub color_animation:    color::Animation,
+    /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
+    /// Attached glyphs should not be considered part of the line during animation because they
+    /// will be moved around, so they need to be ignored when computing the line width.
+    pub attached_to_cursor: Rc<Cell<bool>>,
 }
 
 
@@ -343,6 +347,7 @@ impl System {
         let properties = default();
         let variations = default();
         let color_animation = color::Animation::new(frp.network());
+        let attached_to_cursor = default();
         display_object.add_child(&sprite);
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
@@ -370,6 +375,7 @@ impl System {
                 properties,
                 variations,
                 color_animation,
+                attached_to_cursor,
             }),
         }
     }
