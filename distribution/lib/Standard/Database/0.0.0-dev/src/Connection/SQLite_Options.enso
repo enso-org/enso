@@ -3,12 +3,12 @@ from Standard.Base import all
 import Standard.Database.Internal.SQLite.SQLite_Connection
 import Standard.Database.Connection.Connection_Options
 
-type SQLite
+type SQLite_Options
     ## Connect to a SQLite DB File or InMemory DB.
 
        Arguments:
        - location: Location of the SQLite database to connect to.
-    SQLite_Data (location:(In_Memory|File|Text))
+    SQLite (location:(In_Memory|File|Text))
 
     ## Build the Connection resource.
 

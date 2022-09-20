@@ -41,7 +41,7 @@ use double_representation::project;
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
     pub content:           component::Group,
-    /// The flattened content contains the content af module and all its submodules. Is set to
+    /// The flattened content contains the content of a module and all its submodules. Is set to
     /// `Some` only when such flattened content is needed (decided during construction).
     ///
     /// For example when the module is a top module, so need its flattened content to fill the

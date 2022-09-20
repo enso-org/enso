@@ -2,8 +2,8 @@ from Standard.Base import all hiding First, Last
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 
 from Standard.Table.Data.Aggregate_Column import all
-import Standard.Database.Data.Internal.IR
-from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Internal.IR
+from Standard.Database.Data.SQL import SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE
@@ -35,7 +35,7 @@ make_expression aggregate dialect =
         Count_Nothing c _ -> IR.Operation "COUNT_IS_NULL" [c.expression]
         Count_Not_Empty c _ -> IR.Operation "COUNT_NOT_EMPTY" [c.expression]
         Count_Empty c _ -> IR.Operation "COUNT_EMPTY" [c.expression]
-        Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant Sql_Type.double p, c.expression]
+        Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant SQL_Type.double p, c.expression]
         Mode c _ -> IR.Operation "MODE" [c.expression]
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.")
@@ -59,10 +59,10 @@ make_expression aggregate dialect =
             True -> IR.Operation "STDDEV_POP" [c.expression]
             False -> IR.Operation "STDDEV_SAMP" [c.expression]
         Concatenate c _ separator prefix suffix quote_char ->
-            base_args = [c.expression, IR.Constant Sql_Type.text separator, IR.Constant Sql_Type.text prefix, IR.Constant Sql_Type.text suffix]
+            base_args = [c.expression, IR.Constant SQL_Type.text separator, IR.Constant SQL_Type.text prefix, IR.Constant SQL_Type.text suffix]
             case quote_char.is_empty of
                 True -> IR.Operation "CONCAT" base_args
-                False -> IR.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[IR.Constant Sql_Type.text quote_char]
+                False -> IR.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[IR.Constant SQL_Type.text quote_char]
         Sum c _ -> IR.Operation "SUM" [c.expression]
         Average c _ -> IR.Operation "AVG" [c.expression]
         Median c _ -> IR.Operation "MEDIAN" [c.expression]

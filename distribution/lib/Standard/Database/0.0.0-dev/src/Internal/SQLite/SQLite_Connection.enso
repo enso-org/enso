@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database.Data.Sql import Sql_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement
 
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Data.Dialect
@@ -9,7 +9,7 @@ from Standard.Database.Connection.Connection import Connection_Data
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
-from Standard.Database.Errors import Sql_Error
+from Standard.Database.Errors import SQL_Error
 
 type SQLite_Connection
     ## PRIVATE
@@ -49,10 +49,10 @@ type SQLite_Connection
 
        Arguments:
         - database: The name of the database to connect to.
-    set_database : Text -> Connection ! Sql_Error
+    set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
-            Sql_Error.throw_sql_error "Changing database is not supported."
+            SQL_Error.throw_sql_error "Changing database is not supported."
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -66,10 +66,10 @@ type SQLite_Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    set_schema : Text -> Connection ! Sql_Error
+    set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
-            Sql_Error.throw_sql_error "Changing schema is not supported."
+            SQL_Error.throw_sql_error "Changing schema is not supported."
 
     ## Gets a list of the table types
     table_types : [Text]
@@ -97,7 +97,7 @@ type SQLite_Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Statement -> Vector Sql_Type -> Materialized_Table
+    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
     execute_query self query expected_types=Nothing =
         self.connection.execute_query query expected_types
 
@@ -121,7 +121,7 @@ type SQLite_Connection
 
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    # fetch_columns : Text -> Vector [Text, SQL_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
         self.connection.fetch_columns table_name
