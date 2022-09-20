@@ -330,7 +330,8 @@ type Date
              example_shift = Date.new 2020 2 3 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date
     add_work_days self days=1 holidays=[] =
-        if days < 0 then unimplemented "TODO" else
+        # TODO negative offset
+        if days < 0 then self else
             full_weeks = days.div 5
             remaining_days = days % 5
 
