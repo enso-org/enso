@@ -191,7 +191,7 @@ object Doc {
     final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
       val newLn: Elem        = Elem.Newline
       val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
-      val ran: Random = new Random()
+      val ran: Random        = new Random()
       val html: HTML = {
         val uniqueIDCode = ran.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = ran.alphanumeric.take(8).mkString("")

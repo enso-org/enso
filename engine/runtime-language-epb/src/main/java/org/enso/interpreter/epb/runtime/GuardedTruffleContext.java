@@ -69,6 +69,6 @@ public class GuardedTruffleContext {
 
   @CompilerDirectives.TruffleBoundary
   private void unlock() {
-      lock.unlock();
+    lock.unlock();
   }
 }
