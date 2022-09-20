@@ -40,8 +40,9 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
                     graph.edges.push((sname.clone(), sname2, EdgeType::Field));
                 },
             Data::Primitive(Primitive::U32)
-            | Data::Primitive(Primitive::Bool)
             | Data::Primitive(Primitive::U64)
+            | Data::Primitive(Primitive::Bool)
+            | Data::Primitive(Primitive::Char)
             | Data::Primitive(Primitive::String) => {}
             Data::Primitive(Primitive::Sequence(t0)) => graph.edges.push((
                 sname.clone(),

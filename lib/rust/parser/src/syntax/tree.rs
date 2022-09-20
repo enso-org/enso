@@ -428,22 +428,9 @@ pub enum TextElement<'s> {
         text: token::TextSection<'s>,
     },
     /// An escaped character.
-    EscapeChar {
-        /// The \ character.
-        backslash: Option<token::TextEscapeSymbol<'s>>,
-        /// The escaped character.
-        char:      Option<token::TextEscapeChar<'s>>,
-    },
-    /// A unicode escape sequence.
-    EscapeSequence {
-        /// The backslash and format characters.
-        leader: Option<token::TextEscapeLeader<'s>>,
-        /// The opening delimiter, if present.
-        open:   Option<token::TextEscapeSequenceStart<'s>>,
-        /// The hex digits.
-        digits: Option<token::TextEscapeHexDigits<'s>>,
-        /// The closing delimiter, if present.
-        close:  Option<token::TextEscapeSequenceEnd<'s>>,
+    Escape {
+        /// The escape sequence.
+        token:     token::TextEscape<'s>,
     },
     /// An interpolated section within a text literal.
     Splice {
@@ -460,9 +447,7 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         match self {
             TextElement::Section { text } => text.add_to_span(span),
-            TextElement::EscapeChar { backslash, char } => span.add(backslash).add(char),
-            TextElement::EscapeSequence { leader, open, digits, close } =>
-                span.add(leader).add(open).add(digits).add(close),
+            TextElement::Escape { token } => span.add(token),
             TextElement::Splice { open, expression, close } =>
                 span.add(open).add(expression).add(close),
         }
@@ -703,33 +688,8 @@ fn join_text_literals<'s>(
         lhs.trim = rhs.trim;
     }
     match rhs.elements.first_mut() {
-        Some(TextElement::Section { text }) => text.left_offset = rhs_span.left_offset,
-        Some(TextElement::EscapeChar { char: char_, .. }) =>
-            if let Some(char__) = char_ {
-                char__.left_offset = rhs_span.left_offset;
-                if let Some(TextElement::EscapeChar { char, .. }) = lhs.elements.last_mut()
-                    && char.is_none() {
-                    *char = mem::take(char_);
-                    return;
-                }
-            },
-        Some(TextElement::EscapeSequence { leader: Some(_), .. }) => (),
-        Some(TextElement::EscapeSequence {
-            open: open_, digits: digits_, close: close_, ..
-        }) => {
-            if let Some(TextElement::EscapeSequence { open, digits, close, .. }) =
-                lhs.elements.last_mut()
-            {
-                if open.is_none() {
-                    *open = open_.clone();
-                }
-                if digits.is_none() {
-                    *digits = digits_.clone();
-                }
-                *close = close_.clone();
-                return;
-            }
-        }
+        Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
+        Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
         Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
         None => (),
     }

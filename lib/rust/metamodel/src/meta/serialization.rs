@@ -278,6 +278,9 @@ impl<'g> ProgramBuilder<'g> {
             Primitive::Bool => self.emit(Op::U8(1)),
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
             // to encode compatibly with other types.
+            Primitive::Char => self.emit(Op::U32(0x10FFFF)),
+            // Value doesn't matter, but this will be recognizable in the output, and will tend not
+            // to encode compatibly with other types.
             Primitive::U64 => self.emit(Op::U64(1234567890123456789)),
             Primitive::String => self.emit(Op::U64("".len() as u64)),
             Primitive::Sequence(_) if basecase => self.emit(Op::U64(0)),

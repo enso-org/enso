@@ -751,13 +751,10 @@ fn inline_text_literals() {
         (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")) 0)]),
         (r#""String with \" escape""#, block![
             (TextLiteral
-             #((Section "String with ") (EscapeChar "\"") (Section " escape"))
+             #((Section "String with ") (Escape '\"') (Section " escape"))
              0)]),
         (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
-         (EscapeSequence "0915")
-         (EscapeSequence "094D")
-         (EscapeSequence "0937")
-         (EscapeSequence "093F")) 0)]),
+         (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')) 0)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -802,16 +799,16 @@ fn interpolated_literals_in_inline_text() {
             #((Splice "`" (Ident SpliceWithLeadingWhitespace) "`")) 0)]),
         (r#"'String with \n escape'"#, block![
             (TextLiteral
-             #((Section "String with ") (EscapeChar "n") (Section " escape"))
+             #((Section "String with ") (Escape '\n') (Section " escape"))
              0)]),
         (r#"'\x0Aescape'"#, block![
-            (TextLiteral #((EscapeSequence "0A") (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
         (r#"'\u000Aescape'"#, block![
-            (TextLiteral #((EscapeSequence "000A") (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
         (r#"'\u{0000A}escape'"#, block![
-            (TextLiteral #((EscapeSequence "0000A") (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
         (r#"'\U0000000Aescape'"#, block![
-            (TextLiteral #((EscapeSequence "0000000A") (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -834,9 +831,9 @@ fn interpolated_literals_in_multiline_text() {
         (TextLiteral
          #((Section "\n") (Section "text with a ") (Splice "`" (Ident splice) "`")
            (Section "\n") (Section "and some ")
-                          (EscapeSequence "000A")
+                          (Escape '\n')
                           (Section "escapes")
-                          (EscapeChar "'")) 4)];
+                          (Escape '\'')) 4)];
     test(code, expected);
 }
 
@@ -1037,16 +1034,8 @@ where T: serde::Serialize + Reflect {
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
     let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
     let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
-    let text_escape_symbol_token = rust_to_meta[&token::variant::TextEscapeSymbol::reflect().id];
-    let text_escape_char_token = rust_to_meta[&token::variant::TextEscapeChar::reflect().id];
-    let text_escape_leader_token = rust_to_meta[&token::variant::TextEscapeLeader::reflect().id];
-    let text_escape_hex_digits_token =
-        rust_to_meta[&token::variant::TextEscapeHexDigits::reflect().id];
-    let text_escape_sequence_start_token =
-        rust_to_meta[&token::variant::TextEscapeSequenceStart::reflect().id];
-    let text_escape_sequence_end_token =
-        rust_to_meta[&token::variant::TextEscapeSequenceEnd::reflect().id];
     let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
+    let text_escape_token = rust_to_meta[&token::variant::TextEscape::reflect().id];
     let wildcard_token = rust_to_meta[&token::variant::Wildcard::reflect().id];
     let autoscope_token = rust_to_meta[&token::variant::AutoScope::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
@@ -1061,11 +1050,6 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(symbol_token, move |token| Value::string(token_to_str_(token)));
-    let token_to_str_ = token_to_str.clone();
-    to_s_expr.mapper(text_escape_char_token, move |token| Value::string(token_to_str_(token)));
-    let token_to_str_ = token_to_str.clone();
-    to_s_expr
-        .mapper(text_escape_hex_digits_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
@@ -1092,19 +1076,25 @@ where T: serde::Serialize + Reflect {
         };
         Value::cons(expression, list)
     };
+    let simplify_escape = |mut list| {
+        let mut last = None;
+        while let Value::Cons(cons) = list {
+            let (car, cdr) = cons.into_pair();
+            last = Some(car);
+            list = cdr;
+        };
+        last.unwrap()
+    };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
     let case = rust_to_meta[&tree::Case::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
     to_s_expr.mapper(case, simplify_case);
+    to_s_expr.mapper(text_escape_token, simplify_escape);
     to_s_expr.skip(newline_token);
     to_s_expr.skip(wildcard_token);
     to_s_expr.skip(autoscope_token);
-    to_s_expr.skip(text_escape_symbol_token);
-    to_s_expr.skip(text_escape_leader_token);
-    to_s_expr.skip(text_escape_sequence_start_token);
-    to_s_expr.skip(text_escape_sequence_end_token);
     to_s_expr.skip(text_start_token);
     to_s_expr.skip(text_end_token);
     tuplify(to_s_expr.value(ast_ty, &value))

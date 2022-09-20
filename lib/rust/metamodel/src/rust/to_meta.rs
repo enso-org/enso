@@ -140,6 +140,7 @@ impl ToMeta {
         let primitive = match primitive {
             Primitive::Bool => meta::Primitive::Bool,
             Primitive::U32 => meta::Primitive::U32,
+            Primitive::Char => meta::Primitive::Char,
             // In platform-independent formats, a `usize` is serialized as 64 bits.
             Primitive::Usize => meta::Primitive::U64,
             Primitive::String => meta::Primitive::String,

@@ -376,8 +376,18 @@ fn is_octal_digit(t: char) -> bool {
 
 /// Check whether the provided character is a hexadecimal digit.
 #[inline(always)]
-fn is_hexadecimal_digit(t: char) -> bool {
-    is_decimal_digit(t) || ('a'..='f').contains(&t) || ('A'..='F').contains(&t)
+fn is_hexadecimal_digit(c: char) -> bool {
+    decode_hexadecimal_digit(c).is_some()
+}
+
+#[inline(always)]
+fn decode_hexadecimal_digit(c: char) -> Option<u8> {
+    Some(match c {
+        '0'..='9' => c as u8 - b'0',
+        'a'..='f' => 10 + (c as u8 - b'a'),
+        'A'..='F' => 10 + (c as u8 - b'A'),
+        _ => return None,
+    })
 }
 
 impl<'s> Lexer<'s> {
@@ -851,7 +861,15 @@ impl<'s> Lexer<'s> {
                 let backslash_start = self.mark();
                 self.take_next();
                 if let Some(char) = self.current_char && (interpolate || closing_char == Some(char)) {
-                    self.text_escape(char, interpolate, backslash_start, &mut text_start);
+                    let token = self.make_token(
+                        text_start,
+                        backslash_start.clone(),
+                        token::Variant::TextSection(token::variant::TextSection()),
+                    );
+                    if !token.code.is_empty() {
+                        self.output.push(token);
+                    }
+                    text_start = self.text_escape(backslash_start, char);
                     continue;
                 }
             }
@@ -892,95 +910,70 @@ impl<'s> Lexer<'s> {
 
     fn text_escape(
         &mut self,
-        char: char,
-        interpolate: bool,
         backslash_start: (Bytes, Offset<'s>),
-        text_start: &'_ mut (Bytes, Offset<'s>),
-    ) {
-        let token = self.make_token(
-            text_start.clone(),
-            backslash_start.clone(),
-            token::Variant::TextSection(token::variant::TextSection()),
-        );
-        if !token.code.is_empty() {
-            self.output.push(token);
-        }
-        if interpolate && char == 'x' || char == 'u' || char == 'U' {
+        char: char,
+    ) -> (Bytes, Offset<'s>) {
+        let leader = match char {
+            'x' => Some((2, false)),
+            'u' => Some((4, true)),
+            'U' => Some((8, false)),
+            _ => None,
+        };
+        if let Some((mut expect_len, accepts_delimiter)) = leader {
             self.take_next();
-            let leader_end = self.mark();
-            let token = self.make_token(
-                backslash_start,
-                leader_end.clone(),
-                token::Variant::TextEscapeLeader(token::variant::TextEscapeLeader()),
-            );
-            self.output.push(token);
-            let (mut expect_len, accepts_delimiter) = match char {
-                'x' => (2, false),
-                'u' => (4, true),
-                'U' => (8, false),
-                _ => unreachable!(),
-            };
             let delimited = accepts_delimiter && self.current_char == Some('{');
-            let mut sequence_start = leader_end.clone();
             if delimited {
                 self.take_next();
-                sequence_start = self.mark();
-                let token = self.make_token(
-                    leader_end,
-                    sequence_start.clone(),
-                    token::Variant::TextEscapeSequenceStart(
-                        token::variant::TextEscapeSequenceStart(),
-                    ),
-                );
-                self.output.push(token);
                 expect_len = 6;
             }
+            let mut value: u32 = 0;
             for _ in 0..expect_len {
-                if let Some(c) = self.current_char && is_hexadecimal_digit(c) {
+                if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
+                    value = 16 * value + x as u32;
                     self.take_next();
                 } else {
                     break;
                 }
             }
-            let sequence_end = self.mark();
-            let token = self.make_token(
-                sequence_start,
-                sequence_end.clone(),
-                token::Variant::TextEscapeHexDigits(token::variant::TextEscapeHexDigits()),
-            );
-            self.output.push(token);
+            let value = char::from_u32(value);
             if delimited && self.current_char == Some('}') {
                 self.take_next();
-                let close_end = self.mark();
-                let token = self.make_token(
-                    sequence_end,
-                    close_end.clone(),
-                    token::Variant::TextEscapeSequenceEnd(token::variant::TextEscapeSequenceEnd()),
-                );
-                self.output.push(token);
-                *text_start = close_end;
-            } else {
-                *text_start = sequence_end;
             }
-            return;
+            let sequence_end = self.mark();
+            let token = self.make_token(
+                backslash_start,
+                sequence_end.clone(),
+                token::Variant::TextEscape(token::variant::TextEscape(value)),
+            );
+            self.output.push(token);
+            sequence_end
+        } else {
+            let value = match char {
+                '0' => Some('\0'),
+                'a' => Some('\x07'),
+                'b' => Some('\x08'),
+                'f' => Some('\x0C'),
+                'n' => Some('\x0A'),
+                'r' => Some('\x0D'),
+                't' => Some('\x09'),
+                'v' => Some('\x0B'),
+                '\\' => Some('\\'),
+                '"' => Some('"'),
+                '\'' => Some('\''),
+                '`' => Some('`'),
+                _ => None,
+            };
+            self.take_next();
+            let escape_end = self.mark();
+            let token = self.make_token(
+                backslash_start,
+                escape_end.clone(),
+                token::Variant::TextEscape(token::variant::TextEscape(value)),
+            );
+            self.output.push(token);
+            self.take_next();
+            escape_end
         }
-        let backslash_end = self.mark();
-        let token = self.make_token(
-            backslash_start,
-            backslash_end.clone(),
-            token::Variant::TextEscapeSymbol(token::variant::TextEscapeSymbol()),
-        );
-        self.output.push(token);
-        self.take_next();
-        let escaped_end = self.mark();
-        let token = self.make_token(
-            backslash_end,
-            escaped_end.clone(),
-            token::Variant::TextEscapeChar(token::variant::TextEscapeChar()),
-        );
-        self.output.push(token);
-        *text_start = escaped_end;
-        self.take_next();
     }
 
     /// Read the lines of a text literal.

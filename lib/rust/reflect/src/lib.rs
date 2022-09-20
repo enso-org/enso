@@ -269,6 +269,7 @@ macro_rules! reflect_primitive {
 reflect_primitive!(bool, Primitive::Bool);
 reflect_primitive!(usize, Primitive::Usize);
 reflect_primitive!(u32, Primitive::U32);
+reflect_primitive!(char, Primitive::Char);
 reflect_primitive!(String, Primitive::String);
 
 

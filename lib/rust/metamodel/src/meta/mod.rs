@@ -103,6 +103,8 @@ pub enum Primitive {
     U32,
     /// An unsigned 64-bit integer.
     U64,
+    /// A unicode code point (in the range 0 to 0x10FFFF).
+    Char,
     /// An UTF-8-encoded string.
     String,
     /// Zero or more values of a type.
@@ -360,8 +362,9 @@ impl TypeGraph {
                     rewrite(t1);
                 }
                 Data::Primitive(Primitive::U32)
-                | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::U64)
+                | Data::Primitive(Primitive::Bool)
+                | Data::Primitive(Primitive::Char)
                 | Data::Primitive(Primitive::String) => {}
             }
         }
@@ -404,8 +407,9 @@ impl TypeGraph {
                     to_visit.insert(*t1);
                 }
                 Data::Primitive(Primitive::U32)
-                | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::U64)
+                | Data::Primitive(Primitive::Bool)
+                | Data::Primitive(Primitive::Char)
                 | Data::Primitive(Primitive::String) => {}
             }
         }

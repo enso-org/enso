@@ -276,12 +276,12 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextStart,
         TextEnd,
         TextSection,
-        TextEscapeSymbol,
-        TextEscapeChar,
-        TextEscapeLeader,
-        TextEscapeHexDigits,
-        TextEscapeSequenceStart,
-        TextEscapeSequenceEnd,
+        TextEscape {
+            #[serde(serialize_with = "crate::serialization::serialize_optional_char")]
+            #[serde(deserialize_with = "crate::serialization::deserialize_optional_char")]
+            #[reflect(as = "char")]
+            pub value: Option<char>,
+        },
     }
 }}}
 
@@ -292,8 +292,7 @@ impl Variant {
         // escape control characters.
         !matches!(
             self,
-            Variant::TextEscapeSymbol(_)
-                | Variant::TextEscapeSequenceStart(_)
+            Variant::TextEscape(_)
                 | Variant::TextSection(_)
         )
     }
@@ -507,7 +506,9 @@ macro_rules! generate_token_aliases {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({
+                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
+                })?
             ),* $(,)?
         }
     ) => { paste!{

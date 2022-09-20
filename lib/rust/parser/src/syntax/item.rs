@@ -61,58 +61,11 @@ impl<'s> Item<'s> {
                     let section = tree::TextElement::Section { text: token.with_variant(section) };
                     Tree::text_literal(default(), vec![section], default(), trim)
                 }
-                token::Variant::TextEscapeSymbol(escape) => {
+                token::Variant::TextEscape(escape) => {
                     let trim = token.left_offset.visible;
-                    let backslash = Some(token.with_variant(escape));
-                    let section = tree::TextElement::EscapeChar { backslash, char: None };
+                    let token = token.with_variant(escape);
+                    let section = tree::TextElement::Escape { token };
                     Tree::text_literal(default(), vec![section], default(), trim)
-                }
-                token::Variant::TextEscapeChar(escape) => {
-                    let trim = token.left_offset.visible;
-                    let char = Some(token.with_variant(escape));
-                    let section = tree::TextElement::EscapeChar { backslash: None, char };
-                    Tree::text_literal(default(), vec![section], default(), trim)
-                }
-                token::Variant::TextEscapeLeader(leader) => {
-                    let trim = token.left_offset.visible;
-                    let leader = Some(token.with_variant(leader));
-                    let section = tree::TextElement::EscapeSequence {
-                        leader,
-                        open: None,
-                        digits: None,
-                        close: None,
-                    };
-                    Tree::text_literal(default(), vec![section], default(), trim)
-                }
-                token::Variant::TextEscapeHexDigits(digits) => {
-                    let digits = Some(token.with_variant(digits));
-                    let section = tree::TextElement::EscapeSequence {
-                        leader: None,
-                        open: None,
-                        digits,
-                        close: None,
-                    };
-                    Tree::text_literal(default(), vec![section], default(), default())
-                }
-                token::Variant::TextEscapeSequenceStart(t) => {
-                    let open = Some(token.with_variant(t));
-                    let section = tree::TextElement::EscapeSequence {
-                        leader: None,
-                        open,
-                        digits: None,
-                        close: None,
-                    };
-                    Tree::text_literal(default(), vec![section], default(), default())
-                }
-                token::Variant::TextEscapeSequenceEnd(t) => {
-                    let close = Some(token.with_variant(t));
-                    let section = tree::TextElement::EscapeSequence {
-                        leader: None,
-                        open: None,
-                        digits: None,
-                        close,
-                    };
-                    Tree::text_literal(default(), vec![section], default(), default())
                 }
                 token::Variant::TextEnd(close) => Tree::text_literal(
                     default(),
@@ -204,7 +157,9 @@ macro_rules! generate_variant_checks {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({
+                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
+                })?
             ),* $(,)?
         }
     ) => { paste!{
