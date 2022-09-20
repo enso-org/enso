@@ -242,6 +242,23 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (duplicated_holiday_november 2020) . should_equal 22
             create_new_date 1999 11 1 . work_days_until (create_new_date 1999 12 1) (duplicated_holiday_november 1999) . should_equal 19
 
+        Test.specify "should allow to compute the number of working days including the end, in a manner consistent with NETWORKDAYS" <|
+            create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) include_end_date=True . should_equal 1
+            create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 2) include_end_date=True . should_equal 2
+            create_new_date 2000 2 3 . work_days_until (create_new_date 2000 2 16) include_end_date=True . should_equal 10
+            create_new_date 2000 2 4 . work_days_until (create_new_date 2000 2 5) include_end_date=True . should_equal 1
+            create_new_date 2000 2 4 . work_days_until (create_new_date 2000 2 6) include_end_date=True . should_equal 1
+            create_new_date 2000 2 4 . work_days_until (create_new_date 2000 2 7) include_end_date=True . should_equal 2
+            create_new_date 2000 2 4 . work_days_until (create_new_date 2000 2 8) include_end_date=True . should_equal 3
+            create_new_date 2000 2 5 . work_days_until (create_new_date 2000 2 5) include_end_date=True . should_equal 0
+            create_new_date 2000 2 5 . work_days_until (create_new_date 2000 2 6) include_end_date=True . should_equal 0
+            create_new_date 2000 2 5 . work_days_until (create_new_date 2000 2 7) include_end_date=True . should_equal 1
+            create_new_date 2000 2 5 . work_days_until (create_new_date 2000 2 8) include_end_date=True . should_equal 2
+            create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 6) include_end_date=True . should_equal 0
+            create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 7) include_end_date=True . should_equal 1
+            create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 8) include_end_date=True . should_equal 2
+            create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 5) include_end_date=True . should_equal 0
+
         Test.specify "should allow to shift the date by N working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days 0 . should_equal (Date.new 2000 2 1)
@@ -265,8 +282,8 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 6 . add_work_days 1 . should_equal (Date.new 2000 2 8)
 
             # Behaviour in February depending on leap year.
-            create_new_date 2000 2 27 . add_work_days 3 . should_equal (Date.new 2000 3 1)
-            create_new_date 1999 2 27 . add_work_days 3 . should_equal (Date.new 2000 3 3)
+            create_new_date 2000 2 27 . add_work_days 3 . should_equal (Date.new 2000 3 2)
+            create_new_date 1999 2 27 . add_work_days 3 . should_equal (Date.new 2000 3 4)
 
             # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
             create_new_date 2022 10 30 . add_work_days 0 . should_equal (Date.new 2022 10 31)

@@ -242,22 +242,43 @@ type Date
     ## Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+       - holidays: dates of holidays to skip when counting workdays.
+       - include_end_date: whether to include the end date in the count.
+         By default the end date is not included in the interval.
+
+       ? Including the end date
+         To be consistent with how we usually represent intervals (in an
+         end-exclusive manner), by default the end date is not included in the
+         count. This has the nice property that for example to count the work
+         days within the next week you can do
+         `date.work_days_until (date + 7.days)` and it will look at the 7 days
+         starting from the current `date` and not 8 days. This also gives us a
+         property that `date.work_days_until (date.add_work_days N) == N` for
+         any non-negative N. On the other hand, sometimes we may want the end
+         date to be included in the count, so we provide the `include_end_date`
+         argument for that purpose. Setting it to `True` should make the result
+         consistent with the `NETWORKDAYS` function in Excel and similar
+         products.
+
        > Example
          Count the number of workdays between two dates.
 
              from Standard.Base import Date
 
              example_workdays = Date.new 2020 1 1 . workdays_until (Date.new 2020 1 5)
-    work_days_until : Date -> Vector Date -> Integer
-    work_days_until self end holidays=[] =
-        weekdays = week_days_between self end
-        ## We count holidays that occurred within the period, but not on the
-           weekends (as weekend days have already been excluded from the count).
-           We also need to ensure we exclude each holiday only once, even if the
-           user provided it multiple times.
-        overlapping_holidays = holidays.filter holiday->
-            fits_in_range self end holiday && (is_weekend holiday).not
-        weekdays - overlapping_holidays.distinct.length
+    work_days_until : Date -> Vector Date -> Boolean -> Integer
+    work_days_until self end holidays=[] include_end_date=False =
+        if include_end_date then self.work_days_until (end + 1.day) holidays include_end_date=False else
+            weekdays = week_days_between self end
+            ## We count holidays that occurred within the period, but not on the
+               weekends (as weekend days have already been excluded from the count).
+               We also need to ensure we exclude each holiday only once, even if the
+               user provided it multiple times.
+            overlapping_holidays = holidays.filter holiday->
+                fits_in_range self end holiday && (is_weekend holiday).not
+            weekdays - overlapping_holidays.distinct.length
 
     ## ALIAS Date to Time
 
@@ -309,16 +330,32 @@ type Date
              example_shift = Date.new 2020 2 3 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date
     add_work_days self days=1 holidays=[] =
-        # TODO Terrible hack, do it in a sane way!
-        is_holiday = (self.work_days_until (self + 1.days) holidays) == 0
-        estimated_days = (days * 7 . div 5) + if is_holiday then 1 else 0
-        overlapping_holidays_in_range = holidays.filter holiday->
-            fits_in_range self (self + estimated_days.days) holiday && (is_weekend holiday).not
-        end = self + estimated_days.days + overlapping_holidays_in_range.distinct.length.days
-        included_days = self.work_days_until end holidays
-        diff = days - included_days
-        if diff == 0 then end else
-            end.add_work_days diff holidays
+        if days < 0 then unimplemented "TODO" else
+            full_weeks = days.div 5
+            remaining_days = days % 5
+
+            # If the current day is a Saturday, the ordinal will be 6.
+            ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Monday start_at_zero=False
+
+            ## If the current day is a Sunday, we just need to shift by one day
+               to 'escape' the weekend, regardless of the overall remaining
+               shift. On any other day, we check if current day plus the shift
+               overlaps a weekend, we need the shift to be 2 days since we need
+               to skip both Saturday and Sunday.
+            additional_shift = if ordinal == 7 then 1 else
+                if ordinal + remaining_days > 5 then 2 else 0
+
+            days_to_shift = full_weeks*7 + remaining_days + additional_shift
+            end = self + days_to_shift.days
+#
+#            overlapping_holidays_in_range = holidays.filter holiday->
+#                fits_in_range self (self + estimated_days.days) holiday && (is_weekend holiday).not
+#            end = self + estimated_days.days + overlapping_holidays_in_range.distinct.length.days
+#            included_days = self.work_days_until end holidays
+#            diff = days - included_days
+#            if diff == 0 then end else
+#                end.add_work_days diff holidays
+            end
 
     ## Subtract the specified amount of time from this instant to get another
        date.
