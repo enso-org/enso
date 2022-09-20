@@ -1604,12 +1604,18 @@ impl GraphEditorModelWithNetwork {
 
             // TODO: !!!!!!!! WIP !!!!!!!!
             // node.enable_preview <+ init;
-            first_edit_and_no_visualization_change <- node_model.input.frp.editing.sample(&init);
-            eval first_edit_and_no_visualization_change ([](v)
-                tracing::warn!("MCDBG first_edit... v={v:?}") // NOT WORKING :(
-            );
+            // first_edit_and_no_visualization_change <- node_model.input.frp.editing.sample(&init);
+            // eval first_edit_and_no_visualization_change ([](v)
+            //     tracing::warn!("MCDBG first_edit... v={v:?}") // NOT WORKING :(
+            // );
+            // visualization_state_changed <- any(...);
+            // visualization_state_changed <+ node.visualization_visible.on_change().constant(());
+            // TODO: visualization_state_changed <+ [vis. preprocessor changed]
+            // vis_state_changed_while_preview_enabled <- visualization_state_changed.gate(&node.preview_enabled);
+            // eval vis_state_changed_while_preview_enabled ([](_) tracing::warn!("MCDBG vis_state_changed_while_preview_enabled"));
             node.disable_preview <+ node_model.input.frp.editing.filter(|e| !*e).constant(());
-            node.disable_preview <+ node.visualization_enabled.constant(());
+            // node.disable_preview <+ node.visualization_enabled.constant(());
+            // node.disable_preview <+ visualization_state_changed;
 
 
             // === View Mode ===

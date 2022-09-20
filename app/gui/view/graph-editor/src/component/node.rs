@@ -780,7 +780,7 @@ impl Node {
 
             // === Action Bar ===
 
-            let visualization_enabled = action_bar.action_visibility.clone_ref();
+            let action_visualization_enabled = action_bar.action_visibility.clone_ref();
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -848,14 +848,28 @@ impl Node {
             hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
             // preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
             // preview_visible         <- preview_visible && has_expression;
-            preview_enabled <- bool(&input.disable_preview, &input.enable_preview);
+            disable_preview <- any(...);
+            disable_preview <+ input.disable_preview;
+            // preview_enabled <- bool(&input.disable_preview, &input.enable_preview);
+            preview_enabled <- bool(&disable_preview, &input.enable_preview);
             out.preview_enabled <+ preview_enabled;
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
+            action_visualization_on <- action_visualization_enabled.filter(|e| *e).constant(());
+            action_visualization_off <- action_visualization_enabled.filter(|e| !*e).constant(());
+            visualization_on <- action_visualization_on.gate_not(&preview_visible);
+            action_visualization_on_while_preview_visible <-
+                action_visualization_on.gate(&preview_visible);
+            disable_preview <+ action_visualization_on_while_preview_visible;
+            visualization_enabled <- bool(&action_visualization_off, &visualization_on);
+            // visualization_enabled <- action_visualization_enabled.gate_not(&preview_visible);
+
             visualization_visible            <- visualization_enabled || preview_visible;
+            // visualization_enabled_while_preview_visible <-
+            //     visualization_enabled.gate(&preview_visible).filter(|e| *e);
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
             out.visualization_visible <+ visualization_visible_on_change;
