@@ -1155,7 +1155,7 @@ impl AreaModel {
             warn!("positioning line {:?}", line_index);
             let line = &lines[line_index];
             let current_pos_y = line.target_y_pos();
-            let new_posy = if line_index == ViewLine(0) {
+            let new_pos_y = if line_index == ViewLine(0) {
                 -line.metrics().ascender
             } else {
                 let prev_line_index = ViewLine(line_index.value - 1);
@@ -1164,11 +1164,12 @@ impl AreaModel {
                     prev_line.metrics().descender - line.metrics().ascender - line.metrics().gap;
                 prev_line.target_y_pos() + offset
             };
-            if current_pos_y == new_posy {
+            let new_pos_y = new_pos_y.round();
+            if current_pos_y == new_pos_y {
                 warn!("no change");
                 break;
             }
-            line.set_y(new_posy);
+            line.set_y(new_pos_y);
             line_index += ViewLine(1);
         }
         Some(line_index)
