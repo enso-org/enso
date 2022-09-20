@@ -41,11 +41,6 @@ pub use crate::new_entry::style::Style;
 ///
 /// The entries need to overlap, otherwise we see artifacts at their boundaries.
 const ENTRIES_OVERLAP_PX: f32 = 1.0;
-/// The padding between entry background and declared entry contour.
-///
-/// Cannot be `0.0` because the background is clipped more tightly than the selection shape, which
-/// means that the selection extends over the background. This looks bad.
-const CONTOUR_PADDING: f32 = 0.5;
 
 
 
@@ -289,14 +284,14 @@ impl Data {
     }
 
     fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let padding = CONTOUR_PADDING * 2.0;
         let optional_gap = if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
-        let height = entry_size.y - optional_gap - padding;
+        let height = entry_size.y - optional_gap;
         Contour::rectangular(Vector2(style.group_width, height))
     }
 
     fn highlight_contour(contour: Contour, style: &Style) -> Contour {
-        Contour { corners_radius: style.selection_corners_radius, ..contour }
+        let corners_radius = style.selection_corners_radius;
+        Contour { corners_radius, ..contour }
     }
 
     fn contour_offset(kind: Kind, style: &Style) -> Vector2 {

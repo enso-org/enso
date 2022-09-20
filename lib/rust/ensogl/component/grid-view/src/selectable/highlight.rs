@@ -234,7 +234,6 @@ where InnerGrid: AsRef<crate::GridView<E>>
         let grid = self.grid.as_ref();
         let entry = grid.get_entry(row, col);
         let offset = entry.map(|e| e.frp().highlight_contour_offset.value());
-        tracing::debug!("Entry offset {offset:?}");
         grid.entry_position(row, col) + offset.unwrap_or_default()
     }
 }
@@ -244,7 +243,6 @@ impl<E: Entry, Header: Entry<Params = E::Params>> Data<header::GridView<E, Heade
         let header_pos = self.grid.header_position(row, col).map(|pos| {
             let header = self.grid.get_header(row, col);
             let offset = header.map(|e| e.frp().highlight_contour_offset.value());
-            tracing::debug!("Header offset {offset:?}");
             pos + offset.unwrap_or_default()
         });
         header_pos.unwrap_or_else(|| self.entry_highlight_position(row, col))
@@ -489,7 +487,7 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
             );
             highligthed_header_pos_change <- headers_frp.header_position_changed.map2(
                 &frp.entry_highlighted,
-                |&(row, col, pos), h| h.contains(&(row, col)).as_some(pos)
+                f!([model](&(row, col, _), h) h.contains(&(row, col)).as_some(model.header_or_entry_highlight_position(row, col)))
             );
             highligthed_header_pos_change <- highligthed_header_pos_change.filter_map(|p| *p);
             out.position <+ position_after_highlight;

@@ -41,6 +41,7 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::frp;
 use ensogl_grid_view as grid_view;
@@ -240,9 +241,17 @@ pub fn main() {
         grid.set_position_xy(Vector2(-200.0, 200.0));
         let network = frp::Network::new("new_component_list_panel_view");
         let header_frp = grid.header_frp();
+        let adjust_pixels = f!([grid](&shape: &scene::Shape) {
+            let device_size = shape.device_pixels();
+            let origin_left_top_pos = Vector2(device_size.width, device_size.height)/ 2.0;
+            let adjusted_left_top_pos = Vector2(origin_left_top_pos.x.floor(), origin_left_top_pos.y.floor());
+            let offset = adjusted_left_top_pos - origin_left_top_pos;
+            grid.set_position_xy(offset);
+        });
         frp::extend! { network
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(f!((&(r, c)) provider.get(r, c)));
             header_frp.section_info <+ header_frp.section_info_needed.filter_map(f!((&(r, c)) provider.get_section(r,c)));
+            _adjust <- scene.frp.shape.map(adjust_pixels);
         }
         grid.scroll_frp().resize(Vector2(405.0, 406.0));
         grid.set_entries_size(entry_size);
