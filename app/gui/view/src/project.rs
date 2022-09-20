@@ -604,8 +604,6 @@ impl View {
             // === Adding Node ===
 
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
-            eval node_added_by_user([]((node_id, _, _))
-                tracing::warn!("MCDBG node_added_by_user ({node_id})"));
             searcher_for_adding <- node_added_by_user.map(
                 |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
             );
@@ -626,6 +624,7 @@ impl View {
                 graph.select_node(node);
             });
             eval adding_aborted  ((node) graph.remove_node(node));
+
 
             // === Editing ===
 
