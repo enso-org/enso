@@ -63,9 +63,7 @@ public final class Vector implements TruffleObject {
     return this.storage;
   }
 
-  @Builtin.Method(
-      name = "slice_builtin",
-      description = "Returns a slice of this Vector.")
+  @Builtin.Method(name = "slice_builtin", description = "Returns a slice of this Vector.")
   public final ArraySlice slice(long start, long end) {
     return new ArraySlice(this.storage, start, end);
   }
