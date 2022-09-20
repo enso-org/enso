@@ -13,12 +13,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -65,6 +61,13 @@ public final class Vector implements TruffleObject {
       description = "Returns an Array representation of this Vector.")
   public final Object toArray() {
     return this.storage;
+  }
+
+  @Builtin.Method(
+      name = "slice_builtin",
+      description = "Returns a slice of this Vector.")
+  public final ArraySlice slice(long start, long end) {
+    return new ArraySlice(this.storage, start, end);
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")
