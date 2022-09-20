@@ -859,6 +859,7 @@ impl Node {
             action_visualization_on_while_preview_visible <-
                 action_visualization_on.gate(&preview_visible);
             disable_preview <+ action_visualization_on_while_preview_visible;
+            disable_preview <+ action_visualization_off;
             action_bar.set_action_visibility_state <+
                 action_visualization_on_while_preview_visible.constant(false);
             visualization_enabled <- bool(&action_visualization_off, &visualization_on);
