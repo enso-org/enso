@@ -7207,7 +7207,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      at: Any,
+      at: AnyRef,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7230,7 +7230,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: Any                       = at,
+        ast: AnyRef                    = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
@@ -7261,11 +7261,11 @@ object IR {
         this
 
       /** @inheritdoc */
+      @annotation.nowarn
       override val location: Option[IdentifiedLocation] =
-        try {
-          ast.location.map(IdentifiedLocation(_, ast.id))
-        } catch {
-          case _: ClassCastException => None
+        at match {
+          case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
+          case _        => None
         }
 
       /** @inheritdoc */
