@@ -363,17 +363,15 @@ impl ViewBuffer {
         match NonEmptyVec::try_from(glyph_sets) {
             Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
             Err(_) => {
-                if line_range.start > UBytes(0) {
-                    // FIXME: this -1 is incorrect - we sohuld use prev grapheme cluster here. This
-                    // can panic.
-                    let prev_glyph_offset = UBytes(line_range.start.value - 1);
-                    let prev_char_range = prev_glyph_offset..line_range.start;
-
+                if let Some(prev_grapheme_offset) =
+                    self.buffer.prev_grapheme_offset(line_range.start)
+                {
+                    let prev_char_range = prev_grapheme_offset..line_range.start;
                     let prev_glyph_sets = self.shape_range(prev_char_range);
 
                     warn!("!!!! prev_glyph_sets {:?}", prev_glyph_sets);
                     let prev_glyph_info =
-                        prev_glyph_sets.into_iter().last().map(|t| (prev_glyph_offset, t));
+                        prev_glyph_sets.into_iter().last().map(|t| (prev_grapheme_offset, t));
                     ShapedLine::Empty { prev_glyph_info }
                 } else {
                     ShapedLine::Empty { prev_glyph_info: None }
