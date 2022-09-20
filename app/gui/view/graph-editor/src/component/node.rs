@@ -332,6 +332,7 @@ ensogl::define_endpoints_2! {
         error                    (Option<Error>),
         /// Whether visualization was permanently enabled (e.g. by pressing the button).
         visualization_enabled    (bool),
+        preview_enabled (bool),
         /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
         /// Visualization can be invisible even when enabled, e.g. when the node has an error.
         visualization_visible    (bool),
@@ -847,10 +848,11 @@ impl Node {
             hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
             // preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
             // preview_visible         <- preview_visible && has_expression;
-            preview_enabled_frp <- bool(&input.disable_preview, &input.enable_preview);
+            preview_enabled <- bool(&input.disable_preview, &input.enable_preview);
+            out.preview_enabled <+ preview_enabled;
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
-            preview_visible <- hover_preview_visible || preview_enabled_frp;
+            preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
             visualization_visible            <- visualization_enabled || preview_visible;
