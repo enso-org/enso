@@ -91,6 +91,7 @@ pub struct GlyphData {
     pub atlas_index:        Attribute<f32>,
     pub atlas:              Uniform<Texture>,
     pub color_animation:    color::Animation,
+    pub x_advance:          Rc<Cell<f32>>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
@@ -347,6 +348,7 @@ impl System {
         let properties = default();
         let variations = default();
         let color_animation = color::Animation::new(frp.network());
+        let x_advance = default();
         let attached_to_cursor = default();
         display_object.add_child(&sprite);
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
@@ -375,6 +377,7 @@ impl System {
                 properties,
                 variations,
                 color_animation,
+                x_advance,
                 attached_to_cursor,
             }),
         }

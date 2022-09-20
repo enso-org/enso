@@ -80,8 +80,8 @@ mod line {
         }
         Output {
             metrics(LineMetrics),
-            baseline_if_last(f32),
-            descent_if_last(f32),
+            baseline(f32),
+            descent(f32),
         }
     }
 
@@ -118,17 +118,25 @@ mod line {
                 eval frp.set_y((y) y_target.set(*y));
                 y_pos_anim.target <+ frp.set_y;
                 eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
-                baseline_pos_on_set_is_last <- y_pos_anim.value.sample(&frp.set_is_last);
-                baseline_new <- any(&y_pos_anim.value, &baseline_pos_on_set_is_last);
-                baseline_pos_if_last <- baseline_new.gate(&frp.set_is_last);
-                frp.private.output.baseline_if_last <+ baseline_pos_if_last.on_change();
 
-                metrics_on_set_is_last <- frp.set_metrics.sample(&frp.set_is_last);
-                metrics_new <- any(&frp.set_metrics, &metrics_on_set_is_last);
-                descent_new <- all_with(&baseline_new, &metrics_new, |baseline,metrics|
+                // // === Update properties when becoming the last line ===
+                // on_become_last <- frp.set_is_last.on_true();
+                // baseline_on_become_last <- y_pos_anim.value.sample(&on_become_last);
+                // metrics_on_become_last <- frp.set_metrics.sample(&on_become_last);
+                // descent_on_become_last <- metrics_on_become_last.map2(&y_pos_anim.value,
+                //     |metrics,baseline| baseline + metrics.descender);
+                // frp.private.output.baseline_if_last <+ baseline_on_become_last;
+                // frp.private.output.descent_if_last <+ descent_on_become_last;
+
+                // === Update properties during animations if it is the last line ===
+                // Please note that the values are cached (`on_change` is used) to minimize the
+                // amount of events emitted.
+                baseline_pos_if_last <- y_pos_anim.value.on_change();
+                frp.private.output.baseline <+ baseline_pos_if_last;
+                new_descent <- all_with(&y_pos_anim.value, &frp.set_metrics, |baseline,metrics|
                     baseline + metrics.descender);
-                descent_if_last <- descent_new.gate(&frp.set_is_last);
-                frp.private.output.descent_if_last <+ descent_if_last.on_change();
+                trace new_descent;
+                frp.private.output.descent <+ new_descent.on_change();
                 frp.private.output.metrics <+ frp.set_metrics.on_change();
             }
             Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers }
@@ -218,6 +226,7 @@ pub struct LinesVec {
 
 impl LinesVec {
     pub fn new(line: Line) -> Self {
+        warn!("[L] new");
         line.set_is_last(true);
         let vec = NonEmptyVec::singleton(line);
         Self { vec }
@@ -241,6 +250,7 @@ impl LinesVec {
     }
 
     pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
+        warn!("[L] insert, index: {:?}", index);
         let modifies_last_line = index > self.last_line_index();
         if modifies_last_line {
             self.vec.last().set_is_last(false);
@@ -252,7 +262,9 @@ impl LinesVec {
     }
 
     pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
+        warn!("[L] resize_with, new_len: {}, self.len: {}", new_len, self.len());
         if new_len != self.len() {
+            warn!("NEW LINES COUNT");
             self.vec.last().set_is_last(false);
             self.vec.resize_with(new_len, f);
             self.vec.last().set_is_last(true);
@@ -261,6 +273,7 @@ impl LinesVec {
 
     pub fn drain(&mut self, range: Range<unit::ViewLine>) -> Vec<Line> {
         let modifies_last_line = range.end > self.last_line_index();
+        warn!("[L] drain, range: {:?}, modifies_last_line: {:?}", range, modifies_last_line);
         if modifies_last_line {
             self.vec.last().set_is_last(false);
         }
@@ -469,9 +482,6 @@ ensogl_core::define_endpoints! {
         ///
         /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
-        /// Refresh the width value of text area. You should not need to call it. It is used by the
-        /// internal API.
-        refresh_width(),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -484,6 +494,11 @@ ensogl_core::define_endpoints! {
         // FIXME: this was here:
         // /// Color that is used for all text that does not explicitly have a color set.
         // default_color   (color::Rgba),
+
+        /// Refresh the width value of text area. You should not need to call it. It is used by the
+        /// internal API.
+        refresh_width(),
+        refresh_height(),
     }
 }
 
@@ -732,8 +747,13 @@ impl Area {
             // === Text Width ===
 
             eval_ self.frp.refresh_width(m.width_dirty.set(true));
+            trace self.frp.refresh_height;
+            eval_ self.frp.refresh_height(m.height_dirty.set(true));
             new_width <= after_animations.map (f_!(m.compute_width()));
             self.frp.source.width <+ new_width.on_change();
+
+            new_height <= after_animations.map (f_!(m.compute_height()));
+            self.frp.source.height <+ new_height.on_change();
         }
         self
     }
@@ -800,6 +820,7 @@ pub struct AreaModel {
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
     width_dirty:    Rc<Cell<bool>>,
+    height_dirty:   Rc<Cell<bool>>,
 }
 
 impl AreaModel {
@@ -825,6 +846,7 @@ impl AreaModel {
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
         let lines = Lines::new(Self::new_line_helper(&display_object, ViewLine(0)));
         let width_dirty = default();
+        let height_dirty = default();
 
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol = &shape_system.shape_system.sprite_system.symbol;
@@ -849,6 +871,7 @@ impl AreaModel {
             single_line,
             selection_map,
             width_dirty,
+            height_dirty,
         }
         .init()
     }
@@ -1082,7 +1105,8 @@ impl AreaModel {
                     let network = &self.frp_network;
                     let model = self;
                     frp::extend! { network
-                        self.frp_endpoints.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                        self.frp_endpoints.source.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                        self.frp_endpoints.source.refresh_height <+_ selection.frp.position;
                     }
                     self.add_child(&selection);
                     selection.letter_width.set(7.0); // FIXME hardcoded values
@@ -1220,6 +1244,7 @@ impl AreaModel {
     pub fn resize_lines(&self) {
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
+        warn!("resize_lines, line_count: {line_count}");
         self.lines.resize_with(line_count, |ix| self.new_line(ix));
     }
 
@@ -1347,7 +1372,9 @@ impl AreaModel {
                     glyph.sprite.set_position_xy(glyph_render_offset);
                     glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
-                    glyph_offset_x += shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+                    let x_advance = shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+                    glyph.x_advance.set(x_advance);
+                    glyph_offset_x += x_advance;
                     divs.push(glyph_offset_x);
 
                     line_object.add_child(glyph);
@@ -1617,11 +1644,13 @@ impl AreaModel {
 
     pub fn compute_width(&self) -> Option<f32> {
         if self.width_dirty.get() {
+            warn!(">> compute_width");
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
                 let last_glyph = line.glyphs.iter().rev().find(|g| !g.attached_to_cursor.get());
-                let width = last_glyph.map(|g| g.position().x + g.width()).unwrap_or_default();
+                let width =
+                    last_glyph.map(|g| g.position().x + g.x_advance.get()).unwrap_or_default();
                 if width > max_width {
                     max_width = width;
                 }
@@ -1634,6 +1663,31 @@ impl AreaModel {
                 }
             }
             Some(max_width)
+        } else {
+            None
+        }
+    }
+
+    pub fn compute_height(&self) -> Option<f32> {
+        if self.height_dirty.get() {
+            warn!(">> compute_height");
+            self.height_dirty.set(false);
+            let mut max_height = -self.lines.borrow().last().descent.value();
+            let selection_map = self.selection_map.borrow();
+
+            for (view_line, map) in &selection_map.location_map {
+                for selection_id in map.values() {
+                    let selection = selection_map.id_map.get(selection_id).unwrap();
+                    let baseline = selection.frp.position.value().y;
+                    let height =
+                        -baseline - self.lines.borrow()[*view_line].metrics.value().descender;
+                    if height > max_height {
+                        max_height = height;
+                    }
+                }
+            }
+            warn!("NEW HEIGHT: {}", max_height);
+            Some(max_height)
         } else {
             None
         }
@@ -1731,7 +1785,7 @@ impl AreaModel {
     fn init_line(&self, line: &Line) {
         let network = &self.frp_network;
         frp::extend! { network
-            self.frp_endpoints.source.height <+ line.descent_if_last.map(|t| -t);
+            self.frp_endpoints.source.refresh_height <+_ line.descent;
         }
     }
 

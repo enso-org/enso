@@ -105,6 +105,7 @@ ensogl_core::define_endpoints_2! {
 
     Output {
         right_side_of_last_attached_glyph (f32),
+        position(Vector2),
     }
 }
 
@@ -180,7 +181,7 @@ impl Selection {
             line_width_can_change <- any_(&frp.set_attached_glyphs, &position.value);
             rhs_last_glyph <- frp.set_attached_glyphs.sample(&line_width_can_change).map(f!([display_object, right_side](glyphs) {
                 if let Some(glyph) = glyphs.last().and_then(|glyph| glyph.upgrade()) {
-                    let glyph_right_x = glyph.position().x + glyph.width();
+                    let glyph_right_x = glyph.position().x + glyph.x_advance.get();
                     let origin_x = display_object.position().x + right_side.position().x;
                     origin_x + glyph_right_x
                 } else {
@@ -188,6 +189,7 @@ impl Selection {
                 }
             }));
             frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
+            frp.private.output.position <+ position.value;
         }
 
         Self {
