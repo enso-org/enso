@@ -169,8 +169,8 @@ fn init(app: Application) {
     let _text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
     // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
-    // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
+    area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
     // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
