@@ -305,7 +305,7 @@ impl Primitive {
             | Primitive::U32
             | Primitive::Char
             | Primitive::String
-            | Primitive::Vec(_)=> TypeType::Product,
+            | Primitive::Vec(_) => TypeType::Product,
             Primitive::Option(_) | Primitive::Result(_, _) => TypeType::Sum,
         }
     }

@@ -69,13 +69,15 @@ where D: serde::Deserializer<'de> {
 // ==============
 
 pub(crate) fn serialize_optional_char<S>(c: &Option<char>, s: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+where S: serde::Serializer {
     let value = c.map(|c| c as u32).unwrap_or(0xFFFF_FFFF);
     s.serialize_u32(value)
 }
 
-pub(crate) fn deserialize_optional_char<'c, 'de, D>(deserializer: D) -> Result<Option<char>, D::Error>
-    where D: serde::Deserializer<'de> {
+pub(crate) fn deserialize_optional_char<'c, 'de, D>(
+    deserializer: D,
+) -> Result<Option<char>, D::Error>
+where D: serde::Deserializer<'de> {
     let value = deserializer.deserialize_u32(DeserializeU32)?;
     Ok(match value {
         0xFFFF_FFFF => None,
@@ -131,7 +133,7 @@ impl<'de> serde::de::Visitor<'de> for DeserializeU32 {
     }
 
     fn visit_u32<E>(self, i: u32) -> Result<Self::Value, E>
-        where E: serde::de::Error {
+    where E: serde::de::Error {
         Ok(i)
     }
 }

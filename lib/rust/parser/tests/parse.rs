@@ -740,28 +740,27 @@ fn inline_text_literals() {
     #[rustfmt::skip]
     let cases = [
         (r#""I'm an inline raw text!""#, block![
-            (TextLiteral #((Section "I'm an inline raw text!")) 0)]),
+            (TextLiteral #((Section "I'm an inline raw text!")))]),
         (r#"zero_length = """#, block![
-            (Assignment (Ident zero_length) "=" (TextLiteral #() 0))]),
-        (r#""type""#, block![(TextLiteral #((Section "type")) 0)]),
-        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral #() 0))]),
+            (Assignment (Ident zero_length) "=" (TextLiteral #()))]),
+        (r#""type""#, block![(TextLiteral #((Section "type")))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral #()))]),
         (r#"unclosed = "a"#, block![
-            (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a")) 0))]),
-        (r#"'Other quote type'"#, block![(TextLiteral #((Section "Other quote type")) 0)]),
-        (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")) 0)]),
+            (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a"))))]),
+        (r#"'Other quote type'"#, block![(TextLiteral #((Section "Other quote type")))]),
+        (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")))]),
         (r#""String with \" escape""#, block![
             (TextLiteral
-             #((Section "String with ") (Escape '\"') (Section " escape"))
-             0)]),
+             #((Section "String with ") (Escape '\"') (Section " escape")))]),
         (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
-         (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')) 0)]),
+         (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
 fn multiline_text_literals() {
-    test("'''", block![(TextLiteral #() 0)]);
+    test("'''", block![(TextLiteral #())]);
     const CODE: &str = r#""""
     part of the string
        3-spaces indented line, part of the Text Block
@@ -773,13 +772,11 @@ x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "\n") (Section "part of the string")
-           (Section "\n") (Section "3-spaces indented line, part of the Text Block")
-           (Section "\n") (Section "this does not end the string -> '''")
+         #((Section "part of the string\n")
+           (Section "   3-spaces indented line, part of the Text Block\n")
+           (Section "this does not end the string -> '''\n")
            (Section "\n")
-           (Section "\n") (Section "`also` part of the string")
-           (Section "\n"))
-        4)
+           (Section "`also` part of the string\n")))
         (Ident x)
     ];
     test(CODE, expected);
@@ -789,26 +786,24 @@ x"#;
 fn interpolated_literals_in_inline_text() {
     #[rustfmt::skip]
     let cases = [
-        (r#"'Simple case.'"#, block![(TextLiteral #((Section "Simple case.")) 0)]),
+        (r#"'Simple case.'"#, block![(TextLiteral #((Section "Simple case.")))]),
         (r#"'With a `splice`.'"#, block![(TextLiteral
             #((Section "With a ")
               (Splice "`" (Ident splice) "`")
-              (Section "."))
-            0)]),
+              (Section ".")))]),
         (r#"'` SpliceWithLeadingWhitespace`'"#, block![(TextLiteral
-            #((Splice "`" (Ident SpliceWithLeadingWhitespace) "`")) 0)]),
+            #((Splice "`" (Ident SpliceWithLeadingWhitespace) "`")))]),
         (r#"'String with \n escape'"#, block![
             (TextLiteral
-             #((Section "String with ") (Escape '\n') (Section " escape"))
-             0)]),
+             #((Section "String with ") (Escape '\n') (Section " escape")))]),
         (r#"'\x0Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")))]),
         (r#"'\u000Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")))]),
         (r#"'\u{0000A}escape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")))]),
         (r#"'\U0000000Aescape'"#, block![
-            (TextLiteral #((Escape '\n') (Section "escape")) 0)]),
+            (TextLiteral #((Escape '\n') (Section "escape")))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -819,8 +814,7 @@ fn interpolated_literals_in_multiline_text() {
     `splice` at start"#;
     #[rustfmt::skip]
     let expected = block![
-        (TextLiteral
-         #((Section "\n") (Section "") (Splice "`" (Ident splice) "`") (Section " at start")) 4)];
+        (TextLiteral #((Splice "`" (Ident splice) "`") (Section " at start")))];
     test(code, expected);
 
     let code = r#"'''
@@ -829,11 +823,8 @@ fn interpolated_literals_in_multiline_text() {
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "\n") (Section "text with a ") (Splice "`" (Ident splice) "`")
-           (Section "\n") (Section "and some ")
-                          (Escape '\n')
-                          (Section "escapes")
-                          (Escape '\'')) 4)];
+         #((Section "text with a ") (Splice "`" (Ident splice) "`") (Section "\n")
+           (Section "and some ") (Escape '\n') (Section "escapes") (Escape '\'')))];
     test(code, expected);
 }
 
@@ -1082,7 +1073,7 @@ where T: serde::Serialize + Reflect {
             let (car, cdr) = cons.into_pair();
             last = Some(car);
             list = cdr;
-        };
+        }
         last.unwrap()
     };
     let line = rust_to_meta[&tree::block::Line::reflect().id];

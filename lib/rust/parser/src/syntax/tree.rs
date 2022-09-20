@@ -135,6 +135,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub open:     Option<token::TextStart<'s>>,
             pub elements: Vec<TextElement<'s>>,
             pub close:    Option<token::TextEnd<'s>>,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub trim:     VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
@@ -430,7 +432,7 @@ pub enum TextElement<'s> {
     /// An escaped character.
     Escape {
         /// The escape sequence.
-        token:     token::TextEscape<'s>,
+        token: token::TextEscape<'s>,
     },
     /// An interpolated section within a text literal.
     Splice {
@@ -695,6 +697,26 @@ fn join_text_literals<'s>(
     }
     lhs.elements.append(&mut rhs.elements);
     lhs.close = rhs.close.take();
+    if lhs.open.is_some() {
+        let trim = lhs.trim;
+        let mut remaining = lhs.elements.len();
+        let mut carried_offset = Offset::default();
+        lhs.elements.retain_mut(|e| {
+            remaining -= 1;
+            let (offset, code) = match e {
+                TextElement::Section { text } => (&mut text.left_offset, &mut text.code),
+                TextElement::Escape { token } => (&mut token.left_offset, &mut token.code),
+                TextElement::Splice { open, .. } => (&mut open.left_offset, &mut open.code),
+            };
+            *offset += mem::take(&mut carried_offset);
+            crate::lexer::untrim(trim, offset, code);
+            if remaining != 0 && code.is_empty() {
+                carried_offset = mem::take(offset);
+                return false;
+            }
+            true
+        });
+    }
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.

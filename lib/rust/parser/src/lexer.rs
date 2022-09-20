@@ -786,15 +786,22 @@ impl<'s> Lexer<'s> {
                 self.take_next();
             }
             if multiline {
+                while self.current_char.is_some() {
+                    let mut newline = self.take_1('\r');
+                    newline = newline || self.take_1('\n');
+                    if newline {
+                        break;
+                    }
+                }
+                let before_space = self.mark();
+                self.spaces_after_lexeme();
                 let text_start = self.mark();
-                let token = self.make_token(open_quote_start, text_start.clone(),
+                let token = self.make_token(open_quote_start, before_space,
                     token::Variant::TextStart(token::variant::TextStart()));
                 self.output.push(token);
                 let interpolate = quote_char == '\'';
-                if self.text_content(None, interpolate, State::MultilineText { indent }) {
-                    return;
-                }
-                self.text_lines(indent, interpolate);
+                self.text_content(Some(text_start), None, interpolate, State::MultilineText { indent }, Some(indent));
+                return;
             } else {
                 // Exactly two quote characters: Open and shut case.
                 let close_quote_end = self.mark();
@@ -817,7 +824,7 @@ impl<'s> Lexer<'s> {
     }
 
     fn inline_quote(&mut self, quote_char: char) {
-        if self.text_content(Some(quote_char), quote_char == '\'', State::InlineText) {
+        if self.text_content(None, Some(quote_char), quote_char == '\'', State::InlineText, None) {
             return;
         }
         if let Some(char) = self.current_char && char == quote_char {
@@ -848,14 +855,54 @@ impl<'s> Lexer<'s> {
 
     fn text_content(
         &mut self,
+        start: Option<(Bytes, Offset<'s>)>,
         closing_char: Option<char>,
         interpolate: bool,
         state: State,
+        multiline: Option<VisibleOffset>,
     ) -> bool {
-        let mut text_start = self.mark();
+        let mut text_start = start.unwrap_or_else(|| self.mark());
         while let Some(char) = self.current_char {
-            if is_newline_char(char) || closing_char == Some(char) {
+            if closing_char == Some(char) || (multiline.is_none() && is_newline_char(char)) {
                 break;
+            }
+            let before_newline = self.mark();
+            let mut newline = self.take_1('\r');
+            newline = newline || self.take_1('\n');
+            if newline {
+                let indent = multiline.unwrap();
+                let text_end = self.mark();
+                self.spaces_after_lexeme();
+                if let Some(char) = self.current_char {
+                    if self.last_spaces_visible_offset <= indent && !is_newline_char(char) {
+                        let token = self.make_token(
+                            text_start,
+                            before_newline.clone(),
+                            token::Variant::TextSection(token::variant::TextSection()),
+                        );
+                        if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
+                            self.output.push(token);
+                        }
+                        let token = self.make_token(
+                            before_newline,
+                            text_end,
+                            token::Variant::Newline(token::variant::Newline()),
+                        );
+                        self.output.push(token);
+                        self.spaces_after_lexeme();
+                        return false;
+                    }
+                };
+                let token = self.make_token(
+                    text_start,
+                    text_end.clone(),
+                    token::Variant::TextSection(token::variant::TextSection()),
+                );
+                if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
+                    self.output.push(token);
+                }
+                text_start = self.mark();
+                continue;
             }
             if char == '\\' {
                 let backslash_start = self.mark();
@@ -978,41 +1025,13 @@ impl<'s> Lexer<'s> {
 
     /// Read the lines of a text literal.
     fn text_lines(&mut self, indent: VisibleOffset, is_interpolated: bool) {
-        while self.current_char.is_some() {
-            let start = self.mark();
-            // Consume the newline and any spaces.
-            if !self.take_1('\n') && self.take_1('\r') {
-                self.take_1('\n');
-            }
-            let before_space = self.mark();
-            if start != before_space {
-                // Create a text section for the newline.
-                let newline = self.make_token(
-                    start.clone(),
-                    before_space.clone(),
-                    token::Variant::TextSection(token::variant::TextSection()),
-                );
-                self.spaces_after_lexeme();
-                // Check indent, unless this is an empty line.
-                if let Some(char) = self.current_char {
-                    if self.last_spaces_visible_offset <= indent && !is_newline_char(char) {
-                        let token = self.make_token(
-                            start,
-                            before_space,
-                            token::Variant::Newline(token::variant::Newline()),
-                        );
-                        self.output.push(token);
-                        self.spaces_after_lexeme();
-                        return;
-                    }
-                };
-                self.output.push(newline);
-            }
-            // Output the line as a text section.
-            if self.text_content(None, is_interpolated, State::MultilineText { indent }) {
-                break;
-            }
-        }
+        self.text_content(
+            None,
+            None,
+            is_interpolated,
+            State::MultilineText { indent },
+            Some(indent),
+        );
     }
 
     fn mark(&mut self) -> (Bytes, Offset<'s>) {
@@ -1037,6 +1056,49 @@ impl<'s> Lexer<'s> {
         let end = end.unchecked_raw();
         Token(offset, &self.input[start..end], variant)
     }
+}
+
+/// Move whitespace characters from the end of `left` to the beginning of `right` until the visible
+/// length of `left` is not longer than `target`.
+#[allow(unsafe_code)]
+pub fn untrim(target: VisibleOffset, left: &mut Offset, right: &mut Code) {
+    let mut utf8 = 0;
+    let mut utf16 = 0;
+    let mut trimmed = VisibleOffset(0);
+    for c in left.code.repr.chars().rev() {
+        if left.visible - trimmed <= target {
+            break;
+        }
+        utf8 += c.len_utf8();
+        utf16 += c.len_utf16();
+        trimmed += space_char_visible_size(c).unwrap();
+    }
+    if utf8 == 0 && utf16 == 0 {
+        return;
+    }
+    left.visible = left.visible - trimmed;
+    left.code.utf16 -= utf16;
+    let len = left.code.repr.len() - utf8;
+    unsafe {
+        match right.repr {
+            Cow::Borrowed(s) if s.as_ptr() == left.code.repr.as_ptr().add(left.code.repr.len()) => {
+                let p = s.as_ptr().sub(utf8);
+                let len = s.len() + utf8;
+                right.repr = Cow::Borrowed(str::from_utf8_unchecked(slice::from_raw_parts(p, len)));
+            }
+            _ => {
+                let mut s = String::with_capacity(len + right.repr.len());
+                s += &left.code.repr[len..];
+                right.utf16 += utf16;
+                s += &right.repr;
+                right.repr = Cow::Owned(s);
+            }
+        }
+    }
+    left.code.repr = match &left.code.repr {
+        Cow::Borrowed(s) => Cow::Borrowed(&s[..len]),
+        Cow::Owned(s) => Cow::Owned(s[..len].to_string()),
+    };
 }
 
 
