@@ -1470,7 +1470,7 @@ impl GraphEditorModelWithNetwork {
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
-            node.enable_preview();
+            node.show_preview();
         }
         let source = self.data_source_for_new_node(way);
         (node.id(), source, should_edit)
@@ -1601,9 +1601,6 @@ impl GraphEditorModelWithNetwork {
                 move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
             );
             output.enabled_visualization_path <+ enabled_visualization_path;
-
-            // TODO: !!!!!!!! WIP !!!!!!!!
-            node.disable_preview <+ node_model.input.frp.editing.filter(|e| !*e).constant(());
 
 
             // === View Mode ===

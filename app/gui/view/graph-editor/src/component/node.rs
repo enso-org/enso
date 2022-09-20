@@ -308,9 +308,7 @@ ensogl::define_endpoints_2! {
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         // FIXME[mc]: doc - incl. info how differs from enable_visualization
-        enable_preview (),
-        // FIXME[mc]: doc - incl. info how differs from disable_visualization
-        disable_preview (),
+        show_preview (),
         /// Indicate whether preview visualisations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
@@ -845,9 +843,10 @@ impl Node {
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
-            disable_preview <- any(...);
-            disable_preview <+ input.disable_preview;
-            preview_enabled <- bool(&disable_preview, &input.enable_preview);
+            hide_preview <- any(...);
+            editing_finished <- model.input.frp.editing.filter(|e| !*e).constant(());
+            hide_preview <+ editing_finished;
+            preview_enabled <- bool(&hide_preview, &input.show_preview);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
             preview_visible <- hover_preview_visible || preview_enabled;
@@ -858,8 +857,8 @@ impl Node {
             visualization_on <- action_visualization_on.gate_not(&preview_visible);
             action_visualization_on_while_preview_visible <-
                 action_visualization_on.gate(&preview_visible);
-            disable_preview <+ action_visualization_on_while_preview_visible;
-            disable_preview <+ action_visualization_off;
+            hide_preview <+ action_visualization_on_while_preview_visible;
+            hide_preview <+ action_visualization_off;
             action_bar.set_action_visibility_state <+
                 action_visualization_on_while_preview_visible.constant(false);
             visualization_enabled <- bool(&action_visualization_off, &visualization_on);
