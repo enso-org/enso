@@ -179,6 +179,6 @@ fn end_code_token() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'stati
 fn impl_getter(name: &str) -> Method {
     let mut method = syntax::Method::new(name, syntax::Type::named("String"));
     method.body =
-        "return source.subSequence((int)startWhitespace, (int)endCode).toString();\n".to_string();
+        "return source.subSequence((int)startCode, (int)endCode).toString();\n".to_string();
     Method::Raw(method)
 }
