@@ -291,17 +291,23 @@ spec_with name create_new_date parse_date =
             create_new_date 2022 3 27 . add_work_days 0 . should_equal (Date.new 2022 3 28)
             create_new_date 2022 3 27 . add_work_days 1 . should_equal (Date.new 2022 3 29)
 
-        Test.specify "should allow to shift the date by negative amount of working days" pending="TODO" <|
+        Test.specify "should allow to shift the date by negative amount of working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days -1 . should_equal (Date.new 2000 1 31)
             create_new_date 2000 2 1 . add_work_days -2 . should_equal (Date.new 2000 1 28)
             create_new_date 2000 2 1 . add_work_days -3 . should_equal (Date.new 2000 1 27)
             create_new_date 2000 2 1 . add_work_days -7 . should_equal (Date.new 2000 1 21)
 
+            # 2000-1-31 is a Monday
+            create_new_date 2000 1 31 . add_work_days -1 . should_equal (Date.new 2000 1 28)
+
             # 2000-2-5 is a Saturday
             create_new_date 2000 2 5 . add_work_days -1 . should_equal (Date.new 2000 2 4)
             create_new_date 2000 2 5 . add_work_days -2 . should_equal (Date.new 2000 2 3)
+
+            # 2000-2-6 is a Sunday
             create_new_date 2000 2 6 . add_work_days -1 . should_equal (Date.new 2000 2 4)
+            create_new_date 2000 2 6 . add_work_days -2 . should_equal (Date.new 2000 2 3)
 
         Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
@@ -313,12 +319,12 @@ spec_with name create_new_date parse_date =
             create_new_date 1999 3 23 . add_work_days 1 (all_year_holiday 1999) . should_equal (Date.new 2000 1 4)
 
             # When going backwards, again whole 1999 is skipped and we wind back at Thursday 31 December 1998.
-#            create_new_date 1999 3 23 . add_work_days -1 (all_year_holiday 1999) . should_equal (Date.new 1998 12 31)
+            create_new_date 1999 3 23 . add_work_days -1 (all_year_holiday 1999) . should_equal (Date.new 1998 12 31)
 
             create_new_date 1999 10 30 . add_work_days 0 (holiday_november 1999) . should_equal (Date.new 1999 11 3)
             create_new_date 1999 10 30 . add_work_days 1 (holiday_november 1999) . should_equal (Date.new 1999 11 4)
-#            create_new_date 1999 10 30 . add_work_days -1 (holiday_november 1999) . should_equal (Date.new 1999 10 29)
-#            create_new_date 1999 11 3 . add_work_days -1 (holiday_november 1999) . should_equal (Date.new 1999 10 29)
+            create_new_date 1999 10 30 . add_work_days -1 (holiday_november 1999) . should_equal (Date.new 1999 10 29)
+            create_new_date 1999 11 3 . add_work_days -1 (holiday_november 1999) . should_equal (Date.new 1999 10 29)
             create_new_date 1999 10 30 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 3)
             create_new_date 1999 10 30 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 4)
 
@@ -335,8 +341,8 @@ spec_with name create_new_date parse_date =
                     date.work_days_until (date.add_work_days n) . should_equal n
                     date.work_days_until (date.add_work_days n holidays) holidays . should_equal n
 
-#                    (date.add_work_days -n).work_days_until date . should_equal n
-#                    (date.add_work_days -n holidays).work_days_until date holidays . should_equal n
+                    (date.add_work_days -n).work_days_until date . should_equal n
+                    (date.add_work_days -n holidays).work_days_until date holidays . should_equal n
 
     Date_Part_Spec.spec name create_new_date
 
