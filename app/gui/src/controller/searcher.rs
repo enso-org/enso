@@ -640,6 +640,22 @@ impl Searcher {
 
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) {
+        if let Some(name) = self.components().module_qualified_name(*module) {
+            if let Some((_id, entry)) = self.database.lookup_by_qualified_name(name.into_iter()) {
+                DEBUG!("entry: {entry:?}");
+                let mut entry = entry;
+                while let Some(parent) = entry.parent_module() {
+                    entry = if let Some((_, entry)) =
+                        self.database.lookup_by_qualified_name(parent.into_iter())
+                    {
+                        DEBUG!("parent: {parent:?}");
+                        entry
+                    } else {
+                        break;
+                    };
+                }
+            }
+        }
         self.breadcrumbs.push(*module);
         self.notifier.notify(Notification::NewActionList);
     }

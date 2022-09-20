@@ -49,6 +49,7 @@ pub struct ModuleGroups {
     pub flattened_content: Option<component::Group>,
     pub submodules:        component::group::AlphabeticalListBuilder,
     pub is_top_module:     bool,
+    pub qualified_name:    suggestion_database::entry::QualifiedName,
 }
 
 impl ModuleGroups {
@@ -57,18 +58,24 @@ impl ModuleGroups {
     /// The existence of flattened content is decided during construction.
     pub fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let is_top_module = entry.module.is_top_module();
+        let qualified_name = entry.qualified_name();
         let mk_group = || component::Group::from_entry(component_id, entry);
         Self {
             content: mk_group(),
             flattened_content: is_top_module.as_some_from(mk_group),
             submodules: default(),
             is_top_module,
+            qualified_name,
         }
     }
 
     /// Build [`component::ModuleGroups`] structure with appropriately sorted submodules.
     pub fn build(self) -> component::ModuleGroups {
-        component::ModuleGroups { content: self.content, submodules: self.submodules.build() }
+        component::ModuleGroups {
+            content:        self.content,
+            submodules:     self.submodules.build(),
+            qualified_name: Rc::new(self.qualified_name),
+        }
     }
 }
 

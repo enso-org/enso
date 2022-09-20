@@ -201,8 +201,9 @@ impl Display for Component {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub content:    Group,
-    pub submodules: group::AlphabeticalList,
+    pub qualified_name: Rc<suggestion_database::entry::QualifiedName>,
+    pub content:        Group,
+    pub submodules:     group::AlphabeticalList,
 }
 
 
@@ -255,6 +256,14 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
+    /// TODO
+    pub fn module_qualified_name(
+        &self,
+        component: Id,
+    ) -> Option<Rc<suggestion_database::entry::QualifiedName>> {
+        self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }
 
     /// Update matching info in all components according to the new filtering pattern.
