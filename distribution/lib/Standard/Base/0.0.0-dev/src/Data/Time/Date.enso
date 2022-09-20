@@ -364,7 +364,7 @@ type Date
                    as long as needed to fall on a non-weekend non-holiday
                    workday.
                 go end_date =
-                    if holidays.contains end_date || is_weekend end_date then go (end_date + 1.day) else end_date
+                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + 1.day) else end_date
                 go end
         False ->
             ## We shift a bit so that if shifting by N full weeks, the 'last'
@@ -402,7 +402,7 @@ type Date
                    holiday, we need to ensure that we move it - this time
                    backwards - to the first workday.
                 go end_date =
-                    if holidays.contains end_date || is_weekend end_date then go (end_date - 1.day) else end_date
+                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - 1.day) else end_date
                 go end
 
     ## Subtract the specified amount of time from this instant to get another
