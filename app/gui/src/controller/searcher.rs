@@ -4,6 +4,7 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::searcher::component::group;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
@@ -11,6 +12,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -29,6 +31,7 @@ use parser::Parser;
 // ==============
 
 pub mod action;
+pub mod breadcrumbs;
 pub mod component;
 
 pub use action::Action;
@@ -49,6 +52,7 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 const ENSO_PROJECT_SPECIAL_MODULE: &str =
     concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
 
+const MINIMUM_PATTERN_OFFSET: usize = 1;
 
 
 // ==============
@@ -492,6 +496,7 @@ impl Data {
 pub struct Searcher {
     logger: Logger,
     data: Rc<RefCell<Data>>,
+    breadcrumbs: Breadcrumbs,
     notifier: notification::Publisher<Notification>,
     graph: controller::ExecutedGraph,
     mode: Immutable<Mode>,
@@ -557,12 +562,14 @@ impl Searcher {
         let module_name = graph.module_qualified_name(&*project);
         let list_builder_with_favs =
             component_list_builder_with_favorites(&database, &module_name, &*favorites);
+        let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
             logger,
             graph,
             this_arg,
             ide,
             data: Rc::new(RefCell::new(data)),
+            breadcrumbs,
             notifier: default(),
             mode: Immutable(mode),
             database: project.suggestion_db(),
@@ -600,13 +607,50 @@ impl Searcher {
         self.data.borrow().components.clone_ref()
     }
 
+    /// The list of modules and their content displayed in `Submodules` section of the browser.
+    pub fn top_modules(&self) -> group::AlphabeticalList {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.currently_selected() {
+            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.top_modules().clone_ref()
+        }
+    }
+
+    /// The list of components displayed in `Favorites` section of the browser.
+    ///
+    /// The favorites section is not empty only if the root module is selected.
+    pub fn favorites(&self) -> group::List {
+        if self.breadcrumbs.is_top_module() {
+            self.components().favorites
+        } else {
+            default()
+        }
+    }
+
+    /// The list of components displayed in `Local Scope` section of the browser.
+    pub fn local_scope(&self) -> group::Group {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.currently_selected() {
+            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.local_scope
+        }
+    }
+
+    /// Enter the specified module. The displayed content of the browser will be updated.
+    pub fn enter_module(&self, module: &component::Id) {
+        self.breadcrumbs.push(*module);
+        self.notifier.notify(Notification::NewActionList);
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
-        tracing::debug!("Manually setting input to {}.", new_input);
+        tracing::debug!("Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
         let new_expr = parsed_input.expression.repr();
@@ -648,29 +692,16 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        tracing::info!("Picking suggestion: {:?}", picked_suggestion);
+        tracing::info!("Picking suggestion: {picked_suggestion:?}.");
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
+        tracing::debug!("Code to insert: \"{code_to_insert}\"");
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
-        let new_expression = match self.data.borrow_mut().input.expression.take() {
-            None => {
-                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
-                ast::Shifted::new(pattern_offset, ast)
-            }
-            Some(mut expression) => {
-                let new_argument = ast::prefix::Argument {
-                    sast:      ast::Shifted::new(pattern_offset.max(1), added_ast),
-                    prefix_id: default(),
-                };
-                expression.args.push(new_argument);
-                expression
-            }
-        };
+        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let new_parsed_input = ParsedInput {
-            expression:     Some(new_expression),
+            expression:     Some(new_expression_chain),
             pattern_offset: 1,
             pattern:        "".to_string(),
         };
@@ -679,6 +710,30 @@ impl Searcher {
         self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
         self.reload_list();
         Ok(new_input)
+    }
+
+    fn create_new_expression_chain(
+        &self,
+        added_ast: Ast,
+        pattern_offset: usize,
+    ) -> ast::Shifted<ast::prefix::Chain> {
+        match self.data.borrow_mut().input.expression.take() {
+            None => {
+                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
+                ast::Shifted::new(pattern_offset, ast)
+            }
+            Some(mut expression) => {
+                let new_argument = ast::prefix::Argument {
+                    sast:      ast::Shifted::new(
+                        pattern_offset.max(MINIMUM_PATTERN_OFFSET),
+                        added_ast,
+                    ),
+                    prefix_id: default(),
+                };
+                expression.args.push(new_argument);
+                expression
+            }
+        }
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
@@ -696,15 +751,43 @@ impl Searcher {
     }
 
     /// Preview the suggestion in the searcher.
-    pub fn preview_entry_as_suggestion(&self, index: usize) {
-        tracing::debug!("Previewing entry: {:?}", index);
-        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
+    pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
+        tracing::debug!("Previewing entry: {index:?}.");
+        let error = || NoSuchAction { index };
+        let suggestion = {
+            let data = self.data.borrow();
+            let list = data.actions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.action
+        };
+        if let Action::Suggestion(picked_suggestion) = suggestion {
+            self.preview_suggestion(picked_suggestion)?;
+        };
+
+        Ok(())
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn preview_suggestion(&self, selected_suggestion: action::Suggestion) {
-        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
-        tracing::debug!("Previewing suggestion: {:?}", selected_suggestion);
+    pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+        tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+
+        let id = self.data.borrow().input.next_completion_id();
+        let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
+        let code_to_insert = self.code_to_insert(&picked_completion).code;
+        tracing::debug!("Code to insert: \"{code_to_insert}\".",);
+        let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
+        let pattern_offset = self.data.borrow().input.pattern_offset;
+        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
+        let expression = self.get_expression(Some(new_expression_chain));
+        let intended_method = self.intended_method();
+
+        self.graph.graph().module.with_node_metadata(
+            self.mode.node_id(),
+            Box::new(|md| md.intended_method = intended_method),
+        )?;
+        tracing::debug!("Previewing expression: \"{:?}\".", expression);
+        self.graph.graph().set_expression(self.mode.node_id(), expression)?;
+
+        Ok(())
     }
 
     /// Execute given action.
@@ -775,7 +858,7 @@ impl Searcher {
             let list = data.actions.list().ok_or_else(error)?;
             list.get_cloned(index).ok_or_else(error)?.action
         };
-        tracing::debug!("Previewing action: {:?}", action);
+        tracing::debug!("Previewing action: {action:?}");
         Ok(())
     }
 
@@ -804,24 +887,15 @@ impl Searcher {
         if let Some(guard) = self.node_edit_guard.deref().as_ref() {
             guard.prevent_revert()
         }
-        let expr_and_method = || {
-            let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
-            let expression = match (self.this_var(), input_chain) {
-                (Some(this_var), Some(input)) =>
-                    apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
-                (None, Some(input)) => input.wrapped.into_ast().repr(),
-                (_, None) => "".to_owned(),
-            };
-            let intended_method = self.intended_method();
-            (expression, intended_method)
-        };
-
-        let node_id = self.mode.node_id();
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
         self.add_required_imports()?;
-        let (expression, intended_method) = expr_and_method();
+
+        let node_id = self.mode.node_id();
+        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
+        let expression = self.get_expression(input_chain);
+        let intended_method = self.intended_method();
         self.graph.graph().set_expression(node_id, expression)?;
         if let Mode::NewNode { .. } = self.mode.as_ref() {
             self.graph.graph().introduce_name_on(node_id)?;
@@ -835,6 +909,16 @@ impl Searcher {
             this.introduce_pattern(graph.clone_ref())?;
         }
         Ok(node_id)
+    }
+
+    fn get_expression(&self, input_chain: Option<ast::Shifted<ast::prefix::Chain>>) -> String {
+        let expression = match (self.this_var(), input_chain) {
+            (Some(this_var), Some(input)) =>
+                apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
+            (None, Some(input)) => input.wrapped.into_ast().repr(),
+            (_, None) => "".to_owned(),
+        };
+        expression
     }
 
     /// Adds an example to the graph.
@@ -1268,7 +1352,11 @@ impl EditGuard {
                 module.with_node_metadata(
                     self.node_id,
                     Box::new(|metadata| {
-                        metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+                        let previous_intended_method = metadata.intended_method.clone();
+                        metadata.edit_status = Some(NodeEditStatus::Edited {
+                            previous_expression,
+                            previous_intended_method,
+                        });
                     }),
                 )
             }
@@ -1311,7 +1399,7 @@ impl EditGuard {
                 tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
-            Some(NodeEditStatus::Edited { previous_expression }) => {
+            Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
                 tracing::debug!(
                     "Reverting expression of node {} to {} after aborting edit.",
                     self.node_id,
@@ -1319,6 +1407,13 @@ impl EditGuard {
                 );
                 let graph = self.graph.graph();
                 graph.set_expression(self.node_id, previous_expression)?;
+                let module = &self.graph.graph().module;
+                module.with_node_metadata(
+                    self.node_id,
+                    Box::new(|metadata| {
+                        metadata.intended_method = previous_intended_method;
+                    }),
+                )?;
             }
         };
         Ok(())
@@ -1330,8 +1425,7 @@ impl Drop for EditGuard {
         if self.revert_expression.get() {
             self.revert_node_expression_edit().unwrap_or_else(|e| {
                 tracing::error!(
-                    "Failed to revert node edit after editing ended because of an error: {}",
-                    e
+                    "Failed to revert node edit after editing ended because of an error: {e}"
                 )
             });
         } else {
@@ -1340,8 +1434,7 @@ impl Drop for EditGuard {
         if self.graph.graph().node_exists(self.node_id) {
             self.clear_node_edit_metadata().unwrap_or_else(|e| {
                 tracing::error!(
-                "Failed to clear node edit metadata after editing ended because of an error: {}",
-                e
+                "Failed to clear node edit metadata after editing ended because of an error: {e}"
             )
             });
         }
@@ -1538,12 +1631,14 @@ pub mod test {
             let list_builder_with_favs =
                 component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let node_metadata_guard = default();
+            let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
                 logger,
                 database,
                 ide: Rc::new(ide),
                 data: default(),
+                breadcrumbs,
                 notifier: default(),
                 mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
@@ -2412,7 +2507,8 @@ pub mod test {
                     assert_eq!(
                         metadata.edit_status,
                         Some(NodeEditStatus::Edited {
-                            previous_expression: node.info.expression().to_string(),
+                            previous_expression:      node.info.expression().to_string(),
+                            previous_intended_method: None,
                         })
                     );
                 }),

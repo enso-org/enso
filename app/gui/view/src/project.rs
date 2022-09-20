@@ -623,7 +623,6 @@ impl View {
                 graph.deselect_all_nodes();
                 graph.select_node(node);
             });
-            eval adding_aborted  ((node) graph.remove_node(node));
 
 
             // === Editing ===

@@ -1,7 +1,8 @@
-from Standard.Base import all
+from Standard.Base import Any, Text, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format
 from Standard.Base.Error.Problem_Behavior import Report_Warning
+from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-import Standard.Table.IO.File_Format
+from Standard.Table.IO.Auto_Detect import Auto_Detect
 
 ## ALIAS Read Text File, Read File
 
@@ -10,7 +11,10 @@ import Standard.Table.IO.File_Format
    Arguments:
    - path: The path of the file to open and read the contents of. It will
      accept a textual path or a file.
-   - format: The text encoding to decode the file with. Defaults to UTF-8.
+   - format: A File_Format object used to read file into memory.
+     If `Auto_Detect` is specified; the provided file determines the specific
+     type and configures it appropriately. If there is no matching type then
+     a `Unsupported_File_Type` error is returned.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -21,15 +25,18 @@ import Standard.Table.IO.File_Format
      If you have a variable `file` of type `File`, we recommend calling the
      `.read` method on it directly, rather than using `File.read file`. The
      later, however, will still work.
-File.read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error
-File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
+File.read : (Text | File.File) -> File_Format -> Problem_Behavior -> Any ! File.File_Error | Unsupported_File_Type
+File.read path (format=Auto_Detect) (on_problems=Report_Warning) =
     file = File.new path
     file.read format on_problems
 
 ## Read a file using the specified file format
 
    Arguments:
-   - format: The text encoding to decode the file with. Defaults to UTF-8.
+   - format: A File_Format object used to read file into memory.
+     If `Auto_Detect` is specified; the provided file determines the specific
+     type and configures it appropriately. If there is no matching type then
+     a `Unsupported_File_Type` error is returned.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -48,12 +55,10 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          import Standard.Table
-         from Standard.Table.IO.File_Format import Excel
-         from Standard.Table.IO.Excel import Excel_Section
+         from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
-         example_xls_to_table = Examples.xls.read (Excel (Sheet 'Dates'))
-File.File.read : File_Format -> Problem_Behavior -> Any ! File_Error
-File.File.read self (format=File_Format.Auto) (on_problems=Report_Warning) =
+         example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
+File.File.read : File_Format -> Problem_Behavior -> Any ! File.File_Error | Unsupported_File_Type
+File.File.read self format=Auto_Detect (on_problems=Report_Warning) =
     format.read self on_problems
-

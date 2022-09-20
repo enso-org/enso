@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.base.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
@@ -8,6 +9,7 @@ import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
 import java.util.HashMap;
@@ -115,7 +117,9 @@ public abstract class Storage {
       if (it == null) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it, argument));
+        Object result = function.apply(it, argument);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -140,7 +144,7 @@ public abstract class Storage {
    * @return an aggregator satisfying the above properties.
    */
   public final Aggregator getAggregator(
-      String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {
+      String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
     Aggregator result = null;
     if (name != null) {
       result = getVectorizedAggregator(name, resultSize);
@@ -159,7 +163,7 @@ public abstract class Storage {
    * @param function the function to run.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage map(String name, Function<Object, Object> function) {
+  public final Storage map(String name, Function<Object, Value> function) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
@@ -169,7 +173,9 @@ public abstract class Storage {
       if (it == null) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it));
+        Value result = function.apply(it);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -196,7 +202,9 @@ public abstract class Storage {
       if (skipNa && (it1 == null || it2 == null)) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it1, it2));
+        Object result = function.apply(it1, it2);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -208,7 +216,7 @@ public abstract class Storage {
    * @param arg the value to use for missing elements
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage fillMissing(Object arg) {
+  public Storage fillMissing(Value arg) {
     return fillMissingHelper(arg, new ObjectBuilder(size()));
   }
 
@@ -230,11 +238,12 @@ public abstract class Storage {
     return builder.seal();
   }
 
-  protected final Storage fillMissingHelper(Object arg, Builder builder) {
+  protected final Storage fillMissingHelper(Value arg, Builder builder) {
+    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(arg);
+        builder.appendNoGrow(convertedFallback);
       } else {
         builder.appendNoGrow(it);
       }

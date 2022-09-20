@@ -21,7 +21,7 @@ type Unsupported_Database_Operation_Error
     to_display_text self =
         "Unsupported database operation: " + self.message
 
-type Sql_Error
+type SQL_Error
     ## UNSTABLE
 
        Indicates an error with executing a query, update or connecting to the
@@ -31,7 +31,7 @@ type Sql_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    Sql_Error_Data java_exception related_query=Nothing
+    SQL_Error_Data java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -50,11 +50,11 @@ type Sql_Error
     ## PRIVATE
 
        Throws an error as if a SQL Exception was thrown.
-    throw_sql_error : Text -> Sql_Error
+    throw_sql_error : Text -> SQL_Error
     throw_sql_error message =
-        Error.throw (Sql_Error_Data (SQLException.new message))
+        Error.throw (SQL_Error_Data (SQLException.new message))
 
-type Sql_Timeout_Error
+type SQL_Timeout_Error
     ## UNSTABLE
 
        Indicates that an operation has timed out.
@@ -63,7 +63,7 @@ type Sql_Timeout_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    Sql_Timeout_Error_Data java_exception related_query=Nothing
+    SQL_Timeout_Error_Data java_exception related_query=Nothing
 
     ## UNSTABLE
 
