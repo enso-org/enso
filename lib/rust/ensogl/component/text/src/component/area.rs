@@ -924,6 +924,7 @@ impl AreaModel {
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
     fn update_lines_after_change(&self, changes: Option<&[crate::ChangeWithSelection]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
+            self.detach_glyphs_from_cursors();
             let view_line_range = self.buffer.view_line_range();
             if let Some(changes) = changes {
                 let lines_to_redraw = changes
@@ -997,8 +998,6 @@ impl AreaModel {
 
                 self.resize_lines();
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
-            } else {
-                self.detach_glyphs_from_cursors();
             }
         })
     }
@@ -1037,9 +1036,7 @@ impl AreaModel {
         let mut new_selection_map = SelectionMap::default();
 
         for buffer_selection in buffer_selections {
-            debug!(">>1 {:?}", buffer_selection);
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
-            debug!(">>2 {:?}", buffer_selection);
             let id = buffer_selection.id;
             let selection_start_line = self.buffer.line_to_view_line(buffer_selection.start.line);
             let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
@@ -1595,6 +1592,8 @@ impl AreaModel {
         }
         if let Some(last_cursor) = &last_cursor {
             last_cursor.frp.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
+        } else if !attached_glyphs.is_empty() {
+            panic!()
         }
     }
 
