@@ -779,7 +779,7 @@ impl Node {
 
             // === Action Bar ===
 
-            let action_visualization_enabled = action_bar.action_visibility.clone_ref();
+            let action_visibility_state = action_bar.action_visibility.clone_ref();
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -853,8 +853,8 @@ impl Node {
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
-            action_visualization_on <- action_visualization_enabled.filter(|e| *e).constant(());
-            action_visualization_off <- action_visualization_enabled.filter(|e| !*e).constant(());
+            action_visualization_on <- action_visibility_state.filter(|e| *e).constant(());
+            action_visualization_off <- action_visibility_state.filter(|e| !*e).constant(());
             visualization_on <- action_visualization_on.gate_not(&preview_visible);
             action_visualization_on_while_preview_visible <-
                 action_visualization_on.gate(&preview_visible);
