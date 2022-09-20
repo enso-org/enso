@@ -139,13 +139,17 @@ pub struct ShapedGlyphSet {
 }
 
 #[derive(Debug)]
-pub struct ShapedLine {
-    pub glyph_sets: Vec<ShapedGlyphSet>,
+pub enum ShapedLine {
+    NonEmpty { glyph_sets: NonEmptyVec<ShapedGlyphSet> },
+    Empty { prev_glyph_info: Option<(UBytes, ShapedGlyphSet)> },
 }
 
 impl ShapedLine {
     pub fn glyph_count(&self) -> usize {
-        self.glyph_sets.iter().map(|set| set.glyphs.len()).sum()
+        match self {
+            Self::NonEmpty { glyph_sets } => glyph_sets.iter().map(|set| set.glyphs.len()).sum(),
+            Self::Empty { .. } => 0,
+        }
     }
 }
 
@@ -285,12 +289,11 @@ impl ViewBuffer {
         }
     }
 
-    pub fn shape_line(&self, line: Line) -> ShapedLine {
-        let line_range = self.byte_range_of_line_index_snapped(line);
-        let line_style = self.sub_style(line_range.start..line_range.end);
-        let content = self.single_line_content2(line);
+    fn shape_range(&self, range: Range<UBytes>) -> Vec<ShapedGlyphSet> {
+        let line_style = self.sub_style(range.clone());
+        let content = self.buffer.sub(range.clone()).to_string();
         let font = &self.font;
-        let mut shaped_line = vec![];
+        let mut glyph_sets = vec![];
         let mut prev_cluster_byte_offset = 0;
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
@@ -344,11 +347,39 @@ impl ViewBuffer {
                     non_variable_variations,
                     glyphs,
                 };
-                shaped_line.push(shaped_glyph_set);
+                glyph_sets.push(shaped_glyph_set);
             });
             prev_cluster_byte_offset = range.end.value as u32;
         }
-        ShapedLine { glyph_sets: shaped_line }
+        glyph_sets
+    }
+
+    pub fn shape_line(&self, line: Line) -> ShapedLine {
+        let line_range = self.byte_range_of_line_index_snapped(line);
+        let glyph_sets = self.shape_range(line_range.clone());
+
+
+
+        match NonEmptyVec::try_from(glyph_sets) {
+            Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
+            Err(_) => {
+                if line_range.start > UBytes(0) {
+                    // FIXME: this -1 is incorrect - we sohuld use prev grapheme cluster here. This
+                    // can panic.
+                    let prev_glyph_offset = UBytes(line_range.start.value - 1);
+                    let prev_char_range = prev_glyph_offset..line_range.start;
+
+                    let prev_glyph_sets = self.shape_range(prev_char_range);
+
+                    warn!("!!!! prev_glyph_sets {:?}", prev_glyph_sets);
+                    let prev_glyph_info =
+                        prev_glyph_sets.into_iter().last().map(|t| (prev_glyph_offset, t));
+                    ShapedLine::Empty { prev_glyph_info }
+                } else {
+                    ShapedLine::Empty { prev_glyph_info: None }
+                }
+            }
+        }
     }
 
     pub fn chunks_per_font_face<'a>(
@@ -1145,20 +1176,22 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
-            for glyph_set in &shaped_line.glyph_sets {
-                for glyph in &glyph_set.glyphs {
-                    let byte_offset = UBytes(glyph.info.cluster as usize);
-                    if byte_offset >= location.offset {
-                        if byte_offset > location.offset {
-                            error!("Glyph byte offset mismatch");
+            if let ShapedLine::NonEmpty {glyph_sets} = &shaped_line {
+                for glyph_set in glyph_sets {
+                    for glyph in &glyph_set.glyphs {
+                        let byte_offset = UBytes(glyph.info.cluster as usize);
+                        if byte_offset >= location.offset {
+                            if byte_offset > location.offset {
+                                error!("Glyph byte offset mismatch");
+                            }
+                            found_column = Some(column);
+                            break;
                         }
-                        found_column = Some(column);
+                        column += Column(1);
+                    }
+                    if found_column.is_some() {
                         break;
                     }
-                    column += Column(1);
-                }
-                if found_column.is_some() {
-                    break;
                 }
             }
             found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
@@ -1178,17 +1211,19 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
-            for glyph_set in &shaped_line.glyph_sets {
-                for glyph in &glyph_set.glyphs {
-                    if column == location.offset {
-                        byte_offset = Some(UBytes(glyph.info.cluster as usize));
-                        found = true;
+            if let ShapedLine::NonEmpty {glyph_sets} = &shaped_line {
+                for glyph_set in glyph_sets {
+                    for glyph in &glyph_set.glyphs {
+                        if column == location.offset {
+                            byte_offset = Some(UBytes(glyph.info.cluster as usize));
+                            found = true;
+                            break;
+                        }
+                        column += Column(1);
+                    }
+                    if found {
                         break;
                     }
-                    column += Column(1);
-                }
-                if found {
-                    break;
                 }
             }
             let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {

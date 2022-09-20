@@ -844,7 +844,10 @@ impl AreaModel {
         let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
         let single_line = default();
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
-        let lines = Lines::new(Self::new_line_helper(&display_object, ViewLine(0)));
+        let lines = Lines::new(Self::new_line_helper(
+            &display_object,
+            buffer.formatting.borrow().size.default.value,
+        ));
         let width_dirty = default();
         let height_dirty = default();
 
@@ -883,7 +886,7 @@ impl AreaModel {
     }
 
     fn take_lines(&self) -> Lines {
-        let lines_vec = LinesVec::new(self.new_line(ViewLine(0)));
+        let lines_vec = LinesVec::new(self.new_line());
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
     }
@@ -995,7 +998,7 @@ impl AreaModel {
                             for i in 0..line_diff as usize {
                                 let index_to_insert = second_line_index + ViewLine(i);
                                 if index_to_insert < ViewLine(lines.len()) {
-                                    lines.insert(index_to_insert, self.new_line(index_to_insert));
+                                    lines.insert(index_to_insert, self.new_line());
                                 }
                             }
                         } else if line_diff < 0 {
@@ -1245,7 +1248,7 @@ impl AreaModel {
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
         warn!("resize_lines, line_count: {line_count}");
-        self.lines.resize_with(line_count, |ix| self.new_line(ix));
+        self.lines.resize_with(line_count, |ix| self.new_line());
     }
 
     /// Redraw the text.
@@ -1323,71 +1326,97 @@ impl AreaModel {
 
         let mut prev_cluster_byte_off = UBytes(0);
 
-        let mut line_metrics: Option<LineMetrics> = None;
-        self.buffer.with_shaped_line(line_index, |shaped_glyphs| {
+        self.buffer.with_shaped_line(line_index, |shaped_line| {
             warn!(">> line_index: {:?}", line_index);
-            warn!(">> shaped_glyphs: {:?}", shaped_glyphs);
-            for shaped_glyph_set in &shaped_glyphs.glyph_sets {
-                for shaped_glyph in &shaped_glyph_set.glyphs {
-                    warn!(">> glyph_id: {:?}", shaped_glyph.info.glyph_id);
-                    let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
-                    let cluster_diff = glyph_byte_start.saturating_sub(prev_cluster_byte_off);
-                    // Drop styles assigned to skipped bytes. One byte will be skipped
-                    // during the call to `line_style_iter.next()`.
-                    line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
-                    let style = line_style_iter.next().unwrap_or_default();
-                    prev_cluster_byte_off = glyph_byte_start;
-                    if column >= Column(line.glyphs.len()) {
-                        line.push_glyph(|| glyph_system.new_glyph());
+            warn!(">> shaped_line: {:?}", shaped_line);
+            match shaped_line {
+                crate::view::ShapedLine::NonEmpty { glyph_sets } => {
+                    let mut line_metrics: Option<LineMetrics> = None;
+                    for shaped_glyph_set in glyph_sets {
+                        for shaped_glyph in &shaped_glyph_set.glyphs {
+                            warn!(">> glyph_id: {:?}", shaped_glyph.info.glyph_id);
+                            let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
+                            let cluster_diff =
+                                glyph_byte_start.saturating_sub(prev_cluster_byte_off);
+                            // Drop styles assigned to skipped bytes. One byte will be skipped
+                            // during the call to `line_style_iter.next()`.
+                            line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
+                            let style = line_style_iter.next().unwrap_or_default();
+                            prev_cluster_byte_off = glyph_byte_start;
+                            if column >= Column(line.glyphs.len()) {
+                                line.push_glyph(|| glyph_system.new_glyph());
+                            }
+                            let glyph = &line.glyphs[column];
+                            glyph.start_byte_offset.set(glyph_byte_start);
+
+                            let size = style.size;
+                            let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
+
+                            let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
+                            let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
+                            let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
+
+                            line_metrics = match line_metrics {
+                                None => Some(LineMetrics { ascender, descender, gap }),
+                                Some(m) => Some(LineMetrics {
+                                    ascender:  m.ascender.max(ascender),
+                                    descender: m.descender.min(descender),
+                                    gap:       m.gap.max(gap),
+                                }),
+                            };
+
+                            let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
+                            glyph.set_color(style.color);
+                            glyph.set_sdf_weight(style.sdf_weight.value);
+                            glyph.set_size(size);
+                            glyph.set_properties(shaped_glyph_set.non_variable_variations);
+                            glyph.set_glyph_id(glyph_id);
+
+                            let variable_variations = glyph.variations.borrow();
+
+                            let glyph_render_offset =
+                                shaped_glyph.render_info.offset.scale(size.value);
+                            glyph.sprite.set_position_xy(glyph_render_offset);
+                            glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
+
+                            let x_advance =
+                                shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+                            glyph.x_advance.set(x_advance);
+                            glyph_offset_x += x_advance;
+                            divs.push(glyph_offset_x);
+
+                            line_object.add_child(glyph);
+
+                            column += Column(1);
+                        }
                     }
-                    let glyph = &line.glyphs[column];
-                    glyph.start_byte_offset.set(glyph_byte_start);
+                    // This is safe, as the line was proven to be non-empty.
+                    line.set_metrics(line_metrics.unwrap());
+                }
+                crate::view::ShapedLine::Empty { prev_glyph_info } => {
+                    if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
+                        let line_style = self.buffer.sub_style(*offset..);
+                        let mut line_style_iter = line_style.iter();
+                        let style = line_style_iter.next().unwrap_or_default();
 
-                    let size = style.size;
-                    let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
+                        let size = style.size;
+                        let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
 
-                    let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
-                    let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
-                    let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
+                        let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
+                        let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
+                        let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
 
-                    line_metrics = match line_metrics {
-                        None => Some(LineMetrics { ascender, descender, gap }),
-                        Some(m) => Some(LineMetrics {
-                            ascender:  m.ascender.max(ascender),
-                            descender: m.descender.min(descender),
-                            gap:       m.gap.max(gap),
-                        }),
-                    };
-
-                    let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
-                    glyph.set_color(style.color);
-                    glyph.set_sdf_weight(style.sdf_weight.value);
-                    glyph.set_size(size);
-                    glyph.set_properties(shaped_glyph_set.non_variable_variations);
-                    glyph.set_glyph_id(glyph_id);
-
-                    let variable_variations = glyph.variations.borrow();
-
-                    let glyph_render_offset = shaped_glyph.render_info.offset.scale(size.value);
-                    glyph.sprite.set_position_xy(glyph_render_offset);
-                    glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
-
-                    let x_advance = shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
-                    glyph.x_advance.set(x_advance);
-                    glyph_offset_x += x_advance;
-                    divs.push(glyph_offset_x);
-
-                    line_object.add_child(glyph);
-
-                    column += Column(1);
+                        let metrics = LineMetrics { ascender, descender, gap };
+                        line.set_metrics(metrics);
+                    }
                 }
             }
         });
 
-        warn!("LINE metrics: {:?}", line_metrics);
+        // warn!("LINE metrics: {:?}", line_metrics);
 
         // FIXME:
-        line.set_metrics(line_metrics.unwrap());
+
         warn!("WAS LINE LAST? {:?}", line.set_is_last.value());
         warn!("DIVS: {:?}", divs);
         line.glyphs.truncate(column.value);
@@ -1769,15 +1798,23 @@ impl AreaModel {
         self.buffer.formatting.get().size.default
     }
 
-    fn new_line_helper(display_object: &display::object::Instance, index: ViewLine) -> Line {
+    fn new_line_helper(display_object: &display::object::Instance, default_size: f32) -> Line {
         let mut line = Line::new();
-        // line.set_index(index);
+        let ascender = default_size;
+        let descender = ascender / 10.0;
+        let gap = 0.0;
+        let metrics = LineMetrics { ascender, descender, gap };
+        line.set_metrics(metrics);
+
         display_object.add_child(&line);
         line
     }
 
-    fn new_line(&self, index: ViewLine) -> Line {
-        let line = Self::new_line_helper(&self.display_object, index);
+    fn new_line(&self) -> Line {
+        let line = Self::new_line_helper(
+            &self.display_object,
+            self.buffer.formatting.borrow().size.default.value,
+        );
         self.init_line(&line);
         line
     }
