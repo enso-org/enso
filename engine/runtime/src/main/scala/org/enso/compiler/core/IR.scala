@@ -7261,11 +7261,12 @@ object IR {
         this
 
       /** @inheritdoc */
-      override val location: Option[IdentifiedLocation] = try {
-        ast.location.map(IdentifiedLocation(_, ast.id))
-      } catch {
-        case _ : ClassCastException => None
-      }
+      override val location: Option[IdentifiedLocation] =
+        try {
+          ast.location.map(IdentifiedLocation(_, ast.id))
+        } catch {
+          case _: ClassCastException => None
+        }
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
