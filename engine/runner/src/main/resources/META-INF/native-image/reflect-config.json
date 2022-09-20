@@ -574,7 +574,7 @@
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
 {
-  "name":"org.enso.interpreter.node.expression.builtin.mutable.AtArrayMethodGen",
+  "name":"org.enso.interpreter.node.expression.builtin.mutable.ArrayAtMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
 {
@@ -590,7 +590,7 @@
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
 {
-  "name":"org.enso.interpreter.node.expression.builtin.mutable.LengthArrayMethodGen",
+  "name":"org.enso.interpreter.node.expression.builtin.mutable.ArrayLengthMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
 {
@@ -619,10 +619,6 @@
 ,
 {
   "name":"org.enso.interpreter.node.expression.builtin.mutable.PutRefMethodGen",
-  "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
-,
-{
-  "name":"org.enso.interpreter.node.expression.builtin.mutable.SetatArrayMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
 {
@@ -979,9 +975,6 @@
 {
   "name":"org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
-,
-{
-  "name":"org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary"}
 ,
 {
   "name":"org.enso.syntax.text.ast.opr.Assoc$Right$",

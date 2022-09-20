@@ -26,6 +26,7 @@ case class QualifiedName(path: List[String], item: String) {
     * @param name the name of a child node.
     * @return a new qualified name based on this name.
     */
+  @CompilerDirectives.TruffleBoundary
   def createChild(name: String): QualifiedName =
     QualifiedName(path :+ item, name)
 

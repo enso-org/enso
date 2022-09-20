@@ -63,7 +63,7 @@
     "name":"org.enso.compiler.core.IR$Module"
   },
   {
-    "name":"org.enso.compiler.core.IR$Module$Scope$Definition$Atom"
+    "name":"org.enso.compiler.core.IR$Module$Scope$Definition$Type"
   },
   {
     "name":"org.enso.compiler.core.IR$Module$Scope$Definition$Method$Conversion"

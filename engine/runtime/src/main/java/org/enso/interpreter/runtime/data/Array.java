@@ -136,7 +136,6 @@ public final class Array implements TruffleObject {
     return toString();
   }
 
-  @CompilerDirectives.TruffleBoundary
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
