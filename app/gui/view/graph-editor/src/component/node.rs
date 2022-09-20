@@ -307,7 +307,7 @@ ensogl::define_endpoints_2! {
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
-        /// Show visualization preview until either editing the node is finished or the
+        /// Show visualization preview until either editing of the node is finished or the
         /// visualization state is explicitly changed by the user. The preview looks the same as
         /// normal visualization, but its state is not persisted in the node's metadata.
         show_preview                      (),
