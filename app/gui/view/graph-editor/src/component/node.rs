@@ -845,11 +845,8 @@ impl Node {
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
-            // preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
-            // preview_visible         <- preview_visible && has_expression;
             disable_preview <- any(...);
             disable_preview <+ input.disable_preview;
-            // preview_enabled <- bool(&input.disable_preview, &input.enable_preview);
             preview_enabled <- bool(&disable_preview, &input.enable_preview);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
@@ -865,11 +862,8 @@ impl Node {
             action_bar.set_action_visibility_state <+
                 action_visualization_on_while_preview_visible.constant(false);
             visualization_enabled <- bool(&action_visualization_off, &visualization_on);
-            // visualization_enabled <- action_visualization_enabled.gate_not(&preview_visible);
 
             visualization_visible            <- visualization_enabled || preview_visible;
-            // visualization_enabled_while_preview_visible <-
-            //     visualization_enabled.gate(&preview_visible).filter(|e| *e);
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
             out.visualization_visible <+ visualization_visible_on_change;

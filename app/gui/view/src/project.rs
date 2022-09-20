@@ -627,24 +627,6 @@ impl View {
             });
             eval adding_aborted  ((node) graph.remove_node(node));
 
-            eval graph.visualization_shown([]((node_id, metadata))
-                tracing::warn!("MCDBG vis_shown ({node_id}, {metadata:?})"));
-            eval graph.visualization_hidden([](node_id)
-                tracing::warn!("MCDBG vis_hidden ({node_id})"));
-            eval graph.visualization_preprocessor_changed([]((node_id, preproc_cfg))
-                tracing::warn!("MCDBG vis_prepr_chg ({node_id}, {preproc_cfg:?})"));
-
-            // // !!!!!!!! WIP !!!!!!!!
-            // graph.enable_visualization <+ node_added_by_user._0();
-            // temporary_visualization_shown <- any(...);
-            // temporary_visualization_shown <+ node_added_by_user._0().some();
-            // eval temporary_visualization_shown([](v)
-            //     tracing::warn!("MCDBG tmp_vis_shown ({v:?})"));
-            // temporary_visualization_shown <+ graph.visualization_shown.constant(None);
-            // temporary_visualization_shown <+ graph.visualization_hidden.constant(None);
-            // close_temporary_visualization <= temporary_visualization_shown.sample(&adding_finished);
-            // graph.disable_visualization <+ close_temporary_visualization;
-
             // === Editing ===
 
             existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
