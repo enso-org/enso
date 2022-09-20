@@ -842,7 +842,7 @@ impl Node {
             outout_hover            <- model.output.on_port_hover.map(|s| s.is_on());
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
-            hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
+            hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
             hide_preview <- any(...);
