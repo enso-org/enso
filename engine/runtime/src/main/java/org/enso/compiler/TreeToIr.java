@@ -16,6 +16,7 @@ import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
+import org.enso.compiler.core.IR$Function$Lambda;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
@@ -28,6 +29,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
+import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
@@ -696,6 +698,11 @@ final class TreeToIr {
         var t = fullTxt.substring(1, fullTxt.length() - 1);
         yield new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
       }
+      case Tree.Arrow arrow -> {
+        var arguments = translateArgumentsDefinition(arrow.getArguments());
+        var body = translateExpression(arrow.getBody(), isMethod);
+        yield new IR$Function$Lambda(arguments, body, getIdentifiedLocation(arrow), true, meta(), diag());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -1140,6 +1147,17 @@ final class TreeToIr {
             throw new UnhandledEntity(arg, "translateArgumentDefinition")
         }
       */
+      case Tree.Wildcard wild -> {
+        var loc = getIdentifiedLocation(arg);
+        yield new IR$DefinitionArgument$Specified(
+            new IR$Name$Blank(loc, meta(), diag()),
+            Option.empty(),
+            Option.empty(),
+            isSuspended,
+            loc,
+            meta(), diag()
+          );
+      }
       default -> throw new UnhandledEntity(core, "translateArgumentDefinition");
     };
   }
