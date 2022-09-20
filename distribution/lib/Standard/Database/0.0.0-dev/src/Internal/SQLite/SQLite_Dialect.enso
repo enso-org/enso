@@ -107,31 +107,31 @@ unsupported name =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    code "COALESCE(SUM(" ++ arg.paren ++ code " IS NULL), 0)"
+    code "COALESCE(SUM(" ++ arg.paren ++ " IS NULL), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    code "COALESCE(SUM((" ++ arg.paren ++ code " IS NULL) OR (" ++ arg.paren ++ code " == '')), 0)"
+    code "COALESCE(SUM((" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " == '')), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    code "COALESCE(SUM((" ++ arg.paren ++ code " IS NOT NULL) AND (" ++ arg.paren ++ code " != '')), 0)"
+    code "COALESCE(SUM((" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '')), 0)"
 
 ## PRIVATE
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
-    sum_of_squares = code "SUM(" ++ arg.paren ++ code "*" ++ arg.paren ++ code ")"
-    square_of_sums = code "SUM(" ++ arg ++ code ") * SUM(" ++ arg ++ code ")"
-    n = code "CAST(COUNT(" ++ arg ++ code ") AS REAL)"
-    var = code "(" ++ sum_of_squares ++ code " - (" ++ square_of_sums ++ code " / " ++ n ++ code ")) / " ++ n
-    code "SQRT(" ++ var ++ code ")"
+    sum_of_squares = code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / " ++ n
+    code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
-    sum_of_squares = code "SUM(" ++ arg.paren ++ code "*" ++ arg.paren ++ code ")"
-    square_of_sums = code "SUM(" ++ arg ++ code ") * SUM(" ++ arg ++ code ")"
-    n = code "CAST(COUNT(" ++ arg ++ code ") AS REAL)"
-    var = code "(" ++ sum_of_squares ++ code " - (" ++ square_of_sums ++ code " / " ++ n ++ code ")) / (" ++ n ++ code " - 1)"
-    code "SQRT(" ++ var ++ code ")"
+    sum_of_squares = code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
+    code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
    This is a prototype that doesn't work correctly. Left for reference for
@@ -152,45 +152,45 @@ window_aggregate window_type ignore_null args =
         order_exprs = args.tail
 
         filter_clause = if ignore_null.not then code "" else
-            code " FILTER (WHERE " ++ result_expr.paren ++ code " IS NOT NULL)"
+            code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
 
-        code window_type+"(" ++ result_expr ++ code ")" ++ filter_clause ++ code " OVER (ORDER BY " ++ SQL.join "," order_exprs ++ code ")"
+        code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL.join "," order_exprs ++ ")"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        code "group_concat(" ++ expr ++ code ", " ++ separator ++ code ")"
+        code "group_concat(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
-    True -> code "COUNT(DISTINCT (" ++ args.first ++ code "))"
+    True -> code "COUNT(DISTINCT (" ++ args.first ++ "))"
     False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
     True ->
         arg = args.first
-        count = code "COUNT(DISTINCT " ++ arg ++ code ")"
-        all_nulls_case = code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
-        count ++ code " + " ++ all_nulls_case
+        count = code "COUNT(DISTINCT " ++ arg ++ ")"
+        all_nulls_case = code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ (code " LIKE (") ++ sub ++ (code " || '%')")
+    res = str ++ " LIKE (" ++ sub ++ " || '%')"
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ (code " LIKE ('%' || ") ++ sub ++ (code ")")
+    res = str ++ " LIKE ('%' || " ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
 make_contains_expr expr substring =
-    code "instr(" ++ expr ++ code ", " ++ substring ++ code ") > 0"
+    code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr

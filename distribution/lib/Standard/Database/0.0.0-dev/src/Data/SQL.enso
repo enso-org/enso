@@ -278,7 +278,9 @@ type Builder
        Arguments:
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
-    ++ self other = Builder_Data (self.fragments ++ other.fragments)
+    ++ self other = case other of
+        Text -> if other == "" then self else Builder_Data (self.fragments ++ (code other).fragments)
+        _ -> Builder_Data (self.fragments ++ other.fragments)
 
     ## UNSTABLE
 
@@ -298,10 +300,7 @@ type Builder
 
        Wraps the code fragment in parentheses.
     paren : Builder
-    paren self =
-        l = code "("
-        r = code ")"
-        l ++ self ++ r
+    paren self = code "(" ++ self ++ ")"
 
     ## UNSTABLE
 
