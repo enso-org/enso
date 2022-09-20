@@ -10,15 +10,26 @@ import java.nio.charset.StandardCharsets;
 public final class Parser implements AutoCloseable {
     static {
         String os = System.getProperty("os.name");
-        File parser;
-        if (os.startsWith("Mac")) {
-            parser = new File("target/rust/debug/libenso_parser.dylib");
-        } else if (os.startsWith("Windows")) {
-            parser = new File("target/rust/debug/enso_parser.dll");
-        } else {
-            parser = new File("target/rust/debug/libenso_parser.so");
+        File dir = new File(".").getAbsoluteFile();
+        for (;;) {
+            File parser;
+            if (os.startsWith("Mac")) {
+                parser = new File(dir, "target/rust/debug/libenso_parser.dylib");
+            } else if (os.startsWith("Windows")) {
+                parser = new File(dir, "target/rust/debug/enso_parser.dll");
+            } else {
+                parser = new File(dir, "target/rust/debug/libenso_parser.so");
+            }
+            try {
+                System.load(parser.getAbsolutePath());
+                break;
+            } catch (LinkageError e) {
+                dir = dir.getParentFile();
+                if (dir == null) {
+                    throw e;
+                }
+            }
         }
-        System.load(parser.getAbsolutePath());
     }
 
     private long state;
@@ -54,6 +65,7 @@ public final class Parser implements AutoCloseable {
         }
         return result;
     }
+    @Override
     public void close() {
         freeState(state);
         state = 0;

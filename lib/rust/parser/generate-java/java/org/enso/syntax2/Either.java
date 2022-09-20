@@ -1,12 +1,31 @@
 package org.enso.syntax2;
 
-public class Either<Left, Right> {
-    protected Left left;
-    protected Right right;
-    protected Either(Left leftIn, Right rightIn) {
+public final class Either<Left, Right> {
+    private final Left left;
+    private final Right right;
+
+    private Either(Left leftIn, Right rightIn) {
         left = leftIn;
         right = rightIn;
     }
+
+    public Left getLeft() {
+        return left;
+    }
+
+    public Right getRight() {
+        return right;
+    }
+
+    @Override
+    public String toString() {
+        if (right == null) {
+            return "Either{" + "left=" + left + '}';
+        } else {
+            return "Either{" + "right=" + right + '}';
+        }
+    }
+
     public static <L, R> Either<L, R> left(L left) {
         return new Either<>(left, null);
     }
