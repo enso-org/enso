@@ -17,6 +17,7 @@ import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Literal$Number;
+import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
@@ -690,6 +691,11 @@ final class TreeToIr {
       case Tree.Group group -> {
         yield translateExpression(group.getBody(), moreArgs, insideTypeSignature, isMethod);
       }
+      case Tree.TextLiteral txt -> {
+        var fullTxt = txt.codeRepr().trim();
+        var t = fullTxt.substring(1, fullTxt.length() - 1);
+        yield new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -859,8 +865,8 @@ final class TreeToIr {
     *
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
-
-  def translateLiteral(literal: AST.Literal): Expression =
+    *
+  IR.Expression translateLiteral(Tree.TextLiteral literal) {
     literal match {
       case AST.Literal.Number(base, number) =>
         if (base.isDefined) {
@@ -926,7 +932,7 @@ final class TreeToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
-
+  /*
   private def parseFmtSegments(
     literal: AST,
     segments: Seq[AST.Literal.Text.Segment[AST]]

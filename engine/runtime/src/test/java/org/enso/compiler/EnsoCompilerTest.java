@@ -229,6 +229,13 @@ public class EnsoCompilerTest {
     parseTest("from prj.Data.Foo as Bar export Baz, Quux");
   }
 
+  @Test
+  public void testTextLiteral() throws Exception {
+    parseTest("""
+    main = "I'm an inline raw text!"
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
