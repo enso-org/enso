@@ -348,15 +348,26 @@ type Date
 
             days_to_shift = full_weeks*7 + remaining_days + additional_shift
             end = self + days_to_shift.days
-#
-#            overlapping_holidays_in_range = holidays.filter holiday->
-#                fits_in_range self (self + estimated_days.days) holiday && (is_weekend holiday).not
-#            end = self + estimated_days.days + overlapping_holidays_in_range.distinct.length.days
-#            included_days = self.work_days_until end holidays
-#            diff = days - included_days
-#            if diff == 0 then end else
-#                end.add_work_days diff holidays
-            end
+
+            ## We have shifted the date so that weekends are taken into account,
+               but other holidays may have happened during that shift period.
+               Thus we may have shifted by less workdays than really desired. We
+               compute the difference and if there are still remaining workdays
+               to shift by, we re-run the whole shift procedure.
+            workdays = self.work_days_until end holidays include_end_date=False
+            diff = days - workdays
+            if diff > 0 then end.add_work_days diff holidays else
+                ## Otherwise we have accounted for all workdays we were asked
+                   to. But that is still not the end - we still need to ensure
+                   that the final day on which we have 'landed' is a workday
+                   too. Our procedure ensures that it is not a weekend, but it
+                   can still be a holiday. So we will be shifting the end date
+                   as long as needed to fall on a non-weekend non-holiday
+                   workday.
+                is_holiday = holidays.contains
+                go end_date =
+                    if is_holiday end_date || is_weekend end_date then go (end_date + 1.day) else end_date
+                go end
 
     ## Subtract the specified amount of time from this instant to get another
        date.
