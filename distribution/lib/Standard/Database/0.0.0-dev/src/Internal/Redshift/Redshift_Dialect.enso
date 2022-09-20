@@ -2,17 +2,17 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
 
-import Standard.Database.Data.Sql
+from Standard.Database.Data.SQL import SQL_Type, Statement
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Dialect.Postgres
-import Standard.Database.Data.Internal.Base_Generator
+import Standard.Database.Internal.Postgres.Postgres_Dialect
+import Standard.Database.Internal.Base_Generator
 
 ## PRIVATE
 
    The dialect for Redshift connections.
 redshift : Dialect
 redshift =
-    Redshift_Dialect_Data Postgres.make_internal_generator_dialect
+    Redshift_Dialect_Data Postgres_Dialect.make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -31,7 +31,7 @@ type Redshift_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Sql.Statement
+    generate_sql : Query -> Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -40,9 +40,9 @@ type Redshift_Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self aggregate =
-        Postgres.resolve_target_sql_type aggregate
+        Postgres_Dialect.resolve_target_sql_type aggregate
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -51,4 +51,4 @@ type Redshift_Dialect
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres.make_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering

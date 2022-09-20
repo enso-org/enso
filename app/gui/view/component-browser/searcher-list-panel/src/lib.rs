@@ -75,6 +75,7 @@ use ensogl_scroll_area::ScrollArea;
 use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
+use ide_view_breadcrumbs as breadcrumbs;
 use ide_view_component_group as component_group;
 use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
@@ -95,6 +96,7 @@ mod layouting;
 mod navigator;
 
 pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::EnteredModule;
 pub use component_group::set::GroupId;
 pub use ensogl_core::prelude;
 
@@ -174,6 +176,9 @@ struct Style {
     content_corner_radius:    f32,
     content_background_color: color::Rgba,
 
+    breadcrumbs_crop_left:  f32,
+    breadcrumbs_crop_right: f32,
+
     section_divider_height:      f32,
     section_heading_size:        f32,
     section_heading_offset:      f32,
@@ -219,6 +224,18 @@ impl Style {
 
     fn section_heading_height(&self) -> f32 {
         self.section_heading_size + self.section_heading_offset
+    }
+
+    fn breadcrumbs_pos(&self) -> Vector2 {
+        let breadcrumbs_height = self.menu_height;
+        let x = -self.content_width / 2.0 + self.navigator_width / 2.0 + self.breadcrumbs_crop_left;
+        let y = self.content_height / 2.0 + breadcrumbs_height / 2.0 - self.content_padding;
+        Vector2(x, y)
+    }
+
+    fn breadcrumbs_size(&self) -> Vector2 {
+        let width = self.content_width - self.breadcrumbs_crop_left - self.breadcrumbs_crop_right;
+        Vector2(width, self.menu_height)
     }
 }
 
@@ -406,6 +423,7 @@ pub struct Model {
     groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
     selection:           selection_box::View,
+    breadcrumbs:         breadcrumbs::Breadcrumbs,
 }
 
 impl Model {
@@ -441,6 +459,12 @@ impl Model {
         display_object.add_child(&section_navigator);
         layers.navigator.add_exclusive(&section_navigator);
 
+        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&layers.navigator);
+        display_object.add_child(&breadcrumbs);
+        breadcrumbs.show_ellipsis(true);
+        breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
+
         let selection = selection_box::View::new(&app.logger);
         scroll_area.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
@@ -473,6 +497,7 @@ impl Model {
             groups_wrapper,
             navigator,
             selection,
+            breadcrumbs,
         }
     }
 
@@ -498,6 +523,9 @@ impl Model {
         self.navigator_shadow.set_position_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator_width, style.size_inner().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
+
+        self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
+        self.breadcrumbs.set_size(style.breadcrumbs_size());
 
         // Sections
 
@@ -914,11 +942,11 @@ define_endpoints_2! {
     }
     Output{
         selected(Option<Selected>),
+        module_entered(EnteredModule),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
         /// The last selected suggestion.
         suggestion_selected(EntryId),
-        header_accepted(GroupId),
         size(Vector2),
     }
 }
@@ -975,7 +1003,7 @@ impl component::Frp<Model> for Frp {
             output.suggestion_selected <+ selected.map(|selected| selected.and_then(|selected| selected.as_entry_id())).unwrap();
             output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
-            output.header_accepted <+ groups.header_accepted;
+            output.module_entered <+ groups.module_entered;
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
 

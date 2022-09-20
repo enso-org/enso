@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials, Credentials_Data
+from Standard.Database.Connection.Credentials import Credentials, Username_And_Password
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -14,7 +14,7 @@ polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
-type Redshift
+type Redshift_Options
     ## Connect to a AWS Redshift database.
 
        Arguments:
@@ -24,7 +24,7 @@ type Redshift
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Redshift_Data (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## Build the Connection resource.
 
@@ -60,7 +60,7 @@ type Redshift
                 [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
             AWS_Key db_user access_key secret_access_key ->
                 [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
-            Credentials_Data username password ->
+            Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.

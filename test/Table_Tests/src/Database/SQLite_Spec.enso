@@ -3,9 +3,9 @@ import Standard.Base.Runtime.Ref
 
 import Standard.Table as Materialized_Table
 
-from Standard.Database import all
 import Standard.Database
-from Standard.Database.Errors import Sql_Error_Data
+from Standard.Database import all
+from Standard.Database.Errors import SQL_Error_Data
 
 import Standard.Test
 
@@ -27,8 +27,8 @@ sqlite_specific_spec connection =
             Meta.is_same_object connection (connection.set_schema Nothing) . should_be_true
 
         Test.specify "does not allow changing schema or database" <|
-            connection.set_schema "foo" . should_fail_with Sql_Error_Data
-            connection.set_database "foo" . should_fail_with Sql_Error_Data
+            connection.set_schema "foo" . should_fail_with SQL_Error_Data
+            connection.set_database "foo" . should_fail_with SQL_Error_Data
 
     Test.group "[SQLite] Tables and Table Types" <|
         tinfo = Name_Generator.random_name "TestTable"
@@ -67,11 +67,11 @@ sqlite_specific_spec connection =
 
     Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.execute_query "foobar" . should_fail_with Sql_Error_Data
-            connection.execute_update "foobar" . should_fail_with Sql_Error_Data
+            connection.execute_query "foobar" . should_fail_with SQL_Error_Data
+            connection.execute_update "foobar" . should_fail_with SQL_Error_Data
 
             action = connection.execute_query "SELECT A FROM undefined_table"
-            action . should_fail_with Sql_Error_Data
+            action . should_fail_with SQL_Error_Data
             action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
 
     Test.group "[SQLite] Metadata" <|
@@ -133,9 +133,9 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    sqlite_spec (Database.connect (SQLite_Data file)) "[SQLite] "
+    sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
     file.delete
 
-    sqlite_spec (Database.connect (SQLite_Data In_Memory)) "[SQLite Memory] "
+    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
 
 main = Test.Suite.run_main spec

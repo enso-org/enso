@@ -295,13 +295,16 @@ impl<E: Entry> Model<E, E::Params> {
         // We must not emit FRP events when some state is borrowed to avoid double borrows.
         // So the following code block isolates operations with borrowed fields from emitting
         // FRP events.
-        let (entry_frp, should_set_location) = {
+        let (entry_frp, should_set_location, init) = {
             let mut visible_entries = self.visible_entries.borrow_mut();
             let mut free_entries = self.free_entries.borrow_mut();
-            let (entry, should_set_location) = match visible_entries.entry((row, col)) {
-                Occupied(entry) => (entry.into_mut(), false),
+            let (entry, should_set_location, init) = match visible_entries.entry((row, col)) {
+                Occupied(entry) => (entry.into_mut(), false, None),
                 Vacant(lack_of_entry) => {
-                    let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
+                    let (new_entry, init) = free_entries
+                        .pop()
+                        .map(|entry| (entry, None))
+                        .unwrap_or_else(create_new_entry);
                     entry::visible::set_position(
                         &new_entry,
                         row,
@@ -310,11 +313,14 @@ impl<E: Entry> Model<E, E::Params> {
                         &self.column_widths,
                     );
                     self.display_object.add_child(&new_entry);
-                    (lack_of_entry.insert(new_entry), true)
+                    (lack_of_entry.insert(new_entry), true, init)
                 }
             };
-            (entry.entry.frp().clone_ref(), should_set_location)
+            (entry.entry.frp().clone_ref(), should_set_location, init)
         };
+        if let Some(init) = init {
+            init.emit(());
+        }
         // The location should be updated first, because computing entry position after column width
         // change uses information about it. And column width may be change as a reaction of any
         // other event, depending of Entry implementation.

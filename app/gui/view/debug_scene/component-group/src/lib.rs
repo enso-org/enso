@@ -106,6 +106,7 @@ impl MockEntries {
                             default()
                         },
                     },
+                    is_enterable: false,
                 })
                 .collect(),
             count:   Cell::new(count),
@@ -362,7 +363,7 @@ fn init(app: &Application) {
         });
         eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g:?}"));
         eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g:?}"));
-        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g:?}"));
+        eval multiview.module_entered([](m) DEBUG!("Module entered: {m:?}"));
 
         eval multiview.focused([groups]((g, f)) {
             match &groups[g] {

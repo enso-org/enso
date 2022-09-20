@@ -3,10 +3,10 @@ from Standard.Base import all
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
-import Standard.Database.Data.Sql
-from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data, Statement, Statement_Data
-from Standard.Database.Errors import Sql_Error, Sql_Error_Data, Sql_Timeout_Error, Sql_Timeout_Error_Data
-import Standard.Database.Data.Internal.Base_Generator
+import Standard.Database.Data.SQL
+from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data, Statement, Statement_Data
+from Standard.Database.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
+import Standard.Database.Internal.Base_Generator
 import Standard.Table.Data.Storage
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
@@ -89,7 +89,7 @@ type JDBC_Connection
                 name = metadata.getColumnName ix+1
                 typeid = metadata.getColumnType ix+1
                 typename = metadata.getColumnTypeName ix+1
-                [name, Sql_Type_Data typeid typename]
+                [name, SQL_Type_Data typeid typename]
 
             Vector.new metadata.getColumnCount resolve_column
 
@@ -158,17 +158,17 @@ close_connection connection =
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout_Error)
 handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (Sql_Timeout_Error_Data exc related_query)
-            False -> Error.throw (Sql_Error_Data exc related_query)
+            True -> Error.throw (SQL_Timeout_Error_Data exc related_query)
+            False -> Error.throw (SQL_Error_Data exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.
-set_statement_values : PreparedStatement -> Vector (Pair Any Sql_Type) -> Nothing
+set_statement_values : PreparedStatement -> Vector (Pair Any SQL_Type) -> Nothing
 set_statement_values stmt holes =
     holes.map_with_index ix-> obj->
         position = ix + 1
@@ -183,18 +183,18 @@ create_table_statement name table temporary =
     column_types = table.columns.map col-> default_storage_type col.storage_type
     column_names = table.columns.map .name
     col_makers = column_names.zip column_types name-> typ->
-        Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
+        Base_Generator.wrap_in_quotes name ++ SQL.code " " ++ SQL.code typ.name
     create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-    (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
+    (SQL.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ SQL.code " (" ++ (SQL.join ", " col_makers) ++ SQL.code ")").build
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.
-default_storage_type : Storage.Type -> Sql_Type
+default_storage_type : Storage.Type -> SQL_Type
 default_storage_type storage_type = case storage_type of
-    Storage.Text -> Sql_Type.text
-    Storage.Integer -> Sql_Type.integer
-    Storage.Decimal -> Sql_Type.double
-    Storage.Boolean -> Sql_Type.boolean
+    Storage.Text -> SQL_Type.text
+    Storage.Integer -> SQL_Type.integer
+    Storage.Decimal -> SQL_Type.double
+    Storage.Boolean -> SQL_Type.boolean
     ## Support for mixed type columns in Table upload is currently very limited,
        falling back to treating everything as text.
-    Storage.Any -> Sql_Type.text
+    Storage.Any -> SQL_Type.text
