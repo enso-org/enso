@@ -777,7 +777,7 @@ impl Node {
 
             // === Action Bar ===
 
-            let action_visibility_state = action_bar.action_visibility.clone_ref();
+            let visualization_button_state = action_bar.action_visibility.clone_ref();
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -843,25 +843,26 @@ impl Node {
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
+            hover_preview_visible <- has_expression && hover_onset_active;
+            hover_preview_visible <- hover_preview_visible.on_change();
             hide_preview <- any(...);
             editing_finished <- model.input.frp.editing.filter(|e| !*e).constant(());
             hide_preview <+ editing_finished;
             preview_enabled <- bool(&hide_preview, &input.show_preview);
-            hover_preview_visible <- has_expression && hover_onset_active;
-            hover_preview_visible <- hover_preview_visible.on_change();
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
 
-            action_visualization_on <- action_visibility_state.filter(|e| *e).constant(());
-            action_visualization_off <- action_visibility_state.filter(|e| !*e).constant(());
-            visualization_on <- action_visualization_on.gate_not(&preview_visible);
-            action_visualization_on_while_preview_visible <-
-                action_visualization_on.gate(&preview_visible);
-            hide_preview <+ action_visualization_on_while_preview_visible;
-            hide_preview <+ action_visualization_off;
+            // If the preview is visible while the visualization button is disabled, clicking the
+            // visualization button hides the preview and keeps the visualization button disabled.
+            vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
+            vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
+            visualization_on <- vis_button_on.gate_not(&preview_visible);
+            vis_button_on_while_preview_visible <- vis_button_on.gate(&preview_visible);
+            hide_preview <+ vis_button_on_while_preview_visible;
+            hide_preview <+ vis_button_off;
             action_bar.set_action_visibility_state <+
-                action_visualization_on_while_preview_visible.constant(false);
-            visualization_enabled <- bool(&action_visualization_off, &visualization_on);
+                vis_button_on_while_preview_visible.constant(false);
+            visualization_enabled <- bool(&vis_button_off, &visualization_on);
 
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
