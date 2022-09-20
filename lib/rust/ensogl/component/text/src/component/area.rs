@@ -350,7 +350,7 @@ impl From<LinesVec> for Lines {
 // ===========
 
 ensogl_core::define_endpoints! {
-    Input {[TRACE_ALL]
+    Input {
         /// Insert character of the last pressed key at every cursor.
         insert_char_of_last_pressed_key(),
         /// Increase the indentation of all lines containing cursors.
@@ -469,8 +469,11 @@ ensogl_core::define_endpoints! {
         ///
         /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
+        /// Refresh the width value of text area. You should not need to call it. It is used by the
+        /// internal API.
+        refresh_width(),
     }
-    Output {[TRACE_ALL]
+    Output {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
@@ -526,6 +529,7 @@ impl Area {
         let m = &model;
         pos.update_spring(|spring| spring * 2.0);
 
+        let after_animations = ensogl_core::animation::after_animations();
         frp::extend! { network
 
             // === Multi / Single Line ===
@@ -723,6 +727,13 @@ impl Area {
             // read the new content, so it should be up-to-date.
             self.frp.source.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
             self.frp.source.changed <+ m.buffer.frp.text_change;
+
+
+            // === Text Width ===
+
+            eval_ self.frp.refresh_width(m.width_dirty.set(true));
+            new_width <= after_animations.map (f_!(m.compute_width()));
+            self.frp.source.width <+ new_width.on_change();
         }
         self
     }
@@ -788,6 +799,7 @@ pub struct AreaModel {
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
+    width_dirty:    Rc<Cell<bool>>,
 }
 
 impl AreaModel {
@@ -812,6 +824,7 @@ impl AreaModel {
         let single_line = default();
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
         let lines = Lines::new(Self::new_line_helper(&display_object, ViewLine(0)));
+        let width_dirty = default();
 
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol = &shape_system.shape_system.sprite_system.symbol;
@@ -835,6 +848,7 @@ impl AreaModel {
             lines,
             single_line,
             selection_map,
+            width_dirty,
         }
         .init()
     }
@@ -1068,6 +1082,11 @@ impl AreaModel {
                 }
                 None => {
                     let selection = Selection::new(do_edit);
+                    let network = &self.frp_network;
+                    let model = self;
+                    frp::extend! { network
+                        self.frp_endpoints.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                    }
                     self.add_child(&selection);
                     selection.letter_width.set(7.0); // FIXME hardcoded values
                     selection.position.set_target_value(pos);
@@ -1186,6 +1205,7 @@ impl AreaModel {
 
     fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
         warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
+        self.width_dirty.set(true);
         for range in sorted_line_ranges {
             let lines_content = self.buffer.lines_content(range.clone());
             for (index, line) in range.clone().into_iter().enumerate() {
@@ -1584,7 +1604,32 @@ impl AreaModel {
                     let pos_x = selection.position.target_value().x;
                     glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                 }
+                selection.frp.set_last_attached_glyph(None);
             }
+        }
+    }
+
+    pub fn compute_width(&self) -> Option<f32> {
+        if self.width_dirty.get() {
+            self.width_dirty.set(false);
+            let mut max_width = 0.0;
+            for line in &*self.lines.borrow() {
+                let width =
+                    line.glyphs.last().map(|g| g.position().x + g.width()).unwrap_or_default();
+                if width > max_width {
+                    max_width = width;
+                }
+            }
+            let selection_map = self.selection_map.borrow();
+            for selection in selection_map.id_map.values() {
+                let width = selection.frp.right_side_of_last_attached_glyph.value();
+                if width > max_width {
+                    max_width = width;
+                }
+            }
+            Some(max_width)
+        } else {
+            None
         }
     }
 
@@ -1680,7 +1725,7 @@ impl AreaModel {
     fn init_line(&self, line: &Line) {
         let network = &self.frp_network;
         frp::extend! { network
-            self.frp_endpoints.source.height <+ line.descent_if_last;
+            self.frp_endpoints.source.height <+ line.descent_if_last.map(|t| -t);
         }
     }
 

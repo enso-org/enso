@@ -8,6 +8,7 @@ use crate::prelude::*;
 use crate::system::web::traits::*;
 
 use crate::animation;
+use crate::application::command::FrpNetworkProvider;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::debug;
@@ -113,6 +114,14 @@ impl<'t> From<&'t World> for &'t Scene {
 
 
 
+crate::define_endpoints_2! {
+    Input {
+    }
+    Output {
+        after_rendering(),
+    }
+}
+
 // =========================
 // === WorldDataWithLoop ===
 // =========================
@@ -135,16 +144,24 @@ pub type MainLoop = animation::Loop;
 /// metric, impacting Users' experience with the application.
 #[derive(Debug)]
 pub struct WorldDataWithLoop {
-    main_loop: MainLoop,
-    data:      WorldData,
+    frp:  Frp,
+    data: WorldData,
 }
 
 impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
-        let data = WorldData::new();
-        let main_loop = MainLoop::new(Box::new(f!([data](t) data.run_next_frame(t))));
-        Self { main_loop, data }
+        let frp = Frp::new();
+        let data = WorldData::new(&frp.private.output);
+        let frame_start = animation::frame_start();
+        let before_rendering = animation::before_rendering();
+        let network = frp.network();
+        crate::frp::extend! {network
+            eval_ frame_start (data.run_stats());
+            eval before_rendering ((t) data.run_next_frame(*t));
+        }
+
+        Self { frp, data }
     }
 }
 
@@ -183,9 +200,11 @@ pub struct Callbacks {
 // =================
 
 /// The data kept by the [`World`].
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct WorldData {
+    #[deref]
+    frp:                  api::private::Output,
     logger:               Logger,
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
@@ -200,7 +219,8 @@ pub struct WorldData {
 
 impl WorldData {
     /// Create and initialize new world instance.
-    pub fn new() -> Self {
+    pub fn new(frp: &api::private::Output) -> Self {
+        let frp = frp.clone_ref();
         let logger = Logger::new("world");
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
@@ -217,6 +237,7 @@ impl WorldData {
         }));
 
         Self {
+            frp,
             logger,
             default_scene,
             scene_dirty,
@@ -293,6 +314,13 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
+    fn run_stats(&self) {
+        let previous_frame_stats = self.stats.begin_frame();
+        if let Some(stats) = previous_frame_stats {
+            self.on.prev_frame_stats.run_all(&stats);
+        }
+    }
+
     /// Perform to the next frame with the provided time information.
     ///
     /// Please note that the provided time information from the [`requestAnimationFrame`] JS
@@ -301,10 +329,6 @@ impl WorldData {
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
     #[profile(Objective)]
     pub fn run_next_frame(&self, time: animation::TimeInfo) {
-        let previous_frame_stats = self.stats.begin_frame();
-        if let Some(stats) = previous_frame_stats {
-            self.on.prev_frame_stats.run_all(&stats);
-        }
         self.on.before_frame.run_all(time);
         self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
@@ -313,6 +337,7 @@ impl WorldData {
         self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
+        self.after_rendering.emit(());
     }
 
     /// Pass object for garbage collection.
@@ -322,12 +347,6 @@ impl WorldData {
     #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
-    }
-}
-
-impl Default for WorldData {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

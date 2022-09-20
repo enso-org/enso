@@ -68,6 +68,12 @@ impl<S> HasContent for ShapeView<S> {
     type Content = S;
 }
 
+impl<S: DynamicShapeInternals + 'static> Default for ShapeView<S> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 
 // ======================

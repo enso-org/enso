@@ -26,6 +26,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::buffer::Line;
 use crate::buffer::Location;
+use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -38,19 +39,109 @@ use ensogl_text::Column;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
 
-
 // ==============
 // === Shapes ===
 // ==============
 
-mod shape {
+const DEBUG_FRAME_HOLD: usize = 3;
+const BORDER_PADDING: f32 = 2.0;
+const BORDER_WIDTH: f32 = 1.0;
+
+const RED: Vector4 = Vector4::new(0.85, 0.2, 0.2, 1.0);
+const GREEN: Vector4 = Vector4::new(0.2, 0.85, 0.2, 1.0);
+
+
+
+// ===============
+// === Borders ===
+// ===============
+
+mod h_line {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style) {
-            let circle1    = Circle(2.px());
-            let shape      = circle1.fill(color::Rgb::new(1.0, 0.0, 0.0));
+        (color_rgba:Vector4<f32>) {
+            let fill_color = Var::<color::Rgba>::from(color_rgba);
+            let height = Var::<Pixels>::from("input_size.y");
+            let shape = Rect((BORDER_WIDTH.px(), height));
+            let shape = shape.fill(fill_color);
             shape.into()
         }
+    }
+}
+
+mod v_line {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (color_rgba:Vector4<f32>) {
+            let fill_color = Var::<color::Rgba>::from(color_rgba);
+            let width = Var::<Pixels>::from("input_size.x");
+            let shape = Rect((width, BORDER_WIDTH.px()));
+            let shape = shape.fill(fill_color);
+            shape.into()
+        }
+    }
+}
+
+ensogl_core::define_endpoints_2! {}
+
+#[derive(Debug, Clone, CloneRef, Default)]
+pub struct Borders {
+    left: h_line::View,
+    right: h_line::View,
+    bottom: v_line::View,
+    top: v_line::View,
+    right_changed_frame_hold: Rc<Cell<usize>>,
+    bottom_changed_frame_hold: Rc<Cell<usize>>,
+}
+
+impl Borders {
+    pub fn show(&self, app: &Application, area: &Area) {
+        let frp = Frp::new();
+        let network = frp.network();
+        let borders = self;
+        app.display.add_child(&borders.left);
+        app.display.add_child(&borders.right);
+        app.display.add_child(&borders.top);
+        app.display.add_child(&borders.bottom);
+        borders.left.color_rgba.set(GREEN);
+        borders.top.color_rgba.set(GREEN);
+
+        ensogl_core::frp::extend! {network
+            eval_ app.display.after_rendering([borders]{
+                if borders.right_changed_frame_hold.get() != 0 {
+                    borders.right_changed_frame_hold.modify(|t| *t -= 1);
+                } else {
+                    borders.right.color_rgba.set(GREEN);
+                }
+
+                if borders.bottom_changed_frame_hold.get() != 0 {
+                    borders.bottom_changed_frame_hold.modify(|t| *t -= 1);
+                } else {
+                    borders.bottom.color_rgba.set(GREEN);
+                }
+            });
+            eval area.height ([borders](h) {
+                borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.right.set_position_y(-h/2.0);
+                borders.left.set_position_y(-h/2.0);
+
+                borders.bottom_changed_frame_hold.set(DEBUG_FRAME_HOLD);
+                borders.bottom.color_rgba.set(RED);
+                borders.bottom.set_position_y(-*h);
+            });
+            eval area.width ([borders](w) {
+                borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.top.set_position_x(w/2.0);
+                borders.bottom.set_position_x(w/2.0);
+
+                borders.right_changed_frame_hold.set(DEBUG_FRAME_HOLD);
+                borders.right.color_rgba.set(RED);
+                borders.right.set_position_x(*w);
+            });
+        }
+        mem::forget(frp);
     }
 }
 
@@ -59,7 +150,6 @@ mod shape {
 // ===================
 // === Entry Point ===
 // ===================
-
 
 /// Main example runner.
 #[entry_point]
@@ -70,18 +160,9 @@ pub fn main() {
     });
 }
 
+
 fn init(app: Application) {
-    use ensogl_text::Range;
-    use ensogl_text::UBytes;
-
-    let view1 = shape::View::new();
-    view1.size.set(Vector2::new(30.0, 30.0));
-    view1.mod_position(|t| *t = Vector3::new(-100.0, 0.0, 0.0));
-    app.display.add_child(&view1);
-    mem::forget(view1);
-
     let area = app.new_view::<Area>();
-    area.set_position_x(-100.0);
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
     let snowman = "\u{2603}";
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
@@ -93,6 +174,9 @@ fn init(app: Application) {
     // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
+
+    let borders = Borders::default();
+    borders.show(&app, &area);
 
 
 

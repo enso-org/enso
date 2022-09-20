@@ -178,15 +178,16 @@ impl Selection {
             );
 
             line_width_can_change <- any_(&frp.set_last_attached_glyph, &position.value);
-            w <- frp.set_last_attached_glyph.sample(&line_width_can_change).map(f!([display_object, right_side](glyph) {
+            rhs_last_glyph <- frp.set_last_attached_glyph.sample(&line_width_can_change).map(f!([display_object, right_side](glyph) {
                 if let Some(glyph) = glyph.as_ref().and_then(|glyph| glyph.upgrade()) {
                     let glyph_right_x = glyph.position().x + glyph.width();
                     let origin_x = display_object.position().x + right_side.position().x;
-                    let right_x = origin_x + glyph_right_x;
-                    warn!("LAST GLYPH X: {:?}", right_x);
+                    origin_x + glyph_right_x
+                } else {
+                    0.0
                 }
-                0_usize
             }));
+            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
         }
 
         Self {
