@@ -404,7 +404,8 @@ ensogl::define_endpoints_2! {
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
         selection_corners_radius(f32),
-        size(Vector2<f32>)
+        size(Vector2<f32>),
+        module_entered(entry::Id),
     }
 }
 
@@ -488,7 +489,12 @@ impl component::Frp<Model> for Frp {
             header_accepted_by_mouse <- model.header_overlay.events.mouse_down.constant(());
             header_accepted <- any(header_accepted_by_frp, header_accepted_by_mouse);
             out.header_accepted <+ header_accepted;
-            out.expression_accepted <+ model.entries.chosen_entry.filter_map(|e| *e);
+            chosen_entry <- model.entries.chosen_entry.filter_map(|e| *e);
+            chosen_entry <- chosen_entry.map2(&input.set_entries, |id, p| {
+                (*id, p.get(*id).map_or(false, |e| e.is_enterable))
+            });
+            out.module_entered <+ chosen_entry.filter(|(_, is_enterable)| *is_enterable)._0();
+            out.expression_accepted <+ chosen_entry.filter(|(_, is_enterable)| !is_enterable)._0();
         }
 
 

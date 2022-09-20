@@ -2,12 +2,11 @@ from Standard.Base import all hiding First, Last
 
 import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Database.Data.Sql import Sql_Type
-import Standard.Database.Data.Sql
+from Standard.Database.Data.SQL import SQL_Type, Statement, code
+import Standard.Database.Data.SQL
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Dialect.Helpers
-import Standard.Database.Data.Internal.Base_Generator
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.IR
 from Standard.Database.Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
@@ -16,7 +15,6 @@ from Standard.Database.Errors import Unsupported_Database_Operation_Error
 postgres : Dialect
 postgres =
     Postgres_Dialect_Data make_internal_generator_dialect
-
 
 ## PRIVATE
 
@@ -35,7 +33,7 @@ type Postgres_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Sql.Statement
+    generate_sql : Query -> Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -44,7 +42,7 @@ type Postgres_Dialect
 
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
-    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type : Aggregate_Column -> SQL_Type
     resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
 
     ## PRIVATE
@@ -73,13 +71,13 @@ make_internal_generator_dialect =
    You may need to transform it with `resolve_aggregate` first.
 resolve_target_sql_type aggregate = case aggregate of
     Group_By c _ -> c.sql_type
-    Count _ -> Sql_Type.bigint
-    Count_Distinct _ _ _ -> Sql_Type.bigint
-    Count_Not_Nothing _ _ -> Sql_Type.bigint
-    Count_Nothing _ _ -> Sql_Type.bigint
-    Count_Not_Empty _ _ -> Sql_Type.bigint
-    Count_Empty _ _ -> Sql_Type.bigint
-    Percentile _ _ _ -> Sql_Type.double
+    Count _ -> SQL_Type.bigint
+    Count_Distinct _ _ _ -> SQL_Type.bigint
+    Count_Not_Nothing _ _ -> SQL_Type.bigint
+    Count_Nothing _ _ -> SQL_Type.bigint
+    Count_Not_Empty _ _ -> SQL_Type.bigint
+    Count_Empty _ _ -> SQL_Type.bigint
+    Percentile _ _ _ -> SQL_Type.double
     Mode c _ -> c.sql_type
     First c _ _ _ -> c.sql_type
     Last c _ _ _ -> c.sql_type
@@ -87,56 +85,56 @@ resolve_target_sql_type aggregate = case aggregate of
     Minimum c _ -> c.sql_type
     Shortest c _ -> c.sql_type
     Longest c _ -> c.sql_type
-    Standard_Deviation _ _ _ -> Sql_Type.double
-    Concatenate _ _ _ _ _ _ -> Sql_Type.text
+    Standard_Deviation _ _ _ -> SQL_Type.double
+    Concatenate _ _ _ _ _ _ -> SQL_Type.text
     Sum c _ ->
-        if (c.sql_type == Sql_Type.integer) || (c.sql_type == Sql_Type.smallint) then Sql_Type.bigint else
-            if c.sql_type == Sql_Type.bigint then Sql_Type.numeric else
+        if (c.sql_type == SQL_Type.integer) || (c.sql_type == SQL_Type.smallint) then SQL_Type.bigint else
+            if c.sql_type == SQL_Type.bigint then SQL_Type.numeric else
                 c.sql_type
     Average c _ ->
-        if c.sql_type.is_definitely_integer then Sql_Type.numeric else
-            if c.sql_type.is_definitely_double then Sql_Type.double else
+        if c.sql_type.is_definitely_integer then SQL_Type.numeric else
+            if c.sql_type.is_definitely_double then SQL_Type.double else
                 c.sql_type
-    Median _ _ -> Sql_Type.double
+    Median _ _ -> SQL_Type.double
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    Sql.code "COUNT(CASE WHEN " ++ arg.paren ++ Sql.code " IS NULL THEN 1 END)"
+    code "COUNT(CASE WHEN " ++ arg.paren ++ code " IS NULL THEN 1 END)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    Sql.code "COUNT(CASE WHEN (" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " = '') THEN 1 END)"
+    code "COUNT(CASE WHEN (" ++ arg.paren ++ code " IS NULL) OR (" ++ arg.paren ++ code " = '') THEN 1 END)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Sql.code "COUNT(CASE WHEN (" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '') THEN 1 END)"
+    code "COUNT(CASE WHEN (" ++ arg.paren ++ code " IS NOT NULL) AND (" ++ arg.paren ++ code " != '') THEN 1 END)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
-    median = Sql.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+    median = code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ code ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = Sql.code "bool_or(" ++ arg ++ Sql.code " = double precision 'NaN')"
-    Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ median ++ Sql.code " END"
+    has_nan = code "bool_or(" ++ arg ++ code " = double precision 'NaN')"
+    code "CASE WHEN " ++ has_nan ++ code " THEN 'NaN' ELSE " ++ median ++ code " END"
 
 ## PRIVATE
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    Sql.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+    code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ code ")"
 
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
-    percentile = Sql.code "percentile_cont(" ++ p ++ Sql.code ") WITHIN GROUP (ORDER BY " ++ expr ++ Sql.code ")"
+    percentile = code "percentile_cont(" ++ p ++ code ") WITHIN GROUP (ORDER BY " ++ expr ++ code ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = Sql.code "bool_or(" ++ expr ++ Sql.code " = double precision 'NaN')"
-    Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ percentile ++ Sql.code " END"
+    has_nan = code "bool_or(" ++ expr ++ code " = double precision 'NaN')"
+    code "CASE WHEN " ++ has_nan ++ code " THEN 'NaN' ELSE " ++ percentile ++ code " END"
 
 ## PRIVATE
    These are written in a not most-efficient way, but a way that makes them
@@ -154,32 +152,32 @@ make_first_aggregator reverse ignore_null args =
         result_expr = args.head
         order_bys = args.tail
 
-        filter_clause = if ignore_null.not then Sql.code "" else
-            Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
+        filter_clause = if ignore_null.not then code "" else
+            code " FILTER (WHERE " ++ result_expr.paren ++ code " IS NOT NULL)"
         order_clause =
-            Sql.code " ORDER BY " ++ Sql.join "," order_bys
+            code " ORDER BY " ++ SQL.join "," order_bys
         index_expr = case reverse of
-            True -> if ignore_null.not then Sql.code "COUNT(*)" else
-                Sql.code "COUNT(" ++ result_expr ++ Sql.code ")"
-            False -> Sql.code "1"
+            True -> if ignore_null.not then code "COUNT(*)" else
+                code "COUNT(" ++ result_expr ++ code ")"
+            False -> code "1"
 
-        Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")[" ++ index_expr ++ Sql.code "]"
+        code "(array_agg(" ++ result_expr.paren ++ order_clause ++ code ")" ++ filter_clause ++ code ")[" ++ index_expr ++ code "]"
 
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      order_clause =
-         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") ASC NULLS LAST"
-     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+         code " ORDER BY char_length(" ++ arg ++ code ") ASC NULLS LAST"
+     code "(array_agg(" ++ arg.paren ++ order_clause ++ code "))[1]"
 
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
-         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS LAST"
-     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+         code " ORDER BY char_length(" ++ arg ++ code ") DESC NULLS LAST"
+     code "(array_agg(" ++ arg.paren ++ order_clause ++ code "))[1]"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        Sql.code "string_agg(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+        code "string_agg(" ++ expr ++ code ", " ++ separator ++ code ")"
+    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -188,34 +186,34 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_E
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.
-            Sql.code "COUNT(DISTINCT " ++ args.first ++ Sql.code ")"
+            code "COUNT(DISTINCT " ++ args.first ++ code ")"
         False ->
             ## A tuple of nulls is not a null, so it will not be skipped - but
                we want to ignore all-null columns. So we manually filter them
                out.
-            count = Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
-            are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
-            all_nulls_filter = Sql.code " FILTER (WHERE NOT (" ++ Sql.join " AND " are_nulls ++ Sql.code "))"
+            count = code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ code "))"
+            are_nulls = args.map arg-> arg.paren ++ code " IS NULL"
+            all_nulls_filter = code " FILTER (WHERE NOT (" ++ SQL.join " AND " are_nulls ++ code "))"
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
-    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code ", 0))"
+    code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ code ", 0))"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
+    res = str ++ (code " LIKE CONCAT(") ++ sub ++ (code ", '%')")
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
+    res = str ++ (code " LIKE CONCAT('%', ") ++ sub ++ (code ")")
     res.paren
 
 ## PRIVATE
 make_contains_expr expr substring =
-    Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
+    code "position(" ++ substring ++ code " in " ++ expr ++ code ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr

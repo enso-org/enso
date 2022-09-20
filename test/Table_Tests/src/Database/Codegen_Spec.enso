@@ -6,7 +6,7 @@ from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 
 from Standard.Database import all
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Data.SQL import SQL_Type
 import Standard.Database.Data.Dialect
 from Standard.Database.Data.Table import combine_names, fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
@@ -17,9 +17,9 @@ import Standard.Test.Problems
 import project.Database.Helpers.Fake_Test_Connection
 
 spec =
-    int = Sql_Type.integer
-    bool = Sql_Type.boolean
-    str = Sql_Type.varchar
+    int = SQL_Type.integer
+    bool = SQL_Type.boolean
+    str = SQL_Type.varchar
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
