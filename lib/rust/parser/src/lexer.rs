@@ -603,13 +603,7 @@ impl<'s> Lexer<'s> {
                 self.submit_token(token);
                 return;
             }
-            let only_eq = token.code.chars().all(|t| t == '=');
-            let is_mod = token.code.ends_with('=') && !only_eq;
-            let tp = if is_mod {
-                token::Variant::modifier()
-            } else {
-                token::Variant::operator(analyze_operator(&token.code))
-            };
+            let tp = token::Variant::operator(analyze_operator(&token.code));
             let token = token.with_variant(tp);
             self.submit_token(token);
         }
@@ -651,6 +645,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
         "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
         // Other special operators.
+        "<=" | ">=" => return operator.with_binary_infix_precedence(14),
         "==" => return operator.with_binary_infix_precedence(1),
         "," =>
             return operator
@@ -682,7 +677,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         '<' | '>' => 14,
         '+' | '-' => 15,
         '*' | '/' | '%' => 16,
-        _ => return operator,
+        _ => 17,
     };
     operator.with_binary_infix_precedence(binary)
 }

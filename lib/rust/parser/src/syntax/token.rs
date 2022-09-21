@@ -273,7 +273,6 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(skip)]
             pub properties: OperatorProperties,
         },
-        Modifier,
         DocComment,
         Digits {
             pub base: Option<Base>

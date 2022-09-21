@@ -115,7 +115,6 @@ struct ExpressionBuilder<'s> {
     output:           Vec<syntax::Item<'s>>,
     operator_stack:   Vec<Operator<'s>>,
     prev_type:        Option<ItemType>,
-    precedence_error: Option<String>,
     nospace:          bool,
 }
 
@@ -160,15 +159,7 @@ impl<'s> ExpressionBuilder<'s> {
             // Binary operator section (no LHS).
             (_, Some(prec), _) => self.binary_operator(prec, assoc, opr),
             // Failed to compute a role for the operator; this should not be possible.
-            (_, None, None) => {
-                // We don't know the correct precedence, so we can't structure the tree correctly.
-                // Pick some arbitrary value so we can at least produce *some* tree containing all
-                // the right subexpressions; we'll wrap the expression in an `Invalid` node.
-                const ARBITRARY_PRECEDENCE: token::Precedence = token::Precedence { value: 20 };
-                let error = || format!("Precedence of: {:?}", opr.code);
-                self.precedence_error.get_or_insert_with(error);
-                self.binary_operator(ARBITRARY_PRECEDENCE, assoc, opr);
-            }
+            (_, None, None) => unreachable!(),
         }
     }
 
@@ -266,9 +257,6 @@ impl<'s> ExpressionBuilder<'s> {
         } else {
             item
         };
-        if let Some(error) = self.precedence_error {
-            panic!("Unsupported syntax: {}", &error);
-        }
         out
     }
 }
