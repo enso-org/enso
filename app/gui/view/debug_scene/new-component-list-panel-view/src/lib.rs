@@ -256,9 +256,9 @@ pub fn main() {
         grid.scroll_frp().resize(Vector2(405.0, 406.0));
         grid.set_entries_size(entry_size);
         grid.set_entries_params(&params);
-        grid.reset_entries(provider.layout.row_count(), provider.layout.column_count());
         grid.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
         grid.selection_highlight_frp().set_entries_params(selection_params);
+        grid.reset_entries(provider.layout.row_count(), provider.layout.column_count());
         grid.set_column_width((1, entry_size.x + params.style.gap_between_groups * 2.0));
 
         scene.add_child(&grid);

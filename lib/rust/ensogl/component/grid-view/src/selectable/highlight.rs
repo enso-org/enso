@@ -535,11 +535,16 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
                 &frp.entry_highlighted,
                 |&(_, col, _), h| h.map_or(false, |(_, h_col)| col == h_col)
             ).filter(|v| *v).constant(());
-            out.header_separator <+ all_with(&highlight_column, &header_moved_in_highlight_column, f!((col, ()) model.grid.header_separator(*col)));
+            header_hidden_in_highlight_column <- headers_frp.header_hidden.map2(
+                &frp.entry_highlighted,
+                |&(_, col), h| h.map_or(false, |(_, h_col)| col == h_col)
+            ).filter(|v| *v).constant(());
+            header_sep_changed <- any(header_moved_in_highlight_column, header_hidden_in_highlight_column);
+            out.header_separator <+ all_with(&highlight_column, &header_sep_changed, f!((col, ()) model.grid.header_separator(*col)));
             new_top_clip <- all_with3(&out.header_separator, header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
-            out.top_clip <+ new_top_clip;
+            out.top_clip <+ new_top_clip.on_change();
             prev_top_clip <- out.top_clip.previous();
-            new_clip_jump <- new_top_clip.sample(&became_highlighted).map2(&prev_top_clip, |c, p| p - c);
+            new_clip_jump <- new_top_clip.sample(&became_highlighted).map3(&prev_top_clip, &animations.top_clip_jump.value, |c, p, a| p + a - c);
             animations.top_clip_jump.target <+ new_clip_jump;
             animations.top_clip_jump.skip <+ new_clip_jump.constant(());
             animations.top_clip_jump.target <+ new_clip_jump.constant(0.0);
