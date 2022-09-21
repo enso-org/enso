@@ -1322,13 +1322,6 @@ where T: for<'t> FromInContext<&'t ViewBuffer, S>
     }
 }
 
-impl FromInContext<&ViewModel, Line> for ViewLine {
-    fn from_in_context(buffer: &ViewModel, line: Line) -> Self {
-        ViewLine(line.value.saturating_sub(buffer.first_view_line.get().value) as usize)
-    }
-}
-
-
 impl TryFromInContext<&ViewModel, Line> for ViewLine {
     fn try_from_in_context(buffer: &ViewModel, line: Line) -> Option<Self> {
         let line = line.value as usize;

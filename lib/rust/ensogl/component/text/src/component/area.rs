@@ -69,6 +69,29 @@ pub struct SelectionMap {
 // === Line ===
 // ============
 
+const ELLIPSIS_SCALE: f32 = 12.0;
+const ELLIPSIS_SHAPE_RADIUS: f32 = 1.0;
+const ELLIPSIS_SHAPE_OFFSET: f32 = 2.0;
+const ELLIPSIS_TEXT_OFFSET: f32 = 2.0;
+const ELLIPSIS_WIDTH: f32 = ELLIPSIS_SHAPE_RADIUS * 2.0 * 3.0 + ELLIPSIS_SHAPE_OFFSET * 2.0;
+
+
+mod ellipsis {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (scale: f32, color_rgba:Vector4<f32>) {
+            let shape = Circle((&scale * ELLIPSIS_SHAPE_RADIUS).px());
+            let shape = shape.fill(color::Rgba::new(0.0,0.0,0.0,1.0));
+            let repeat_x = (&scale * (ELLIPSIS_SHAPE_RADIUS * 2.0 + ELLIPSIS_SHAPE_OFFSET)).px();
+            // Don't repeat on y.
+            let repeat_y = (&scale * 100.0).px();
+            let shape = shape.repeat((repeat_x,repeat_y));
+            shape.into()
+        }
+    }
+}
+
+
 mod line {
     use super::*;
     ensogl_core::define_endpoints_2! {
@@ -82,6 +105,26 @@ mod line {
             metrics(LineMetrics),
             baseline(f32),
             descent(f32),
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct Truncation {
+        pub scale:    f32,
+        pub ellipsis: ellipsis::View,
+    }
+
+    impl Truncation {
+        pub fn ellipsis_width(&self) -> f32 {
+            self.scale * ELLIPSIS_WIDTH
+        }
+
+        pub fn ellipsis_size_x(&self) -> f32 {
+            self.ellipsis_width() + ELLIPSIS_TEXT_OFFSET * self.scale
+        }
+
+        pub fn ellipsis_start_x(&self) -> f32 {
+            self.ellipsis.position().x - (ELLIPSIS_WIDTH / 2.0) * self.scale
         }
     }
 
@@ -102,6 +145,7 @@ mod line {
         pub glyphs:         VecIndexedBy<Glyph, Column>,
         pub divs:           NonEmptyVec<f32>,
         pub centers:        Vec<f32>,
+        pub truncation:     Option<Truncation>,
     }
 
     impl Line {
@@ -114,23 +158,13 @@ mod line {
             let glyphs = default();
             let divs = default();
             let centers = default();
+            let truncation = default();
+
             frp::extend! {network
                 eval frp.set_y((y) y_target.set(*y));
                 y_pos_anim.target <+ frp.set_y;
                 eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
 
-                // // === Update properties when becoming the last line ===
-                // on_become_last <- frp.set_is_last.on_true();
-                // baseline_on_become_last <- y_pos_anim.value.sample(&on_become_last);
-                // metrics_on_become_last <- frp.set_metrics.sample(&on_become_last);
-                // descent_on_become_last <- metrics_on_become_last.map2(&y_pos_anim.value,
-                //     |metrics,baseline| baseline + metrics.descender);
-                // frp.private.output.baseline_if_last <+ baseline_on_become_last;
-                // frp.private.output.descent_if_last <+ descent_on_become_last;
-
-                // === Update properties during animations if it is the last line ===
-                // Please note that the values are cached (`on_change` is used) to minimize the
-                // amount of events emitted.
                 baseline_pos_if_last <- y_pos_anim.value.on_change();
                 frp.private.output.baseline <+ baseline_pos_if_last;
                 new_descent <- all_with(&y_pos_anim.value, &frp.set_metrics, |baseline,metrics|
@@ -138,7 +172,40 @@ mod line {
                 frp.private.output.descent <+ new_descent.on_change();
                 frp.private.output.metrics <+ frp.set_metrics.on_change();
             }
-            Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers }
+            Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers, truncation }
+        }
+
+        pub fn ellipsis_width(size: style::Size) -> f32 {
+            let scale = size.value / ELLIPSIS_SCALE;
+            scale * ELLIPSIS_WIDTH
+        }
+
+        pub fn ellipsis_size_x(size: style::Size) -> f32 {
+            let scale = size.value / ELLIPSIS_SCALE;
+            Self::ellipsis_width(size) + ELLIPSIS_TEXT_OFFSET * scale
+        }
+
+        pub fn set_truncated(&mut self, size: Option<style::Size>) {
+            warn!("set_truncated: {:?}", size);
+            if let Some(size) = size {
+                let scale = size.value / ELLIPSIS_SCALE;
+                let last_glyph = self.glyphs.last();
+                let last_glyph_x_opt = last_glyph.map(|g| g.position().x + g.x_advance.get());
+                let x = ELLIPSIS_TEXT_OFFSET + ELLIPSIS_WIDTH / 2.0;
+                let x = x * scale + last_glyph_x_opt.unwrap_or(0.0);
+                let width = Self::ellipsis_width(size);
+                let height = scale * ELLIPSIS_SHAPE_RADIUS * 2.0;
+                let ellipsis = ellipsis::View::new();
+                ellipsis.set_position_x(x);
+                ellipsis.set_position_y(scale * (ELLIPSIS_SHAPE_RADIUS / 2.0));
+                ellipsis.scale.set(scale);
+                ellipsis.size.set(Vector2::new(width, height));
+                self.add_child(&ellipsis);
+                let truncation = Truncation { scale, ellipsis };
+                self.truncation = Some(truncation);
+            } else {
+                self.truncation = None;
+            }
         }
 
         pub fn metrics(&self) -> LineMetrics {
@@ -483,6 +550,7 @@ ensogl_core::define_endpoints! {
         set_content_truncated (String, f32),
         set_first_view_line(unit::Line),
         mod_first_view_line(i32),
+        set_view_width(Option<f32>),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -500,6 +568,7 @@ ensogl_core::define_endpoints! {
         /// internal API.
         refresh_width(),
         refresh_height(),
+        view_width(Option<f32>),
     }
 }
 
@@ -762,6 +831,9 @@ impl Area {
             m.buffer.frp.mod_first_view_line <+ self.frp.mod_first_view_line;
 
             eval_ m.buffer.frp.first_view_line (m.redraw());
+            // FIXME: we are moving it to output only for it to be sampler.
+            self.frp.source.view_width <+ self.frp.set_view_width;
+            eval_ self.frp.set_view_width (m.redraw());
         }
         self
     }
@@ -1265,28 +1337,11 @@ impl AreaModel {
     /// Redraw the text.
     #[profile(Debug)]
     pub fn redraw(&self) {
-        let end = ViewLine::from_in_context(&self.buffer, self.buffer.last_view_line());
+        // FIXME:
+        let end =
+            ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line()).unwrap();
         self.redraw_sorted_line_ranges(&[ViewLine(0)..=end]);
         self.update_selections();
-        // panic!();
-        // error!("!!! USING REDRAW, THIS IS DEPRECTAED !!!");
-        // debug!("redraw {:?}", size_may_change);
-        // let lines = self.buffer.view_lines();
-        // let line_count = lines.len();
-        // self.lines.resize_with(line_count, |ix| self.new_line(ix));
-        // let widths = lines
-        //     .into_iter()
-        //     .enumerate()
-        //     .map(|(view_line_index, content)| {
-        //         self.redraw_line(unit::ViewLine(view_line_index), &content)
-        //     })
-        //     .collect_vec();
-        // let width = widths.into_iter().max_by(|x, y|
-        // x.partial_cmp(y).unwrap()).unwrap_or_default(); if size_may_change {
-        //     let height = self.calculate_height();
-        //     self.frp_endpoints.source.width.emit(width);
-        //     self.frp_endpoints.source.height.emit(height);
-        // }
     }
 
     pub fn chunks_per_font_face<'a>(
@@ -1323,6 +1378,7 @@ impl AreaModel {
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
         let line = &mut self.lines.borrow_mut()[view_line_index];
+        line.set_truncated(None);
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         // debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
@@ -1340,6 +1396,12 @@ impl AreaModel {
 
         let mut prev_cluster_byte_off = UBytes(0);
 
+        let view_width = self.frp_endpoints.view_width.value();
+        let mut to_be_truncated = 0;
+        let mut truncated = false;
+        let default_size = self.buffer.formatting.borrow().size.default;
+        let ellipsis_width = Line::ellipsis_size_x(default_size);
+
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             warn!(">> line_index: {:?}", line_index);
             warn!(">> shaped_line: {:?}", shaped_line);
@@ -1347,6 +1409,9 @@ impl AreaModel {
                 crate::view::ShapedLine::NonEmpty { glyph_sets } => {
                     let mut line_metrics: Option<LineMetrics> = None;
                     for shaped_glyph_set in glyph_sets {
+                        if truncated {
+                            break;
+                        }
                         for shaped_glyph in &shaped_glyph_set.glyphs {
                             warn!(">> glyph_id: {:?}", shaped_glyph.info.glyph_id);
                             let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
@@ -1357,11 +1422,7 @@ impl AreaModel {
                             line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
                             let style = line_style_iter.next().unwrap_or_default();
                             prev_cluster_byte_off = glyph_byte_start;
-                            if column >= Column(line.glyphs.len()) {
-                                line.push_glyph(|| glyph_system.new_glyph());
-                            }
-                            let glyph = &line.glyphs[column];
-                            glyph.start_byte_offset.set(glyph_byte_start);
+
 
                             let size = style.size;
                             let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
@@ -1369,6 +1430,25 @@ impl AreaModel {
                             let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
                             let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
                             let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
+                            let x_advance =
+                                shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+
+                            let glyph_rhs = glyph_offset_x + x_advance;
+
+                            if let Some(view_width) = view_width {
+                                if glyph_rhs > view_width {
+                                    truncated = true;
+                                    break;
+                                } else if glyph_rhs > view_width - ellipsis_width {
+                                    to_be_truncated += 1;
+                                }
+                            }
+
+                            if column >= Column(line.glyphs.len()) {
+                                line.push_glyph(|| glyph_system.new_glyph());
+                            }
+                            let glyph = &line.glyphs[column];
+                            glyph.start_byte_offset.set(glyph_byte_start);
 
                             line_metrics = match line_metrics {
                                 None => Some(LineMetrics { ascender, descender, gap }),
@@ -1393,8 +1473,7 @@ impl AreaModel {
                             glyph.sprite.set_position_xy(glyph_render_offset);
                             glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
-                            let x_advance =
-                                shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
+
                             glyph.x_advance.set(x_advance);
                             glyph_offset_x += x_advance;
                             divs.push(glyph_offset_x);
@@ -1427,8 +1506,16 @@ impl AreaModel {
             }
         });
 
-        line.glyphs.truncate(column.value);
-        line.set_divs(divs);
+        if truncated {
+            let divs = (&divs[0..divs.len() - to_be_truncated]).to_vec();
+            let divs = NonEmptyVec::try_from(divs).unwrap_or_else(|_| NonEmptyVec::singleton(0.0));
+            line.set_divs(divs);
+            line.glyphs.truncate(column.value - to_be_truncated);
+            line.set_truncated(Some(default_size));
+        } else {
+            line.set_divs(divs);
+            line.glyphs.truncate(column.value);
+        }
     }
 
     fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
@@ -1677,11 +1764,18 @@ impl AreaModel {
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
-                let last_glyph = line.glyphs.iter().rev().find(|g| !g.attached_to_cursor.get());
-                let width =
-                    last_glyph.map(|g| g.position().x + g.x_advance.get()).unwrap_or_default();
-                if width > max_width {
-                    max_width = width;
+                if let Some(truncation) = &line.truncation {
+                    let width = truncation.ellipsis_start_x() + truncation.ellipsis_size_x();
+                    if width > max_width {
+                        max_width = width;
+                    }
+                } else {
+                    let last_glyph = line.glyphs.iter().rev().find(|g| !g.attached_to_cursor.get());
+                    let width =
+                        last_glyph.map(|g| g.position().x + g.x_advance.get()).unwrap_or_default();
+                    if width > max_width {
+                        max_width = width;
+                    }
                 }
             }
             let selection_map = self.selection_map.borrow();
