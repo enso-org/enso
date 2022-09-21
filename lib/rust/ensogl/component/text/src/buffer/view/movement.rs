@@ -75,10 +75,10 @@ impl ViewBuffer {
     fn vertical_motion(
         &self,
         selection: Selection,
-        line_diff: Line,
+        line_diff: LineDiff,
         modify: bool,
     ) -> selection::Shape {
-        let move_up = line_diff < Line(0);
+        let move_up = line_diff < LineDiff(0);
         let location = self.vertical_motion_selection_to_location(selection, move_up, modify);
         let first_line = Line(0);
         let last_line = self.last_line_index();
@@ -137,8 +137,8 @@ impl ViewBuffer {
         let shape = selection::Shape;
         let shape: selection::Shape = match transform {
             Transform::All => shape(default(), self.last_line_last_location()),
-            Transform::Up => self.vertical_motion(selection, (-1).line(), modify),
-            Transform::Down => self.vertical_motion(selection, 1.line(), modify),
+            Transform::Up => self.vertical_motion(selection, LineDiff(-1), modify),
+            Transform::Down => self.vertical_motion(selection, LineDiff(1), modify),
             Transform::StartOfDocument => shape(selection.start, default()),
             Transform::EndOfDocument => {
                 let end = Location::from_in_context(self, text.byte_size());
@@ -173,7 +173,7 @@ impl ViewBuffer {
                 let line = selection.end.line;
                 let text_byte_size = text.byte_size();
                 let is_last_line = line == self.last_line_index();
-                let next_line_offset_opt = self.byte_offset_of_line_index(line + 1.line());
+                let next_line_offset_opt = self.byte_offset_of_line_index(line + Line(1));
                 let next_line_offset = next_line_offset_opt.unwrap_or_else(|_| text.byte_size());
                 let offset = if is_last_line {
                     text_byte_size

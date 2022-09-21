@@ -17,7 +17,7 @@ pub mod traits {
     pub use super::bytes::Into as TRAIT_bytes_into;
     pub use super::chars::Into as TRAIT_chars_into;
     pub use super::code_point_index::Into as TRAIT_column_into;
-    pub use super::line::Into as TRAIT_line_into;
+    // pub use super::line::Into as TRAIT_line_into;
     pub use super::ubytes::Into as TRAIT_ubytes_into;
 }
 pub use traits::*;
@@ -205,58 +205,58 @@ impl<'de> serde::Deserialize<'de> for Chars {
 // === Line ===
 // ============
 
-// FIXME: make Line usize and separate type for LineDiff - this should not be implemented for i32
-
-// TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
-//       This will make this unit safer.
-unit! {
-/// A type representing vertical measurements.
-Line::line(i32)
-}
-
-impl Line {
-    /// Saturating conversion to `usize`.
-    pub fn as_usize(self) -> usize {
-        self.value.max(0) as usize
-    }
-
-    /// Compute the absolute value of this line.
-    pub fn abs(self) -> Self {
-        self.value.saturating_abs().into()
-    }
-}
-
-impl From<usize> for Line {
-    fn from(t: usize) -> Self {
-        (t as i32).into()
-    }
-}
-
-impl From<&usize> for Line {
-    fn from(t: &usize) -> Self {
-        (*t as i32).into()
-    }
-}
-
-impl std::iter::Step for Line {
-    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
-        if start.value <= end.value {
-            Some((end.value - start.value) as usize)
-        } else {
-            None
-        }
-    }
-
-    fn forward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_add(count as i32)?;
-        Some(new_value.into())
-    }
-
-    fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_sub(count as i32)?;
-        Some(new_value.into())
-    }
-}
+// // FIXME: make Line usize and separate type for LineDiff - this should not be implemented for i32
+//
+// // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
+// //       This will make this unit safer.
+// unit! {
+// /// A type representing vertical measurements.
+// Line::line(i32)
+// }
+//
+// impl Line {
+//     /// Saturating conversion to `usize`.
+//     pub fn as_usize(self) -> usize {
+//         self.value.max(0) as usize
+//     }
+//
+//     /// Compute the absolute value of this line.
+//     pub fn abs(self) -> Self {
+//         self.value.saturating_abs().into()
+//     }
+// }
+//
+// impl From<usize> for Line {
+//     fn from(t: usize) -> Self {
+//         (t as i32).into()
+//     }
+// }
+//
+// impl From<&usize> for Line {
+//     fn from(t: &usize) -> Self {
+//         (*t as i32).into()
+//     }
+// }
+//
+// impl std::iter::Step for Line {
+//     fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+//         if start.value <= end.value {
+//             Some((end.value - start.value) as usize)
+//         } else {
+//             None
+//         }
+//     }
+//
+//     fn forward_checked(start: Self, count: usize) -> Option<Self> {
+//         let new_value = start.value.checked_add(count as i32)?;
+//         Some(new_value.into())
+//     }
+//
+//     fn backward_checked(start: Self, count: usize) -> Option<Self> {
+//         let new_value = start.value.checked_sub(count as i32)?;
+//         Some(new_value.into())
+//     }
+// }
 
 
 // unit! {
@@ -266,165 +266,204 @@ impl std::iter::Step for Line {
 use std::ops::AddAssign;
 use std::ops::SubAssign;
 
+macro_rules! define_line_unit {
+    ($name:ident) => {
+        #[derive(
+            Clone, Copy, Debug, Display, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into
+        )]
+        pub struct $name {
+            #[allow(missing_docs)]
+            pub value: usize,
+        }
+
+        /// Smart constructor.
+        #[allow(non_snake_case)]
+        pub const fn $name(value: usize) -> $name {
+            $name { value }
+        }
+
+        impl From<&$name> for $name {
+            fn from(t: &$name) -> Self {
+                *t
+            }
+        }
+
+        impl From<&&$name> for $name {
+            fn from(t: &&$name) -> Self {
+                **t
+            }
+        }
+
+        impl From<f32> for $name {
+            fn from(t: f32) -> Self {
+                if t < 0.0 {
+                    error!("Negative value used to construct {}.", stringify!($name));
+                    $name(0)
+                } else {
+                    $name(t as usize)
+                }
+            }
+        }
+
+        impl Sub<$name> for $name {
+            type Output = LineDiff;
+            fn sub(self, rhs: $name) -> Self::Output {
+                LineDiff(self.value as i32 - rhs.value as i32)
+            }
+        }
+
+        impl Sub<$name> for &$name {
+            type Output = LineDiff;
+            fn sub(self, rhs: $name) -> Self::Output {
+                (*self).sub(rhs)
+            }
+        }
+
+        impl Sub<&$name> for $name {
+            type Output = LineDiff;
+            fn sub(self, rhs: &$name) -> Self::Output {
+                self.sub(*rhs)
+            }
+        }
+
+        impl Sub<&$name> for &$name {
+            type Output = LineDiff;
+            fn sub(self, rhs: &$name) -> Self::Output {
+                (*self).sub(*rhs)
+            }
+        }
+
+        impl Sub<usize> for $name {
+            type Output = $name;
+            fn sub(self, rhs: usize) -> Self::Output {
+                if self.value < rhs {
+                    error!("Subtraction of {} resulted in negative value.", stringify!($name));
+                    $name(0)
+                } else {
+                    $name(self.value - rhs)
+                }
+            }
+        }
+
+        impl Add<$name> for $name {
+            type Output = $name;
+            fn add(self, rhs: $name) -> Self::Output {
+                let value = self.value.add(rhs.value);
+                $name { value }
+            }
+        }
+
+        impl Add<$name> for &$name {
+            type Output = $name;
+            fn add(self, rhs: $name) -> Self::Output {
+                (*self).add(rhs)
+            }
+        }
+
+        impl Add<&$name> for $name {
+            type Output = $name;
+            fn add(self, rhs: &$name) -> Self::Output {
+                self.add(*rhs)
+            }
+        }
+
+        impl Add<&$name> for &$name {
+            type Output = $name;
+            fn add(self, rhs: &$name) -> Self::Output {
+                (*self).add(*rhs)
+            }
+        }
+
+        impl Add<usize> for $name {
+            type Output = $name;
+            fn add(self, rhs: usize) -> Self::Output {
+                let value = self.value.add(rhs);
+                $name { value }
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl AddAssign<$name> for $name {
+            fn add_assign(&mut self, rhs: $name) {
+                self.value.add_assign(rhs.value)
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl AddAssign<&$name> for $name {
+            fn add_assign(&mut self, rhs: &$name) {
+                self.add_assign(*rhs)
+            }
+        }
+
+        // #[allow(clippy::needless_update)]
+        // impl SubAssign<$name> for $name {
+        //     fn sub_assign(&mut self, rhs: $name) {
+        //         *self = self.sub(rhs)
+        //     }
+        // }
+        //
+        // #[allow(clippy::needless_update)]
+        // impl SubAssign<&$name> for $name {
+        //     fn sub_assign(&mut self, rhs: &$name) {
+        //         self.sub_assign(*rhs)
+        //     }
+        // }
+
+        impl $name {
+            pub fn inc(self) -> Self {
+                self + $name(1)
+            }
+        }
+
+        impl iter::Step for $name {
+            fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+                let diff = end.value - start.value;
+                Some(diff)
+            }
+
+            fn forward_checked(start: Self, count: usize) -> Option<Self> {
+                let new_value = start.value.checked_add(count)?;
+                Some($name(new_value))
+            }
+
+            fn backward_checked(start: Self, count: usize) -> Option<Self> {
+                let new_value = start.value.checked_sub(count)?;
+                Some($name(new_value))
+            }
+        }
+    };
+}
+
+define_line_unit!(Line);
+define_line_unit!(ViewLine);
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into)]
-pub struct ViewLine {
+pub struct LineDiff {
     #[allow(missing_docs)]
-    pub value: usize,
+    pub value: i32,
 }
 
-/// Smart constructor.
-#[allow(non_snake_case)]
-pub const fn ViewLine(value: usize) -> ViewLine {
-    ViewLine { value }
+pub fn LineDiff(value: i32) -> LineDiff {
+    LineDiff { value }
 }
 
-impl From<&ViewLine> for ViewLine {
-    fn from(t: &ViewLine) -> Self {
-        *t
-    }
-}
-
-impl From<&&ViewLine> for ViewLine {
-    fn from(t: &&ViewLine) -> Self {
-        **t
-    }
-}
-
-impl From<f32> for ViewLine {
-    fn from(t: f32) -> Self {
-        if t < 0.0 {
-            error!("Negative value used to construct ViewLine.");
-            ViewLine(0)
+impl Add<LineDiff> for Line {
+    type Output = Line;
+    fn add(self, line_diff: LineDiff) -> Self::Output {
+        if -line_diff.value > self.value as i32 {
+            error!("Adding of LineDiff to Line resulted in negative value.");
+            Line(0)
         } else {
-            ViewLine(t as usize)
+            Line((self.value as i32 + line_diff.value) as usize)
         }
     }
 }
 
-
-
-impl Sub<ViewLine> for ViewLine {
-    type Output = ViewLine;
-    fn sub(self, rhs: ViewLine) -> Self::Output {
-        if self.value < rhs.value {
-            error!("Subtraction of ViewLine resulted in negative value.");
-            ViewLine(0)
-        } else {
-            ViewLine(self.value - rhs.value)
-        }
-    }
-}
-
-impl Sub<ViewLine> for &ViewLine {
-    type Output = ViewLine;
-    fn sub(self, rhs: ViewLine) -> Self::Output {
-        (*self).sub(rhs)
-    }
-}
-
-impl Sub<&ViewLine> for ViewLine {
-    type Output = ViewLine;
-    fn sub(self, rhs: &ViewLine) -> Self::Output {
-        self.sub(*rhs)
-    }
-}
-
-impl Sub<&ViewLine> for &ViewLine {
-    type Output = ViewLine;
-    fn sub(self, rhs: &ViewLine) -> Self::Output {
-        (*self).sub(*rhs)
-    }
-}
-
-impl Add<ViewLine> for ViewLine {
-    type Output = ViewLine;
-    fn add(self, rhs: ViewLine) -> Self::Output {
-        let value = self.value.add(rhs.value);
-        ViewLine { value }
-    }
-}
-
-impl Add<ViewLine> for &ViewLine {
-    type Output = ViewLine;
-    fn add(self, rhs: ViewLine) -> Self::Output {
-        (*self).add(rhs)
-    }
-}
-
-impl Add<&ViewLine> for ViewLine {
-    type Output = ViewLine;
-    fn add(self, rhs: &ViewLine) -> Self::Output {
-        self.add(*rhs)
-    }
-}
-
-impl Add<&ViewLine> for &ViewLine {
-    type Output = ViewLine;
-    fn add(self, rhs: &ViewLine) -> Self::Output {
-        (*self).add(*rhs)
-    }
-}
-
-#[allow(clippy::needless_update)]
-impl AddAssign<ViewLine> for ViewLine {
-    fn add_assign(&mut self, rhs: ViewLine) {
-        self.value.add_assign(rhs.value)
-    }
-}
-
-#[allow(clippy::needless_update)]
-impl AddAssign<&ViewLine> for ViewLine {
-    fn add_assign(&mut self, rhs: &ViewLine) {
-        self.add_assign(*rhs)
-    }
-}
-
-#[allow(clippy::needless_update)]
-impl SubAssign<ViewLine> for ViewLine {
-    fn sub_assign(&mut self, rhs: ViewLine) {
-        *self = self.sub(rhs)
-    }
-}
-
-#[allow(clippy::needless_update)]
-impl SubAssign<&ViewLine> for ViewLine {
-    fn sub_assign(&mut self, rhs: &ViewLine) {
-        self.sub_assign(*rhs)
-    }
-}
-
-impl ViewLine {
-    pub fn inc(self) -> Self {
-        self + ViewLine(1)
-    }
-}
-
-// impl From<usize> for ViewLine {
-//     fn from(t: usize) -> Self {
-//         (t as i32).into()
-//     }
-// }
-//
-// impl From<&usize> for ViewLine {
-//     fn from(t: &usize) -> Self {
-//         (*t as i32).into()
-//     }
-// }
-
-impl iter::Step for ViewLine {
-    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
-        let diff = end.value - start.value;
-        Some(diff)
-    }
-
-    fn forward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_add(count)?;
-        Some(ViewLine(new_value))
-    }
-
-    fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        let new_value = start.value.checked_sub(count)?;
-        Some(ViewLine(new_value))
+impl Add<Line> for LineDiff {
+    type Output = Line;
+    fn add(self, line: Line) -> Self::Output {
+        line + self
     }
 }
 
@@ -534,16 +573,15 @@ mod location {
             self.with_offset(Offset::from(0_usize))
         }
 
-        pub fn inc_line(self) -> Location<Offset, <Line as Add>::Output>
-        where Line: Add + From<usize> {
-            self.mod_line(|t| t + Line::from(1_usize))
+        pub fn inc_line(self) -> Location<Offset, <Line as Add<usize>>::Output>
+        where Line: Add<usize> + From<usize> {
+            self.mod_line(|t| t + 1_usize)
         }
 
-        pub fn dec_line(self) -> Location<Offset, <Line as Sub>::Output>
-        where Line: Sub + From<usize> {
-            self.mod_line(|t| t - Line::from(1_usize))
+        pub fn dec_line(self) -> Location<Offset, <Line as Sub<usize>>::Output>
+        where Line: Sub<usize> + From<usize> {
+            self.mod_line(|t| t - 1_usize)
         }
-
 
         pub fn inc_offset(self) -> Location<<Offset as Add>::Output, Line>
         where Offset: Add + From<usize> {

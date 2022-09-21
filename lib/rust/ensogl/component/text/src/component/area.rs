@@ -240,7 +240,7 @@ ensogl_core::define_endpoints! {
         /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
         set_first_view_line(unit::Line),
-        mod_first_view_line(i32),
+        mod_first_view_line(LineDiff),
         set_view_width(Option<f32>),
     }
     Output {
@@ -751,23 +751,24 @@ impl AreaModel {
                         //     }
                         // }
 
-                        if line_diff > 0 {
+                        if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
-                            for i in 0..line_diff as usize {
+                            for i in 0..line_diff.value as usize {
                                 let index_to_insert = second_line_index + ViewLine(i);
                                 if index_to_insert < ViewLine(lines.len()) {
                                     lines.insert(index_to_insert, self.new_line());
                                 }
                             }
-                        } else if line_diff < 0 {
+                        } else if line_diff < LineDiff(0) {
                             // Remove lines that are no longer needed. This is needed for proper
                             // partial redraw (redrawing only the lines that changed).
-                            let line_diff = ViewLine((-line_diff) as usize);
+                            let line_diff = ViewLine((-line_diff.value) as usize);
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
 
-                        let range_end = ViewLine((shape_x.end().value as i32 + line_diff) as usize);
+                        let range_end =
+                            ViewLine((shape_x.end().value as i32 + line_diff.value) as usize);
                         let range = (*shape_x.start())..=range_end;
 
                         range.intersect(&view_line_range)

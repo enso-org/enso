@@ -88,7 +88,7 @@ pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     pub change:       Change<Metric, Str>,
     pub selection:    Selection<Loc>,
     pub change_range: RangeInclusive<Line>,
-    pub line_diff:    i32,
+    pub line_diff:    LineDiff,
 }
 
 impl<Metric: Default, Str: Default, Loc: Default> Default
@@ -630,17 +630,17 @@ impl ViewBuffer {
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
         let inserted_line_count = local_byte_selection.end.line - redraw_start_line + Line(1);
 
-        let line_diff = inserted_line_count.value - selected_line_count.value;
+        let line_diff = inserted_line_count - selected_line_count;
 
 
-        if line_diff != 0 {
+        if line_diff != LineDiff(0) {
             let mut shaped_lines = self.shaped_lines.borrow_mut();
             let to_update = shaped_lines.drain_filter(|line, _| *line > redraw_end_line);
-            let to_update = to_update.map(|(line, s)| (line + Line(line_diff), s)).collect_vec();
+            let to_update = to_update.map(|(line, s)| (line + line_diff, s)).collect_vec();
             shaped_lines.extend(to_update);
         }
 
-        let redraw_range = redraw_start_line.value..=(redraw_end_line.value + line_diff);
+        let redraw_range = redraw_start_line.value..=(redraw_end_line + line_diff).value;
 
         // FIXME: make it more inteligent.
         for line in redraw_range {
@@ -763,7 +763,7 @@ ensogl_core::define_endpoints! {
         mod_property               (Vec<buffer::Range<UBytes>>, Option<style::PropertyDiff>),
         set_property_default       (Option<style::ResolvedProperty>),
         set_first_view_line        (Line),
-        mod_first_view_line        (i32),
+        mod_first_view_line        (LineDiff),
     }
 
     Output {
@@ -909,9 +909,8 @@ impl ViewModel {
         self.first_view_line.set(line);
     }
 
-    fn mod_first_view_line(&self, diff: i32) -> Line {
-        let line = self.first_view_line.get();
-        let line = Line((line.value + diff).max(0));
+    fn mod_first_view_line(&self, diff: LineDiff) -> Line {
+        let line = self.first_view_line.get() + diff;
         self.set_first_view_line(line);
         line
     }
@@ -980,8 +979,8 @@ impl ViewModel {
     /// Index of the last line of this buffer view.
     pub fn last_view_line(&self) -> Line {
         let max_line = self.last_line_index();
-        let view_line_diff = self.view_line_count() - 1;
-        let last_view_line = Line(self.first_view_line().value + view_line_diff as i32);
+        let view_line_diff = LineDiff(self.view_line_count() as i32 - 1);
+        let last_view_line = self.first_view_line() + view_line_diff;
         last_view_line.min(max_line)
     }
 
@@ -1005,7 +1004,7 @@ impl ViewModel {
     }
 
     pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
-        self.first_view_line() + Line(view_line.value as i32)
+        self.first_view_line() + Line(view_line.value)
     }
 
     pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {

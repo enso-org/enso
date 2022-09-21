@@ -165,7 +165,7 @@ impl Text {
 impl Text {
     /// The first valid line index in this text.
     pub fn first_line_index(&self) -> Line {
-        0.line()
+        Line(0)
     }
 
     /// The first valid line byte offset in this text.
@@ -243,7 +243,7 @@ impl Text {
     /// Check whether the provided line index is valid in this text.
     pub fn validate_line_index(&self, line: Line) -> Result<Line, BoundsError> {
         use BoundsError::*;
-        if line < 0.line() {
+        if line < Line(0) {
             Err(TooSmall)
         } else if line > self.last_line_index() {
             Err(TooBig)
@@ -277,7 +277,7 @@ impl Text {
     /// Return the offset after the last character of a given line if the line exists.
     pub fn end_byte_offset_of_line_index(&self, line: Line) -> Result<UBytes, BoundsError> {
         self.validate_line_index(line)?;
-        let next_line = line + 1.line();
+        let next_line = line + Line(1);
         let next_line_off = self.byte_offset_of_line_index(next_line).ok();
         // FIXME: this will not work with \r\n!
         let next_line_prev = next_line_off.and_then(|t| self.prev_grapheme_offset(t));
@@ -299,7 +299,7 @@ impl Text {
 
     /// The line byte offset. Panics in case the line index was invalid.
     pub fn byte_offset_of_line_index_unchecked(&self, line: Line) -> UBytes {
-        self.rope.offset_of_line(line.as_usize()).into()
+        self.rope.offset_of_line(line.value).into()
     }
 
     /// The byte offset of the given line index.
@@ -479,7 +479,7 @@ impl Text {
         } else if lines_count == 0 {
             default()
         } else {
-            let line = ((lines_count - 1) as i32).line();
+            let line = Line(lines_count - 1);
             let byte_offset = self.end_byte_offset_of_line_index(line).unwrap();
             Location(line, byte_offset)
         }
@@ -722,7 +722,7 @@ impl TextCell {
     pub fn lines_vec(&self, range: std::ops::Range<UBytes>) -> Vec<String> {
         let rope_range = range.start.value..range.end.value;
         let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
-        let missing_last = lines.len() == self.last_line_index().as_usize();
+        let missing_last = lines.len() == self.last_line_index().value;
         if missing_last {
             lines.push("".into())
         }
