@@ -63,9 +63,25 @@ public final class Vector implements TruffleObject {
     return this.storage;
   }
 
-  @Builtin.Method(name = "slice_builtin", description = "Returns a slice of this Vector.")
-  public final ArraySlice slice(long start, long end) {
-    return new ArraySlice(this.storage, start, end);
+  @Builtin.Method(name = "slice", description = "Returns a slice of this Vector.")
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  public final Vector slice(
+      long start,
+      long end,
+      InteropLibrary interop) throws UnsupportedMessageException {
+    long this_length = length(interop);
+    long slice_start = Math.max(0, start);
+    long slice_end = Math.min(this_length, end);
+
+    if (slice_start >= slice_end) {
+      return new Vector(new Array(0));
+    }
+
+    if ((slice_start == 0) && (slice_end == this_length)) {
+      return this;
+    }
+
+    return new Vector(new ArraySlice(this.storage, slice_start, slice_end));
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")

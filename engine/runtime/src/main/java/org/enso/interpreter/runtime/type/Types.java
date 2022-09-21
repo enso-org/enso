@@ -42,7 +42,6 @@ import org.enso.polyglot.data.TypeGraph;
   UnresolvedSymbol.class,
   Array.class,
   ArrayOverBuffer.class,
-  ArraySlice.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
