@@ -655,7 +655,7 @@ type Vector a
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
-    slice self start end = @Builtin_Method "Vector.slice_builtin"
+    slice self start end = @Builtin_Method "Vector.slice"
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
