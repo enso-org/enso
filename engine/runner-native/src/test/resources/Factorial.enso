@@ -4,5 +4,6 @@ fac n =
     res = facacc n 1
     res
     
-main =
-    fac 6
+main number =
+    ## Note: This assumes that number is of type Integer already
+    fac number
