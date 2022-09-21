@@ -627,7 +627,8 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         "~" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
-                .as_compile_time_operation(),
+                .as_compile_time_operation()
+                .as_suspension(),
         "-" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())

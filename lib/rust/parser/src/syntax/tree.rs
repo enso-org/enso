@@ -494,19 +494,35 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 /// A function argument definition.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinition<'s> {
-    /// Closing parenthesis (only present when a default is provided).
-    pub open:    Option<token::Symbol<'s>>,
+    /// Opening parenthesis (outer).
+    pub open:       Option<token::Symbol<'s>>,
+    /// Opening parenthesis (inner).
+    pub open2:      Option<token::Symbol<'s>>,
+    /// An optional execution-suspension unary operator (~).
+    pub suspension: Option<token::Operator<'s>>,
     /// The pattern being bound to an argument.
-    pub pattern: Tree<'s>,
+    pub pattern:    Tree<'s>,
+    /// An optional type ascribed to an argument.
+    #[reflect(rename = "type")]
+    pub type_:      Option<ArgumentType<'s>>,
+    /// Closing parenthesis (inner).
+    pub close2:     Option<token::Symbol<'s>>,
     /// An optional default value for an argument.
-    pub default: Option<ArgumentDefault<'s>>,
-    /// Closing parenthesis (only present when a default is provided).
-    pub close:   Option<token::Symbol<'s>>,
+    pub default:    Option<ArgumentDefault<'s>>,
+    /// Closing parenthesis (outer).
+    pub close:      Option<token::Symbol<'s>>,
 }
 
 impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.open).add(&mut self.pattern).add(&mut self.default).add(&mut self.close)
+        span.add(&mut self.open)
+            .add(&mut self.open2)
+            .add(&mut self.suspension)
+            .add(&mut self.pattern)
+            .add(&mut self.type_)
+            .add(&mut self.close2)
+            .add(&mut self.default)
+            .add(&mut self.close)
     }
 }
 
@@ -522,6 +538,22 @@ pub struct ArgumentDefault<'s> {
 impl<'s> span::Builder<'s> for ArgumentDefault<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.equals).add(&mut self.expression)
+    }
+}
+
+/// A type ascribed to an argument definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentType<'s> {
+    /// The `:` token.
+    pub operator: token::Operator<'s>,
+    /// The type.
+    #[reflect(rename = "type")]
+    pub type_:    Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentType<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.operator).add(&mut self.type_)
     }
 }
 

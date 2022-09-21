@@ -319,54 +319,70 @@ pub fn parse_argument_application<'s>(
             let close = mem::take(close);
             let equals = equals.clone();
             let pattern = Tree::ident(name.clone());
+            let open2 = default();
+            let suspension = default();
+            let close2 = default();
+            let type_ = default();
             let default = Some(ArgumentDefault { equals, expression: arg.clone() });
             func.span.left_offset += mem::take(&mut expression.span.left_offset);
             *expression = func.clone();
-            Some(ArgumentDefinition { open, pattern, default, close })
+            Some(ArgumentDefinition { open, open2, pattern, suspension, default, close2, type_, close })
         }
         _ => None,
     }
 }
 
 /// Interpret the expression as an element of an argument definition sequence.
-pub fn parse_argument_definition(expression: syntax::Tree) -> syntax::tree::ArgumentDefinition {
+pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::ArgumentDefinition {
     use syntax::tree::*;
-    match expression.variant {
-        box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            if opr.properties.is_assignment() =>
-        {
-            let equals = opr;
-            let open = default();
-            let close = default();
-            let mut pattern = lhs;
-            pattern.span.left_offset += expression.span.left_offset;
-            let default = Some(ArgumentDefault { equals, expression: rhs });
-            ArgumentDefinition { open, pattern, default, close }
-        }
-        box Variant::Group(Group {
-            open: Some(mut open),
-            body:
-                Some(Tree {
-                    variant:
-                        box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
-                    ..
-                }),
-            close: Some(close),
-        }) if opr.properties.is_assignment() => {
-            let equals = opr;
-            open.left_offset += expression.span.left_offset;
-            let open = Some(open);
-            let close = Some(close);
-            let default = Some(ArgumentDefault { equals, expression: rhs });
-            ArgumentDefinition { open, pattern: lhs, default, close }
-        }
-        _ => {
-            let open = default();
-            let close = default();
-            let default = default();
-            ArgumentDefinition { open, pattern: expression, default, close }
-        }
+    let mut open1 = default();
+    let mut close1 = default();
+    if let box Variant::Group(Group { mut open, body: Some(mut body), close }) = pattern.variant {
+        *(if let Some(open) = open.as_mut() {
+            &mut open.left_offset
+        } else {
+            &mut body.span.left_offset
+        }) += pattern.span.left_offset;
+        open1 = open;
+        close1 = close;
+        pattern = body;
     }
+    let mut default_ = default();
+    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_assignment() {
+        let left_offset = pattern.span.left_offset;
+        default_ = Some(ArgumentDefault { equals: opr.clone(), expression: rhs.clone() });
+        pattern = lhs.clone();
+        pattern.span.left_offset += left_offset;
+    }
+    let mut open2 = default();
+    let mut close2 = default();
+    if let box Variant::Group(Group { mut open, body: Some(mut body), close }) = pattern.variant {
+        *(if let Some(open) = open.as_mut() {
+            &mut open.left_offset
+        } else {
+            &mut body.span.left_offset
+        }) += pattern.span.left_offset;
+        open2 = open;
+        close2 = close;
+        pattern = body;
+    }
+    let mut type__ = default();
+    if let box Variant::TypeAnnotated(TypeAnnotated { mut expression, operator, type_ }) = pattern.variant {
+        expression.span.left_offset += pattern.span.left_offset;
+        type__ = Some(ArgumentType { operator, type_ });
+        pattern = expression;
+    }
+    let mut suspension = default();
+    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_suspension() {
+        let mut opr = opr.clone();
+        opr.left_offset += pattern.span.left_offset;
+        suspension = Some(opr);
+        pattern = rhs.clone();
+    }
+    let open = open1;
+    let close = close1;
+    let type_ = type__;
+    ArgumentDefinition { open, open2, pattern, suspension, default: default_, close2, type_, close }
 }
 
 /// Return whether the expression is a body block.

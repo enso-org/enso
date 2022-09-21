@@ -335,6 +335,7 @@ pub struct OperatorProperties {
     is_assignment:             bool,
     is_arrow:                  bool,
     is_sequence:               bool,
+    is_suspension:             bool,
 }
 
 impl OperatorProperties {
@@ -383,6 +384,11 @@ impl OperatorProperties {
         Self { is_sequence: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the execution-suspension operator.
+    pub fn as_suspension(self) -> Self {
+        Self { is_suspension: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
     pub fn with_decimal_interpretation(self) -> Self {
         Self { can_be_decimal_operator: true, ..self }
@@ -421,6 +427,11 @@ impl OperatorProperties {
     /// Return whether this operator is the sequence operator.
     pub fn is_sequence(&self) -> bool {
         self.is_sequence
+    }
+
+    /// Return whether this operator is the execution-suspension operator.
+    pub fn is_suspension(&self) -> bool {
+        self.is_suspension
     }
 
     /// Return this operator's associativity.

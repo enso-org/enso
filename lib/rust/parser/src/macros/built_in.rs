@@ -272,7 +272,7 @@ impl<'s> TypeDefBodyBuilder<'s> {
             left_offset += span.left_offset;
             constructor.left_offset += left_offset;
             if let Some((equals, expression)) = last_argument_default
-                    && let Some(ArgumentDefinition { open: None, pattern: _, default, close: None })
+                    && let Some(ArgumentDefinition { open: None, default, close: None, .. })
                     = arguments.last_mut() && default.is_none() {
                 *default = Some(ArgumentDefault { equals, expression });
             }
