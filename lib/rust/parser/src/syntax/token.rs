@@ -49,7 +49,8 @@
 //! ```text
 //! pub enum Variant {
 //!     Newline (variant::Newline),
-//!     Symbol (variant::Symbol),
+//!     OpenSymbol (variant::OpenSymbol),
+//!     CloseSymbol (variant::CloseSymbol),
 //!     Wildcard (variant::Wildcard),
 //!     Ident (variant::Ident),
 //!     // ... many more
@@ -81,7 +82,8 @@
 //! ```text
 //! pub enum VariantMarker {
 //!     Newline,
-//!     Symbol,
+//!     OpenSymbol,
+//!     CloseSymbol,
 //!     Wildcard,
 //!     Ident,
 //!     // ... many more
@@ -251,7 +253,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[derive(Default)]
     pub enum Variant {
         Newline,
-        Symbol,
+        OpenSymbol,
+        CloseSymbol,
         BlockStart,
         BlockEnd,
         Wildcard {

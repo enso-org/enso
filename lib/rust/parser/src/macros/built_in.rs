@@ -132,9 +132,9 @@ pub fn group<'s>() -> Definition<'s> {
 fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use operator::resolve_operator_precedence_if_non_empty;
     let (close, mut segments) = segments.pop();
-    let close = into_symbol(close.header);
+    let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
-    let open = into_symbol(segment.header);
+    let open = into_open_symbol(segment.header);
     let body = segment.result.tokens();
     let body = resolve_operator_precedence_if_non_empty(body);
     syntax::Tree::group(Some(open), body, Some(close))
@@ -362,19 +362,19 @@ fn tuple_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
 }
 
 struct GroupedSequence<'s> {
-    left:  syntax::token::Symbol<'s>,
+    left:  syntax::token::OpenSymbol<'s>,
     first: Option<syntax::Tree<'s>>,
     rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
-    right: syntax::token::Symbol<'s>,
+    right: syntax::token::CloseSymbol<'s>,
 }
 
 fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
     use operator::resolve_operator_precedence_if_non_empty;
     use syntax::tree::*;
     let (right, mut rest) = segments.pop();
-    let right_ = into_symbol(right.header);
+    let right_ = into_close_symbol(right.header);
     let left = rest.pop().unwrap();
-    let left_ = into_symbol(left.header);
+    let left_ = into_open_symbol(left.header);
     let expression = left.result.tokens();
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let mut rest = vec![];
@@ -404,18 +404,23 @@ fn splice<'s>() -> Definition<'s> {
 fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use operator::resolve_operator_precedence_if_non_empty;
     let (close, mut segments) = segments.pop();
-    let close = into_symbol(close.header);
+    let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
-    let open = into_symbol(segment.header);
+    let open = into_open_symbol(segment.header);
     let expression = segment.result.tokens();
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
     syntax::Tree::text_literal(default(), vec![splice], default(), default())
 }
 
-fn into_symbol(token: syntax::token::Token) -> syntax::token::Symbol {
+fn into_open_symbol(token: syntax::token::Token) -> syntax::token::OpenSymbol {
     let syntax::token::Token { left_offset, code, .. } = token;
-    syntax::token::symbol(left_offset, code)
+    syntax::token::open_symbol(left_offset, code)
+}
+
+fn into_close_symbol(token: syntax::token::Token) -> syntax::token::CloseSymbol {
+    let syntax::token::Token { left_offset, code, .. } = token;
+    syntax::token::close_symbol(left_offset, code)
 }
 
 fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {

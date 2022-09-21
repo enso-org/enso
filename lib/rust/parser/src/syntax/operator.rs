@@ -19,7 +19,8 @@ use crate::syntax::token::Token;
 fn annotate_tokens_that_need_spacing(item: syntax::Item) -> syntax::Item {
     use syntax::tree::Variant::*;
     item.map_tree(|ast| match &*ast.variant {
-        MultiSegmentApp(data) if !data.segments.first().header.is_symbol() =>
+        MultiSegmentApp(data)
+            if !matches!(data.segments.first().header.variant, token::Variant::OpenSymbol(_)) =>
             ast.with_error("This expression cannot be used in a non-spaced equation."),
         _ => ast,
     })
@@ -110,12 +111,12 @@ fn resolve_operator_precedence_internal<'s>(
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default)]
 struct ExpressionBuilder<'s> {
-    elided:           u32,
-    wildcards:        u32,
-    output:           Vec<syntax::Item<'s>>,
-    operator_stack:   Vec<Operator<'s>>,
-    prev_type:        Option<ItemType>,
-    nospace:          bool,
+    elided:         u32,
+    wildcards:      u32,
+    output:         Vec<syntax::Item<'s>>,
+    operator_stack: Vec<Operator<'s>>,
+    prev_type:      Option<ItemType>,
+    nospace:        bool,
 }
 
 impl<'s> ExpressionBuilder<'s> {

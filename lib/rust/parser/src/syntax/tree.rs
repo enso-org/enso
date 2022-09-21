@@ -142,11 +142,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// An application using an argument name, like `summarize_transaction (price = 100)`.
         NamedApp {
             pub func:   Tree<'s>,
-            pub open:   Option<token::Symbol<'s>>,
+            pub open:   Option<token::OpenSymbol<'s>>,
             pub name:   token::Ident<'s>,
             pub equals: token::Operator<'s>,
             pub arg:    Tree<'s>,
-            pub close:  Option<token::Symbol<'s>>,
+            pub close:  Option<token::CloseSymbol<'s>>,
         },
         /// Application using the `default` keyword.
         DefaultApp {
@@ -239,9 +239,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An expression grouped by matched parentheses.
         Group {
-            pub open:  Option<token::Symbol<'s>>,
+            pub open:  Option<token::OpenSymbol<'s>>,
             pub body:  Option<Tree<'s>>,
-            pub close: Option<token::Symbol<'s>>,
+            pub close: Option<token::CloseSymbol<'s>>,
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
@@ -284,17 +284,17 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An array literal.
         Array {
-            pub left:  token::Symbol<'s>,
+            pub left:  token::OpenSymbol<'s>,
             pub first: Option<Tree<'s>>,
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
-            pub right: token::Symbol<'s>,
+            pub right: token::CloseSymbol<'s>,
         },
         /// A tuple literal.
         Tuple {
-            pub left:  token::Symbol<'s>,
+            pub left:  token::OpenSymbol<'s>,
             pub first: Option<Tree<'s>>,
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
-            pub right: token::Symbol<'s>,
+            pub right: token::CloseSymbol<'s>,
         },
     }
 }};}
@@ -441,11 +441,11 @@ pub enum TextElement<'s> {
     /// An interpolated section within a text literal.
     Splice {
         /// The opening ` character.
-        open:       token::Symbol<'s>,
+        open:       token::OpenSymbol<'s>,
         /// The interpolated expression.
         expression: Option<Tree<'s>>,
         /// The closing ` character.
-        close:      token::Symbol<'s>,
+        close:      token::CloseSymbol<'s>,
     },
 }
 
@@ -495,9 +495,9 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinition<'s> {
     /// Opening parenthesis (outer).
-    pub open:       Option<token::Symbol<'s>>,
+    pub open:       Option<token::OpenSymbol<'s>>,
     /// Opening parenthesis (inner).
-    pub open2:      Option<token::Symbol<'s>>,
+    pub open2:      Option<token::OpenSymbol<'s>>,
     /// An optional execution-suspension unary operator (~).
     pub suspension: Option<token::Operator<'s>>,
     /// The pattern being bound to an argument.
@@ -506,11 +506,11 @@ pub struct ArgumentDefinition<'s> {
     #[reflect(rename = "type")]
     pub type_:      Option<ArgumentType<'s>>,
     /// Closing parenthesis (inner).
-    pub close2:     Option<token::Symbol<'s>>,
+    pub close2:     Option<token::CloseSymbol<'s>>,
     /// An optional default value for an argument.
     pub default:    Option<ArgumentDefault<'s>>,
     /// Closing parenthesis (outer).
-    pub close:      Option<token::Symbol<'s>>,
+    pub close:      Option<token::CloseSymbol<'s>>,
 }
 
 impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
@@ -850,6 +850,45 @@ pub fn operator_section(elided: u32, wildcards: u32, ast: Tree) -> Tree {
         }
     }
     Tree::opr_section_boundary(elided, wildcards, ast)
+}
+
+impl<'s> From<Token<'s>> for Tree<'s> {
+    fn from(token: Token<'s>) -> Self {
+        match token.variant {
+            token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+            token::Variant::Digits(number) =>
+                Tree::number(None, Some(token.with_variant(number)), None),
+            token::Variant::NumberBase(base) =>
+                Tree::number(Some(token.with_variant(base)), None, None),
+            token::Variant::TextStart(open) =>
+                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default()),
+            token::Variant::TextSection(section) => {
+                let trim = token.left_offset.visible;
+                let section = TextElement::Section { text: token.with_variant(section) };
+                Tree::text_literal(default(), vec![section], default(), trim)
+            }
+            token::Variant::TextEscape(escape) => {
+                let trim = token.left_offset.visible;
+                let token = token.with_variant(escape);
+                let section = TextElement::Escape { token };
+                Tree::text_literal(default(), vec![section], default(), trim)
+            }
+            token::Variant::TextEnd(close) =>
+                Tree::text_literal(default(), default(), Some(token.with_variant(close)), default()),
+            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
+            token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+            token::Variant::OpenSymbol(s) =>
+                Tree::group(Some(token.with_variant(s)), default(), default()),
+            token::Variant::CloseSymbol(s) =>
+                Tree::group(default(), default(), Some(token.with_variant(s))),
+            _ => {
+                let message = format!("Unexpected token: {token:?}");
+                let ident = token::variant::Ident(false, 0, false, false);
+                let value = Tree::ident(token.with_variant(ident));
+                Tree::with_error(value, message)
+            }
+        }
+    }
 }
 
 

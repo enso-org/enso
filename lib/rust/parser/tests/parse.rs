@@ -1039,7 +1039,8 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
     let ident_token = rust_to_meta[&token::variant::Ident::reflect().id];
     let operator_token = rust_to_meta[&token::variant::Operator::reflect().id];
-    let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
+    let open_symbol_token = rust_to_meta[&token::variant::OpenSymbol::reflect().id];
+    let close_symbol_token = rust_to_meta[&token::variant::CloseSymbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Digits::reflect().id];
     let number_base_token = rust_to_meta[&token::variant::NumberBase::reflect().id];
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
@@ -1106,7 +1107,8 @@ where T: serde::Serialize + Reflect {
     to_s_expr.skip(autoscope_token);
     to_s_expr.skip(text_start_token);
     to_s_expr.skip(text_end_token);
-    to_s_expr.skip(symbol_token);
+    to_s_expr.skip(open_symbol_token);
+    to_s_expr.skip(close_symbol_token);
     tuplify(to_s_expr.value(ast_ty, &value))
 }
 

@@ -504,9 +504,28 @@ impl<'s> Resolver<'s> {
             let out = (macro_def.body)(pattern_matched_segments);
             (out, not_used_items_of_last_segment)
         } else {
-            let message = format!("Macro was not matched with any known macro definition.\nResolved segments: {resolved_segments:?}");
-            let error = syntax::tree::Error::new(message);
-            (syntax::tree::Tree::invalid(error, default()), default())
+            let mut segments = resolved_segments.into_iter();
+            let (header0, mut segment) = segments.next().unwrap();
+            let header0_raw = header0.code.to_owned();
+            let mut items = VecDeque::new();
+            items.append(&mut segment);
+            for (header, mut segment) in segments {
+                items.push_back(syntax::Item::Token(header));
+                items.append(&mut segment);
+            }
+            let mut body = String::new();
+            for item in &items {
+                match item {
+                    syntax::Item::Token(token) => body.push_str(&token.code.repr),
+                    syntax::Item::Block(_block) => body.push_str("<block>"),
+                    syntax::Item::Tree(tree) => body.push_str(&tree.code()),
+                }
+            }
+            let message = format!("A macro is defined beginning with this token, but the code \
+                following it did not match any pattern from the macro's definition. Token={:?}, \
+                body={:?}", header0_raw, &items);
+            let header0 = syntax::Tree::from(header0).with_error(message);
+            (header0, items)
         }
     }
 

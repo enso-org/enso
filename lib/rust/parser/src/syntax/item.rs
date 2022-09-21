@@ -44,48 +44,7 @@ impl<'s> Item<'s> {
     /// Convert this item to a [`Tree`].
     pub fn to_ast(self) -> Tree<'s> {
         match self {
-            Item::Token(token) => match token.variant {
-                token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
-                token::Variant::Digits(number) =>
-                    Tree::number(None, Some(token.with_variant(number)), None),
-                token::Variant::NumberBase(base) =>
-                    Tree::number(Some(token.with_variant(base)), None, None),
-                token::Variant::TextStart(open) => Tree::text_literal(
-                    Some(token.with_variant(open)),
-                    default(),
-                    default(),
-                    default(),
-                ),
-                token::Variant::TextSection(section) => {
-                    let trim = token.left_offset.visible;
-                    let section = tree::TextElement::Section { text: token.with_variant(section) };
-                    Tree::text_literal(default(), vec![section], default(), trim)
-                }
-                token::Variant::TextEscape(escape) => {
-                    let trim = token.left_offset.visible;
-                    let token = token.with_variant(escape);
-                    let section = tree::TextElement::Escape { token };
-                    Tree::text_literal(default(), vec![section], default(), trim)
-                }
-                token::Variant::TextEnd(close) => Tree::text_literal(
-                    default(),
-                    default(),
-                    Some(token.with_variant(close)),
-                    default(),
-                ),
-                token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
-                token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
-                token::Variant::Symbol(s) =>
-                    Tree::group(default(), default(), Some(token.with_variant(s))),
-                _ => {
-                    let message =
-                        format!("Internal error: unimplemented to_ast: Item::Token({token:?})");
-                    let value = Tree::ident(
-                        token.with_variant(token::variant::Ident(false, 0, false, false)),
-                    );
-                    Tree::with_error(value, message)
-                }
-            },
+            Item::Token(token) => token.into(),
             Item::Tree(ast) => ast,
             Item::Block(items) => build_block(items),
         }

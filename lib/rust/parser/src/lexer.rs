@@ -685,15 +685,18 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
 
 
 
-// ==============
-// === Symbol ===
-// ==============
+// ===============
+// === Symbols ===
+// ===============
 
 impl<'s> Lexer<'s> {
     /// Parse a symbol.
     fn symbol(&mut self) {
-        if let Some(token) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(token.with_variant(token::Variant::symbol()));
+        if let Some(token) = self.token(|this| this.take_1(&['(', '{', '['])) {
+            self.submit_token(token.with_variant(token::Variant::open_symbol()));
+        }
+        if let Some(token) = self.token(|this| this.take_1(&[')', '}', ']'])) {
+            self.submit_token(token.with_variant(token::Variant::close_symbol()));
         }
     }
 }
@@ -840,7 +843,7 @@ impl<'s> Lexer<'s> {
         let token = self.make_token(
             splice_quote_start,
             splice_quote_end,
-            token::Variant::Symbol(token::variant::Symbol()),
+            token::Variant::CloseSymbol(token::variant::CloseSymbol()),
         );
         self.output.push(token);
         match state {
@@ -931,7 +934,7 @@ impl<'s> Lexer<'s> {
                 let token = self.make_token(
                     splice_quote_start,
                     splice_quote_end.clone(),
-                    token::Variant::Symbol(token::variant::Symbol()),
+                    token::Variant::OpenSymbol(token::variant::OpenSymbol()),
                 );
                 self.output.push(token);
                 self.stack.push(state);

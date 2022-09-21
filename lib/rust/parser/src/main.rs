@@ -33,8 +33,16 @@ use enso_parser::prelude::*;
 // =============
 
 fn main() {
+    use std::io::Read;
     init_wasm();
-    let ast = enso_parser::Parser::new().run("foo = 23");
-    println!("\n\n==================\n\n");
-    println!("{:#?}", ast);
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let mut code = input.as_str();
+    if let Some((_meta, code_)) = enso_parser::metadata::parse(&input) {
+        code = code_;
+    }
+    let ast = enso_parser::Parser::new().run(&code);
+    for (parsed, original) in ast.code().lines().zip(code.lines()) {
+        assert_eq!(parsed, original);
+    }
 }
