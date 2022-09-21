@@ -19,6 +19,7 @@ import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Function$Lambda;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
+import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
@@ -939,7 +940,6 @@ final class TreeToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
-  /*
   private def parseFmtSegments(
     literal: AST,
     segments: Seq[AST.Literal.Text.Segment[AST]]

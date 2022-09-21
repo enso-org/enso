@@ -316,10 +316,16 @@ impl DeserializerBuilder {
                     "case 1: {output} = {name}.left({t0}.deserialize({message})); break;"
                 )
                 .unwrap();
-                let err = format!("Unknown discriminant {} + {discriminant} + {} in {ty_name}.", '"', '"');
+                let err = format!(
+                    "Unknown discriminant {} + {discriminant} + {} in {ty_name}.",
+                    '"', '"'
+                );
                 let serialization = &self.support;
-                writeln!(body, "default: throw new {serialization}.FormatException({message}, \"{err}\"); }}")
-                    .unwrap();
+                writeln!(
+                    body,
+                    "default: throw new {serialization}.FormatException({message}, \"{err}\"); }}"
+                )
+                .unwrap();
             }
             _ => unimplemented!("Deserialize builtin: {}", &ty.name),
         }
@@ -355,7 +361,8 @@ impl DeserializerBuilder {
         let ty_name = quote_class_type(graph, self.root);
         let err = format!("Unknown discriminant {} + {discriminant} + {} in {ty_name}.", '"', '"');
         let serialization = &self.support;
-        writeln!(body, "default: throw new {serialization}.FormatException({message}, \"{err}\");").unwrap();
+        writeln!(body, "default: throw new {serialization}.FormatException({message}, \"{err}\");")
+            .unwrap();
         writeln!(body, "}}").unwrap();
         let message_ty = syntax::Type::named(format!("{serialization}.Message"));
         let mut method = syntax::Method::new("deserialize", ty_name);
