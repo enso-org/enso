@@ -267,7 +267,7 @@ type Date
 
              from Standard.Base import Date
 
-             example_workdays = Date.new 2020 1 1 . workdays_until (Date.new 2020 1 5)
+             example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
         if include_end_date then self.work_days_until (end + 1.day) holidays include_end_date=False else

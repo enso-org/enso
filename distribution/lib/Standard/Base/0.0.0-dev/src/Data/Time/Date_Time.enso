@@ -427,8 +427,7 @@ type Date_Time
              example_shift = Date_Time.new 2020 2 3 11 45 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date_Time
     add_work_days self days=1 holidays=[] =
-        diff = Time_Utils.days_between self.date (self.date.add_work_days days holidays)
-        self + diff.days
+        self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
