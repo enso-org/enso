@@ -115,8 +115,8 @@ fn type_constructors() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Circle #() #((Ident radius) (Ident x))))
-           ((Rectangle #((Ident width) (Ident height)) #()))
+         #(((Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
+           ((Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
            ((Point #() #())))
          #())
     ];
@@ -170,8 +170,10 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Ident x))))
-           ((Rectangle #((Ident width) (Ident height)) #()))
+         #(((Circle #() #(
+             ((() (TypeAnnotated (Ident radius) ":" (Ident float)) () ()))
+             ((() (Ident x) () ())))))
+           ((Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
            ((Point #() #()))
            (()))
          #((Function number #() "=" (BodyBlock #((Ident x))))
@@ -186,7 +188,8 @@ fn type_def_defaults() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Result #((() (Ident error) () ()) (() (Ident ok) ("=" (Ident Nothing)) ()))
-         #(((Ok #((OprApp (TypeAnnotated (Ident value) ":" (Ident ok)) (Ok "=") (Ident Nothing))) #())))
+         #(((Ok #((() (TypeAnnotated (Ident value) ":" (Ident ok)) ("=" (Ident Nothing)) ()))
+                #())))
          #())
     ];
     test(&code.join("\n"), expected);

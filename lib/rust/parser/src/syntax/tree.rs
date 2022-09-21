@@ -395,14 +395,29 @@ pub struct TypeConstructorDef<'s> {
     /// The identifier naming the type constructor.
     pub constructor: token::Ident<'s>,
     /// The arguments the type constructor accepts, specified inline.
-    pub arguments:   Vec<Tree<'s>>,
+    pub arguments:   Vec<ArgumentDefinition<'s>>,
     /// The arguments the type constructor accepts, specified on their own lines.
-    pub block:       Vec<block::Line<'s>>,
+    pub block:       Vec<ArgumentDefinitionLine<'s>>,
 }
 
 impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.constructor).add(&mut self.arguments).add(&mut self.block)
+    }
+}
+
+/// An argument specification on its own line.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentDefinitionLine<'s> {
+    /// The token beginning the line.
+    pub newline:  token::Newline<'s>,
+    /// The argument definition, unless this is an empty line.
+    pub argument: Option<ArgumentDefinition<'s>>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentDefinitionLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.argument)
     }
 }
 

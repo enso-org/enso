@@ -232,14 +232,14 @@ impl<'s> TypeDefBodyBuilder<'s> {
         use syntax::tree::*;
         let mut left_offset = crate::source::Offset::default();
         let mut last_argument_default = default();
-        let mut lhs = match &expression {
+        let lhs = match &expression {
             Tree {
                 variant:
                     box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
                 span,
             } if opr.properties.is_assignment() => {
                 left_offset += span.left_offset.clone();
-                last_argument_default = Some((opr, rhs));
+                last_argument_default = Some((opr.clone(), rhs.clone()));
                 lhs
             }
             Tree {
@@ -255,29 +255,29 @@ impl<'s> TypeDefBodyBuilder<'s> {
                 left_offset += &span_.left_offset;
                 left_offset += constructor.left_offset;
                 constructor.left_offset = left_offset;
-                let block = arguments.clone();
+                let block = arguments.iter().cloned().map(|block::Line { newline, expression }| {
+                    ArgumentDefinitionLine {
+                        newline,
+                        argument: expression.map(crate::parse_argument_definition),
+                    }
+                }).collect();
                 let arguments = default();
                 return Ok(TypeConstructorDef { constructor, arguments, block });
             }
             _ => &expression,
         };
-        let mut arguments = vec![];
-        while let Tree { variant: box Variant::App(App { func, arg }), span } = lhs {
-            left_offset += &span.left_offset;
-            lhs = func;
-            arguments.push(arg.clone());
-        }
-        if let Tree { variant: box Variant::Ident(Ident { token }), span } = lhs && token.is_type {
-            let mut constructor = token.clone();
-            left_offset += &span.left_offset;
-            left_offset += constructor.left_offset;
-            constructor.left_offset = left_offset;
-            arguments.reverse();
-            if let Some((opr, rhs)) = last_argument_default && let Some(lhs) = arguments.pop() {
-                arguments.push(Tree::opr_app(Some(lhs), Ok(opr.clone()), Some(rhs.clone())));
+        let (constructor, mut arguments) = crate::collect_arguments(lhs.clone());
+        if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor && token.is_type {
+            let mut constructor = token;
+            left_offset += span.left_offset;
+            constructor.left_offset += left_offset;
+            if let Some((equals, expression)) = last_argument_default
+                    && let Some(ArgumentDefinition { open: None, pattern: _, default, close: None })
+                    = arguments.last_mut() && default.is_none() {
+                *default = Some(ArgumentDefault { equals, expression });
             }
             let block = default();
-            return Ok(TypeConstructorDef { constructor, arguments, block });
+            return Ok(TypeConstructorDef{ constructor, arguments, block });
         }
         Err(expression)
     }
