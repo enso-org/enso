@@ -780,7 +780,8 @@ impl Area {
 
             // === Insert ===
 
-            key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_modifier_down);
+            trace keyboard.frp.down;
+            key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down).gate_not(&keyboard.frp.is_control_down);
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert, &key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
