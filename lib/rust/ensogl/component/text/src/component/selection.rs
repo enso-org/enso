@@ -63,27 +63,27 @@ pub mod shape {
     ensogl_core::define_shape_system! {
         pointer_events = false;
         (style:Style, selection:f32, start_time:f32, letter_width:f32, color_rgb:Vector3<f32>) {
-            let width_abs      = Var::<f32>::from("abs(input_size.x)");
-            let height         = Var::<f32>::from("input_size.y");
-            let rect_width     = width_abs - 2.0 * CURSOR_PADDING;
-            let rect_height    = height    - 2.0 * CURSOR_PADDING;
-            let time           = Var::<f32>::from("input_time");
-            let one            = Var::<f32>::from(1.0);
-            let time           = time - start_time;
-            let on_time        = BLINK_ON_DURATION + BLINK_SLOPE_OUT_DURATION;
-            let off_time       = on_time + BLINK_OFF_DURATION;
-            let sampler        = time % BLINK_PERIOD;
-            let slope_out      = sampler.smoothstep(BLINK_ON_DURATION,on_time);
-            let slope_in       = sampler.smoothstep(off_time,BLINK_PERIOD);
+            let width_abs = Var::<f32>::from("abs(input_size.x)");
+            let height = Var::<f32>::from("input_size.y");
+            let rect_width = width_abs - 2.0 * CURSOR_PADDING;
+            let rect_height = height - 2.0 * CURSOR_PADDING;
+            let time = Var::<f32>::from("input_time");
+            let one = Var::<f32>::from(1.0);
+            let time = time - start_time;
+            let on_time = BLINK_ON_DURATION + BLINK_SLOPE_OUT_DURATION;
+            let off_time = on_time + BLINK_OFF_DURATION;
+            let sampler = time % BLINK_PERIOD;
+            let slope_out = sampler.smoothstep(BLINK_ON_DURATION, on_time);
+            let slope_in = sampler.smoothstep(off_time, BLINK_PERIOD);
             let blinking_alpha = (one - slope_out + slope_in) * CURSOR_ALPHA;
-            let sel_width      = &rect_width - CURSOR_WIDTH;
-            let alpha_weight   = sel_width.smoothstep(0.0,letter_width);
-            let alpha          = alpha_weight.mix(blinking_alpha,SELECTION_ALPHA);
-            let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
-            let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
-            let color          = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
-                ,color_rgb,alpha.glsl());
-            let shape          = shape.fill(color);
+            let sel_width = &rect_width - CURSOR_WIDTH;
+            let alpha_weight = sel_width.smoothstep(0.0, letter_width);
+            let alpha = alpha_weight.mix(blinking_alpha, SELECTION_ALPHA);
+            let shape = Rect((1.px() * rect_width,1.px() * rect_height));
+            let shape = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
+            let rgb = color_rgb;
+            let color = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb,alpha.glsl());
+            let shape = shape.fill(color);
             shape.into()
         }
     }

@@ -100,12 +100,10 @@ mod ellipsis {
             let alpha1 = time.smoothstep(0.0, end1);
             let alpha2 = time.smoothstep(start2, end2);
             let alpha3 = time.smoothstep(start3, end3);
-            let color1 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
-                ,color_rgb,alpha1.glsl());
-            let color2 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
-                ,color_rgb,alpha2.glsl());
-            let color3 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
-                ,color_rgb,alpha3.glsl());
+            let rgb = color_rgb;
+            let color1 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha1.glsl());
+            let color2 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha2.glsl());
+            let color3 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha3.glsl());
             let shape1 = shape1.fill(color1);
             let shape2 = shape2.fill(color2);
             let shape3 = shape3.fill(color3);
@@ -124,7 +122,7 @@ mod line {
             // FIXME: change name to baseline
             set_y(f32),
             set_is_last(bool),
-            // Internal only.
+            // For internal usage only.
             show_ellipsis(),
         }
         Output {
@@ -290,11 +288,6 @@ mod line {
             display_object.add_child(&glyph);
             self.glyphs.push(glyph);
         }
-
-        // fn set_index(&mut self, index: ViewLine) {
-        //     let y_offset = -((index.value + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-        //     self.set_position_y(y_offset);
-        // }
     }
 
     impl display::Object for Line {
@@ -310,11 +303,6 @@ mod line {
             self.glyphs.iter()
         }
     }
-
-    // fn set_line_index(line: &display::object::Instance, index: usize) {
-    //     let y_offset = -((index + 1) as f32) * LINE_HEIGHT + LINE_VERTICAL_OFFSET;
-    //     line.set_position_y(y_offset);
-    // }
 }
 pub use line::Line;
 
