@@ -1610,7 +1610,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf",
  "ide-view-component-group",
- "ide-view-component-list-panel",
+ "ide-view-component-list-panel-old",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -3958,6 +3958,7 @@ dependencies = [
  "ide-view-breadcrumbs",
  "ide-view-component-group",
  "ide-view-component-list-panel",
+ "ide-view-component-list-panel-old",
 ]
 
 [[package]]
@@ -3979,6 +3980,27 @@ dependencies = [
 
 [[package]]
 name = "ide-view-component-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-grid-view",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-breadcrumbs",
+ "ide-view-component-group",
+ "num_enum",
+ "ordered-float",
+]
+
+[[package]]
+name = "ide-view-component-list-panel-old"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",

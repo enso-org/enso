@@ -15,7 +15,7 @@ ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view"
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view-component-group = { path = "../../component-browser/component-group" }
-ide-view-component-list-panel = { path = "../../component-browser/searcher-list-panel" }
+ide-view-component-list-panel-old = { path = "../../component-browser/searcher-list-panel" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 js-sys = { version = "0.3" }
 

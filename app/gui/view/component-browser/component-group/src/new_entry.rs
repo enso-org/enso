@@ -18,7 +18,8 @@ use ensogl_core::display::Scene;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::MovedHeaderPosition;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 
@@ -265,15 +266,12 @@ impl Data {
         // [`Kind`].
         let bg_width = if kind == Kind::LocalScopeEntry { entry_size.x } else { style.group_width };
         let bg_height = entry_size.y
-            + if kind == Kind::Header { -style.gap_between_groups } else { ENTRIES_OVERLAP_PX };
+            + if kind == Kind::Header { -style.column_gap } else { ENTRIES_OVERLAP_PX };
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = if kind == Kind::Header {
-            -style.gap_between_groups / 2.0
-        } else {
-            ENTRIES_OVERLAP_PX / 2.0
-        };
+        let bg_y =
+            if kind == Kind::Header { -style.column_gap / 2.0 } else { ENTRIES_OVERLAP_PX / 2.0 };
         self.background.set_position_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
@@ -284,7 +282,7 @@ impl Data {
     }
 
     fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let optional_gap = if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
+        let optional_gap = if kind == Kind::Header { style.column_gap } else { 0.0 };
         let height = entry_size.y - optional_gap;
         Contour::rectangular(Vector2(style.group_width, height))
     }
@@ -295,7 +293,7 @@ impl Data {
     }
 
     fn contour_offset(kind: Kind, style: &Style) -> Vector2 {
-        let y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
+        let y = if kind == Kind::Header { -style.column_gap / 2.0 } else { 0.0 };
         Vector2(0.0, y)
     }
 

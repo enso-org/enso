@@ -67,10 +67,9 @@ use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
 use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
+use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::application::component_browser::component_group as component_group_theme;
-use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
-use ensogl_list_view as list_view;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
@@ -80,26 +79,25 @@ use ide_view_component_group as component_group;
 use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers as GroupLayers;
-use searcher_theme::list_panel as list_panel_theme;
+
 
 
 // ==============
 // === Export ===
 // ==============
 
-pub mod column_grid;
 pub mod layout;
 pub mod layouting;
 
 
-
+mod grid;
 mod navigator;
 
+use crate::layout::Layout;
 pub use column_grid::LabeledAnyModelProvider;
 pub use component_group::set::EnteredModule;
 pub use component_group::set::GroupId;
 pub use ensogl_core::prelude;
-
 
 
 // =================
@@ -112,43 +110,6 @@ const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 
 
 // ==============
-// === Layers ===
-// ==============
-
-#[derive(Debug, Clone, CloneRef)]
-struct Layers {
-    groups:          GroupLayers,
-    base:            Layer,
-    navigator:       Layer,
-    selection:       Layer,
-    selection_mask:  Layer,
-    scroll_layer:    Layer,
-    scrollbar_layer: Layer,
-}
-
-impl Layers {
-    fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
-        let camera = app.display.default_scene.layers.node_searcher.camera();
-        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &camera);
-        let selection = Layer::new_with_cam(app.logger.sub("selection"), &camera);
-        let navigator = Layer::new_with_cam(app.logger.sub("navigator"), &camera);
-        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
-        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
-        selection.set_mask(&selection_mask);
-        app.display.default_scene.layers.node_searcher.add_sublayer(&base);
-        app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
-        app.display.default_scene.layers.node_searcher.add_sublayer(&navigator);
-        app.display.default_scene.layers.node_searcher.add_sublayer(&scrollbar_layer);
-        let content = &scroll_area.content_layer();
-        let groups = GroupLayers::new(&app.logger, content, &selection);
-        let scroll_layer = scroll_area.content_layer().clone_ref();
-        Self { base, selection, groups, selection_mask, navigator, scroll_layer, scrollbar_layer }
-    }
-}
-
-
-
-// ==============
 // === Shapes ===
 // ==============
 
@@ -157,13 +118,14 @@ impl Layers {
 /// Extra space around shape to allow for shadows.
 const SHADOW_PADDING: f32 = 25.0;
 
-z
+const FAVOURITES_SECTION_HEADING_LABEL: &str = "Favorite Data Science Tools";
+const LOCAL_SCOPE_SECTION_HEADING_LABEL: &str = "Local Scope";
+const SUB_MODULES_SECTION_HEADING_LABEL: &str = "Sub Modules";
 
 const INFINITE: f32 = 999999.0;
 
 
 // === Style ===
-
 
 #[derive(Clone, Debug, Default, FromTheme)]
 #[base_path = "list_panel_theme"]
@@ -177,19 +139,11 @@ struct Style {
     breadcrumbs_crop_left:  f32,
     breadcrumbs_crop_right: f32,
 
-    section_divider_height:      f32,
-    section_heading_size:        f32,
-    section_heading_offset:      f32,
-    section_heading_text_offset: f32,
-    section_heading_font:        String,
-    section_heading_color:       color::Rgba,
-    section_divider_color:       color::Rgba,
-
     menu_height:         f32,
     menu_divider_color:  color::Rgba,
     menu_divider_height: f32,
 
-    favourites_section_base_color: color::Rgba,
+    local_scope_section_base_color: color::Rgba,
 
     navigator_width:             f32,
     navigator_list_view_width:   f32,
@@ -237,97 +191,11 @@ impl Style {
     }
 }
 
-/// Enum to indicate whether sections headers should be placed above or below a section. Dead code
-/// is allowed as only one option is used at compile time.
-#[allow(dead_code)]
-#[derive(Clone, Copy, Debug)]
-enum SectionHeaderPlacement {
-    Top,
-    Bottom,
-}
-
-/// Indicates whether sections headers should be placed above or below a section.
-const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement::Bottom;
-
 
 
 // ========================
 // === Shape Definition ===
 // ========================
-
-
-// === Selection ===
-
-/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
-/// layers.
-///
-/// The selection box highlights a selected entry in the component list panel view. We render the
-/// selection above the background of the component group (so it is visible) but below the entry's
-/// text (so the text is not covered). Headers of the component groups complicate matters. The
-/// header is displayed on top of entries when scrolling the group, so there are cases when
-/// selection covers the header background (the header is considered the entry) and cases when the
-/// header covers selection, i.e., we select a partially visible entry below the header. To allow
-/// such behavior, we render a highlighted version of each component group on top of a normal one
-/// and use a layer masking to show only a part of it. See
-/// [component_group](component_group#selection) documentation to learn more about how the component
-/// groups are implemented.
-///
-/// The selection box should never leave the borders of the component list panel. We can't use
-/// [layers masking][] as our renderer does not support hierarchical masks, so instead, we build a
-/// shape of the selection box as an intersection of the `mask` rounded rectangle and the `area`
-/// shape. The `area` covers the entire component list panel and thus limits the area in which the
-/// selection box is visible.
-///
-/// The `mask` represents the selection box itself and moves in borders of `area` shape. `pos`
-/// and `selection_size` parameters represent its position and size, respectively. The shape of the
-/// component list panel determines the position and the size of the `area`. One can adjust them
-/// using a standard display object's API. (e.g. `set_position` method)
-///
-/// The `margin_top` parameter controls the variable height of the `area`. In a scrolled
-/// component group, the user can select a partially visible entry behind the group's header. We
-/// make the selection box appear covered by the header by reducing the height of the `area`. It's
-/// enough because headers are always on top of the component list panel in a scrolled group.
-///
-/// We have only a single `corners_radius` parameter for the bottom corners of the `area` and the
-/// corners of the selection `mask`. In the current [design][], the corner radius of the selection
-/// box depends on whether it covers the group's header or the entries. When entries are selected, a
-/// single `corners_radius` makes total sense - both `mask` and `area` have the same roundness.
-/// When the headers are highlighted, the `corners_radius` parameter no longer matches the roundness
-/// of the component list panel. It is ok because the header sticks to the top and is never
-/// displayed near the bottom part of the component list panel, where the rounded corners are.
-///
-/// [design]: https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md
-/// [layers masking]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
-pub mod selection_box {
-    use super::*;
-
-    ensogl_core::define_shape_system! {
-        pointer_events = false;
-        (style:Style,corners_radius:f32,pos:Vector2,selection_size:Vector2,margin_top:f32) {
-            let area_width = Var::<Pixels>::from("input_size.x");
-            let area_height = Var::<Pixels>::from("input_size.y");
-            let area_height = area_height - margin_top.px();
-            let half_height = area_height.clone() / 2.0;
-            let quater_height = area_height.clone() / 4.0;
-            let area_top = Rect((area_width.clone(),half_height.clone()));
-            let area_top = area_top.translate_y(quater_height.clone());
-            // Additional padding so that the two halves of the area overlap without gaps.
-            // The precise size is unimportant, so we use 1/8 of the height.
-            let padding = area_height / 8.0;
-            let area_bottom = Rect((area_width, half_height + padding.clone()));
-            let area_bottom = area_bottom.corners_radius(corners_radius.px());
-            let area_bottom = area_bottom.translate_y(-quater_height + padding / 2.0);
-            let area = area_top + area_bottom;
-            let area = area.translate_y(-margin_top.px() / 2.0);
-
-            let size = selection_size;
-            let mask = Rect(size.px()).corners_radius(corners_radius.px());
-            let mask = mask.translate(pos.px());
-            let mask = &mask * &area;
-            mask.fill(color::Rgba::black()).into()
-        }
-    }
-}
 
 
 // === Background ===
@@ -336,20 +204,20 @@ mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        below = [component_group::background];
+        below = [component_group::new_entry::background];
         (style:Style,bg_color:Vector4) {
-            let theme_path: style::Path = list_panel_theme::HERE.into();
+            // let theme_path: style::Path = list_panel_theme::HERE.into();
 
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
 
-            let content_width = style.get_number(theme_path.sub("content_width"));
-            let content_height = style.get_number(theme_path.sub("content_height"));
-            let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
-            let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
-            let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
-            let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("navigator_width"));
+            let grid_width = style.get_number(theme::grid::width);
+            let grid_height = style.get_number(theme::grid::height);
+            let corner_radius = style.get_number(theme::corner_radius);
+            let menu_divider_color = style.get_color(theme::menu::divider::color);
+            let menu_divider_height = style.get_number(theme::menu::divider::height);
+            let menu_height = style.get_number(theme::menu::height);
+            let navigator_width = style.get_number(theme::navigator::width);
 
             let width = content_width + navigator_width;
             let height = content_height + menu_height;
@@ -373,55 +241,28 @@ mod background {
 }
 
 
-// === Section divider ===
-
-mod hline {
-    use super::*;
-
-    ensogl_core::define_shape_system! {
-        (style:Style) {
-            let theme_path: style::Path = list_panel_theme::HERE.into();
-
-            let width  = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
-            let rect = Rect((width,height));
-            let rect = rect.fill(section_divider_color);
-            rect.into()
-        }
-    }
-}
-
-
 
 // =============
 // === Model ===
 // =============
 
 /// The Model of Select Component.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 pub struct Model {
-    app:                 Application,
-    logger:              Logger,
-    display_object:      display::object::Instance,
-    background:          background::View,
+    display_object:    display::object::Instance,
+    background:        background::View,
     // FIXME[#182593513]: This separate shape for navigator shadow can be removed and replaced
     //   with a shadow embedded into the [`background`] shape when the
     //   [issue](https://www.pivotaltracker.com/story/show/182593513) is fixed.
     //   To display the shadow correctly it needs to be clipped to the [`background`] shape, but
     //   we can't do that because of a bug in the renderer. So instead we add the shadow as a
     //   separate shape and clip it using `size.set(...)`.
-    navigator_shadow:    navigator_shadow::View,
-    scroll_area:         ScrollArea,
-    favourites_section:  ColumnSection,
-    local_scope_section: WideSection,
-    sub_modules_section: ColumnSection,
-    section_navigator:   SectionNavigator,
-    layers:              Layers,
-    groups_wrapper:      component_group::set::Wrapper,
-    navigator:           Rc<RefCell<Option<Navigator>>>,
-    selection:           selection_box::View,
-    breadcrumbs:         breadcrumbs::Breadcrumbs,
+    navigator_shadow:  navigator_shadow::View,
+    grid:              Grid,
+    section_navigator: SectionNavigator,
+    breadcrumbs:       breadcrumbs::Breadcrumbs,
+    layout:            RefCell<Layout>,
+    navigator:         Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
@@ -430,84 +271,32 @@ impl Model {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
         let navigator = default();
-        let groups_wrapper = component_group::set::Wrapper::new();
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         let navigator_shadow = navigator_shadow::View::new(&logger);
         display_object.add_child(&navigator_shadow);
 
-        let favourites_section = Self::init_column_section(&app);
-        let local_scope_section = Self::init_wide_section(&app);
-        let sub_modules_section = Self::init_column_section(&app);
-
-        use SectionId::*;
-        favourites_section.content.set_group_wrapper(&(Favorites, groups_wrapper.clone_ref()));
-        let local_scope_id = GroupId::local_scope_group();
-        groups_wrapper.add(local_scope_id, Group::Wide(local_scope_section.content.clone_ref()));
-        sub_modules_section.content.set_group_wrapper(&(SubModules, groups_wrapper.clone_ref()));
-
-        let scroll_area = ScrollArea::new(&app);
-        scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
-        display_object.add_child(&scroll_area);
-        let layers = Layers::new(&app, &scroll_area);
-        layers.base.add_exclusive(&scroll_area);
+        let grid = app.new_view::<Grid>();
 
         let section_navigator = SectionNavigator::new(&app);
         display_object.add_child(&section_navigator);
-        layers.navigator.add_exclusive(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
-        breadcrumbs.set_base_layer(&layers.navigator);
         display_object.add_child(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
         breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
 
-        let selection = selection_box::View::new(&app.logger);
-        scroll_area.add_child(&selection);
-        layers.selection_mask.add_exclusive(&selection);
-
-        scroll_area.set_scrollbars_layer(&layers.scrollbar_layer);
-        layers.scrollbar_layer.set_mask(scroll_area.mask_layer());
-
-        favourites_section.set_parent(scroll_area.content());
-        local_scope_section.set_parent(scroll_area.content());
-        sub_modules_section.set_parent(scroll_area.content());
-
-        // Required for correct clipping. The components need to be set up with the
-        // `scroll_area.content_layer` to be masked correctly by the [`ScrollArea`].
-        favourites_section.set_layers(&layers);
-        local_scope_section.set_layers(&layers);
-        sub_modules_section.set_layers(&layers);
-
         Self {
-            app,
             display_object,
             background,
             navigator_shadow,
-            scroll_area,
-            favourites_section,
-            local_scope_section,
-            sub_modules_section,
-            layers,
+            grid,
             section_navigator,
-            logger,
-            groups_wrapper,
             navigator,
-            selection,
             breadcrumbs,
+            layout: default(),
         }
-    }
-
-    fn init_column_section(app: &Application) -> ColumnSection {
-        let content = app.new_view::<column_grid::ColumnGrid>();
-        LabeledSection::new(content, app)
-    }
-
-    fn init_wide_section(app: &Application) -> WideSection {
-        let content = app.new_view::<component_group::wide::View>();
-        content.set_no_items_label_text("No Entries.");
-        LabeledSection::new(content, app)
     }
 
     fn update_style(&self, style: &Style) {
@@ -554,25 +343,6 @@ impl Model {
         self.selection.size.set(scroll_area_size);
         let selection_area_pos = Vector2(scroll_area_size.x / 2.0, -scroll_area_size.y / 2.0);
         self.selection.set_position_xy(selection_area_pos);
-    }
-
-    fn recompute_layout(&self, style: &Style) {
-        self.update_style(style);
-
-        let favourites_section_height = self.favourites_section.height(style);
-        let local_scope_height = self.local_scope_section.height(style);
-        let sub_modules_height = self.sub_modules_section.height(style);
-        let full_height = favourites_section_height + local_scope_height + sub_modules_height;
-
-        self.sub_modules_section.set_base_position_y(0.0, style);
-        let local_scope_y = -sub_modules_height;
-        self.local_scope_section.set_base_position_y(local_scope_y, style);
-        let favourites_section_y = -local_scope_height - sub_modules_height;
-        self.favourites_section.set_base_position_y(favourites_section_y, style);
-
-
-        self.scroll_area.set_content_height(full_height);
-        self.scroll_area.jump_to_y(full_height);
     }
 
     /// Scroll to the bottom of the [`section`].

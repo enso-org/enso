@@ -1,5 +1,5 @@
 [package]
-name = "ide-view-component-list-panel-old"
+name = "ide-view-component-list-panel"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
@@ -14,7 +14,6 @@ ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui/" 
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view/" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-derive-theme = { path = "../../../../../lib/rust/ensogl/app/theme/derive" }
-ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }

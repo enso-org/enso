@@ -203,7 +203,7 @@ pub fn main() {
                     hover_highlight: style.get_number(theme::application::component_browser::component_group::entry_list::icon::weak_color_intensity) * 0.8,
                 },
                 group_width: entry_size.x,
-                gap_between_groups: 3.0,
+                column_gap: 3.0,
                 padding: 17.0,
                 icon_size: 16.0,
                 text_size: text::Size(12.0),
@@ -259,7 +259,7 @@ pub fn main() {
         grid.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
         grid.selection_highlight_frp().set_entries_params(selection_params);
         grid.reset_entries(provider.layout.row_count(), provider.layout.column_count());
-        grid.set_column_width((1, entry_size.x + params.style.gap_between_groups * 2.0));
+        grid.set_column_width((1, entry_size.x + params.style.column_gap * 2.0));
 
         scene.add_child(&grid);
         mem::forget(app);
