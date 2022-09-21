@@ -35,15 +35,6 @@ pub use selection::Selection;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-/// Default visible line count in a new buffer view.
-const DEFAULT_LINE_COUNT: usize = 40;
-
-
-
 // ===============
 // === History ===
 // ===============
@@ -789,7 +780,7 @@ impl ViewBuffer {
 // ===========
 
 ensogl_core::define_endpoints! {
-    Input { [TRACE_ALL]
+    Input {
         cursors_move               (Option<Transform>),
         cursors_select             (Option<Transform>),
         set_cursor                 (Location<Column>),
@@ -819,12 +810,15 @@ ensogl_core::define_endpoints! {
         set_property               (Vec<buffer::Range<UBytes>>, Option<style::Property>),
         mod_property               (Vec<buffer::Range<UBytes>>, Option<style::PropertyDiff>),
         set_property_default       (Option<style::ResolvedProperty>),
+        set_first_view_line        (Line),
+        mod_first_view_line        (i32),
     }
 
     Output {
         selection_edit_mode     (Modification),
         selection_non_edit_mode (selection::Group),
         text_change             (Vec<ChangeWithSelection>),
+        first_view_line         (Line),
     }
 }
 
@@ -921,6 +915,14 @@ impl View {
 
             eval output.source.selection_edit_mode     ((t) m.set_selection(&t.selection_group));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
+
+            // === View Area Management ===
+
+            eval input.set_first_view_line ((line) m.set_first_view_line(*line));
+            output.source.first_view_line <+ input.set_first_view_line;
+
+            new_first_view_line <- input.mod_first_view_line.map(f!((diff) m.mod_first_view_line(*diff)));
+            output.source.first_view_line <+ new_first_view_line;
         }
         Self { model, frp }
     }
@@ -940,7 +942,7 @@ pub struct ViewModel {
     pub frp:         FrpInputs,
     /// The line that corresponds to `ViewLine(0)`.
     first_view_line: Rc<Cell<Line>>,
-    view_line_count: Rc<Cell<usize>>,
+    view_line_count: Rc<Cell<Option<usize>>>,
 }
 
 impl ViewModel {
@@ -949,12 +951,21 @@ impl ViewModel {
         let frp = frp.clone_ref();
         let view_buffer = view_buffer.into();
         let first_view_line = default();
-        let view_line_count = Rc::new(Cell::new(DEFAULT_LINE_COUNT));
+        let view_line_count = default();
         Self { frp, view_buffer, first_view_line, view_line_count }
     }
-}
 
-impl ViewModel {
+    fn set_first_view_line(&self, line: Line) {
+        self.first_view_line.set(line);
+    }
+
+    fn mod_first_view_line(&self, diff: i32) -> Line {
+        let line = self.first_view_line.get();
+        let line = Line((line.value + diff).max(0));
+        self.set_first_view_line(line);
+        line
+    }
+
     fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<style::Property>) {
         if let Some(property) = property {
             for range in ranges {
@@ -1019,13 +1030,20 @@ impl ViewModel {
     /// Index of the last line of this buffer view.
     pub fn last_view_line(&self) -> Line {
         let max_line = self.last_line_index();
-        let view_line_count = Line(self.view_line_count() as i32);
-        max_line.min(self.first_view_line() + view_line_count)
+        let view_line_diff = self.view_line_count() - 1;
+        let last_view_line = Line(self.first_view_line().value + view_line_diff as i32);
+        last_view_line.min(max_line)
     }
 
     /// Number of lines visible in this buffer view.
     pub fn view_line_count(&self) -> usize {
-        self.view_line_count.get()
+        self.view_line_count.get().unwrap_or_else(|| {
+            (self.last_line_index().value + 1 - self.first_view_line.get().value) as usize
+        })
+    }
+
+    pub fn last_view_line_index(&self) -> ViewLine {
+        ViewLine(self.view_line_count() - 1)
     }
 
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
@@ -1139,6 +1157,11 @@ pub trait FromInContext<Ctx, T> {
     fn from_in_context(context: Ctx, arg: T) -> Self;
 }
 
+pub trait TryFromInContext<Ctx, T>
+where Self: Sized {
+    fn try_from_in_context(context: Ctx, arg: T) -> Option<Self>;
+}
+
 pub trait IntoInContext<Ctx, T> {
     fn into_in_context(self, context: Ctx) -> T;
 }
@@ -1153,10 +1176,10 @@ where U: FromInContext<Ctx, T>
 
 
 impl<T, U> FromInContext<&View, U> for T
-where T: for<'t> FromInContext<&'t ViewBuffer, U>
+where T: for<'t> FromInContext<&'t ViewModel, U>
 {
     fn from_in_context(context: &View, elem: U) -> Self {
-        T::from_in_context(&context.model.view_buffer, elem)
+        T::from_in_context(&context.model, elem)
     }
 }
 
@@ -1165,6 +1188,22 @@ where T: for<'t> FromInContext<&'t ViewBuffer, U>
 {
     fn from_in_context(model: &ViewModel, elem: U) -> Self {
         T::from_in_context(&model.view_buffer, elem)
+    }
+}
+
+impl<T, U> TryFromInContext<&View, U> for T
+where T: for<'t> TryFromInContext<&'t ViewModel, U>
+{
+    fn try_from_in_context(context: &View, elem: U) -> Option<Self> {
+        T::try_from_in_context(&context.model, elem)
+    }
+}
+
+impl<T, U> TryFromInContext<&ViewModel, U> for T
+where T: for<'t> TryFromInContext<&'t ViewBuffer, U>
+{
+    fn try_from_in_context(model: &ViewModel, elem: U) -> Option<Self> {
+        T::try_from_in_context(&model.view_buffer, elem)
     }
 }
 
@@ -1282,6 +1321,22 @@ where T: for<'t> FromInContext<&'t ViewBuffer, S>
         buffer::Range::new(start, end)
     }
 }
+
+impl FromInContext<&ViewModel, Line> for ViewLine {
+    fn from_in_context(buffer: &ViewModel, line: Line) -> Self {
+        ViewLine(line.value.saturating_sub(buffer.first_view_line.get().value) as usize)
+    }
+}
+
+
+impl TryFromInContext<&ViewModel, Line> for ViewLine {
+    fn try_from_in_context(buffer: &ViewModel, line: Line) -> Option<Self> {
+        let line = line.value as usize;
+        let first_view_line = buffer.first_view_line.get().value as usize;
+        (first_view_line <= line).as_some_from(|| ViewLine(line - first_view_line))
+    }
+}
+
 
 // // warn!("offset_to_location: {:?}", offset);
 // let line = self.line_index_of_byte_offset_snapped(offset);

@@ -16,25 +16,25 @@ use crate::font;
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
 
+use crate::buffer::view::FromInContext;
 use crate::buffer::view::IntoInContext;
+use crate::buffer::view::TryFromInContext;
+pub use crate::buffer::TextRange;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use ensogl_core::application;
+use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
+use ensogl_core::Animation;
 use ensogl_core::DEPRECATED_Animation;
 use owned_ttf_parser::AsFaceRef;
 use rustybuzz;
 use std::ops::Not;
-
-use crate::buffer::view::FromInContext;
-pub use crate::buffer::TextRange;
-use ensogl_core::application::command::FrpNetworkProvider;
-use ensogl_core::Animation;
 
 use enso_frp::stream::ValueProvider;
 
@@ -135,7 +135,6 @@ mod line {
                 frp.private.output.baseline <+ baseline_pos_if_last;
                 new_descent <- all_with(&y_pos_anim.value, &frp.set_metrics, |baseline,metrics|
                     baseline + metrics.descender);
-                trace new_descent;
                 frp.private.output.descent <+ new_descent.on_change();
                 frp.private.output.metrics <+ frp.set_metrics.on_change();
             }
@@ -458,7 +457,7 @@ ensogl_core::define_endpoints! {
         single_line(bool),
         set_hover(bool),
 
-        set_cursor            (Location<Column>), // fixme: should use column here
+        set_cursor            (Location<Column>),
         add_cursor            (Location<Column>),
         paste_string          (String),
         insert                (String),
@@ -482,6 +481,8 @@ ensogl_core::define_endpoints! {
         ///
         /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
+        set_first_view_line(unit::Line),
+        mod_first_view_line(i32),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -747,13 +748,20 @@ impl Area {
             // === Text Width ===
 
             eval_ self.frp.refresh_width(m.width_dirty.set(true));
-            trace self.frp.refresh_height;
             eval_ self.frp.refresh_height(m.height_dirty.set(true));
             new_width <= after_animations.map (f_!(m.compute_width()));
             self.frp.source.width <+ new_width.on_change();
 
             new_height <= after_animations.map (f_!(m.compute_height()));
             self.frp.source.height <+ new_height.on_change();
+
+
+            // === View Area Management ===
+
+            m.buffer.frp.set_first_view_line <+ self.frp.set_first_view_line;
+            m.buffer.frp.mod_first_view_line <+ self.frp.mod_first_view_line;
+
+            eval_ m.buffer.frp.first_view_line (m.redraw());
         }
         self
     }
@@ -951,8 +959,8 @@ impl AreaModel {
     fn update_lines_after_change(&self, changes: Option<&[crate::ChangeWithSelection]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
             self.detach_glyphs_from_cursors();
-            let view_line_range = self.buffer.view_line_range();
             if let Some(changes) = changes {
+                let view_line_range = self.buffer.view_line_range();
                 let lines_to_redraw = changes
                     .iter()
                     .filter_map(|change_with_selection| {
@@ -1022,7 +1030,6 @@ impl AreaModel {
                 let lines_to_redraw = lines_to_redraw.collect_vec();
                 debug!("Lines to redraw: {:#?}", lines_to_redraw);
 
-                self.resize_lines();
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
             }
         })
@@ -1064,7 +1071,9 @@ impl AreaModel {
         for buffer_selection in buffer_selections {
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
             let id = buffer_selection.id;
+            warn!("buffer_selection: {:?}", buffer_selection);
             let selection_start_line = self.buffer.line_to_view_line(buffer_selection.start.line);
+            warn!("selection_start_line: {:?}", selection_start_line);
             let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
             let get_pos_x = |line: unit::ViewLine, column: Column| {
                 if line > self.lines.last_line_index() {
@@ -1168,7 +1177,9 @@ impl AreaModel {
         let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
         let line = self.buffer.view_line_to_line(view_line);
         let column = Column(div_index);
-        Location(line, column)
+        let out = Location(line, column);
+        warn!("in text location: {out:?}");
+        out
     }
 
     // Output is the first well postioned line or the next line after the last visible line.
@@ -1230,6 +1241,7 @@ impl AreaModel {
 
     fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
         warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
+        self.resize_lines();
         self.width_dirty.set(true);
         for range in sorted_line_ranges {
             let lines_content = self.buffer.lines_content(range.clone());
@@ -1245,16 +1257,18 @@ impl AreaModel {
     }
 
     pub fn resize_lines(&self) {
-        let lines = self.buffer.view_lines();
-        let line_count = lines.len();
+        let line_count = self.buffer.view_line_count();
         warn!("resize_lines, line_count: {line_count}");
         self.lines.resize_with(line_count, |ix| self.new_line());
     }
 
     /// Redraw the text.
     #[profile(Debug)]
-    pub fn redraw(&self, size_may_change: bool) {
-        panic!();
+    pub fn redraw(&self) {
+        let end = ViewLine::from_in_context(&self.buffer, self.buffer.last_view_line());
+        self.redraw_sorted_line_ranges(&[ViewLine(0)..=end]);
+        self.update_selections();
+        // panic!();
         // error!("!!! USING REDRAW, THIS IS DEPRECTAED !!!");
         // debug!("redraw {:?}", size_may_change);
         // let lines = self.buffer.view_lines();
@@ -1297,7 +1311,7 @@ impl AreaModel {
         })
     }
 
-    fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) -> f32 {
+    fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) {
         debug!("redraw_line {:?} {:?}", view_line_index, content);
 
         let cursor_map = self
@@ -1413,21 +1427,8 @@ impl AreaModel {
             }
         });
 
-        // warn!("LINE metrics: {:?}", line_metrics);
-
-        // FIXME:
-
-        warn!("WAS LINE LAST? {:?}", line.set_is_last.value());
-        warn!("DIVS: {:?}", divs);
         line.glyphs.truncate(column.value);
-
         line.set_divs(divs);
-
-        0.0 // FIXME
-            // let last_offset = divs.last().cloned().unwrap_or_default();
-            // let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x -
-            // cursor.position().x); let cursor_offset =
-            // cursor_offset.unwrap_or_default(); last_offset - cursor_offset
     }
 
     fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
@@ -1600,7 +1601,7 @@ impl AreaModel {
     }
 
     pub fn attach_glyphs_to_cursors(&self) {
-        for line in ViewLine(0)..ViewLine(self.buffer.view_lines().len()) {
+        for line in ViewLine(0)..=self.buffer.last_view_line_index() {
             self.attach_line_glyphs_to_cursors(line)
         }
     }
@@ -1673,7 +1674,6 @@ impl AreaModel {
 
     pub fn compute_width(&self) -> Option<f32> {
         if self.width_dirty.get() {
-            warn!(">> compute_width");
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
@@ -1699,7 +1699,6 @@ impl AreaModel {
 
     pub fn compute_height(&self) -> Option<f32> {
         if self.height_dirty.get() {
-            warn!(">> compute_height");
             self.height_dirty.set(false);
             let mut max_height = -self.lines.borrow().last().descent.value();
             let selection_map = self.selection_map.borrow();
@@ -1715,7 +1714,6 @@ impl AreaModel {
                     }
                 }
             }
-            warn!("NEW HEIGHT: {}", max_height);
             Some(max_height)
         } else {
             None
@@ -1907,7 +1905,7 @@ impl AreaModel {
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
         self.add_symbols_to_scene_layer();
-        self.redraw(true);
+        self.redraw();
     }
 
     fn add_symbols_to_scene_layer(&self) {

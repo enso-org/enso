@@ -170,10 +170,10 @@ fn init(app: Application) {
     let text = "test".to_string();
     // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcde"); //\nfghij\nklmno\npqrst\n01234\n56789");
-                               // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
-                               // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
-                               // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("abcde\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
+                                      // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
+                                      // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
+                                      // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
 
@@ -315,6 +315,10 @@ fn init_debug_hotkeys(area: &Area) {
                     // area.set_property(buffer::TextRange::Selections, style::Size(16.0));
                     area.mod_property(buffer::TextRange::Selections, style::SizeDiff(-2.0));
                 }
+            } else if key == "ArrowUp" {
+                area.mod_first_view_line(-1);
+            } else if key == "ArrowDown" {
+                area.mod_first_view_line(1);
             }
             // } else if key == "Digit0" {
             // } else if key == "Digit1" {
