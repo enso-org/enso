@@ -211,16 +211,20 @@ impl Model {
                 let view_id = list_panel::EntryId { group, entry_id };
                 let component = self.component_by_view_id(view_id)?;
                 let id = component.id()?;
-                let name = ImString::new(component.name());
-                self.push_breadcrumb(name);
-                self.controller.enter_module(&id);
+                let names = self.controller.enter_module(&id);
+                DEBUG!("Names: {names:?}");
+                for name in names {
+                    self.push_breadcrumb(name);
+                }
             }
             EnteredModule::Group(group_id) => {
                 let group = self.group_by_view_id(group_id)?;
                 let id = group.component_id?;
-                let name = group.name.clone_ref();
-                self.push_breadcrumb(name);
-                self.controller.enter_module(&id);
+                let names = self.controller.enter_module(&id);
+                DEBUG!("Names: {names:?}");
+                for name in names {
+                    self.push_breadcrumb(name);
+                }
             }
         }
         Some(())

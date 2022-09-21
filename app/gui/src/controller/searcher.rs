@@ -639,25 +639,35 @@ impl Searcher {
     }
 
     /// Enter the specified module. The displayed content of the browser will be updated.
-    pub fn enter_module(&self, module: &component::Id) {
+    pub fn enter_module(&self, module: &component::Id) -> Vec<ImString> {
+        let mut names = Vec::new();
         if let Some(name) = self.components().module_qualified_name(*module) {
-            if let Some((_id, entry)) = self.database.lookup_by_qualified_name(name.into_iter()) {
-                DEBUG!("entry: {entry:?}");
+            if let Some((id, entry)) = self.database.lookup_by_qualified_name(name.into_iter()) {
+                let mut component_ids = vec![id];
                 let mut entry = entry;
+                names.push(ImString::new(&entry.name));
                 while let Some(parent) = entry.parent_module() {
-                    entry = if let Some((_, entry)) =
+                    entry = if let Some((component_id, entry)) =
                         self.database.lookup_by_qualified_name(parent.into_iter())
                     {
-                        DEBUG!("parent: {parent:?}");
+                        component_ids.push(component_id);
                         entry
                     } else {
                         break;
                     };
+                    let name = ImString::new(&entry.name);
+                    names.push(name);
+                }
+                DEBUG!("Component ids: {component_ids:?}");
+                self.breadcrumbs.clear();
+                for component_id in component_ids.iter().rev() {
+                    self.breadcrumbs.push(*component_id);
                 }
             }
         }
-        self.breadcrumbs.push(*module);
         self.notifier.notify(Notification::NewActionList);
+        names.reverse();
+        names
     }
 
     pub fn select_breadcrumb(&self, id: usize) {

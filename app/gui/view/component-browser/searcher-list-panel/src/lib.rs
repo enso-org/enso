@@ -464,7 +464,6 @@ impl Model {
         breadcrumbs.set_base_layer(&layers.navigator);
         display_object.add_child(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
-        breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
 
         let selection = selection_box::View::new(&app.logger);
         scroll_area.add_child(&selection);
@@ -511,6 +510,11 @@ impl Model {
         let content = app.new_view::<component_group::wide::View>();
         content.set_no_items_label_text("No Entries.");
         LabeledSection::new(content, app)
+    }
+
+    fn clear_breadcrumbs(&self) {
+        self.breadcrumbs.clear();
+        self.breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
     }
 
     fn update_style(&self, style: &Style) {
@@ -1078,6 +1082,7 @@ impl component::Frp<Model> for Frp {
 
             eval input.push_breadcrumb((breadcrumb) model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(breadcrumb)));
             output.selected_breadcrumb <+ model.breadcrumbs.selected;
+            eval_ input.show(model.clear_breadcrumbs());
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

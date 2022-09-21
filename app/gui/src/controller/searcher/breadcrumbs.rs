@@ -24,6 +24,12 @@ impl Breadcrumbs {
         default()
     }
 
+    /// TODO
+    pub fn clear(&self) {
+        self.list.borrow_mut().clear();
+        self.selected.set(0);
+    }
+
     /// Push the new breadcrumb to the breadcrumbs panel.
     pub fn push(&self, id: component::Id) {
         DEBUG!("Pushing breadcrumb: {id:?}.");
