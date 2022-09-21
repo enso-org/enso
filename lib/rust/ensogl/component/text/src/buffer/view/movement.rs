@@ -60,7 +60,7 @@ impl ViewBuffer {
         selection: Selection,
         move_up: bool,
         modify: bool,
-    ) -> Location<Column> {
+    ) -> Location {
         let end = selection.end;
         if modify {
             end
@@ -141,7 +141,7 @@ impl ViewBuffer {
             Transform::Down => self.vertical_motion(selection, 1.line(), modify),
             Transform::StartOfDocument => shape(selection.start, default()),
             Transform::EndOfDocument => {
-                let end = Location::<Column>::from_in_context(self, text.byte_size());
+                let end = Location::from_in_context(self, text.byte_size());
                 shape(selection.start, end)
             }
             Transform::Left => {
@@ -180,7 +180,7 @@ impl ViewBuffer {
                 } else {
                     text.prev_grapheme_offset(next_line_offset).unwrap_or(text_byte_size)
                 };
-                let end = Location::<Column>::from_in_context(self, offset);
+                let end = Location::from_in_context(self, offset);
                 shape(selection.start, end)
             }
 
@@ -188,7 +188,7 @@ impl ViewBuffer {
                 let end_offset = UBytes::from_in_context(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.ubytes());
-                let end = Location::<Column>::from_in_context(self, offset);
+                let end = Location::from_in_context(self, offset);
                 shape(selection.start, end)
             }
 
@@ -196,7 +196,7 @@ impl ViewBuffer {
                 let end_offset = UBytes::from_in_context(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offset = word_cursor.next_boundary().unwrap_or_else(|| text.byte_size());
-                let end = Location::<Column>::from_in_context(self, offset);
+                let end = Location::from_in_context(self, offset);
                 shape(selection.start, end)
             }
 
@@ -204,16 +204,16 @@ impl ViewBuffer {
                 let end_offset = UBytes::from_in_context(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offsets = word_cursor.select_word();
-                let start = Location::<Column>::from_in_context(self, offsets.0);
-                let end = Location::<Column>::from_in_context(self, offsets.1);
+                let start = Location::from_in_context(self, offsets.0);
+                let end = Location::from_in_context(self, offsets.1);
                 shape(start, end)
             }
 
             Transform::Line => {
                 let start_offset = self.byte_offset_of_line_index_snapped(selection.start.line);
                 let end_offset = self.end_byte_offset_of_line_index_snapped(selection.end.line);
-                let start = Location::<Column>::from_in_context(self, start_offset);
-                let end = Location::<Column>::from_in_context(self, end_offset);
+                let start = Location::from_in_context(self, start_offset);
+                let end = Location::from_in_context(self, end_offset);
                 shape(start, end)
             }
         };

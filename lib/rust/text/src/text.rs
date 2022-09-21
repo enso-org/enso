@@ -99,7 +99,7 @@ impl Text {
 
     /// Constraint the provided location, so it will be contained of the range of this data. This
     /// ensures that the resulting location will be valid for operations on this data.
-    pub fn snap_location(&self, location: Location) -> Location {
+    pub fn snap_location(&self, location: Location<UBytes>) -> Location<UBytes> {
         use BoundsError::*;
         match self.validate_line_index(location.line) {
             Err(TooSmall) => self.first_line_start_location(),
@@ -179,7 +179,7 @@ impl Text {
     }
 
     /// The start location of the first line.
-    pub fn first_line_start_location(&self) -> Location {
+    pub fn first_line_start_location(&self) -> Location<UBytes> {
         let line = self.first_line_index();
         let byte_offset = self.first_line_byte_offset();
         Location(line, byte_offset)
@@ -208,7 +208,7 @@ impl Text {
     }
 
     /// The start location of the last line.
-    pub fn last_line_start_location(&self) -> Location {
+    pub fn last_line_start_location(&self) -> Location<UBytes> {
         let line = self.last_line_index();
         let byte_offset = UBytes(0);
         Location(line, byte_offset)
@@ -229,7 +229,7 @@ impl Text {
     }
 
     /// The location of the last character in the text.
-    pub fn last_line_end_location(&self) -> Location {
+    pub fn last_line_end_location(&self) -> Location<UBytes> {
         let line = self.last_line_index();
         let byte_offset = self.last_line_end_column_byte_offset();
         Location(line, byte_offset)
@@ -322,14 +322,14 @@ impl Text {
     /// Byte offset of the given location.
     pub fn byte_offset_of_location(
         &self,
-        location: Location,
+        location: Location<UBytes>,
     ) -> Result<UBytes, LocationError<UBytes>> {
         let line_offset = self.byte_offset_of_line_index(location.line)?;
         Ok(line_offset + location.offset)
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.
-    pub fn byte_offset_of_location_snapped(&self, location: Location) -> UBytes {
+    pub fn byte_offset_of_location_snapped(&self, location: Location<UBytes>) -> UBytes {
         let offset = self.byte_offset_of_location(location);
         self.snap_bytes_location_result(offset)
     }
@@ -468,7 +468,7 @@ impl Text {
 
 impl Text {
     /// The location of text end.
-    pub fn location_of_text_end(&self) -> Location {
+    pub fn location_of_text_end(&self) -> Location<UBytes> {
         let lines_count = self.lines(self.byte_range()).count();
         let last_char_off = self.rope.prev_codepoint_offset(self.len());
         let last_char = last_char_off.map(|off| self.rope.slice_to_cow(off..));
@@ -486,7 +486,7 @@ impl Text {
     }
 
     /// The location of the provided byte offset.
-    pub fn location_of_byte_offset(&self, offset: UBytes) -> Result<Location, BoundsError> {
+    pub fn location_of_byte_offset(&self, offset: UBytes) -> Result<Location<UBytes>, BoundsError> {
         let line = self.line_index_of_byte_offset(offset)?;
         let line_offset = offset - self.byte_offset_of_line_index(line).unwrap(); // fixme unwrap
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
@@ -499,7 +499,7 @@ impl Text {
 
     /// The location of the provided byte offset. Snapped to the closest valid
     /// value.
-    pub fn location_of_byte_offset_snapped(&self, offset: UBytes) -> Location {
+    pub fn location_of_byte_offset_snapped(&self, offset: UBytes) -> Location<UBytes> {
         use BoundsError::*;
         match self.location_of_byte_offset(offset) {
             Ok(location) => location,
@@ -761,7 +761,7 @@ impl TextCell {
         self.cell.borrow().crop_byte_range(range)
     }
 
-    pub fn snap_location(&self, location: Location) -> Location {
+    pub fn snap_location(&self, location: Location<UBytes>) -> Location<UBytes> {
         self.cell.borrow().snap_location(location)
     }
 
@@ -789,7 +789,7 @@ impl TextCell {
         self.cell.borrow().first_line_start_column()
     }
 
-    pub fn first_line_start_location(&self) -> Location {
+    pub fn first_line_start_location(&self) -> Location<UBytes> {
         self.cell.borrow().first_line_start_location()
     }
 
@@ -805,7 +805,7 @@ impl TextCell {
         self.cell.borrow().last_line_start_column()
     }
 
-    pub fn last_line_start_location(&self) -> Location {
+    pub fn last_line_start_location(&self) -> Location<UBytes> {
         self.cell.borrow().last_line_start_location()
     }
 
@@ -817,7 +817,7 @@ impl TextCell {
         self.cell.borrow().last_line_end_byte_offset()
     }
 
-    pub fn last_line_end_location(&self) -> Location {
+    pub fn last_line_end_location(&self) -> Location<UBytes> {
         self.cell.borrow().last_line_end_location()
     }
 
@@ -855,12 +855,12 @@ impl TextCell {
 
     pub fn byte_offset_of_location(
         &self,
-        location: Location,
+        location: Location<UBytes>,
     ) -> Result<UBytes, LocationError<UBytes>> {
         self.cell.borrow().byte_offset_of_location(location)
     }
 
-    pub fn byte_offset_of_location_snapped(&self, location: Location) -> UBytes {
+    pub fn byte_offset_of_location_snapped(&self, location: Location<UBytes>) -> UBytes {
         self.cell.borrow().byte_offset_of_location_snapped(location)
     }
 
@@ -920,11 +920,11 @@ impl TextCell {
     //         .column_of_line_index_and_in_line_byte_offset_snapped(line, in_line_offset)
     // }
 
-    pub fn location_of_byte_offset(&self, offset: UBytes) -> Result<Location, BoundsError> {
+    pub fn location_of_byte_offset(&self, offset: UBytes) -> Result<Location<UBytes>, BoundsError> {
         self.cell.borrow().location_of_byte_offset(offset)
     }
 
-    pub fn location_of_byte_offset_snapped(&self, offset: UBytes) -> Location {
+    pub fn location_of_byte_offset_snapped(&self, offset: UBytes) -> Location<UBytes> {
         self.cell.borrow().location_of_byte_offset_snapped(offset)
     }
 }

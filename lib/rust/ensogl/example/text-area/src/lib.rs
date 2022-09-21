@@ -216,7 +216,7 @@ fn init(app: Application) {
 
 
     warn!("=========================");
-    // let range_green: buffer::Range<Location<Column>> =
+    // let range_green: buffer::Range<Location> =
     //     buffer::Range::from(Location(Line(0), Column(1))..Location(Line(0), Column(71)));
     // area.set_property(range_green, color::Rgba::green());
     // area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);

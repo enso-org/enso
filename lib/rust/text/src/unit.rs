@@ -495,7 +495,7 @@ mod location {
     #[doc = " A type representing 2d measurements."]
     #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
     #[allow(missing_docs)]
-    pub struct Location<Offset = UBytes, LineType = Line> {
+    pub struct Location<Offset = Column, LineType = Line> {
         pub line:   LineType,
         pub offset: Offset,
     }
@@ -656,4 +656,4 @@ pub use location::*;
 
 
 
-pub type ViewLocation<Offset = UBytes> = Location<Offset, ViewLine>;
+pub type ViewLocation<Offset = Column> = Location<Offset, ViewLine>;

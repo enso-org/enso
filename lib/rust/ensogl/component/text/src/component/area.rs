@@ -48,7 +48,6 @@ use enso_frp::stream::ValueProvider;
 /// Record separator ASCII code. Used for separating of copied strings. It is defined as the `\RS`
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
 pub const RECORD_SEPARATOR: &str = "\x1E";
-const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To be improved.
 
 
 
@@ -544,8 +543,8 @@ ensogl_core::define_endpoints! {
         single_line(bool),
         set_hover(bool),
 
-        set_cursor            (Location<Column>),
-        add_cursor            (Location<Column>),
+        set_cursor            (Location),
+        add_cursor            (Location),
         paste_string          (String),
         insert                (String),
         set_property          (TextRange, Option<style::Property>),
@@ -1235,7 +1234,7 @@ impl AreaModel {
         (inv_object_matrix * world_space).xy()
     }
 
-    fn get_in_text_location(&self, screen_pos: Vector2) -> Location<Column> {
+    fn get_in_text_location(&self, screen_pos: Vector2) -> Location {
         // self.remove_lines_from_cursors();
         let object_space = self.to_object_space(screen_pos);
         let mut view_line = ViewLine(0);
@@ -1512,7 +1511,7 @@ impl AreaModel {
         let formatting = self.buffer.sub_style(range);
         let span_ranges = formatting.span_ranges_of_default_values(property.tag());
         for span_range in span_ranges {
-            let range = buffer::Range::<Location<Column>>::from_in_context(self, span_range);
+            let range = buffer::Range::<Location>::from_in_context(self, span_range);
             let mut lines = self.lines.borrow_mut();
 
             if range.single_line() {
@@ -1567,7 +1566,7 @@ impl AreaModel {
         let view_line_ranges = ranges
             .into_iter()
             .map(|range| {
-                let range = buffer::Range::<Location<Column>>::from_in_context(self, range);
+                let range = buffer::Range::<Location>::from_in_context(self, range);
                 let line_range = range.start.line..=range.end.line;
                 let view_line_start = self.buffer.line_to_view_line(range.start.line);
                 let view_line_end = self.buffer.line_to_view_line(range.end.line);
@@ -1968,8 +1967,8 @@ impl AreaModel {
         let end_location = Location::from_in_context(&self.buffer, selection.end);
         let start = self.buffer.snap_location(start_location);
         let end = self.buffer.snap_location(end_location);
-        let start = Location::<Column>::from_in_context(&self.buffer, start);
-        let end = Location::<Column>::from_in_context(&self.buffer, end);
+        let start = Location::from_in_context(&self.buffer, start);
+        let end = Location::from_in_context(&self.buffer, end);
         selection.with_start(start).with_end(end)
     }
 

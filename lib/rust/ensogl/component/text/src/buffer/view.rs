@@ -83,7 +83,7 @@ impl<T> Modification<T> {
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Deref)]
-pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location<Column>> {
+pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     #[deref]
     pub change:       Change<Metric, Str>,
     pub selection:    Selection<Loc>,
@@ -200,7 +200,7 @@ impl ViewBuffer {
     //     })
     // }
 
-    pub fn prev_column(&self, location: Location<Column>) -> Location<Column> {
+    pub fn prev_column(&self, location: Location) -> Location {
         if location.offset > Column(0) {
             location.with_offset(location.offset - Column(1))
         } else {
@@ -213,7 +213,7 @@ impl ViewBuffer {
         }
     }
 
-    pub fn next_column(&self, location: Location<Column>) -> Location<Column> {
+    pub fn next_column(&self, location: Location) -> Location {
         let desired_column = location.offset + Column(1);
         if desired_column <= self.line_last_column(location.line) {
             location.with_offset(desired_column)
@@ -467,7 +467,7 @@ impl ViewBuffer {
         self.oldest_selection().snap_selections_to_start()
     }
 
-    fn new_cursor(&self, location: Location<Column>) -> Selection {
+    fn new_cursor(&self, location: Location) -> Selection {
         let id = self.next_selection_id.get();
         self.next_selection_id.set(id + 1);
         Selection::new_cursor(location, id)
@@ -475,26 +475,26 @@ impl ViewBuffer {
 
     /// Returns the last used selection or a new one if no active selection exists. This allows for
     /// nice animations when moving cursor between lines after clicking with mouse.
-    fn set_cursor(&self, location: Location<Column>) -> selection::Group {
+    fn set_cursor(&self, location: Location) -> selection::Group {
         let last_selection = self.selection.borrow().last().cloned();
         let opt_existing = last_selection.map(|t| t.with_location(location));
         opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()
     }
 
-    fn add_cursor(&self, location: Location<Column>) -> selection::Group {
+    fn add_cursor(&self, location: Location) -> selection::Group {
         let mut selection = self.selection.borrow().clone();
         let selection_group = self.new_cursor(location);
         selection.merge(selection_group);
         selection
     }
 
-    fn set_newest_selection_end(&self, location: Location<Column>) -> selection::Group {
+    fn set_newest_selection_end(&self, location: Location) -> selection::Group {
         let mut group = self.selection.borrow().clone();
         group.newest_mut().for_each(|s| s.end = location);
         group
     }
 
-    fn set_oldest_selection_end(&self, location: Location<Column>) -> selection::Group {
+    fn set_oldest_selection_end(&self, location: Location) -> selection::Group {
         let mut group = self.selection.borrow().clone();
         group.oldest_mut().for_each(|s| s.end = location);
         group
@@ -676,20 +676,20 @@ impl ViewBuffer {
     fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
         let start = self.offset_to_location(selection.start);
         let end = self.offset_to_location(selection.end);
-        let start = Location::<Column>::from_in_context(self, start);
-        let end = Location::<Column>::from_in_context(self, end);
+        let start = Location::from_in_context(self, start);
+        let end = Location::from_in_context(self, end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
 
-    fn to_location_selection2(&self, selection: Selection<UBytes>) -> Selection<Location> {
+    fn to_location_selection2(&self, selection: Selection<UBytes>) -> Selection<Location<UBytes>> {
         let start = self.offset_to_location(selection.start);
         let end = self.offset_to_location(selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
 
-    fn offset_to_location(&self, offset: UBytes) -> Location {
+    fn offset_to_location(&self, offset: UBytes) -> Location<UBytes> {
         let line = self.line_index_of_byte_offset_snapped(offset);
         let line_offset = self.byte_offset_of_line_index(line).unwrap();
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
@@ -704,7 +704,7 @@ impl ViewBuffer {
     pub fn offset_range_to_location(
         &self,
         range: buffer::Range<UBytes>,
-    ) -> buffer::Range<Location> {
+    ) -> buffer::Range<Location<UBytes>> {
         let start = self.offset_to_location(range.start);
         let end = self.offset_to_location(range.end);
         buffer::Range::new(start, end)
@@ -718,7 +718,7 @@ impl ViewBuffer {
         self.line_last_column(self.last_line_index())
     }
 
-    pub fn last_line_last_location(&self) -> Location<Column> {
+    pub fn last_line_last_location(&self) -> Location {
         let line = self.last_line_index();
         let offset = self.line_last_column(line);
         Location { line, offset }
@@ -735,10 +735,10 @@ ensogl_core::define_endpoints! {
     Input {
         cursors_move               (Option<Transform>),
         cursors_select             (Option<Transform>),
-        set_cursor                 (Location<Column>),
-        add_cursor                 (Location<Column>),
-        set_newest_selection_end   (Location<Column>),
-        set_oldest_selection_end   (Location<Column>),
+        set_cursor                 (Location),
+        add_cursor                 (Location),
+        set_newest_selection_end   (Location),
+        set_oldest_selection_end   (Location),
         insert                     (String),
         paste                      (Vec<String>),
         remove_all_cursors         (),
@@ -1016,17 +1016,14 @@ impl ViewModel {
 
     pub fn location_range_to_view_location_range(
         &self,
-        range: buffer::Range<Location>,
-    ) -> buffer::Range<ViewLocation> {
+        range: buffer::Range<Location<UBytes>>,
+    ) -> buffer::Range<ViewLocation<UBytes>> {
         let start = self.location_to_view_location(range.start);
         let end = self.location_to_view_location(range.end);
         buffer::Range { start, end }
     }
 
-    pub fn selection_to_view_selection(
-        &self,
-        selection: Selection,
-    ) -> Selection<ViewLocation<Column>> {
+    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
         let start = self.location_to_view_location(selection.shape.start);
         let end = self.location_to_view_location(selection.shape.end);
         let shape = selection::Shape { start, end };
@@ -1158,8 +1155,8 @@ where T: for<'t> TryFromInContext<&'t ViewBuffer, U>
 }
 
 
-impl FromInContext<&ViewBuffer, Location> for Location<Column> {
-    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+impl FromInContext<&ViewBuffer, Location<UBytes>> for Location {
+    fn from_in_context(context: &ViewBuffer, location: Location<UBytes>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
@@ -1192,8 +1189,8 @@ impl FromInContext<&ViewBuffer, Location> for Location<Column> {
     }
 }
 
-impl FromInContext<&ViewBuffer, Location<Column>> for Location {
-    fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
+impl FromInContext<&ViewBuffer, Location> for Location<UBytes> {
+    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
@@ -1231,19 +1228,19 @@ impl FromInContext<&ViewBuffer, Location<Column>> for Location {
     }
 }
 
-impl FromInContext<&ViewBuffer, Location> for UBytes {
-    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+impl FromInContext<&ViewBuffer, Location<UBytes>> for UBytes {
+    fn from_in_context(context: &ViewBuffer, location: Location<UBytes>) -> Self {
         context.byte_offset_of_line_index(location.line).unwrap() + location.offset
     }
 }
 
-impl FromInContext<&ViewBuffer, Location<Column>> for UBytes {
-    fn from_in_context(context: &ViewBuffer, location: Location<Column>) -> Self {
+impl FromInContext<&ViewBuffer, Location> for UBytes {
+    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
         Location::from_in_context(context, location).into_in_context(context)
     }
 }
 
-impl FromInContext<&ViewBuffer, UBytes> for Location {
+impl FromInContext<&ViewBuffer, UBytes> for Location<UBytes> {
     fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
@@ -1256,7 +1253,7 @@ impl FromInContext<&ViewBuffer, UBytes> for Location {
     }
 }
 
-impl FromInContext<&ViewBuffer, UBytes> for Location<Column> {
+impl FromInContext<&ViewBuffer, UBytes> for Location {
     fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
         Location::from_in_context(context, offset).into_in_context(context)
     }
