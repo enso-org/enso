@@ -38,7 +38,6 @@ impl<T: Clone + Debug> Spans<T> {
     /// `value`. Use with caution, as it can easily lead to wrong amount of bytes covered by the
     /// span.
     pub fn replace_resize(&mut self, range: Range<UBytes>, length: UBytes, value: T) {
-        warn!("replace_resize, range: {:?}, length: {:?}, value: {:?}", range, length, value);
         let mut builder = rope::spans::Builder::new(length.value);
         builder.add_span(.., value);
         self.raw.edit(range.into_rope_interval(), builder.build())
@@ -46,7 +45,6 @@ impl<T: Clone + Debug> Spans<T> {
 
     pub fn modify(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
         let subseq = self.raw.subseq(range.into_rope_interval());
-        warn!("SUBSEQ: {subseq:?}");
         for t in subseq.iter() {
             let sub_start: UBytes = t.0.start.into();
             let sub_end: UBytes = t.0.end.into();
@@ -55,7 +53,6 @@ impl<T: Clone + Debug> Spans<T> {
             let range = Range::new(start, end);
             let size = UBytes::try_from(range.size()).unwrap();
             self.replace_resize(range, size, f(t.1.clone()));
-            warn!("T: {t:?}");
         }
     }
 

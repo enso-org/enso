@@ -99,12 +99,10 @@ impl ViewBuffer {
     /// region movements become cursors. Modify is often mapped to the `shift` button in text
     /// editors.
     pub fn moved_selection(&self, transform: Transform, modify: bool) -> selection::Group {
-        warn!("Moved selection {:?} modify {}", transform, modify);
         let mut result = selection::Group::new();
         let selections = self.selection.borrow().clone();
         for &selection in selections.iter() {
             let new_selection = self.moved_selection_region(transform, selection, modify);
-            warn!("new selection: {:?}", new_selection);
             result.merge(new_selection);
         }
         result

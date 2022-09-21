@@ -360,13 +360,11 @@ impl Text {
 
     /// The line of a given byte offset. Panics in case the offset was invalid.
     pub fn line_index_of_byte_offset_unchecked(&self, offset: UBytes) -> Line {
-        warn!("line_index_of_byte_offset_unchecked: {:?}", offset);
         self.rope.line_of_offset(offset.value).into()
     }
 
     /// The line index of the given byte offset.
     pub fn line_index_of_byte_offset(&self, offset: UBytes) -> Result<Line, BoundsError> {
-        warn!("line_index_of_byte_offset: {:?}", offset);
         self.validate_byte_offset(offset)?;
         Ok(self.line_index_of_byte_offset_unchecked(offset))
     }

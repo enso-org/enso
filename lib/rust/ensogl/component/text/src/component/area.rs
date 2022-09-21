@@ -218,7 +218,6 @@ mod line {
         }
 
         pub fn set_truncated(&mut self, size: Option<style::Size>) {
-            warn!("set_truncated: {:?}", size);
             if let Some(size) = size {
                 let scale = size.value / ELLIPSIS_SCALE;
                 let last_glyph = self.glyphs.last();
@@ -318,7 +317,6 @@ pub struct LinesVec {
 
 impl LinesVec {
     pub fn new(line: Line) -> Self {
-        warn!("[L] new");
         line.set_is_last(true);
         let vec = NonEmptyVec::singleton(line);
         Self { vec }
@@ -342,7 +340,6 @@ impl LinesVec {
     }
 
     pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
-        warn!("[L] insert, index: {:?}", index);
         let modifies_last_line = index > self.last_line_index();
         if modifies_last_line {
             self.vec.last().set_is_last(false);
@@ -354,9 +351,7 @@ impl LinesVec {
     }
 
     pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
-        warn!("[L] resize_with, new_len: {}, self.len: {}", new_len, self.len());
         if new_len != self.len() {
-            warn!("NEW LINES COUNT");
             self.vec.last().set_is_last(false);
             self.vec.resize_with(new_len, f);
             self.vec.last().set_is_last(true);
@@ -365,7 +360,6 @@ impl LinesVec {
 
     pub fn drain(&mut self, range: Range<unit::ViewLine>) -> Vec<Line> {
         let modifies_last_line = range.end > self.last_line_index();
-        warn!("[L] drain, range: {:?}, modifies_last_line: {:?}", range, modifies_last_line);
         if modifies_last_line {
             self.vec.last().set_is_last(false);
         }
@@ -679,14 +673,12 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                        debug!(">> 1");
                         m.on_modified_selection(&selections.selection_group,Some(&selections.changes),*time)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    debug!(">> selection_non_edit_mode");
                     m.on_modified_selection(selections,None,*time)
                 }
             ));
@@ -780,7 +772,6 @@ impl Area {
 
             // === Insert ===
 
-            trace keyboard.frp.down;
             key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down).gate_not(&keyboard.frp.is_control_down);
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert, &key_to_insert);
@@ -1016,9 +1007,7 @@ impl AreaModel {
             TextRange::RangeFull(_) => vec![self.buffer.full_range()],
             TextRange::BufferRangeLocationColumn(range) => {
                 let start = UBytes::from_in_context(&self.buffer, range.start);
-                warn!(">> 1");
                 let end = UBytes::from_in_context(&self.buffer, range.end);
-                warn!("<< 1");
                 vec![buffer::Range::new(start, end)]
             }
         }
@@ -1064,8 +1053,6 @@ impl AreaModel {
                 let lines_to_redraw = changes
                     .iter()
                     .filter_map(|change_with_selection| {
-                        debug!("Change: {:#?}", change_with_selection);
-
                         let selection = change_with_selection.selection;
                         // let view_selection = self.buffer.selection_to_view_selection(selection);
 
@@ -1115,20 +1102,16 @@ impl AreaModel {
                             let line_diff = ViewLine((-line_diff) as usize);
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
-                        warn!(">> 1");
 
                         let range_end = ViewLine((shape_x.end().value as i32 + line_diff) as usize);
                         let range = (*shape_x.start())..=range_end;
-                        warn!(">> 2");
 
-                        debug!("Range to redraw: {:?}", range);
                         range.intersect(&view_line_range)
                     })
                     .collect_vec();
 
                 let lines_to_redraw = std_ext::range::merge_overlapping_ranges(&lines_to_redraw);
                 let lines_to_redraw = lines_to_redraw.collect_vec();
-                debug!("Lines to redraw: {:#?}", lines_to_redraw);
 
                 self.redraw_sorted_line_ranges(&lines_to_redraw);
             }
@@ -1143,7 +1126,6 @@ impl AreaModel {
         time: f32,
     ) {
         let do_edit = changes.is_some();
-        debug!("on_modified_selection {:?} {:?} {:?}", buffer_selections, time, do_edit);
         self.update_lines_after_change(changes);
         self.replace_selections(buffer_selections, do_edit, Some(time));
         if do_edit {
@@ -1165,15 +1147,12 @@ impl AreaModel {
     ) {
         let mut selection_map = self.selection_map.borrow_mut();
 
-        debug!("{:?}", selection_map);
         let mut new_selection_map = SelectionMap::default();
 
         for buffer_selection in buffer_selections {
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
             let id = buffer_selection.id;
-            warn!("buffer_selection: {:?}", buffer_selection);
             let selection_start_line = self.buffer.line_to_view_line(buffer_selection.start.line);
-            warn!("selection_start_line: {:?}", selection_start_line);
             let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
             let get_pos_x = |line: unit::ViewLine, column: Column| {
                 if line > self.lines.last_line_index() {
@@ -1185,13 +1164,9 @@ impl AreaModel {
 
             let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
             let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
-            debug!("start_x {start_x}, end_x {end_x}");
             let selection_y = self.lines.borrow()[selection_start_line].target_y_pos();
-            debug!("selection_y {selection_y}");
             let pos = Vector2(start_x, selection_y);
-            debug!("pos {pos}");
             let width = end_x - start_x;
-            debug!("width {width}");
             let metrics = self.lines.borrow()[selection_start_line].metrics();
             let selection = match selection_map.id_map.remove(&id) {
                 Some(selection) => {
@@ -1206,7 +1181,6 @@ impl AreaModel {
                     if width == 0.0 && need_flip {
                         selection.flip_sides()
                     }
-                    debug!("{select_left}, {select_right}, {tgt_pos_x}, {tgt_width}, {mid_point}, {go_left}, {go_right}, {need_flip}");
                     selection.position.set_target_value(pos);
                     selection.frp.set_ascender(metrics.ascender);
                     selection.frp.set_descender(metrics.descender);
@@ -1242,7 +1216,6 @@ impl AreaModel {
                 .or_default()
                 .insert(buffer_selection.start.offset, id);
         }
-        debug!("new_selection_map = {new_selection_map:#?}");
         *selection_map = new_selection_map;
     }
 
@@ -1278,7 +1251,6 @@ impl AreaModel {
         let line = self.buffer.view_line_to_line(view_line);
         let column = Column(div_index);
         let out = Location(line, column);
-        warn!("in text location: {out:?}");
         out
     }
 
@@ -1287,7 +1259,6 @@ impl AreaModel {
         let last_line_index = self.lines.last_line_index();
         let lines = self.lines.borrow();
         while line_index <= last_line_index {
-            warn!("positioning line {:?}", line_index);
             let line = &lines[line_index];
             let current_pos_y = line.target_y_pos();
             let new_pos_y = if line_index == ViewLine(0) {
@@ -1301,7 +1272,6 @@ impl AreaModel {
             };
             let new_pos_y = new_pos_y.round();
             if current_pos_y == new_pos_y {
-                warn!("no change");
                 break;
             }
             line.set_y(new_pos_y);
@@ -1340,7 +1310,6 @@ impl AreaModel {
     }
 
     fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
-        warn!("redraw_sorted_line_ranges: {sorted_line_ranges:?}");
         self.resize_lines();
         self.width_dirty.set(true);
         for range in sorted_line_ranges {
@@ -1358,7 +1327,6 @@ impl AreaModel {
 
     pub fn resize_lines(&self) {
         let line_count = self.buffer.view_line_count();
-        warn!("resize_lines, line_count: {line_count}");
         self.lines.resize_with(line_count, |ix| self.new_line());
     }
 
@@ -1395,8 +1363,6 @@ impl AreaModel {
     }
 
     fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) {
-        debug!("redraw_line {:?} {:?}", view_line_index, content);
-
         let cursor_map = self
             .selection_map
             .borrow()
@@ -1404,11 +1370,9 @@ impl AreaModel {
             .get(&view_line_index)
             .cloned()
             .unwrap_or_default();
-        debug!("cursor_map {:?}", cursor_map);
         let line = &mut self.lines.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        // debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
 
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
 
@@ -1430,8 +1394,6 @@ impl AreaModel {
         let ellipsis_width = Line::ellipsis_size_x(default_size);
 
         self.buffer.with_shaped_line(line_index, |shaped_line| {
-            warn!(">> line_index: {:?}", line_index);
-            warn!(">> shaped_line: {:?}", shaped_line);
             match shaped_line {
                 crate::view::ShapedLine::NonEmpty { glyph_sets } => {
                     let mut line_metrics: Option<LineMetrics> = None;
@@ -1440,7 +1402,6 @@ impl AreaModel {
                             break;
                         }
                         for shaped_glyph in &shaped_glyph_set.glyphs {
-                            warn!(">> glyph_id: {:?}", shaped_glyph.info.glyph_id);
                             let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
                             let cluster_diff =
                                 glyph_byte_start.saturating_sub(prev_cluster_byte_off);
@@ -1579,7 +1540,6 @@ impl AreaModel {
                     }
                 }
             }
-            warn!(">> range: {:?}", range);
         }
     }
 
@@ -1668,7 +1628,6 @@ impl AreaModel {
         ranges: &Vec<buffer::Range<UBytes>>,
         property: style::Property,
     ) {
-        warn!(">> set_glyphs_property: {:?} {:?}", ranges, property);
         let resolved_property = self.buffer.resolve_property(property);
         self.modify_glyphs_in_ranges(ranges, |glyph| glyph.set_property(resolved_property));
     }
@@ -1680,7 +1639,6 @@ impl AreaModel {
     }
 
     pub fn modify_glyphs_in_range(&self, range: buffer::Range<UBytes>, f: impl Fn(&Glyph)) {
-        warn!("modify_glyphs_in_range {:?}", range);
         let range = self.buffer.offset_range_to_location(range);
         let range = self.buffer.location_range_to_view_location_range(range);
         let lines = self.lines.borrow();
@@ -1722,8 +1680,6 @@ impl AreaModel {
     }
 
     fn attach_line_glyphs_to_cursors(&self, view_line_index: unit::ViewLine) {
-        debug!("attach_line_glyphs_to_cursors {:?}", view_line_index);
-
         let cursor_map = self
             .selection_map
             .borrow()
@@ -1731,7 +1687,6 @@ impl AreaModel {
             .get(&view_line_index)
             .cloned()
             .unwrap_or_default();
-        debug!("cursor_map {:?}", cursor_map);
         let line = &self.lines.borrow()[view_line_index];
 
         let mut attached_glyphs = vec![];
@@ -2020,7 +1975,6 @@ impl AreaModel {
 
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
-        warn!(">>> set_font");
         let app = &self.app;
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<font::Registry>();

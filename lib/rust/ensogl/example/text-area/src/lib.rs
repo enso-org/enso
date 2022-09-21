@@ -180,7 +180,7 @@ fn init(app: Application) {
     let borders = Borders::default();
     borders.show(&app, &area);
 
-    area.set_view_width(60.0);
+    // area.set_view_width(60.0);
 
 
 
@@ -322,7 +322,7 @@ fn init_debug_hotkeys(area: &Area) {
             } else if key == "ArrowDown" {
                 area.mod_first_view_line(1);
             } else if key == "KeyW" {
-                area.set_view_width(30.0);
+                area.set_view_width(60.0);
             }
             // } else if key == "Digit0" {
             // } else if key == "Digit1" {

@@ -269,10 +269,8 @@ impl ViewBuffer {
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
-            warn!("FOUND SHAPED LINE {:?}", line);
             f(shaped_line)
         } else {
-            warn!("GENERATING A NEW SHAPED LINE {:?}", line);
             let shaped_line = self.shape_line(line);
             let out = f(&shaped_line);
             shaped_lines.insert(line, shaped_line);
@@ -359,8 +357,6 @@ impl ViewBuffer {
                 {
                     let prev_char_range = prev_grapheme_offset..line_range.start;
                     let prev_glyph_sets = self.shape_range(prev_char_range);
-
-                    warn!("!!!! prev_glyph_sets {:?}", prev_glyph_sets);
                     let prev_glyph_info =
                         prev_glyph_sets.into_iter().last().map(|t| (prev_grapheme_offset, t));
                     ShapedLine::Empty { prev_glyph_info }
@@ -506,7 +502,6 @@ impl ViewBuffer {
 
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text: impl Into<Text>) -> Modification {
-        warn!("view::insert");
         self.modify(text, None)
     }
 
@@ -555,16 +550,8 @@ impl ViewBuffer {
     fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
-        warn!("modify: text: {:?}, transform: {:?}", text, transform);
-        debug!(
-            "\n\n\n\n-----------------------------------------\nmodify {:?} {:?}",
-            text, transform
-        );
         let mut modification = Modification::default();
-        // warn!("selections: {:?}", *self.selection.borrow());
-        warn!("byte_selections: {:?}", self.byte_selections());
         for rel_byte_selection in self.byte_selections() {
-            warn!("rel_byte_selection: {:?}", rel_byte_selection);
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
             let byte_selection = byte_selection.map_shape(|t| {
                 t.map(|bytes| {
@@ -575,13 +562,8 @@ impl ViewBuffer {
                 })
             });
             let selection = self.to_location_selection(byte_selection);
-            debug!(
-                ">> {:?}\n{:?}\n{:?}\n{:?}",
-                modification, rel_byte_selection, byte_selection, selection
-            );
             modification.merge(self.modify_selection(selection, text.clone(), transform));
         }
-        warn!("OUT: {:?}", modification);
         modification
     }
 
@@ -624,35 +606,25 @@ impl ViewBuffer {
         text: Text,
         transform: Option<Transform>,
     ) -> Modification {
-        debug!("modify_selection: {:?} {:?} {:?}", selection, text, transform);
         let text_byte_size = text.byte_size();
         let transformed = match transform {
             Some(t) if selection.is_cursor() => self.moved_selection_region(t, selection, true),
             _ => selection,
         };
-        debug!("transformed: {:?}", transformed);
 
 
         let byte_selection = self.to_bytes_selection(transformed);
-        debug!("byte_selection {:?}", byte_selection);
         let range = byte_selection.range();
-        debug!("range {:?}", range);
-        error!("BUFFER REPLACE: {:?} {:?}", range, text);
         self.buffer.replace(range, &text);
 
 
 
         let new_byte_cursor_pos = range.start + text_byte_size;
-        debug!("new_byte_cursor_pos {:?}", new_byte_cursor_pos);
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
-        debug!("new_byte_selection {:?}", new_byte_selection);
         let local_byte_selection = self.to_location_selection2(new_byte_selection);
-        warn!("NEW SELECTION: {:?}", local_byte_selection);
 
         let redraw_start_line = transformed.min().line;
         let redraw_end_line = transformed.max().line;
-        warn!("redraw_start_line: {:?}", redraw_start_line);
-        warn!("redraw_end_line: {:?}", redraw_end_line);
 
         // FIXME, rmoeve these + Line(1), as they zero in diff computation
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
@@ -671,15 +643,8 @@ impl ViewBuffer {
         let redraw_range = redraw_start_line.value..=(redraw_end_line.value + line_diff);
 
         // FIXME: make it more inteligent.
-        warn!("Clearing line shape cache.");
-        warn!("selected_line_count: {:?}", selected_line_count);
-        warn!("inserted_line_count: {:?}", inserted_line_count);
-        warn!("redraw range: {:?}", redraw_range);
-        // mem::take(&mut *self.shaped_lines.borrow_mut());
-
         for line in redraw_range {
             let line = Line(line);
-            debug!("Removing line shape cache for line {:?}", line);
             self.shaped_lines.borrow_mut().remove(&line);
         }
 
@@ -690,9 +655,6 @@ impl ViewBuffer {
         let change_range = redraw_start_line..=redraw_end_line;
         let change = ChangeWithSelection { change, selection, change_range, line_diff };
         let changes = vec![change];
-        debug!("change {:?}", changes);
-
-        debug!(">>> {}, {}", text_byte_size, range.size());
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
     }
@@ -703,15 +665,10 @@ impl ViewBuffer {
     }
 
     fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-        warn!("to_bytes_selection: {:?}", selection);
         let selection_start = Location::from_in_context(self, selection.start);
-        warn!("selection_start: {:?}", selection_start);
         let selection_end = Location::from_in_context(self, selection.end);
-        warn!("selection_end: {:?}", selection_end);
         let start = self.byte_offset_of_location_snapped(selection_start);
-        warn!("start: {:?}", start);
         let end = self.byte_offset_of_location_snapped(selection_end);
-        warn!("end: {:?}", end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -733,19 +690,14 @@ impl ViewBuffer {
     }
 
     fn offset_to_location(&self, offset: UBytes) -> Location {
-        // warn!("offset_to_location: {:?}", offset);
         let line = self.line_index_of_byte_offset_snapped(offset);
-        // warn!("line: {:?}", line);
         let line_offset = self.byte_offset_of_line_index(line).unwrap();
-        // warn!("line_offset: {:?}", line_offset);
         let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
             error!("Internal error. Line offset overflow ({:?}).", line_offset);
             UBytes(0)
         });
-        // warn!("line_offset: {:?}", line_offset);
         // fixme: tu byl snap_bytes_location_error - potrzebny?
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
-        // warn!("byte_offset: {:?}", byte_offset);
         Location(line, byte_offset)
     }
 
@@ -859,7 +811,6 @@ impl View {
             mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
                 ,mod_on_delete_word_left,mod_on_delete_word_right);
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
-            trace modification;
             // sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
             output.source.text_change <+ modification.gate(&changed).map(|m| m.changes.clone());
@@ -879,7 +830,6 @@ impl View {
 
             sel_on_set_cursor        <- input.set_cursor.map(f!((t) m.set_cursor(*t)));
             sel_on_add_cursor        <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
-            trace sel_on_add_cursor;
             sel_on_set_newest_end    <- input.set_newest_selection_end.map(f!((t) m.set_newest_selection_end(*t)));
             sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
 
