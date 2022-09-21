@@ -261,10 +261,16 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Ident {
             pub is_free:    bool,
             pub lift_level: usize,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub is_type:    bool,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub is_default: bool,
         },
         Operator {
+            #[serde(skip)]
+            #[reflect(skip)]
             pub properties: OperatorProperties,
         },
         Modifier,
@@ -319,34 +325,16 @@ impl Default for Variant {
 )]
 pub struct OperatorProperties {
     // Precedence
-    #[serde(skip)]
-    #[reflect(skip)]
     binary_infix_precedence:   Option<Precedence>,
-    #[serde(skip)]
-    #[reflect(skip)]
     unary_prefix_precedence:   Option<Precedence>,
     // Special properties
-    #[serde(skip)]
-    #[reflect(skip)]
     is_compile_time_operation: bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_right_associative:      bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     can_be_decimal_operator:   bool,
     // Unique operators
-    #[serde(skip)]
-    #[reflect(skip)]
     is_type_annotation:        bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_assignment:             bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_arrow:                  bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_sequence:               bool,
 }
 

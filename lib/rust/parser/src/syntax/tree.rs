@@ -818,6 +818,68 @@ pub fn operator_section(elided: u32, wildcards: u32, ast: Tree) -> Tree {
 
 
 
+// =============================
+// === Traversing operations ===
+// =============================
+
+/// Recurse into the lexical LHS of the tree, applying a function to each node reached, until the
+/// function returns `false`.
+pub fn recurse_left_mut_while<'s>(
+    mut tree: &'_ mut Tree<'s>,
+    mut f: impl FnMut(&'_ mut Tree<'s>) -> bool,
+) {
+    while f(tree) {
+        tree = match &mut *tree.variant {
+            // No LHS.
+            Variant::Invalid(_)
+            | Variant::Unsupported(_)
+            | Variant::BodyBlock(_)
+            | Variant::Ident(_)
+            | Variant::Number(_)
+            | Variant::Wildcard(_)
+            | Variant::AutoScope(_)
+            | Variant::TextLiteral(_)
+            | Variant::UnaryOprApp(_)
+            | Variant::MultiSegmentApp(_)
+            | Variant::TypeDef(_)
+            | Variant::Function(_)
+            | Variant::Import(_)
+            | Variant::Export(_)
+            | Variant::Group(_)
+            | Variant::Case(_)
+            | Variant::TypeSignature(_)
+            | Variant::Lambda(_)
+            | Variant::Array(_)
+            | Variant::Tuple(_) => break,
+            // Optional LHS.
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
+            | Variant::OperatorBlockApplication(OperatorBlockApplication { lhs, .. })
+            | Variant::OprApp(OprApp { lhs, .. }) =>
+                if let Some(lhs) = lhs {
+                    lhs
+                } else {
+                    break;
+                },
+            // Unconditional LHS.
+            Variant::App(App { func: lhs, .. })
+            | Variant::NamedApp(NamedApp { func: lhs, .. })
+            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
+            | Variant::DefaultApp(DefaultApp { func: lhs, .. })
+            | Variant::Assignment(Assignment { pattern: lhs, .. })
+            | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
+            // Special.
+            Variant::Arrow(Arrow { arguments, .. }) =>
+                if let Some(lhs) = arguments.first_mut() {
+                    lhs
+                } else {
+                    break;
+                },
+        }
+    }
+}
+
+
+
 // ================
 // === Visitors ===
 // ================

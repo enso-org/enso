@@ -148,72 +148,37 @@ fn type_def<'s>() -> Definition<'s> {
 fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use syntax::tree::*;
     let segment = matched_segments.pop().0;
-    let header = segment.header;
-    let mut rest = segment.result.tokens();
-    let name = match rest.get(0).map(|item| item.clone().to_ast()) {
-        Some(Tree { variant: box Variant::Ident(Ident { mut token }), span }) => {
+    let header = into_ident(segment.header);
+    let mut tokens = segment.result.tokens().into_iter();
+    let mut i = 0;
+    for (i_, item) in tokens.as_slice().iter().enumerate() {
+        if matches!(item, syntax::Item::Block(_)) {
+            break;
+        }
+        i = i_ + 1;
+    }
+    let Some(first_line) = operator::resolve_operator_precedence_if_non_empty(tokens.by_ref().take(i)) else {
+        let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
+        return placeholder.with_error("Expected identifier after `type` keyword.");
+    };
+    let (name, params) = crate::collect_arguments(first_line);
+    let name = match name {
+        Tree { variant: box Variant::Ident(Ident { mut token }), span } => {
             token.left_offset += span.left_offset;
             token
         }
-        Some(other) => return other.with_error("Expected identifier after `type` keyword."),
-        _ => {
-            let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
-            return placeholder.with_error("Expected identifier after `type` keyword.");
+        other => {
+            return other.with_error("Expected identifier after `type` keyword.");
         }
     };
-    let rest = operator::resolve_operator_precedence_if_non_empty(rest.drain(1..));
-    let mut params = vec![];
-    let mut lines = None;
-    if let Some(mut rest) = rest {
-        loop {
-            match &mut rest.variant {
-                box Variant::ArgumentBlockApplication(ArgumentBlockApplication {
-                    lhs,
-                    arguments,
-                }) => {
-                    if let Some(lhs) = lhs {
-                        lhs.span.left_offset += rest.span.left_offset.clone();
-                        lines = Some(mem::take(arguments));
-                        rest = lhs.clone();
-                        continue;
-                    } else if let Some(first) = arguments.first_mut() {
-                        first.newline.left_offset += rest.span.left_offset.clone();
-                    }
-                    lines = Some(mem::take(arguments));
-                    break;
-                }
-                box Variant::Ident(..) => {
-                    params.push(crate::parse_argument_definition(rest.clone()));
-                    break;
-                }
-                box Variant::Group(..) => {
-                    params.push(crate::parse_argument_definition(rest.clone()));
-                    break;
-                }
-                box Variant::OprApp(OprApp { opr: Ok(opr), .. })
-                    if opr.properties.is_assignment() =>
-                {
-                    params.push(crate::parse_argument_definition(rest.clone()));
-                    break;
-                }
-                _ => (),
-            };
-            if let Some(arg) = crate::parse_argument_application(&mut rest) {
-                params.push(arg);
-            } else {
-                break;
-            }
-        }
-    }
-    params.reverse();
     let mut builder = TypeDefBodyBuilder::default();
-    if let Some(lines) = lines {
-        for block::Line { newline, expression } in lines {
+    if let Some(syntax::Item::Block(block)) = tokens.next() {
+        for block::Line { newline, expression } in block::lines(block) {
             builder.line(newline, expression);
         }
     }
+    debug_assert_eq!(tokens.next(), None);
     let (constructors, body) = builder.finish();
-    let header = into_ident(header);
     Tree::type_def(header, name, params, constructors, body)
 }
 

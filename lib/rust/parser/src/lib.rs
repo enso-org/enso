@@ -83,6 +83,7 @@
 #![feature(test)]
 #![feature(specialization)]
 #![feature(let_chains)]
+#![feature(let_else)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 // === Standard Linter Configuration ===
@@ -102,6 +103,7 @@
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
+
 
 
 // ==============
@@ -263,14 +265,40 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
 }
 
 fn collect_arguments(
-    mut lhs_: syntax::Tree,
+    mut tree: syntax::Tree,
 ) -> (syntax::Tree, Vec<syntax::tree::ArgumentDefinition>) {
+    if let box syntax::tree::Variant::OprApp(syntax::tree::OprApp {
+        lhs: None,
+        opr: Ok(opr),
+        rhs: Some(rhs),
+    }) = tree.variant
+    {
+        let syntax::token::Token { left_offset, code, .. } = opr;
+        let opr = syntax::token::ident(left_offset, code, false, 0, false, false);
+        let mut opr = Some(syntax::Tree::ident(opr));
+        let mut tree_ = rhs;
+        let mut left_offset = crate::source::Offset::default();
+        syntax::tree::recurse_left_mut_while(&mut tree_, |tree| {
+            left_offset += mem::take(&mut tree.span.left_offset);
+            match &mut *tree.variant {
+                syntax::tree::Variant::App(syntax::tree::App { func, .. })
+                        if !matches!(&*func.variant, syntax::tree::Variant::App(_)) => {
+                    let mut func_ = func.clone();
+                    func_.span.left_offset = mem::take(&mut left_offset);
+                    *func = syntax::Tree::app(opr.take().unwrap(), func_);
+                    false
+                }
+                _ => true,
+            }
+        });
+        tree = tree_;
+    }
     let mut args = vec![];
-    while let Some(arg) = parse_argument_application(&mut lhs_) {
+    while let Some(arg) = parse_argument_application(&mut tree) {
         args.push(arg);
     }
     args.reverse();
-    (lhs_, args)
+    (tree, args)
 }
 
 /// Try to parse the expression as an application of a function to an `ArgumentDefinition`. If it
@@ -279,22 +307,21 @@ pub fn parse_argument_application<'s>(
     expression: &'_ mut syntax::Tree<'s>,
 ) -> Option<syntax::tree::ArgumentDefinition<'s>> {
     use syntax::tree::*;
-    let left_offset = mem::take(&mut expression.span.left_offset);
     match &mut expression.variant {
         box Variant::App(App { func, arg }) => {
             let arg = parse_argument_definition(arg.clone());
+            func.span.left_offset += mem::take(&mut expression.span.left_offset);
             *expression = func.clone();
-            expression.span.left_offset += left_offset;
             Some(arg)
         }
         box Variant::NamedApp(NamedApp { func, open, name, equals, arg, close }) => {
-            let open = open.clone();
-            let close = close.clone();
+            let open = mem::take(open);
+            let close = mem::take(close);
             let equals = equals.clone();
             let pattern = Tree::ident(name.clone());
             let default = Some(ArgumentDefault { equals, expression: arg.clone() });
+            func.span.left_offset += mem::take(&mut expression.span.left_offset);
             *expression = func.clone();
-            expression.span.left_offset += left_offset;
             Some(ArgumentDefinition { open, pattern, default, close })
         }
         _ => None,
