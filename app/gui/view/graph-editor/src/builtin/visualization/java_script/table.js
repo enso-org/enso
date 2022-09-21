@@ -5,144 +5,117 @@ const TABLE_ROW_HEIGHT = 30;
 
 const TABLE_ATTRIBUTE_DATA_INDEXNUMBER = 'data-indexnumber';
 const TABLE_ROW = 'table-row';
+const TABLE_HEAD = 'table-head';
 const TABLE_BODY = 'table-body';
 const TABLE_BODY_SELECTOR = '#table-body';
 const TABLE_ROW_SELECTOR = '.table-row';
 
+const TABLE_STYLE_COMMON = `
+    table, .hiddenrows {
+        font-family: DejaVuSansMonoBook, sans-serif;
+        font-size: 12px;
+    }
+
+    table {
+        border-spacing: 1px;
+        padding: 1px;
+    }
+
+    table > tbody ~ thead > tr:first-child > th:first-child,
+    table > tbody ~ thead > tr:first-child > td:first-child {
+        border-top-left-radius: 9px;
+    }
+
+    table > tbody:only-child > tr:first-child > th:first-child,
+    table > tbody:only-child > tr:first-child > td:first-child {
+        border-top-left-radius: 9px;
+    }
+
+    table > tbody ~ thead > tr:first-child > th:last-child,
+    table > tbody ~ thead > tr:first-child > td:last-child {
+        border-top-right-radius: 9px;
+    }
+
+    table > tbody:only-child > tr:first-child > th:last-child,
+    table > tbody:only-child > tr:first-child > td:last-child {
+        border-top-right-radius: 9px;
+    }
+
+    table > tbody > tr:last-child > th:first-child,
+    table > tbody > tr:last-child > td:first-child {
+        border-bottom-left-radius: 9px;
+    }
+
+    table > tbody > tr:last-child > th:last-child,
+    table > tbody > tr:last-child > td:last-child {
+        border-bottom-right-radius: 9px;
+    }
+
+    td.plaintext,
+    th {
+        padding: 5px;
+    }
+
+    th,
+    td {
+        border: 1px solid transparent;
+        background-clip: padding-box;
+    }
+
+    .hiddenrows {
+        margin-left: 5px;
+        margin-top: 5px;
+    }
+`
+
 const TABLE_STYLE_DARK = `
-        <style>
-        table, .hiddenrows {
-            font-family: DejaVuSansMonoBook, sans-serif;
-            font-size: 12px;
-        }
+<style>
+    ${TABLE_STYLE_COMMON}
+    td {
+        color: rgba(255, 255, 255, 0.9);
+        padding: 0;
+    }
 
-        table {
-            border-spacing: 1px;
-            padding: 1px;
-        }
+    th,
+    .hiddenrows {
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 400;
+    }
 
-        table > tbody > tr:first-child > th:first-child,
-        table > tbody > tr:first-child > td:first-child {
-            border-top-left-radius: 9px;
-        }
+    td {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
 
-        table > tbody > tr:first-child > th:last-child,
-        table > tbody > tr:first-child > td:last-child {
-            border-top-right-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:first-child,
-        table > tbody > tr:last-child > td:first-child {
-            border-bottom-left-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:last-child,
-        table > tbody > tr:last-child > td:last-child {
-            border-bottom-right-radius: 9px;
-        }
-
-        td {
-            color: rgba(255, 255, 255, 0.9);
-            padding: 0;
-        }
-
-        td.plaintext,
-        th {
-            padding: 5px;
-        }
-
-        th,
-        td {
-            border: 1px solid transparent;
-            background-clip: padding-box;
-        }
-
-        th, .hiddenrows {
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 400;
-        }
-
-        td {
-            background-color: rgba(255, 255, 255, 0.03);
-        }
-
-        th {
-            background-color: rgba(255, 255, 200, 0.1);
-        }
-
-        .hiddenrows {
-            margin-left: 5px;
-            margin-top: 5px;
-        }
-        </style>
-        `
+    th {
+        background-color: rgba(255, 255, 200, 0.1);
+    }
+</style>
+`
 
 const TABLE_STYLE_LIGHT = `
-        <style>
-        table, .hiddenrows {
-            font-family: DejaVuSansMonoBook, sans-serif;
-            font-size: 12px;
-        }
+<style>
+    ${TABLE_STYLE_COMMON}
 
-        table {
-            border-spacing: 1px;
-            padding: 1px;
-        }
+    td {
+        color: rgba(0, 0, 0, 0.7);
+        padding: 0;
+    }
 
-        table > tbody > tr:first-child > th:first-child,
-        table > tbody > tr:first-child > td:first-child {
-            border-top-left-radius: 9px;
-        }
+    th,
+    .hiddenrows {
+        color: rgba(0, 0, 0, 0.9);
+        font-weight: 400;
+    }
 
-        table > tbody > tr:first-child > th:last-child,
-        table > tbody > tr:first-child > td:last-child {
-            border-top-right-radius: 9px;
-        }
+    td {
+        background-color: rgba(0, 0, 0, 0.025);
+    }
 
-        table > tbody > tr:last-child > th:first-child,
-        table > tbody > tr:last-child > td:first-child {
-            border-bottom-left-radius: 9px;
-        }
-
-        table > tbody > tr:last-child > th:last-child,
-        table > tbody > tr:last-child > td:last-child {
-            border-bottom-right-radius: 9px;
-        }
-
-        td {
-            color: rgba(0, 0, 0, 0.7);
-            padding: 0;
-        }
-
-        td.plaintext,
-            th {
-            padding: 5px;
-        }
-
-        th,
-            td {
-            border: 1px solid transparent;
-            background-clip: padding-box;
-        }
-
-        th, .hiddenrows {
-            color: rgba(0, 0, 0, 0.9);
-            font-weight: 400;
-        }
-
-        td {
-            background-color: rgba(0, 0, 0, 0.025);
-        }
-
-        th {
-            background-color: rgba(30, 30, 20, 0.1);
-        }
-
-        .hiddenrows {
-            margin-left: 5px;
-            margin-top: 5px;
-        }
-        </style>`
+    th {
+        background-color: rgba(30, 30, 20, 0.1);
+    }
+</style>
+`
 
 // ============================
 // === Style Initialisation ===
@@ -186,6 +159,8 @@ class TableVisualization extends Visualization {
         tableBody.setAttributeNS(null, 'id', TABLE_BODY);
 
         this.tabElem = tabElem;
+        this.table = table;
+        this.tableHead = null;
         this.tableBody = tableBody;
 
         table.appendChild(tableBody);
@@ -465,6 +440,12 @@ class TableVisualization extends Visualization {
             console.log('scroll initialized', this.lazyScroll);
          }
 
+        if (!this.tableHead) {
+            let tableHead = this.mkTableHead(TABLE_ROW_HEIGHT, parsedData);
+            this.tableHead = tableHead;
+            this.table.appendChild(tableHead);
+        }
+
          let fragment = this.mkTableFragment(TABLE_ROW_HEIGHT, parsedData);
          console.log('fragment', fragment);
          this.lazyScroll.renderFragment(fragment);
@@ -491,6 +472,28 @@ class TableVisualization extends Visualization {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
         this.updateTableSize()
+    }
+
+    mkTableHead(rowHeight, data) {
+        const tableHead = document.createElement('thead');
+        tableHead.setAttributeNS(null, 'id', TABLE_HEAD);
+
+        let tr = document.createElement('tr');
+        tr.style.height = rowHeight + 'px';
+        for (let elem of data.indices_header) {
+            let th = document.createElement('th');
+            th.appendChild(document.createTextNode(elem));
+            tr.appendChild(th);
+        }
+        for (let elem of data.header) {
+            let th = document.createElement('th');
+            th.appendChild(document.createTextNode(elem));
+            tr.appendChild(th);
+        }
+
+        tableHead.appendChild(tr);
+
+        return tableHead;
     }
 
     mkTableFragment(rowHeight, data) {
