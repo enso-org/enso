@@ -140,12 +140,15 @@ fn type_operator_methods() {
     #[rustfmt::skip]
     let code = [
         "type Foo",
+        "    + : Foo -> Foo -> Foo",
         "    + self b = b",
     ];
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Foo #() #()
-         #((Function #"+" #((() (Ident self) () ()) (() (Ident b) () ()))
+         #((TypeSignature #"+" ":"
+            (Arrow #((Ident Foo)) "->" (Arrow #((Ident Foo)) "->" (Ident Foo))))
+            (Function #"+" #((() (Ident self) () ()) (() (Ident b) () ()))
                       "=" (Ident b))))];
     test(&code.join("\n"), expected);
 }

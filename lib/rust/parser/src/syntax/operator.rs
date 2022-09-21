@@ -183,8 +183,18 @@ impl<'s> ExpressionBuilder<'s> {
         if self.prev_type == Some(ItemType::Opr)
                 && let Some(prev_opr) = self.operator_stack.last_mut()
                 && let Arity::Binary(oprs) = &mut prev_opr.opr {
-            oprs.push(opr);
-            return;
+            if oprs.len() == 1 && opr.properties.is_type_annotation() {
+                let prev = match self.operator_stack.pop().unwrap().opr {
+                    Arity::Binary(oprs) => oprs.into_iter().next().unwrap(),
+                    _ => unreachable!(),
+                };
+                let tp = token::Variant::ident(false, 0, false, false);
+                let prev = Token(prev.left_offset, prev.code, tp);
+                self.output.push(syntax::item::Item::Token(prev));
+            } else {
+                oprs.push(opr);
+                return;
+            }
         }
         self.push_operator(prec, assoc, Arity::Binary(vec![opr]));
     }
