@@ -68,7 +68,7 @@ impl<T: Semigroup> PartialSemigroup<&Option<T>> for Option<T> {
     }
 }
 
-impl<T: Semigroup> PartialSemigroup<Option<T>> for Option<T> {
+impl<T: PartialSemigroup> PartialSemigroup<Option<T>> for Option<T> {
     fn concat_mut(&mut self, other: Self) {
         if let Some(r) = other {
             match self {

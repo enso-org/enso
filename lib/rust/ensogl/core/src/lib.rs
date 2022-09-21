@@ -64,7 +64,9 @@ pub use enso_types as types;
 /// Commonly used utilities.
 pub mod prelude {
     pub use super::display::traits::*;
+    pub use super::frp;
     pub use super::types::*;
+    pub use crate::application::command::FrpNetworkProvider;
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
     pub use crate::types::unit2::traits::*;

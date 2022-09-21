@@ -10,6 +10,7 @@ use crate::buffer;
 use crate::buffer::style;
 use crate::buffer::Text;
 use crate::buffer::Transform;
+use crate::component::line;
 use crate::component::selection;
 use crate::component::Selection;
 use crate::font;
@@ -65,340 +66,11 @@ pub struct SelectionMap {
 
 
 
-// ============
-// === Line ===
-// ============
-
-const ELLIPSIS_SCALE: f32 = 12.0;
-const ELLIPSIS_SHAPE_RADIUS: f32 = 1.0;
-const ELLIPSIS_SHAPE_OFFSET: f32 = 2.0;
-const ELLIPSIS_TEXT_OFFSET: f32 = 2.0;
-const ELLIPSIS_WIDTH: f32 = ELLIPSIS_SHAPE_RADIUS * 2.0 * 3.0 + ELLIPSIS_SHAPE_OFFSET * 2.0;
-const ELLIPSIS_ANIMATION_DURATION_MS: f32 = 400.0;
-const ELLIPSIS_ANIMATION_OFFSET_MS: f32 = 100.0;
-
-mod ellipsis {
-    use super::*;
-    ensogl_core::define_shape_system! {
-        (start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
-            let radius = (&scale * ELLIPSIS_SHAPE_RADIUS).px();
-            let offset = (&scale * (ELLIPSIS_SHAPE_RADIUS * 2.0 + ELLIPSIS_SHAPE_OFFSET)).px();
-            let shape1 = Circle(&radius);
-            let shape2 = Circle(&radius);
-            let shape3 = Circle(&radius);
-            let shape1 = shape1.translate_x(-&offset);
-            let shape3 = shape3.translate_x(offset);
-            let time = Var::<f32>::from("input_time");
-            let time = time - start_time;
-            let start1 = ELLIPSIS_ANIMATION_OFFSET_MS;
-            let end1 = start1 + ELLIPSIS_ANIMATION_DURATION_MS;
-            let start2 = start1 + ELLIPSIS_ANIMATION_OFFSET_MS;
-            let end2 = start2 + ELLIPSIS_ANIMATION_DURATION_MS;
-            let start3 = start2 + ELLIPSIS_ANIMATION_OFFSET_MS;
-            let end3 = start3 + ELLIPSIS_ANIMATION_DURATION_MS;
-            let alpha1 = time.smoothstep(0.0, end1);
-            let alpha2 = time.smoothstep(start2, end2);
-            let alpha3 = time.smoothstep(start3, end3);
-            let rgb = color_rgb;
-            let color1 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha1.glsl());
-            let color2 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha2.glsl());
-            let color3 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha3.glsl());
-            let shape1 = shape1.fill(color1);
-            let shape2 = shape2.fill(color2);
-            let shape3 = shape3.fill(color3);
-            let shape = shape1 + shape2 + shape3;
-            shape.into()
-        }
-    }
-}
-
-
-mod line {
-    use super::*;
-    ensogl_core::define_endpoints_2! {
-        Input {
-            set_metrics(LineMetrics),
-            // FIXME: change name to baseline
-            set_y(f32),
-            set_is_last(bool),
-            // For internal usage only.
-            show_ellipsis(),
-        }
-        Output {
-            metrics(LineMetrics),
-            baseline(f32),
-            descent(f32),
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct Truncation {
-        pub scale:    f32,
-        pub ellipsis: ellipsis::View,
-    }
-
-    impl Truncation {
-        pub fn ellipsis_width(&self) -> f32 {
-            self.scale * ELLIPSIS_WIDTH
-        }
-
-        pub fn ellipsis_size_x(&self) -> f32 {
-            self.ellipsis_width() + ELLIPSIS_TEXT_OFFSET * self.scale
-        }
-
-        pub fn ellipsis_start_x(&self) -> f32 {
-            self.ellipsis.position().x - (ELLIPSIS_WIDTH / 2.0) * self.scale
-        }
-    }
-
-    /// Visual line representation.
-    ///
-    /// **Design Notes**
-    /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when
-    /// clicking inside of the text area, it allows us to binary search the place of the mouse
-    /// pointer.
-    #[derive(Debug, Deref)]
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub struct Line {
-        #[deref]
-        pub frp:            line::Frp,
-        pub y_pos_anim:     Animation<f32>,
-        pub y_target:       Rc<Cell<f32>>,
-        pub display_object: display::object::Instance,
-        pub glyphs:         VecIndexedBy<Glyph, Column>,
-        pub divs:           NonEmptyVec<f32>,
-        pub centers:        Vec<f32>,
-        pub truncation:     Rc<RefCell<Option<Truncation>>>,
-    }
-
-    impl Line {
-        pub fn new(frame_time: &enso_frp::Stream<f32>) -> Self {
-            let frp = line::Frp::new();
-            let network = frp.network();
-            let y_pos_anim = Animation::new(network);
-            let y_target = Rc::new(Cell::new(0.0));
-            let display_object = display::object::Instance::new();
-            let glyphs = default();
-            let divs = default();
-            let centers = default();
-            let truncation: Rc<RefCell<Option<Truncation>>> = default();
-
-            let frame_time = frame_time.clone_ref();
-            frp::extend! {network
-                eval frp.set_y((y) y_target.set(*y));
-                y_pos_anim.target <+ frp.set_y;
-                eval y_pos_anim.value ([display_object](y) display_object.set_position_y(*y));
-
-                baseline_pos_if_last <- y_pos_anim.value.on_change();
-                frp.private.output.baseline <+ baseline_pos_if_last;
-                new_descent <- all_with(&y_pos_anim.value, &frp.set_metrics, |baseline,metrics|
-                    baseline + metrics.descender);
-                frp.private.output.descent <+ new_descent.on_change();
-                frp.private.output.metrics <+ frp.set_metrics.on_change();
-
-                start_time <- frame_time.sample(&frp.show_ellipsis);
-                eval start_time ([truncation](t) {
-                    if let Some(truncation) = &*truncation.borrow() {
-                        truncation.ellipsis.start_time.set(*t);
-                    }
-                });
-            }
-            Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers, truncation }
-        }
-
-        pub fn ellipsis_width(size: style::Size) -> f32 {
-            let scale = size.value / ELLIPSIS_SCALE;
-            scale * ELLIPSIS_WIDTH
-        }
-
-        pub fn ellipsis_size_x(size: style::Size) -> f32 {
-            let scale = size.value / ELLIPSIS_SCALE;
-            Self::ellipsis_width(size) + ELLIPSIS_TEXT_OFFSET * scale
-        }
-
-        pub fn set_truncated(&mut self, size: Option<style::Size>) {
-            if let Some(size) = size {
-                let scale = size.value / ELLIPSIS_SCALE;
-                let last_glyph = self.glyphs.last();
-                let last_glyph_x_opt = last_glyph.map(|g| g.position().x + g.x_advance.get());
-                let x = ELLIPSIS_TEXT_OFFSET + ELLIPSIS_WIDTH / 2.0;
-                let x = x * scale + last_glyph_x_opt.unwrap_or(0.0);
-                let width = Self::ellipsis_width(size);
-                let height = scale * ELLIPSIS_SHAPE_RADIUS * 2.0;
-                let ellipsis = ellipsis::View::new();
-                ellipsis.set_position_x(x);
-                ellipsis.set_position_y(scale * (ELLIPSIS_SHAPE_RADIUS / 2.0));
-                ellipsis.scale.set(scale);
-                ellipsis.size.set(Vector2::new(width, height));
-                self.add_child(&ellipsis);
-                let truncation = Truncation { scale, ellipsis };
-                let was_truncated = self.truncation.borrow().is_some();
-                *self.truncation.borrow_mut() = Some(truncation);
-                if !was_truncated {
-                    self.show_ellipsis();
-                }
-            } else {
-                *self.truncation.borrow_mut() = None;
-            }
-        }
-
-        pub fn metrics(&self) -> LineMetrics {
-            self.metrics.value()
-        }
-
-        pub fn target_y_pos(&self) -> f32 {
-            self.y_target.get()
-        }
-
-        /// Set the division points (offsets between letters). Also updates center points.
-        #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-        pub fn set_divs(&mut self, divs: NonEmptyVec<f32>) {
-            let div_iter = divs.iter();
-            let div_iter_skipped = divs.iter().skip(1);
-            self.centers = div_iter.zip(div_iter_skipped).map(|(t, s)| (t + s) / 2.0).collect();
-            self.divs = divs;
-        }
-
-        pub fn div_index_close_to(&self, offset: f32) -> usize {
-            self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
-        }
-
-        pub fn div_by_column(&self, column: Column) -> f32 {
-            if column.value < self.divs.len() {
-                self.divs[column.value]
-            } else {
-                *self.divs.last()
-            }
-        }
-
-        pub fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
-            let display_object = self.display_object().clone_ref();
-            self.glyphs.resize_with(size, move || {
-                let glyph = cons();
-                display_object.add_child(&glyph);
-                glyph
-            });
-        }
-
-        pub fn push_glyph(&mut self, cons: impl Fn() -> Glyph) {
-            let display_object = self.display_object().clone_ref();
-            let glyph = cons();
-            display_object.add_child(&glyph);
-            self.glyphs.push(glyph);
-        }
-    }
-
-    impl display::Object for Line {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.display_object
-        }
-    }
-
-    impl<'t> IntoIterator for &'t Line {
-        type Item = &'t Glyph;
-        type IntoIter = std::slice::Iter<'t, Glyph>;
-        fn into_iter(self) -> Self::IntoIter {
-            self.glyphs.iter()
-        }
-    }
-}
-pub use line::Line;
-
-
 // =============
 // === Lines ===
 // =============
 
-#[derive(Debug)]
-pub struct LinesVec {
-    vec: NonEmptyVec<Line, unit::ViewLine>,
-}
-
-impl LinesVec {
-    pub fn new(line: Line) -> Self {
-        line.set_is_last(true);
-        let vec = NonEmptyVec::singleton(line);
-        Self { vec }
-    }
-
-    pub fn len(&self) -> usize {
-        self.vec.len()
-    }
-
-    pub fn first(&self) -> &Line {
-        self.vec.first()
-    }
-
-    pub fn last(&self) -> &Line {
-        self.vec.last()
-    }
-
-    fn last_line_index(&self) -> ViewLine {
-        // This is safe because we are using [`NonEmptyVec`] to store lines.
-        ViewLine((self.len() - 1))
-    }
-
-    pub fn insert(&mut self, index: unit::ViewLine, line: Line) {
-        let modifies_last_line = index > self.last_line_index();
-        if modifies_last_line {
-            self.vec.last().set_is_last(false);
-        }
-        self.vec.insert(index, line);
-        if modifies_last_line {
-            self.vec.last().set_is_last(true);
-        }
-    }
-
-    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> Line) {
-        if new_len != self.len() {
-            self.vec.last().set_is_last(false);
-            self.vec.resize_with(new_len, f);
-            self.vec.last().set_is_last(true);
-        }
-    }
-
-    pub fn drain(&mut self, range: Range<unit::ViewLine>) -> Vec<Line> {
-        let modifies_last_line = range.end > self.last_line_index();
-        if modifies_last_line {
-            self.vec.last().set_is_last(false);
-        }
-        let drain = self.vec.drain(range).collect_vec();
-        if modifies_last_line {
-            self.vec.last().set_is_last(true);
-        }
-        drain
-    }
-}
-
-impl<'a> IntoIterator for &'a LinesVec {
-    type Item = &'a Line;
-    type IntoIter = slice::Iter<'a, Line>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.vec.iter()
-    }
-}
-
-impl std::ops::Index<unit::ViewLine> for LinesVec {
-    type Output = Line;
-    fn index(&self, index: unit::ViewLine) -> &Self::Output {
-        &self.vec[index]
-    }
-}
-
-impl std::ops::Index<std::ops::Range<unit::ViewLine>> for LinesVec {
-    type Output = [Line];
-    fn index(&self, index: std::ops::Range<unit::ViewLine>) -> &Self::Output {
-        &self.vec[index]
-    }
-}
-
-impl std::ops::IndexMut<unit::ViewLine> for LinesVec {
-    fn index_mut(&mut self, index: unit::ViewLine) -> &mut Self::Output {
-        &mut self.vec[index]
-    }
-}
-
-
+type LinesVec = NonEmptyVec<line::View, unit::ViewLine>;
 
 /// Set of all visible lines.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -407,8 +79,8 @@ struct Lines {
 }
 
 impl Lines {
-    pub fn new(line: Line) -> Self {
-        let rc = Rc::new(RefCell::new(LinesVec::new(line)));
+    pub fn new(line: line::View) -> Self {
+        let rc = Rc::new(RefCell::new(LinesVec::singleton(line)));
         Self { rc }
     }
 
@@ -423,7 +95,7 @@ impl Lines {
     }
 
     /// Resize the line container and use the provided function to construct missing elements.
-    pub fn resize_with(&self, size: usize, cons: impl Fn(ViewLine) -> Line) {
+    pub fn resize_with(&self, size: usize, cons: impl Fn(ViewLine) -> line::View) {
         let vec = &mut self.rc.borrow_mut();
         let mut ix = ViewLine(vec.len());
         vec.resize_with(size, || {
@@ -888,13 +560,6 @@ impl Area {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct LineMetrics {
-    pub ascender:  f32,
-    pub descender: f32,
-    pub gap:       f32,
-}
-
 
 // =================
 // === AreaModel ===
@@ -984,7 +649,7 @@ impl AreaModel {
     }
 
     fn take_lines(&self) -> Lines {
-        let lines_vec = LinesVec::new(self.new_line());
+        let lines_vec = LinesVec::singleton(self.new_line());
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
     }
@@ -1163,7 +828,7 @@ impl AreaModel {
 
             let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
             let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
-            let selection_y = self.lines.borrow()[selection_start_line].target_y_pos();
+            let selection_y = self.lines.borrow()[selection_start_line].baseline();
             let pos = Vector2(start_x, selection_y);
             let width = end_x - start_x;
             let metrics = self.lines.borrow()[selection_start_line].metrics();
@@ -1240,7 +905,7 @@ impl AreaModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
-            if line.target_y_pos() + line.metrics().descender < object_space.y {
+            if line.baseline() + line.metrics().descender < object_space.y {
                 break;
             }
             view_line += ViewLine(1);
@@ -1259,21 +924,21 @@ impl AreaModel {
         let lines = self.lines.borrow();
         while line_index <= last_line_index {
             let line = &lines[line_index];
-            let current_pos_y = line.target_y_pos();
-            let new_pos_y = if line_index == ViewLine(0) {
+            let current_pos_y = line.baseline();
+            let new_baseline = if line_index == ViewLine(0) {
                 -line.metrics().ascender
             } else {
                 let prev_line_index = ViewLine(line_index.value - 1);
                 let prev_line = &lines[prev_line_index];
                 let offset =
                     prev_line.metrics().descender - line.metrics().ascender - line.metrics().gap;
-                prev_line.target_y_pos() + offset
+                prev_line.baseline() + offset
             };
-            let new_pos_y = new_pos_y.round();
-            if current_pos_y == new_pos_y {
+            let new_baseline = new_baseline.round();
+            if current_pos_y == new_baseline {
                 break;
             }
-            line.set_y(new_pos_y);
+            line.set_baseline(new_baseline);
             line_index += ViewLine(1);
         }
         Some(line_index)
@@ -1390,12 +1055,12 @@ impl AreaModel {
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.borrow().size.default;
-        let ellipsis_width = Line::ellipsis_size_x(default_size);
+        let ellipsis_width = line::TruncationSize::from(default_size).width_with_text_offset();
 
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
                 crate::view::ShapedLine::NonEmpty { glyph_sets } => {
-                    let mut line_metrics: Option<LineMetrics> = None;
+                    let mut line_metrics: Option<line::Metrics> = None;
                     for shaped_glyph_set in glyph_sets {
                         if truncated {
                             break;
@@ -1437,14 +1102,8 @@ impl AreaModel {
                             let glyph = &line.glyphs[column];
                             glyph.start_byte_offset.set(glyph_byte_start);
 
-                            line_metrics = match line_metrics {
-                                None => Some(LineMetrics { ascender, descender, gap }),
-                                Some(m) => Some(LineMetrics {
-                                    ascender:  m.ascender.max(ascender),
-                                    descender: m.descender.min(descender),
-                                    gap:       m.gap.max(gap),
-                                }),
-                            };
+                            let glyph_line_metrics = line::Metrics { ascender, descender, gap };
+                            line_metrics = line_metrics.concat(Some(glyph_line_metrics));
 
                             let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
                             glyph.set_color(style.color);
@@ -1486,7 +1145,7 @@ impl AreaModel {
                         let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
                         let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
 
-                        let metrics = LineMetrics { ascender, descender, gap };
+                        let metrics = line::Metrics { ascender, descender, gap };
                         line.set_metrics(metrics);
                     }
                 }
@@ -1747,7 +1406,7 @@ impl AreaModel {
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
                 if let Some(truncation) = &*line.truncation.borrow() {
-                    let width = truncation.ellipsis_start_x() + truncation.ellipsis_size_x();
+                    let width = truncation.max_x();
                     if width > max_width {
                         max_width = width;
                     }
@@ -1876,19 +1535,19 @@ impl AreaModel {
         frame_time: &enso_frp::Stream<f32>,
         display_object: &display::object::Instance,
         default_size: f32,
-    ) -> Line {
-        let mut line = Line::new(frame_time);
+    ) -> line::View {
+        let mut line = line::View::new(frame_time);
         let ascender = default_size;
         let descender = ascender / 10.0;
         let gap = 0.0;
-        let metrics = LineMetrics { ascender, descender, gap };
+        let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
 
         display_object.add_child(&line);
         line
     }
 
-    fn new_line(&self) -> Line {
+    fn new_line(&self) -> line::View {
         let line = Self::new_line_helper(
             &self.app.display.default_scene.frp.frame_time,
             &self.display_object,
@@ -1898,7 +1557,7 @@ impl AreaModel {
         line
     }
 
-    fn init_line(&self, line: &Line) {
+    fn init_line(&self, line: &line::View) {
         let network = &self.frp_network;
         frp::extend! { network
             self.frp_endpoints.source.refresh_height <+_ line.descent;
