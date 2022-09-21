@@ -1,10 +1,8 @@
 from Standard.Base import all
 
 import Standard.Table
-import Standard.Table.Data.Column
+from Standard.Table import Delimited, Column, Data_Formatter
 import Standard.Table.Data.Storage
-import Standard.Table.IO.File_Format
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
 import Standard.Test
 
@@ -40,14 +38,14 @@ spec =
         Test.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "time_of_day_sample.csv").read_text
-            delimited = Text.from expected format=(File_Format.Delimited "," line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
         Test.specify "should serialise dates with format" <|
             test_table = Table.new [c_time]
             expected_text = 'Posting time\n09-00-00\n14-00-12\n09-00-00\n17-30-00\n09-00-04\n15-30-00\n'
             data_formatter = Data_Formatter . with_datetime_formats time_formats=["HH-mm-ss"]
-            delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
 main = Test.Suite.run_main spec

@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import org.enso.base.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -123,30 +124,11 @@ public class Column {
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     for (Value item : items) {
-      Object converted = convertDateOrTime(item);
+      Object converted = Polyglot_Utils.convertPolyglotValue(item);
       builder.appendNoGrow(converted);
     }
     var storage = builder.seal();
     return new Column(name, new DefaultIndex(items.size()), storage);
-  }
-
-  private static Object convertDateOrTime(Value item) {
-    if (item.isDate()) {
-      LocalDate d = item.asDate();
-      if (item.isTime()) {
-        LocalDateTime dtime = d.atTime(item.asTime());
-        if (item.isTimeZone()) {
-          return dtime.atZone(item.asTimeZone());
-        } else {
-          return dtime;
-        }
-      } else {
-        return d;
-      }
-    } else if (item.isTime()) {
-      return item.asTime();
-    }
-    return item.as(Object.class);
   }
 
   /**
@@ -187,7 +169,7 @@ public class Column {
    *     specified operation.
    */
   public Object aggregate(
-      String aggName, Function<List<Object>, Object> aggregatorFunction, boolean skipNa) {
+      String aggName, Function<List<Object>, Value> aggregatorFunction, boolean skipNa) {
     Aggregator aggregator = storage.getAggregator(aggName, aggregatorFunction, skipNa, 1);
 
     IntStream ixes = IntStream.range(0, storage.size());

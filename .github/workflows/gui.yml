@@ -647,6 +647,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide build --wasm-source current-ci-run --backend-source current-ci-run
         env:
+          APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
+          CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse

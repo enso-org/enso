@@ -47,8 +47,6 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     Dataframe_Column.Aggregate_Column_Data _ ->
         ungrouped = Dataframe_Column.Column_Data x.java_column.getColumn
         prepare_visualization ungrouped.to_table max_rows
-    Database_Column.Aggregate_Column_Builder_Data _ _ _ _ _ ->
-        prepare_visualization x.ungrouped.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays

@@ -19,6 +19,19 @@ spec =
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
+    Test.group "Date_Time equality" <|
+        Test.specify "should work with values coming from various sources" <|
+            d1 = Date_Time.new 2022 3 4 5 6
+            d2 = java_datetime 2022 3 4 5 6
+            d1 . should_equal d2
+
+            d3 = Date_Time.new 2022 (zone = Time_Zone.utc)
+            d4 = java_datetime 2022 (zone = Time_Zone.utc)
+            d5 = js_datetime 2022 (zone = Time_Zone.utc)
+
+            d3 . should_equal d4
+            d4 . should_equal d5
+
 spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 

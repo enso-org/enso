@@ -1,0 +1,64 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+
+from Standard.Table.Excel.Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
+import Standard.Table.Excel.Excel_Reader
+import Standard.Table.Excel.Excel_Writer
+
+## PRIVATE
+   Resolve the xls_format setting to a boolean.
+should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean | Illegal_Argument
+should_treat_as_xls_format xls_format file =
+    if xls_format != Infer then xls_format else
+        case file.extension of
+            ".xlsx" -> False
+            ".xlsm" -> False
+            ".xls" -> True
+            ".xlt" -> True
+            _ -> Error.throw (Illegal_Argument_Error_Data ("Unknown file extension for Excel file (" + file.extension + ")"))
+
+## Read the file to a `Table` from an Excel file
+type Excel_Format
+    ## Read Excels files into a Table or Vector.
+
+       Arguments:
+       - section: The `Excel_Section` to read from the workbook.
+         This can be one of:
+         - `Sheet_Names` - outputs a `Vector` of sheet names.
+         - `Range_Names` - outputs a `Vector` of range names.
+         - `Worksheet` - outputs a `Table` containing the specified sheet.
+         - `Cell_Range` - outputs a `Table` containing the specified range.
+       - headers: If set to `True`, the first row is used as column names. If
+         set to `False`, the column names are Excel column names. If set to
+         `Infer`, the process tries to infer if headers are present on the first
+          row. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+       - xls_format:
+         If set to `True`, the file is read as an Excel 95-2003 format.
+         If set to `False`, the file is read as an Excel 2007+ format.
+         `Infer` will attempt to deduce this from the extension of the filename.
+    Excel (section:Excel_Section=Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
+
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Excel_Format | Nothing
+    for_file file =
+        is_xls = should_treat_as_xls_format Infer file
+        if is_xls.is_error then Nothing else
+            Excel xls_format=is_xls
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        format = should_treat_as_xls_format self.xls_format file
+        Excel_Reader.read_file file self.section self.headers on_problems format
+
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
+    write_table self file table on_existing_file match_columns on_problems =
+        format = should_treat_as_xls_format self.xls_format file
+
+        case self.section of
+            Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
+            Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
+            _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format

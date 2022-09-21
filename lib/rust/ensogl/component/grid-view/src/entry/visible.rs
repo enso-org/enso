@@ -75,14 +75,20 @@ where EntryParams: frp::node::Data
     ///
     /// The new instance will have all its FRP endpoints connected to appropriate endpoints of
     /// `self` and overlay mouse events.
+    ///
+    /// The second value in the returned tuple is an `init` FRP endpoint that must be triggered
+    /// as soon as the entry is created. It is not triggered automatically to allow calling
+    /// `create_entry` without the risk of multiple RefCell borrows. Some FRP endpoints of the
+    /// entry may cause double borrows, as they are already connected to the grid view handlers
+    /// at the time of the `create_entry` call.
     pub fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
         text_layer: Option<&Layer>,
-    ) -> VisibleEntry<E> {
+    ) -> (VisibleEntry<E>, Option<frp::Source<()>>) {
         let entry = E::new(&self.app, text_layer);
         let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
         entry.add_child(&overlay);
-        if let Some(network) = self.network.upgrade_or_warn() {
+        let init = if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
             let mouse = &self.app.display.default_scene.mouse.frp;
@@ -124,9 +130,11 @@ where EntryParams: frp::node::Data
                     |width, col| (*col, *width)
                 );
             }
-            init.emit(());
-        }
-        VisibleEntry { entry, overlay }
+            Some(init)
+        } else {
+            None
+        };
+        (VisibleEntry { entry, overlay }, init)
     }
 }
 

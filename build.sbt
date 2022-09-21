@@ -1,10 +1,15 @@
 import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
+import sbt.nio.FileStamper.LastModified
+import sbt.nio.file.FileTreeView
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -253,6 +258,7 @@ lazy val enso = (project in file("."))
     `polyglot-api`,
     `project-manager`,
     `syntax-definition`.jvm,
+    `syntax-rust-definition`,
     `text-buffer`,
     flexer.jvm,
     graph,
@@ -658,6 +664,53 @@ lazy val `text-buffer` = project
       "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
       "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
     )
+  )
+
+val generateRustParserLib = TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
+`syntax-rust-definition` / generateRustParserLib := {
+    import sys.process._
+    val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
+    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+    if (allLibs.isEmpty || (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
+      Seq("cargo", "build", "-p", "enso-parser-jni") !
+    }
+    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
+}
+
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+
+val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+`syntax-rust-definition` / generateParserJavaSources := {
+  generateRustParser((`syntax-rust-definition` / Compile / sourceManaged).value, (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+}
+`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+
+def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
+  import scala.jdk.CollectionConverters._
+  import java.nio.file.Paths
+
+  import sys.process._
+  val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
+  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  if (!fullPkg.exists()) {
+    fullPkg.mkdirs()
+  }
+  if (changes.hasChanges) {
+    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+  }
+  FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
+}
+
+lazy val `syntax-rust-definition` = project
+  .in(file("lib/rust/parser"))
+  .configs(Test)
+  .settings(
+    Compile / sourceGenerators += generateParserJavaSources,
+    Compile / resourceGenerators += generateRustParserLib,
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
+    frgaalJavaCompilerSetting,
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -1336,6 +1389,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`syntax-rust-definition`)
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 

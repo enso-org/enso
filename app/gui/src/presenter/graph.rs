@@ -115,7 +115,7 @@ impl Model {
 
     /// Node position was changed in view.
     fn node_position_changed(&self, id: ViewNodeId, position: Vector2) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id = self.state.update_from_view().set_node_position(id, position)?;
                 Some(self.controller.graph().set_node_position(ast_id, position))
@@ -125,7 +125,7 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id =
                     self.state.update_from_view().set_node_visualization(id, path.clone())?;
@@ -141,9 +141,15 @@ impl Model {
         );
     }
 
+    /// Node expression was edited in the view. Should be called whenever the user changes the
+    /// contents of a node during editing.
+    fn node_expression_set(&self, id: ViewNodeId, expression: String) {
+        self.state.update_from_view().set_node_expression(id, expression);
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 Some(self.controller.graph().remove_node(ast_id))
@@ -154,7 +160,7 @@ impl Model {
 
     /// Connection was created in view.
     fn new_connection_created(&self, id: ViewConnection) {
-        self.update_ast(
+        self.log_action(
             || {
                 let connection = self.view.model.edges.get_cloned_ref(&id)?;
                 let ast_to_create = self.state.update_from_view().create_connection(connection)?;
@@ -166,7 +172,7 @@ impl Model {
 
     /// Connection was removed in view.
     fn connection_removed(&self, id: ViewConnection) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_to_remove = self.state.update_from_view().remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove))
@@ -176,7 +182,7 @@ impl Model {
     }
 
     fn nodes_collapsed(&self, collapsed: &[ViewNodeId]) {
-        self.update_ast(
+        self.log_action(
             || {
                 debug!(self.logger, "Collapsing node.");
                 let ids = collapsed.iter().filter_map(|node| self.state.ast_node_id_of_view(*node));
@@ -190,7 +196,7 @@ impl Model {
         );
     }
 
-    fn update_ast<F>(&self, f: F, action: &str)
+    fn log_action<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
         if let Some(Err(err)) = f() {
             error!(self.logger, "Failed to {action} in AST: {err}");
@@ -550,6 +556,7 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
+            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone()));
 
 
             // === Dropping Files ===
@@ -617,6 +624,7 @@ impl Graph {
     /// content of a node. For example, the searcher uses this to allow the edit field to have a
     /// preview that is different from the actual node AST.
     pub fn allow_expression_auto_updates(&self, id: AstNodeId, allow: bool) {
+        tracing::debug!("Setting auto updates for {id:?} to {allow}");
         self.model.state.allow_expression_auto_updates(id, allow);
     }
 }

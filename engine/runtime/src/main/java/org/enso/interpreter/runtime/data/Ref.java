@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** A mutable reference type. */
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Ref.Ref")
+@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Runtime.Ref.Ref")
 public class Ref implements TruffleObject {
   private volatile Object value;
 

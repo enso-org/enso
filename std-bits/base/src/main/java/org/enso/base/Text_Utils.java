@@ -107,12 +107,8 @@ public class Text_Utils {
    * @param str2 the second string
    * @return the result of comparison
    */
-  public static boolean equals(String str1, Object str2) {
-    if (str2 instanceof String) {
-      return compare_normalized(str1, (String) str2) == 0;
-    } else {
-      return false;
-    }
+  public static boolean equals(String str1, String str2) {
+      return compare_normalized(str1, str2) == 0;
   }
 
   /**
@@ -196,6 +192,22 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if {@code string} starts with {@code prefix}.
+   */
+  public static boolean starts_with(String string, String prefix) {
+    String beginning = take_prefix(string, grapheme_length(prefix));
+    return equals(beginning, prefix);
+  }
+
+  /**
+   * Checks if {@code string} ends with {@code suffix}.
+   */
+  public static boolean ends_with(String string, String suffix) {
+    String ending = take_suffix(string, grapheme_length(suffix));
+    return equals(ending, suffix);
+  }
+
+  /**
    * Checks if {@code substring} is a substring of {@code string}.
    *
    * @param string the containing string.
@@ -233,6 +245,45 @@ public class Text_Utils {
    */
   public static long char_length(String str) {
     return str.length();
+  }
+
+  /**
+   * Gets the length of the string in graphemes
+   *
+   * @param str the string to measure
+   * @return length of the string
+   */
+  public static long grapheme_length(String str) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(str);
+    long len = 0;
+    while (iter.next() != BreakIterator.DONE) {
+      len++;
+    }
+    return len;
+  }
+
+  /** Returns a prefix of the string not exceeding the provided grapheme length. */
+  public static String take_prefix(String str, long grapheme_length) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(str);
+    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
+      return str;
+    } else {
+      return str.substring(0, iter.current());
+    }
+  }
+
+  /** Returns a suffix of the string not exceeding the provided grapheme length. */
+  public static String take_suffix(String str, long grapheme_length) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(str);
+    iter.last();
+    if (iter.next(Math.toIntExact(-grapheme_length)) == BreakIterator.DONE) {
+      return str;
+    } else {
+      return str.substring(iter.current());
+    }
   }
 
   /**
