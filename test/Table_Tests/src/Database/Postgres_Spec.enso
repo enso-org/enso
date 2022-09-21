@@ -39,14 +39,14 @@ postgres_specific_spec connection db_name pending =
 
         Test.specify "should allow changing schema" <|
             new_connection = connection.set_schema "information_schema"
-            new_schema = new_connection.execute_query "SELECT current_schema()" . at 0 . to_vector . first
+            new_schema = new_connection.read (Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
             new_schema . should_equal "information_schema"
 
         databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
         pending_database = if databases.length != 0 then Nothing else "Cannot tests changing database unless two databases defined."
         Test.specify "should allow changing database" pending=pending_database <|
             new_connection = connection.set_database databases.first
-            new_database = new_connection.execute_query "SELECT current_database()" . at 0 . to_vector . first
+            new_database = new_connection.read (Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
             new_database . should_equal databases.first
 
     Test.group "[PostgreSQL] Tables and Table Types" <|

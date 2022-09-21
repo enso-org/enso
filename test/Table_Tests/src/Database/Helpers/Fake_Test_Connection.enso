@@ -27,19 +27,20 @@ type Fake_Test_Connection
             columns = self.tables.get name
             Database_Table.make_table self name columns (IR.context_for_table name)
 
+    ## Execute the query and return the results as a Table.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+       - alias: optionally specify a friendly alias for the query.
+       - limit: the maximum number of rows to return (default 1000).
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
+    read self query alias="" limit=Nothing =
+        Error.throw "Materialization not supported on fake connection."
+
     ## PRIVATE
     close : Nothing
     close self = Nothing
-
-    ## PRIVATE
-    explain_query_plan : Statement -> Text
-    explain_query_plan self _ =
-        Error.throw "Materialization not supported on fake connection."
-
-    ## PRIVATE
-    execute_query : Text | Statement -> Materialized_Table
-    execute_query self _ =
-        Error.throw "Materialization not supported on fake connection."
 
     ## PRIVATE
     execute_update : Text | Statement -> Integer

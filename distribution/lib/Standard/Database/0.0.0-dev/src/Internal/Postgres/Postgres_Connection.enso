@@ -92,21 +92,16 @@ type Postgres_Connection
          If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
        - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Database_Table
-    query self sql_query alias="" = self.connection.query sql_query alias
+    query self query alias="" = self.connection.query query alias
 
-    ## ADVANCED
-
-       Executes a raw query and returns the result as an in-memory Table.
+    ## Execute the query and return the results as a Table.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of
-       .Statement
-         representing the query to execute.
-       - expected_types: an optional array of expected types of each column;
-         meant only for internal use.
-    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
-    execute_query self query expected_types=Nothing =
-        self.connection.execute_query query expected_types
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+       - limit: the maximum number of rows to return.
+    read : Text | SQL_Query -> Integer | Nothing -> Table
+    read self query limit=Nothing = self.connection.query query limit
 
     ## ADVANCED
 

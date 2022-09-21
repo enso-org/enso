@@ -67,10 +67,10 @@ sqlite_specific_spec connection =
 
     Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.execute_query "foobar" . should_fail_with SQL_Error_Data
+            connection.read (Raw_SQL "foobar") . should_fail_with SQL_Error_Data
             connection.execute_update "foobar" . should_fail_with SQL_Error_Data
 
-            action = connection.execute_query "SELECT A FROM undefined_table"
+            action = connection.read (Raw_SQL "SELECT A FROM undefined_table")
             action . should_fail_with SQL_Error_Data
             action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
 

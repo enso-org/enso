@@ -124,19 +124,20 @@ type Connection
             columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (IR.Select_All ctx))
             Database_Table.make_table self name columns ctx
 
-    ## ADVANCED
-
-       Executes a raw query and returns the result as an in-memory Table.
+    ## Execute the query and return the results as a Table.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of SQL.Statement
-         representing the query to execute.
-       - expected_types: an optional array of expected types of each column;
-         meant only for internal use.
-    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
-    execute_query self query expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement query stmt->
-            result_set_to_table stmt.executeQuery expected_types
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+       - limit: the maximum number of rows to return.
+    read : Text | SQL_Query | Statement -> Text -> Integer | Nothing -> Table
+    read self query limit=Nothing =
+        case query of
+            Statement.Statement_Data _ ->
+                self.jdbc_connection.with_prepared_statement query stmt->
+                    result_set_to_table stmt.executeQuery Nothing
+            _ ->
+                self.query query . read limit=limit
 
     ## ADVANCED
 
@@ -152,20 +153,6 @@ type Connection
         self.jdbc_connection.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
-
-    ## PRIVATE
-
-       A helper function that fetches column names and sql types associated with
-       them for a table in the database.
-
-       Arguments:
-       - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, SQL_Type]
-    fetch_columns : Text -> Vector Any
-    fetch_columns self table_name =
-        query = IR.Select_All (IR.context_for_table table_name)
-        compiled = self.dialect.generate_sql query
-        self.jdbc_connection.fetch_columns compiled
 
     ## PRIVATE
        UNSTABLE
