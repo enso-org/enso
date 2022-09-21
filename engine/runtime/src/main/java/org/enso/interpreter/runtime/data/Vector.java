@@ -65,10 +65,8 @@ public final class Vector implements TruffleObject {
 
   @Builtin.Method(name = "slice", description = "Returns a slice of this Vector.")
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
-  public final Vector slice(
-      long start,
-      long end,
-      InteropLibrary interop) throws UnsupportedMessageException {
+  public final Vector slice(long start, long end, InteropLibrary interop)
+      throws UnsupportedMessageException {
     long this_length = length(interop);
     long slice_start = Math.max(0, start);
     long slice_end = Math.min(this_length, end);
