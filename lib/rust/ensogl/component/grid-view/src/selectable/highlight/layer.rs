@@ -82,6 +82,7 @@ impl<InnerGridView> Handler<InnerGridView> {
             grid_frp.set_entries_size <+ all(init, base_grid_frp.entries_size)._1();
             grid_frp.resize_grid <+ all(init, base_grid_frp.grid_size)._1();
             grid_frp.model_for_entry <+ base_grid_frp.model_for_entry;
+            grid_frp.set_column_width <+ base_grid_frp.set_column_width;
 
             different_entry_hovered <- grid_frp.entry_hovered.map2(&base_grid_frp.entry_hovered, |e1, e2| e1 != e2);
             base_grid_frp.hover_entry <+ grid_frp.entry_hovered.gate(&different_entry_hovered);

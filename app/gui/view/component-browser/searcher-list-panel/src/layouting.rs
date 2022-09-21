@@ -52,6 +52,7 @@ type GroupHeight = usize;
 /// sizes.
 ///
 /// [design doc]: https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#layouting-algorithm
+#[derive(Clone, Debug)]
 pub struct Layouter<I: Iterator<Item = Group>> {
     columns:        [Vec<Group>; COLUMNS],
     column_heights: [GroupHeight; COLUMNS],
