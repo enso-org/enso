@@ -355,6 +355,7 @@
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
+- [Generate native-image for engine-runner][3638]
 - [Support pattern matching on constants][3641]
 - [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
   support][3658]
@@ -404,6 +405,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
+[3637]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
