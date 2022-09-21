@@ -28,6 +28,7 @@ use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::IntoGlsl;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::Animation;
@@ -74,18 +75,41 @@ const ELLIPSIS_SHAPE_RADIUS: f32 = 1.0;
 const ELLIPSIS_SHAPE_OFFSET: f32 = 2.0;
 const ELLIPSIS_TEXT_OFFSET: f32 = 2.0;
 const ELLIPSIS_WIDTH: f32 = ELLIPSIS_SHAPE_RADIUS * 2.0 * 3.0 + ELLIPSIS_SHAPE_OFFSET * 2.0;
-
+const ELLIPSIS_ANIMATION_DURATION_MS: f32 = 400.0;
+const ELLIPSIS_ANIMATION_OFFSET_MS: f32 = 100.0;
 
 mod ellipsis {
     use super::*;
     ensogl_core::define_shape_system! {
-        (scale: f32, color_rgba:Vector4<f32>) {
-            let shape = Circle((&scale * ELLIPSIS_SHAPE_RADIUS).px());
-            let shape = shape.fill(color::Rgba::new(0.0,0.0,0.0,1.0));
-            let repeat_x = (&scale * (ELLIPSIS_SHAPE_RADIUS * 2.0 + ELLIPSIS_SHAPE_OFFSET)).px();
-            // Don't repeat on y.
-            let repeat_y = (&scale * 100.0).px();
-            let shape = shape.repeat((repeat_x,repeat_y));
+        (start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
+            let radius = (&scale * ELLIPSIS_SHAPE_RADIUS).px();
+            let offset = (&scale * (ELLIPSIS_SHAPE_RADIUS * 2.0 + ELLIPSIS_SHAPE_OFFSET)).px();
+            let shape1 = Circle(&radius);
+            let shape2 = Circle(&radius);
+            let shape3 = Circle(&radius);
+            let shape1 = shape1.translate_x(-&offset);
+            let shape3 = shape3.translate_x(offset);
+            let time = Var::<f32>::from("input_time");
+            let time = time - start_time;
+            let start1 = ELLIPSIS_ANIMATION_OFFSET_MS;
+            let end1 = start1 + ELLIPSIS_ANIMATION_DURATION_MS;
+            let start2 = start1 + ELLIPSIS_ANIMATION_OFFSET_MS;
+            let end2 = start2 + ELLIPSIS_ANIMATION_DURATION_MS;
+            let start3 = start2 + ELLIPSIS_ANIMATION_OFFSET_MS;
+            let end3 = start3 + ELLIPSIS_ANIMATION_DURATION_MS;
+            let alpha1 = time.smoothstep(0.0, end1);
+            let alpha2 = time.smoothstep(start2, end2);
+            let alpha3 = time.smoothstep(start3, end3);
+            let color1 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
+                ,color_rgb,alpha1.glsl());
+            let color2 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
+                ,color_rgb,alpha2.glsl());
+            let color3 = format!("srgba({}.x,{}.y,{}.z,{})",color_rgb,color_rgb
+                ,color_rgb,alpha3.glsl());
+            let shape1 = shape1.fill(color1);
+            let shape2 = shape2.fill(color2);
+            let shape3 = shape3.fill(color3);
+            let shape = shape1 + shape2 + shape3;
             shape.into()
         }
     }
@@ -100,6 +124,8 @@ mod line {
             // FIXME: change name to baseline
             set_y(f32),
             set_is_last(bool),
+            // Internal only.
+            show_ellipsis(),
         }
         Output {
             metrics(LineMetrics),
@@ -145,11 +171,11 @@ mod line {
         pub glyphs:         VecIndexedBy<Glyph, Column>,
         pub divs:           NonEmptyVec<f32>,
         pub centers:        Vec<f32>,
-        pub truncation:     Option<Truncation>,
+        pub truncation:     Rc<RefCell<Option<Truncation>>>,
     }
 
     impl Line {
-        pub fn new() -> Self {
+        pub fn new(frame_time: &enso_frp::Stream<f32>) -> Self {
             let frp = line::Frp::new();
             let network = frp.network();
             let y_pos_anim = Animation::new(network);
@@ -158,8 +184,9 @@ mod line {
             let glyphs = default();
             let divs = default();
             let centers = default();
-            let truncation = default();
+            let truncation: Rc<RefCell<Option<Truncation>>> = default();
 
+            let frame_time = frame_time.clone_ref();
             frp::extend! {network
                 eval frp.set_y((y) y_target.set(*y));
                 y_pos_anim.target <+ frp.set_y;
@@ -171,6 +198,13 @@ mod line {
                     baseline + metrics.descender);
                 frp.private.output.descent <+ new_descent.on_change();
                 frp.private.output.metrics <+ frp.set_metrics.on_change();
+
+                start_time <- frame_time.sample(&frp.show_ellipsis);
+                eval start_time ([truncation](t) {
+                    if let Some(truncation) = &*truncation.borrow() {
+                        truncation.ellipsis.start_time.set(*t);
+                    }
+                });
             }
             Self { frp, y_pos_anim, y_target, display_object, glyphs, divs, centers, truncation }
         }
@@ -202,9 +236,13 @@ mod line {
                 ellipsis.size.set(Vector2::new(width, height));
                 self.add_child(&ellipsis);
                 let truncation = Truncation { scale, ellipsis };
-                self.truncation = Some(truncation);
+                let was_truncated = self.truncation.borrow().is_some();
+                *self.truncation.borrow_mut() = Some(truncation);
+                if !was_truncated {
+                    self.show_ellipsis();
+                }
             } else {
-                self.truncation = None;
+                *self.truncation.borrow_mut() = None;
             }
         }
 
@@ -925,6 +963,7 @@ impl AreaModel {
         let single_line = default();
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
         let lines = Lines::new(Self::new_line_helper(
+            &app.display.default_scene.frp.frame_time,
             &display_object,
             buffer.formatting.borrow().size.default.value,
         ));
@@ -1378,7 +1417,6 @@ impl AreaModel {
             .unwrap_or_default();
         debug!("cursor_map {:?}", cursor_map);
         let line = &mut self.lines.borrow_mut()[view_line_index];
-        line.set_truncated(None);
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         // debug!("line style {:#?}", self.buffer.sub_style(line_range.start..line_range.end));
@@ -1515,6 +1553,7 @@ impl AreaModel {
         } else {
             line.set_divs(divs);
             line.glyphs.truncate(column.value);
+            line.set_truncated(None);
         }
     }
 
@@ -1764,7 +1803,7 @@ impl AreaModel {
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
-                if let Some(truncation) = &line.truncation {
+                if let Some(truncation) = &*line.truncation.borrow() {
                     let width = truncation.ellipsis_start_x() + truncation.ellipsis_size_x();
                     if width > max_width {
                         max_width = width;
@@ -1890,8 +1929,12 @@ impl AreaModel {
         self.buffer.formatting.get().size.default
     }
 
-    fn new_line_helper(display_object: &display::object::Instance, default_size: f32) -> Line {
-        let mut line = Line::new();
+    fn new_line_helper(
+        frame_time: &enso_frp::Stream<f32>,
+        display_object: &display::object::Instance,
+        default_size: f32,
+    ) -> Line {
+        let mut line = Line::new(frame_time);
         let ascender = default_size;
         let descender = ascender / 10.0;
         let gap = 0.0;
@@ -1904,6 +1947,7 @@ impl AreaModel {
 
     fn new_line(&self) -> Line {
         let line = Self::new_line_helper(
+            &self.app.display.default_scene.frp.frame_time,
             &self.display_object,
             self.buffer.formatting.borrow().size.default.value,
         );
