@@ -251,7 +251,7 @@ impl API for Module {
         self.model.with_import_metadata(id, fun)
     }
 
-    fn all_import_metadata(&self) -> Vec<ImportMetadata> {
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
         self.model.all_import_metadata()
     }
 

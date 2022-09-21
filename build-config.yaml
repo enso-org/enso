@@ -2,7 +2,6 @@
 
 wasm-size-limit: 14.60 MiB
 
-
 required-versions:
   cargo-watch: ^8.1.1
   node: =16.15.0

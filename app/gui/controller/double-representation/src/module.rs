@@ -35,6 +35,11 @@ use serde::Serialize;
 pub struct ImportNotFound(pub ImportInfo);
 
 #[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Import with ID `{}` was not found in the module.", _0)]
+#[allow(missing_docs)]
+pub struct ImportIdNotFound(pub ImportId);
+
+#[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Line index is out of bounds.")]
 #[allow(missing_docs)]
 pub struct LineIndexOutOfBounds;
@@ -442,8 +447,8 @@ impl ImportInfo {
 
     /// Return the ID of the import.
     ///
-    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI internal and not
-    /// known in the engine.
+    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI
+    /// internal and not known in the engine.
     pub fn id(&self) -> ImportId {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
@@ -528,6 +533,17 @@ impl Info {
     pub fn remove_import(&mut self, to_remove: &ImportInfo) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_, import)| import == to_remove);
         let (crumb, _) = lookup_result.ok_or_else(|| ImportNotFound(to_remove.clone()))?;
+        self.remove_line(crumb.line_index)?;
+        Ok(())
+    }
+
+    /// Remove a line that matches given import ID.
+    ///
+    /// If there is more than one line matching, only the first one will be removed.
+    /// Fails if there is no import matching given argument.
+    pub fn remove_import_by_id(&mut self, to_remove: ImportId) -> FallibleResult {
+        let lookup_result = self.enumerate_imports().find(|(_, import)| import.id() == to_remove);
+        let (crumb, _) = lookup_result.ok_or(ImportIdNotFound(to_remove))?;
         self.remove_line(crumb.line_index)?;
         Ok(())
     }

@@ -27,7 +27,6 @@ pub mod synchronized;
 
 pub use double_representation::module::Id;
 use double_representation::module::ImportId;
-use double_representation::module::ImportInfo;
 pub use double_representation::module::QualifiedName;
 pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
@@ -37,12 +36,12 @@ pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 // == Errors ==
 // ============
 
-/// Failure for missing node metadata.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Fail)]
 #[fail(display = "Node with ID {} was not found in metadata.", _0)]
 pub struct NodeMetadataNotFound(pub ast::Id);
-/// Failure for missing node metadata.
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Fail)]
 #[fail(display = "Import with ID {} was not found in metadata.", _0)]
 pub struct ImportMetadataNotFound(pub ImportId);
@@ -531,9 +530,6 @@ pub struct ImportMetadata {
     #[serde(skip_serializing_if = "core::ops::Not::not")]
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     pub is_temporary: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
-    pub info:         Option<ImportInfo>,
 }
 
 
@@ -614,7 +610,7 @@ pub trait API: Debug + model::undo_redo::Aware {
     ) -> FallibleResult;
 
     /// Returns the import metadata fof the module.
-    fn all_import_metadata(&self) -> Vec<ImportMetadata>;
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)>;
 
     /// Removes the import metadata of the import.
     fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata>;

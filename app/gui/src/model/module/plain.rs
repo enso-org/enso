@@ -226,9 +226,9 @@ impl model::module::API for Module {
         })
     }
 
-    fn all_import_metadata(&self) -> Vec<ImportMetadata> {
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
         let content = self.content.borrow();
-        content.metadata.ide.import.values().cloned().collect()
+        content.metadata.ide.import.clone().into_iter().collect()
     }
 
     fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {

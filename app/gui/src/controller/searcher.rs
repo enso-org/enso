@@ -1018,7 +1018,6 @@ impl Searcher {
                 import_info.id(),
                 Box::new(|import_metadata| {
                     import_metadata.is_temporary = !permanent;
-                    import_metadata.info = Some(import_info);
                 }),
             )?;
         }
@@ -1026,30 +1025,33 @@ impl Searcher {
     }
 
     fn clear_temporary_imports(&self) {
-        let mut to_remove: Vec<_> = default();
         let mut module = self.module();
-
-        for import_metadata in self.graph.graph().module.all_import_metadata() {
-            if import_metadata.is_temporary {
-                if let Some(import_info) = &import_metadata.info {
-                    if let Err(e) = module.remove_import(import_info) {
+        let to_remove = self
+            .graph
+            .graph()
+            .module
+            .all_import_metadata()
+            .into_iter()
+            .filter_map(|(id, import_metadata)| {
+                if import_metadata.is_temporary {
+                    if let Err(e) = module.remove_import_by_id(id) {
                         tracing::warn!("Failed to remove import because of: {e:?}");
                     }
-                    to_remove.push(import_info.id());
+                    return Some(id);
                 }
-            }
-        }
+                None
+            })
+            .collect_vec();
         if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
             tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
         }
-
-        to_remove.iter().for_each(|id| {
-            if let Err(e) = self.graph.graph().module.remove_import_metadata(*id) {
+        for id in to_remove {
+            if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
                 tracing::warn!(
                     "Failed to remove import metadata for import id {id} because of: {e:?}"
                 );
             }
-        });
+        }
     }
 
 
