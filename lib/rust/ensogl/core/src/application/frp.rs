@@ -1343,6 +1343,17 @@ macro_rules! define_endpoints_2_normalized_glue {
                     &self.public
                 }
             }
+
+            impl $($ctx)* $crate::application::command::CommandApi for Frp $($param)*  {
+                fn command_api(&self)
+                    -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
+                    self.public.command_api()
+                }
+
+                fn status_api(&self) -> Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>> {
+                    self.public.status_api()
+                }
+            }
     };
 }
 

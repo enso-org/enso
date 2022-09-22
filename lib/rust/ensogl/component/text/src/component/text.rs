@@ -274,26 +274,27 @@ ensogl_core::define_endpoints_2! {
 
 /// The visual text area implementation. It is meant to be a generic rich text component which you
 /// should use everywhere you want to display text.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Text {
-    pub frp:  Rc<Frp>,
-    pub data: Rc<TextModel>,
+    #[deref]
+    pub frp:  Frp,
+    pub data: TextModel,
 }
 
-impl Deref for Text {
-    type Target = api::Public;
-    fn deref(&self) -> &Self::Target {
-        &self.frp.public
-    }
-}
+// impl Deref for Text {
+//     type Target = api::Public;
+//     fn deref(&self) -> &Self::Target {
+//         &self.frp.public
+//     }
+// }
 
 impl Text {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
-        let frp = Rc::new(Frp::new());
-        let data = Rc::new(TextModel::new(app, &frp.output, &frp.private.output, frp.network()));
+        let frp = Frp::new();
+        let data = TextModel::new(app, &frp.output, &frp.private.output, frp.network());
         Self { data, frp }.init()
     }
 
@@ -570,6 +571,7 @@ impl Text {
 // === TextModel ===
 // =================
 
+/// Internal representation of `Text`.
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct TextModel {
     rc: Rc<TextModelData>,
