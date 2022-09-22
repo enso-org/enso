@@ -1053,7 +1053,7 @@ impl ViewModel {
     }
 
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
-        ViewLine((line - self.first_view_line()).value as usize)
+        ViewLine::from_in_context(self, line)
     }
 
     pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
@@ -1336,6 +1336,13 @@ impl FromInContext<&ViewModel, ViewLine> for Line {
         buffer.first_view_line() + Line(view_line.value)
     }
 }
+
+impl FromInContext<&ViewModel, Line> for ViewLine {
+    fn from_in_context(buffer: &ViewModel, view_line: Line) -> Self {
+        ViewLine((view_line - buffer.first_view_line()).value as usize)
+    }
+}
+
 impl TryFromInContext<&ViewModel, Line> for ViewLine {
     fn try_from_in_context(buffer: &ViewModel, line: Line) -> Option<Self> {
         let line = line.value as usize;
@@ -1347,7 +1354,7 @@ impl TryFromInContext<&ViewModel, Line> for ViewLine {
 impl FromInContext<&ViewModel, LocationLike> for Location {
     fn from_in_context(buffer: &ViewModel, location: LocationLike) -> Self {
         match location {
-            LocationLike::LocationColumnLine(loc) => Location::from_in_context(buffer, loc),
+            LocationLike::LocationColumnLine(loc) => loc,
             LocationLike::LocationUBytesLine(loc) => Location::from_in_context(buffer, loc),
             LocationLike::LocationColumnViewLine(loc) => Location::from_in_context(buffer, loc),
             LocationLike::LocationUBytesViewLine(loc) => Location::from_in_context(buffer, loc),
@@ -1355,11 +1362,6 @@ impl FromInContext<&ViewModel, LocationLike> for Location {
     }
 }
 
-impl FromInContext<&ViewModel, Location> for Location {
-    fn from_in_context(buffer: &ViewModel, t: Location) -> Self {
-        t
-    }
-}
 
 
 // // warn!("offset_to_location: {:?}", offset);

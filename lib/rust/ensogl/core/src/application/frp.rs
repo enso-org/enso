@@ -1358,7 +1358,7 @@ macro_rules! define_endpoints_2_normalized_glue {
             pub struct WeakFrp $($ctx)* {
                 public: api::Public $($param)*,
                 private: api::Private $($param)*,
-                network: $crate::frp::WeakNetwork,
+                pub network: $crate::frp::WeakNetwork,
             }
 
             impl Frp {
@@ -1388,6 +1388,13 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let private = self.private.clone();
                     let network = self.network.clone();
                     Self { public, private, network }
+                }
+            }
+
+            impl $($ctx)* Deref for WeakFrp $($param)* {
+                type Target = api::Public  $($param)*;
+                fn deref(&self) -> &Self::Target {
+                    &self.public
                 }
             }
     };

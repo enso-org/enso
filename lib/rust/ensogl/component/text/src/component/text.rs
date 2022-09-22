@@ -138,7 +138,7 @@ impl Text {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let data = TextModel::new(app, &frp.output, &frp.private.output, frp.network());
+        let data = TextModel::new(app, &frp);
         Self { data, frp }.init()
     }
 }
@@ -548,11 +548,11 @@ impl Text {
 
             // === Style ===
 
-            new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),*prop)));
+            new_prop <- input.set_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ((t) m.set_property(&t.0, t.1));
 
-            mod_prop <- input.mod_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),*prop)));
+            mod_prop <- input.mod_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
             m.buffer.frp.mod_property <+ mod_prop;
             eval mod_prop ((t) m.mod_property(&t.0, t.1));
         }
@@ -642,9 +642,7 @@ pub struct TextModelData {
     #[deref]
     buffer:         buffer::View,
     app:            Application,
-    frp_network:    frp::WeakNetwork,
-    frp_out_get:    api::public::Output,
-    frp_out_set:    api::private::Output,
+    frp:            WeakFrp,
     display_object: display::object::Instance,
     glyph_system:   RefCell<glyph::System>,
     lines:          Lines,
@@ -661,9 +659,10 @@ impl TextModel {
     /// Constructor.
     pub fn new(
         app: &Application,
-        frp_out_get: &api::public::Output,
-        frp_out_set: &api::private::Output,
-        frp_network: &frp::Network,
+        frp: &Frp,
+        // frp_out_get: &api::public::Output,
+        // frp_out_set: &api::private::Output,
+        // frp_network: &frp::Network,
     ) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
@@ -694,16 +693,11 @@ impl TextModel {
         scene.layers.main.remove_symbol(symbol);
         scene.layers.label.add_exclusive(symbol);
 
-        let frp_network = frp_network.downgrade();
-        let frp_out_get = frp_out_get.clone_ref();
-        let frp_out_set = frp_out_set.clone_ref();
-
+        let frp = frp.downgrade();
         let data = TextModelData {
             app,
             layer,
-            frp_network,
-            frp_out_get,
-            frp_out_set,
+            frp,
             buffer,
             display_object,
             glyph_system,
@@ -721,41 +715,58 @@ impl TextModel {
         self
     }
 
+    fn init_line(&self, line: &line::View) {
+        if let Some(network) = self.frp.network.upgrade() {
+            frp::extend! { network
+                self.frp.private.output.refresh_height <+_ line.descent;
+            }
+        }
+    }
+
+    fn new_line_helper(
+        frame_time: &enso_frp::Stream<f32>,
+        display_object: &display::object::Instance,
+        default_size: f32,
+    ) -> line::View {
+        let mut line = line::View::new(frame_time);
+        let ascender = default_size;
+        let descender = ascender / 10.0;
+        let gap = 0.0;
+        let metrics = line::Metrics { ascender, descender, gap };
+        line.set_metrics(metrics);
+
+        display_object.add_child(&line);
+        line
+    }
+
+    fn new_line(&self) -> line::View {
+        let line = Self::new_line_helper(
+            &self.app.display.default_scene.frp.frame_time,
+            &self.display_object,
+            self.buffer.formatting.borrow().size.default.value,
+        );
+        self.init_line(&line);
+        line
+    }
+
     fn take_lines(&self) -> Lines {
         let lines_vec = LinesVec::singleton(self.new_line());
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
     }
-
-    pub fn text_to_byte_ranges(&self, range: &RangeLike) -> Vec<buffer::Range<UBytes>> {
-        match range {
-            RangeLike::Selections => self
-                .buffer
-                .byte_selections()
-                .into_iter()
-                .map(|t| {
-                    let start = std::cmp::min(t.start, t.end);
-                    let end = std::cmp::max(t.start, t.end);
-                    buffer::Range::new(start, end)
-                })
-                .collect(),
-            RangeLike::BufferRangeUBytes(range) => vec![range.clone()],
-            RangeLike::RangeBytes(range) => vec![range.into()],
-            RangeLike::RangeFull(_) => vec![self.buffer.full_range()],
-            RangeLike::BufferRangeLocationColumn(range) => {
-                let start = UBytes::from_in_context(&self.buffer, range.start);
-                let end = UBytes::from_in_context(&self.buffer, range.end);
-                vec![buffer::Range::new(start, end)]
-            }
-        }
-    }
+}
 
 
+
+// =============================
+// === Redrawing And Updates ===
+// =============================
+
+impl TextModel {
     /// Implementation of lazy line redrawing. After a change, only the needed lines are redrawn.
     /// If a change produced more lines than the current number of lines, the new lines are inserted
     /// in appropriate positions. If a change produces fewer lines than the current number of lines,
     /// appropriate lines are removed. Then, a minimal line redraw range is computed and performed.
-    ///
     ///
     /// # Smooth animations
     /// This function also attaches unchanged lines below a cursor to the cursor for smooth vertical
@@ -790,44 +801,19 @@ impl TextModel {
                 let lines_to_redraw = changes
                     .iter()
                     .filter_map(|change_with_selection| {
-                        let selection = change_with_selection.selection;
-                        // let view_selection = self.buffer.selection_to_view_selection(selection);
-
-                        let shape_x = self
-                            .buffer
-                            .line_to_view_line(*change_with_selection.change_range.start())
-                            ..=self
-                                .buffer
-                                .line_to_view_line(*change_with_selection.change_range.end());
-
-
-                        // Count newlines in the inserted text and the line difference after the
-                        // change.
+                        let change_range = &change_with_selection.change_range;
+                        let change_start = ViewLine::from_in_context(self, *change_range.start());
+                        let change_end = ViewLine::from_in_context(self, *change_range.end());
+                        let view_change_range = change_start..=change_end;
                         let line_diff = change_with_selection.line_diff;
+                        let second_line_index = view_change_range.start().inc();
 
-                        // Measurements used for computing the line range to add or remove.
-                        let second_line_index = shape_x.start().inc();
-                        let line_after_end_index = shape_x.end().inc();
                         let mut lines = self.lines.borrow_mut();
-
-                        // if line_diff != 0 {
-                        //     // Attach unchanged lines under cursor to the cursor for a smooth
-                        //     // vertical animation.
-                        //     let selection_map = self.selection_map.borrow();
-                        //     let cursor = selection_map.id_map.get(&selection.id).unwrap();
-                        //     if line_after_end_index < ViewLine(lines.len()) {
-                        //         let line_after_end = &mut lines[line_after_end_index];
-                        //         let off = line_after_end.target_y_pos();
-                        //         for index in line_after_end_index..ViewLine(lines.len()) {
-                        //             // cursor.bottom_snapped_left.add_child(&lines[index]);
-                        //         }
-                        //     }
-                        // }
-
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
-                            for i in 0..line_diff.value as usize {
+                            let line_diff = line_diff.value as usize;
+                            for i in 0..line_diff {
                                 let index_to_insert = second_line_index + ViewLine(i);
                                 if index_to_insert < ViewLine(lines.len()) {
                                     lines.insert(index_to_insert, self.new_line());
@@ -836,13 +822,13 @@ impl TextModel {
                         } else if line_diff < LineDiff(0) {
                             // Remove lines that are no longer needed. This is needed for proper
                             // partial redraw (redrawing only the lines that changed).
-                            let line_diff = ViewLine((-line_diff.value) as usize);
+                            let line_diff = -line_diff.value as usize;
+                            let line_diff = ViewLine(line_diff);
                             lines.drain(second_line_index..second_line_index + line_diff);
                         }
 
-                        let range_end =
-                            ViewLine((shape_x.end().value as i32 + line_diff.value) as usize);
-                        let range = (*shape_x.start())..=range_end;
+                        let range_end = view_change_range.end() + line_diff;
+                        let range = (*view_change_range.start())..=range_end;
 
                         range.intersect(&view_line_range)
                     })
@@ -926,10 +912,10 @@ impl TextModel {
                 }
                 None => {
                     let selection = Selection::new(do_edit);
-                    if let Some(network) = self.frp_network.upgrade() {
+                    if let Some(network) = self.frp.network.upgrade() {
                         frp::extend! { network
-                            self.frp_out_set.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
-                            self.frp_out_set.refresh_height <+_ selection.frp.position;
+                            self.frp.private.output.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                            self.frp.private.output.refresh_height <+_ selection.frp.position;
                         }
                     }
                     self.add_child(&selection);
@@ -938,7 +924,7 @@ impl TextModel {
                     selection.frp.set_ascender(metrics.ascender);
                     selection.frp.set_descender(metrics.descender);
                     selection.position.skip();
-                    selection.frp.set_color.emit(self.frp_out_set.selection_color.value());
+                    selection.frp.set_color.emit(self.frp.output.selection_color.value());
                     selection
                 }
             };
@@ -1125,7 +1111,7 @@ impl TextModel {
 
         let mut prev_cluster_byte_off = UBytes(0);
 
-        let view_width = self.frp_out_get.view_width.value();
+        let view_width = self.frp.output.view_width.value();
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.borrow().size.default;
@@ -1533,39 +1519,7 @@ impl TextModel {
         self.buffer.formatting.get().size.default
     }
 
-    fn new_line_helper(
-        frame_time: &enso_frp::Stream<f32>,
-        display_object: &display::object::Instance,
-        default_size: f32,
-    ) -> line::View {
-        let mut line = line::View::new(frame_time);
-        let ascender = default_size;
-        let descender = ascender / 10.0;
-        let gap = 0.0;
-        let metrics = line::Metrics { ascender, descender, gap };
-        line.set_metrics(metrics);
 
-        display_object.add_child(&line);
-        line
-    }
-
-    fn new_line(&self) -> line::View {
-        let line = Self::new_line_helper(
-            &self.app.display.default_scene.frp.frame_time,
-            &self.display_object,
-            self.buffer.formatting.borrow().size.default.value,
-        );
-        self.init_line(&line);
-        line
-    }
-
-    fn init_line(&self, line: &line::View) {
-        if let Some(network) = self.frp_network.upgrade() {
-            frp::extend! { network
-                self.frp_out_set.refresh_height <+_ line.descent;
-            }
-        }
-    }
 
     fn copy(&self, selections: &[String]) {
         let encoded = match selections {
@@ -1593,7 +1547,7 @@ impl TextModel {
     /// line.
     fn paste_string(&self, s: &str) {
         let mut chunks = self.decode_paste(s);
-        if self.frp_out_get.single_line_mode.value() {
+        if self.frp.output.single_line_mode.value() {
             for f in &mut chunks {
                 Self::drop_all_but_first_line(f);
             }
@@ -1612,7 +1566,7 @@ impl TextModel {
     fn key_to_string(&self, key: &Key) -> Option<String> {
         match key {
             Key::Character(s) => Some(s.clone()),
-            Key::Enter => self.frp_out_get.single_line_mode.value().not().as_some("\n".into()),
+            Key::Enter => self.frp.output.single_line_mode.value().not().as_some("\n".into()),
             Key::Space => Some(" ".into()),
             _ => None,
         }
