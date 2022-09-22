@@ -415,6 +415,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println(
         "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
+    out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = Context.get(this).getBuiltins();");
     out.println(
         "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["

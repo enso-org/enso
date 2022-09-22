@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.error.displaytext;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -16,6 +17,7 @@ public abstract class ArityErrorToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Text doAtom(Atom self) {
     Object[] fields = self.getFields();
 

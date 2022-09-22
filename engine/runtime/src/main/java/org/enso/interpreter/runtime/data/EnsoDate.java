@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -31,6 +32,7 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @Builtin.Method(description = "Return current Date")
+  @CompilerDirectives.TruffleBoundary
   public static EnsoDate now() {
     return new EnsoDate(LocalDate.now());
   }
@@ -38,6 +40,7 @@ public final class EnsoDate implements TruffleObject {
   @Builtin.Method(name = "internal_parse", description = "Constructs a new Date from text with optional pattern")
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @CompilerDirectives.TruffleBoundary
   public static EnsoDate parse(Text text, Object noneOrPattern) {
     var str = text.getContents().toString();
     if (noneOrPattern instanceof Text pattern) {
@@ -50,6 +53,7 @@ public final class EnsoDate implements TruffleObject {
 
   @Builtin.Method(name = "internal_new", description = "Constructs a new Date from a year, month, and day")
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @CompilerDirectives.TruffleBoundary
   public static EnsoDate create(long year, long month, long day) {
     return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
   }
@@ -70,6 +74,7 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @Builtin.Method(name = "to_time_builtin", description = "Combine this day with time to create a point in time.")
+  @CompilerDirectives.TruffleBoundary
   public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoTimeZone zone) {
     return new EnsoDateTime(date.atTime(timeOfDay.asTime()).atZone(zone.asTimeZone()));
   }
@@ -104,6 +109,7 @@ public final class EnsoDate implements TruffleObject {
     return Context.get(thisLib).getBuiltins().date();
   }
 
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public final Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_LOCAL_DATE.format(date);

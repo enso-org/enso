@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
@@ -607,11 +608,13 @@ public class Module implements TruffleObject {
       return context.getCompiler().generateDocs(module);
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, Context context) {
       Object[] imports = context.getCompiler().gatherImportStatements(module);
       return new Array(imports);
     }
 
+    @CompilerDirectives.TruffleBoundary
     @Specialization
     static Object doInvoke(
         Module module,

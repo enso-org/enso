@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.generic;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -20,6 +21,7 @@ public abstract class IsLanguageInstalledNode extends Node {
   abstract boolean execute(Object language_name);
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   boolean doExecute(Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
     return Context.get(this).getEnvironment().getPublicLanguages().get(name) != null;

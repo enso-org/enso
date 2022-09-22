@@ -38,6 +38,7 @@ public class EnsoBigInteger implements TruffleObject {
     return value.toString();
   }
 
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return value.toString();

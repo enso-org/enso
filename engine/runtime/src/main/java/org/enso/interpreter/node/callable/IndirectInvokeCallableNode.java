@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -158,6 +159,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
           isTail,
           thisArgumentPosition);
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
   }
