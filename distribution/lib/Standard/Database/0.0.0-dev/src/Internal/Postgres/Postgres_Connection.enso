@@ -101,7 +101,7 @@ type Postgres_Connection
          If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
        - limit: the maximum number of rows to return.
     read : Text | SQL_Query -> Integer | Nothing -> Table
-    read self query limit=Nothing = self.connection.query query limit
+    read self query limit=Nothing = self.connection.read query limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.

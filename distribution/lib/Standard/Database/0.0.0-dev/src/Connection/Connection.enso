@@ -132,7 +132,7 @@ type Connection
        - limit: the maximum number of rows to return.
     read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
-        self.query query . read limit=limit
+        self.query query . read max_rows=limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.
