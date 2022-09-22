@@ -252,6 +252,8 @@ impl View {
         let centers = default();
         let truncation: Truncation = default();
         let frame_time = frame_time.clone_ref();
+        baseline_anim.simulator.update_spring(|s| s * crate::DEBUG_ANIMATION_SPRING_FACTOR);
+
         frp::extend! {network
 
             // === Baseline and metrics ===

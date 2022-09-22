@@ -34,6 +34,10 @@
 /// If set to true, animations will be running slow. This is useful for debugging purposes.
 pub const DEBUG_ANIMATION_SLOWDOWN: bool = true;
 
+/// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
+/// used for animation simulators.
+pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.1 } else { 1.0 };
+
 
 
 // ==============

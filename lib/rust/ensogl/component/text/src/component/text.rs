@@ -31,8 +31,6 @@ use ensogl_core::display;
 use ensogl_core::display::IntoGlsl;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
-use ensogl_core::Animation;
-use ensogl_core::DEPRECATED_Animation;
 use owned_ttf_parser::AsFaceRef;
 use rustybuzz;
 use std::ops::Not;
@@ -969,8 +967,9 @@ impl TextModel {
         out
     }
 
-    // Output is the first well postioned line or the next line after the last visible line.
-    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> Option<ViewLine> {
+    // Update the lines y-axis position starting with the provided line index. Results the first
+    // well postioned line or the next line after the last visible line.
+    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> ViewLine {
         let last_line_index = self.lines.last_line_index();
         let lines = self.lines.borrow();
         while line_index <= last_line_index {
@@ -992,36 +991,33 @@ impl TextModel {
             line.set_baseline(new_baseline);
             line_index += ViewLine(1);
         }
-        Some(line_index)
+        line_index
     }
 
+    /// Position all lines in the provided line range. The range has to be sorted.
     fn position_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
     ) {
-        let mut first_ok_line_index2 = None;
+        let mut first_ok_line_index = None;
         let mut line_index_to_position = ViewLine(0);
         for range in sorted_line_ranges {
-            line_index_to_position = match first_ok_line_index2 {
+            line_index_to_position = match first_ok_line_index {
                 None => *range.start(),
                 Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
             };
-            // We are positioning one more line, because if a line is removed, the las line to
-            // redraw can be placed in the same position and the next line still needs to be
-            // positioned.
+            // We are positioning one more line, because if a line is removed, the last redraw line
+            // index can be placed in the previous line, that was already well positioned. The next
+            // line has to be updated.
             let range_end = *range.end() + ViewLine(1);
             if line_index_to_position <= range_end {
                 loop {
-                    match self.position_lines_starting_with(line_index_to_position) {
-                        None => return,
-                        Some(first_ok_line_index) => {
-                            first_ok_line_index2 = Some(first_ok_line_index);
-                            if first_ok_line_index >= range_end {
-                                break;
-                            }
-                            line_index_to_position = first_ok_line_index + ViewLine(1);
-                        }
+                    let ok_line_index = self.position_lines_starting_with(line_index_to_position);
+                    first_ok_line_index = Some(ok_line_index);
+                    if ok_line_index >= range_end {
+                        break;
                     }
+                    line_index_to_position = ok_line_index + ViewLine(1);
                 }
             }
         }

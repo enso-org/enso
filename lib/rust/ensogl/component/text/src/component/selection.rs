@@ -158,8 +158,6 @@ impl Selection {
 
     /// Constructor.
     pub fn new(frame_time: &frp::Stream<f32>, edit_mode: bool) -> Self {
-        let spring_factor = if crate::DEBUG_ANIMATION_SLOWDOWN { 0.1 } else { 1.0 };
-
         let frp = Frp::new();
         let network = frp.network();
         let model = SelectionModel::new(edit_mode);
@@ -169,9 +167,8 @@ impl Selection {
         let descender = Animation::new(&network);
         let not_blinking = Animation::<f32>::new(&network);
         let frame_time = frame_time.clone_ref();
-
-        position.simulator.update_spring(|spring| spring * spring_factor);
-        width.simulator.update_spring(|spring| spring * spring_factor);
+        position.simulator.update_spring(|spring| spring * crate::DEBUG_ANIMATION_SPRING_FACTOR);
+        width.simulator.update_spring(|spring| spring * crate::DEBUG_ANIMATION_SPRING_FACTOR);
 
         frp::extend! { network
 
