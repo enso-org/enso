@@ -402,6 +402,9 @@ impl Formatting {
         )
     }
 
+    // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy
+    // literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
+
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,

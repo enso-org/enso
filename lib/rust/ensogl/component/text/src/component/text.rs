@@ -474,8 +474,8 @@ impl Text {
 
             eval_ copy_whole_lines (m.buffer.frp.cursors_select(Some(Transform::Line)));
             sels_on_copy_whole_lines <- copy_whole_lines.map(f_!(m.buffer.selections_contents()));
-            sels_to_copy <- any(&sels_on_copy_whole_lines, &copy_regions_only);
-            eval sels_to_copy ((s) m.copy(s));
+            text_chubks_to_copy <- any(&sels_on_copy_whole_lines, &copy_regions_only);
+            eval text_chubks_to_copy ((s) m.copy(s));
 
             // === Cut ===
 
@@ -487,7 +487,7 @@ impl Text {
             eval_ cut_whole_lines (m.buffer.frp.cursors_select(Some(Transform::Line)));
             sels_on_cut_whole_lines <- cut_whole_lines.map(f_!(m.buffer.selections_contents()));
             sels_to_cut <- any(&sels_on_cut_whole_lines,&cut_regions_only);
-            eval sels_to_cut ((s) m.cut(s));
+            eval sels_to_cut ((s) m.copy(s));
             eval_ sels_to_cut (m.buffer.frp.delete_left());
 
             // === Paste ===
@@ -541,8 +541,8 @@ impl Text {
 
             // We are computing new width and height after all animations are run. This is because
             // text dimensions can be affected by multiple moving cursors and moving lines.
-            new_width <= after_animations.map (f_!(m.compute_width()));
-            new_height <= after_animations.map (f_!(m.compute_height()));
+            new_width <= after_animations.map (f_!(m.compute_width_if_dirty()));
+            new_height <= after_animations.map (f_!(m.compute_height_if_dirty()));
             out.width <+ new_width.on_change();
             out.height <+ new_height.on_change();
             eval_ out.refresh_width(m.width_dirty.set(true));
@@ -975,6 +975,22 @@ impl TextModel {
         *self.selection_map.borrow_mut() = new_selection_map;
     }
 
+    /// Constrain the selection to values fitting inside the current text buffer. This can be needed
+    /// when using the API and providing invalid values.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn limit_selection_to_known_values(
+        &self,
+        selection: buffer::selection::Selection,
+    ) -> buffer::selection::Selection {
+        let start_location = Location::from_in_context(&self.buffer, selection.start);
+        let end_location = Location::from_in_context(&self.buffer, selection.end);
+        let start = self.buffer.snap_location(start_location);
+        let end = self.buffer.snap_location(end_location);
+        let start = Location::from_in_context(&self.buffer, start);
+        let end = Location::from_in_context(&self.buffer, end);
+        selection.with_start(start).with_end(end)
+    }
+
     /// Resize lines vector to contain the required lines count.
     fn resize_lines(&self) {
         let line_count = self.buffer.view_line_count();
@@ -1166,7 +1182,7 @@ impl TextModel {
                             last_cursor.set_attached_glyphs(attached_glyphs);
                         }
                         last_cursor = Some(cursor.clone_ref());
-                        last_cursor_target_x = glyph.position().x;
+                        last_cursor_target_x = glyph.x();
                     }
                 }
             });
@@ -1379,6 +1395,22 @@ impl TextModel {
             }
         }
     }
+
+    #[profile(Debug)]
+    fn set_font(&self, font_name: &str) {
+        let app = &self.app;
+        let scene = &app.display.default_scene;
+        let fonts = scene.extension::<font::Registry>();
+        let font = fonts.load(font_name);
+        let glyph_system = font::glyph::System::new(&scene, font);
+        self.display_object.add_child(&glyph_system);
+        let old_glyph_system = self.glyph_system.replace(glyph_system);
+        self.display_object.remove_child(&old_glyph_system);
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
+        self.take_lines();
+        self.add_symbols_to_scene_layer();
+        self.redraw();
+    }
 }
 
 
@@ -1443,33 +1475,17 @@ impl TextModel {
             }
         }
     }
-
-    pub fn chunks_per_font_face<'a>(
-        font: &'a font::Font,
-        line_style: &'a style::Formatting,
-        content: &'a str,
-    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
-        gen_iter!(move {
-            match font {
-                font::Font::NonVariable(_) =>
-                // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
-                    for a in line_style.chunks_per_font_face(content) {
-                        yield a;
-                    }
-                font::Font::Variable(_) => {
-                    let range = UBytes(0)..UBytes(content.len());
-                    // For variable fonts, we do not care about non-variable variations.
-                    let non_variable_variations = font::NonVariableFaceHeader::default();
-                    yield (range, non_variable_variations);
-                }
-            }
-        })
-    }
+}
 
 
 
-    pub fn compute_width(&self) -> Option<f32> {
-        if self.width_dirty.get() {
+// =======================
+// === Size Management ===
+// =======================
+
+impl TextModel {
+    fn compute_width_if_dirty(&self) -> Option<f32> {
+        self.width_dirty.get().then(|| {
             self.width_dirty.set(false);
             let mut max_width = 0.0;
             for line in &*self.lines.borrow() {
@@ -1480,8 +1496,7 @@ impl TextModel {
                     }
                 } else {
                     let last_glyph = line.glyphs.iter().rev().find(|g| !g.attached_to_cursor.get());
-                    let width =
-                        last_glyph.map(|g| g.position().x + g.x_advance.get()).unwrap_or_default();
+                    let width = last_glyph.map(|g| g.x() + g.x_advance.get()).unwrap_or_default();
                     if width > max_width {
                         max_width = width;
                     }
@@ -1494,14 +1509,12 @@ impl TextModel {
                     max_width = width;
                 }
             }
-            Some(max_width)
-        } else {
-            None
-        }
+            max_width
+        })
     }
 
-    pub fn compute_height(&self) -> Option<f32> {
-        if self.height_dirty.get() {
+    fn compute_height_if_dirty(&self) -> Option<f32> {
+        self.height_dirty.get().then(|| {
             self.height_dirty.set(false);
             let mut max_height = -self.lines.borrow().last().descent.value();
             let selection_map = self.selection_map.borrow();
@@ -1510,42 +1523,33 @@ impl TextModel {
                 for selection_id in map.values() {
                     let selection = selection_map.id_map.get(selection_id).unwrap();
                     let baseline = selection.position.value().y;
-                    let height =
-                        -baseline - self.lines.borrow()[*view_line].metrics.value().descender;
+                    let descender = self.lines.borrow()[*view_line].metrics.value().descender;
+                    let height = -baseline - descender;
                     if height > max_height {
                         max_height = height;
                     }
                 }
             }
-            Some(max_height)
-        } else {
-            None
-        }
+            max_height
+        })
     }
-
-    fn default_font_size(&self) -> style::Size {
-        self.buffer.formatting.get().size.default
-    }
+}
 
 
 
-    fn copy(&self, selections: &[String]) {
-        let encoded = match selections {
+// ==================
+// === Operations ===
+// ==================
+
+impl TextModel {
+    fn copy(&self, text_chunks: &[String]) {
+        let encoded = match text_chunks {
             [] => "".to_string(),
             [s] => s.clone(),
             lst => lst.join(CLIPBOARD_RECORD_SEPARATOR),
         };
         clipboard::write_text(encoded);
     }
-
-    fn cut(&self, selections: &[String]) {
-        self.copy(selections);
-    }
-
-    // fn paste(&self) {
-    //     let paste_string = self.frp_out_set.paste_string.clone_ref();
-    //     clipboard::read_text(move |t| paste_string.emit(t));
-    // }
 
     /// Paste new text in the place of current selections / cursors. In case of pasting multiple
     /// chunks (e.g. after copying multiple selections), the chunks will be pasted into subsequent
@@ -1579,39 +1583,15 @@ impl TextModel {
             _ => None,
         }
     }
+}
 
-    /// Constrain the selection to values fitting inside of the current text buffer. This can be
-    /// needed when using the API and providing invalid values.
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    fn limit_selection_to_known_values(
-        &self,
-        selection: buffer::selection::Selection,
-    ) -> buffer::selection::Selection {
-        let start_location = Location::from_in_context(&self.buffer, selection.start);
-        let end_location = Location::from_in_context(&self.buffer, selection.end);
-        let start = self.buffer.snap_location(start_location);
-        let end = self.buffer.snap_location(end_location);
-        let start = Location::from_in_context(&self.buffer, start);
-        let end = Location::from_in_context(&self.buffer, end);
-        selection.with_start(start).with_end(end)
-    }
 
-    #[profile(Debug)]
-    fn set_font(&self, font_name: &str) {
-        let app = &self.app;
-        let scene = &app.display.default_scene;
-        let fonts = scene.extension::<font::Registry>();
-        let font = fonts.load(font_name);
-        let glyph_system = font::glyph::System::new(&scene, font);
-        self.display_object.add_child(&glyph_system);
-        let old_glyph_system = self.glyph_system.replace(glyph_system);
-        self.display_object.remove_child(&old_glyph_system);
-        // Remove old Glyph structures, as they still refer to the old Glyph System.
-        self.take_lines();
-        self.add_symbols_to_scene_layer();
-        self.redraw();
-    }
 
+// ========================
+// === Layer Management ===
+// ========================
+
+impl TextModel {
     fn add_symbols_to_scene_layer(&self) {
         let layer = &self.layer.get();
         for symbol in self.symbols() {
@@ -1635,6 +1615,12 @@ impl TextModel {
     }
 }
 
+
+
+// ==============
+// === Traits ===
+// ==============
+
 impl<S, T> FromInContext<&TextModel, S> for T
 where T: for<'t> FromInContext<&'t buffer::View, S>
 {
@@ -1655,11 +1641,17 @@ impl display::Object for Text {
     }
 }
 
-impl application::command::FrpNetworkProvider for Text {
+impl FrpNetworkProvider for Text {
     fn network(&self) -> &frp::Network {
         self.frp.network()
     }
 }
+
+
+
+// ================
+// === App View ===
+// ================
 
 impl application::View for Text {
     fn label() -> &'static str {
@@ -1721,15 +1713,11 @@ impl application::View for Text {
     }
 }
 
-impl Drop for Text {
-    fn drop(&mut self) {
-        // TODO[ao]: This is workaround for memory leak causing text to stay even when component
-        //           is deleted. See "FIXME: memory leak." comment above.
-        self.remove_all_cursors();
-    }
-}
 
 
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

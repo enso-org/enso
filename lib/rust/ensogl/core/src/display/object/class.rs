@@ -931,6 +931,37 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
         self.display_object().rc.position()
     }
 
+    fn x(&self) -> f32 {
+        self.position().x
+    }
+
+    fn y(&self) -> f32 {
+        self.position().y
+    }
+
+    fn z(&self) -> f32 {
+        self.position().z
+    }
+
+    fn xy(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.y)
+    }
+
+    fn xz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.z)
+    }
+
+    fn yz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.y, position.z)
+    }
+
+    fn xyz(&self) -> Vector3<f32> {
+        self.position()
+    }
+
     fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
         self.display_object().rc.mod_position(f)
     }

@@ -247,92 +247,101 @@ fn init(app: Application) {
     // area.set_property_default(color::Rgba::red());
     // area.set_property_default(style::Weight::Bold);
 
+    let area = Rc::new(RefCell::new(Some(area)));
     init_debug_hotkeys(&area);
 
     mem::forget(navigator);
     mem::forget(app);
-    mem::forget(area);
     // mem::forget(colored_area);
 }
 
-fn init_debug_hotkeys(area: &Text) {
+fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
     let area = area.clone_ref();
     let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {
             let key = event.code();
-            warn!("{:?}", key);
-            if key == "Digit1" {
-                if event.shift_key() {
-                    area.set_property_default(color::Rgba::black());
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, color::Rgba::black());
-                }
-            } else if key == "Digit2" {
-                if event.shift_key() {
-                    area.set_property_default(color::Rgba::red());
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, color::Rgba::red());
-                }
-            } else if key == "Digit3" {
-                if event.shift_key() {
-                    area.set_property_default(color::Rgba::green());
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, color::Rgba::green());
-                }
-            } else if key == "Digit4" {
-                if event.shift_key() {
-                    area.set_property_default(color::Rgba::blue());
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, color::Rgba::blue());
-                }
-            } else if key == "Digit0" {
-                area.set_property(buffer::RangeLike::Selections, style::Property::Color(None));
-            } else if key == "KeyB" {
-                if event.shift_key() {
-                    area.set_property_default(style::Weight::Bold);
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
-                }
-            } else if key == "KeyH" {
-                if event.shift_key() {
-                    area.set_property_default(style::SdfWeight(0.02));
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, style::SdfWeight(0.02));
-                }
-            } else if key == "KeyI" {
-                if event.shift_key() {
-                    area.set_property_default(style::Style::Italic);
-                } else {
-                    area.set_property(buffer::RangeLike::Selections, style::Style::Italic);
-                }
-            } else if key == "Equal" {
-                if event.shift_key() {
-                    area.set_property_default(style::Size(16.0));
-                } else {
-                    // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
-                    area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(2.0));
-                }
-            } else if key == "Minus" {
-                if event.shift_key() {
-                    area.set_property_default(style::Size(16.0));
-                } else {
-                    // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
-                    area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(-2.0));
-                }
-            } else if key == "ArrowUp" {
-                area.mod_first_view_line(-1);
-            } else if key == "ArrowDown" {
-                area.mod_first_view_line(1);
-            } else if key == "KeyW" {
-                area.set_view_width(60.0);
+            if key == "Slash" {
+                debug!("Removing the text area.");
+                *area.borrow_mut() = None;
             }
-            // } else if key == "Digit0" {
-            // } else if key == "Digit1" {
-            // } else if key == "Digit2" {
-            // } else if key == "KeyP" {
-            // } else if key == "KeyQ" {
-            // }
+        }
+        if let Some(area) = &*area.borrow() {
+            if event.ctrl_key() {
+                let key = event.code();
+                warn!("{:?}", key);
+                if key == "Digit1" {
+                    if event.shift_key() {
+                        area.set_property_default(color::Rgba::black());
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, color::Rgba::black());
+                    }
+                } else if key == "Digit2" {
+                    if event.shift_key() {
+                        area.set_property_default(color::Rgba::red());
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, color::Rgba::red());
+                    }
+                } else if key == "Digit3" {
+                    if event.shift_key() {
+                        area.set_property_default(color::Rgba::green());
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, color::Rgba::green());
+                    }
+                } else if key == "Digit4" {
+                    if event.shift_key() {
+                        area.set_property_default(color::Rgba::blue());
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, color::Rgba::blue());
+                    }
+                } else if key == "Digit0" {
+                    area.set_property(buffer::RangeLike::Selections, style::Property::Color(None));
+                } else if key == "KeyB" {
+                    if event.shift_key() {
+                        area.set_property_default(style::Weight::Bold);
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
+                    }
+                } else if key == "KeyH" {
+                    if event.shift_key() {
+                        area.set_property_default(style::SdfWeight(0.02));
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, style::SdfWeight(0.02));
+                    }
+                } else if key == "KeyI" {
+                    if event.shift_key() {
+                        area.set_property_default(style::Style::Italic);
+                    } else {
+                        area.set_property(buffer::RangeLike::Selections, style::Style::Italic);
+                    }
+                } else if key == "Equal" {
+                    if event.shift_key() {
+                        area.set_property_default(style::Size(16.0));
+                    } else {
+                        // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
+                        area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(2.0));
+                    }
+                } else if key == "Minus" {
+                    if event.shift_key() {
+                        area.set_property_default(style::Size(16.0));
+                    } else {
+                        // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
+                        area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(-2.0));
+                    }
+                } else if key == "ArrowUp" {
+                    area.mod_first_view_line(-1);
+                } else if key == "ArrowDown" {
+                    area.mod_first_view_line(1);
+                } else if key == "KeyW" {
+                    area.set_view_width(60.0);
+                }
+                // } else if key == "Digit0" {
+                // } else if key == "Digit1" {
+                // } else if key == "Digit2" {
+                // } else if key == "KeyP" {
+                // } else if key == "KeyQ" {
+                // }
+            }
         }
     });
     let handle = web::add_event_listener_with_bool(&web::window, "keydown", closure, true);
