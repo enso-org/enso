@@ -6,6 +6,7 @@ use ensogl_core::display::world::*;
 
 use crate::font;
 use crate::font::VariationAxes;
+use crate::PropertyDiff;
 use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
@@ -196,6 +197,11 @@ impl Glyph {
 
     crate::with_format_definition! {define_formatting_setters_and_mods}
 
+    pub fn mod_property(&self, property: PropertyDiff) {
+        match property {
+            PropertyDiff::Size(diff) => self.mod_size(|t| t.apply_diff(diff)),
+        }
+    }
 
     /// Color getter.
     pub fn color(&self) -> color::Lcha {

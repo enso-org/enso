@@ -372,6 +372,14 @@ pub enum PropertyDiff {
     Size(SizeDiff),
 }
 
+impl From<PropertyDiff> for PropertyTag {
+    fn from(t: PropertyDiff) -> Self {
+        match t {
+            PropertyDiff::Size(_) => PropertyTag::Size,
+        }
+    }
+}
+
 impl Size {
     pub fn apply_diff(&self, diff: SizeDiff) -> Self {
         let value = self.value + diff.value;

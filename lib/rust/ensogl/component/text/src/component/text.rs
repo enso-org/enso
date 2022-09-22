@@ -1160,37 +1160,58 @@ impl TextModel {
         }
     }
 
-    pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
+    /// Set the property to selected glyphs. Redraw lines if needed.
+    fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
         if Self::property_change_invalidates_cache(property) {
             self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
         } else {
-            self.set_glyphs_property(ranges, property)
+            self.set_glyphs_property_without_line_redraw(ranges, property)
         }
     }
 
-    pub fn mod_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::PropertyDiff) {
-        match property {
-            style::PropertyDiff::Size(_) =>
-                self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied()),
+    /// Modify the property of selected glyphs. Redraw lines if needed.
+    fn mod_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::PropertyDiff) {
+        if Self::property_change_invalidates_cache(property) {
+            self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
+        } else {
+            self.mod_glyphs_property_without_line_redraw(ranges, property)
         }
     }
 
-    pub fn set_glyphs_property(
+    /// Set the property to selected glyphs. No redraw will be performed.
+    fn set_glyphs_property_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
         property: style::Property,
     ) {
-        let resolved_property = self.buffer.resolve_property(property);
-        self.modify_glyphs_in_ranges(ranges, |glyph| glyph.set_property(resolved_property));
+        let property = self.buffer.resolve_property(property);
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.set_property(property));
     }
 
-    pub fn modify_glyphs_in_ranges(&self, ranges: &Vec<buffer::Range<UBytes>>, f: impl Fn(&Glyph)) {
+    /// Modify the property of selected glyphs. No redraw will be performed.
+    fn mod_glyphs_property_without_line_redraw(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: style::PropertyDiff,
+    ) {
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
+    }
+
+    fn modify_glyphs_in_ranges_without_line_redraw(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        f: impl Fn(&Glyph),
+    ) {
         for &range in ranges {
-            self.modify_glyphs_in_range(range, &f);
+            self.modify_glyphs_in_range_without_line_redraw(range, &f);
         }
     }
 
-    pub fn modify_glyphs_in_range(&self, range: buffer::Range<UBytes>, f: impl Fn(&Glyph)) {
+    fn modify_glyphs_in_range_without_line_redraw(
+        &self,
+        range: buffer::Range<UBytes>,
+        f: impl Fn(&Glyph),
+    ) {
         let range = self.buffer.offset_range_to_location(range);
         let range = self.buffer.location_range_to_view_location_range(range);
         let lines = self.lines.borrow();
