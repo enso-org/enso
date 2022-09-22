@@ -436,16 +436,15 @@ impl Text {
         let mouse = &scene.mouse.frp;
         let network = self.frp.network();
         let input = &self.frp.input;
-        let frame_time = &scene.frp.frame_time;
 
         frp::extend! { network
-            _eval <- m.buffer.frp.selection_edit_mode.map2(frame_time, f!([m](sels,time) {
-                m.on_modified_selection(&sels.selection_group, Some(&sels.changes),*time)
-            }));
+            _eval <- m.buffer.frp.selection_edit_mode.map(f!((sels)
+                m.on_modified_selection(&sels.selection_group, Some(&sels.changes))
+            ));
 
-            _eval <- m.buffer.frp.selection_non_edit_mode.map2(frame_time, f!([m](sels,time) {
-                m.on_modified_selection(sels, None, *time)
-            }));
+            _eval <- m.buffer.frp.selection_non_edit_mode.map(f!((sels)
+                m.on_modified_selection(sels, None)
+            ));
 
             selecting <- bool
                 ( &input.stop_newest_selection_end_follow_mouse
@@ -796,11 +795,10 @@ impl TextModel {
         &self,
         buffer_selections: &buffer::selection::Group,
         changes: Option<&[buffer::ChangeWithSelection]>,
-        time: f32,
     ) {
         let do_edit = changes.is_some();
         self.update_lines_after_change(changes);
-        self.replace_selections(do_edit, buffer_selections, Some(time));
+        self.replace_selections(do_edit, buffer_selections);
         if do_edit {
             self.attach_glyphs_to_cursors();
         }
@@ -886,16 +884,11 @@ impl TextModel {
     /// Update selection positions. This is needed e.g. if the selected glyph size changed.
     fn update_selections(&self) {
         let buffer_selections = self.buffer.selections();
-        self.replace_selections(false, &buffer_selections, None);
+        self.replace_selections(false, &buffer_selections);
     }
 
     /// Replace selections with new ones.
-    fn replace_selections(
-        &self,
-        do_edit: bool,
-        buffer_selections: &buffer::selection::Group,
-        reset_animations_to_time: Option<f32>,
-    ) {
+    fn replace_selections(&self, do_edit: bool, buffer_selections: &buffer::selection::Group) {
         let mut new_selection_map = SelectionMap::default();
         for buffer_selection in buffer_selections {
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
@@ -948,9 +941,6 @@ impl TextModel {
             };
             selection.set_width(width);
             selection.edit_mode().set(do_edit);
-            if let Some(time) = reset_animations_to_time {
-                // selection.reset_animations_to_time(time);
-            }
             new_selection_map.id_map.insert(id, selection);
             new_selection_map
                 .location_map

@@ -206,21 +206,21 @@ impl Selection {
 
             // === Width ===
 
-            width.target <+ frp.input.set_width;
+            width.target <+ frp.set_width;
             width.skip <+ frp.skip_width_animation;
-            frp.private.output.width_target <+ frp.input.set_width;
+            frp.private.output.width_target <+ frp.set_width;
             frp.private.output.width <+ width.value;
-            not_blinking.target <+ width.value.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
+            not_blinking.target <+ frp.set_width.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
             eval not_blinking.value ((v) model.view.not_blinking.set(*v));
 
 
             // === Position ===
 
-            position.target <+ frp.input.set_position_target;
+            position.target <+ frp.set_position_target;
             position.skip <+ frp.skip_position_animation;
-            frp.private.output.position_target <+ frp.input.set_position_target;
+            frp.private.output.position_target <+ frp.set_position_target;
             frp.private.output.position <+ position.value;
-            eval_ frp.input.set_position_target (model.reset_blinking_animation_to_current_time());
+            eval_ frp.set_position_target (model.reset_blinking_animation_to_current_time());
 
 
             // === Updating Display Object ===
