@@ -155,7 +155,7 @@ pub struct ViewBuffer {
     #[deref]
     pub buffer:            Buffer,
     pub selection:         Rc<RefCell<selection::Group>>,
-    pub next_selection_id: Rc<Cell<usize>>,
+    pub next_selection_id: Rc<Cell<selection::Id>>,
     pub font:              Font,
     pub shaped_lines:      Rc<RefCell<BTreeMap<Line, ShapedLine>>>,
     pub history:           History,
@@ -469,7 +469,7 @@ impl ViewBuffer {
 
     fn new_cursor(&self, location: Location) -> Selection {
         let id = self.next_selection_id.get();
-        self.next_selection_id.set(id + 1);
+        self.next_selection_id.set(selection::Id { value: id.value + 1 });
         Selection::new_cursor(location, id)
     }
 

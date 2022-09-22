@@ -13,6 +13,8 @@ use ensogl_core::DEPRECATED_Animation;
 // FIXME: circular dep?
 use crate::font::glyph::WeakGlyph;
 
+pub use crate::buffer::view::selection::Id;
+
 const DEBUG_SLOWDOWN: bool = false;
 
 

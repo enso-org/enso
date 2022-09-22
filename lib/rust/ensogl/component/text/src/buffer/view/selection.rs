@@ -125,6 +125,10 @@ impl<T: Boundary> Shape<T> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Display, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Id {
+    pub value: usize,
+}
 
 
 // =================
@@ -137,7 +141,7 @@ impl<T: Boundary> Shape<T> {
 #[allow(missing_docs)]
 pub struct Selection<T = Location> {
     pub shape: Shape<T>,
-    pub id:    usize,
+    pub id:    Id,
 }
 
 impl<T> Deref for Selection<T> {
@@ -155,19 +159,19 @@ impl<T> DerefMut for Selection<T> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Selection<T: Boundary>(start: T, end: T, id: usize) -> Selection<T> {
+pub fn Selection<T: Boundary>(start: T, end: T, id: Id) -> Selection<T> {
     Selection::new(start, end, id)
 }
 
 impl<T: Boundary> Selection<T> {
     /// Constructor.
-    pub fn new(start: T, end: T, id: usize) -> Self {
+    pub fn new(start: T, end: T, id: Id) -> Self {
         let shape = Shape::new(start, end);
         Self { shape, id }
     }
 
     /// Cursor constructor.
-    pub fn new_cursor(offset: T, id: usize) -> Self {
+    pub fn new_cursor(offset: T, id: Id) -> Self {
         let shape = Shape::new_cursor(offset);
         Self { shape, id }
     }
@@ -183,7 +187,7 @@ impl<T: Boundary> Selection<T> {
         self.with_shape(f(self.shape))
     }
 
-    pub fn map_id(self, f: impl FnOnce(usize) -> usize) -> Self {
+    pub fn map_id(self, f: impl FnOnce(Id) -> Id) -> Self {
         let id = f(self.id);
         Self { id, ..self }
     }

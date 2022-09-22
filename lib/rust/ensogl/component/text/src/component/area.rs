@@ -48,7 +48,7 @@ use enso_frp::stream::ValueProvider;
 
 /// Record separator ASCII code. Used for separating of copied strings. It is defined as the `\RS`
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
-pub const RECORD_SEPARATOR: &str = "\x1E";
+pub const CLIPBOARD_RECORD_SEPARATOR: &str = "\x1E";
 
 
 
@@ -60,8 +60,8 @@ pub const RECORD_SEPARATOR: &str = "\x1E";
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
-    id_map:       HashMap<usize, Selection>,
-    location_map: HashMap<unit::ViewLine, HashMap<Column, usize>>,
+    id_map:       HashMap<selection::Id, Selection>,
+    location_map: HashMap<unit::ViewLine, HashMap<Column, selection::Id>>,
 }
 
 
@@ -79,6 +79,7 @@ struct Lines {
 }
 
 impl Lines {
+    /// Constructor.
     pub fn new(line: line::View) -> Self {
         let rc = Rc::new(RefCell::new(LinesVec::singleton(line)));
         Self { rc }
@@ -1033,7 +1034,6 @@ impl AreaModel {
     }
 
     fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) {
-        debug!("redraw_line: {} {}", view_line_index, content);
         let cursor_map = self
             .selection_map
             .borrow()
@@ -1059,7 +1059,6 @@ impl AreaModel {
         let mut prev_cluster_byte_off = UBytes(0);
 
         let view_width = self.frp_out_get.view_width.value();
-        debug!("view_width: {:?}", view_width);
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.borrow().size.default;
@@ -1576,7 +1575,7 @@ impl AreaModel {
         let encoded = match selections {
             [] => "".to_string(),
             [s] => s.clone(),
-            lst => lst.join(RECORD_SEPARATOR),
+            lst => lst.join(CLIPBOARD_RECORD_SEPARATOR),
         };
         clipboard::write_text(encoded);
     }
@@ -1607,7 +1606,7 @@ impl AreaModel {
     }
 
     fn decode_paste(&self, encoded: &str) -> Vec<String> {
-        encoded.split(RECORD_SEPARATOR).map(|s| s.into()).collect()
+        encoded.split(CLIPBOARD_RECORD_SEPARATOR).map(|s| s.into()).collect()
     }
 
     fn drop_all_but_first_line(s: &mut String) {
