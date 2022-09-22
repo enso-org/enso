@@ -130,14 +130,16 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query | Statement -> Text -> Integer | Nothing -> Table
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
-        case query of
-            Statement_Data _ ->
-                self.jdbc_connection.with_prepared_statement query stmt->
-                    result_set_to_table stmt.executeQuery Nothing
-            _ ->
-                self.query query . read limit=limit
+        self.query query . read limit=limit
+
+    ## PRIVATE
+       Internal read function for a statement with optional types.
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Table
+    read_statement self statement expected_types=Nothing =
+        self.jdbc_connection.with_prepared_statement statement stmt->
+            result_set_to_table stmt.executeQuery expected_types
 
     ## ADVANCED
 

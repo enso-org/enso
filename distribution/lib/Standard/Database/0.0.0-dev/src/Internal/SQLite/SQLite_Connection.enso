@@ -96,6 +96,12 @@ type SQLite_Connection
     read : Text | SQL_Query -> Integer | Nothing -> Table
     read self query limit=Nothing = self.connection.query query limit
 
+    ## PRIVATE
+       Internal read function for a statement with optional types.
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Table
+    read_statement self statement expected_types=Nothing =
+        self.connection.read_statement statement expected_types
+
     ## ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or
