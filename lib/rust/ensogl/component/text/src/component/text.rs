@@ -1069,6 +1069,7 @@ impl TextModel {
                             let render_info = &shaped_glyph.render_info;
                             let glyph_render_offset = render_info.offset.scale(style.size.value);
                             glyph.set_color(style.color);
+                            glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
                             glyph.set_size(style.size);
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);

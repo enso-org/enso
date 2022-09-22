@@ -37,6 +37,7 @@ use owned_ttf_parser::GlyphId;
 ensogl_core::define_endpoints_2! {
     Input {
         set_color(color::Lcha),
+        skip_color_animation(),
     }
     Output {
 
@@ -372,6 +373,7 @@ impl System {
         let network = frp.network();
         frp::extend! {network
             color_animation.target <+ frp.set_color;
+            color_animation.skip <+ frp.skip_color_animation;
             eval color_animation.value ((c) color.set(Rgba::from(c).into()));
         }
 
