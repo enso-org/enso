@@ -1026,26 +1026,22 @@ impl Searcher {
 
     fn clear_temporary_imports(&self) {
         let mut module = self.module();
-        let to_remove = self
-            .graph
-            .graph()
-            .module
-            .all_import_metadata()
+        let import_metadata = self.graph.graph().module.all_import_metadata();
+        let metadata_to_remove = import_metadata
             .into_iter()
             .filter_map(|(id, import_metadata)| {
-                if import_metadata.is_temporary {
+                import_metadata.is_temporary.then(|| {
                     if let Err(e) = module.remove_import_by_id(id) {
                         tracing::warn!("Failed to remove import because of: {e:?}");
                     }
-                    return Some(id);
-                }
-                None
+                    id
+                })
             })
             .collect_vec();
         if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
             tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
         }
-        for id in to_remove {
+        for id in metadata_to_remove {
             if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
                 tracing::warn!(
                     "Failed to remove import metadata for import id {id} because of: {e:?}"
