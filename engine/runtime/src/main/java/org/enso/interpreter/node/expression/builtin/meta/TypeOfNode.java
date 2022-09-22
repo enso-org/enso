@@ -16,9 +16,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
     name = "type_of_builtin",
     description = "Returns the type of a value.")
 public class TypeOfNode extends Node {
-  private @Child
-  InteropLibrary library =
-          InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child InteropLibrary library =
+      InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private @Child TypesLibrary types =
       TypesLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
@@ -31,7 +30,7 @@ public class TypeOfNode extends Node {
         err.enter();
         Builtins builtins = Context.get(this).getBuiltins();
         throw new PanicException(
-                builtins.error().makeTypeError(builtins.any(), value, "object"), this);
+            builtins.error().makeTypeError(builtins.any(), value, "object"), this);
       }
     } else {
       if (types.hasType(value)) {

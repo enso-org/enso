@@ -12,27 +12,26 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @BuiltinMethod(
-        type = "Meta",
-        name = "is_of_type_builtin",
-        description = "Checks if the given type matches the expected type.")
+    type = "Meta",
+    name = "is_of_type_builtin",
+    description = "Checks if the given type matches the expected type.")
 public class IsOfTypeMetaNode extends Node {
-    private @Child TypesLibrary types =
-            TypesLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
-    private @Child
-    InteropLibrary library =
-            InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
-    private final BranchProfile err = BranchProfile.create();
+  private @Child TypesLibrary types =
+      TypesLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child InteropLibrary library =
+      InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private final BranchProfile err = BranchProfile.create();
 
-    Object execute(Object tpe, Object expected) {
-        if (library.isMetaObject(tpe) && library.isMetaObject(expected)) {
-          return library.isIdentical(tpe, expected, InteropLibrary.getUncached());
-        } else {
-            if (types.hasType(tpe) && types.hasType(expected)) {
-                return types.getType(tpe) == types.getType(expected);
-            } else {
-                Context ctx = Context.get(this);
-                return false;
-            }
-        }
+  Object execute(Object tpe, Object expected) {
+    if (library.isMetaObject(tpe) && library.isMetaObject(expected)) {
+      return library.isIdentical(tpe, expected, InteropLibrary.getUncached());
+    } else {
+      if (types.hasType(tpe) && types.hasType(expected)) {
+        return types.getType(tpe) == types.getType(expected);
+      } else {
+        Context ctx = Context.get(this);
+        return false;
+      }
     }
+  }
 }
