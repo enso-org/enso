@@ -215,7 +215,7 @@ ensogl_core::define_endpoints_2! {
 
         hover(),
         unhover(),
-        single_line(bool),
+        single_line_mode(bool),
         set_hover(bool),
 
         set_cursor            (Location),
@@ -282,13 +282,6 @@ pub struct Text {
     pub data: TextModel,
 }
 
-// impl Deref for Text {
-//     type Target = api::Public;
-//     fn deref(&self) -> &Self::Target {
-//         &self.frp.public
-//     }
-// }
-
 impl Text {
     /// Constructor.
     #[profile(Debug)]
@@ -305,17 +298,15 @@ impl Text {
         let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
         let out = &self.frp.private.output;
-        let pos = DEPRECATED_Animation::<Vector2>::new(network);
         let keyboard = &scene.keyboard;
         let m = &model;
-        pos.update_spring(|spring| spring * 2.0);
 
         let after_animations = ensogl_core::animation::after_animations();
         frp::extend! { network
 
             // === Multi / Single Line ===
 
-            eval input.single_line((t) m.single_line.set(*t));
+            eval input.single_line_mode((t) m.single_line_mode.set(*t));
 
 
             // === Hover ===
@@ -585,17 +576,17 @@ pub struct TextModelData {
     //            be replaced with proper object management.
     layer: CloneRefCell<display::scene::Layer>,
 
-    frp_network:    frp::Network,
-    frp_out_get:    api::public::Output,
-    frp_out_set:    api::private::Output,
-    buffer:         buffer::View,
-    display_object: display::object::Instance,
-    glyph_system:   RefCell<glyph::System>,
-    lines:          Lines,
-    single_line:    Cell<bool>,
-    selection_map:  RefCell<SelectionMap>,
-    width_dirty:    Cell<bool>,
-    height_dirty:   Cell<bool>,
+    frp_network:      frp::Network,
+    frp_out_get:      api::public::Output,
+    frp_out_set:      api::private::Output,
+    buffer:           buffer::View,
+    display_object:   display::object::Instance,
+    glyph_system:     RefCell<glyph::System>,
+    lines:            Lines,
+    single_line_mode: Cell<bool>,
+    selection_map:    RefCell<SelectionMap>,
+    width_dirty:      Cell<bool>,
+    height_dirty:     Cell<bool>,
 }
 
 impl TextModel {
@@ -618,7 +609,7 @@ impl TextModel {
             RefCell::new(glyph_system)
         };
         let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
-        let single_line = default();
+        let single_line_mode = default();
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
@@ -650,7 +641,7 @@ impl TextModel {
             display_object,
             glyph_system,
             lines,
-            single_line,
+            single_line_mode,
             selection_map,
             width_dirty,
             height_dirty,
@@ -1607,7 +1598,7 @@ impl TextModel {
     /// line.
     fn paste_string(&self, s: &str) {
         let mut chunks = self.decode_paste(s);
-        if self.single_line.get() {
+        if self.single_line_mode.get() {
             for f in &mut chunks {
                 Self::drop_all_but_first_line(f);
             }
@@ -1626,7 +1617,7 @@ impl TextModel {
     fn key_to_string(&self, key: &Key) -> Option<String> {
         match key {
             Key::Character(s) => Some(s.clone()),
-            Key::Enter => self.single_line.get().not().as_some("\n".into()),
+            Key::Enter => self.single_line_mode.get().not().as_some("\n".into()),
             Key::Space => Some(" ".into()),
             _ => None,
         }

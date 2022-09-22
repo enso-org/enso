@@ -279,8 +279,15 @@ impl Text {
         self.validate_line_index(line)?;
         let next_line = line + Line(1);
         let next_line_off = self.byte_offset_of_line_index(next_line).ok();
-        // FIXME: this will not work with \r\n!
-        let next_line_prev = next_line_off.and_then(|t| self.prev_grapheme_offset(t));
+        let next_line_prev = next_line_off.and_then(|t| {
+            self.prev_grapheme_offset(t).and_then(|prev1| {
+                self.prev_grapheme_offset(prev1).map(|prev2| {
+                    let was_rn_seq = self.slice(prev2.value..prev1.value).to_string() == "\r";
+                    let off = if was_rn_seq { prev2 } else { prev1 };
+                    off
+                })
+            })
+        });
         Ok(next_line_prev.unwrap_or_else(|| self.byte_size()))
     }
 
@@ -356,8 +363,6 @@ impl Text {
 // === Into Line Index ===
 
 impl Text {
-    // FIXME: what happens when we put offset between \r and \n ?
-
     /// The line of a given byte offset. Panics in case the offset was invalid.
     pub fn line_index_of_byte_offset_unchecked(&self, offset: UBytes) -> Line {
         self.rope.line_of_offset(offset.value).into()
