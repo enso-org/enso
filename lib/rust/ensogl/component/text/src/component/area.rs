@@ -119,7 +119,7 @@ impl From<LinesVec> for Lines {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     Input {
         /// Insert character of the last pressed key at every cursor.
         insert_char_of_last_pressed_key(),
@@ -278,9 +278,9 @@ pub struct Area {
 }
 
 impl Deref for Area {
-    type Target = Frp;
+    type Target = api::Public;
     fn deref(&self) -> &Self::Target {
-        &self.frp
+        &self.frp.public
     }
 }
 
@@ -289,17 +289,17 @@ impl Area {
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
-        let data = Rc::new(AreaModel::new(app, &frp.output, &frp.network));
+        let data = Rc::new(AreaModel::new(app, &frp.output, &frp.private.output, frp.network()));
         Self { data, frp }.init()
     }
 
     fn init(self) -> Self {
-        let network = &self.frp.network;
+        let network = self.frp.network();
         let model = &self.data;
         let scene = &model.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
-        let out = &self.frp.output;
+        let out = &self.frp.private.output;
         let pos = DEPRECATED_Animation::<Vector2>::new(network);
         let keyboard = &scene.keyboard;
         let m = &model;
@@ -317,7 +317,7 @@ impl Area {
 
             hover_events  <- bool(&input.unhover,&input.hover);
             hovered       <- any(&input.set_hover,&hover_events);
-            out.source.hovered <+ hovered;
+            out.hovered <+ hovered;
 
 
             // === Pointer Style ===
@@ -325,7 +325,7 @@ impl Area {
             pointer_style <- hovered.map(|hovered| {
                 if *hovered { cursor::Style::new_text_cursor() } else { cursor::Style::default() }
             });
-            out.source.pointer_style <+ pointer_style;
+            out.pointer_style <+ pointer_style;
 
 
             // === Set / Add cursor ===
@@ -392,7 +392,8 @@ impl Area {
             eval sels_cut ((s) m.cut(s));
             eval_ sels_cut (m.buffer.frp.delete_left());
 
-            eval_ input.paste (m.paste());
+            // FIXME:
+            // eval_ input.paste (m.paste());
             eval input.paste_string((s) m.paste_string(s));
 
 
@@ -481,7 +482,7 @@ impl Area {
 
             // m.buffer.frp.set_color <+ input.set_color;
             // eval input.set_color ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_color(t.1)));
-            self.frp.source.selection_color <+ self.frp.set_selection_color;
+            out.selection_color <+ self.frp.set_selection_color;
 
 
             // === Style ===
@@ -499,8 +500,8 @@ impl Area {
 
             // The `content` event should be fired first, as any listener for `changed` may want to
             // read the new content, so it should be up-to-date.
-            self.frp.source.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
-            self.frp.source.changed <+ m.buffer.frp.text_change;
+            out.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
+            out.changed <+ m.buffer.frp.text_change;
 
 
             // === Text Width ===
@@ -508,10 +509,10 @@ impl Area {
             eval_ self.frp.refresh_width(m.width_dirty.set(true));
             eval_ self.frp.refresh_height(m.height_dirty.set(true));
             new_width <= after_animations.map (f_!(m.compute_width()));
-            self.frp.source.width <+ new_width.on_change();
+            out.width <+ new_width.on_change();
 
             new_height <= after_animations.map (f_!(m.compute_height()));
-            self.frp.source.height <+ new_height.on_change();
+            out.height <+ new_height.on_change();
 
 
             // === View Area Management ===
@@ -521,7 +522,7 @@ impl Area {
 
             eval_ m.buffer.frp.first_view_line (m.redraw());
             // FIXME: we are moving it to output only for it to be sampler.
-            self.frp.source.view_width <+ self.frp.set_view_width;
+            out.view_width <+ self.frp.set_view_width;
             eval_ self.frp.set_view_width (m.redraw());
         }
         self
@@ -574,7 +575,8 @@ pub struct AreaModel {
     layer: Rc<CloneRefCell<display::scene::Layer>>,
 
     frp_network:    frp::Network,
-    frp_endpoints:  FrpEndpoints,
+    frp_out_get:    api::public::Output,
+    frp_out_set:    api::private::Output,
     buffer:         buffer::View,
     display_object: display::object::Instance,
     glyph_system:   Rc<RefCell<glyph::System>>,
@@ -589,7 +591,8 @@ impl AreaModel {
     /// Constructor.
     pub fn new(
         app: &Application,
-        frp_endpoints: &FrpEndpoints,
+        frp_out_get: &api::public::Output,
+        frp_out_set: &api::private::Output,
         frp_network: &frp::Network,
     ) -> Self {
         let app = app.clone_ref();
@@ -623,13 +626,15 @@ impl AreaModel {
         scene.layers.label.add_exclusive(symbol);
 
         let frp_network = frp_network.clone_ref();
-        let frp_endpoints = frp_endpoints.clone_ref();
+        let frp_out_get = frp_out_get.clone_ref();
+        let frp_out_set = frp_out_set.clone_ref();
 
         Self {
             app,
             layer,
             frp_network,
-            frp_endpoints,
+            frp_out_get,
+            frp_out_set,
             buffer,
             display_object,
             glyph_system,
@@ -856,8 +861,8 @@ impl AreaModel {
                     let network = &self.frp_network;
                     let model = self;
                     frp::extend! { network
-                        self.frp_endpoints.source.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
-                        self.frp_endpoints.source.refresh_height <+_ selection.frp.position;
+                        self.frp_out_set.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                        self.frp_out_set.refresh_height <+_ selection.frp.position;
                     }
                     self.add_child(&selection);
                     selection.letter_width.set(7.0); // FIXME hardcoded values
@@ -865,7 +870,7 @@ impl AreaModel {
                     selection.frp.set_ascender(metrics.ascender);
                     selection.frp.set_descender(metrics.descender);
                     selection.position.skip();
-                    selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
+                    selection.frp.set_color.emit(self.frp_out_set.selection_color.value());
                     selection
                 }
             };
@@ -1028,6 +1033,7 @@ impl AreaModel {
     }
 
     fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) {
+        debug!("redraw_line: {} {}", view_line_index, content);
         let cursor_map = self
             .selection_map
             .borrow()
@@ -1052,7 +1058,8 @@ impl AreaModel {
 
         let mut prev_cluster_byte_off = UBytes(0);
 
-        let view_width = self.frp_endpoints.view_width.value();
+        let view_width = self.frp_out_get.view_width.value();
+        debug!("view_width: {:?}", view_width);
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.borrow().size.default;
@@ -1561,7 +1568,7 @@ impl AreaModel {
     fn init_line(&self, line: &line::View) {
         let network = &self.frp_network;
         frp::extend! { network
-            self.frp_endpoints.source.refresh_height <+_ line.descent;
+            self.frp_out_set.refresh_height <+_ line.descent;
         }
     }
 
@@ -1578,10 +1585,10 @@ impl AreaModel {
         self.copy(selections);
     }
 
-    fn paste(&self) {
-        let paste_string = self.frp_endpoints.input.paste_string.clone_ref();
-        clipboard::read_text(move |t| paste_string.emit(t));
-    }
+    // fn paste(&self) {
+    //     let paste_string = self.frp_out_set.paste_string.clone_ref();
+    //     clipboard::read_text(move |t| paste_string.emit(t));
+    // }
 
     /// Paste new text in the place of current selections / cursors. In case of pasting multiple
     /// chunks (e.g. after copying multiple selections), the chunks will be pasted into subsequent
@@ -1693,7 +1700,7 @@ impl display::Object for Area {
 
 impl application::command::FrpNetworkProvider for Area {
     fn network(&self) -> &frp::Network {
-        &self.frp.network
+        self.frp.network()
     }
 }
 
