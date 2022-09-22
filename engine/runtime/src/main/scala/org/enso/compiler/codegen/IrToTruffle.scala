@@ -10,67 +10,29 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  BindingAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis, DataflowAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{
-  ExpressionAnnotations,
-  GlobalNames,
-  MethodDefinitions,
-  Patterns
-}
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames, MethodDefinitions, Patterns}
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{
-  BlockNode,
-  CreateFunctionNode
-}
+import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.callable.{
-  ApplicationNode,
-  InvokeCallableNode,
-  SequenceLiteralNode
-}
+import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode, SequenceLiteralNode}
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.{
-  ConstantNode,
-  QualifiedAccessorNode
-}
+import org.enso.interpreter.node.expression.atom.{ConstantNode, QualifiedAccessorNode}
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.node.{
-  BaseNode,
-  ClosureRootNode,
-  MethodRootNode,
-  ExpressionNode => RuntimeExpression
-}
+import org.enso.interpreter.node.{BaseNode, ClosureRootNode, MethodRootNode, ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.runtime.callable.{
-  UnresolvedConversion,
-  UnresolvedSymbol
-}
-import org.enso.interpreter.runtime.callable.argument.{
-  ArgumentDefinition,
-  CallArgument
-}
+import org.enso.interpreter.runtime.callable.{UnresolvedConversion, UnresolvedSymbol}
+import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
 import org.enso.interpreter.runtime.callable.atom.Atom
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
-import org.enso.interpreter.runtime.callable.function.{
-  FunctionSchema,
-  Function => RuntimeFunction
-}
+import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{
-  FramePointer,
-  LocalScope,
-  ModuleScope
-}
+import org.enso.interpreter.runtime.scope.{FramePointer, LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
