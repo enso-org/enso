@@ -299,7 +299,7 @@ impl Expressions {
 ///
 /// This structure keeps the information how the particular graph elements received from controllers
 /// are represented in the view. It also handles updates from the controllers and
-/// the view in `update_from_controller` and `update_from_view` respectively.  
+/// the view in `update_from_controller` and `update_from_view` respectively.
 #[derive(Clone, Debug, Default)]
 pub struct State {
     nodes:       RefCell<Nodes>,
@@ -492,6 +492,7 @@ impl<'a> ControllerChange<'a> {
             None | Some(Value) => None,
             Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
             Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
+            Some(Pending { message: _, progress: _ }) => Some((Kind::Panic, Some("Pending...".to_string()), Vec::new())),
         }?;
         let propagated = if kind == Kind::Panic {
             let nodes = self.nodes.borrow();
@@ -678,7 +679,7 @@ impl<'a> ViewChange<'a> {
 
 impl<'a> ViewChange<'a> {
     /// If the connections does not already exist, it is created and corresponding to-be-created
-    /// Ast connection is returned.  
+    /// Ast connection is returned.
     pub fn create_connection(&self, connection: view::graph_editor::Edge) -> Option<AstConnection> {
         let source = connection.source()?;
         let target = connection.target()?;
@@ -686,7 +687,7 @@ impl<'a> ViewChange<'a> {
     }
 
     /// If the connections with provided endpoints does not already exist, it is created and
-    /// corresponding to-be-created Ast connection is returned.  
+    /// corresponding to-be-created Ast connection is returned.
     pub fn create_connection_from_endpoints(
         &self,
         connection: ViewConnection,

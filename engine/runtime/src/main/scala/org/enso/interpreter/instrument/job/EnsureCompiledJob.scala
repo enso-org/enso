@@ -29,6 +29,7 @@ import java.util.logging.Level
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
+import java.util.UUID
 
 /** A job that ensures that specified files are compiled.
   *
@@ -317,27 +318,39 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       invalidationCommands
     )
 
-    val invalidatedKeysScala = invalidatedKeys.asScala.toSet
-    ctx.contextManager.getAllContexts.keys
-      .foreach { contextId =>
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              invalidatedKeysScala.map { key =>
-                Api.ExpressionUpdate(
-                  key,
-                  None,
-                  None,
-                  Vector.empty,
-                  true,
-                  Api.ExpressionUpdate.Payload.Panic("pending...", Seq(key))
-                )
-              }
-            )
+    if (!invalidatedKeys.isEmpty()) {
+      System.err.println("Invalidated: " + invalidatedKeys)
+      val invalidatedKeysScala = invalidatedKeys.asScala.toSet
+      ctx.contextManager.getAllContexts.foreachEntry((contextId, stack) => {
+        val knownKeys   = stack.top.cache.getWeights.entrySet
+        val cachedKeys  = stack.top.cache.getKeys
+        val pendingKeys = new java.util.HashSet[UUID]()
+        knownKeys.forEach(e => {
+          if (e.getValue > 0) {
+            if (!cachedKeys.contains(e.getKey)) {
+              pendingKeys.add(e.getKey)
+            }
+          }
+        });
+        val ids = invalidatedKeysScala.map { key =>
+          // pendingKeys.asScala.toSet.map { key =>
+          Api.ExpressionUpdate(
+            key,
+            None,
+            None,
+            Vector.empty,
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
           )
+        }
+
+        System.err.println("  ignore pendingKeys: " + pendingKeys)
+        val msg = Api.Response(
+          Api.ExpressionUpdates(contextId, ids)
         )
-      }
+        ctx.endpoint.sendToClient(msg)
+      })
+    }
 
     val invalidatedVisualisations =
       ctx.contextManager.getInvalidatedVisualisations(

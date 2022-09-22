@@ -367,6 +367,10 @@ object Runtime {
           new JsonSubTypes.Type(
             value = classOf[Payload.Panic],
             name  = "expressionUpdatePayloadPanic"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[Payload.Pending],
+            name  = "expressionUpdatePayloadPending"
           )
         )
       )
@@ -377,6 +381,11 @@ object Runtime {
           * value.
           */
         case class Value() extends Payload
+
+        /** TBD
+          */
+        case class Pending(message: Option[String], progress: Option[Double])
+            extends Payload;
 
         /** Indicates that the expression was computed to an error.
           *

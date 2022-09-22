@@ -354,6 +354,9 @@ object ProgramExecutionSupport {
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
       }
+      System.out.println(
+        "Expression update: " + value.getExpressionId + " and " + value.getValue
+      )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
