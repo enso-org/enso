@@ -325,9 +325,11 @@ spec_with name create_new_date parse_date =
                 first_day = create_new_date year 1 1
                 Vector.new first_day.length_of_year (n -> first_day + n.days)
 
-            # The whole year 1999 is skipped as it's marked as holiday, and 1st and 2nd of January of 2000 are a weekend.
-            create_new_date 1999 3 23 . add_work_days 0 (all_year_holiday 1999) . should_equal (Date.new 2000 1 3)
-            create_new_date 1999 3 23 . add_work_days 1 (all_year_holiday 1999) . should_equal (Date.new 2000 1 4)
+            two_years_vacation = all_year_holiday 1999 + all_year_holiday 2000
+
+            # The whole years 1999 and 2000 are skipped as they are marked as holiday.
+            create_new_date 1999 3 23 . add_work_days 0 two_years_vacation . should_equal (Date.new 2001 1 1)
+            create_new_date 1999 3 23 . add_work_days 1 two_years_vacation . should_equal (Date.new 2001 1 2)
 
             # When going backwards, again whole 1999 is skipped and we wind back at Thursday 31 December 1998.
             create_new_date 1999 3 23 . add_work_days -1 (all_year_holiday 1999) . should_equal (Date.new 1998 12 31)

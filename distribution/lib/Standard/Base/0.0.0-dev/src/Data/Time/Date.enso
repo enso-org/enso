@@ -370,7 +370,7 @@ type Date
                to shift by, we re-run the whole shift procedure.
             workdays = self.work_days_until end holidays include_end_date=False
             diff = days - workdays
-            if diff > 0 then end.add_work_days diff holidays else
+            if diff > 0 then @Tail_Call end.add_work_days diff holidays else
                 ## Otherwise we have accounted for all workdays we were asked
                    to. But that is still not the end - we still need to ensure
                    that the final day on which we have 'landed' is a workday
@@ -412,7 +412,7 @@ type Date
                still workdays we need to shift by - then it will be exactly
                the remaining offset that we need to shift by.
             diff = days + workdays
-            if diff < 0 then end.add_work_days diff holidays else
+            if diff < 0 then @Tail_Call end.add_work_days diff holidays else
                 ## As in the positive case, if the final end date falls on a
                    holiday, we need to ensure that we move it - this time
                    backwards - to the first workday.
