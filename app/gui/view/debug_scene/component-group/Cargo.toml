@@ -18,3 +18,7 @@ ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view"
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view-component-group = { path = "../../component-browser/component-group" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

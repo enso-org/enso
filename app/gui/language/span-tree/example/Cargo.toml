@@ -20,3 +20,7 @@ uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 [dependencies.web-sys]
 version = "0.3.4"
 features = []
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
