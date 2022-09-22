@@ -210,7 +210,6 @@ impl Selection {
             frp.private.output.width_target <+ frp.set_width;
             frp.private.output.width <+ width.value;
             not_blinking.target <+ frp.set_width.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
-            trace not_blinking.target;
             eval not_blinking.value ((v) model.view.not_blinking.set(*v));
 
 
@@ -234,7 +233,7 @@ impl Selection {
                     let view_width = CURSOR_PADDING * 2.0 + width;
                     let view_x     = (abs_width/2.0) * side;
                     model.display_object.set_position_xy(*p);
-                    model.right_side.set_position_x(abs_width/2.0);
+                    model.right_side.set_position_x(abs_width);
                     model.view.size.modify(|t| Vector2(view_width,t.y));
                     model.view.set_position_x(view_x);
                 })
@@ -245,12 +244,32 @@ impl Selection {
         Self { frp, model }
     }
 
-    pub fn flip_sides(&self) {
+    /// Set new width and flip selection start and end values if needed. For example, after
+    /// selecting text from right to left and clicking backspace, the sides need to be flipped, so
+    /// the glyphs after the selection are positioned correctly during animation.
+    pub fn set_width_and_flip_sides_if_needed(&self, new_width: f32, pos_x: f32) {
+        let selection_width_target = self.width.value();
+        let select_left = selection_width_target < 0.0;
+        let select_right = selection_width_target > 0.0;
+        let tgt_pos_x = self.position.value().x;
+        let tgt_width = selection_width_target;
+        let mid_point = tgt_pos_x + tgt_width / 2.0;
+        let go_left = pos_x < mid_point;
+        let go_right = pos_x > mid_point;
+        let need_flip = (select_left && go_left) || (select_right && go_right);
+        if new_width == 0.0 && need_flip {
+            self.flip_sides()
+        }
+        self.set_width(new_width)
+    }
+
+    fn flip_sides(&self) {
         let width = self.frp.width_target.value();
         self.frp.set_position_target(self.frp.position.value() + Vector2(width, 0.0));
         self.frp.skip_position_animation();
         self.frp.set_position_target(self.frp.position_target.value() + Vector2(width, 0.0));
 
+        // FIXME rename to set_width_target
         self.frp.set_width(-self.frp.width.value());
         self.frp.skip_width_animation();
         self.frp.set_width(-self.frp.width_target.value());

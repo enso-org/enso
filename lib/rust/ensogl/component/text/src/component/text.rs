@@ -4,7 +4,6 @@
 use crate::prelude::*;
 use enso_text::unit;
 use enso_text::unit::*;
-use ensogl_core::display::shape::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -61,7 +60,7 @@ pub const CLIPBOARD_RECORD_SEPARATOR: &str = "\x1E";
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<selection::Id, Selection>,
-    location_map: HashMap<unit::ViewLine, HashMap<Column, selection::Id>>,
+    location_map: HashMap<ViewLine, HashMap<Column, selection::Id>>,
 }
 
 
@@ -72,7 +71,7 @@ pub struct SelectionMap {
 
 /// Vector of all lines stored in the text area. Please note that it is guaranteed that there is
 /// always at least one line.
-type LinesVec = NonEmptyVec<line::View, unit::ViewLine>;
+type LinesVec = NonEmptyVec<line::View, ViewLine>;
 
 /// Set of all visible lines.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -134,7 +133,7 @@ impl Lines {
         let end_x = get_pos_x(end_location);
         let y = self.borrow()[start_location.line].baseline();
         let start_pos = Vector2(start_x, y);
-        let end_pos = Vector2(start_x, y);
+        let end_pos = Vector2(end_x, y);
         (start_pos, end_pos)
     }
 }
@@ -298,7 +297,7 @@ ensogl_core::define_endpoints_2! {
         set_font (String),
         set_content (String),
 
-        set_first_view_line(unit::Line),
+        set_first_view_line(Line),
         mod_first_view_line(LineDiff),
         set_view_width(Option<f32>),
     }
@@ -901,50 +900,36 @@ impl TextModel {
             let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
             let width = end_pos.x - start_pos.x;
             let metrics = self.lines.borrow()[selection_start_line].metrics();
-            let opt_selection = self.selection_map.borrow_mut().id_map.remove(&id);
-            let selection = if let Some(selection) = opt_selection {
-                let selection_width_target = selection.width_target.value();
-                let select_left = selection_width_target < 0.0;
-                let select_right = selection_width_target > 0.0;
-                let tgt_pos_x = selection.position_target.value().x;
-                let tgt_width = selection_width_target;
-                let mid_point = tgt_pos_x + tgt_width / 2.0;
-                let go_left = start_pos.x < mid_point;
-                let go_right = start_pos.x > mid_point;
-                let need_flip = (select_left && go_left) || (select_right && go_right);
-                if width == 0.0 && need_flip {
-                    selection.flip_sides()
-                }
-                selection.set_position_target(start_pos);
-                selection.set_ascender(metrics.ascender);
-                selection.set_descender(metrics.descender);
+            let prev_selection = self.selection_map.borrow_mut().id_map.remove(&id);
+            let reused_selection = prev_selection.is_some();
+            let selection = if let Some(selection) = prev_selection {
+                selection.set_width_and_flip_sides_if_needed(width, start_pos.x);
                 selection
             } else {
                 let frame_time = &self.app.display.default_scene.frp.frame_time;
                 let selection = Selection::new(frame_time, do_edit);
                 if let Some(network) = self.frp.network.upgrade() {
+                    let out = &self.frp.private.output;
                     frp::extend! { network
-                        self.frp.private.output.refresh_height <+_ selection.position;
-                        self.frp.private.output.refresh_width <+_
-                            selection.right_side_of_last_attached_glyph;
+                        out.refresh_height <+_ selection.position;
+                        out.refresh_width <+_ selection.right_side_of_last_attached_glyph;
                     }
                 }
                 self.add_child(&selection);
-                selection.set_position_target(start_pos);
-                selection.set_ascender(metrics.ascender);
-                selection.set_descender(metrics.descender);
-                selection.skip_position_animation();
                 selection.set_color(self.frp.output.selection_color.value());
+                selection.set_width(width);
                 selection
             };
-            selection.set_width(width);
+            selection.set_position_target(start_pos);
+            selection.set_ascender(metrics.ascender);
+            selection.set_descender(metrics.descender);
             selection.edit_mode().set(do_edit);
+            if !reused_selection {
+                selection.skip_position_animation();
+            }
             new_selection_map.id_map.insert(id, selection);
-            new_selection_map
-                .location_map
-                .entry(selection_start_line)
-                .or_default()
-                .insert(buffer_selection.start.offset, id);
+            let loc_map = new_selection_map.location_map.entry(selection_start_line).or_default();
+            loc_map.insert(buffer_selection.start.offset, id);
         }
         *self.selection_map.borrow_mut() = new_selection_map;
     }
@@ -965,8 +950,8 @@ impl TextModel {
         (inv_object_matrix * world_space).xy()
     }
 
+    /// Transform screen position to in-text location.
     fn get_in_text_location(&self, screen_pos: Vector2) -> Location {
-        // self.remove_lines_from_cursors();
         let object_space = self.to_object_space(screen_pos);
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
@@ -978,7 +963,7 @@ impl TextModel {
         }
         let view_line = std::cmp::min(view_line, self.lines.last_line_index());
         let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
-        let line = self.buffer.view_line_to_line(view_line);
+        let line = Line::from_in_context(self, view_line);
         let column = Column(div_index);
         let out = Location(line, column);
         out
@@ -1099,7 +1084,7 @@ impl TextModel {
         })
     }
 
-    fn redraw_line(&self, view_line_index: unit::ViewLine, content: &str) {
+    fn redraw_line(&self, view_line_index: ViewLine, content: &str) {
         let cursor_map = self
             .selection_map
             .borrow()
@@ -1264,7 +1249,7 @@ impl TextModel {
                     glyph.set_property(property);
                 }
                 for line_index in range.start.line.value + 1..range.end.line.value {
-                    let view_line = self.buffer.line_to_view_line(unit::Line(line_index));
+                    let view_line = self.buffer.line_to_view_line(Line(line_index));
                     let line = &mut lines[view_line];
                     for glyph in &mut line.glyphs[..] {
                         glyph.set_property(property);
@@ -1407,7 +1392,7 @@ impl TextModel {
         }
     }
 
-    fn attach_line_glyphs_to_cursors(&self, view_line_index: unit::ViewLine) {
+    fn attach_line_glyphs_to_cursors(&self, view_line_index: ViewLine) {
         let cursor_map = self
             .selection_map
             .borrow()
