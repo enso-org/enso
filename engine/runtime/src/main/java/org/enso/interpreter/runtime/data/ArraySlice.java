@@ -12,13 +12,13 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 public class ArraySlice implements TruffleObject {
   private final Object storage;
   private final long start;
-  private final long length;
+  private final long end;
 
-  public ArraySlice(Object storage, long start, long length) {
+  public ArraySlice(Object storage, long start, long end) {
     if (storage instanceof ArraySlice slice) {
       this.storage = slice.storage;
       this.start = slice.start + start;
-      this.length = length;
+      this.end = Math.min(slice.end, slice.start + end);
     } else {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
@@ -28,7 +28,7 @@ public class ArraySlice implements TruffleObject {
 
       this.storage = storage;
       this.start = start;
-      this.length = length;
+      this.end = end;
     }
   }
 
@@ -46,7 +46,7 @@ public class ArraySlice implements TruffleObject {
   public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     long storageSize = interop.getArraySize(storage);
-    return Math.min(storageSize - start, length);
+    return Math.min(storageSize, end) - start;
   }
 
   /**
@@ -62,7 +62,7 @@ public class ArraySlice implements TruffleObject {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
-    if (index < 0 || index >= length) {
+    if (index < 0 || index >= getArraySize(interop)) {
       throw InvalidArrayIndexException.create(index);
     }
 
