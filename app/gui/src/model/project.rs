@@ -100,18 +100,8 @@ pub trait API: Debug {
     ///
     /// This module is special, as it needs to be referred by the project name itself.
     fn main_module(&self) -> model::module::QualifiedName {
-        let id = controller::project::main_module_id();
         let name = self.qualified_name();
-        model::module::QualifiedName::new(name, id)
-
-        // TODO [mwu] The code below likely should be preferred but does not work
-        //            because language server does not support using project name
-        //            for project's main module in some contexts.
-        //            This is tracked by: https://github.com/enso-org/enso/issues/1543
-        // use model::module::QualifiedName;
-        // ReferentName::try_from(self.name().as_str())
-        //     .map(QualifiedName::new_main)
-        //     .map_err(Into::into)
+        model::module::QualifiedName::new_main(name)
     }
 
     /// Get a model of the project's main module.

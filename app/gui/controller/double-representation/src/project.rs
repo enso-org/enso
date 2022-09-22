@@ -23,7 +23,17 @@ pub const BASE_LIBRARY_NAME: &str = "Base";
 /// The full path of the [`BASE_LIBRARY_NAME`] project in the [`STANDARD_NAMESPACE`].
 pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", BASE_LIBRARY_NAME);
 
+/// The name of the module initially opened in the project view.
+///
+/// Currently, this name is hardcoded in the engine services and is populated for each project
+/// created using engine's Project Picker service.
+pub const INITIAL_MODULE_NAME: &str = "Main";
 
+/// The identifier of the project's main module.
+pub fn main_module_id() -> crate::module::Id {
+    // We can just assume that `INITIAL_MODULE_NAME` is valid. This is verified by a test.
+    crate::module::Id::try_new([INITIAL_MODULE_NAME]).unwrap()
+}
 
 // ==============
 // === Errors ===
@@ -178,5 +188,11 @@ mod test {
     #[test]
     fn qualified_name_of_standard_base_library_does_not_panic() {
         let _ = QualifiedName::standard_base_library();
+    }
+
+    #[test]
+    fn main_module_id_test() {
+        // Should not panic.
+        main_module_id();
     }
 }

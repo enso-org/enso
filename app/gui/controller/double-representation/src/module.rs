@@ -171,11 +171,8 @@ impl QualifiedName {
     }
 
     /// Create a qualified name for the project's main module.
-    ///
-    /// It is special, as its name consists only from the project name, unlike other modules'
-    /// qualified names.
     pub fn new_main(project_name: project::QualifiedName) -> QualifiedName {
-        Self::new(project_name, Id::new(std::iter::empty()))
+        Self::new(project_name, project::main_module_id())
     }
 
     /// Constructs a qualified name from its text representation.

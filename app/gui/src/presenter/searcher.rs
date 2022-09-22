@@ -212,7 +212,6 @@ impl Model {
                 let component = self.component_by_view_id(view_id)?;
                 let id = component.id()?;
                 let names = self.controller.enter_module(&id);
-                DEBUG!("Names: {names:?}");
                 for name in names {
                     self.push_breadcrumb(name);
                 }
@@ -221,7 +220,6 @@ impl Model {
                 let group = self.group_by_view_id(group_id)?;
                 let id = group.component_id?;
                 let names = self.controller.enter_module(&id);
-                DEBUG!("Names: {names:?}");
                 for name in names {
                     self.push_breadcrumb(name);
                 }

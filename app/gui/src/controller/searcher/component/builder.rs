@@ -49,24 +49,29 @@ pub struct ModuleGroups {
     pub flattened_content: Option<component::Group>,
     pub submodules:        component::group::AlphabeticalListBuilder,
     pub is_top_module:     bool,
-    pub qualified_name:    suggestion_database::entry::QualifiedName,
+    pub qualified_name:    module::QualifiedName,
 }
 
 impl ModuleGroups {
     /// Construct the builder without content nor submodules.
     ///
     /// The existence of flattened content is decided during construction.
-    pub fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
+    pub fn new(
+        component_id: component::Id,
+        entry: &suggestion_database::Entry,
+    ) -> FallibleResult<Self> {
         let is_top_module = entry.module.is_top_module();
-        let qualified_name = entry.qualified_name();
+        let qualified_name =
+            module::QualifiedName::from_all_segments(entry.qualified_name().into_iter())?;
+        let project = entry.module.project_name.clone();
         let mk_group = || component::Group::from_entry(component_id, entry);
-        Self {
+        Ok(Self {
             content: mk_group(),
             flattened_content: is_top_module.as_some_from(mk_group),
             submodules: default(),
             is_top_module,
             qualified_name,
-        }
+        })
     }
 
     /// Build [`component::ModuleGroups`] structure with appropriately sorted submodules.
@@ -210,7 +215,7 @@ impl List {
         if self.module_groups.contains_key(&module_id) {
             self.module_groups.get_mut(&module_id)
         } else {
-            let groups = ModuleGroups::new(module_id, &*db_entry);
+            let groups = ModuleGroups::new(module_id, &*db_entry).ok()?;
             if let Some(module) = module.parent_module() {
                 if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())

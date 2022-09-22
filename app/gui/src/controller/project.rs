@@ -13,6 +13,8 @@ use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
 use parser::Parser;
 
+pub use double_representation::project::INITIAL_MODULE_NAME;
+
 
 
 // =================
@@ -21,12 +23,6 @@ use parser::Parser;
 
 /// The label of compiling stdlib message process.
 pub const COMPILING_STDLIB_LABEL: &str = "Compiling standard library. It can take up to 1 minute.";
-
-/// The name of the module initially opened in the project view.
-///
-/// Currently, this name is hardcoded in the engine services and is populated for each project
-/// created using engine's Project Picker service.
-pub const INITIAL_MODULE_NAME: &str = "Main";
 
 /// Name of the main definition.
 ///
@@ -50,12 +46,6 @@ pub fn main_method_ptr(
     module_path: &model::module::Path,
 ) -> MethodPointer {
     module_path.method_pointer(project_name, MAIN_DEFINITION_NAME)
-}
-
-/// The identifier of the project's main module.
-pub fn main_module_id() -> model::module::Id {
-    // We can just assume that `INITIAL_MODULE_NAME` is valid. This is verified by a test.
-    model::module::Id::try_new([INITIAL_MODULE_NAME]).unwrap()
 }
 
 
@@ -260,12 +250,6 @@ mod tests {
     fn parse_supported_engine_version() {
         // Should not panic.
         enso_config::engine_version_requirement();
-    }
-
-    #[test]
-    fn main_module_id_test() {
-        // Should not panic.
-        main_module_id();
     }
 
     #[test]
