@@ -8,7 +8,6 @@ use ensogl_core::display::shape::*;
 
 use crate::buffer;
 use crate::buffer::style;
-use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::line;
 use crate::component::selection;
@@ -70,6 +69,8 @@ pub struct SelectionMap {
 // === Lines ===
 // =============
 
+/// Vector of all lines stored in the text area. Please note that it is guaranteed that there is
+/// always at least one line.
 type LinesVec = NonEmptyVec<line::View, unit::ViewLine>;
 
 /// Set of all visible lines.
@@ -90,7 +91,8 @@ impl Lines {
         self.rc.borrow().len()
     }
 
-    fn last_line_index(&self) -> ViewLine {
+    /// The index of the last visible line.
+    pub fn last_line_index(&self) -> ViewLine {
         // This is safe because we are using [`NonEmptyVec`] to store lines.
         ViewLine((self.len() - 1))
     }
@@ -223,10 +225,8 @@ ensogl_core::define_endpoints_2! {
         set_property          (TextRange, Option<style::Property>),
         set_property_default  (Option<style::ResolvedProperty>),
         mod_property          (TextRange, Option<style::PropertyDiff>),
-        /// Sets the color for all text that has no explicit color set.
-        // set_default_color     (color::Rgba),
+        // FIXME: what is this?
         set_selection_color   (color::Rgb),
-        // set_default_text_size (style::Size),
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
@@ -248,49 +248,51 @@ ensogl_core::define_endpoints_2! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Vec<crate::ChangeWithSelection>),
-        content         (Text),
+        changed         (Vec<buffer::ChangeWithSelection>),
+        content         (buffer::Text),
         hovered         (bool),
         selection_color (color::Rgb),
         // FIXME: this was here:
         // /// Color that is used for all text that does not explicitly have a color set.
         // default_color   (color::Rgba),
-
-        /// Refresh the width value of text area. You should not need to call it. It is used by the
-        /// internal API.
-        refresh_width(),
-        refresh_height(),
         view_width(Option<f32>),
+
+        // === Internal API ===
+
+        /// The width value of text area will be refreshed.
+        refresh_width(),
+        /// The height value of text area will be refreshed.
+        refresh_height(),
     }
 }
 
 
 
 // ============
-// === Area ===
+// === Text ===
 // ============
 
 /// The visual text area implementation.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct Area {
-    pub data: Rc<AreaModel>,
+pub struct Text {
+    pub data: Rc<TextModel>,
     pub frp:  Rc<Frp>,
 }
 
-impl Deref for Area {
+impl Deref for Text {
     type Target = api::Public;
     fn deref(&self) -> &Self::Target {
         &self.frp.public
     }
 }
 
-impl Area {
+impl Text {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
-        let data = Rc::new(AreaModel::new(app, &frp.output, &frp.private.output, frp.network()));
+        let data = Rc::new(TextModel::new(app, &frp.output, &frp.private.output, frp.network()));
         Self { data, frp }.init()
     }
 
@@ -516,7 +518,7 @@ impl Area {
             out.height <+ new_height.on_change();
 
 
-            // === View Area Management ===
+            // === View Text Management ===
 
             m.buffer.frp.set_first_view_line <+ self.frp.set_first_view_line;
             m.buffer.frp.mod_first_view_line <+ self.frp.mod_first_view_line;
@@ -564,12 +566,12 @@ impl Area {
 
 
 // =================
-// === AreaModel ===
+// === TextModel ===
 // =================
 
-/// Internal representation of `Area`.
+/// Internal representation of `Text`.
 #[derive(Clone, CloneRef, Debug)]
-pub struct AreaModel {
+pub struct TextModel {
     app:   Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
@@ -588,7 +590,7 @@ pub struct AreaModel {
     height_dirty:   Rc<Cell<bool>>,
 }
 
-impl AreaModel {
+impl TextModel {
     /// Constructor.
     pub fn new(
         app: &Application,
@@ -715,7 +717,7 @@ impl AreaModel {
     /// and to the right of the insertion point. Unfortunately, the current Rustybuzz
     /// implementation does not support such use cases:
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
-    fn update_lines_after_change(&self, changes: Option<&[crate::ChangeWithSelection]>) {
+    fn update_lines_after_change(&self, changes: Option<&[buffer::ChangeWithSelection]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
             self.detach_glyphs_from_cursors();
             if let Some(changes) = changes {
@@ -793,7 +795,7 @@ impl AreaModel {
     fn on_modified_selection(
         &self,
         buffer_selections: &buffer::selection::Group,
-        changes: Option<&[crate::ChangeWithSelection]>,
+        changes: Option<&[buffer::ChangeWithSelection]>,
         time: f32,
     ) {
         let do_edit = changes.is_some();
@@ -1066,7 +1068,7 @@ impl AreaModel {
 
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
-                crate::view::ShapedLine::NonEmpty { glyph_sets } => {
+                crate::buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
                     let mut line_metrics: Option<line::Metrics> = None;
                     for shaped_glyph_set in glyph_sets {
                         if truncated {
@@ -1139,7 +1141,7 @@ impl AreaModel {
                     // This is safe, as the line was proven to be non-empty.
                     line.set_metrics(line_metrics.unwrap());
                 }
-                crate::view::ShapedLine::Empty { prev_glyph_info } => {
+                crate::buffer::view::ShapedLine::Empty { prev_glyph_info } => {
                     if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
                         let line_style = self.buffer.sub_style(*offset..);
                         let mut line_style_iter = line_style.iter();
@@ -1677,39 +1679,39 @@ impl AreaModel {
     }
 }
 
-impl<S, T> FromInContext<&AreaModel, S> for T
+impl<S, T> FromInContext<&TextModel, S> for T
 where T: for<'t> FromInContext<&'t buffer::View, S>
 {
-    fn from_in_context(context: &AreaModel, arg: S) -> Self {
+    fn from_in_context(context: &TextModel, arg: S) -> Self {
         T::from_in_context(&context.buffer, arg)
     }
 }
 
-impl display::Object for AreaModel {
+impl display::Object for TextModel {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }
 
-impl display::Object for Area {
+impl display::Object for Text {
     fn display_object(&self) -> &display::object::Instance {
         self.data.display_object()
     }
 }
 
-impl application::command::FrpNetworkProvider for Area {
+impl application::command::FrpNetworkProvider for Text {
     fn network(&self) -> &frp::Network {
         self.frp.network()
     }
 }
 
-impl application::View for Area {
+impl application::View for Text {
     fn label() -> &'static str {
         "TextArea"
     }
 
     fn new(app: &Application) -> Self {
-        Area::new(app)
+        Text::new(app)
     }
 
     fn app(&self) -> &Application {
@@ -1763,7 +1765,7 @@ impl application::View for Area {
     }
 }
 
-impl Drop for Area {
+impl Drop for Text {
     fn drop(&mut self) {
         // TODO[ao]: This is workaround for memory leak causing text to stay even when component
         //           is deleted. See "FIXME: memory leak." comment above.
@@ -1777,11 +1779,11 @@ impl Drop for Area {
 mod tests {
     use super::*;
 
-    /// Assert that there is no inherent memory leak in the [text::Area].
+    /// Assert that there is no inherent memory leak in the [text::Text].
     #[test]
     fn assert_no_leak() {
         let app = Application::new("root");
-        let text = app.new_view::<Area>();
+        let text = app.new_view::<Text>();
         let text_frp = Rc::downgrade(&text.frp);
         let text_data = Rc::downgrade(&text.data);
         drop(text);

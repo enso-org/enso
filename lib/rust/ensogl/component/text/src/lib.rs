@@ -41,6 +41,10 @@ pub mod prelude {
     pub use ensogl_core::prelude::*;
 }
 
-pub use buffer::*;
-pub use component::Area;
+// pub use buffer::*;
+pub use buffer::style;
+pub use buffer::style::*;
+pub use buffer::traits;
+pub use component::Text;
+pub use enso_text::unit::*;
 pub use ensogl_core::data;

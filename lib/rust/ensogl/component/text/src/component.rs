@@ -13,5 +13,5 @@ pub mod line;
 #[warn(missing_docs)]
 mod selection;
 
-pub use area::Area;
+pub use area::Text;
 use selection::Selection;

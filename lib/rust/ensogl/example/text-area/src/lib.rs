@@ -1,4 +1,4 @@
-//! An example showing usage of Text Area.
+//! An example showing usage of Text Text.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -34,8 +34,8 @@ use ensogl_core::display::shape::*;
 use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::style;
-use ensogl_text::Area;
 use ensogl_text::Column;
+use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
 
@@ -95,7 +95,7 @@ pub struct Borders {
 }
 
 impl Borders {
-    pub fn show(&self, app: &Application, area: &Area) {
+    pub fn show(&self, app: &Application, area: &Text) {
         let frp = Frp::new();
         let network = frp.network();
         let borders = self;
@@ -162,7 +162,7 @@ pub fn main() {
 
 
 fn init(app: Application) {
-    let area = app.new_view::<Area>();
+    let area = app.new_view::<Text>();
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
     let snowman = "\u{2603}";
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
@@ -228,7 +228,7 @@ fn init(app: Application) {
 
 
     // let text = "red green blue";
-    // let colored_area = app.new_view::<Area>();
+    // let colored_area = app.new_view::<Text>();
     // app.display.default_scene.add_child(&colored_area);
     // colored_area.set_font("DejaVuSans");
     // colored_area.set_position_xy(Vector2::new(200.0, 200.0));
@@ -252,7 +252,7 @@ fn init(app: Application) {
     // mem::forget(colored_area);
 }
 
-fn init_debug_hotkeys(area: &Area) {
+fn init_debug_hotkeys(area: &Text) {
     let area = area.clone_ref();
     let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
