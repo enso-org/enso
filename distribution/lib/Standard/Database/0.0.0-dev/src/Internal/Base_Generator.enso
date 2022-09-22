@@ -214,7 +214,7 @@ generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
     IR.From_Query raw_sql as_name ->
-        code raw_sql ++ alias dialect as_name
+        code "(" ++ raw_sql ++ ")" ++ alias dialect as_name
     IR.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
@@ -302,9 +302,9 @@ generate_query dialect query = case query of
     IR.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
         cols = SQL.join ", " (columns.map gen_column)
-        (code "SELECT ") ++ cols ++ generate_select_context dialect ctx
+        code "SELECT " ++ cols ++ generate_select_context dialect ctx
     IR.Select_All ctx ->
-        (code "SELECT * ") ++ generate_select_context dialect ctx
+        code "SELECT * " ++ generate_select_context dialect ctx
     IR.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."

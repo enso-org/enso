@@ -69,15 +69,24 @@ type Column
 
     ## UNSTABLE
 
+       Returns a materialized dataframe containing rows of this table.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    read : (Nothing | Integer) -> Materialized_Column.Column
+    read self max_rows=Nothing =
+        self.to_table.read max_rows . at self.name
+
+    ## UNSTABLE
+
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
         ## We remove the index to avoid fetching index data that will not be
            used anyway when constructing the raw Vector.
         without_ix = self.to_table.set_index []
-        df = without_ix . read
-        raw_column = df.at self.name
-        raw_column.to_vector
+        without_ix . read  . at self.name . to_vector
 
     ## UNSTABLE
 
