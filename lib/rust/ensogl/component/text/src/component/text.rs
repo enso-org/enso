@@ -115,7 +115,7 @@ impl Lines {
         &self,
         start_location: ViewLocation,
         end_location: ViewLocation,
-    ) -> (f32, f32, f32) {
+    ) -> (Vector2, Vector2) {
         if start_location.line != end_location.line {
             warn!(
                 "Trying to compute coordinates for multi-line location. This is not supported yet."
@@ -133,7 +133,9 @@ impl Lines {
         let start_x = get_pos_x(start_location);
         let end_x = get_pos_x(end_location);
         let y = self.borrow()[start_location.line].baseline();
-        (start_x, end_x, y)
+        let start_pos = Vector2(start_x, y);
+        let end_pos = Vector2(start_x, y);
+        (start_pos, end_pos)
     }
 }
 
@@ -896,47 +898,44 @@ impl TextModel {
             let selection_end_line = ViewLine::from_in_context(self, buffer_selection.end.line);
             let start_location = Location(selection_start_line, buffer_selection.start.offset);
             let end_location = Location(selection_end_line, buffer_selection.end.offset);
-            let (start_x, end_x, y) = self.lines.coordinates(start_location, end_location);
-            let pos = Vector2(start_x, y);
-            let width = end_x - start_x;
+            let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
+            let width = end_pos.x - start_pos.x;
             let metrics = self.lines.borrow()[selection_start_line].metrics();
             let opt_selection = self.selection_map.borrow_mut().id_map.remove(&id);
-            let selection = match opt_selection {
-                Some(selection) => {
-                    let selection_width_target = selection.width_target.value();
-                    let select_left = selection_width_target < 0.0;
-                    let select_right = selection_width_target > 0.0;
-                    let tgt_pos_x = selection.position_target.value().x;
-                    let tgt_width = selection_width_target;
-                    let mid_point = tgt_pos_x + tgt_width / 2.0;
-                    let go_left = pos.x < mid_point;
-                    let go_right = pos.x > mid_point;
-                    let need_flip = (select_left && go_left) || (select_right && go_right);
-                    if width == 0.0 && need_flip {
-                        selection.flip_sides()
-                    }
-                    selection.set_position_target(pos);
-                    selection.set_ascender(metrics.ascender);
-                    selection.set_descender(metrics.descender);
-                    selection
+            let selection = if let Some(selection) = opt_selection {
+                let selection_width_target = selection.width_target.value();
+                let select_left = selection_width_target < 0.0;
+                let select_right = selection_width_target > 0.0;
+                let tgt_pos_x = selection.position_target.value().x;
+                let tgt_width = selection_width_target;
+                let mid_point = tgt_pos_x + tgt_width / 2.0;
+                let go_left = start_pos.x < mid_point;
+                let go_right = start_pos.x > mid_point;
+                let need_flip = (select_left && go_left) || (select_right && go_right);
+                if width == 0.0 && need_flip {
+                    selection.flip_sides()
                 }
-                None => {
-                    let selection = Selection::new(do_edit);
-                    if let Some(network) = self.frp.network.upgrade() {
-                        frp::extend! { network
-                            self.frp.private.output.refresh_height <+_ selection.position;
-                            self.frp.private.output.refresh_width <+_
-                                selection.right_side_of_last_attached_glyph;
-                        }
+                selection.set_position_target(start_pos);
+                selection.set_ascender(metrics.ascender);
+                selection.set_descender(metrics.descender);
+                selection
+            } else {
+                let frame_time = &self.app.display.default_scene.frp.frame_time;
+                let selection = Selection::new(frame_time, do_edit);
+                if let Some(network) = self.frp.network.upgrade() {
+                    frp::extend! { network
+                        self.frp.private.output.refresh_height <+_ selection.position;
+                        self.frp.private.output.refresh_width <+_
+                            selection.right_side_of_last_attached_glyph;
                     }
-                    self.add_child(&selection);
-                    selection.set_position_target(pos);
-                    selection.set_ascender(metrics.ascender);
-                    selection.set_descender(metrics.descender);
-                    selection.skip_position_animation();
-                    selection.set_color(self.frp.output.selection_color.value());
-                    selection
                 }
+                self.add_child(&selection);
+                selection.set_position_target(start_pos);
+                selection.set_ascender(metrics.ascender);
+                selection.set_descender(metrics.descender);
+                selection.skip_position_animation();
+                selection.set_color(self.frp.output.selection_color.value());
+                selection
             };
             selection.set_width(width);
             selection.edit_mode().set(do_edit);

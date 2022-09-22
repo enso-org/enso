@@ -58,9 +58,6 @@ const BLINK_PERIOD: f32 =
 /// |-------------------------------------------------->
 /// start time
 /// ```
-///
-/// The [`not_blinking`] parameter can be used to disable blinking. When set to 0, blinking is
-/// enabled.
 pub mod shape {
     use super::*;
 
@@ -160,7 +157,7 @@ impl Selection {
     }
 
     /// Constructor.
-    pub fn new(edit_mode: bool) -> Self {
+    pub fn new(frame_time: &frp::Stream<f32>, edit_mode: bool) -> Self {
         let spring_factor = if crate::DEBUG_ANIMATION_SLOWDOWN { 0.1 } else { 1.0 };
 
         let frp = Frp::new();
@@ -171,6 +168,7 @@ impl Selection {
         let ascender = Animation::new(&network);
         let descender = Animation::new(&network);
         let not_blinking = Animation::<f32>::new(&network);
+        let frame_time = frame_time.clone_ref();
 
         position.simulator.update_spring(|spring| spring * spring_factor);
         width.simulator.update_spring(|spring| spring * spring_factor);
@@ -212,6 +210,7 @@ impl Selection {
             frp.private.output.width_target <+ frp.set_width;
             frp.private.output.width <+ width.value;
             not_blinking.target <+ frp.set_width.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
+            trace not_blinking.target;
             eval not_blinking.value ((v) model.view.not_blinking.set(*v));
 
 
@@ -221,7 +220,8 @@ impl Selection {
             position.skip <+ frp.skip_position_animation;
             frp.private.output.position_target <+ frp.set_position_target;
             frp.private.output.position <+ position.value;
-            eval_ frp.set_position_target (model.reset_blinking_animation_to_current_time());
+            new_blink_start_time <- frame_time.sample(&frp.set_position_target);
+            eval new_blink_start_time ((t) model.reset_blinking_animation_to_time(*t));
 
 
             // === Updating Display Object ===
@@ -275,7 +275,6 @@ pub struct SelectionModel {
     display_object: display::object::Instance,
     right_side:     display::object::Instance,
     edit_mode:      Rc<Cell<bool>>,
-    timer:          web::Performance,
 }
 
 impl SelectionModel {
@@ -284,18 +283,16 @@ impl SelectionModel {
         let display_object = display::object::Instance::new();
         let right_side = display::object::Instance::new();
         let edit_mode = Rc::new(Cell::new(edit_mode));
-        let timer = web::window.performance_or_panic();
 
         display_object.add_child(&view);
         display_object.add_child(&right_side);
 
-        Self { view, display_object, right_side, edit_mode, timer }
+        Self { view, display_object, right_side, edit_mode }
     }
 }
 
 impl SelectionModel {
-    pub fn reset_blinking_animation_to_current_time(&self) {
-        let time = self.timer.now() as f32;
+    pub fn reset_blinking_animation_to_time(&self, time: f32) {
         self.view.start_time.set(time)
     }
 }
