@@ -78,7 +78,7 @@ type SQLite_Connection
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## Query the database, returning an object that can be used to retrieve create queries for that table.
+    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
        Arguments:
        - query: name of the table or sql statement to query.
