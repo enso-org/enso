@@ -5,18 +5,6 @@ use crate::prelude::*;
 
 
 
-#[derive(Debug, Clone, Default, From)]
-pub enum TextRange {
-    #[default]
-    Selections,
-    BufferRangeUBytes(Range<UBytes>),
-    BufferRangeLocationColumn(Range<Location>),
-    RangeBytes(std::ops::Range<UBytes>),
-    RangeFull(std::ops::RangeFull),
-}
-
-
-
 // ==============
 // === Export ===
 // ==============

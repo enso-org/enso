@@ -20,7 +20,7 @@ use crate::buffer::view::FromInContext;
 use crate::buffer::view::IntoInContext;
 pub use crate::buffer::view::LocationLike;
 use crate::buffer::view::TryFromInContext;
-pub use crate::buffer::TextRange;
+pub use crate::buffer::RangeLike;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use ensogl_core::application;
@@ -229,10 +229,11 @@ ensogl_core::define_endpoints_2! {
         add_cursor            (LocationLike),
         paste_string          (String),
         insert                (String),
-        set_property          (TextRange, Option<style::Property>),
+        set_property          (RangeLike, Option<style::Property>),
         set_property_default  (Option<style::ResolvedProperty>),
-        mod_property          (TextRange, Option<style::PropertyDiff>),
-        // FIXME: what is this?
+        mod_property          (RangeLike, Option<style::PropertyDiff>),
+
+        /// Set color of selections (the cursor or characters selection).
         set_selection_color   (color::Rgb),
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
@@ -300,7 +301,10 @@ impl Text {
         self.init_selections();
         self.init_copy_cut_paste();
         self.init_edits();
-        self.init_rest()
+        self.init_styles();
+        self.init_view_management();
+        self.init_undo_redo();
+        self
     }
 
     fn init_hover(&self) {
@@ -471,8 +475,13 @@ impl Text {
         let keyboard = &scene.keyboard;
         let network = self.frp.network();
         let input = &self.frp.input;
+        let out = &self.frp.private.output;
+        let after_animations = ensogl_core::animation::after_animations();
 
         frp::extend! { network
+
+            // === User Driven Changes ===
+
             eval_ input.delete_left (m.buffer.frp.delete_left());
             eval_ input.delete_right (m.buffer.frp.delete_right());
             eval_ input.delete_word_left (m.buffer.frp.delete_word_left());
@@ -489,41 +498,37 @@ impl Text {
                 input.insert(s);
                 input.remove_all_cursors();
             });
+
+
+            // === Reacting To Changes ===
+
+            // The `content` event should be fired first, as any listener for `changed` may want to
+            // read the new content, so it should be up-to-date.
+            out.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
+            out.changed <+ m.buffer.frp.text_change;
+
+
+            // === Text Width And Height Updates ===
+
+            // We are computing new width and height after all animations are run. This is because
+            // text dimensions can be affected by multiple moving cursors and moving lines.
+            new_width <= after_animations.map (f_!(m.compute_width()));
+            new_height <= after_animations.map (f_!(m.compute_height()));
+            out.width <+ new_width.on_change();
+            out.height <+ new_height.on_change();
+            eval_ out.refresh_width(m.width_dirty.set(true));
+            eval_ out.refresh_height(m.height_dirty.set(true));
         }
     }
 
-
-    fn init_rest(self) -> Self {
+    fn init_styles(&self) {
         let network = self.frp.network();
         let model = &self.data;
-        let scene = &model.app.display.default_scene;
-        let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
-        let keyboard = &scene.keyboard;
         let out = &self.frp.private.output;
         let m = &model;
-        let after_animations = ensogl_core::animation::after_animations();
-        let frame_time = &scene.frp.frame_time;
 
         frp::extend! { network
-
-
-
-
-
-            // eval_ m.buffer.frp.text_change (m.redraw(true));
-
-
-
-
-
-            eval_ input.undo (m.buffer.frp.undo());
-            eval_ input.redo (m.buffer.frp.redo());
-
-
-            // === Insert ===
-
-
 
             // === Font ===
 
@@ -534,64 +539,45 @@ impl Text {
 
             m.buffer.frp.set_property_default <+ input.set_property_default;
             eval input.set_property_default((t) m.set_property_default(*t));
-            // eval input.set_default_color ((t)
-            //     m.buffer.frp.set_default_color(*t);
-            //     m.redraw(false) ;
-            // );
-            // self.frp.source.default_color <+ self.frp.set_default_color;
-
-            // eval input.set_default_text_size ([m](t) {
-            //     warn!(">> set_default_text_size");
-            //     m.buffer.frp.set_default_text_size(*t);
-            //     m.redraw(true);
-            // });
-
-            // m.buffer.frp.set_color <+ input.set_color;
-            // eval input.set_color ((t) m.modify_glyphs_in_ranges(&t.0, |g| g.set_color(t.1)));
             out.selection_color <+ self.frp.set_selection_color;
 
 
             // === Style ===
 
-            new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
+            new_prop <- input.set_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),*prop)));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ((t) m.set_property(&t.0, t.1));
 
-            mod_prop <- input.mod_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),prop.clone())));
+            mod_prop <- input.mod_property.map(f!([m]((range, prop)) (m.text_to_byte_ranges(range),*prop)));
             m.buffer.frp.mod_property <+ mod_prop;
             eval mod_prop ((t) m.mod_property(&t.0, t.1));
+        }
+    }
 
+    fn init_view_management(&self) {
+        let m = &self.data;
+        let network = self.frp.network();
+        let out = &self.frp.private.output;
 
-            // === Changes ===
-
-            // The `content` event should be fired first, as any listener for `changed` may want to
-            // read the new content, so it should be up-to-date.
-            out.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
-            out.changed <+ m.buffer.frp.text_change;
-
-
-            // === Text Width ===
-
-            eval_ self.frp.refresh_width(m.width_dirty.set(true));
-            eval_ self.frp.refresh_height(m.height_dirty.set(true));
-            new_width <= after_animations.map (f_!(m.compute_width()));
-            out.width <+ new_width.on_change();
-
-            new_height <= after_animations.map (f_!(m.compute_height()));
-            out.height <+ new_height.on_change();
-
-
-            // === View Text Management ===
-
+        frp::extend! { network
             m.buffer.frp.set_first_view_line <+ self.frp.set_first_view_line;
             m.buffer.frp.mod_first_view_line <+ self.frp.mod_first_view_line;
 
             eval_ m.buffer.frp.first_view_line (m.redraw());
-            // FIXME: we are moving it to output only for it to be sampler.
             out.view_width <+ self.frp.set_view_width;
             eval_ self.frp.set_view_width (m.redraw());
         }
-        self
+    }
+
+    fn init_undo_redo(&self) {
+        let m = &self.data;
+        let input = &self.frp.input;
+        let network = self.frp.network();
+
+        frp::extend! { network
+            eval_ input.undo (m.buffer.frp.undo());
+            eval_ input.redo (m.buffer.frp.redo());
+        }
     }
 
     /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
@@ -732,9 +718,9 @@ impl TextModel {
         old_lines_vec.into()
     }
 
-    pub fn text_to_byte_ranges(&self, range: &TextRange) -> Vec<buffer::Range<UBytes>> {
+    pub fn text_to_byte_ranges(&self, range: &RangeLike) -> Vec<buffer::Range<UBytes>> {
         match range {
-            TextRange::Selections => self
+            RangeLike::Selections => self
                 .buffer
                 .byte_selections()
                 .into_iter()
@@ -744,10 +730,10 @@ impl TextModel {
                     buffer::Range::new(start, end)
                 })
                 .collect(),
-            TextRange::BufferRangeUBytes(range) => vec![range.clone()],
-            TextRange::RangeBytes(range) => vec![range.into()],
-            TextRange::RangeFull(_) => vec![self.buffer.full_range()],
-            TextRange::BufferRangeLocationColumn(range) => {
+            RangeLike::BufferRangeUBytes(range) => vec![range.clone()],
+            RangeLike::RangeBytes(range) => vec![range.into()],
+            RangeLike::RangeFull(_) => vec![self.buffer.full_range()],
+            RangeLike::BufferRangeLocationColumn(range) => {
                 let start = UBytes::from_in_context(&self.buffer, range.start);
                 let end = UBytes::from_in_context(&self.buffer, range.end);
                 vec![buffer::Range::new(start, end)]

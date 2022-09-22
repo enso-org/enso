@@ -8,7 +8,6 @@ use crate::buffer::style;
 use crate::buffer::style::Formatting;
 use crate::buffer::Buffer;
 // use crate::buffer::DefaultSetter;
-use crate::buffer::TextRange;
 
 use crate::font;
 use crate::font::Font;
@@ -33,6 +32,16 @@ pub mod word;
 pub use movement::*;
 pub use selection::Selection;
 
+
+#[derive(Debug, Clone, Default, From)]
+pub enum RangeLike {
+    #[default]
+    Selections,
+    BufferRangeUBytes(buffer::Range<UBytes>),
+    BufferRangeLocationColumn(buffer::Range<Location>),
+    RangeBytes(Range<UBytes>),
+    RangeFull(RangeFull),
+}
 
 
 #[derive(Debug, Copy, Clone, From)]
@@ -185,6 +194,34 @@ impl ViewBuffer {
         let shaped_lines = default();
         let history = default();
         Self { buffer, selection, next_selection_id, font, shaped_lines, history }
+    }
+
+    pub fn expand_range_like(&self, range: &RangeLike) -> Vec<buffer::Range<UBytes>> {
+        match range {
+            RangeLike::Selections => self
+                .byte_selections()
+                .into_iter()
+                .map(|t| {
+                    let start = std::cmp::min(t.start, t.end);
+                    let end = std::cmp::max(t.start, t.end);
+                    buffer::Range::new(start, end)
+                })
+                .collect(),
+            RangeLike::BufferRangeUBytes(range) => vec![range.clone()],
+            RangeLike::RangeBytes(range) => vec![range.into()],
+            RangeLike::RangeFull(_) => vec![self.full_range()],
+            RangeLike::BufferRangeLocationColumn(range) => {
+                let start = UBytes::from_in_context(self, range.start);
+                let end = UBytes::from_in_context(self, range.end);
+                vec![buffer::Range::new(start, end)]
+            }
+        }
+    }
+
+    pub fn full_range(&self) -> buffer::Range<UBytes> {
+        let start = UBytes::from(0);
+        let end = self.last_line_end_byte_offset();
+        buffer::Range { start, end }
     }
 
     // pub fn prev_column_location(&self, location: Location) -> Location {
@@ -1106,12 +1143,6 @@ impl ViewModel {
 
     pub fn last_line_end_byte_offset(&self) -> UBytes {
         self.buffer.text().last_line_end_byte_offset()
-    }
-
-    pub fn full_range(&self) -> buffer::Range<UBytes> {
-        let start = UBytes::from(0);
-        let end = self.buffer.last_line_end_byte_offset();
-        buffer::Range { start, end }
     }
 }
 

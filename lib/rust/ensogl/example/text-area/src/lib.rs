@@ -263,59 +263,59 @@ fn init_debug_hotkeys(area: &Text) {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::black());
                 } else {
-                    area.set_property(buffer::TextRange::Selections, color::Rgba::black());
+                    area.set_property(buffer::RangeLike::Selections, color::Rgba::black());
                 }
             } else if key == "Digit2" {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::red());
                 } else {
-                    area.set_property(buffer::TextRange::Selections, color::Rgba::red());
+                    area.set_property(buffer::RangeLike::Selections, color::Rgba::red());
                 }
             } else if key == "Digit3" {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::green());
                 } else {
-                    area.set_property(buffer::TextRange::Selections, color::Rgba::green());
+                    area.set_property(buffer::RangeLike::Selections, color::Rgba::green());
                 }
             } else if key == "Digit4" {
                 if event.shift_key() {
                     area.set_property_default(color::Rgba::blue());
                 } else {
-                    area.set_property(buffer::TextRange::Selections, color::Rgba::blue());
+                    area.set_property(buffer::RangeLike::Selections, color::Rgba::blue());
                 }
             } else if key == "Digit0" {
-                area.set_property(buffer::TextRange::Selections, style::Property::Color(None));
+                area.set_property(buffer::RangeLike::Selections, style::Property::Color(None));
             } else if key == "KeyB" {
                 if event.shift_key() {
                     area.set_property_default(style::Weight::Bold);
                 } else {
-                    area.set_property(buffer::TextRange::Selections, style::Weight::Bold);
+                    area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
                 }
             } else if key == "KeyH" {
                 if event.shift_key() {
                     area.set_property_default(style::SdfWeight(0.02));
                 } else {
-                    area.set_property(buffer::TextRange::Selections, style::SdfWeight(0.02));
+                    area.set_property(buffer::RangeLike::Selections, style::SdfWeight(0.02));
                 }
             } else if key == "KeyI" {
                 if event.shift_key() {
                     area.set_property_default(style::Style::Italic);
                 } else {
-                    area.set_property(buffer::TextRange::Selections, style::Style::Italic);
+                    area.set_property(buffer::RangeLike::Selections, style::Style::Italic);
                 }
             } else if key == "Equal" {
                 if event.shift_key() {
                     area.set_property_default(style::Size(16.0));
                 } else {
-                    // area.set_property(buffer::TextRange::Selections, style::Size(16.0));
-                    area.mod_property(buffer::TextRange::Selections, style::SizeDiff(2.0));
+                    // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
+                    area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(2.0));
                 }
             } else if key == "Minus" {
                 if event.shift_key() {
                     area.set_property_default(style::Size(16.0));
                 } else {
-                    // area.set_property(buffer::TextRange::Selections, style::Size(16.0));
-                    area.mod_property(buffer::TextRange::Selections, style::SizeDiff(-2.0));
+                    // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
+                    area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(-2.0));
                 }
             } else if key == "ArrowUp" {
                 area.mod_first_view_line(-1);
