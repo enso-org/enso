@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -67,7 +68,12 @@ public abstract class PowNode extends Node {
 
   @Specialization
   Object doBigInteger(long self, EnsoBigInteger that) {
-    return bigIntPowNode.execute(new EnsoBigInteger(BigInteger.valueOf(self)), that);
+    return bigIntPowNode.execute(toBigInteger(self), that);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static EnsoBigInteger toBigInteger(long self) {
+    return new EnsoBigInteger(BigInteger.valueOf(self));
   }
 
   @Fallback

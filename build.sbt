@@ -1534,6 +1534,59 @@ lazy val `engine-runner` = project
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
 
+// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
+// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
+// image of the runner.
+lazy val `engine-runner-native` = project
+  .in(file("engine/runner-native"))
+  .settings(
+    assembly/assemblyExcludedJars := {
+      val cp = (assembly / fullClasspath).value
+      (assembly/assemblyExcludedJars).value ++
+          cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
+    },
+    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
+    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
+    assembly / assemblyJarName := "runner-native.jar",
+    assembly / assemblyOutputPath := file("runner-native.jar"),
+    assembly := assembly
+        .dependsOn(`engine-runner` / assembly)
+        .value,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "runner",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+          "-H:IncludeResources=.*Main.enso$",
+          "--allow-incomplete-classpath",
+          "--macro:truffle",
+          "--language:js",
+          //          "-g",
+          //          "-H:+DashboardAll",
+          //          "-H:DashboardDump=runner.bgv"
+          "-Dnic=nic"
+        ),
+        mainClass = Option("org.enso.runner.Main"),
+        cp = Option("runtime.jar"),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$",
+          "io.methvin.watchservice.jna.CarbonAPI"
+        )
+      )
+      .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "runner"
+      )
+      .value
+  )
+  .dependsOn(`engine-runner`)
+
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)

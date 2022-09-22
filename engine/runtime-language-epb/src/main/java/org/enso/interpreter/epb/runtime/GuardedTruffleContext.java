@@ -1,5 +1,6 @@
 package org.enso.interpreter.epb.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 
 import com.oracle.truffle.api.nodes.Node;
@@ -42,9 +43,14 @@ public class GuardedTruffleContext {
    */
   public Object enter(Node node) {
     if (lock != null) {
-      lock.lock();
+      lock();
     }
     return context.enter(node);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void lock() {
+    lock.lock();
   }
 
   /**
@@ -57,7 +63,12 @@ public class GuardedTruffleContext {
   public void leave(Node node, Object prev) {
     context.leave(node, prev);
     if (lock != null) {
-      lock.unlock();
+      unlock();
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void unlock() {
+    lock.unlock();
   }
 }

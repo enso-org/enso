@@ -15,6 +15,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 
 import org.enso.interpreter.node.BaseNode;
@@ -32,6 +34,7 @@ import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -335,8 +338,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
-      var hostZonedDateTime = hostLocalDate.atTime(hostLocalTime).atZone(ZoneId.systemDefault());
-      var dateTime = new EnsoDateTime(hostZonedDateTime);
+      var dateTime = new EnsoDateTime(dateTime(hostLocalDate, hostLocalTime));
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
 
@@ -345,6 +347,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ZonedDateTime dateTime(LocalDate date, LocalTime time) {
+    return date.atTime(time).atZone(ZoneId.systemDefault());
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ZonedDateTime dateTime(LocalDate date, LocalTime time, ZoneId zone) {
+    return date.atTime(time).atZone(zone);
   }
 
   @Specialization(
@@ -367,7 +379,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
       var hostZone = interop.asTimeZone(self);
-      var dateTime = new EnsoDateTime(hostLocalDate.atTime(hostLocalTime).atZone(hostZone));
+      var dateTime = new EnsoDateTime(dateTime(hostLocalDate, hostLocalTime, hostZone));
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
       arguments[0] = dateTime;

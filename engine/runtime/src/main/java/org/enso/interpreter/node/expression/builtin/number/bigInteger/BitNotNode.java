@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,7 +19,8 @@ public abstract class BitNotNode extends Node {
   }
 
   @Specialization
-  EnsoBigInteger doLong(EnsoBigInteger self) {
+  @CompilerDirectives.TruffleBoundary
+  EnsoBigInteger doBigInteger(EnsoBigInteger self) {
     return new EnsoBigInteger(self.getValue().not());
   }
 

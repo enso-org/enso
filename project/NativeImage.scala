@@ -47,8 +47,10 @@ object NativeImage {
     staticOnLinux: Boolean,
     initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitMegabytes: Option[Int] = Some(5608),
-    initializeAtRuntime: Seq[String]  = Seq.empty
+    memoryLimitMegabytes: Option[Int] = Some(15608),
+    initializeAtRuntime: Seq[String]  = Seq.empty,
+    mainClass: Option[String]         = None,
+    cp: Option[String]                = None
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -111,15 +113,29 @@ object NativeImage {
       val initializeAtBuildtimeOptions =
         if (initializeAtBuildtime) Seq("--initialize-at-build-time") else Seq()
 
-      val cmd =
+      var cmd =
         Seq(nativeImagePath) ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
         initializeAtBuildtimeOptions ++
         memoryLimitOptions ++ initializeAtRuntimeOptions ++
-        additionalOptions ++
-        Seq("-jar", pathToJAR.toString) ++
-        Seq(artifactName)
+        additionalOptions;
+
+      if (mainClass.isEmpty) {
+        cmd = cmd ++
+          Seq("-jar", pathToJAR.toString) ++
+          Seq(artifactName)
+      } else {
+        val cpf = new File(cp.get).getAbsoluteFile()
+        if (!cpf.exists()) throw new IllegalStateException("Cannot find " + cpf)
+        val joinCp = pathToJAR.toString + File.pathSeparator + cpf
+        System.out.println("Class-path: "+ joinCp);
+
+        cmd = cmd ++
+          Seq("-cp", joinCp) ++
+          Seq(mainClass.get) ++
+          Seq(artifactName)
+      }
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
       val newPath   = pathParts.mkString(File.pathSeparator)
