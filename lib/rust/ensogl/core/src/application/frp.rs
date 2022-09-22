@@ -1184,8 +1184,7 @@ macro_rules! define_endpoints_2_normalized_private {
             ),*
         }
     }) => {
-        // No Clone. We do not want `network` to be cloned easily in the future.
-        #[derive(Debug)]
+        #[derive(Debug, Clone, CloneRef)]
         pub struct Private $($ctx)* {
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
@@ -1277,10 +1276,7 @@ macro_rules! define_endpoints_2_normalized_glue {
             #[allow(missing_docs)]
             pub struct Frp $($ctx)* {
                 public: api::Public $($param)*,
-                // `api::Private` is not cloneable, but the Frp still needs to be `CloneRef`able for
-                // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
-                // be able to hold the `api::Private` directly..
-                private: Rc<api::Private $($param)*>,
+                private: api::Private $($param)*,
                 network: $crate::frp::Network,
             }
 
@@ -1294,7 +1290,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
                     let combined = api::public::Combined::new(&pub_input,&pub_output);
                     let public = api::Public::new(pub_input, pub_output, combined);
-                    let private = Rc::new(api::Private::new(priv_input, priv_output));
+                    let private = api::Private::new(priv_input, priv_output);
                     Self { public, private, network }
                 }
             }
@@ -1352,6 +1348,46 @@ macro_rules! define_endpoints_2_normalized_glue {
 
                 fn status_api(&self) -> Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>> {
                     self.public.status_api()
+                }
+            }
+
+            /// Weak version of FRP.
+            #[derive(Debug)]
+            #[derive(CloneRef)]
+            #[allow(missing_docs)]
+            pub struct WeakFrp $($ctx)* {
+                public: api::Public $($param)*,
+                private: api::Private $($param)*,
+                network: $crate::frp::WeakNetwork,
+            }
+
+            impl Frp {
+                /// Create a weak version of FRP.
+                pub fn downgrade(&self) -> WeakFrp {
+                    let public = self.public.clone_ref();
+                    let private = self.private.clone_ref();
+                    let network = self.network.downgrade();
+                    WeakFrp { public, private, network }
+                }
+            }
+
+            impl WeakFrp {
+                /// Upgrade the weak version of FRP.
+                pub fn upgrade(&self) -> Option<Frp> {
+                    let public = self.public.clone_ref();
+                    let private = self.private.clone_ref();
+                    let network = self.network.upgrade()?;
+                    Some(Frp { public, private, network })
+                }
+            }
+
+            impl $($ctx)*
+            Clone for WeakFrp $($param)* {
+                fn clone(&self) -> Self {
+                    let public = self.public.clone();
+                    let private = self.private.clone();
+                    let network = self.network.clone();
+                    Self { public, private, network }
                 }
             }
     };
