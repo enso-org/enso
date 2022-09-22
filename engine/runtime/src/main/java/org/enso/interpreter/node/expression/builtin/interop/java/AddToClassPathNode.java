@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.java;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -19,6 +20,7 @@ public abstract class AddToClassPathNode extends Node {
     return AddToClassPathNodeGen.create();
   }
 
+  @CompilerDirectives.TruffleBoundary
   @Specialization
   Object doExecute(Object self, Object path, @Cached ExpectStringNode expectStringNode) {
     Context context = Context.get(this);
