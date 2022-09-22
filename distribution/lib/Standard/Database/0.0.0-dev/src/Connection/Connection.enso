@@ -8,7 +8,7 @@ import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
 
-from Standard.Database.Data.SQL import SQL_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement, Statement_Data
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 from Standard.Database.Errors import SQL_Error
@@ -133,7 +133,7 @@ type Connection
     read : Text | SQL_Query | Statement -> Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
         case query of
-            Statement.Statement_Data _ ->
+            Statement_Data _ ->
                 self.jdbc_connection.with_prepared_statement query stmt->
                     result_set_to_table stmt.executeQuery Nothing
             _ ->

@@ -35,7 +35,7 @@ type Fake_Test_Connection
        - alias: optionally specify a friendly alias for the query.
        - limit: the maximum number of rows to return (default 1000).
     read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
-    read self query alias="" limit=Nothing =
+    read self _ _="" _=Nothing =
         Error.throw "Materialization not supported on fake connection."
 
     ## PRIVATE

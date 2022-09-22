@@ -27,7 +27,7 @@ spec prefix connection pending=Nothing =
     Test.group prefix+"Basic Table Access" pending=pending <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
-            a = t1.at 'a' . read
+            a = t1.at 'a' . to_table . read . at 'a'
             df.at 'a' . to_vector . should_equal [1, 4]
             a.to_vector . should_equal [1, 4]
         Test.specify "should allow to materialize columns directly into a Vector" <|
@@ -44,7 +44,7 @@ spec prefix connection pending=Nothing =
         Test.specify "should preserve indexes when materializing columns" <|
             # TODO add multi indexes when implemented
             b = t1.set_index 'a' . at 'b'
-            col = b . read
+            col = b . to_table . read . at 'b'
             col.to_vector . should_equal [2, 5]
 
             ix = col.index
