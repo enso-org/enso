@@ -51,7 +51,7 @@ run_tests connection pending=Nothing =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
             Panic.rethrow <| connection.execute_update sql
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection pending=pending
     redshift_specific_spec connection pending=pending

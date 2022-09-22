@@ -169,7 +169,7 @@ run_tests connection db_name pending=Nothing =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
             Panic.rethrow <| connection.execute_update sql
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection pending=pending
     postgres_specific_spec connection db_name pending=pending

@@ -50,7 +50,7 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.reset_index.to_dataframe max_rows=show_rows
+        df = self.reset_index.read max_rows=show_rows
         indices_count = self.context.meta_index.length
         all_rows_count = self.row_count
         display_dataframe df indices_count all_rows_count format_terminal
@@ -402,7 +402,7 @@ type Table
          result as one could expect if the limit was applied before the filters.
              t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
              t2 = t1.where (t1.at 'A' > 5)
-             t2.to_dataframe
+             t2.read
     limit : Integer -> Table
     limit self max_rows =
         new_ctx = self.context.set_limit max_rows
@@ -716,13 +716,13 @@ type Table
                 self.updated_context_and_columns new_ctx new_columns
 
     ## Parsing values is not supported in database tables, the table has to be
-       materialized first with `to_dataframe`.
+       loaded into memory first with `read`.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [value_formatter, column_types, on_problems]
-        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
+        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
@@ -776,8 +776,8 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
-    to_dataframe self max_rows=Nothing =
+    read : (Integer | Nothing) -> Materialized_Table.Table
+    read self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
             True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
@@ -974,7 +974,7 @@ type Table
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.to_dataframe.write path format on_existing_file match_columns on_problems
+        self.read.write path format on_existing_file match_columns on_problems
 
 type Integrity_Error
 

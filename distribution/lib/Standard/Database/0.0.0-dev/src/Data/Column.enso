@@ -69,18 +69,6 @@ type Column
 
     ## UNSTABLE
 
-       Returns a materialized dataframe containing rows of this table.
-
-       Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
-    to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
-    to_dataframe self max_rows=Nothing =
-        df = self.to_table.to_dataframe max_rows
-        df.at self.name
-
-    ## UNSTABLE
-
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =

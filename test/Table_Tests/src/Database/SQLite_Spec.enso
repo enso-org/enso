@@ -106,7 +106,7 @@ sqlite_spec connection prefix =
 
         in_mem_table = Materialized_Table.new columns
         connection.upload_table name in_mem_table
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
