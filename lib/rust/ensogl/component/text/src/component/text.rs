@@ -119,6 +119,32 @@ impl From<LinesVec> for Lines {
 
 
 
+// ============
+// === Text ===
+// ============
+
+/// The visual text area implementation. It is meant to be a generic rich text component which you
+/// should use everywhere you want to display text.
+#[derive(Clone, CloneRef, Debug, Deref)]
+#[allow(missing_docs)]
+pub struct Text {
+    #[deref]
+    pub frp:  Frp,
+    pub data: TextModel,
+}
+
+impl Text {
+    /// Constructor.
+    #[profile(Debug)]
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
+        let data = TextModel::new(app, &frp.output, &frp.private.output, frp.network());
+        Self { data, frp }.init()
+    }
+}
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -222,26 +248,26 @@ ensogl_core::define_endpoints_2! {
 
         hover(),
         unhover(),
-        single_line_mode(bool),
+        set_single_line_mode(bool),
         set_hover(bool),
 
-        set_cursor            (LocationLike),
-        add_cursor            (LocationLike),
-        paste_string          (String),
-        insert                (String),
-        set_property          (RangeLike, Option<style::Property>),
-        set_property_default  (Option<style::ResolvedProperty>),
-        mod_property          (RangeLike, Option<style::PropertyDiff>),
+        set_cursor (LocationLike),
+        add_cursor (LocationLike),
+        paste_string (String),
+        insert (String),
+        set_property (RangeLike, Option<style::Property>),
+        set_property_default (Option<style::ResolvedProperty>),
+        mod_property (RangeLike, Option<style::PropertyDiff>),
 
         /// Set color of selections (the cursor or characters selection).
-        set_selection_color   (color::Rgb),
+        set_selection_color (color::Rgb),
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
         /// lines, but also re-load internal structures for rendering (like WebGL buffers,
         /// MSDF texture, etc.).
-        set_font              (String),
-        set_content           (String),
+        set_font (String),
+        set_content (String),
 
         set_first_view_line(unit::Line),
         mod_first_view_line(LineDiff),
@@ -255,6 +281,7 @@ ensogl_core::define_endpoints_2! {
         content         (buffer::Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        single_line_mode(bool),
         // FIXME: this was here:
         // /// Color that is used for all text that does not explicitly have a color set.
         // default_color   (color::Rgba),
@@ -269,31 +296,7 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-
-
-// ============
-// === Text ===
-// ============
-
-/// The visual text area implementation. It is meant to be a generic rich text component which you
-/// should use everywhere you want to display text.
-#[derive(Clone, CloneRef, Debug, Deref)]
-#[allow(missing_docs)]
-pub struct Text {
-    #[deref]
-    pub frp:  Frp,
-    pub data: TextModel,
-}
-
 impl Text {
-    /// Constructor.
-    #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
-        let frp = Frp::new();
-        let data = TextModel::new(app, &frp.output, &frp.private.output, frp.network());
-        Self { data, frp }.init()
-    }
-
     fn init(self) -> Self {
         self.init_hover();
         self.init_single_line_mode();
@@ -324,9 +327,10 @@ impl Text {
         let m = &self.data;
         let network = self.frp.network();
         let input = &self.frp.input;
+        let out = &self.frp.private.output;
 
         frp::extend! { network
-            eval input.single_line_mode((t) m.single_line_mode.set(*t));
+            out.single_line_mode <+ input.set_single_line_mode;
         }
     }
 
@@ -579,7 +583,15 @@ impl Text {
             eval_ input.redo (m.buffer.frp.redo());
         }
     }
+}
 
+
+
+// ========================
+// === Layer Management ===
+// ========================
+
+impl Text {
     /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
     /// this view regardless the previous views this component could be added to.
     // TODO https://github.com/enso-org/ide/issues/1576
@@ -628,18 +640,17 @@ pub struct TextModel {
 #[derive(Debug, Deref)]
 pub struct TextModelData {
     #[deref]
-    buffer:           buffer::View,
-    app:              Application,
-    frp_network:      frp::Network,
-    frp_out_get:      api::public::Output,
-    frp_out_set:      api::private::Output,
-    display_object:   display::object::Instance,
-    glyph_system:     RefCell<glyph::System>,
-    lines:            Lines,
-    single_line_mode: Cell<bool>,
-    selection_map:    RefCell<SelectionMap>,
-    width_dirty:      Cell<bool>,
-    height_dirty:     Cell<bool>,
+    buffer:         buffer::View,
+    app:            Application,
+    frp_network:    frp::WeakNetwork,
+    frp_out_get:    api::public::Output,
+    frp_out_set:    api::private::Output,
+    display_object: display::object::Instance,
+    glyph_system:   RefCell<glyph::System>,
+    lines:          Lines,
+    selection_map:  RefCell<SelectionMap>,
+    width_dirty:    Cell<bool>,
+    height_dirty:   Cell<bool>,
 
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
@@ -666,7 +677,6 @@ impl TextModel {
             RefCell::new(glyph_system)
         };
         let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
-        let single_line_mode = default();
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
@@ -684,7 +694,7 @@ impl TextModel {
         scene.layers.main.remove_symbol(symbol);
         scene.layers.label.add_exclusive(symbol);
 
-        let frp_network = frp_network.clone_ref();
+        let frp_network = frp_network.downgrade();
         let frp_out_get = frp_out_get.clone_ref();
         let frp_out_set = frp_out_set.clone_ref();
 
@@ -698,7 +708,6 @@ impl TextModel {
             display_object,
             glyph_system,
             lines,
-            single_line_mode,
             selection_map,
             width_dirty,
             height_dirty,
@@ -917,11 +926,11 @@ impl TextModel {
                 }
                 None => {
                     let selection = Selection::new(do_edit);
-                    let network = &self.frp_network;
-                    let model = self;
-                    frp::extend! { network
-                        self.frp_out_set.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
-                        self.frp_out_set.refresh_height <+_ selection.frp.position;
+                    if let Some(network) = self.frp_network.upgrade() {
+                        frp::extend! { network
+                            self.frp_out_set.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
+                            self.frp_out_set.refresh_height <+_ selection.frp.position;
+                        }
                     }
                     self.add_child(&selection);
                     selection.letter_width.set(7.0); // FIXME hardcoded values
@@ -1551,9 +1560,10 @@ impl TextModel {
     }
 
     fn init_line(&self, line: &line::View) {
-        let network = &self.frp_network;
-        frp::extend! { network
-            self.frp_out_set.refresh_height <+_ line.descent;
+        if let Some(network) = self.frp_network.upgrade() {
+            frp::extend! { network
+                self.frp_out_set.refresh_height <+_ line.descent;
+            }
         }
     }
 
@@ -1583,7 +1593,7 @@ impl TextModel {
     /// line.
     fn paste_string(&self, s: &str) {
         let mut chunks = self.decode_paste(s);
-        if self.single_line_mode.get() {
+        if self.frp_out_get.single_line_mode.value() {
             for f in &mut chunks {
                 Self::drop_all_but_first_line(f);
             }
@@ -1602,7 +1612,7 @@ impl TextModel {
     fn key_to_string(&self, key: &Key) -> Option<String> {
         match key {
             Key::Character(s) => Some(s.clone()),
-            Key::Enter => self.single_line_mode.get().not().as_some("\n".into()),
+            Key::Enter => self.frp_out_get.single_line_mode.value().not().as_some("\n".into()),
             Key::Space => Some(" ".into()),
             _ => None,
         }
