@@ -3,7 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -14,7 +13,7 @@ use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
-use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::menu::breadcrumbs as theme;
 use ensogl_text as text;
 
 

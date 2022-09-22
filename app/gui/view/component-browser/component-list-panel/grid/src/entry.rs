@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-use crate::icon;
-use crate::new_entry::style::Colors;
-use crate::set::GroupId;
-use crate::set::SectionId;
+use crate::content::GroupId;
+use crate::content::SectionId;
+use crate::entry::style::Colors;
+use crate::Style as GridStyle;
 
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -14,11 +14,12 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::shape::*;
 use ensogl_core::display::Scene;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::MovedHeaderPosition;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
@@ -28,9 +29,10 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
+pub mod icon;
 pub mod style;
 
-pub use crate::new_entry::style::Style;
+pub use crate::entry::style::Style;
 
 
 
@@ -59,7 +61,7 @@ pub mod background {
     // and clipping the shadow shape with `*` operator causes glitches.
     // See https://www.pivotaltracker.com/story/show/182593513
 
-    ensogl::define_shape_system! {
+    ensogl_core::define_shape_system! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
@@ -75,7 +77,7 @@ pub mod background {
             //    when the shadow rect has the exact same size as the background. We shrink the
             //    height by 1 pixel to avoid it.
             let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
-            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::shadow);
             shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
             let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
@@ -155,6 +157,7 @@ impl DimmedGroups {
 #[derive(Clone, Debug, Default)]
 pub struct Params {
     pub style:         Style,
+    pub grid_style:    GridStyle,
     pub dimmed_groups: DimmedGroups,
 }
 
@@ -261,30 +264,40 @@ impl Data {
         Self { display_object, label, background, icon: Rc::new(RefCell::new(icon)), style }
     }
 
-    fn update_layout(&self, kind: Kind, style: &Style, entry_size: Vector2) {
+    fn update_layout(
+        &self,
+        kind: Kind,
+        style: &Style,
+        grid_style: &GridStyle,
+        entry_size: Vector2,
+    ) {
         // For explanation how differend kinds of entry should behave, see documentation of
         // [`Kind`].
-        let bg_width = if kind == Kind::LocalScopeEntry { entry_size.x } else { style.group_width };
+        let bg_width =
+            if kind == Kind::LocalScopeEntry { entry_size.x } else { grid_style.column_width() };
         let bg_height = entry_size.y
-            + if kind == Kind::Header { -style.column_gap } else { ENTRIES_OVERLAP_PX };
+            + if kind == Kind::Header { -grid_style.column_gap } else { ENTRIES_OVERLAP_PX };
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y =
-            if kind == Kind::Header { -style.column_gap / 2.0 } else { ENTRIES_OVERLAP_PX / 2.0 };
+        let bg_y = if kind == Kind::Header {
+            -grid_style.column_gap / 2.0
+        } else {
+            ENTRIES_OVERLAP_PX / 2.0
+        };
         self.background.set_position_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
         self.icon.borrow().set_position_x(left + style.icon_size / 2.0);
-        let text_x = Self::text_x_position(kind, style);
+        let text_x = Self::text_x_position(kind, style, grid_style);
         self.label.set_position_xy(Vector2(text_x, style.text_size.raw / 2.0));
     }
 
-    fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let optional_gap = if kind == Kind::Header { style.column_gap } else { 0.0 };
+    fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
+        let optional_gap = if kind == Kind::Header { grid_style.column_gap } else { 0.0 };
         let height = entry_size.y - optional_gap;
-        Contour::rectangular(Vector2(style.group_width, height))
+        Contour::rectangular(Vector2(grid_style.column_width(), height))
     }
 
     fn highlight_contour(contour: Contour, style: &Style) -> Contour {
@@ -292,19 +305,19 @@ impl Data {
         Contour { corners_radius, ..contour }
     }
 
-    fn contour_offset(kind: Kind, style: &Style) -> Vector2 {
-        let y = if kind == Kind::Header { -style.column_gap / 2.0 } else { 0.0 };
+    fn contour_offset(kind: Kind, grid_style: &GridStyle) -> Vector2 {
+        let y = if kind == Kind::Header { -grid_style.column_gap / 2.0 } else { 0.0 };
         Vector2(0.0, y)
     }
 
-    fn max_text_width(kind: Kind, style: &Style) -> f32 {
-        let right = style.group_width / 2.0 - style.padding;
-        let text_x = Self::text_x_position(kind, style);
+    fn max_text_width(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
+        let right = grid_style.column_width() / 2.0 - style.padding;
+        let text_x = Self::text_x_position(kind, style, grid_style);
         right - text_x
     }
 
-    fn text_x_position(kind: Kind, style: &Style) -> f32 {
-        let left = -style.group_width / 2.0 + style.padding;
+    fn text_x_position(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
+        let left = -grid_style.column_width() / 2.0 + style.padding;
         if kind == Kind::Header {
             left
         } else {
@@ -378,15 +391,16 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
-            kind_and_style <- all(kind, style);
+            grid_style <- input.set_params.map(|p| p.grid_style).on_change();
+            kind_and_style <- all(kind, style, grid_style);
             layout_data <- all(kind_and_style, input.set_size);
-            eval layout_data ((((kind, style), entry_sz))
-                data.update_layout(*kind, style, *entry_sz)
+            eval layout_data ((((kind, style, grid_style), entry_sz))
+                data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ layout_data.map(|((kind, style), entry_sz)| {
-                Data::contour(*kind, style, *entry_sz)
+            out.contour <+ layout_data.map(|((kind, _, grid_style), entry_sz)| {
+                Data::contour(*kind, grid_style, *entry_sz)
             });
-            out.contour_offset <+ kind_and_style.map(|(k, s)| Data::contour_offset(*k, s));
+            out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
             out.highlight_contour <+ out.contour.map2(&style, |c, s| Data::highlight_contour(*c, s));
             out.highlight_contour_offset <+ out.contour_offset;
 
@@ -413,7 +427,7 @@ impl grid_view::Entry for View {
 
             // === Icon and Text ===
 
-            max_text_width <- kind_and_style.map(|(kind, style)| Data::max_text_width(*kind, style));
+            max_text_width <- kind_and_style.map(|(k, s, gs)| Data::max_text_width(*k, s, gs));
             caption <- input.set_model.map(|m| m.caption.to_string());
             icon <- input.set_model.map(|m| m.icon);
             data.label.set_content_truncated <+ all(caption, max_text_width);

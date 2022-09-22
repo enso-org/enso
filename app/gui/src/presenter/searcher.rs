@@ -18,9 +18,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::component_browser::list_panel;
-use ide_view::component_browser::list_panel::EnteredModule;
-use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
+use ide_view::component_browser::component_list_panel;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;

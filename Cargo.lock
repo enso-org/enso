@@ -1583,45 +1583,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 
 [[package]]
-name = "debug-scene-component-group"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-text",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-text-msdf",
- "ide-view-component-group",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-component-list-panel-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-selector",
- "ensogl-text-msdf",
- "ide-view-component-group",
- "ide-view-component-list-panel-old",
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
  "ensogl",
  "ensogl-hardcoded-theme",
- "ide-view-component-group",
+ "ide-view-component-list-panel-grid",
  "wasm-bindgen",
 ]
 
@@ -1653,7 +1620,6 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
- "ide-view-component-group",
  "ide-view-component-list-panel",
  "js-sys",
  "wasm-bindgen",
@@ -2010,8 +1976,6 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
- "debug-scene-component-group",
- "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-new-component-list-panel-view",
@@ -2088,7 +2052,6 @@ dependencies = [
  "futures 0.3.21",
  "fuzzly",
  "ide-view",
- "ide-view-component-group",
  "itertools 0.10.3",
  "js-sys",
  "json-rpc",
@@ -3939,43 +3902,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "ide-view-breadcrumbs"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-text",
-]
-
-[[package]]
 name = "ide-view-component-browser"
 version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "ensogl-text",
- "ide-view-breadcrumbs",
- "ide-view-component-group",
  "ide-view-component-list-panel",
- "ide-view-component-list-panel-old",
-]
-
-[[package]]
-name = "ide-view-component-group"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-label",
- "ensogl-list-view",
- "ensogl-shadow",
- "ensogl-text",
- "failure",
+ "ide-view-component-list-panel-breadcrumbs",
 ]
 
 [[package]]
@@ -3989,21 +3922,32 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
- "ide-view-breadcrumbs",
- "ide-view-component-group",
+ "ide-view-component-list-panel-breadcrumbs",
+ "ide-view-component-list-panel-grid",
  "num_enum",
  "ordered-float",
 ]
 
 [[package]]
-name = "ide-view-component-list-panel-old"
+name = "ide-view-component-list-panel-breadcrumbs"
 version = "0.1.0"
 dependencies = [
- "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ide-view-component-list-panel-grid"
+version = "0.1.0"
+dependencies = [
  "enso-frp",
  "ensogl-core",
  "ensogl-derive-theme",
@@ -4011,14 +3955,9 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
- "ide-view-breadcrumbs",
- "ide-view-component-group",
- "num_enum",
- "ordered-float",
+ "failure",
 ]
 
 [[package]]

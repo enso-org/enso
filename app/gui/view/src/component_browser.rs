@@ -5,7 +5,6 @@
 
 use crate::prelude::*;
 
-use crate::component_browser::component_group::prelude::StyleWatchFrp;
 use crate::documentation;
 use crate::graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 
@@ -13,6 +12,7 @@ use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser as theme;
 
@@ -31,7 +31,7 @@ pub use ide_view_component_browser::*;
 pub struct Model {
     logger:            Logger,
     display_object:    display::object::Instance,
-    pub list:          list_panel::ComponentBrowserPanel,
+    pub list:          component_list_panel::View,
     pub documentation: documentation::View,
 }
 
@@ -43,7 +43,7 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let logger = logger.sub("ComponentBrowser");
         let display_object = display::object::Instance::new(&logger);
-        let list = app.new_view::<list_panel::ComponentBrowserPanel>();
+        let list = app.new_view::<component_list_panel::View>();
         let documentation = documentation::View::new(&app.display.default_scene);
         app.display.default_scene.layers.node_searcher.add_exclusive(&display_object);
         display_object.add_child(&list);

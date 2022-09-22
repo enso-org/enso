@@ -38,7 +38,7 @@
 
 use ensogl_core::prelude::*;
 
-use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
+use component_browser_theme::component_list_panel::menu::breadcrumbs as theme;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;

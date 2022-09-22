@@ -244,9 +244,9 @@ pub fn expand(input: DeriveInput) -> TokenStream {
     let update_struct_name = format_ident!("{}FromThemeFRP", st_name);
     let out = quote! {
         #[automatically_derived]
-        struct #update_struct_name {
-           update: enso_frp::Stream<#st_name>,
-            init: enso_frp::stream::WeakNode<enso_frp::SourceData>
+        pub struct #update_struct_name {
+            pub update: enso_frp::Stream<#st_name>,
+            pub init: enso_frp::stream::WeakNode<enso_frp::SourceData>
         }
 
         #[automatically_derived]

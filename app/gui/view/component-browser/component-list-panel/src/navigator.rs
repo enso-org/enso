@@ -6,20 +6,22 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::component_group::icon;
-use crate::Style;
+use crate::AllStyles;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::style;
-use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
+use ensogl_derive_theme::FromTheme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
+use ide_view_component_list_panel_grid::entry::icon;
+use list_panel_theme::navigator as theme;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
-use searcher_theme::list_panel as list_panel_theme;
 
 
 
@@ -37,16 +39,32 @@ pub mod navigator_shadow {
     ensogl_core::define_shape_system! {
         above = [crate::background];
         (style:Style) {
-            let theme_path: style::Path = list_panel_theme::HERE.into();
-            let content_height = style.get_number(theme_path.sub("content_height"));
-            let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("navigator_width"));
-            let height = content_height + menu_height;
+            let grid_height = style.get_number(list_panel_theme::grid::height);
+            let menu_height = style.get_number(list_panel_theme::menu_height);
+            let navigator_width = style.get_number(theme::width);
+            let height = grid_height + menu_height;
             let width = navigator_width;
             let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
             shadow::from_shape(base_shape.into(), style)
         }
     }
+}
+
+
+
+// =============
+// === Style ===
+// =============
+
+#[derive(Copy, Clone, Debug, Default, FromTheme)]
+#[base_path = "theme"]
+pub struct Style {
+    pub width:             f32,
+    pub list_view_width:   f32,
+    pub icon_strong_color: color::Rgba,
+    pub icon_weak_color:   color::Rgba,
+    pub top_padding:       f32,
+    pub bottom_padding:    f32,
 }
 
 
@@ -95,8 +113,8 @@ impl Navigator {
         let display_object = display::object::Instance::new(&app.logger);
         let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        top_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
+        top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
+        bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
         top_buttons.disable_selecting_entries_with_mouse();
@@ -130,21 +148,21 @@ impl Navigator {
         self.bottom_buttons.set_entry_params_and_recreate_entries(params);
     }
 
-    pub(crate) fn update_layout(&self, style: Style) {
-        let list_view_width = style.navigator_list_view_width;
+    pub(crate) fn update_layout(&self, style: &AllStyles) {
+        let list_view_width = style.navigator.list_view_width;
         let top_buttons_height = list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32;
         let bottom_buttons_height = list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32;
         self.top_buttons.resize(Vector2(list_view_width, top_buttons_height));
         self.bottom_buttons.resize(Vector2(list_view_width, bottom_buttons_height));
 
-        let height = style.content_height + style.menu_height;
+        let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
         let bottom = -height / 2.0;
         let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let top_padding = style.navigator_top_padding;
-        let bottom_padding = style.navigator_bottom_padding;
-        let x_pos = -style.content_width / 2.0;
+        let top_padding = style.navigator.top_padding;
+        let bottom_padding = style.navigator.bottom_padding;
+        let x_pos = -style.grid.width / 2.0;
         let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
         let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
         self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));

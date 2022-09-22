@@ -3,10 +3,13 @@
 
 use crate::prelude::*;
 
+use crate::content::ElementId;
+use crate::content::ElementInGroup;
+use crate::content::Group;
+use crate::content::GroupId;
+use crate::content::SectionId;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
-use ide_view_component_group::set::GroupId;
-use ide_view_component_group::set::SectionId;
 
 
 
@@ -20,43 +23,9 @@ pub const HEADER_HEIGHT_IN_ROWS: usize = 1;
 
 
 
-// =================
-// === ElementId ===
-// =================
-
-/// An identifier of element inside a concrete group: entry (by entry index) or header.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum GroupElement {
-    /// A group's header.
-    Header,
-    /// A group's normal entry with index.
-    Entry(usize),
-}
-
-/// An identifier of some group's element in Component Browser.
-#[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ElementId {
-    pub group:   GroupId,
-    pub element: GroupElement,
-}
-
-
-
 // =============
 // === Group ===
 // =============
-
-/// A information about group needed to compute the Component Panel List layout.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Group {
-    /// The group identifier.
-    pub id:              GroupId,
-    /// Height of group in rows, not counting the header nor filtered-out entries.
-    pub height:          usize,
-    /// Height of group in rows if no entry is filtered out, not counting the header.
-    pub original_height: usize,
-}
 
 
 // === LaidGroup ===
@@ -82,9 +51,9 @@ impl<'a> LaidGroup<'a> {
     pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
         let element = self.rows().contains(&row).as_some_from(|| {
             if row < self.header_row + HEADER_HEIGHT_IN_ROWS {
-                GroupElement::Header
+                ElementInGroup::Header
             } else {
-                GroupElement::Entry(row - self.header_row - HEADER_HEIGHT_IN_ROWS)
+                ElementInGroup::Entry(row - self.header_row - HEADER_HEIGHT_IN_ROWS)
             }
         });
         element.map(|element| ElementId { group: self.group.id, element })
@@ -114,7 +83,7 @@ struct Column {
 /// This structure allows for organizing the component groups according to received group
 /// information about their heights. It provides information about where given group is laid out
 /// in Grid View, and what group element is at given location (row and column).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Layout {
     columns:                   Vec<Column>,
     positions:                 HashMap<GroupId, (Row, Col)>,
@@ -193,7 +162,7 @@ impl Layout {
             let index = (row - self.local_scope_section_start) * self.columns.len() + column;
             (index < self.local_scope_entry_count).as_some_from(|| ElementId {
                 group:   GroupId::local_scope_group(),
-                element: GroupElement::Entry(index),
+                element: ElementInGroup::Entry(index),
             })
         } else {
             let group = self.group_at_location(row, column)?;
@@ -205,8 +174,8 @@ impl Layout {
     pub fn location_of_element(&self, element: ElementId) -> Option<(Row, Col)> {
         if element.group.section == SectionId::LocalScope {
             match element.element {
-                GroupElement::Header => None,
-                GroupElement::Entry(index) => {
+                ElementInGroup::Header => None,
+                ElementInGroup::Entry(index) => {
                     let row = self.local_scope_section_start + index / self.columns.len();
                     let col = index % self.columns.len();
                     Some((row, col))
@@ -215,8 +184,8 @@ impl Layout {
         } else {
             let &(header_pos, col) = self.positions.get(&element.group)?;
             match element.element {
-                GroupElement::Header => Some((header_pos, col)),
-                GroupElement::Entry(index) =>
+                ElementInGroup::Header => Some((header_pos, col)),
+                ElementInGroup::Entry(index) =>
                     Some((header_pos + HEADER_HEIGHT_IN_ROWS + index, col)),
             }
         }
@@ -274,15 +243,17 @@ mod tests {
             [vec![groups[1], groups[4]], vec![groups[0], groups[3]], vec![groups[2], groups[5]]];
         let layout = Layout::create_from_arranged_groups(groups_in_columns, 8);
 
-        let header_of =
-            |group_idx| ElementId { group: group_ids[group_idx], element: GroupElement::Header };
+        let header_of = |group_idx| ElementId {
+            group:   group_ids[group_idx],
+            element: ElementInGroup::Header,
+        };
         let entry_of = |group_idx, entry_idx| ElementId {
             group:   group_ids[group_idx],
-            element: GroupElement::Entry(entry_idx),
+            element: ElementInGroup::Entry(entry_idx),
         };
         let local_scope_entry = |entry_idx| ElementId {
             group:   GroupId::local_scope_group(),
-            element: GroupElement::Entry(entry_idx),
+            element: ElementInGroup::Entry(entry_idx),
         };
 
         assert_eq!(layout.element_at_location(0, LEFT), None);
@@ -341,7 +312,7 @@ mod tests {
             layout.element_at_location(2, CENTER),
             Some(ElementId {
                 group:   GroupId { section: SectionId::Favorites, index: 0 },
-                element: GroupElement::Entry(1),
+                element: ElementInGroup::Entry(1),
             })
         );
         assert_eq!(layout.element_at_location(2, RIGHT), None);

@@ -5,7 +5,7 @@
 
 use ensogl_core::prelude::*;
 
-use crate::layout::Group;
+use crate::content::Group;
 use crate::layout::Layout;
 use crate::layout::HEADER_HEIGHT_IN_ROWS;
 

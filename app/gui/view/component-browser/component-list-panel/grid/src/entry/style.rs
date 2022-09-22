@@ -4,8 +4,8 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
+use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::Animation;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
 use ensogl_text as text;
 
 
@@ -19,7 +19,7 @@ use ensogl_text as text;
 /// The intensities of various parts of Component Entry view. The actual color is computed by mixing
 /// the main groups color with the application background - see [`Colors`] for more information.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Default, FromTheme, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ColorIntensities {
     pub text:            f32,
     pub background:      f32,
@@ -40,11 +40,6 @@ pub struct ColorIntensities {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Style {
     pub color_intensities:        ColorIntensities,
-    /// The width of groups. The entries in main grid will have this width regardless of column
-    /// widths set in GridView, thus making a vertical groups separators.
-    pub group_width:              f32,
-    /// The horizontal gap size in pixels between groups in main grip.
-    pub column_gap:               f32,
     /// The distance between left/right edge of the entry and its content.
     pub padding:                  f32,
     pub icon_size:                f32,

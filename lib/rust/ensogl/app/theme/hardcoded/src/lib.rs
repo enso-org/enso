@@ -186,12 +186,12 @@ define_themes! { [light:0, dark:1]
             }
             component_list_panel {
                 background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
-                corner_radius = 15.0, 15.0;
+                corners_radius = 15.0, 15.0;
                 grid {
                     width = 400.0, 400.0;
                     height = 398.0, 398.0;
                     padding = 3.0, 3.0;
-                    column.gap = 3.0;
+                    column_gap = 3.0, 3.0;
 
                     entry {
                         background.color_intensity = 0.2, 0.2;
@@ -209,7 +209,7 @@ define_themes! { [light:0, dark:1]
                         }
                         highlight {
                             corners_radius = 10.0, 10.0;
-                            hover::color_intensity = 0.4, 0.4;
+                            hover.color_intensity = 0.4, 0.4;
                             selection {
                                 background.color_intensity = 0.2, 0.2;
                                 dimmed.color_intensity = 0.5, 0.5;
@@ -217,7 +217,7 @@ define_themes! { [light:0, dark:1]
 
                             }
                         }
-                        // shadow = shadow , shadow;
+                        shadow = shadow , shadow;
                         shadow {
                             size     = 27.0 , 27.0;
                             spread   = shadow::spread   , shadow::spread;
@@ -238,15 +238,13 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
+                menu_height = 35.0, 35.0;
+                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                menu_divider_height = 0.5,0.5;
                 menu {
-                    height = 35.0, 35.0;
-                    divider {
-                        color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                        height = 0.5,0.5;
-                    }
+                    breadcrumbs_crop_left = 9.0, 9.0;
+                    breadcrumbs_crop_right = 3.0, 3.0;
                     breadcrumbs {
-                        crop_left = 9.0, 9.0;
-                        crop_right = 3.0, 3.0;
                         height = 28.0, 28.0;
                         separator {
                             width = 8.0, 8.0;
@@ -272,49 +270,49 @@ define_themes! { [light:0, dark:1]
                             greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);
                         }
                     }
-                    navigator {
-                        width = 37.0, 37.0;
-                        icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                        icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                        top_padding = -3.0, -3.0;
-                        bottom_padding = 7.0, 7.0;
-                        list_view {
-                            width = 39.0, 39.0;
-                            background = Rgba::transparent() , Rgba::transparent();
-                            highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                            highlight {
-                                height = 29.0, 29.0;
-                                corner_radius = 10.0, 10.0;
-                            }
-                            entry {
-                                padding = 14.5, 14.5;
-                            }
-                            padding = 5.0, 5.0;
+                }
+                navigator {
+                    width = 37.0, 37.0;
+                    icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    top_padding = -3.0, -3.0;
+                    bottom_padding = 7.0, 7.0;
+                    list_view_width = 39.0, 39.0;
+                    list_view {
+                        background = Rgba::transparent() , Rgba::transparent();
+                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        highlight {
+                            height = 29.0, 29.0;
+                            corner_radius = 10.0, 10.0;
                         }
+                        entry {
+                            padding = 14.5, 14.5;
+                        }
+                        padding = 5.0, 5.0;
                     }
                 }
             }
         }
-        // searcher {
-        //     action_list_gap = 10.0, 10.0;
-        //     padding         = 5.0, 5.0;
-        //     icons {
-        //         favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
-        //         computer_vision {
-        //             highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
-        //         }
-        //         system {
-        //             background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-        //             content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
-        //         }
-        //         libraries {
-        //             _0 = Rgba(0.541,0.545,0.545,1.0)  , Rgba(0.541,0.545,0.545,1.0);
-        //             _1 = Rgba(0.675,0.675,0.675,1.0) , Rgba(0.675,0.675,0.675,1.0);
-        //             _2 = Rgba(0.713,0.713,0.713,1.0) , Rgba(0.713,0.713,0.713,1.0);
-        //             _3 = Rgba(0.8,0.8,0.8,1.0) , Rgba(0.8,0.8,0.8,1.0);
-        //         }
-        //     }
-        // }
+        searcher {
+            action_list_gap = 10.0, 10.0;
+            padding         = 5.0, 5.0;
+            icons {
+                favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
+                computer_vision {
+                    highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
+                }
+                system {
+                    background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
+                    content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
+                }
+                libraries {
+                    _0 = Rgba(0.541,0.545,0.545,1.0)  , Rgba(0.541,0.545,0.545,1.0);
+                    _1 = Rgba(0.675,0.675,0.675,1.0) , Rgba(0.675,0.675,0.675,1.0);
+                    _2 = Rgba(0.713,0.713,0.713,1.0) , Rgba(0.713,0.713,0.713,1.0);
+                    _3 = Rgba(0.8,0.8,0.8,1.0) , Rgba(0.8,0.8,0.8,1.0);
+                }
+            }
+        }
         file_browser {
             width  = 0.0,   0.0; // Should be updated when file browser will be implemented.
             height = 421.0, 421.0;

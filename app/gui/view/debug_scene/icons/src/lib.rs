@@ -3,7 +3,7 @@
 #![warn(unsafe_code)]
 
 use ensogl::system::web::traits::*;
-use ide_view_component_group::prelude::*;
+use ide_view_component_list_panel_grid::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl::application::Application;
@@ -11,8 +11,8 @@ use ensogl::data::color;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ide_view_component_group::icon;
-use ide_view_component_group::icon::SHRINK_AMOUNT;
+use ide_view_component_list_panel_grid::entry::icon;
+use ide_view_component_list_panel_grid::entry::icon::SHRINK_AMOUNT;
 
 
 
