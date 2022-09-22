@@ -41,8 +41,9 @@ const BLINK_PERIOD: f32 =
 /// ## Blinking Implementation
 ///
 /// The blinking alpha is a time-dependent function which starts as a fully opaque value and
-/// changes periodically. The `start_time` parameter is set to the current time after each cursor
-/// operation, which makes cursor visible during typing and after position change.
+/// changes periodically. The `not_blinking` parameter can be used to disable blinking. When set to
+/// 0, blinking is enabled. It is used to disable blinking after each cursor operation, which makes
+/// cursor visible during typing and after position change.
 ///
 /// ```compile_fail
 /// |

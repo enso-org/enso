@@ -760,7 +760,6 @@ impl TextModel {
         let gap = 0.0;
         let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
-
         display_object.add_child(&line);
         line
     }
