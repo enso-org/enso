@@ -20,7 +20,7 @@ type No_Ord
 # Tests
 
 spec = Test.group "Object Comparator" <|
-    handle_classcast = Panic.catch ClassCastException handler=(Error.throw Vector.Incomparable_Values_Error)
+    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Vector.Incomparable_Values_Error)
     default_comparator a b = handle_classcast <| Comparator.new.compare a b
     case_insensitive a b = handle_classcast <| Comparator.for_text_ordering (Text_Ordering_Data False Case_Insensitive_Data) . compare a b
 

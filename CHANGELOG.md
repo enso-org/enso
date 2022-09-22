@@ -198,6 +198,8 @@
 - [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
 - [Implemented `start_of` and `end_of` methods for date/time types allowing to
   find start and end of a period of time containing the provided time.][3695]
+- [Implemented `work_days_until` for counting work dys between dates and
+  `add_work_days` which allows to shift a date by a number of work days.][3726]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -316,6 +318,7 @@
 [3684]: https://github.com/enso-org/enso/pull/3684
 [3691]: https://github.com/enso-org/enso/pull/3691
 [3695]: https://github.com/enso-org/enso/pull/3695
+[3726]: https://github.com/enso-org/enso/pull/3726
 
 #### Enso Compiler
 

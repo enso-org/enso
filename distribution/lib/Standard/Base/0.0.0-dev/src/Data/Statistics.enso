@@ -244,7 +244,7 @@ rank_data input method=Rank_Method.Average =
 
     report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
     handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
-    handle_classcast = Panic.catch ClassCastException handler=(Error.throw Vector.Incomparable_Values_Error)
+    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Vector.Incomparable_Values_Error)
 
     handle_classcast <| handle_nullpointer <|
         java_ranks = Rank.rank input.to_array Comparator.new java_method

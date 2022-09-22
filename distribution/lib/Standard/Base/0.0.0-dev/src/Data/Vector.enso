@@ -1119,7 +1119,7 @@ type Incomparable_Values_Error
    Catches possible errors from comparing values and throws an
    Incomparable_Values_Error if any occur.
 handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
+    handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
     handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <| function
 
 ## PRIVATE

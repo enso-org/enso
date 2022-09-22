@@ -392,6 +392,43 @@ type Date_Time
     + self amount =
         Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period amount.internal_duration
 
+    ## Shift the date by the specified amount of business days.
+
+       For the purpose of this method, the business days are defined to be
+       Monday through Friday.
+
+       This method always returns a day which is a business day - if the shift
+       amount is zero, the closest following business day is returned. For the
+       purpose of calculating the shift, the holidays are treated as if we were
+       starting at the next business day after them, for example counting the
+       shift starting on Saturday or Sunday works as if we were counting the
+       shift from Monday (for positive shifts). So shifting Sunday by zero days
+       will return Monday, but shifting it by one day will return a Tuesday
+       (so that there is the full work day - Monday) within the interval. For
+       negative shifts, shifting either Saturday or Sunday one day backwards
+       will return Friday, but shifting Monday one day backwards will return a
+       Friday. The whole logic is made consistent with `work_days_until`, so
+       that the following properties hold:
+           date.work_days_until (date.add_work_days N) == N for any N >= 0
+           (date.add_work_days N).work_days_until date == -N for any N < 0
+
+       The time of day is preserved, only the date is shifted.
+
+       Arguments:
+       - amount: The number of business days to shift the date by. If `amount`
+         is zero, the current date is returned, unless it is a weekend or a
+         holiday, in which case the next business day is returned.
+       - holidays: An optional list of dates of custom holidays that should also
+         be skipped. If it is not provided, only weekends are skipped.
+
+       > Example
+         Shift the date by 5 business days.
+
+             example_shift = Date_Time.new 2020 2 3 11 45 . add_work_days 5
+    add_work_days : Integer -> Vector Date -> Date_Time
+    add_work_days self days=1 holidays=[] =
+        self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
+
     ## Subtract the specified amount of time from this instant to get a new
        instant.
 
