@@ -97,6 +97,19 @@ pub type Row = usize;
 pub type Col = usize;
 
 
+// === Margins ===
+
+/// Margins around an [`Entry`].
+#[derive(Clone, Debug, Copy, Default)]
+#[allow(missing_docs)]
+pub struct Margins {
+    pub top:    f32,
+    pub bottom: f32,
+    pub left:   f32,
+    pub right:  f32,
+}
+
+
 // === Properties ===
 
 /// A set of GridView properties used in many operations.
@@ -568,6 +581,32 @@ where
     pub fn entry_position(&self, row: Row, column: Col) -> Vector2 {
         let column_widths = &self.widget.model().column_widths;
         entry::visible::position(row, column, self.entries_size.value(), column_widths)
+    }
+
+    /// Return the position of the top-left corner of a viewport containing the area around the
+    /// entry at given row and column. The area around an entry is defined as the bounding box of
+    /// the entry enlarged by given margins. If there is more than one such viewport possible,
+    /// return the one closest to the current viewport.
+    ///
+    /// For a pictorial representation of the areas, see the documentation of the
+    /// [`entry::visible::position_of_viewport_containing_entry`] function.
+    fn position_of_viewport_containing_entry(
+        &self,
+        row: Row,
+        col: Col,
+        margins: Margins,
+    ) -> Vector2 {
+        let column_widths = &self.widget.model().column_widths;
+        let base_entry_size = self.entries_size.value();
+        let viewport = self.viewport.value();
+        entry::visible::position_of_viewport_containing_entry(
+            row,
+            col,
+            base_entry_size,
+            column_widths,
+            viewport,
+            margins,
+        )
     }
 }
 

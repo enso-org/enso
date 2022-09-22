@@ -16,6 +16,22 @@ use ensogl_scroll_area::ScrollArea;
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+ensogl_core::define_endpoints_2! {
+    Input {
+        /// Set margins defining an area around an [`Entry`] that should be made visible when
+        /// scrolling the GridView's viewport to display the Entry.
+        set_preferred_margins_around_entry(crate::Margins),
+    }
+
+    Output {}
+}
+
+
+
 // ================
 // === GridView ===
 // ================
@@ -28,6 +44,7 @@ pub struct GridViewTemplate<InnerGridView> {
     area:              ScrollArea,
     #[deref]
     inner_grid:        InnerGridView,
+    frp:               Frp,
     text_layer:        Layer,
     header_layer:      Immutable<Option<Layer>>,
     header_text_layer: Immutable<Option<Layer>>,
@@ -98,19 +115,41 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let area = ScrollArea::new(app);
         let base_grid = inner_grid.as_ref();
         area.content().add_child(&inner_grid);
-        let network = base_grid.network();
+        let base_network = base_grid.network();
         let text_layer = area.content_layer().create_sublayer();
         let header_layer = default();
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
+        let input = &base_grid.private.input;
+        let frp = Frp::new();
+        let network = &frp.network();
 
-        frp::extend! { network
+        frp::new_bridge_network! { [network, base_network] grid_view_scrollable_base_bridge
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
+
+
+            // === Viewport scrolling on selection move ===
+
+            input_move_selection <- any4(
+                &input.move_selection_down,
+                &input.move_selection_left,
+                &input.move_selection_right,
+                &input.move_selection_up,
+            );
+            entry_selected_by_input_move <= base_grid.entry_selected.sample(&input_move_selection);
+            let scroll_margins = &frp.set_preferred_margins_around_entry;
+            scroll_to <- entry_selected_by_input_move.map2(scroll_margins,
+                f!([base_grid] ((row, col), margins)
+                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins)
+                )
+            );
+            area.scroll_to_x <+ scroll_to.map(|vec| vec.x);
+            area.scroll_to_y <+ scroll_to.map(|vec| -vec.y);
         }
 
-        Self { area, inner_grid, text_layer, header_layer, header_text_layer }
+        Self { area, inner_grid, frp, text_layer, header_layer, header_text_layer }
     }
 
     /// Create new Scrollable Grid View component wrapping a created instance of `inner_grid` which
@@ -150,6 +189,12 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
     /// or jump at position.
     pub fn scroll_frp(&self) -> &ensogl_scroll_area::Frp {
         self.area.deref()
+    }
+
+    /// Access the parts of the FRP API of a scrollable Grid View that are not available through
+    /// either the [`InnerGridView`] FRP or the [`scroll_frp`] API.
+    pub fn extra_scroll_frp(&self) -> &Frp {
+        &self.frp
     }
 }
 

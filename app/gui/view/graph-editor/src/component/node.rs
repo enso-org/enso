@@ -307,6 +307,10 @@ ensogl::define_endpoints_2! {
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
+        /// Show visualization preview until either editing of the node is finished or the
+        /// visualization state is explicitly changed by the user. The preview looks the same as
+        /// normal visualization, but its state is not persisted in the node's metadata.
+        show_preview                      (),
         /// Indicate whether preview visualisations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
@@ -775,7 +779,7 @@ impl Node {
 
             // === Action Bar ===
 
-            let visualization_enabled = action_bar.action_visibility.clone_ref();
+            let visualization_button_state = action_bar.action_visibility.clone_ref();
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
             show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
@@ -840,9 +844,27 @@ impl Node {
             outout_hover            <- model.output.on_port_hover.map(|s| s.is_on());
             hover_onset_delay.start <+ outout_hover.on_true();
             hover_onset_delay.reset <+ outout_hover.on_false();
-            preview_visible         <- bool(&hover_onset_delay.on_reset,&hover_onset_delay.on_end);
-            preview_visible         <- preview_visible && has_expression;
-            preview_visible         <- preview_visible.on_change();
+            hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
+            hover_preview_visible <- has_expression && hover_onset_active;
+            hover_preview_visible <- hover_preview_visible.on_change();
+            hide_preview <- any(...);
+            editing_finished <- model.input.frp.editing.filter(|e| !*e).constant(());
+            hide_preview <+ editing_finished;
+            preview_enabled <- bool(&hide_preview, &input.show_preview);
+            preview_visible <- hover_preview_visible || preview_enabled;
+            preview_visible <- preview_visible.on_change();
+
+            // If the preview is visible while the visualization button is disabled, clicking the
+            // visualization button hides the preview and keeps the visualization button disabled.
+            vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
+            vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
+            visualization_on <- vis_button_on.gate_not(&preview_visible);
+            vis_button_on_while_preview_visible <- vis_button_on.gate(&preview_visible);
+            hide_preview <+ vis_button_on_while_preview_visible;
+            hide_preview <+ vis_button_off;
+            action_bar.set_action_visibility_state <+
+                vis_button_on_while_preview_visible.constant(false);
+            visualization_enabled <- bool(&vis_button_off, &visualization_on);
 
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
@@ -859,8 +881,8 @@ impl Node {
 
             // Ensure the preview is visible above all other elements, but the normal visualisation
             // is below nodes.
-            layer_on_hover     <- preview_visible.on_false().map(|_| visualization::Layer::Default);
-            layer_on_not_hover <- preview_visible.on_true().map(|_| visualization::Layer::Front);
+            layer_on_hover     <- hover_preview_visible.on_false().map(|_| visualization::Layer::Default);
+            layer_on_not_hover <- hover_preview_visible.on_true().map(|_| visualization::Layer::Front);
             layer              <- any(layer_on_hover,layer_on_not_hover);
             model.visualization.frp.set_layer <+ layer;
 

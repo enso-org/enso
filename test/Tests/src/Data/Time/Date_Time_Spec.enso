@@ -472,6 +472,76 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d4_end.nanosecond . should_equal max_nanos
             Time_Utils.get_datetime_offset d4_end . should_equal offset_1_h
 
+        Test.specify "should allow to shift the date by N working days" <|
+            # 2000-2-1 is a Tuesday
+            create_new_datetime 2000 2 1 12 30 . add_work_days 0 . should_equal (Date_Time.new 2000 2 1 12 30)
+            create_new_datetime 2000 2 1 12 15 55 . add_work_days . should_equal (Date_Time.new 2000 2 2 12 15 55)
+            create_new_datetime 2000 2 1 . add_work_days 2 . should_equal (Date_Time.new 2000 2 3)
+
+            create_new_datetime 2000 2 1 23 59 . add_work_days 21 . should_equal (Date_Time.new 2000 3 1 23 59)
+
+            # 2000-2-5 is a Saturday
+            create_new_datetime 2000 2 5 0 10 . add_work_days 0 . should_equal (Date_Time.new 2000 2 7 0 10)
+            create_new_datetime 2000 2 5 23 30 . add_work_days 1 . should_equal (Date_Time.new 2000 2 8 23 30)
+            create_new_datetime 2000 2 5 . add_work_days 2 . should_equal (Date_Time.new 2000 2 9)
+
+            # 2000-2-6 is a Sunday
+            create_new_datetime 2000 2 6 16 50 . add_work_days 0 . should_equal (Date_Time.new 2000 2 7 16 50)
+            create_new_datetime 2000 2 6 17 17 . add_work_days 1 . should_equal (Date_Time.new 2000 2 8 17 17)
+
+            # Behaviour in February depending on leap year.
+            create_new_datetime 2000 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 2000 3 2 12 10)
+            create_new_datetime 1999 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 1999 3 4 12 10)
+
+        Test.specify "should handle shifting dates around spring DST edge cases" pending=js_dst_pending <|
+            # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
+            create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 55 1234)
+            create_new_datetime 2022 10 30 1 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 1 30)
+            create_new_datetime 2022 10 30 3 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 3 30)
+
+            create_new_datetime 2022 3 27 1 30 . add_work_days 0 . should_equal (Date_Time.new 2022 3 28 1 30)
+            create_new_datetime 2022 3 27 3 30 . add_work_days 1 . should_equal (Date_Time.new 2022 3 29 3 30)
+
+        Test.specify "should handle shifting dates around autumn DST edge cases" pending=dst_overlap_message <|
+            d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
+            d4 = d3 + (1.hour)
+
+            # TODO we need to check and document the actual behaviour once it is expressible, it may be equally acceptable to shift to 3:30 instead of 2:30.
+            d4 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 15 0 tz)
+
+        Test.specify "should allow to shift the date by negative amount of working days" <|
+            # 2000-2-1 is a Tuesday
+            create_new_datetime 2000 2 1 12 30 . add_work_days -1 . should_equal (Date_Time.new 2000 1 31 12 30)
+            create_new_datetime 2000 2 1 13 30 . add_work_days -2 . should_equal (Date_Time.new 2000 1 28 13 30)
+
+            # 2000-2-6 is a Sunday
+            create_new_datetime 2000 2 6 14 45 . add_work_days -1 . should_equal (Date_Time.new 2000 2 4 14 45)
+            create_new_datetime 2000 2 6 0 1 . add_work_days -2 . should_equal (Date_Time.new 2000 2 3 0 1)
+            create_new_datetime 2000 2 6 23 59 . add_work_days -6 . should_equal (Date_Time.new 2000 1 28 23 59)
+
+        Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
+            all_year_holiday year =
+                first_day = Date.new year 1 1
+                Vector.new first_day.length_of_year (n -> first_day + n.days)
+            holiday_november year =
+                [Date.new year 11 1, Date.new year 11 2, Date.new year 11 11]
+            # We duplicate the holiday entries to check that the functions are resilient to such input data.
+            duplicated_holiday_november year =
+                holiday_november year + holiday_november year + holiday_november year
+
+            # The whole year 1999 is skipped as it's marked as holiday, and 1st and 2nd of January of 2000 are a weekend.
+            create_new_datetime 1999 3 23 12 10 . add_work_days 0 (all_year_holiday 1999) . should_equal (Date_Time.new 2000 1 3 12 10)
+            create_new_datetime 1999 3 23 15 50 . add_work_days 1 (all_year_holiday 1999) . should_equal (Date_Time.new 2000 1 4 15 50)
+
+            # When going backwards, again whole 1999 is skipped and we wind back at Thursday 31 December 1998.
+            create_new_datetime 1999 3 23 22 40 . add_work_days -1 (all_year_holiday 1999) . should_equal (Date_Time.new 1998 12 31 22 40)
+
+            create_new_datetime 1999 10 30 11 30 . add_work_days 0 (holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 11 30)
+            create_new_datetime 1999 10 30 12 30 . add_work_days 1 (holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 12 30)
+            create_new_datetime 1999 10 30 23 59 . add_work_days -1 (holiday_november 1999) . should_equal (Date_Time.new 1999 10 29 23 59)
+            create_new_datetime 1999 10 30 14 40 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 14 40)
+            create_new_datetime 1999 10 30 15 50 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 15 50)
+
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =

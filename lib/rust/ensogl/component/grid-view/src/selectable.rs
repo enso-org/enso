@@ -207,7 +207,8 @@ where
 impl<E: Entry> GridView<E> {
     /// Create new Selectable Grid View instance.
     pub fn new(app: &Application) -> Self {
-        Self::new_wrapping(app, crate::GridView::<E>::new(app))
+        let grid = app.new_view::<crate::GridView<E>>();
+        Self::new_wrapping(app, grid)
     }
 }
 
