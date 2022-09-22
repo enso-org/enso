@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+polyglot java import java.time.DayOfWeek
+
 type Day_Of_Week
     Sunday
 
@@ -35,6 +37,17 @@ type Day_Of_Week
             (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
 
         shifted + if start_at_zero then 0 else 1
+
+    ## PRIVATE
+    to_java : DayOfWeek
+    to_java self = case self of
+        Sunday -> DayOfWeek.SUNDAY
+        Monday -> DayOfWeek.MONDAY
+        Tuesday -> DayOfWeek.TUESDAY
+        Wednesday -> DayOfWeek.WEDNESDAY
+        Thursday -> DayOfWeek.THURSDAY
+        Friday -> DayOfWeek.FRIDAY
+        Saturday -> DayOfWeek.SATURDAY
 
 ## Convert from an integer to a Day_Of_Week
 

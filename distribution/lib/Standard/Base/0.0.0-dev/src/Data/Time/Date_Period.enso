@@ -10,6 +10,7 @@ type Date_Period
     Year
     Quarter
     Month
+    Week (start_of_week:Day_Of_Week = Day_Of_Week.Monday)
 
     ## PRIVATE
        This method could be replaced with matching on `Date_Period` supertype
@@ -24,6 +25,7 @@ type Date_Period
             Year -> TemporalAdjusters.firstDayOfYear
             Quarter -> Date_Period_Utils.quarter_start
             Month -> TemporalAdjusters.firstDayOfMonth
+            Week start_of_week -> TemporalAdjusters.previousOrSame start_of_week.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
     ## PRIVATE
@@ -33,4 +35,5 @@ type Date_Period
             Year -> TemporalAdjusters.lastDayOfYear
             Quarter -> Date_Period_Utils.quarter_end
             Month -> TemporalAdjusters.lastDayOfMonth
+            Week start_of_week -> Date_Period_Utils.end_of_week start_of_week.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster

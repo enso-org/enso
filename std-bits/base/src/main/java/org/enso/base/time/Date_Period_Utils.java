@@ -1,5 +1,6 @@
 package org.enso.base.time;
 
+import java.time.DayOfWeek;
 import java.time.YearMonth;
 import java.time.temporal.*;
 
@@ -22,4 +23,8 @@ public class Date_Period_Utils implements TimeUtilsBase {
             .with(ChronoField.MONTH_OF_YEAR, month)
             .with(TemporalAdjusters.lastDayOfMonth());
       };
+
+  public static TemporalAdjuster end_of_week(DayOfWeek start_of_week) {
+      return (Temporal temporal) -> temporal.with(TemporalAdjusters.next(start_of_week)).minus(1, ChronoUnit.DAYS);
+  }
 }

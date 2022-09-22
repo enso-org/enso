@@ -511,8 +511,8 @@ week_days_between start end =
        starting point), the last week (containing the end point), and the full
        weeks in between those. In some cases there may be no weeks in-between
        and the first and last week can be the same week.
-    start_of_first_full_week = Time_Utils.start_of_next_week start
-    start_of_last_week = Time_Utils.start_of_week end
+    start_of_first_full_week = (start.start_of Date_Period.Week) + 7.days
+    start_of_last_week = end.start_of Date_Period.Week
     full_weeks_between = (Time_Utils.days_between start_of_first_full_week start_of_last_week).div 7
     case full_weeks_between < 0 of
         # Either start is before end or they both lie within the same week.
