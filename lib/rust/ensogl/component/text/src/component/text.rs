@@ -1138,7 +1138,74 @@ impl TextModel {
         self.redraw_sorted_line_ranges(view_line_ranges);
         self.update_selections();
     }
+
+    /// Attach glyphs to cursors if cursors are in edit mode.
+    pub fn attach_glyphs_to_cursors(&self) {
+        for line in ViewLine(0)..=self.buffer.last_view_line_index() {
+            self.attach_glyphs_to_cursors_for_line(line)
+        }
+    }
+
+    /// Attach glyphs to cursors if cursors are in edit mode.
+    fn attach_glyphs_to_cursors_for_line(&self, view_line: ViewLine) {
+        let cursor_map = self.selection_map.borrow().location_map.get(&view_line).cloned();
+        let cursor_map = cursor_map.unwrap_or_default();
+        let line = &self.lines.borrow()[view_line];
+
+        let mut attached_glyphs = vec![];
+        let mut last_cursor: Option<Selection> = None;
+        let mut last_cursor_target_x = default();
+
+        let mut column = Column(0);
+        for glyph in line {
+            cursor_map.get(&column).for_each(|id| {
+                if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
+                    if cursor.edit_mode().get() {
+                        if let Some(last_cursor) = &last_cursor {
+                            let attached_glyphs = Rc::new(mem::take(&mut attached_glyphs));
+                            last_cursor.set_attached_glyphs(attached_glyphs);
+                        }
+                        last_cursor = Some(cursor.clone_ref());
+                        last_cursor_target_x = glyph.position().x;
+                    }
+                }
+            });
+
+            if let Some(cursor) = &last_cursor {
+                cursor.right_side().add_child(glyph);
+                glyph.attached_to_cursor.set(true);
+                glyph.mod_position_x(|p| p - last_cursor_target_x);
+                attached_glyphs.push(glyph.downgrade());
+            }
+            column += Column(1);
+        }
+        if let Some(last_cursor) = &last_cursor {
+            last_cursor.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
+        } else if !attached_glyphs.is_empty() {
+            error!("Internal error. Cannot attach glyphs to cursors.");
+        }
+    }
+
+    /// Detach all glyphs from cursors and place them back in lines.
+    pub fn detach_glyphs_from_cursors(&self) {
+        let selection_map = self.selection_map.borrow();
+        for (&line, cursor_map) in &selection_map.location_map {
+            for (_, cursor_id) in cursor_map {
+                let selection = selection_map.id_map.get(cursor_id).unwrap();
+                for glyph in &*selection.set_attached_glyphs.value() {
+                    if let Some(glyph) = glyph.upgrade() {
+                        self.lines.borrow_mut()[line].add_child(&glyph);
+                        let pos_x = selection.position_target.value().x;
+                        glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                        glyph.attached_to_cursor.set(false);
+                    }
+                }
+                selection.set_attached_glyphs(Rc::new(vec![]));
+            }
+        }
+    }
 }
+
 
 
 // ===========================
@@ -1197,6 +1264,7 @@ impl TextModel {
         self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
     }
 
+    /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_ranges_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
@@ -1207,6 +1275,7 @@ impl TextModel {
         }
     }
 
+    /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_range_without_line_redraw(
         &self,
         range: buffer::Range<UBytes>,
@@ -1246,6 +1315,7 @@ impl TextModel {
         }
     }
 }
+
 
 
 // ===================================
@@ -1397,74 +1467,6 @@ impl TextModel {
     }
 
 
-
-    pub fn attach_glyphs_to_cursors(&self) {
-        for line in ViewLine(0)..=self.buffer.last_view_line_index() {
-            self.attach_line_glyphs_to_cursors(line)
-        }
-    }
-
-    fn attach_line_glyphs_to_cursors(&self, view_line_index: ViewLine) {
-        let cursor_map = self
-            .selection_map
-            .borrow()
-            .location_map
-            .get(&view_line_index)
-            .cloned()
-            .unwrap_or_default();
-        let line = &self.lines.borrow()[view_line_index];
-
-        let mut attached_glyphs = vec![];
-        let mut last_cursor: Option<Selection> = None;
-        let mut last_cursor_target = default();
-
-        let mut column = Column(0);
-        for glyph in line {
-            cursor_map.get(&column).for_each(|id| {
-                if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
-                    if cursor.edit_mode().get() {
-                        if let Some(last_cursor) = &last_cursor {
-                            last_cursor
-                                .set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
-                        }
-                        last_cursor = Some(cursor.clone_ref());
-                        last_cursor_target = Vector2(glyph.position().x, 0.0);
-                    }
-                }
-            });
-
-            if let Some(cursor) = &last_cursor {
-                cursor.right_side().add_child(glyph);
-                glyph.attached_to_cursor.set(true);
-                glyph.mod_position_xy(|p| p - last_cursor_target);
-                attached_glyphs.push(glyph.downgrade());
-            }
-            column += Column(1);
-        }
-        if let Some(last_cursor) = &last_cursor {
-            last_cursor.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
-        } else if !attached_glyphs.is_empty() {
-            panic!()
-        }
-    }
-
-    pub fn detach_glyphs_from_cursors(&self) {
-        let selection_map = self.selection_map.borrow();
-        for (&line, cursor_map) in &selection_map.location_map {
-            for (_, cursor_id) in cursor_map {
-                let selection = selection_map.id_map.get(cursor_id).unwrap();
-                for glyph in &*selection.set_attached_glyphs.value() {
-                    if let Some(glyph) = glyph.upgrade() {
-                        self.lines.borrow_mut()[line].add_child(&glyph);
-                        let pos_x = selection.position_target.value().x;
-                        glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
-                        glyph.attached_to_cursor.set(false);
-                    }
-                }
-                selection.set_attached_glyphs(Rc::new(vec![]));
-            }
-        }
-    }
 
     pub fn compute_width(&self) -> Option<f32> {
         if self.width_dirty.get() {
