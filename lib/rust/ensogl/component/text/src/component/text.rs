@@ -272,12 +272,13 @@ ensogl_core::define_endpoints_2! {
 // === Text ===
 // ============
 
-/// The visual text area implementation.
+/// The visual text area implementation. It is meant to be a generic rich text component which you
+/// should use everywhere you want to display text.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Text {
-    pub data: Rc<TextModel>,
     pub frp:  Rc<Frp>,
+    pub data: Rc<TextModel>,
 }
 
 impl Deref for Text {
@@ -569,25 +570,30 @@ impl Text {
 // === TextModel ===
 // =================
 
-/// Internal representation of `Text`.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct TextModel {
+    rc: Rc<TextModelData>,
+}
+
+/// Internal representation of `Text`.
+#[derive(Debug)]
+pub struct TextModelData {
     app:   Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
-    layer: Rc<CloneRefCell<display::scene::Layer>>,
+    layer: CloneRefCell<display::scene::Layer>,
 
     frp_network:    frp::Network,
     frp_out_get:    api::public::Output,
     frp_out_set:    api::private::Output,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    glyph_system:   Rc<RefCell<glyph::System>>,
+    glyph_system:   RefCell<glyph::System>,
     lines:          Lines,
-    single_line:    Rc<Cell<bool>>,
-    selection_map:  Rc<RefCell<SelectionMap>>,
-    width_dirty:    Rc<Cell<bool>>,
-    height_dirty:   Rc<Cell<bool>>,
+    single_line:    Cell<bool>,
+    selection_map:  RefCell<SelectionMap>,
+    width_dirty:    Cell<bool>,
+    height_dirty:   Cell<bool>,
 }
 
 impl TextModel {
@@ -607,11 +613,11 @@ impl TextModel {
         let glyph_system = {
             let glyph_system = font::glyph::System::new(&scene, font.clone());
             display_object.add_child(&glyph_system);
-            Rc::new(RefCell::new(glyph_system))
+            RefCell::new(glyph_system)
         };
         let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
         let single_line = default();
-        let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
+        let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
             &display_object,
@@ -632,7 +638,7 @@ impl TextModel {
         let frp_out_get = frp_out_get.clone_ref();
         let frp_out_set = frp_out_set.clone_ref();
 
-        Self {
+        let data = TextModelData {
             app,
             layer,
             frp_network,
@@ -646,8 +652,8 @@ impl TextModel {
             selection_map,
             width_dirty,
             height_dirty,
-        }
-        .init()
+        };
+        Self { rc: Rc::new(data) }.init()
     }
 
     #[profile(Debug)]
