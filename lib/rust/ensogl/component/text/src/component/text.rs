@@ -18,6 +18,7 @@ use crate::font::glyph::Glyph;
 
 use crate::buffer::view::FromInContext;
 use crate::buffer::view::IntoInContext;
+pub use crate::buffer::view::LocationLike;
 use crate::buffer::view::TryFromInContext;
 pub use crate::buffer::TextRange;
 use enso_frp as frp;
@@ -140,8 +141,14 @@ ensogl_core::define_endpoints_2! {
         delete_word_right(),
         /// Set the text cursor at the mouse cursor position.
         set_cursor_at_mouse_position(),
+        /// Set the text cursor at the front of text.
+        set_cursor_at_front(),
         /// Set the text cursor at the end of text.
         set_cursor_at_end(),
+        /// Add a new text cursor at the front of text.
+        add_cursor_at_front(),
+        /// Add a new text cursor at the end of text.
+        add_cursor_at_end(),
         /// Add a new cursor at the mouse cursor position.
         add_cursor_at_mouse_position(),
         /// Remove all cursors.
@@ -218,8 +225,8 @@ ensogl_core::define_endpoints_2! {
         single_line_mode(bool),
         set_hover(bool),
 
-        set_cursor            (Location),
-        add_cursor            (Location),
+        set_cursor            (LocationLike),
+        add_cursor            (LocationLike),
         paste_string          (String),
         insert                (String),
         set_property          (TextRange, Option<style::Property>),
@@ -234,12 +241,7 @@ ensogl_core::define_endpoints_2! {
         /// MSDF texture, etc.).
         set_font              (String),
         set_content           (String),
-        /// Set content, truncating the trailing characters on every line to fit a width in pixels
-        /// when rendered with current font and font size. The truncated substrings are replaced
-        /// with an ellipsis character ("…").
-        ///
-        /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
-        set_content_truncated (String, f32),
+
         set_first_view_line(unit::Line),
         mod_first_view_line(LineDiff),
         set_view_width(Option<f32>),
@@ -292,147 +294,228 @@ impl Text {
     }
 
     fn init(self) -> Self {
+        self.init_hover();
+        self.init_single_line_mode();
+        self.init_cursors();
+        self.init_selections();
+        self.init_copy_cut_paste();
+        self.init_edits();
+        self.init_rest()
+    }
+
+    fn init_hover(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let out = &self.frp.private.output;
+
+        frp::extend! { network
+            hovered <- bool(&input.unhover,&input.hover);
+            hovered <- any(&input.set_hover,&hovered);
+            out.hovered <+ hovered;
+            out.pointer_style <+ out.hovered.map(|h| h.then_or_default(|| cursor::Style::cursor()));
+        }
+    }
+
+    fn init_single_line_mode(&self) {
+        let m = &self.data;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        frp::extend! { network
+            eval input.single_line_mode((t) m.single_line_mode.set(*t));
+        }
+    }
+
+    fn init_cursors(&self) {
+        let m = &self.data;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let scene = &m.app.display.default_scene;
+        let mouse = &scene.mouse.frp;
+
+        frp::extend! { network
+
+            // === Setting Cursors ===
+
+            loc_on_set <- input.set_cursor.map(f!([m](t) Location::from_in_context(&m, *t)));
+            loc_on_add <- input.add_cursor.map(f!([m](t) Location::from_in_context(&m, *t)));
+
+            mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
+            mouse_on_add <- mouse.position.sample(&input.add_cursor_at_mouse_position);
+            loc_on_mouse_set <- mouse_on_set.map(f!((p) m.get_in_text_location(*p)));
+            loc_on_mouse_add <- mouse_on_add.map(f!((p) m.get_in_text_location(*p)));
+
+            loc_on_set_at_front <- input.set_cursor_at_front.map(f_!([] default()));
+            loc_on_set_at_end <- input.set_cursor_at_end.map(f_!(m.last_line_last_location()));
+            loc_on_add_at_front <- input.add_cursor_at_front.map(f_!([] default()));
+            loc_on_add_at_end <- input.add_cursor_at_end.map(f_!(m.last_line_last_location()));
+
+            loc_on_set <- any(loc_on_set,loc_on_mouse_set,loc_on_set_at_front,loc_on_set_at_end);
+            loc_on_add <- any(loc_on_add,loc_on_mouse_add,loc_on_add_at_front,loc_on_add_at_end);
+
+            eval loc_on_set ((loc) m.buffer.frp.set_cursor(loc));
+            eval loc_on_add ((loc) m.buffer.frp.add_cursor(loc));
+
+
+            // === Cursor Transformations ===
+
+            eval_ input.remove_all_cursors (m.buffer.frp.remove_all_cursors());
+
+            eval_ input.keep_first_selection_only (m.buffer.frp.keep_first_selection_only());
+            eval_ input.keep_last_selection_only (m.buffer.frp.keep_last_selection_only());
+            eval_ input.keep_first_cursor_only (m.buffer.frp.keep_first_cursor_only());
+            eval_ input.keep_last_cursor_only (m.buffer.frp.keep_last_cursor_only());
+
+            eval_ input.keep_newest_selection_only (m.buffer.frp.keep_newest_selection_only());
+            eval_ input.keep_oldest_selection_only (m.buffer.frp.keep_oldest_selection_only());
+            eval_ input.keep_newest_cursor_only (m.buffer.frp.keep_newest_cursor_only());
+            eval_ input.keep_oldest_cursor_only (m.buffer.frp.keep_oldest_cursor_only());
+
+            eval_ input.cursor_move_left (m.buffer.frp.cursors_move(Transform::Left));
+            eval_ input.cursor_move_right (m.buffer.frp.cursors_move(Transform::Right));
+            eval_ input.cursor_move_up (m.buffer.frp.cursors_move(Transform::Up));
+            eval_ input.cursor_move_down (m.buffer.frp.cursors_move(Transform::Down));
+
+            eval_ input.cursor_move_left_word (m.buffer.frp.cursors_move(Transform::LeftWord));
+            eval_ input.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
+
+            eval_ input.cursor_move_left_of_line (m.buffer.frp.cursors_move(Transform::LeftOfLine));
+            eval_ input.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
+
+            eval_ input.cursor_select_left (m.buffer.frp.cursors_select(Transform::Left));
+            eval_ input.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
+            eval_ input.cursor_select_up (m.buffer.frp.cursors_select(Transform::Up));
+            eval_ input.cursor_select_down (m.buffer.frp.cursors_select(Transform::Down));
+
+            eval_ input.cursor_select_left_word (m.buffer.frp.cursors_select(Transform::LeftWord));
+            eval_ input.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
+
+            eval_ input.select_all (m.buffer.frp.cursors_select(Transform::All));
+            eval_ input.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
+        }
+    }
+
+    fn init_selections(&self) {
+        let m = &self.data;
+        let scene = &m.app.display.default_scene;
+        let mouse = &scene.mouse.frp;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let frame_time = &scene.frp.frame_time;
+
+        frp::extend! { network
+            _eval <- m.buffer.frp.selection_edit_mode.map2(frame_time, f!([m](sels,time) {
+                m.on_modified_selection(&sels.selection_group, Some(&sels.changes),*time)
+            }));
+
+            _eval <- m.buffer.frp.selection_non_edit_mode.map2(frame_time, f!([m](sels,time) {
+                m.on_modified_selection(sels, None, *time)
+            }));
+
+            selecting <- bool
+                ( &input.stop_newest_selection_end_follow_mouse
+                , &input.start_newest_selection_end_follow_mouse
+            );
+
+            sel_end_1 <- mouse.position.gate(&selecting);
+            sel_end_2 <- mouse.position.sample(&input.set_newest_selection_end_to_mouse_position);
+            set_newest_selection_end <- any(&sel_end_1, &sel_end_2);
+            sel_end_pos <- set_newest_selection_end.map(f!((pos) m.get_in_text_location(*pos)));
+            m.buffer.frp.set_newest_selection_end <+ sel_end_pos;
+        }
+    }
+
+    fn init_copy_cut_paste(&self) {
+        let m = &self.data;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        frp::extend! { network
+
+            // === Copy ===
+
+            sels_on_copy <- input.copy.map(f_!(m.buffer.selections_contents()));
+            all_empty_sels_on_copy <- sels_on_copy.map(|s| s.iter().all(|t| t.is_empty()));
+            copy_whole_lines <- sels_on_copy.gate(&all_empty_sels_on_copy);
+            copy_regions_only <- sels_on_copy.gate_not(&all_empty_sels_on_copy);
+
+            eval_ copy_whole_lines (m.buffer.frp.cursors_select(Some(Transform::Line)));
+            sels_on_copy_whole_lines <- copy_whole_lines.map(f_!(m.buffer.selections_contents()));
+            sels_to_copy <- any(&sels_on_copy_whole_lines, &copy_regions_only);
+            eval sels_to_copy ((s) m.copy(s));
+
+            // === Cut ===
+
+            sels_on_cut <- input.cut.map(f_!(m.buffer.selections_contents()));
+            all_empty_sels_on_cut <- sels_on_cut.map(|s|s.iter().all(|t|t.is_empty()));
+            cut_whole_lines <- sels_on_cut.gate(&all_empty_sels_on_cut);
+            cut_regions_only <- sels_on_cut.gate_not(&all_empty_sels_on_cut);
+
+            eval_ cut_whole_lines (m.buffer.frp.cursors_select(Some(Transform::Line)));
+            sels_on_cut_whole_lines <- cut_whole_lines.map(f_!(m.buffer.selections_contents()));
+            sels_to_cut <- any(&sels_on_cut_whole_lines,&cut_regions_only);
+            eval sels_to_cut ((s) m.cut(s));
+            eval_ sels_to_cut (m.buffer.frp.delete_left());
+
+            // === Paste ===
+
+            let paste_string = input.paste_string.clone_ref();
+            eval_ input.paste ([] clipboard::read_text(f!((t) paste_string.emit(t))));
+            eval input.paste_string((s) m.paste_string(s));
+        }
+    }
+
+    fn init_edits(&self) {
+        let m = &self.data;
+        let scene = &m.app.display.default_scene;
+        let keyboard = &scene.keyboard;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        frp::extend! { network
+            eval_ input.delete_left (m.buffer.frp.delete_left());
+            eval_ input.delete_right (m.buffer.frp.delete_right());
+            eval_ input.delete_word_left (m.buffer.frp.delete_word_left());
+            eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
+
+            key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
+            key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
+            key_to_insert <= key_down.map(f!((key) m.key_to_string(key)));
+            str_to_insert <- any(&input.insert, &key_to_insert);
+            eval str_to_insert ((s) m.buffer.frp.insert(s));
+            eval input.set_content ((s) {
+                input.set_cursor(&default());
+                input.select_all();
+                input.insert(s);
+                input.remove_all_cursors();
+            });
+        }
+    }
+
+
+    fn init_rest(self) -> Self {
         let network = self.frp.network();
         let model = &self.data;
         let scene = &model.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
-        let out = &self.frp.private.output;
         let keyboard = &scene.keyboard;
+        let out = &self.frp.private.output;
         let m = &model;
-
         let after_animations = ensogl_core::animation::after_animations();
+        let frame_time = &scene.frp.frame_time;
+
         frp::extend! { network
 
-            // === Multi / Single Line ===
-
-            eval input.single_line_mode((t) m.single_line_mode.set(*t));
 
 
-            // === Hover ===
-
-            hover_events  <- bool(&input.unhover,&input.hover);
-            hovered       <- any(&input.set_hover,&hover_events);
-            out.hovered <+ hovered;
-
-
-            // === Pointer Style ===
-
-            pointer_style <- hovered.map(|hovered| {
-                if *hovered { cursor::Style::new_text_cursor() } else { cursor::Style::default() }
-            });
-            out.pointer_style <+ pointer_style;
-
-
-            // === Set / Add cursor ===
-
-            mouse_on_set_cursor      <- mouse.position.sample(&input.set_cursor_at_mouse_position);
-            mouse_on_add_cursor      <- mouse.position.sample(&input.add_cursor_at_mouse_position);
-            loc_on_set_cursor_mouse  <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
-            loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
-            // FIXME:
-            // loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
-            loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse);//,loc_on_set_cursor_at_end);
-            loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
-
-            eval loc_on_set_cursor ((loc) m.buffer.frp.set_cursor(loc));
-            eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
-
-            _eval <- m.buffer.frp.selection_edit_mode.map2
-                (&scene.frp.frame_time,f!([m](selections,time) {
-                        m.on_modified_selection(&selections.selection_group,Some(&selections.changes),*time)
-                    }
-            ));
-
-            _eval <- m.buffer.frp.selection_non_edit_mode.map2
-                (&scene.frp.frame_time,f!([m](selections,time) {
-                    m.on_modified_selection(selections,None,*time)
-                }
-            ));
-
-            selecting <- bool
-                ( &input.stop_newest_selection_end_follow_mouse
-                , &input.start_newest_selection_end_follow_mouse
-                );
-
-            set_sel_end_1 <- mouse.position.gate(&selecting);
-            set_sel_end_2 <- mouse.position.sample(&input.set_newest_selection_end_to_mouse_position);
-            set_newest_selection_end <- any(&set_sel_end_1,&set_sel_end_2);
-
-            eval set_newest_selection_end([m](screen_pos) {
-                let location = m.get_in_text_location(*screen_pos);
-                m.buffer.frp.set_newest_selection_end(location);
-            });
-
-
-            // === Copy / Cut / Paste ===
-
-            copy_sels      <- input.copy.map(f_!(m.buffer.selections_contents()));
-            all_empty_sels <- copy_sels.map(|s|s.iter().all(|t|t.is_empty()));
-            line_sel_mode  <- copy_sels.gate(&all_empty_sels);
-
-            eval_ line_sel_mode (m.buffer.frp.cursors_select(Some(Transform::Line)));
-            non_line_sel_mode_sels <- copy_sels.gate_not(&all_empty_sels);
-            line_sel_mode_sels     <- line_sel_mode.map(f_!(m.buffer.selections_contents()));
-            sels                   <- any(&line_sel_mode_sels,&non_line_sel_mode_sels);
-            eval sels ((s) m.copy(s));
-
-            cut_sels           <- input.cut.map(f_!(m.buffer.selections_contents()));
-            all_empty_sels_cut <- cut_sels.map(|s|s.iter().all(|t|t.is_empty()));
-            line_sel_mode_cut  <- cut_sels.gate(&all_empty_sels_cut);
-
-            eval_ line_sel_mode_cut (m.buffer.frp.cursors_select(Some(Transform::Line)));
-            non_line_sel_mode_cut_sels <- cut_sels.gate_not(&all_empty_sels_cut);
-            line_sel_mode_cut_sels     <- line_sel_mode_cut.map(f_!(m.buffer.selections_contents()));
-            sels_cut                   <- any(&line_sel_mode_cut_sels,&non_line_sel_mode_cut_sels);
-            eval sels_cut ((s) m.cut(s));
-            eval_ sels_cut (m.buffer.frp.delete_left());
-
-            // FIXME:
-            // eval_ input.paste (m.paste());
-            eval input.paste_string((s) m.paste_string(s));
 
 
             // eval_ m.buffer.frp.text_change (m.redraw(true));
 
-            eval_ input.remove_all_cursors (m.buffer.frp.remove_all_cursors());
 
-            eval_ input.keep_first_selection_only (m.buffer.frp.keep_first_selection_only());
-            eval_ input.keep_last_selection_only  (m.buffer.frp.keep_last_selection_only());
-            eval_ input.keep_first_cursor_only    (m.buffer.frp.keep_first_cursor_only());
-            eval_ input.keep_last_cursor_only     (m.buffer.frp.keep_last_cursor_only());
 
-            eval_ input.keep_newest_selection_only (m.buffer.frp.keep_newest_selection_only());
-            eval_ input.keep_oldest_selection_only (m.buffer.frp.keep_oldest_selection_only());
-            eval_ input.keep_newest_cursor_only    (m.buffer.frp.keep_newest_cursor_only());
-            eval_ input.keep_oldest_cursor_only    (m.buffer.frp.keep_oldest_cursor_only());
 
-            eval_ input.cursor_move_left  (m.buffer.frp.cursors_move(Transform::Left));
-            eval_ input.cursor_move_right (m.buffer.frp.cursors_move(Transform::Right));
-            eval_ input.cursor_move_up    (m.buffer.frp.cursors_move(Transform::Up));
-            eval_ input.cursor_move_down  (m.buffer.frp.cursors_move(Transform::Down));
-
-            eval_ input.cursor_move_left_word  (m.buffer.frp.cursors_move(Transform::LeftWord));
-            eval_ input.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
-
-            eval_ input.cursor_move_left_of_line  (m.buffer.frp.cursors_move(Transform::LeftOfLine));
-            eval_ input.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
-
-            eval_ input.cursor_select_left  (m.buffer.frp.cursors_select(Transform::Left));
-            eval_ input.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
-            eval_ input.cursor_select_up    (m.buffer.frp.cursors_select(Transform::Up));
-            eval_ input.cursor_select_down  (m.buffer.frp.cursors_select(Transform::Down));
-
-            eval_ input.cursor_select_left_word  (m.buffer.frp.cursors_select(Transform::LeftWord));
-            eval_ input.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
-
-            eval_ input.select_all            (m.buffer.frp.cursors_select(Transform::All));
-            eval_ input.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
-
-            eval_ input.delete_left       (m.buffer.frp.delete_left());
-            eval_ input.delete_right      (m.buffer.frp.delete_right());
-            eval_ input.delete_word_left  (m.buffer.frp.delete_word_left());
-            eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
             eval_ input.undo (m.buffer.frp.undo());
             eval_ input.redo (m.buffer.frp.redo());
@@ -440,19 +523,6 @@ impl Text {
 
             // === Insert ===
 
-            key_inserted  <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down).gate_not(&keyboard.frp.is_control_down);
-            key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
-            str_to_insert <- any(&input.insert, &key_to_insert);
-            eval str_to_insert ((s) m.buffer.frp.insert(s));
-            eval input.set_content ([input](s) {
-                input.set_cursor(&default());
-                input.select_all();
-                input.insert(s);
-                input.remove_all_cursors();
-            });
-            input.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
-                m.text_truncated_with_ellipsis(text.clone(), m.default_font_size(), *max_width_px)
-            }));
 
 
             // === Font ===
@@ -569,17 +639,14 @@ pub struct TextModel {
 }
 
 /// Internal representation of `Text`.
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 pub struct TextModelData {
-    app:   Application,
-    // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
-    //            be replaced with proper object management.
-    layer: CloneRefCell<display::scene::Layer>,
-
+    #[deref]
+    buffer:           buffer::View,
+    app:              Application,
     frp_network:      frp::Network,
     frp_out_get:      api::public::Output,
     frp_out_set:      api::private::Output,
-    buffer:           buffer::View,
     display_object:   display::object::Instance,
     glyph_system:     RefCell<glyph::System>,
     lines:            Lines,
@@ -587,6 +654,10 @@ pub struct TextModelData {
     selection_map:    RefCell<SelectionMap>,
     width_dirty:      Cell<bool>,
     height_dirty:     Cell<bool>,
+
+    // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
+    //            be replaced with proper object management.
+    layer: CloneRefCell<display::scene::Layer>,
 }
 
 impl TextModel {
@@ -1461,78 +1532,6 @@ impl TextModel {
         } else {
             None
         }
-    }
-
-    // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
-    /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
-    /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
-    /// character appended, or `content` if not truncated.
-    ///
-    /// The truncation point is chosen such that the resulting string with ellipsis will fit in
-    /// `max_width_px` if possible. The `line` must not contain newline characters.
-    fn line_truncated_with_ellipsis(
-        &self,
-        line: &str,
-        _font_size: style::Size,
-        _max_width_px: f32,
-    ) -> String {
-        // const ELLIPSIS: char = '\u{2026}';
-        // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        // let mut truncation_point = 0.ubytes();
-        // let truncate = line.char_indices().any(|(i, ch)| {
-        //     let char_info = pen::CharInfo::new(ch, font_size.value);
-        //     let pen_info = pen.advance(Some(char_info));
-        //     let next_width = pen_info.offset + char_info.size;
-        //     if next_width > max_width_px {
-        //         return true;
-        //     }
-        //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.value).size;
-        //     let char_length: UBytes = ch.len_utf8().into();
-        //     if next_width + width_of_ellipsis <= max_width_px {
-        //         truncation_point = UBytes::from(i) + char_length;
-        //     }
-        //     false
-        // });
-        // if truncate {
-        //     let truncated_content = line[..truncation_point.as_usize()].to_string();
-        //     truncated_content + String::from(ELLIPSIS).as_str()
-        // } else {
-        //     line.to_string()
-        // }
-        line.to_string()
-    }
-
-    /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
-    /// rendered using the current font at `font_size`. Return `text` with every truncated
-    /// substring replaced with an ellipsis character ("…").
-    ///
-    /// The truncation point of every line is chosen such that the truncated string with ellipsis
-    /// will fit in `max_width_px` if possible. Unix (`\n`) and MS-DOS (`\r\n`) style line endings
-    /// are recognized and preserved in the returned string.
-    fn text_truncated_with_ellipsis(
-        &self,
-        text: String,
-        font_size: style::Size,
-        max_width_px: f32,
-    ) -> String {
-        let lines = text.split_inclusive('\n');
-        /// Return the length of a trailing Unix (`\n`) or MS-DOS (`\r\n`) style line ending in
-        /// `s`, or 0 if not found.
-        fn length_of_trailing_line_ending(s: &str) -> usize {
-            if s.ends_with("\r\n") {
-                2
-            } else if s.ends_with('\n') {
-                1
-            } else {
-                0
-            }
-        }
-        let tuples_of_lines_and_endings =
-            lines.map(|line| line.split_at(line.len() - length_of_trailing_line_ending(line)));
-        let lines_truncated_with_ellipsis = tuples_of_lines_and_endings.map(|(line, ending)| {
-            self.line_truncated_with_ellipsis(line, font_size, max_width_px) + ending
-        });
-        lines_truncated_with_ellipsis.collect()
     }
 
     fn default_font_size(&self) -> style::Size {

@@ -124,13 +124,13 @@ macro_rules! alias {
 /// Clones all arguments from the first argument list by using `CloneRef` and defines lambda with
 /// arguments from the second argument list (if present). For example, the following usage
 ///
-/// ```compile_fail
+/// ```text
 /// f! { (a,b)(c) a + b + c }
 /// ```
 ///
 /// is equivalent to:
 ///
-/// ```compile_fail
+/// ```text
 /// {
 ///     let a = a.clone_ref();
 ///     let b = b.clone_ref();

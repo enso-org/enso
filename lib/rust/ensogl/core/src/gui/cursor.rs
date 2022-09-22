@@ -91,7 +91,7 @@ impl Style {
         Self { press, ..default() }
     }
 
-    pub fn new_text_cursor() -> Self {
+    pub fn cursor() -> Self {
         let size = Vector2::new(3.0, DEFAULT_SIZE().y);
         let size = Some(StyleValue::new(size));
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));

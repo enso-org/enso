@@ -21,6 +21,7 @@
 #![warn(unsafe_code)]
 #![recursion_limit = "256"]
 
+mod bool;
 #[cfg(feature = "futures")]
 pub mod channel;
 mod collections;
@@ -50,6 +51,7 @@ mod tp;
 mod vec;
 mod wrapper;
 
+pub use crate::bool::*;
 #[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
