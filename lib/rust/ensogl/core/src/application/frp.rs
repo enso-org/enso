@@ -573,6 +573,7 @@ pub trait API {
 /// pub struct Frp {
 ///     public: api::Public,
 ///     private: Rc<api::Private>,
+///     network: frp::Network,
 /// }
 ///
 /// pub mod api {
@@ -632,7 +633,6 @@ pub trait API {
 ///
 ///     #[derive(Debug)]
 ///     pub struct Private {
-///         pub network: frp::Network,
 ///         pub input: private::Input,
 ///         pub output: private::Output,
 ///     }
@@ -1187,18 +1187,16 @@ macro_rules! define_endpoints_2_normalized_private {
         // No Clone. We do not want `network` to be cloned easily in the future.
         #[derive(Debug)]
         pub struct Private $($ctx)* {
-            pub network: $crate::frp::Network,
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
         }
 
         impl $($ctx)* Private $($param)* {
             pub fn new(
-                network: $crate::frp::Network,
                 input: private::Input $($param)*,
                 output: private::Output $($param)*
             ) -> Self {
-                Self {network, input, output}
+                Self {input, output}
             }
         }
 
@@ -1283,6 +1281,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                 // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
                 // be able to hold the `api::Private` directly..
                 private: Rc<api::Private $($param)*>,
+                network: $crate::frp::Network,
             }
 
              impl $($ctx)* Frp $($param)* {
@@ -1295,8 +1294,8 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
                     let combined = api::public::Combined::new(&pub_input,&pub_output);
                     let public = api::Public::new(pub_input, pub_output, combined);
-                    let private = Rc::new(api::Private::new(network, priv_input, priv_output));
-                    Self {public,private}
+                    let private = Rc::new(api::Private::new(priv_input, priv_output));
+                    Self { public, private, network }
                 }
             }
 
@@ -1312,7 +1311,8 @@ macro_rules! define_endpoints_2_normalized_glue {
                 fn clone(&self) -> Self {
                     let public = self.public.clone();
                     let private = self.private.clone();
-                    Self {public,private}
+                    let network = self.network.clone();
+                    Self { public, private, network }
                 }
             }
 
@@ -1326,7 +1326,7 @@ macro_rules! define_endpoints_2_normalized_glue {
             impl $($ctx)*
             $crate::application::command::FrpNetworkProvider for Frp $($param)*  {
                 fn network(&self) -> &$crate::frp::Network {
-                    &self.private.network
+                    &self.network
                 }
             }
 
