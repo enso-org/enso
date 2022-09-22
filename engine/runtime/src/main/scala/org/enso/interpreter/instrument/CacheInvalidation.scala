@@ -114,9 +114,10 @@ object CacheInvalidation {
     */
   def runAll(
     stack: Iterable[InstrumentFrame],
-    instructions: Iterable[CacheInvalidation]
+    instructions: Iterable[CacheInvalidation],
+    invalidatedKeys: java.util.Set[UUID]
   ): Unit =
-    instructions.foreach(run(stack, _))
+    instructions.foreach(run(stack, _, invalidatedKeys))
 
   /** Run a sequence of invalidation instructions on all visualisations.
     *
@@ -157,13 +158,14 @@ object CacheInvalidation {
     */
   def run(
     stack: Iterable[InstrumentFrame],
-    instruction: CacheInvalidation
+    instruction: CacheInvalidation,
+    invalidatedKeys: java.util.Set[UUID]
   ): Unit = {
     val frames = instruction.elements match {
       case StackSelector.All => stack
       case StackSelector.Top => stack.headOption.toSeq
     }
-    run(frames, instruction.command, instruction.indexes)
+    run(frames, instruction.command, instruction.indexes, invalidatedKeys)
   }
 
   /** Run cache invalidation of a multiple instrument frames.
@@ -175,9 +177,12 @@ object CacheInvalidation {
   private def run(
     frames: Iterable[InstrumentFrame],
     command: Command,
-    indexes: Set[IndexSelector]
+    indexes: Set[IndexSelector],
+    invalidatedKeys: java.util.Set[UUID]
   ): Unit = {
-    frames.foreach(frame => run(frame.cache, frame.syncState, command, indexes))
+    frames.foreach(frame =>
+      run(frame.cache, frame.syncState, command, indexes, invalidatedKeys)
+    )
   }
 
   /** Run cache invalidation of a single instrument frame.
@@ -221,21 +226,25 @@ object CacheInvalidation {
     cache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     command: Command,
-    indexes: Set[IndexSelector]
+    indexes: Set[IndexSelector],
+    invalidatedKeys: java.util.Set[UUID]
   ): Unit =
     command match {
       case Command.InvalidateAll =>
+        invalidatedKeys.addAll(cache.getKeys)
         cache.clear()
         indexes.foreach(clearIndex(_, cache))
       case Command.InvalidateKeys(keys) =>
         keys.foreach { key =>
           cache.remove(key)
+          invalidatedKeys.add(key)
           indexes.foreach(clearIndexKey(key, _, cache))
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
           cache.remove(key)
+          invalidatedKeys.add(key)
           indexes.foreach(clearIndexKey(key, _, cache))
           syncState.invalidate(key)
         }

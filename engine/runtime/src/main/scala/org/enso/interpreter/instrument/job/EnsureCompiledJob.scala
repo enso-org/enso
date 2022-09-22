@@ -45,7 +45,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
     try {
       val compilationResult = ensureCompiledFiles(files)
-      setCacheWeights()
+      setCacheWeights(new java.util.HashSet[java.util.UUID]())
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -305,16 +305,39 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         changeset,
         module.getSource.getCharacters
       )
+    val invalidatedKeys = new java.util.HashSet[java.util.UUID]();
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
-          CacheInvalidation.runAll(stack, invalidationCommands)
+          CacheInvalidation.runAll(stack, invalidationCommands, invalidatedKeys)
         }
       }
     CacheInvalidation.runAllVisualisations(
       ctx.contextManager.getVisualisations(module.getName),
       invalidationCommands
     )
+
+    val invalidatedKeysScala = invalidatedKeys.asScala.toSet
+    ctx.contextManager.getAllContexts.keys
+      .foreach { contextId =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExpressionUpdates(
+              contextId,
+              invalidatedKeysScala.map { key =>
+                Api.ExpressionUpdate(
+                  key,
+                  None,
+                  None,
+                  Vector.empty,
+                  true,
+                  Api.ExpressionUpdate.Payload.Panic("pending...", Seq(key))
+                )
+              }
+            )
+          )
+        )
+      }
 
     val invalidatedVisualisations =
       ctx.contextManager.getInvalidatedVisualisations(
@@ -371,7 +394,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     else
       CompilationStatus.Success
 
-  private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
+  private def setCacheWeights(
+    invalidatedKeys: java.util.Set[java.util.UUID]
+  )(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAllContexts.values.foreach { stack =>
       getCacheMetadata(stack).foreach { metadata =>
         CacheInvalidation.run(
@@ -379,7 +404,8 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
           CacheInvalidation(
             CacheInvalidation.StackSelector.Top,
             CacheInvalidation.Command.SetMetadata(metadata)
-          )
+          ),
+          invalidatedKeys
         )
       }
     }
