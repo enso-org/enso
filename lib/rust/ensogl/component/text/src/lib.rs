@@ -26,6 +26,16 @@
 #![feature(allocator_api)]
 
 
+
+// ==============
+// === Consts ===
+// ==============
+
+/// If set to true, animations will be running slow. This is useful for debugging purposes.
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+
+
+
 // ==============
 // === Export ===
 // ==============

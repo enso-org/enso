@@ -194,6 +194,9 @@ fn init(app: Application) {
     // TODO: remove line shape cache from ofscreen for lines without cursors
 
 
+    // FIXME: bug - second line longer, arrow up, multiple arrows left needed!
+
+
     // area.set_cursor_at_end();
     //
     // area.set_format_option(

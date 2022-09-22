@@ -48,7 +48,7 @@ pub struct Animation<T: mix::Mixable + frp::Data> {
     pub set_drag:   frp::Any<inertia::Drag>,
     pub value:      frp::Stream<T>,
     pub on_end:     frp::Stream<()>,
-    simulator:      AnimationSimulator<T>,
+    pub simulator:  AnimationSimulator<T>,
 }
 
 #[allow(missing_docs)]

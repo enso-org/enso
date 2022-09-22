@@ -108,6 +108,33 @@ impl Lines {
             line
         })
     }
+
+    /// Get the coordinates of the provided locations. Please note that this function works properly
+    /// only for single-line locations. Multi-line location computation is not implemented yet.
+    pub fn coordinates(
+        &self,
+        start_location: ViewLocation,
+        end_location: ViewLocation,
+    ) -> (f32, f32, f32) {
+        if start_location.line != end_location.line {
+            warn!(
+                "Trying to compute coordinates for multi-line location. This is not supported yet."
+            );
+        }
+        let get_pos_x = |location: ViewLocation| {
+            let lines = self.borrow();
+            if location.line > self.last_line_index() {
+                *lines.last().divs.last()
+            } else {
+                lines[location.line].div_by_column(location.offset)
+            }
+        };
+
+        let start_x = get_pos_x(start_location);
+        let end_x = get_pos_x(end_location);
+        let y = self.borrow()[start_location.line].baseline();
+        (start_x, end_x, y)
+    }
 }
 
 impl From<LinesVec> for Lines {
@@ -763,6 +790,22 @@ impl TextModel {
 // =============================
 
 impl TextModel {
+    /// Apply the changes to the text buffer and update the lines.
+    #[profile(Debug)]
+    fn on_modified_selection(
+        &self,
+        buffer_selections: &buffer::selection::Group,
+        changes: Option<&[buffer::ChangeWithSelection]>,
+        time: f32,
+    ) {
+        let do_edit = changes.is_some();
+        self.update_lines_after_change(changes);
+        self.replace_selections(do_edit, buffer_selections, Some(time));
+        if do_edit {
+            self.attach_glyphs_to_cursors();
+        }
+    }
+
     /// Implementation of lazy line redrawing. After a change, only the needed lines are redrawn.
     /// If a change produced more lines than the current number of lines, the new lines are inserted
     /// in appropriate positions. If a change produces fewer lines than the current number of lines,
@@ -835,69 +878,44 @@ impl TextModel {
                     .collect_vec();
 
                 let lines_to_redraw = std_ext::range::merge_overlapping_ranges(&lines_to_redraw);
-                let lines_to_redraw = lines_to_redraw.collect_vec();
-
-                self.redraw_sorted_line_ranges(&lines_to_redraw);
+                self.redraw_sorted_line_ranges(lines_to_redraw);
             }
         })
     }
 
-    #[profile(Debug)]
-    fn on_modified_selection(
-        &self,
-        buffer_selections: &buffer::selection::Group,
-        changes: Option<&[buffer::ChangeWithSelection]>,
-        time: f32,
-    ) {
-        let do_edit = changes.is_some();
-        self.update_lines_after_change(changes);
-        self.replace_selections(buffer_selections, do_edit, Some(time));
-        if do_edit {
-            self.attach_glyphs_to_cursors();
-        }
-        // self.redraw(true)
-    }
-
+    /// Update selection positions. This is needed e.g. if the selected glyph size changed.
     fn update_selections(&self) {
         let buffer_selections = self.buffer.selections();
-        self.replace_selections(&buffer_selections, false, None);
+        self.replace_selections(false, &buffer_selections, None);
     }
 
+    /// Replace selections with new ones.
     fn replace_selections(
         &self,
-        buffer_selections: &buffer::selection::Group,
         do_edit: bool,
-        time: Option<f32>,
+        buffer_selections: &buffer::selection::Group,
+        reset_animations_to_time: Option<f32>,
     ) {
-        let mut selection_map = self.selection_map.borrow_mut();
-
         let mut new_selection_map = SelectionMap::default();
-
         for buffer_selection in buffer_selections {
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
             let id = buffer_selection.id;
-            let selection_start_line = self.buffer.line_to_view_line(buffer_selection.start.line);
-            let selection_end_line = self.buffer.line_to_view_line(buffer_selection.end.line);
-            let get_pos_x = |line: unit::ViewLine, column: Column| {
-                if line > self.lines.last_line_index() {
-                    *self.lines.borrow().last().divs.last()
-                } else {
-                    self.lines.borrow()[line].div_by_column(column)
-                }
-            };
-
-            let start_x = get_pos_x(selection_start_line, buffer_selection.start.offset);
-            let end_x = get_pos_x(selection_end_line, buffer_selection.end.offset);
-            let selection_y = self.lines.borrow()[selection_start_line].baseline();
-            let pos = Vector2(start_x, selection_y);
+            let selection_start_line = ViewLine::from_in_context(self, buffer_selection.start.line);
+            let selection_end_line = ViewLine::from_in_context(self, buffer_selection.end.line);
+            let start_location = Location(selection_start_line, buffer_selection.start.offset);
+            let end_location = Location(selection_end_line, buffer_selection.end.offset);
+            let (start_x, end_x, y) = self.lines.coordinates(start_location, end_location);
+            let pos = Vector2(start_x, y);
             let width = end_x - start_x;
             let metrics = self.lines.borrow()[selection_start_line].metrics();
-            let selection = match selection_map.id_map.remove(&id) {
+            let opt_selection = self.selection_map.borrow_mut().id_map.remove(&id);
+            let selection = match opt_selection {
                 Some(selection) => {
-                    let select_left = selection.width.simulator.target_value() < 0.0;
-                    let select_right = selection.width.simulator.target_value() > 0.0;
-                    let tgt_pos_x = selection.position.simulator.target_value().x;
-                    let tgt_width = selection.width.simulator.target_value();
+                    let selection_width_target = selection.width_target.value();
+                    let select_left = selection_width_target < 0.0;
+                    let select_right = selection_width_target > 0.0;
+                    let tgt_pos_x = selection.position_target.value().x;
+                    let tgt_width = selection_width_target;
                     let mid_point = tgt_pos_x + tgt_width / 2.0;
                     let go_left = pos.x < mid_point;
                     let go_right = pos.x > mid_point;
@@ -905,33 +923,33 @@ impl TextModel {
                     if width == 0.0 && need_flip {
                         selection.flip_sides()
                     }
-                    selection.position.set_target_value(pos);
-                    selection.frp.set_ascender(metrics.ascender);
-                    selection.frp.set_descender(metrics.descender);
+                    selection.set_position_target(pos);
+                    selection.set_ascender(metrics.ascender);
+                    selection.set_descender(metrics.descender);
                     selection
                 }
                 None => {
                     let selection = Selection::new(do_edit);
                     if let Some(network) = self.frp.network.upgrade() {
                         frp::extend! { network
-                            self.frp.private.output.refresh_width <+_ selection.frp.right_side_of_last_attached_glyph;
-                            self.frp.private.output.refresh_height <+_ selection.frp.position;
+                            self.frp.private.output.refresh_height <+_ selection.position;
+                            self.frp.private.output.refresh_width <+_
+                                selection.right_side_of_last_attached_glyph;
                         }
                     }
                     self.add_child(&selection);
-                    selection.letter_width.set(7.0); // FIXME hardcoded values
-                    selection.position.set_target_value(pos);
-                    selection.frp.set_ascender(metrics.ascender);
-                    selection.frp.set_descender(metrics.descender);
-                    selection.position.skip();
-                    selection.frp.set_color.emit(self.frp.output.selection_color.value());
+                    selection.set_position_target(pos);
+                    selection.set_ascender(metrics.ascender);
+                    selection.set_descender(metrics.descender);
+                    selection.skip_position_animation();
+                    selection.set_color(self.frp.output.selection_color.value());
                     selection
                 }
             };
-            selection.width.set_target_value(width);
-            selection.edit_mode.set(do_edit);
-            if let Some(time) = time {
-                selection.start_time.set(time);
+            selection.set_width(width);
+            selection.edit_mode().set(do_edit);
+            if let Some(time) = reset_animations_to_time {
+                // selection.reset_animations_to_time(time);
             }
             new_selection_map.id_map.insert(id, selection);
             new_selection_map
@@ -940,7 +958,7 @@ impl TextModel {
                 .or_default()
                 .insert(buffer_selection.start.offset, id);
         }
-        *selection_map = new_selection_map;
+        *self.selection_map.borrow_mut() = new_selection_map;
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -1004,7 +1022,10 @@ impl TextModel {
         Some(line_index)
     }
 
-    fn position_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+    fn position_sorted_line_ranges(
+        &self,
+        sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
+    ) {
         let mut first_ok_line_index2 = None;
         let mut line_index_to_position = ViewLine(0);
         for range in sorted_line_ranges {
@@ -1033,10 +1054,13 @@ impl TextModel {
         }
     }
 
-    fn redraw_sorted_line_ranges(&self, sorted_line_ranges: &[RangeInclusive<ViewLine>]) {
+    fn redraw_sorted_line_ranges(
+        &self,
+        sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
+    ) {
         self.resize_lines();
         self.width_dirty.set(true);
-        for range in sorted_line_ranges {
+        let sorted_line_ranges = sorted_line_ranges.map(|range| {
             let lines_content = self.buffer.lines_content(range.clone());
             for (index, line) in range.clone().into_iter().enumerate() {
                 /// FIXME: this strange getting to the content is because when removing whole line
@@ -1045,7 +1069,8 @@ impl TextModel {
                     if index < lines_content.len() { &lines_content[index] } else { "" };
                 self.redraw_line(line, content);
             }
-        }
+            range
+        });
         self.position_sorted_line_ranges(sorted_line_ranges);
     }
 
@@ -1060,7 +1085,7 @@ impl TextModel {
         // FIXME:
         let end =
             ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line()).unwrap();
-        self.redraw_sorted_line_ranges(&[ViewLine(0)..=end]);
+        self.redraw_sorted_line_ranges(std::iter::once(ViewLine(0)..=end));
         self.update_selections();
     }
 
@@ -1282,22 +1307,19 @@ impl TextModel {
         &self,
         ranges: impl IntoIterator<Item = buffer::Range<UBytes>>,
     ) {
-        let view_line_ranges = ranges
-            .into_iter()
-            .map(|range| {
-                let range = buffer::Range::<Location>::from_in_context(self, range);
-                let line_range = range.start.line..=range.end.line;
-                let view_line_start = self.buffer.line_to_view_line(range.start.line);
-                let view_line_end = self.buffer.line_to_view_line(range.end.line);
-                let view_line_range = view_line_start..=view_line_end;
-                for line_index in line_range {
-                    self.buffer.shaped_lines.borrow_mut().remove(&line_index);
-                }
-                view_line_range
-            })
-            .collect_vec();
+        let view_line_ranges = ranges.into_iter().map(|range| {
+            let range = buffer::Range::<Location>::from_in_context(self, range);
+            let line_range = range.start.line..=range.end.line;
+            let view_line_start = self.buffer.line_to_view_line(range.start.line);
+            let view_line_end = self.buffer.line_to_view_line(range.end.line);
+            let view_line_range = view_line_start..=view_line_end;
+            for line_index in line_range {
+                self.buffer.shaped_lines.borrow_mut().remove(&line_index);
+            }
+            view_line_range
+        });
 
-        self.redraw_sorted_line_ranges(&view_line_ranges);
+        self.redraw_sorted_line_ranges(view_line_ranges);
         // Adjust selection sizes after glyphs redrawing.
         self.update_selections();
     }
@@ -1415,10 +1437,9 @@ impl TextModel {
         for glyph in line {
             cursor_map.get(&column).for_each(|id| {
                 if let Some(cursor) = self.selection_map.borrow().id_map.get(id) {
-                    if cursor.edit_mode.get() {
+                    if cursor.edit_mode().get() {
                         if let Some(last_cursor) = &last_cursor {
                             last_cursor
-                                .frp
                                 .set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
                         }
                         last_cursor = Some(cursor.clone_ref());
@@ -1428,7 +1449,7 @@ impl TextModel {
             });
 
             if let Some(cursor) = &last_cursor {
-                cursor.right_side.add_child(glyph);
+                cursor.right_side().add_child(glyph);
                 glyph.attached_to_cursor.set(true);
                 glyph.mod_position_xy(|p| p - last_cursor_target);
                 attached_glyphs.push(glyph.downgrade());
@@ -1436,7 +1457,7 @@ impl TextModel {
             column += Column(1);
         }
         if let Some(last_cursor) = &last_cursor {
-            last_cursor.frp.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
+            last_cursor.set_attached_glyphs(Rc::new(mem::take(&mut attached_glyphs)));
         } else if !attached_glyphs.is_empty() {
             panic!()
         }
@@ -1447,15 +1468,15 @@ impl TextModel {
         for (&line, cursor_map) in &selection_map.location_map {
             for (_, cursor_id) in cursor_map {
                 let selection = selection_map.id_map.get(cursor_id).unwrap();
-                for glyph in &*selection.frp.set_attached_glyphs.value() {
+                for glyph in &*selection.set_attached_glyphs.value() {
                     if let Some(glyph) = glyph.upgrade() {
                         self.lines.borrow_mut()[line].add_child(&glyph);
-                        let pos_x = selection.position.target_value().x;
+                        let pos_x = selection.position_target.value().x;
                         glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                         glyph.attached_to_cursor.set(false);
                     }
                 }
-                selection.frp.set_attached_glyphs(Rc::new(vec![]));
+                selection.set_attached_glyphs(Rc::new(vec![]));
             }
         }
     }
@@ -1481,7 +1502,7 @@ impl TextModel {
             }
             let selection_map = self.selection_map.borrow();
             for selection in selection_map.id_map.values() {
-                let width = selection.frp.right_side_of_last_attached_glyph.value();
+                let width = selection.right_side_of_last_attached_glyph.value();
                 if width > max_width {
                     max_width = width;
                 }
@@ -1501,7 +1522,7 @@ impl TextModel {
             for (view_line, map) in &selection_map.location_map {
                 for selection_id in map.values() {
                     let selection = selection_map.id_map.get(selection_id).unwrap();
-                    let baseline = selection.frp.position.value().y;
+                    let baseline = selection.position.value().y;
                     let height =
                         -baseline - self.lines.borrow()[*view_line].metrics.value().descender;
                     if height > max_height {
