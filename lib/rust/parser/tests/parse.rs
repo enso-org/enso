@@ -773,6 +773,7 @@ fn inline_text_literals() {
              #((Section "String with ") (Escape '\"') (Section " escape")))]),
         (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
          (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
+        (r#"('\n')"#, block![(Group (TextLiteral #((Escape '\n'))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }

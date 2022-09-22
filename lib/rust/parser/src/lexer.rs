@@ -1014,7 +1014,6 @@ impl<'s> Lexer<'s> {
                 token::Variant::TextEscape(token::variant::TextEscape(value)),
             );
             self.output.push(token);
-            self.take_next();
             escape_end
         }
     }
