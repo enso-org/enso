@@ -38,6 +38,15 @@ impl Bytes {
     pub fn as_usize(self) -> usize {
         self.value.max(0) as usize
     }
+
+    pub fn as_ubytes(self) -> UBytes {
+        if self.value < 0 {
+            warn!("Trying to convert negative Bytes to UBytes.");
+            UBytes(0)
+        } else {
+            UBytes(self.value as usize)
+        }
+    }
 }
 
 impl<T: Into<Bytes>> bytes::Into for Range<T> {

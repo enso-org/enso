@@ -11,6 +11,7 @@ use crate::buffer::Buffer;
 
 use crate::font;
 use crate::font::Font;
+use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
 use enso_frp as frp;
 use enso_text::text::BoundsError;
@@ -139,6 +140,16 @@ pub struct ShapedGlyph {
     pub position:    rustybuzz::GlyphPosition,
     pub info:        rustybuzz::GlyphInfo,
     pub render_info: GlyphRenderInfo,
+}
+
+impl ShapedGlyph {
+    pub fn cluster(&self) -> UBytes {
+        UBytes(self.info.cluster as usize)
+    }
+
+    pub fn id(&self) -> GlyphId {
+        GlyphId(self.info.glyph_id as u16)
+    }
 }
 
 #[derive(Debug)]

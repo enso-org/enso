@@ -10,6 +10,7 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
+use enso_frp::stream::ValueProvider;
 use enso_text::CodePointIndex;
 use enso_text::UBytes;
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -26,6 +27,9 @@ use ensogl_core::system::gpu::texture;
 use ensogl_core::Animation;
 use font::Font;
 use font::GlyphRenderInfo;
+use font::Style;
+use font::Weight;
+use font::Width;
 use owned_ttf_parser::GlyphId;
 
 
@@ -123,6 +127,13 @@ macro_rules! define_prop_setters_and_getters {
                 self.refresh(); // FIXME do it via dirty flag
             }
 
+            #[doc = "Gets the current `"]
+            #[doc = stringify!($prop)]
+            #[doc = "` property value.`"]
+            pub fn [<$prop:snake:lower>](&self) -> font::$prop {
+                self.properties.get().[<$prop:snake:lower>]
+            }
+
             $(
                 #[doc = "Set the `"]
                 #[doc = stringify!($prop)]
@@ -146,6 +157,25 @@ macro_rules! define_prop_setters_and_getters {
     }};
 }
 
+macro_rules! define_formatting_setters_and_mods {
+    ($($name:ident : $tp:ty),* $(,)?) => {
+        paste! {
+            pub fn set_property(&self, property: ResolvedProperty) {
+                match property {
+                    $(ResolvedProperty::[<$name:camel>](t) => self.[<set_ $name:snake:lower>](t)),*
+                }
+            }
+
+            $(
+                pub fn [<mod_ $name:snake:lower>](&self, f:impl FnOnce($tp) -> $tp) {
+                    self.[<set_ $name:snake:lower>](f(self.[<$name:snake:lower>]()))
+                }
+            )*
+        }
+    };
+}
+
+
 impl Glyph {
     define_prop_setters_and_getters![
         Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
@@ -163,32 +193,18 @@ impl Glyph {
         )
     ];
 
-    pub fn set_property(&self, property: ResolvedProperty) {
-        match property {
-            ResolvedProperty::Size(size) => self.set_size(size),
-            ResolvedProperty::Color(color) => self.set_color(color),
-            ResolvedProperty::Weight(weight) => self.set_weight(weight),
-            ResolvedProperty::Width(width) => self.set_width(width),
-            ResolvedProperty::Style(style) => self.set_style(style),
-            // ResolvedProperty::Underline(t) => self.set_underline(t),
-            ResolvedProperty::SdfWeight(weight) => self.set_sdf_weight(weight),
-            _ => panic!(),
-        }
-    }
+    crate::with_format_definition! {define_formatting_setters_and_mods}
 
-    pub fn width(&self) -> f32 {
-        self.sprite.size.get().x
-    }
 
     /// Color getter.
-    pub fn color(&self) -> Rgba {
-        self.color.get().into()
+    pub fn color(&self) -> color::Lcha {
+        self.set_color.value()
     }
 
     /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
     /// values lower than 0 makes it thinner.
-    pub fn sdf_weight(&self) -> f32 {
-        self.sdf_weight.get()
+    pub fn sdf_weight(&self) -> SdfWeight {
+        SdfWeight(self.sdf_weight.get())
     }
 
     /// SDF-based glyph thickness getter.
@@ -197,8 +213,8 @@ impl Glyph {
     }
 
     /// Size getter.
-    pub fn size(&self) -> f32 {
-        self.size.get()
+    pub fn size(&self) -> Size {
+        Size(self.size.get())
     }
 
     /// Size setter.
@@ -237,7 +253,7 @@ impl Glyph {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
             let size = self.size();
-            self.sprite.size.set(glyph_info.scale.scale(size));
+            self.sprite.size.set(glyph_info.scale.scale(size.value));
         } else {
             // FIXME[WD]: This should display a bad character. https://www.pivotaltracker.com/story/show/182746060
             panic!()

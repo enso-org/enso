@@ -277,6 +277,13 @@ impl View {
         Self { frp, display_object, glyphs, divs, centers, truncation, baseline_anim }
     }
 
+    pub fn get_or_create(&mut self, column: Column, cons: impl Fn() -> Glyph) -> &Glyph {
+        if column >= Column(self.glyphs.len()) {
+            self.push_glyph(cons());
+        }
+        &self.glyphs[column]
+    }
+
     /// Set the truncation of the line to the specified size.
     pub fn set_truncated(&mut self, size: Option<style::Size>) {
         if let Some(size) = size {
@@ -344,10 +351,8 @@ impl View {
     }
 
     /// Add a new glyph to this line.
-    pub fn push_glyph(&mut self, cons: impl Fn() -> Glyph) {
-        let display_object = self.display_object().clone_ref();
-        let glyph = cons();
-        display_object.add_child(&glyph);
+    pub fn push_glyph(&mut self, glyph: Glyph) {
+        self.add_child(&glyph);
         self.glyphs.push(glyph);
     }
 }

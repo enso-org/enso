@@ -376,8 +376,8 @@ impl Text {
 
             mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
             mouse_on_add <- mouse.position.sample(&input.add_cursor_at_mouse_position);
-            loc_on_mouse_set <- mouse_on_set.map(f!((p) m.get_in_text_location(*p)));
-            loc_on_mouse_add <- mouse_on_add.map(f!((p) m.get_in_text_location(*p)));
+            loc_on_mouse_set <- mouse_on_set.map(f!((p) m.screen_to_text_location(*p)));
+            loc_on_mouse_add <- mouse_on_add.map(f!((p) m.screen_to_text_location(*p)));
 
             loc_on_set_at_front <- input.set_cursor_at_front.map(f_!([] default()));
             loc_on_set_at_end <- input.set_cursor_at_end.map(f_!(m.last_line_last_location()));
@@ -453,7 +453,7 @@ impl Text {
             sel_end_1 <- mouse.position.gate(&selecting);
             sel_end_2 <- mouse.position.sample(&input.set_newest_selection_end_to_mouse_position);
             set_newest_selection_end <- any(&sel_end_1, &sel_end_2);
-            sel_end_pos <- set_newest_selection_end.map(f!((pos) m.get_in_text_location(*pos)));
+            sel_end_pos <- set_newest_selection_end.map(f!((pos) m.screen_to_text_location(*pos)));
             m.buffer.frp.set_newest_selection_end <+ sel_end_pos;
         }
     }
@@ -575,11 +575,11 @@ impl Text {
 
             new_prop <- input.set_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
             m.buffer.frp.set_property <+ new_prop;
-            eval new_prop ((t) m.set_property(&t.0, t.1));
+            eval new_prop ([m](t) t.1.map(|p| m.set_property(&t.0, p)));
 
             mod_prop <- input.mod_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
             m.buffer.frp.mod_property <+ mod_prop;
-            eval mod_prop ((t) m.mod_property(&t.0, t.1));
+            eval mod_prop ([m](t) t.1.map(|p| m.mod_property(&t.0, p)));
         }
     }
 
@@ -628,8 +628,8 @@ impl Text {
     //     2. The `self.data.layer` currently needs to be stored for two main purposes:
     //        - so that the [`set_font`] function can add newly created Glyphs to a layer to make
     //          them visible;
-    //        - to provide a way to convert the screen to object space (see the [`to_object_space`]
-    //          function).
+    //        - to provide a way to convert the screen to object space (see the
+    //          [`screen_to_object_space`] function).
     //        This is a very temporary solution, as any object can be assigned to more than one
     //        scene layer. Screen / object space location of events should thus become much more
     //        primitive information / mechanisms. Please note, that this function handles the
@@ -777,6 +777,49 @@ impl TextModel {
         let lines_vec = LinesVec::singleton(self.new_line());
         let old_lines_vec = mem::replace(&mut *self.lines.borrow_mut(), lines_vec);
         old_lines_vec.into()
+    }
+}
+
+
+
+// =============================================
+// === Screen - Text Coordinates Conversions ===
+// =============================================
+
+impl TextModel {
+    /// Transforms screen position to the object (display object) coordinate system.
+    fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
+        let camera = self.layer.get().camera();
+        let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
+        let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
+        let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
+
+        let shape = self.app.display.default_scene.frp.shape.value();
+        let clip_space_z = origin_clip_space.z;
+        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
+        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+        let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
+        let world_space = camera.inversed_view_projection_matrix() * clip_space;
+        (inv_object_matrix * world_space).xy()
+    }
+
+    /// Transform screen position to in-text location.
+    fn screen_to_text_location(&self, screen_pos: Vector2) -> Location {
+        let object_space = self.screen_to_object_space(screen_pos);
+        let mut view_line = ViewLine(0);
+        let lines = self.lines.borrow();
+        for line in &*lines {
+            if line.baseline() + line.metrics().descender < object_space.y {
+                break;
+            }
+            view_line += ViewLine(1);
+        }
+        let view_line = std::cmp::min(view_line, self.lines.last_line_index());
+        let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
+        let line = Line::from_in_context(self, view_line);
+        let column = Column(div_index);
+        let out = Location(line, column);
+        out
     }
 }
 
@@ -932,97 +975,23 @@ impl TextModel {
         *self.selection_map.borrow_mut() = new_selection_map;
     }
 
-    /// Transforms screen position to the object (display object) coordinate system.
-    fn to_object_space(&self, screen_pos: Vector2) -> Vector2 {
-        let camera = self.layer.get().camera();
-        let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
-        let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
-
-        let shape = self.app.display.default_scene.frp.shape.value();
-        let clip_space_z = origin_clip_space.z;
-        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
-        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
-        let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
-        let world_space = camera.inversed_view_projection_matrix() * clip_space;
-        (inv_object_matrix * world_space).xy()
+    /// Resize lines vector to contain the required lines count.
+    fn resize_lines(&self) {
+        let line_count = self.buffer.view_line_count();
+        self.lines.resize_with(line_count, |ix| self.new_line());
     }
 
-    /// Transform screen position to in-text location.
-    fn get_in_text_location(&self, screen_pos: Vector2) -> Location {
-        let object_space = self.to_object_space(screen_pos);
-        let mut view_line = ViewLine(0);
-        let lines = self.lines.borrow();
-        for line in &*lines {
-            if line.baseline() + line.metrics().descender < object_space.y {
-                break;
-            }
-            view_line += ViewLine(1);
-        }
-        let view_line = std::cmp::min(view_line, self.lines.last_line_index());
-        let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
-        let line = Line::from_in_context(self, view_line);
-        let column = Column(div_index);
-        let out = Location(line, column);
-        out
+    /// Redraw all the text. This function should be used only when necessary as it is very costly.
+    #[profile(Debug)]
+    pub fn redraw(&self) {
+        let end = ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line());
+        // FIXME: Unwrap used here. To be fixed when view area will be implemented properly.
+        let end = end.unwrap();
+        self.redraw_sorted_line_ranges(std::iter::once(ViewLine(0)..=end));
+        self.update_selections();
     }
 
-    // Update the lines y-axis position starting with the provided line index. Results the first
-    // well postioned line or the next line after the last visible line.
-    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> ViewLine {
-        let last_line_index = self.lines.last_line_index();
-        let lines = self.lines.borrow();
-        while line_index <= last_line_index {
-            let line = &lines[line_index];
-            let current_pos_y = line.baseline();
-            let new_baseline = if line_index == ViewLine(0) {
-                -line.metrics().ascender
-            } else {
-                let prev_line_index = ViewLine(line_index.value - 1);
-                let prev_line = &lines[prev_line_index];
-                let offset =
-                    prev_line.metrics().descender - line.metrics().ascender - line.metrics().gap;
-                prev_line.baseline() + offset
-            };
-            let new_baseline = new_baseline.round();
-            if current_pos_y == new_baseline {
-                break;
-            }
-            line.set_baseline(new_baseline);
-            line_index += ViewLine(1);
-        }
-        line_index
-    }
-
-    /// Position all lines in the provided line range. The range has to be sorted.
-    fn position_sorted_line_ranges(
-        &self,
-        sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
-    ) {
-        let mut first_ok_line_index = None;
-        let mut line_index_to_position = ViewLine(0);
-        for range in sorted_line_ranges {
-            line_index_to_position = match first_ok_line_index {
-                None => *range.start(),
-                Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
-            };
-            // We are positioning one more line, because if a line is removed, the last redraw line
-            // index can be placed in the previous line, that was already well positioned. The next
-            // line has to be updated.
-            let range_end = *range.end() + ViewLine(1);
-            if line_index_to_position <= range_end {
-                loop {
-                    let ok_line_index = self.position_lines_starting_with(line_index_to_position);
-                    first_ok_line_index = Some(ok_line_index);
-                    if ok_line_index >= range_end {
-                        break;
-                    }
-                    line_index_to_position = ok_line_index + ViewLine(1);
-                }
-            }
-        }
-    }
-
+    /// Redraw the given line ranges.
     fn redraw_sorted_line_ranges(
         &self,
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
@@ -1030,115 +999,56 @@ impl TextModel {
         self.resize_lines();
         self.width_dirty.set(true);
         let sorted_line_ranges = sorted_line_ranges.map(|range| {
-            let lines_content = self.buffer.lines_content(range.clone());
-            for (index, line) in range.clone().into_iter().enumerate() {
-                /// FIXME: this strange getting to the content is because when removing whole line
-                /// the content is []. To be checked why.
-                let content: &str =
-                    if index < lines_content.len() { &lines_content[index] } else { "" };
-                self.redraw_line(line, content);
+            for line in range.clone() {
+                self.redraw_line(line);
             }
             range
         });
         self.position_sorted_line_ranges(sorted_line_ranges);
     }
 
-    pub fn resize_lines(&self) {
-        let line_count = self.buffer.view_line_count();
-        self.lines.resize_with(line_count, |ix| self.new_line());
-    }
-
-    /// Redraw the text.
-    #[profile(Debug)]
-    pub fn redraw(&self) {
-        // FIXME:
-        let end =
-            ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line()).unwrap();
-        self.redraw_sorted_line_ranges(std::iter::once(ViewLine(0)..=end));
-        self.update_selections();
-    }
-
-    pub fn chunks_per_font_face<'a>(
-        font: &'a font::Font,
-        line_style: &'a style::Formatting,
-        content: &'a str,
-    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
-        gen_iter!(move {
-            match font {
-                font::Font::NonVariable(_) =>
-                // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
-                    for a in line_style.chunks_per_font_face(content) {
-                        yield a;
-                    }
-                font::Font::Variable(_) => {
-                    let range = UBytes(0)..UBytes(content.len());
-                    // For variable fonts, we do not care about non-variable variations.
-                    let non_variable_variations = font::NonVariableFaceHeader::default();
-                    yield (range, non_variable_variations);
-                }
-            }
-        })
-    }
-
-    fn redraw_line(&self, view_line_index: ViewLine, content: &str) {
-        let cursor_map = self
-            .selection_map
-            .borrow()
-            .location_map
-            .get(&view_line_index)
-            .cloned()
-            .unwrap_or_default();
-        let line = &mut self.lines.borrow_mut()[view_line_index];
-        let line_object = line.display_object().clone_ref();
-        let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-
-        let line_style = self.buffer.sub_style(line_range.start..line_range.end);
-
-        let glyph_system = self.glyph_system.borrow();
-
-        let mut divs = NonEmptyVec::singleton(0.0);
-        let font = &glyph_system.font;
-        let mut line_style_iter = line_style.iter();
-        let mut glyph_offset_x = 0.0;
+    /// Redraw the line. This will re-position all line glyphs.
+    fn redraw_line(&self, view_line: ViewLine) {
+        let line = &mut self.lines.borrow_mut()[view_line];
+        let default_divs = || NonEmptyVec::singleton(0.0);
+        let mut divs = default_divs();
         let mut column = Column(0);
-        let line_index = self.buffer.view_line_to_line(view_line_index);
-
-        let mut prev_cluster_byte_off = UBytes(0);
-
-        let view_width = self.frp.output.view_width.value();
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.borrow().size.default;
-        let ellipsis_width = line::TruncationSize::from(default_size).width_with_text_offset();
-
+        let line_index = Line::from_in_context(self, view_line);
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
-                crate::buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
-                    let mut line_metrics: Option<line::Metrics> = None;
+                buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
+                    let glyph_system = self.glyph_system.borrow();
+                    let view_width = self.frp.output.view_width.value();
+                    let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line);
+                    let line_style = self.buffer.sub_style(line_range.start..line_range.end);
+                    let mut line_style_iter = line_style.iter();
+                    let mut glyph_offset_x = 0.0;
+                    let mut prev_cluster_byte_off = UBytes(0);
+                    let truncation_size = line::TruncationSize::from(default_size);
+                    let ellipsis_width = truncation_size.width_with_text_offset();
+                    let mut line_metrics = None;
                     for shaped_glyph_set in glyph_sets {
                         if truncated {
                             break;
                         }
                         for shaped_glyph in &shaped_glyph_set.glyphs {
-                            let glyph_byte_start = UBytes(shaped_glyph.info.cluster as usize);
-                            let cluster_diff =
-                                glyph_byte_start.saturating_sub(prev_cluster_byte_off);
+                            let glyph_byte_start = shaped_glyph.cluster();
                             // Drop styles assigned to skipped bytes. One byte will be skipped
                             // during the call to `line_style_iter.next()`.
-                            line_style_iter.drop(cluster_diff.saturating_sub(UBytes(1)));
+                            let cluster_diff = glyph_byte_start - prev_cluster_byte_off - Bytes(1);
+                            let cluster_diff = UBytes::try_from(cluster_diff).unwrap_or_default();
+                            line_style_iter.drop(cluster_diff);
                             let style = line_style_iter.next().unwrap_or_default();
                             prev_cluster_byte_off = glyph_byte_start;
 
-
-                            let size = style.size;
-                            let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
-
-                            let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
-                            let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
-                            let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
-                            let x_advance =
-                                shaped_glyph.position.x_advance as f32 / rustybuzz_scale;
-
+                            let scale = shaped_glyph_set.units_per_em as f32 / style.size.value;
+                            let ascender = shaped_glyph_set.ascender as f32 / scale;
+                            let descender = shaped_glyph_set.descender as f32 / scale;
+                            let gap = shaped_glyph_set.line_gap as f32 / scale;
+                            let x_advance = shaped_glyph.position.x_advance as f32 / scale;
                             let glyph_rhs = glyph_offset_x + x_advance;
 
                             if let Some(view_width) = view_width {
@@ -1148,57 +1058,45 @@ impl TextModel {
                                 } else if glyph_rhs > view_width - ellipsis_width {
                                     to_be_truncated += 1;
                                 }
-                            }
+                            };
 
-                            if column >= Column(line.glyphs.len()) {
-                                line.push_glyph(|| glyph_system.new_glyph());
-                            }
-                            let glyph = &line.glyphs[column];
+                            let glyph = &line.get_or_create(column, || glyph_system.new_glyph());
                             glyph.start_byte_offset.set(glyph_byte_start);
 
                             let glyph_line_metrics = line::Metrics { ascender, descender, gap };
                             line_metrics = line_metrics.concat(Some(glyph_line_metrics));
 
-                            let glyph_id = font::GlyphId(shaped_glyph.info.glyph_id as u16);
+                            let render_info = &shaped_glyph.render_info;
+                            let glyph_render_offset = render_info.offset.scale(style.size.value);
                             glyph.set_color(style.color);
                             glyph.set_sdf_weight(style.sdf_weight.value);
-                            glyph.set_size(size);
+                            glyph.set_size(style.size);
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);
-                            glyph.set_glyph_id(glyph_id);
-
-                            let variable_variations = glyph.variations.borrow();
-
-                            let glyph_render_offset =
-                                shaped_glyph.render_info.offset.scale(size.value);
+                            glyph.set_glyph_id(shaped_glyph.id());
+                            glyph.x_advance.set(x_advance);
                             glyph.sprite.set_position_xy(glyph_render_offset);
                             glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
-
-                            glyph.x_advance.set(x_advance);
                             glyph_offset_x += x_advance;
                             divs.push(glyph_offset_x);
-
-                            line_object.add_child(glyph);
-
                             column += Column(1);
                         }
                     }
-                    // This is safe, as the line was proven to be non-empty.
-                    line.set_metrics(line_metrics.unwrap());
+                    if let Some(line_metrics) = line_metrics {
+                        line.set_metrics(line_metrics);
+                    } else {
+                        warn!("Internal error. Line metrics was not computed.")
+                    }
                 }
-                crate::buffer::view::ShapedLine::Empty { prev_glyph_info } => {
+                buffer::view::ShapedLine::Empty { prev_glyph_info } => {
                     if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
                         let line_style = self.buffer.sub_style(*offset..);
                         let mut line_style_iter = line_style.iter();
                         let style = line_style_iter.next().unwrap_or_default();
-
-                        let size = style.size;
-                        let rustybuzz_scale = shaped_glyph_set.units_per_em as f32 / size.value;
-
-                        let ascender = shaped_glyph_set.ascender as f32 / rustybuzz_scale;
-                        let descender = shaped_glyph_set.descender as f32 / rustybuzz_scale;
-                        let gap = shaped_glyph_set.line_gap as f32 / rustybuzz_scale;
-
+                        let scale = shaped_glyph_set.units_per_em as f32 / style.size.value;
+                        let ascender = shaped_glyph_set.ascender as f32 / scale;
+                        let descender = shaped_glyph_set.descender as f32 / scale;
+                        let gap = shaped_glyph_set.line_gap as f32 / scale;
                         let metrics = line::Metrics { ascender, descender, gap };
                         line.set_metrics(metrics);
                     }
@@ -1208,7 +1106,7 @@ impl TextModel {
 
         if truncated {
             let divs = (&divs[0..divs.len() - to_be_truncated]).to_vec();
-            let divs = NonEmptyVec::try_from(divs).unwrap_or_else(|_| NonEmptyVec::singleton(0.0));
+            let divs = NonEmptyVec::try_from(divs).unwrap_or_else(|_| default_divs());
             line.set_divs(divs);
             line.glyphs.truncate(column.value - to_be_truncated);
             line.set_truncated(Some(default_size));
@@ -1219,81 +1117,37 @@ impl TextModel {
         }
     }
 
-    fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
-        let range = self.buffer.full_range();
-        let formatting = self.buffer.sub_style(range);
-        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
-        for span_range in span_ranges {
-            let range = buffer::Range::<Location>::from_in_context(self, span_range);
-            let mut lines = self.lines.borrow_mut();
-
-            if range.single_line() {
-                let view_line = self.buffer.line_to_view_line(range.start.line);
-                let line = &mut lines[view_line];
-                for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
-                    glyph.set_property(property);
-                }
-            } else {
-                let view_line = self.buffer.line_to_view_line(range.start.line);
-                let first_line = &mut lines[view_line];
-                for glyph in &mut first_line.glyphs[range.start.offset..] {
-                    glyph.set_property(property);
-                }
-                let view_line = self.buffer.line_to_view_line(range.end.line);
-                let last_line = &mut lines[view_line];
-                for glyph in &mut last_line.glyphs[..range.end.offset] {
-                    glyph.set_property(property);
-                }
-                for line_index in range.start.line.value + 1..range.end.line.value {
-                    let view_line = self.buffer.line_to_view_line(Line(line_index));
-                    let line = &mut lines[view_line];
-                    for glyph in &mut line.glyphs[..] {
-                        glyph.set_property(property);
-                    }
-                }
-            }
-        }
-    }
-
-    fn set_property_default_with_line_redraw(&self, property: style::ResolvedProperty) {
-        let range = self.buffer.full_range();
-        let formatting = self.buffer.sub_style(range);
-        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
-        self.clear_cache_and_redraw_lines(span_ranges);
-    }
-
-    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
-        if let Some(property) = property {
-            if Self::property_change_requires_line_redraw(property) {
-                self.set_property_default_with_line_redraw(property)
-            } else {
-                self.set_property_default_without_line_redraw(property)
-            }
-        }
-    }
-
-    pub fn clear_cache_and_redraw_lines(
+    /// Clear shaped lines cache and redraw lines in the provided range. Clearing the cache is
+    /// required when the line needs to be re-shaped, for example, after setting a glyph to a bold
+    /// style or changing glyph size.
+    pub fn clear_cache_and_redraw_sorted_line_ranges(
         &self,
         ranges: impl IntoIterator<Item = buffer::Range<UBytes>>,
     ) {
         let view_line_ranges = ranges.into_iter().map(|range| {
             let range = buffer::Range::<Location>::from_in_context(self, range);
             let line_range = range.start.line..=range.end.line;
-            let view_line_start = self.buffer.line_to_view_line(range.start.line);
-            let view_line_end = self.buffer.line_to_view_line(range.end.line);
-            let view_line_range = view_line_start..=view_line_end;
             for line_index in line_range {
                 self.buffer.shaped_lines.borrow_mut().remove(&line_index);
             }
-            view_line_range
+            let view_line_start = ViewLine::from_in_context(self, range.start.line);
+            let view_line_end = ViewLine::from_in_context(self, range.end.line);
+            view_line_start..=view_line_end
         });
-
         self.redraw_sorted_line_ranges(view_line_ranges);
-        // Adjust selection sizes after glyphs redrawing.
         self.update_selections();
     }
+}
 
-    fn property_change_requires_line_redraw(property: impl Into<style::PropertyTag>) -> bool {
+
+// ===========================
+// === Property Management ===
+// ===========================
+
+impl TextModel {
+    /// Check whether the property change will invalidate the cache, and thus, will require line
+    /// re-shaping and re-drawing.
+    fn property_change_invalidates_cache(property: impl Into<style::PropertyTag>) -> bool {
         let tag = property.into();
         match tag {
             style::PropertyTag::Size => true,
@@ -1305,30 +1159,18 @@ impl TextModel {
         }
     }
 
-    pub fn set_property(
-        &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
-        property: Option<style::Property>,
-    ) {
-        if let Some(property) = property {
-            if Self::property_change_requires_line_redraw(property) {
-                self.clear_cache_and_redraw_lines(ranges.iter().copied())
-            } else {
-                self.set_glyphs_property(ranges, property)
-            }
+    pub fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
+        if Self::property_change_invalidates_cache(property) {
+            self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
+        } else {
+            self.set_glyphs_property(ranges, property)
         }
     }
 
-    pub fn mod_property(
-        &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
-        property: Option<style::PropertyDiff>,
-    ) {
-        if let Some(property) = property {
-            match property {
-                style::PropertyDiff::Size(_) =>
-                    self.clear_cache_and_redraw_lines(ranges.iter().copied()),
-            }
+    pub fn mod_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::PropertyDiff) {
+        match property {
+            style::PropertyDiff::Size(_) =>
+                self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied()),
         }
     }
 
@@ -1381,6 +1223,158 @@ impl TextModel {
             }
         }
     }
+}
+
+
+// ===================================
+// === Default Property Management ===
+// ===================================
+
+impl TextModel {
+    /// Change a default value of a property.
+    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
+        if let Some(property) = property {
+            if Self::property_change_invalidates_cache(property) {
+                self.set_property_default_with_line_redraw(property)
+            } else {
+                self.set_property_default_without_line_redraw(property)
+            }
+        }
+    }
+
+    /// Change a default value of a property that requires line redraw, like changing the default
+    /// glyph weight or size.
+    fn set_property_default_with_line_redraw(&self, property: style::ResolvedProperty) {
+        let range = self.buffer.full_range();
+        let formatting = self.buffer.sub_style(range);
+        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
+        self.clear_cache_and_redraw_sorted_line_ranges(span_ranges);
+    }
+
+    /// Change a default value of a property  that does not require line redraw, like changing the
+    /// default glyph color.
+    fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
+        let range = self.buffer.full_range();
+        let formatting = self.buffer.sub_style(range);
+        let span_ranges = formatting.span_ranges_of_default_values(property.tag());
+        for span_range in span_ranges {
+            let range = buffer::Range::<Location>::from_in_context(self, span_range);
+            let mut lines = self.lines.borrow_mut();
+            if range.single_line() {
+                let view_line = ViewLine::from_in_context(self, range.start.line);
+                let line = &mut lines[view_line];
+                for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
+                    glyph.set_property(property);
+                }
+            } else {
+                let view_line = ViewLine::from_in_context(self, range.start.line);
+                let first_line = &mut lines[view_line];
+                for glyph in &mut first_line.glyphs[range.start.offset..] {
+                    glyph.set_property(property);
+                }
+                let view_line = ViewLine::from_in_context(self, range.end.line);
+                let last_line = &mut lines[view_line];
+                for glyph in &mut last_line.glyphs[..range.end.offset] {
+                    glyph.set_property(property);
+                }
+                for line_index in range.start.line.value + 1..range.end.line.value {
+                    let view_line = ViewLine::from_in_context(self, Line(line_index));
+                    let line = &mut lines[view_line];
+                    for glyph in &mut line.glyphs[..] {
+                        glyph.set_property(property);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+// ========================
+// === Line Positioning ===
+// ========================
+
+impl TextModel {
+    // Update the lines y-axis position starting with the provided line index. Results the first
+    // well positioned line or the next line after the last visible line.
+    fn position_lines_starting_with(&self, mut line_index: ViewLine) -> ViewLine {
+        let last_line_index = self.lines.last_line_index();
+        let lines = self.lines.borrow();
+        while line_index <= last_line_index {
+            let line = &lines[line_index];
+            let current_pos_y = line.baseline();
+            let ascender = -line.metrics().ascender;
+            let new_baseline = if line_index == ViewLine(0) {
+                ascender
+            } else {
+                let prev_line_index = ViewLine(line_index.value - 1);
+                let prev_line = &lines[prev_line_index];
+                let offset = prev_line.metrics().descender + ascender - line.metrics().gap;
+                prev_line.baseline() + offset
+            };
+            let new_baseline = new_baseline.round();
+            if current_pos_y == new_baseline {
+                break;
+            }
+            line.set_baseline(new_baseline);
+            line_index += ViewLine(1);
+        }
+        line_index
+    }
+
+    /// Position all lines in the provided line range. The range has to be sorted.
+    fn position_sorted_line_ranges(
+        &self,
+        sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
+    ) {
+        let mut first_ok_line_index = None;
+        let mut line_index_to_position = ViewLine(0);
+        for range in sorted_line_ranges {
+            line_index_to_position = match first_ok_line_index {
+                None => *range.start(),
+                Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
+            };
+            // We are positioning one more line, because if a line is removed, the last redraw line
+            // index can be placed in the previous line, that was already well positioned. The next
+            // line has to be updated.
+            let range_end = *range.end() + ViewLine(1);
+            if line_index_to_position <= range_end {
+                loop {
+                    let ok_line_index = self.position_lines_starting_with(line_index_to_position);
+                    first_ok_line_index = Some(ok_line_index);
+                    if ok_line_index >= range_end {
+                        break;
+                    }
+                    line_index_to_position = ok_line_index + ViewLine(1);
+                }
+            }
+        }
+    }
+
+    pub fn chunks_per_font_face<'a>(
+        font: &'a font::Font,
+        line_style: &'a style::Formatting,
+        content: &'a str,
+    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
+        gen_iter!(move {
+            match font {
+                font::Font::NonVariable(_) =>
+                // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
+                    for a in line_style.chunks_per_font_face(content) {
+                        yield a;
+                    }
+                font::Font::Variable(_) => {
+                    let range = UBytes(0)..UBytes(content.len());
+                    // For variable fonts, we do not care about non-variable variations.
+                    let non_variable_variations = font::NonVariableFaceHeader::default();
+                    yield (range, non_variable_variations);
+                }
+            }
+        })
+    }
+
+
 
     pub fn attach_glyphs_to_cursors(&self) {
         for line in ViewLine(0)..=self.buffer.last_view_line_index() {

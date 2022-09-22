@@ -329,15 +329,33 @@ impl<T: Copy> DerefMut for Spanned<T> {
 // === Formatting ===
 // =============
 
+#[macro_export]
+macro_rules! with_format_definition {
+    ($macro_name:ident) => {
+        $macro_name! {
+            size       : Size,
+            color      : color::Lcha,
+            weight     : Weight,
+            width      : Width,
+            style      : Style,
+            sdf_weight : SdfWeight,
+        }
+    };
+}
+
+with_format_definition! { define_format }
 
 
-define_format! {
-    size       : Size,
-    color      : color::Rgba,
-    weight     : Weight,
-    width      : Width,
-    style      : Style,
-    sdf_weight : SdfWeight,
+impl From<color::Rgba> for Property {
+    fn from(t: color::Rgba) -> Self {
+        Property::Color(Some(t.into()))
+    }
+}
+
+impl From<color::Rgba> for ResolvedProperty {
+    fn from(t: color::Rgba) -> Self {
+        ResolvedProperty::Color(t.into())
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

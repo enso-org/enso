@@ -727,8 +727,8 @@ impl TextCell {
     pub fn lines_vec(&self, range: std::ops::Range<UBytes>) -> Vec<String> {
         let rope_range = range.start.value..range.end.value;
         let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
-        let missing_last = lines.len() == self.last_line_index().value;
-        if missing_last {
+        if lines.len() == 0 {
+            // Rope returns `[]` if the line is empty.
             lines.push("".into())
         }
         lines
