@@ -66,7 +66,7 @@ pub struct HeaderModel {
 pub struct EntryModel {
     pub caption:     ImString,
     pub highlighted: Rc<Vec<text::Range<text::Bytes>>>,
-    pub icon:        Option<icon::Id>,
+    pub icon:        icon::Id,
 }
 
 ensogl_core::define_endpoints_2! {
@@ -79,7 +79,7 @@ ensogl_core::define_endpoints_2! {
     Output {
         active(ElementId),
         model_for_header_needed(GroupId),
-        model_for_entry_needed(EntryModel),
+        model_for_entry_needed(GroupEntryId),
         suggestion_accepted(GroupEntryId),
         expression_accepted(GroupEntryId),
         module_entered(ElementId),

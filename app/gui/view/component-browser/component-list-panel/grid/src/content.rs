@@ -49,14 +49,25 @@ pub struct ElementId {
     pub element: ElementInGroup,
 }
 
+impl ElementId {
+    /// Convert to GroupEntryId if the element is an entry
+    pub fn as_entry_id(self) -> Option<GroupEntryId> {
+        let Self { group, element } = self;
+        match element {
+            ElementInGroup::Entry(entry) => Some(GroupEntryId { group, entry }),
+            _ => None,
+        }
+    }
+}
+
 /// An identifier of Component Entry in Component List.
 ///
 /// The component is identified by its group id and its number on the component list.
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct GroupEntryId {
-    pub group:    GroupId,
-    pub entry_id: EntryInGroup,
+    pub group: GroupId,
+    pub entry: EntryInGroup,
 }
 
 
@@ -69,12 +80,12 @@ pub struct Group {
     pub height:          usize,
     /// Height of group in rows if no entry is filtered out, not counting the header.
     pub original_height: usize,
-    pub color:           color::Rgba,
+    pub color:           Option<color::Rgb>,
 }
 
 
 #[derive(Clone, Debug, Default)]
 pub struct Info {
-    groups:           Vec<Group>,
-    local_scope_size: usize,
+    pub groups:           Vec<Group>,
+    pub local_scope_size: usize,
 }

@@ -73,8 +73,6 @@ use ensogl_scroll_area::ScrollArea;
 use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
-use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
-use ide_view_component_list_panel_grid::entry::icon;
 
 
 
@@ -85,7 +83,9 @@ use ide_view_component_list_panel_grid::entry::icon;
 mod navigator;
 
 pub use ensogl_core::prelude;
+pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
+pub use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::Grid;
 
 

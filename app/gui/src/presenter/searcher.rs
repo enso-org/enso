@@ -16,14 +16,16 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
+use crate::presenter::searcher::provider::ControllerListExt;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel;
+use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherVariant;
-use ide_view_component_group::set::SectionId;
+
 
 
 // ==============
@@ -41,7 +43,7 @@ pub mod provider;
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "No component group with the index {:?}.", _0)]
-pub struct NoSuchComponent(view::component_browser::list_panel::EntryId);
+pub struct NoSuchComponent(component_grid::GroupEntryId);
 
 
 
@@ -78,6 +80,7 @@ struct Model {
     logger:     Logger,
     controller: controller::Searcher,
     view:       view::project::View,
+    provider:   Rc<RefCell<Option<provider::Component>>>,
     input_view: ViewNodeId,
 }
 
@@ -90,7 +93,8 @@ impl Model {
         input_view: ViewNodeId,
     ) -> Self {
         let logger = parent.sub("presenter::Searcher");
-        Self { logger, controller, view, input_view }
+        let provider = default();
+        Self { logger, controller, view, provider, input_view }
     }
 
     #[profile(Debug)]
@@ -139,9 +143,15 @@ impl Model {
         provider::create_providers_from_controller(&self.logger, &self.controller)
     }
 
-    fn suggestion_for_entry_id(&self, id: list_panel::EntryId) -> FallibleResult<Suggestion> {
-        let component: FallibleResult<_> =
-            self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
+    fn suggestion_for_entry_id(
+        &self,
+        id: component_grid::GroupEntryId,
+    ) -> FallibleResult<Suggestion> {
+        let component: FallibleResult<_> = self
+            .controller
+            .components()
+            .component_by_view_id(id)
+            .ok_or_else(|| NoSuchComponent(id).into());
         Ok(match component?.data {
             component::Data::FromDatabase { entry, .. } =>
                 Suggestion::FromDatabase(entry.clone_ref()),
@@ -150,7 +160,7 @@ impl Model {
     }
 
     /// Should be called if a suggestion is selected but not used yet.
-    fn suggestion_selected(&self, entry_id: list_panel::EntryId) {
+    fn suggestion_selected(&self, entry_id: component_grid::GroupEntryId) {
         match self.suggestion_for_entry_id(entry_id) {
             Ok(suggestion) =>
                 if let Err(error) = self.controller.preview_suggestion(suggestion) {
@@ -164,10 +174,11 @@ impl Model {
 
     fn suggestion_accepted(
         &self,
-        id: list_panel::EntryId,
+        id: component_grid::GroupEntryId,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
+        let list = self.controller.components();
         let component: FallibleResult<_> =
-            self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
+            list.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
             let suggestion = match component.data {
                 component::Data::FromDatabase { entry, .. } =>
@@ -188,30 +199,27 @@ impl Model {
         }
     }
 
-    fn module_entered(&self, module: EnteredModule) {
+    fn module_entered(&self, module: component_grid::ElementId) {
         self.enter_module(module);
     }
 
-    fn enter_module(&self, module: EnteredModule) -> Option<()> {
-        match module {
-            EnteredModule::Entry(group, entry_id) => {
-                let view_id = list_panel::EntryId { group, entry_id };
-                let component = self.component_by_view_id(view_id)?;
-                let id = component.id()?;
-                self.controller.enter_module(&id);
-            }
-            EnteredModule::Group(group_id) => {
-                let group = self.group_by_view_id(group_id)?;
-                let id = group.component_id?;
-                self.controller.enter_module(&id);
-            }
+    fn enter_module(&self, module: component_grid::ElementId) -> Option<()> {
+        let list = self.controller.components();
+        if let Some(entry) = module.as_entry_id() {
+            let component = list.component_by_view_id(entry)?;
+            let id = component.id()?;
+            self.controller.enter_module(&id);
+        } else {
+            let group = list.group_by_view_id(module.group)?;
+            let id = group.component_id?;
+            self.controller.enter_module(&id);
         }
         Some(())
     }
 
     fn expression_accepted(
         &self,
-        entry_id: Option<view::component_browser::list_panel::EntryId>,
+        entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
@@ -222,43 +230,11 @@ impl Model {
         })
     }
 
-    fn component_by_view_id(
-        &self,
-        id: view::component_browser::list_panel::EntryId,
-    ) -> Option<controller::searcher::component::Component> {
-        let group = self.group_by_view_id(id.group);
-        group.and_then(|group| group.get_entry(id.entry_id))
-    }
-
-    fn group_by_view_id(
-        &self,
-        id: view::component_browser::list_panel::GroupId,
-    ) -> Option<controller::searcher::component::Group> {
-        let opt_group = match id.section {
-            SectionId::Favorites => self.controller.favorites().get(id.index).cloned(),
-            SectionId::LocalScope => (id.index == 0).as_some_from(|| self.controller.local_scope()),
-            SectionId::SubModules => self.controller.top_modules().get(id.index).cloned(),
-        };
-        opt_group
-    }
-
-    fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
-        provider::from_component_group_list(&self.controller.top_modules())
-    }
-
-    fn create_favorites_providers(&self) -> Vec<LabeledAnyModelProvider> {
-        provider::from_component_group_list(&self.controller.favorites())
-    }
-
-    fn create_local_scope_provider(&self) -> LabeledAnyModelProvider {
-        provider::from_component_group(&self.controller.local_scope())
-    }
-
     fn documentation_of_component(
         &self,
-        id: Option<view::component_browser::list_panel::EntryId>,
+        id: view::component_browser::component_list_panel::grid::GroupEntryId,
     ) -> String {
-        let component = id.and_then(|id| self.component_by_view_id(id));
+        let component = self.controller.components().component_by_view_id(id);
         if let Some(component) = component {
             match component.data {
                 component::Data::FromDatabase { entry, .. } => {
@@ -284,8 +260,8 @@ impl Model {
         }
     }
 
-    fn documentation_of_group(&self, id: view::component_browser::list_panel::GroupId) -> String {
-        let group = self.group_by_view_id(id);
+    fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
+        let group = self.controller.components().group_by_view_id(id);
         if let Some(group) = group {
             iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
         } else {
@@ -341,38 +317,34 @@ impl Searcher {
 
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
-                let list_view = &browser.model().list;
+                let grid = &browser.model().list.model().grid;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    list_view.set_sub_modules_section <+
-                        action_list_changed.map(f_!(model.create_submodules_providers()));
-                    list_view.set_favourites_section <+
-                        action_list_changed.map(f_!(model.create_favorites_providers()));
-                    list_view.set_local_scope_section <+
-                        action_list_changed.map(f_!(model.create_local_scope_provider().content));
-                    new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
+                    eval_ action_list_changed ([model, grid] {
+                        model.provider.take();
+                        let list = model.controller.components();
+                        let provider = provider::Component::provide_new_list(list, &grid);
+                        *model.provider.borrow_mut() = Some(provider);
+                    });
+                    new_input <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     graph.set_node_expression <+ new_input;
 
-                    entry_selected <- list_view.selected.filter_map(
-                        |s| s.as_ref().map(list_panel::Selected::as_entry_id)
-                    );
+                    entry_selected <- grid.active.filter_map(|s| s.as_entry_id());
                     entry_docs <- all_with(
                         &action_list_changed,
                         &entry_selected,
                         f!((_, entry) model.documentation_of_component(*entry))
                     );
-                    header_selected <- list_view.selected.filter_map(|s| match s {
-                        Some(list_panel::Selected::Header(g)) => Some(*g),
-                        _ => None
+                    header_selected <- grid.active.filter_map(|component_grid::ElementId{group, element}| {
+                        matches!(element, component_grid::content::ElementInGroup::Header).as_some(*group)
                     });
                     header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
                     documentation.frp.display_documentation <+ entry_docs;
                     documentation.frp.display_documentation <+ header_docs;
-                    trace documentation.frp.display_documentation;
 
-                    eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
-                    eval list_view.suggestion_selected((entry) model.suggestion_selected(*entry));
-                    eval list_view.module_entered((id) model.module_entered(*id));
+                    eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
+                    eval entry_selected((entry) model.suggestion_selected(*entry));
+                    eval grid.module_entered((id) model.module_entered(*id));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
@@ -530,7 +502,7 @@ impl Searcher {
     /// node, its AST id is returned.
     pub fn expression_accepted(
         self,
-        entry_id: Option<view::component_browser::list_panel::EntryId>,
+        entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
         self.model.expression_accepted(entry_id)
     }
