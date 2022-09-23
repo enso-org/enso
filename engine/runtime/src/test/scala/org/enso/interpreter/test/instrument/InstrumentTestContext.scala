@@ -28,14 +28,34 @@ class InstrumentTestContext {
       .toList
   }
 
+  def receiveNIgnoreExpressionUpdates(
+    n: Int,
+    timeoutSeconds: Long = 60
+  ): List[Api.Response] = {
+    receiveNWithFilter(n, {
+        case Some(Api.Response(None, Api.ExpressionUpdates(_, _))) => false
+        case _ => true
+      }, timeoutSeconds)
+  }
+
   def receiveNIgnoreStdLib(
     n: Int,
     timeoutSeconds: Long = 60
+  ): List[Api.Response] = {
+    receiveNWithFilter(n, (_ => true), timeoutSeconds)
+  }
+
+
+  private def receiveNWithFilter(
+    n: Int,
+    f: (Any => Boolean),
+    timeoutSeconds: Long
   ): List[Api.Response] = {
     var count: Int                     = n
     var lastSeen: Option[Api.Response] = None
     Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
+      .filter(f)
       .takeWhile {
         case Some(Api.Response(None, Api.LibraryLoaded(_, _, _, _))) =>
           count > 0

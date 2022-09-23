@@ -1174,7 +1174,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")

@@ -567,6 +567,7 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
+    System.out.println("Begin check")
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
@@ -629,7 +630,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val editFileResponse = context.receiveN(2)
+    val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
     editFileResponse should contain(
       context.executionComplete(contextId)
     )
@@ -754,7 +755,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val editFileResponse = context.receiveN(2)
+    val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
     editFileResponse should contain(
       context.executionComplete(contextId)
     )
@@ -1139,7 +1140,9 @@ class RuntimeVisualizationsTest
       )
     )
 
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
   }

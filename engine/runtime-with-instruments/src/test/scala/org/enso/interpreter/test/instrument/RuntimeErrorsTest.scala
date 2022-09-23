@@ -729,7 +729,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
@@ -921,7 +923,9 @@ class RuntimeErrorsTest
       )
     )
 
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
@@ -1263,7 +1267,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         xId,
@@ -1364,7 +1370,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         xId,
