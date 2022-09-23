@@ -212,6 +212,15 @@ spec = Test.group "Vectors" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
 
+    Test.specify "Vector slice should return a Vector" <|
+        vec = [1, 2, 3, 4, 5, 6]
+        vec.slice 0 3 . should_equal [1, 2, 3]
+        vec.slice 1 3 . should_equal [2, 3]
+        vec.slice 1 1 . should_equal []
+        vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
+        Meta.is_same_object vec (vec.slice 0 100) . should_be_true
+        Meta.get_qualified_type_name vec . should_equal (Meta.get_qualified_type_name (vec.slice 1 1))
+
     Test.specify "should define take and drop family of operations" <|
         vec = [1, 2, 3, 4, 5, 6]
         first_four = [1, 2, 3, 4]

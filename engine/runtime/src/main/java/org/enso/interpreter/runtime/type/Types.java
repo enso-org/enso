@@ -58,7 +58,7 @@ import org.enso.polyglot.data.TypeGraph;
 })
 public class Types {
 
-  private static TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final TypeGraph typeHierarchy = buildTypeHierarchy();
 
   /**
    * A simple pair type
@@ -67,8 +67,8 @@ public class Types {
    * @param <B> the type of the second element
    */
   public static class Pair<A, B> {
-    private A first;
-    private B second;
+    private final A first;
+    private final B second;
 
     private Pair(A first, B second) {
       this.first = first;

@@ -2,6 +2,7 @@ package org.enso.interpreter.dsl.builtins;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * TypeWithKind provides a convenience wrapper for the types that can be encountered
@@ -30,13 +31,13 @@ public record TypeWithKind(String baseType, TypeKind kind) {
     }
 
     private final static List<String> primitiveTypes =
-            List.of(Boolean.TYPE, Long.TYPE, Double.TYPE, Float.TYPE).stream().map(Class::getSimpleName).collect(Collectors.toList());
+            Stream.of(Boolean.TYPE, Long.TYPE, Double.TYPE, Float.TYPE).map(Class::getSimpleName).collect(Collectors.toList());
     /**
      * A list of hard-coded types that can be used in the parameter or return type position
      * that are valid host types i.e extend TruffleObject.
      * Cannot go via reflection and check that they implement the interface, unfortunately.
      */
-    private static List<String> validGuestTypes =
+    private final static List<String> validGuestTypes =
             List.of(
                     "org.enso.interpreter.runtime.callable.atom.Atom",
                     "org.enso.interpreter.runtime.callable.function.Function",

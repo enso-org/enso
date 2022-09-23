@@ -13,12 +13,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -65,6 +61,26 @@ public final class Vector implements TruffleObject {
       description = "Returns an Array representation of this Vector.")
   public final Object toArray() {
     return this.storage;
+  }
+
+  @Builtin.Method(name = "slice", description = "Returns a slice of this Vector.")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  public final Vector slice(long start, long end, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    long this_length = length(interop);
+    long slice_start = Math.max(0, start);
+    long slice_end = Math.min(this_length, end);
+
+    if (slice_start >= slice_end) {
+      return new Vector(new Array(0));
+    }
+
+    if ((slice_start == 0) && (slice_end == this_length)) {
+      return this;
+    }
+
+    return new Vector(new ArraySlice(this.storage, slice_start, slice_end));
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")

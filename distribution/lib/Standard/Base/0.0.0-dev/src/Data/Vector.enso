@@ -655,15 +655,7 @@ type Vector a
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
-    slice self start end =
-        slice_start = Math.max 0 start
-        slice_end = Math.min self.length end
-        if slice_start >= slice_end then [] else
-            if (slice_start == 0) && (slice_end == self.length) then self else
-                len = slice_end - slice_start
-                arr = Array.new len
-                Array.copy self.to_array slice_start arr 0 len
-                Vector.from_polyglot_array arr
+    slice self start end = @Builtin_Method "Vector.slice"
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
