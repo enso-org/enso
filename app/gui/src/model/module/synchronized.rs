@@ -4,6 +4,7 @@ use crate::prelude::*;
 use enso_text::unit::*;
 
 use crate::model::module::Content;
+use crate::model::module::ImportMetadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Notification;
 use crate::model::module::NotificationKind;
@@ -15,6 +16,7 @@ use crate::model::module::API;
 use ast::IdMap;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
+use double_representation::module::ImportId;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
@@ -239,6 +241,22 @@ impl API for Module {
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
     ) -> FallibleResult {
         self.model.with_node_metadata(id, fun)
+    }
+
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult {
+        self.model.with_import_metadata(id, fun)
+    }
+
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+        self.model.all_import_metadata()
+    }
+
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+        self.model.remove_import_metadata(id)
     }
 
     fn boxed_with_project_metadata(&self, fun: Box<dyn FnOnce(&ProjectMetadata) + '_>) {
