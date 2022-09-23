@@ -1036,7 +1036,7 @@ impl TextModel {
                     let view_width = self.frp.output.view_width.value();
                     let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line);
                     let line_style = self.buffer.sub_style(line_range.start..line_range.end);
-                    let mut line_style_iter = line_style.iter();
+                    let mut line_style_iter = line_style.iter_bytes();
                     let mut glyph_offset_x = 0.0;
                     let mut prev_cluster_byte_off = UBytes(0);
                     let truncation_size = line::TruncationSize::from(default_size);
@@ -1104,7 +1104,7 @@ impl TextModel {
                 buffer::view::ShapedLine::Empty { prev_glyph_info } => {
                     if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
                         let line_style = self.buffer.sub_style(*offset..);
-                        let mut line_style_iter = line_style.iter();
+                        let mut line_style_iter = line_style.iter_bytes();
                         let style = line_style_iter.next().unwrap_or_default();
                         let scale = shaped_glyph_set.units_per_em as f32 / style.size.value;
                         let ascender = shaped_glyph_set.ascender as f32 / scale;

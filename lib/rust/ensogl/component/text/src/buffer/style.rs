@@ -224,13 +224,6 @@ macro_rules! define_formatting {
                     $(ResolvedProperty::[<$field:camel>](t) => self.$field.default = t),*
                 }
             }
-
-            /// Applies the property diff to the given property.
-            pub fn mod_property(&mut self, range:Range<UBytes>, property: PropertyDiff) {
-                match property {
-                    PropertyDiff::Size(diff) => self.size.modify_resolved(range, |p|p.apply_diff(diff)),
-                }
-            }
         }
     }};
 }
@@ -252,7 +245,7 @@ impl Formatting {
         )
     }
 
-
+    /// Return list of spans for different [`NonVariableFaceHeader`].
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,
@@ -278,7 +271,9 @@ impl Formatting {
                 yield (start_byte..end_byte, default());
             }
         });
-        // We are merging subsequent ranges if they have the same header.
+        // We are merging subsequent ranges if they have the same header. The underlying rope
+        // implementation can return chunks with the same value. For example, after setting a glyph
+        // to a bold face, and unsetting it, there will be separate chunks emitted.
         iter.coalesce(|mut a, b| {
             if a.1 == b.1 {
                 a.0.end = b.0.end;
@@ -298,13 +293,14 @@ impl Formatting {
 
 /// Byte-based iterator for the [`Formatting`].
 #[derive(Debug)]
-pub struct FormattingIterator {
+pub struct FormattingByteIterator {
     offset:    UBytes,
     value:     StyleIteratorValue,
     component: StyleIteratorComponents,
 }
 
-impl FormattingIterator {
+impl FormattingByteIterator {
+    /// Constructor.
     fn new(component: StyleIteratorComponents) -> Self {
         let offset = default();
         let value = default();
@@ -339,7 +335,7 @@ macro_rules! define_iterators {
             $($field : Option<RangedValue<UBytes, $field_type>>),*
         }
 
-        impl Iterator for FormattingIterator {
+        impl Iterator for FormattingByteIterator {
             type Item = FormattingForByte;
             fn next(&mut self) -> Option<Self::Item> {
                 $(
@@ -355,9 +351,9 @@ macro_rules! define_iterators {
 
         impl Formatting {
             /// Iterate over style values for subsequent bytes of the buffer.
-            pub fn iter(&self) -> FormattingIterator {
+            pub fn iter_bytes(&self) -> FormattingByteIterator {
                 $(let $field = self.$field.to_vector().into_iter();)*
-                FormattingIterator::new(StyleIteratorComponents {$($field),*})
+                FormattingByteIterator::new(StyleIteratorComponents {$($field),*})
             }
         }
     }};
@@ -410,21 +406,84 @@ impl<T: Copy + Debug> Spanned<T> {
 // === PropertyDiff ===
 // ====================
 
-/// A diff for a property. It is used to modify a property in a given range. A struct is used
-/// instead of a closure to better fit the FRP-model.
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, From)]
-pub enum PropertyDiff {
-    Size(SizeDiff),
+/// Run the provided macro with formatting property diffs definition.
+#[macro_export]
+macro_rules! with_formatting_property_diffs {
+    ($macro_name:ident) => {
+        $macro_name! {
+            Size: f32 = 0.0,
+            Weight: i32 = 0,
+            Width: i32 = 0,
+            SdfWeight: f32 = 0.0,
+        }
+    };
 }
 
-def_unit!(SizeDiff(f32) = 0.0);
+macro_rules! define_property_diffs {
+    ($($field:ident : $tp:ty = $def:expr),* $(,)?) => {paste! {
+        /// A diff for a property. It is used to modify a property in a given range. A struct is used
+        /// instead of a closure to better fit the FRP-model.
+        #[allow(missing_docs)]
+        #[derive(Clone, Copy, Debug, From)]
+        pub enum PropertyDiff {
+            $($field([<$field Diff>])),*
+        }
 
-impl Size {
-    pub fn apply_diff(&self, diff: SizeDiff) -> Self {
+        $(def_unit!{[<$field Diff>]($tp) = $def})*
+
+        impl Formatting {
+            /// Applies the property diff to the given property.
+            pub fn mod_property(&mut self, range:Range<UBytes>, property: PropertyDiff) {
+                match property {
+                    $(PropertyDiff::$field(t) => {
+                        self.[<$field:snake:lower>].modify_resolved(range, |p| p.apply_diff(t))
+                    })*
+                }
+            }
+        }
+    }}
+}
+
+with_formatting_property_diffs!(define_property_diffs);
+
+pub trait PropertyDiffApply<Diff> {
+    fn apply_diff(&self, diff: Diff) -> Self;
+}
+
+impl PropertyDiffApply<SizeDiff> for Size {
+    fn apply_diff(&self, diff: SizeDiff) -> Self {
         let value = self.value + diff.value;
         let value = if value < 0.0 { 0.0 } else { value };
         Size { value }
+    }
+}
+
+impl PropertyDiffApply<WeightDiff> for Weight {
+    fn apply_diff(&self, diff: WeightDiff) -> Self {
+        Weight::from((self.to_number() as i32 + diff.value).max(0) as u16)
+    }
+}
+
+impl PropertyDiffApply<WidthDiff> for Width {
+    fn apply_diff(&self, diff: WidthDiff) -> Self {
+        match self.to_number() as i32 + diff.value {
+            1 => Width::UltraCondensed,
+            2 => Width::ExtraCondensed,
+            3 => Width::Condensed,
+            4 => Width::SemiCondensed,
+            5 => Width::Normal,
+            6 => Width::SemiExpanded,
+            7 => Width::Expanded,
+            8 => Width::ExtraExpanded,
+            9 => Width::UltraExpanded,
+            _ => Width::Normal,
+        }
+    }
+}
+
+impl PropertyDiffApply<SdfWeightDiff> for SdfWeight {
+    fn apply_diff(&self, diff: SdfWeightDiff) -> Self {
+        SdfWeight(self.value + diff.value)
     }
 }
 
@@ -432,6 +491,9 @@ impl From<PropertyDiff> for PropertyTag {
     fn from(t: PropertyDiff) -> Self {
         match t {
             PropertyDiff::Size(_) => PropertyTag::Size,
+            PropertyDiff::Weight(_) => PropertyTag::Weight,
+            PropertyDiff::Width(_) => PropertyTag::Width,
+            PropertyDiff::SdfWeight(_) => PropertyTag::SdfWeight,
         }
     }
 }

@@ -11,6 +11,7 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
+use crate::buffer::style::PropertyDiffApply;
 use enso_frp::stream::ValueProvider;
 use enso_text::CodePointIndex;
 use enso_text::UBytes;
@@ -214,16 +215,30 @@ impl Glyph {
 }
 
 
+// === Formatting Property Diffs ===
+
+macro_rules! define_formatting_property_diffs {
+    ($($field:ident : $tp:ty = $def:expr),* $(,)?) => {paste! {
+        impl Glyph {
+            /// Apply the property diff.
+            pub fn mod_property(&self, property: PropertyDiff) {
+                match property {
+                    $(PropertyDiff::$field(diff) => {
+                        self.[<mod_ $field:snake:lower>](|t| t.apply_diff(diff))
+                    })*
+                }
+            }
+        }
+    }}
+}
+
+crate::with_formatting_property_diffs!(define_formatting_property_diffs);
+
+
+
 // === Properties Getters and Setters ===
 
 impl Glyph {
-    /// Apply the property diff.
-    pub fn mod_property(&self, property: PropertyDiff) {
-        match property {
-            PropertyDiff::Size(diff) => self.mod_size(|t| t.apply_diff(diff)),
-        }
-    }
-
     /// Color getter.
     pub fn color(&self) -> color::Lcha {
         self.set_color.value()
