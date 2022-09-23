@@ -7,7 +7,6 @@ use crate::buffer;
 use crate::buffer::formatting;
 use crate::buffer::formatting::Formatting;
 use crate::buffer::Buffer;
-// use crate::buffer::DefaultSetter;
 
 use crate::font;
 use crate::font::Font;
@@ -17,9 +16,9 @@ use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
 use enso_text::Text;
-use ensogl_core::data::color;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
+
 
 
 // ==============
@@ -34,6 +33,14 @@ pub use movement::*;
 pub use selection::Selection;
 
 
+
+// =================
+// === RangeLike ===
+// =================
+
+/// A range-like description. Any of the enum variants can be used to describe a range in text.
+/// There are conversions defined, so you never need to use this type explicitly.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Default, From)]
 pub enum RangeLike {
     #[default]
@@ -45,6 +52,13 @@ pub enum RangeLike {
 }
 
 
+
+// ====================
+// === LocationLike ===
+// ====================
+
+/// A location-like description. Any of the enum variants can be used to describe a location in
+/// text. There are conversions defined, so you never need to use this type explicitly.
 #[derive(Debug, Copy, Clone, From)]
 pub enum LocationLike {
     LocationColumnLine(Location<Column, Line>),
@@ -82,9 +96,9 @@ pub struct HistoryData {
 
 
 
-// ===============
-// === Changes ===
-// ===============
+// ====================
+// === Modification ===
+// ====================
 
 /// The summary of single text modification, usually returned by `modify`-like functions in
 /// `ViewBuffer`.
@@ -108,6 +122,13 @@ impl<T> Modification<T> {
 }
 
 
+
+// ===========================
+// === ChangeWithSelection ===
+// ===========================
+
+/// A change to the text with a selection showing where it was made.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref)]
 pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
     #[deref]
@@ -131,27 +152,35 @@ impl<Metric: Default, Str: Default, Loc: Default> Default
 
 
 
-// ==================
-// === ViewBuffer ===
-// ==================
+// ===============
+// === Shaping ===
+// ===============
 
+/// A shaped line of glyphs.
+#[allow(missing_docs)]
 #[derive(Debug)]
-pub struct ShapedGlyph {
-    pub position:    rustybuzz::GlyphPosition,
-    pub info:        rustybuzz::GlyphInfo,
-    pub render_info: GlyphRenderInfo,
+pub enum ShapedLine {
+    NonEmpty {
+        glyph_sets: NonEmptyVec<ShapedGlyphSet>,
+    },
+    Empty {
+        /// Shaped newline character ending the previous line if any. It is used to calculate the
+        /// line style (e.g. its height) for empty lines.
+        prev_glyph_info: Option<(UBytes, ShapedGlyphSet)>,
+    },
 }
 
-impl ShapedGlyph {
-    pub fn cluster(&self) -> UBytes {
-        UBytes(self.info.cluster as usize)
-    }
-
-    pub fn id(&self) -> GlyphId {
-        GlyphId(self.info.glyph_id as u16)
+impl ShapedLine {
+    /// Number of glyphs in line.
+    pub fn glyph_count(&self) -> usize {
+        match self {
+            Self::NonEmpty { glyph_sets } => glyph_sets.iter().map(|set| set.glyphs.len()).sum(),
+            Self::Empty { .. } => 0,
+        }
     }
 }
 
+/// A shaped set of glyphs.
 #[derive(Debug)]
 pub struct ShapedGlyphSet {
     pub units_per_em:            u16,
@@ -165,21 +194,33 @@ pub struct ShapedGlyphSet {
     pub glyphs:                  Vec<ShapedGlyph>,
 }
 
+/// A shaped glyph description. See the [`rustybuzz`] library to learn more about data stored in
+/// this struct.
+#[allow(missing_docs)]
 #[derive(Debug)]
-pub enum ShapedLine {
-    NonEmpty { glyph_sets: NonEmptyVec<ShapedGlyphSet> },
-    Empty { prev_glyph_info: Option<(UBytes, ShapedGlyphSet)> },
+pub struct ShapedGlyph {
+    pub position:    rustybuzz::GlyphPosition,
+    pub info:        rustybuzz::GlyphInfo,
+    pub render_info: GlyphRenderInfo,
 }
 
-impl ShapedLine {
-    pub fn glyph_count(&self) -> usize {
-        match self {
-            Self::NonEmpty { glyph_sets } => glyph_sets.iter().map(|set| set.glyphs.len()).sum(),
-            Self::Empty { .. } => 0,
-        }
+impl ShapedGlyph {
+    /// Returns the byte start of this glyph.
+    pub fn start_byte(&self) -> UBytes {
+        UBytes(self.info.cluster as usize)
+    }
+
+    /// The glyph id, index of glyph in the font.
+    pub fn id(&self) -> GlyphId {
+        GlyphId(self.info.glyph_id as u16)
     }
 }
 
+
+
+// ==================
+// === ViewBuffer ===
+// ==================
 
 /// Specialized form of `Buffer` with view-related information, such as selection and undo redo
 /// history (containing also cursor movement history). This form of buffer is mainly used by `View`,

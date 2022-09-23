@@ -1047,7 +1047,7 @@ impl TextModel {
                             break;
                         }
                         for shaped_glyph in &shaped_glyph_set.glyphs {
-                            let glyph_byte_start = shaped_glyph.cluster();
+                            let glyph_byte_start = shaped_glyph.start_byte();
                             // Drop styles assigned to skipped bytes. One byte will be skipped
                             // during the call to `line_style_iter.next()`.
                             let cluster_diff = glyph_byte_start - prev_cluster_byte_off - Bytes(1);
