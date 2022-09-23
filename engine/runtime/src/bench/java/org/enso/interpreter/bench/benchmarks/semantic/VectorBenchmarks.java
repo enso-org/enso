@@ -67,6 +67,7 @@ public class VectorBenchmarks {
       "\n" +
       "to_vector arr = Vector.from_polyglot_array arr\n" +
       "to_array vec = vec.to_array\n" +
+      "slice vec = vec.slice\n" +
       "\n");
 
     this.self = module.invokeMember("get_associated_type");
@@ -81,7 +82,7 @@ public class VectorBenchmarks {
         break;
       }
       case "averageOverSlice": {
-        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, arr, 10, length);
+        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, arr, 1, length);
         break;
       }
       case "averageOverArray": {
@@ -143,7 +144,8 @@ public class VectorBenchmarks {
       throw new AssertionError("Shall be a double: " + average);
     }
     var result = (long) average.asDouble();
-    if (result < 1019950590 || result > 1019950600) {
+    boolean isResultCorrect = (result >= 1019950590 && result <= 1019950600) || (result >= 1020971561 && result <= 1020971571);
+    if (!isResultCorrect) {
       throw new AssertionError("Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
     }
     matter.consume(result);
