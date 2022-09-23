@@ -32,15 +32,20 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
         macro_definition! {("import", everything()) import_body},
-        macro_definition! {("import", everything(), "as", everything()) import_body},
+        macro_definition! {("import", everything(), "as", identifier()) import_body},
         macro_definition! {("import", everything(), "hiding", everything()) import_body},
         macro_definition! {("polyglot", everything(), "import", everything()) import_body},
         macro_definition! {
-        ("polyglot", everything(), "import", everything(), "as", everything()) import_body},
+        ("polyglot", everything(), "import", everything(), "as", identifier()) import_body},
         macro_definition! {
         ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
         macro_definition! {
         ("from", everything(), "import", everything(), "hiding", everything()) import_body},
+        macro_definition! {
+        ("from", everything(), "import", nothing(), "all", nothing()) import_body},
+        macro_definition! {
+        ("from", everything(), "import", nothing(), "all", nothing(), "hiding", everything())
+        import_body},
         macro_definition! {("from", everything(), "import", everything()) import_body},
     ];
     for def in defs {
@@ -52,6 +57,7 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut polyglot = None;
     let mut from = None;
     let mut import = None;
+    let mut all = None;
     let mut as_ = None;
     let mut hiding = None;
     for segment in segments {
@@ -61,6 +67,10 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
             "polyglot" => &mut polyglot,
             "from" => &mut from,
             "import" => &mut import,
+            "all" => {
+                all = Some(into_ident(header));
+                continue;
+            }
             "as" => &mut as_,
             "hiding" => &mut hiding,
             _ => unreachable!(),
@@ -68,19 +78,24 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
     let import = import.unwrap();
-    syntax::Tree::import(polyglot, from, import, as_, hiding)
+    syntax::Tree::import(polyglot, from, import, all, as_, hiding)
 }
 
 fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
         macro_definition! {("export", everything()) export_body},
-        macro_definition! {("export", everything(), "as", everything()) export_body},
+        macro_definition! {("export", everything(), "as", identifier()) export_body},
         macro_definition! {("from", everything(), "export", everything()) export_body},
+        macro_definition! {
+        ("from", everything(), "export", nothing(), "all", nothing()) export_body},
         macro_definition! {
         ("from", everything(), "export", everything(), "hiding", everything()) export_body},
         macro_definition! {
-        ("from", everything(), "as", everything(), "export", everything()) export_body},
+        ("from", everything(), "export", nothing(), "all", nothing(), "hiding", everything())
+        export_body},
+        macro_definition! {
+        ("from", everything(), "as", identifier(), "export", everything()) export_body},
     ];
     for def in defs {
         macros.register(def);
@@ -89,25 +104,28 @@ fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
 
 fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut from = None;
-    let mut from_as = None;
     let mut export = None;
-    let mut export_as = None;
+    let mut all = None;
+    let mut as_ = None;
     let mut hiding = None;
     for segment in segments {
         let header = segment.header;
         let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
         let field = match header.code.as_ref() {
             "from" => &mut from,
-            "as" if export.is_none() => &mut from_as,
             "export" => &mut export,
-            "as" => &mut export_as,
+            "all" => {
+                all = Some(into_ident(header));
+                continue;
+            }
+            "as" => &mut as_,
             "hiding" => &mut hiding,
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
     let export = export.unwrap();
-    syntax::Tree::export(from, from_as, export, export_as, hiding)
+    syntax::Tree::export(from, export, all, as_, hiding)
 }
 
 /// If-then-else macro definition.

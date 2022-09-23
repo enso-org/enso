@@ -39,7 +39,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testCase() throws Exception {
     parseTest("""
     type Msg
@@ -61,7 +60,6 @@ public class EnsoCompilerTest {
     import project.IO
     import Standard.Base as Enso_List
     from Standard.Base import all hiding Number, Boolean
-    from Standard.Table as Column_Module import Column
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
@@ -93,7 +91,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testFactorial() throws Exception {
     parseTest("""
     fac n = if n == 1 then 1 else n * fac n-1
@@ -167,7 +164,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testIfThenBlock() throws Exception {
     parseTest("""
       from_java_set java_set =
@@ -197,13 +193,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testSignature3() throws Exception {
     parseTest("val = 123 : Int");
   }
 
   @Test
-  @Ignore
   public void testSignature4() throws Exception {
     parseTest("val = foo (123 : Int)");
   }
@@ -226,11 +220,6 @@ public class EnsoCompilerTest {
   @Test
   public void testExportFromAllHiding() throws Exception {
     parseTest("from prj.Data.Foo export all hiding Bar, Baz");
-  }
-
-  @Test
-  public void testExportFromAsExport() throws Exception {
-    parseTest("from prj.Data.Foo as Bar export Baz, Quux");
   }
 
   @SuppressWarnings("unchecked")

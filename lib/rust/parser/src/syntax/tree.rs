@@ -233,17 +233,19 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub polyglot: Option<MultiSegmentAppSegment<'s>>,
             pub from:     Option<MultiSegmentAppSegment<'s>>,
             pub import:   MultiSegmentAppSegment<'s>,
+            pub all:      Option<token::Ident<'s>>,
             #[reflect(rename = "as")]
             pub as_:      Option<MultiSegmentAppSegment<'s>>,
             pub hiding:   Option<MultiSegmentAppSegment<'s>>,
         },
         /// An export statement.
         Export {
-            pub from:      Option<MultiSegmentAppSegment<'s>>,
-            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
-            pub export:    MultiSegmentAppSegment<'s>,
-            pub export_as: Option<MultiSegmentAppSegment<'s>>,
-            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+            pub from:   Option<MultiSegmentAppSegment<'s>>,
+            pub export: MultiSegmentAppSegment<'s>,
+            pub all:    Option<token::Ident<'s>>,
+            #[reflect(rename = "as")]
+            pub as_:    Option<MultiSegmentAppSegment<'s>>,
+            pub hiding: Option<MultiSegmentAppSegment<'s>>,
         },
         /// An expression grouped by matched parentheses.
         Group {
@@ -561,14 +563,19 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 
 // === CaseOf ===
 
+/// A that may contain a case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct CaseLine<'s> {
-    /// The token beginning the line.
+    /// The token beginning the line. This will always be present, unless the first case-expression
+    /// is on the same line as the initial case-of.
     pub newline: Option<token::Newline<'s>>,
+    /// The case-expression, if present.
     pub case:    Option<Case<'s>>,
 }
 
 impl<'s> CaseLine<'s> {
+    /// Return a mutable reference to the `left_offset` of this object (which will actually belong
+    /// to one of the object's children, if it has any).
     pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
         self.newline
             .as_mut()
@@ -583,14 +590,20 @@ impl<'s> span::Builder<'s> for CaseLine<'s> {
     }
 }
 
+/// A case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct Case<'s> {
+    /// The pattern being matched. It is an error for this to be absent.
     pub pattern:    Option<Tree<'s>>,
+    /// Token.
     pub arrow:      Option<token::Operator<'s>>,
+    /// The expression associated with the pattern. It is an error for this to be empty.
     pub expression: Option<Tree<'s>>,
 }
 
 impl<'s> Case<'s> {
+    /// Return a mutable reference to the `left_offset` of this object (which will actually belong
+    /// to one of the object's children, if it has any).
     pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
         self.pattern
             .as_mut()

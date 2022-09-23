@@ -26,6 +26,7 @@ impl<'s> Default for Precedence<'s> {
 }
 
 impl<'s> Precedence<'s> {
+    /// Return a new operator precedence resolver.
     pub fn new() -> Self {
         Self {
             nospace_builder: ExpressionBuilder { nospace: true, ..default() },
@@ -33,6 +34,8 @@ impl<'s> Precedence<'s> {
         }
     }
 
+    /// Resolve precedence in a context where the result cannot be an operator section or template
+    /// function.
     pub fn resolve_non_section(
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
@@ -40,6 +43,7 @@ impl<'s> Precedence<'s> {
         self.resolve_(items).map(|op| op.value)
     }
 
+    /// Resolve precedence.
     pub fn resolve(
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
@@ -143,11 +147,8 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, mut operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type.replace(ItemType::Ast) == Some(ItemType::Ast) {
-            operand = self
-                .output
-                .pop()
-                .unwrap()
-                .map(|lhs| syntax::tree::apply(lhs, operand.into()).into());
+            operand =
+                self.output.pop().unwrap().map(|lhs| syntax::tree::apply(lhs, operand.into()));
         }
         self.output.push(operand);
     }
@@ -237,7 +238,7 @@ impl<'s> ExpressionBuilder<'s> {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
                 Arity::Unary(opr) =>
-                    Operand::from(rhs_).map(|item| syntax::Tree::unary_opr_app(opr, item).into()),
+                    Operand::from(rhs_).map(|item| syntax::Tree::unary_opr_app(opr, item)),
                 Arity::Binary { tokens, lhs_section_termination } => {
                     let lhs = self.output.pop();
                     if let Some(lhs_termination) = lhs_section_termination {
@@ -255,7 +256,7 @@ impl<'s> ExpressionBuilder<'s> {
                             elided += lhs.is_none() as u32 + rhs.is_none() as u32;
                         }
                         let mut operand = Operand::from(lhs).map(|lhs| {
-                            syntax::tree::apply_operator(lhs, tokens, rhs, self.nospace).into()
+                            syntax::tree::apply_operator(lhs, tokens, rhs, self.nospace)
                         });
                         operand.elided += elided;
                         operand
@@ -307,16 +308,19 @@ enum ItemType {
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug)]
 struct Operator<'s> {
-    precedence:          token::Precedence,
-    associativity:       token::Associativity,
-    opr:                 Arity<'s>,
+    precedence:    token::Precedence,
+    associativity: token::Associativity,
+    opr:           Arity<'s>,
 }
 
 /// Classifies the role of an operator.
 #[derive(Debug)]
 enum Arity<'s> {
     Unary(token::Operator<'s>),
-    Binary { tokens: Vec<token::Operator<'s>>, lhs_section_termination: Option<SectionTermination> }
+    Binary {
+        tokens:                  Vec<token::Operator<'s>>,
+        lhs_section_termination: Option<SectionTermination>,
+    },
 }
 
 impl<'s> Arity<'s> {
@@ -395,9 +399,14 @@ impl<T> Operand<T> {
 
 // === SectionTermination ===
 
+/// Operator-section/template-function termination behavior of an operator with regard to an
+/// operand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SectionTermination {
+    /// If the operand is an operator-section/template-function, indicate it by wrapping it in a
+    /// suitable node.
     Reify,
+    /// Discard any operator-section/template-function properties associated with the operand.
     Unwrap,
 }
 

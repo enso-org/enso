@@ -421,6 +421,9 @@ impl<'s> Resolver<'s> {
 
     fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
         let repr = &**token.code;
+        if !token.variant.can_start_macro_segment() {
+            return Step::NormalToken(token.into());
+        }
         if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
             let mut new_match_tree =
@@ -434,7 +437,7 @@ impl<'s> Resolver<'s> {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
-        } else if let Some(segments) = root_macro_map.get(repr) && token.variant.can_start_macro() {
+        } else if let Some(segments) = root_macro_map.get(repr) {
             event!(TRACE, "Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let mut current_macro = PartiallyMatchedMacro {
@@ -506,7 +509,6 @@ impl<'s> Resolver<'s> {
         } else {
             let mut segments = resolved_segments.into_iter();
             let (header0, mut segment) = segments.next().unwrap();
-            let header0_raw = header0.code.to_owned();
             let mut items = VecDeque::new();
             items.append(&mut segment);
             for (header, mut segment) in segments {
@@ -521,13 +523,7 @@ impl<'s> Resolver<'s> {
                     syntax::Item::Tree(tree) => body.push_str(&tree.code()),
                 }
             }
-            let message = format!(
-                "A macro is defined beginning with this token, but the code \
-                following it did not match any pattern from the macro's definition. Token={:?}, \
-                body={:?}",
-                header0_raw, &items
-            );
-            let header0 = syntax::Tree::from(header0).with_error(message);
+            let header0 = syntax::Tree::from(header0).with_error("Invalid macro invocation.");
             (header0, items)
         }
     }

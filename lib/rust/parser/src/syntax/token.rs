@@ -294,13 +294,16 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
 }}}
 
 impl Variant {
-    /// Return whether this token can introduce a macro invocation.
-    pub fn can_start_macro(&self) -> bool {
+    /// Return whether this token can introduce a macro segment.
+    pub fn can_start_macro_segment(&self) -> bool {
         !matches!(
             self,
             // Prevent macro interpretation of symbols that have been lexically contextualized as
             // text escape control characters.
-            Variant::TextEscape(_) | Variant::TextSection(_)
+            Variant::TextEscape(_)
+            | Variant::TextSection(_)
+            | Variant::TextStart(_)
+            | Variant::TextEnd(_)
             // Prevent macro interpretation of lexically-inappropriate tokens.
             | Variant::Invalid(_)
         )

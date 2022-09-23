@@ -1663,7 +1663,7 @@ mod benches {
         let str = &str[..str.len() - 1];
 
         b.iter(move || {
-            let lexer = Lexer::new(&str);
+            let lexer = Lexer::new(str);
             assert_eq!(lexer.run().unwrap().len(), reps);
         });
     }

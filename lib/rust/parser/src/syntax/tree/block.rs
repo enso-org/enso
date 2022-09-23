@@ -79,33 +79,30 @@ fn to_operator_block_expression(
 ) -> Result<OperatorBlockExpression<'_>, Tree<'_>> {
     let mut left_operator = None;
     recurse_left_mut_while(&mut tree, |tree| {
-        if let Variant::OprApp(OprApp { lhs: None, opr, rhs: Some(rhs) }) = &*tree.variant
-            && rhs.span.left_offset.visible.width_in_spaces >= 1
+        if let Variant::OprApp(OprApp { lhs: None, opr, rhs }) = &mut *tree.variant
+            && let Some(rhs_) = rhs
+            && rhs_.span.left_offset.visible.width_in_spaces >= 1
         {
-            let mut operator = opr.clone();
-            operator.first_operator_mut().left_offset = tree.span.left_offset.clone();
-            let expression = rhs.clone();
-            left_operator = Some(operator);
-            *tree = expression;
+            left_operator = Some(opr.clone());
+            *tree = mem::take(rhs).unwrap();
         }
         true
     });
-    match left_operator {
-        Some(mut operator) => {
-            if let Variant::OprSectionBoundary(OprSectionBoundary { arguments, .. }) =
-                &mut *tree.variant
-            {
-                operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
-                *arguments -= 1;
-            }
-            let expression = match *tree.variant {
-                Variant::OprSectionBoundary(OprSectionBoundary { ast, arguments: 0 }) => ast,
-                _ => tree,
-            };
-            Ok(OperatorBlockExpression { operator, expression })
-        }
-        None => Err(tree),
+    let Some(mut operator) = left_operator else {
+        return Err(tree);
+    };
+    operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
+    if let Variant::OprSectionBoundary(OprSectionBoundary { arguments, .. }) = &mut *tree.variant {
+        *arguments -= 1;
     }
+    let expression = match *tree.variant {
+        Variant::OprSectionBoundary(OprSectionBoundary { ast, arguments: 0 }) => {
+            operator.first_operator_mut().left_offset += tree.span.left_offset;
+            ast
+        }
+        _ => tree,
+    };
+    Ok(OperatorBlockExpression { operator, expression })
 }
 
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {

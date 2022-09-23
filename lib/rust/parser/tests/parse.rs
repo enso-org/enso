@@ -338,6 +338,11 @@ fn code_block_operator() {
           #()))
     ];
     test(&code.join("\n"), expect);
+}
+
+#[test]
+//#[ignore] // WIP
+fn dot_operator_blocks() {
     let code = ["rect1", "    . width = 7", "    . center", "        + x"];
     #[rustfmt::skip]
     let expected = block![
@@ -624,21 +629,23 @@ fn import() {
     #[rustfmt::skip]
     let cases = [
         ("import project.IO", block![
-            (Import () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () ())]),
+            (Import () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () () ())]),
         ("import Standard.Base as Enso_List", block![
             (Import () ()
              ((Ident import) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ()
              ((Ident as) (Ident Enso_List))
              ())]),
         ("from Standard.Base import all", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
-             ((Ident import) (Ident all))
-             () ())]),
+             ((Ident import) ())
+             all () ())]),
         ("from Standard.Base import all hiding Number, Boolean", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
-             ((Ident import) (Ident all))
+             ((Ident import) ())
+             all
              ()
              ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
         ("polyglot java import java.lang.Float", block![
@@ -647,13 +654,14 @@ fn import() {
              ()
              ((Ident import)
               (OprApp (OprApp (Ident java) (Ok ".") (Ident lang)) (Ok ".") (Ident Float)))
-             () ())]),
+             () () ())]),
         ("polyglot java import java.net.URI as Java_URI", block![
             (Import
              ((Ident polyglot) (Ident java))
              ()
              ((Ident import)
               (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
+             ()
              ((Ident as) (Ident Java_URI))
              ())]),
     ];
@@ -665,32 +673,24 @@ fn export() {
     #[rustfmt::skip]
     let cases = [
         ("export prj.Data.Foo", block![
-            (Export () ()
+            (Export ()
              ((Ident export)
               (OprApp (OprApp (Ident prj) (Ok ".") (Ident Data)) (Ok ".") (Ident Foo)))
-             () ())]),
+             () () ())]),
         ("export Foo as Bar", block![
-            (Export () () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)) ())]),
+            (Export () ((Ident export) (Ident Foo)) () ((Ident as) (Ident Bar)) ())]),
         ("from Foo export Bar, Baz", block![
             (Export
              ((Ident from) (Ident Foo))
-             ()
              ((Ident export) (OprApp (Ident Bar) (Ok ",") (Ident Baz)))
-             () ())]),
+             () () ())]),
         ("from Foo export all hiding Bar, Baz", block![
             (Export
              ((Ident from) (Ident Foo))
-             ()
-             ((Ident export) (Ident all))
+             ((Ident export) ())
+             all
              ()
              ((Ident hiding) (OprApp (Ident Bar) (Ok ",") (Ident Baz))))]),
-        ("from Foo as Bar export Baz, Quux", block![
-            (Export
-             ((Ident from) (Ident Foo))
-             ((Ident as) (Ident Bar))
-             ((Ident export) (OprApp (Ident Baz) (Ok ",") (Ident Quux)))
-             () ())
-        ]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -775,6 +775,7 @@ fn inline_text_literals() {
          (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
         (r#"('\n')"#, block![(Group (TextLiteral #((Escape '\n'))))]),
         (r#"`"#, block![(Invalid)]),
+        (r#"(")")"#, block![(Group (TextLiteral #((Section ")"))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -862,11 +863,18 @@ fn interpolated_literals_in_multiline_text() {
 // === Lambdas ===
 
 #[test]
-fn lambdas() {
+fn new_lambdas() {
     let cases = [
-        ("\\v -> v", block![(Lambda "\\" (Arrow #((Ident v)) "->" (Ident v)))]),
-        ("\\a b -> x", block![(Lambda "\\" (Arrow #((Ident a) (Ident b)) "->" (Ident x)))]),
+        (r#"\v -> v"#, block![(Lambda "\\" (OprApp (Ident v) (Ok "->") (Ident v)))]),
+        (r#"\a b -> x"#, block![
+            (Lambda "\\" (OprApp (App (Ident a) (Ident b)) (Ok "->") (Ident x)))]),
     ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn old_lambdas() {
+    let cases = [("v -> v", block![(OprApp (Ident v) (Ok "->") (Ident v))])];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
