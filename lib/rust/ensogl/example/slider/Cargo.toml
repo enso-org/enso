@@ -13,3 +13,7 @@ ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 ensogl-selector = { path = "../../component/selector" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
