@@ -50,7 +50,7 @@ public abstract class TypeToDisplayTextNode extends Node {
       return "Function";
     } else if (value instanceof Atom atom) {
       var cons = atom.getConstructor();
-      return cons.getType().getName() + "." + cons.getName();
+      return cons.getName();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getType().getName() + "." + cons.getName() + " (Constructor)";
     } else if (TypesGen.isType(value)) {

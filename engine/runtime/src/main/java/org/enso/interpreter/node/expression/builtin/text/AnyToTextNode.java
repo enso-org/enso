@@ -45,7 +45,7 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Text consName(AtomConstructor constructor) {
-    return Text.create(constructor.getType().getName() + "." + constructor.getName());
+    return Text.create(constructor.getName());
   }
 
   @CompilerDirectives.TruffleBoundary
