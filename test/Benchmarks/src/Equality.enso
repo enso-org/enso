@@ -17,7 +17,7 @@ type Sum_Type_With_Values
     Ctor_A x y
     Ctor_B x
 
-## Counts entires in the vector equal to a given element and checks if it is as
+## Counts entries in the vector equal to a given element and checks if it is as
    expected.
 count_entries vector element expected_count=1 =
     go ix acc = if ix >= vector.length then acc else
