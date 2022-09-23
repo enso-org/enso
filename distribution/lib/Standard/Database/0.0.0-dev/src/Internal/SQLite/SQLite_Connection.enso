@@ -82,16 +82,16 @@ type SQLite_Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Database_Table
     query self query alias="" = self.connection.query query alias
 
-    ## Execute the query and return the results as a Table.
+    ## Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if a table or query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
     read : Text | SQL_Query -> Integer | Nothing -> Table
     read self query limit=Nothing = self.connection.read query limit

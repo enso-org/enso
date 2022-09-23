@@ -214,7 +214,7 @@ generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
     IR.From_Query raw_sql as_name ->
-        code "(" ++ raw_sql ++ ")" ++ alias dialect as_name
+        code raw_sql . paren ++ alias dialect as_name
     IR.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
