@@ -39,14 +39,14 @@ postgres_specific_spec connection db_name pending =
 
         Test.specify "should allow changing schema" <|
             new_connection = connection.set_schema "information_schema"
-            new_schema = new_connection.execute_query "SELECT current_schema()" . at 0 . to_vector . first
+            new_schema = new_connection.read (Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
             new_schema . should_equal "information_schema"
 
         databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
         pending_database = if databases.length != 0 then Nothing else "Cannot tests changing database unless two databases defined."
         Test.specify "should allow changing database" pending=pending_database <|
             new_connection = connection.set_database databases.first
-            new_database = new_connection.execute_query "SELECT current_database()" . at 0 . to_vector . first
+            new_database = new_connection.read (Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
             new_database . should_equal databases.first
 
     Test.group "[PostgreSQL] Tables and Table Types" <|
@@ -91,7 +91,7 @@ postgres_specific_spec connection db_name pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL, "doubles" DOUBLE PRECISION)'
-        t = connection.access_table tinfo
+        t = connection.query (Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2, 0.000000000001]
         t.insert ["abc", Nothing, Nothing, 1.3, Nothing]
         t.insert ["def", 42, True, 1.4, 10]
@@ -118,7 +118,7 @@ postgres_specific_spec connection db_name pending =
     Test.group "[PostgreSQL] Table.aggregate should correctly infer result types" pending=pending <|
         name = Name_Generator.random_name "Ttypes"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
-        t = connection.access_table name
+        t = connection.query (Table_Name name)
         Test.specify "Concatenate, Shortest and Longest" <|
             r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
             r.columns.at 0 . sql_type . should_equal SQL_Type.text
@@ -169,7 +169,7 @@ run_tests connection db_name pending=Nothing =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
             Panic.rethrow <| connection.execute_update sql
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection pending=pending
     postgres_specific_spec connection db_name pending=pending

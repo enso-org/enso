@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Database.Data.SQL import SQL_Type, Statement
+import Standard.Database.Data.SQL_Query
 
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Data.Dialect
@@ -26,16 +27,6 @@ type SQLite_Connection
        The connection is not usable afterwards.
     close : Nothing
     close self = self.connection.close
-
-    ## UNSTABLE
-
-       Accesses a table within the database, returning an object that can be
-       used to create queries for that table.
-
-       Arguments:
-       - name: name of the table to access
-    access_table : Text -> Database_Table
-    access_table self name = self.connection.access_table name
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
@@ -87,19 +78,29 @@ type SQLite_Connection
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## ADVANCED
-
-       Executes a raw query and returns the result as an in-memory Table.
+    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of
-       .Statement
-         representing the query to execute.
-       - expected_types: an optional array of expected types of each column;
-         meant only for internal use.
-    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
-    execute_query self query expected_types=Nothing =
-        self.connection.execute_query query expected_types
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+       - alias: optionally specify a friendly alias for the query.
+    query : Text | SQL_Query -> Text -> Database_Table
+    query self query alias="" = self.connection.query query alias
+
+    ## Execute the query and load the results into memory as a Table.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+       - limit: the maximum number of rows to return.
+    read : Text | SQL_Query -> Integer | Nothing -> Table
+    read self query limit=Nothing = self.connection.read query limit
+
+    ## PRIVATE
+       Internal read function for a statement with optional types.
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Table
+    read_statement self statement expected_types=Nothing =
+        self.connection.read_statement statement expected_types
 
     ## ADVANCED
 
@@ -113,18 +114,6 @@ type SQLite_Connection
     execute_update : Text | Statement -> Integer
     execute_update self query =
         self.connection.execute_update query
-
-    ## PRIVATE
-
-       A helper function that fetches column names and sql types associated with
-       them for a table in the database.
-
-       Arguments:
-       - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, SQL_Type]
-    fetch_columns : Text -> Vector Any
-    fetch_columns self table_name =
-        self.connection.fetch_columns table_name
 
     ## PRIVATE
        UNSTABLE

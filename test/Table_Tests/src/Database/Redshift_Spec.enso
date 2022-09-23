@@ -17,7 +17,7 @@ redshift_specific_spec connection pending =
     Test.group "[Redshift] Info" pending=pending <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        t = connection.access_table tinfo
+        t = connection.query (Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
         t.insert ["def", 42, True, 1.4]
@@ -51,7 +51,7 @@ run_tests connection pending=Nothing =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
             Panic.rethrow <| connection.execute_update sql
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection pending=pending
     redshift_specific_spec connection pending=pending

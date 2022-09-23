@@ -26,8 +26,8 @@ spec prefix connection pending=Nothing =
     t1 = upload "T1" (Materialized_Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" pending=pending <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
-            df = t1.to_dataframe
-            a = t1.at 'a' . to_dataframe
+            df = t1.read
+            a = t1.at 'a' . read
             df.at 'a' . to_vector . should_equal [1, 4]
             a.to_vector . should_equal [1, 4]
         Test.specify "should allow to materialize columns directly into a Vector" <|
@@ -35,7 +35,7 @@ spec prefix connection pending=Nothing =
             v . should_equal [1, 4]
         Test.specify "should preserve indexes when materializing tables" <|
             # TODO add multi indexes when implemented
-            df = t1.set_index 'a' . to_dataframe
+            df = t1.set_index 'a' . read
             df.at 'b' . to_vector . should_equal [2, 5]
             df.columns.map .name . should_equal ['b', 'c']
             ix = df.index
@@ -44,7 +44,7 @@ spec prefix connection pending=Nothing =
         Test.specify "should preserve indexes when materializing columns" <|
             # TODO add multi indexes when implemented
             b = t1.set_index 'a' . at 'b'
-            col = b . to_dataframe
+            col = b . read
             col.to_vector . should_equal [2, 5]
 
             ix = col.index
@@ -56,14 +56,13 @@ spec prefix connection pending=Nothing =
             ix2.to_vector . should_equal [1, 4]
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select_columns (By_Name [])
-            empty.to_dataframe.column_count . should_equal 0
-            empty.to_dataframe.row_count . should_equal empty.row_count
+            empty.read.column_count . should_equal 0
+            empty.read.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
             n = 1000
             original = Materialized_Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
-            materialized = table.to_dataframe
-            materialized.row_count . should_equal n
+            table.read.row_count . should_equal n
 
     Test.group prefix+"Mapping Operations" pending=pending <|
         t2 = upload "T2" <| Materialized_Table.new [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
@@ -117,7 +116,7 @@ spec prefix connection pending=Nothing =
     Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = t1.where (t1.at "a" == 1)
-            df = t2.to_dataframe
+            df = t2.read
             df.at "a" . to_vector . should_equal [1]
             df.at "b" . to_vector . should_equal [2]
             df.at "c" . to_vector . should_equal [3]
@@ -134,24 +133,24 @@ spec prefix connection pending=Nothing =
            the Dataframes library, so it is independent of the library under
            testing here.
         Test.specify "should allow joining tables index-on-index" <|
-            r_1 = a.set_index 'x' . join (b.set_index 'w') . to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'y', Sort_Column.Name 'z'])
+            r_1 = a.set_index 'x' . join (b.set_index 'w') . read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'y', Sort_Column.Name 'z'])
             r_1.at 'y' . to_vector . should_equal ['bar', 'baz', 'eggs', 'foo', 'spam', 'spam', 'spam']
             r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, 'foo', Nothing, 'bar', 'eggs', 'foo']
 
-            r_2 = a.set_index 'y' . join (b.set_index 'z') drop_unmatched=True . to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x', Sort_Column.Name 'w'])
+            r_2 = a.set_index 'y' . join (b.set_index 'z') drop_unmatched=True . read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x', Sort_Column.Name 'w'])
             r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
             r_2.at 'w' . to_vector . should_equal [3, 6, 3, 5, 5, 3]
 
         Test.specify "should allow joining tables column-on-index" <|
-            r_1 = a.join (b.set_index 'w') on='x' . to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'y', Sort_Column.Name 'z'])
+            r_1 = a.join (b.set_index 'w') on='x' . read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'y', Sort_Column.Name 'z'])
             r_1.at 'y' . to_vector . should_equal ['bar', 'baz', 'eggs', 'foo', 'spam', 'spam', 'spam']
             r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, 'foo', Nothing, 'bar', 'eggs', 'foo']
-            r_2 = a.join (b.set_index 'z') drop_unmatched=True on='y' . to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x', Sort_Column.Name 'w'])
+            r_2 = a.join (b.set_index 'z') drop_unmatched=True on='y' . read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x', Sort_Column.Name 'w'])
             r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
             r_2.at 'w' . to_vector . should_equal [3, 6, 3, 5, 5, 3]
 
         Test.specify "should allow self-joins and append suffixes to disambiguate column names" <|
-            r_1 = a.join (a.set_index 'x') on='x' . to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x'])
+            r_1 = a.join (a.set_index 'x') on='x' . read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'x'])
             r_1.columns.map .name . should_equal ['x', 'y_left', 'y_right']
             r_1.at 'x' . to_vector . should_equal [0, 1, 3, 6, 7]
             expected_y = ['foo', 'bar', 'spam', 'eggs', 'baz']
@@ -169,7 +168,7 @@ spec prefix connection pending=Nothing =
             tb_2 = tb.set_index "id"
             res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
             sel = res.select_columns (By_Name ["name_a", "name_b"])
-            df = sel.to_dataframe . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "name_a"])
+            df = sel.read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "name_a"])
             df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
             df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
 
@@ -193,7 +192,7 @@ spec prefix connection pending=Nothing =
             col.drop_missing.to_vector . should_equal [0, 1, 42]
 
         Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            d = t4.drop_missing_rows.to_dataframe
+            d = t4.drop_missing_rows.read
             d.at 'a' . to_vector . should_equal [0]
             d.at 'b' . to_vector . should_equal [True]
             d.at 'c' . to_vector . should_equal [""]
@@ -208,7 +207,7 @@ spec prefix connection pending=Nothing =
 
             empty = t4.drop_missing_columns
             empty.column_count . should_equal 0
-            empty.to_dataframe.column_count . should_equal 0
+            empty.read.column_count . should_equal 0
 
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
@@ -289,7 +288,7 @@ spec prefix connection pending=Nothing =
             col = t.index+10
             vec = [11, 12, 13]
             col.to_vector . should_equal vec
-            df_col = col.to_dataframe
+            df_col = col.read
             df_col.to_vector . should_equal vec
             df_col.index.to_vector . should_equal [1, 2, 3]
 
@@ -327,13 +326,13 @@ spec prefix connection pending=Nothing =
                returned in lower case.
             aggregates = [Count "count", Count_Not_Nothing "price" "count not nothing price", Count_Nothing "price" "count nothing price"]
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . to_dataframe)
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . read)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
             t1.at  "count" . to_vector . should_equal [2, 1, 5, 1, 7]
             t1.at  "count not nothing price" . to_vector . should_equal [2, 1, 3, 0, 5]
             t1.at  "count nothing price" . to_vector . should_equal [0, 0, 2, 1, 2]
 
-            t2 = t.aggregate aggregates . to_dataframe
+            t2 = t.aggregate aggregates . read
             t2.at  "count" . to_vector . should_equal [16]
             t2.at  "count not nothing price" . to_vector . should_equal [11]
             t2.at  "count nothing price" . to_vector . should_equal [5]
@@ -344,13 +343,13 @@ spec prefix connection pending=Nothing =
             aggregates = [Sum "price" "sum price", Sum "quantity" "sum quantity", Average "price" "avg price"]
             ## TODO can check the datatypes
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . read)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
             t1.at  "sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing, 2]
             t1.at  "sum quantity" . to_vector . should_equal [80, 40, 120, 70, 2]
             t1.at  "avg price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing, (2/5)]
 
-            t2 = t.aggregate aggregates . to_dataframe
+            t2 = t.aggregate aggregates . read
             t2.at  "sum price" . to_vector . should_equal [110.2]
             t2.at  "sum quantity" . to_vector . should_equal [312]
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]

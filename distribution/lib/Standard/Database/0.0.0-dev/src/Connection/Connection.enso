@@ -2,17 +2,19 @@ from Standard.Base import all
 
 import Standard.Database.Internal.IR
 import Standard.Database.Data.SQL
+import Standard.Database.Data.SQL_Query
 import Standard.Database.Data.Table as Database_Table
 
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
 
-from Standard.Database.Data.SQL import SQL_Type, Statement
+from Standard.Database.Data.SQL import SQL_Type, Statement, Statement_Data
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 from Standard.Database.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
+polyglot java import java.util.UUID
 
 type Connection
     ## PRIVATE
@@ -32,17 +34,6 @@ type Connection
     close : Nothing
     close self = self.jdbc_connection.close
 
-    ## UNSTABLE
-
-       Accesses a table within the database, returning an object that can be
-       used to create queries for that table.
-
-       Arguments:
-       - name: name of the table to access
-    access_table : Text -> Database_Table
-    access_table self name = handle_sql_errors <|
-        columns = self.fetch_columns name
-        Database_Table.make_table self name columns
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
@@ -111,18 +102,43 @@ type Connection
             if all_fields then renamed else
                 renamed.select_columns (Column_Selector.By_Name ["Database", "Schema", "Name", "Type", "Description"])
 
-    ## ADVANCED
-
-       Executes a raw query and returns the result as an in-memory Table.
+    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of SQL.Statement
-         representing the query to execute.
-       - expected_types: an optional array of expected types of each column;
-         meant only for internal use.
-    execute_query : Text | Statement -> Vector SQL_Type -> Materialized_Table
-    execute_query self query expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement query stmt->
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+       - alias: optionally specify a friendly alias for the query.
+    query : Text | SQL_Query -> Text -> Database_Table
+    query self query alias="" = handle_sql_errors <| case query of
+        Text ->
+            self.query alias=alias <|
+                if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
+                    SQL_Query.Raw_SQL query
+        SQL_Query.Raw_SQL raw_sql ->
+            columns = self.jdbc_connection.fetch_columns raw_sql
+            name = if alias == "" then (UUID.randomUUID.to_text) else alias
+            ctx = IR.context_for_query raw_sql name
+            Database_Table.make_table self name columns ctx
+        SQL_Query.Table_Name name ->
+            ctx = IR.context_for_table name (if alias == "" then name else alias)
+            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (IR.Select_All ctx))
+            Database_Table.make_table self name columns ctx
+
+    ## Execute the query and load the results into memory as a Table.
+
+       Arguments:
+       - query: name of the table or sql statement to query.
+         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+       - limit: the maximum number of rows to return.
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
+    read self query limit=Nothing =
+        self.query query . read max_rows=limit
+
+    ## PRIVATE
+       Internal read function for a statement with optional types.
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Table
+    read_statement self statement expected_types=Nothing =
+        self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
 
     ## ADVANCED
@@ -139,20 +155,6 @@ type Connection
         self.jdbc_connection.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
-
-    ## PRIVATE
-
-       A helper function that fetches column names and sql types associated with
-       them for a table in the database.
-
-       Arguments:
-       - table_name: The name of the table to fetch the column metadata for.
-    # fetch_columns : Text -> Vector [Text, SQL_Type]
-    fetch_columns : Text -> Vector Any
-    fetch_columns self table_name =
-        query = IR.Select_All (IR.context_for_table table_name)
-        compiled = self.dialect.generate_sql query
-        self.jdbc_connection.fetch_columns compiled
 
     ## PRIVATE
        UNSTABLE
@@ -176,7 +178,7 @@ type Connection
         create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql
 
-        db_table = if create_table.is_error then create_table else self.access_table name
+        db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
             pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
             insert_query = self.dialect.generate_sql <| IR.Insert name pairs

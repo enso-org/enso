@@ -1,5 +1,6 @@
 import Standard.Database.Data.Table
 import Standard.Database.Data.Column
+import Standard.Database.Data.SQL_Query
 import Standard.Database.Connection.Database
 
 import Standard.Database.Connection.Credentials
@@ -24,3 +25,4 @@ from Standard.Database.Connection.Database export connect
 from Standard.Database.Connection.Postgres_Options export Postgres_Options, Postgres
 from Standard.Database.Connection.SQLite_Options export SQLite_Options, SQLite, In_Memory
 from Standard.Database.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Profile, AWS_Key
+from Standard.Database.Data.SQL_Query export SQL_Query, Table_Name, Raw_SQL
