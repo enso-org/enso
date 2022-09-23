@@ -24,7 +24,7 @@ public class Date_Period_Utils implements TimeUtilsBase {
             .with(TemporalAdjusters.lastDayOfMonth());
       };
 
-  public static TemporalAdjuster end_of_week(DayOfWeek start_of_week) {
-      return (Temporal temporal) -> temporal.with(TemporalAdjusters.next(start_of_week)).minus(1, ChronoUnit.DAYS);
+  public static TemporalAdjuster end_of_week(DayOfWeek first_day) {
+      return (Temporal temporal) -> temporal.with(TemporalAdjusters.next(first_day)).minus(1, ChronoUnit.DAYS);
   }
 }
