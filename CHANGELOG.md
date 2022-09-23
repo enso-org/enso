@@ -201,6 +201,7 @@
 - [Implemented `work_days_until` for counting work dys between dates and
   `add_work_days` which allows to shift a date by a number of work days.][3726]
 - [Added `query` and `read` functions to Database connections.][3727]
+- [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -321,6 +322,7 @@
 [3695]: https://github.com/enso-org/enso/pull/3695
 [3726]: https://github.com/enso-org/enso/pull/3726
 [3727]: https://github.com/enso-org/enso/pull/3727
+[3733]: https://github.com/enso-org/enso/pull/3733
 
 #### Enso Compiler
 
