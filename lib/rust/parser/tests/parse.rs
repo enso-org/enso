@@ -624,22 +624,20 @@ fn import() {
     #[rustfmt::skip]
     let cases = [
         ("import project.IO", block![
-            (Import () () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () ())]),
+            (Import () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () ())]),
         ("import Standard.Base as Enso_List", block![
-            (Import () () ()
+            (Import () ()
              ((Ident import) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
              ((Ident as) (Ident Enso_List))
              ())]),
         ("from Standard.Base import all", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
-             ()
              ((Ident import) (Ident all))
              () ())]),
         ("from Standard.Base import all hiding Number, Boolean", block![
             (Import ()
              ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
-             ()
              ((Ident import) (Ident all))
              ()
              ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))]),
@@ -647,14 +645,12 @@ fn import() {
             (Import
              ((Ident polyglot) (Ident java))
              ()
-             ()
              ((Ident import)
               (OprApp (OprApp (Ident java) (Ok ".") (Ident lang)) (Ok ".") (Ident Float)))
              () ())]),
         ("polyglot java import java.net.URI as Java_URI", block![
             (Import
              ((Ident polyglot) (Ident java))
-             ()
              ()
              ((Ident import)
               (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))

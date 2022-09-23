@@ -222,12 +222,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An import statement.
         Import {
-            pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
-            pub from:      Option<MultiSegmentAppSegment<'s>>,
-            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
-            pub import:    MultiSegmentAppSegment<'s>,
-            pub import_as: Option<MultiSegmentAppSegment<'s>>,
-            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+            pub polyglot: Option<MultiSegmentAppSegment<'s>>,
+            pub from:     Option<MultiSegmentAppSegment<'s>>,
+            pub import:   MultiSegmentAppSegment<'s>,
+            #[reflect(rename = "as")]
+            pub as_:      Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:   Option<MultiSegmentAppSegment<'s>>,
         },
         /// An export statement.
         Export {

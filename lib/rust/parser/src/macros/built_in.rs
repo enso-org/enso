@@ -52,9 +52,8 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use operator::resolve_operator_precedence_if_non_empty;
     let mut polyglot = None;
     let mut from = None;
-    let mut from_as = None;
     let mut import = None;
-    let mut import_as = None;
+    let mut as_ = None;
     let mut hiding = None;
     for segment in segments {
         let header = segment.header;
@@ -62,16 +61,15 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         let field = match header.code.as_ref() {
             "polyglot" => &mut polyglot,
             "from" => &mut from,
-            "as" if import.is_none() => &mut from_as,
             "import" => &mut import,
-            "as" => &mut import_as,
+            "as" => &mut as_,
             "hiding" => &mut hiding,
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
     let import = import.unwrap();
-    syntax::Tree::import(polyglot, from, from_as, import, import_as, hiding)
+    syntax::Tree::import(polyglot, from, import, as_, hiding)
 }
 
 fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
