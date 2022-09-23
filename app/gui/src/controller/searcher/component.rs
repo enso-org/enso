@@ -259,7 +259,7 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
-    /// TODO
+    /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
     pub fn module_qualified_name(&self, component: Id) -> Option<Rc<module::QualifiedName>> {
         self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }

@@ -56,14 +56,15 @@ impl ModuleGroups {
     /// Construct the builder without content nor submodules.
     ///
     /// The existence of flattened content is decided during construction.
+    ///
+    /// Returns [`None`] if entry's qualified name can't be converted into a module name.
     pub fn new(
         component_id: component::Id,
         entry: &suggestion_database::Entry,
     ) -> FallibleResult<Self> {
         let is_top_module = entry.module.is_top_module();
-        let qualified_name =
-            module::QualifiedName::from_all_segments(entry.qualified_name().into_iter())?;
-        let project = entry.module.project_name.clone();
+        let qualified_name = entry.qualified_name();
+        let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
             content: mk_group(),

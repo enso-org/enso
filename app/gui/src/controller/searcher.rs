@@ -641,12 +641,9 @@ impl Searcher {
 
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) -> impl Iterator<Item = ImString> {
-        let builder = breadcrumbs::Builder::for_module(&self.database, module);
-        let breadcrumbs = builder.build(&self.components()).unwrap_or_default();
-        self.breadcrumbs.clear();
-        for entry in &breadcrumbs {
-            self.breadcrumbs.push(entry.id());
-        }
+        let builder = breadcrumbs::Builder::new(&self.database, self.components());
+        let breadcrumbs = builder.build(module).unwrap_or_default();
+        self.breadcrumbs.set_content(breadcrumbs.iter());
         self.notifier.notify(Notification::NewActionList);
         breadcrumbs.into_iter().map(|entry| entry.name())
     }

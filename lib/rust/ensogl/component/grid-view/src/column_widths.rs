@@ -76,10 +76,11 @@ impl ColumnWidths {
     /// `colunm` can be equal to `number_of_columns` passed to the [`Self::new`] or
     /// [`Self::resize`].
     pub fn pos_offset(&self, column: usize) -> f32 {
-        if column == 0 || column > self.width_diffs.borrow().len() {
+        let borrowed = self.width_diffs.borrow();
+        if column == 0 || column > borrowed.len() {
             0.0
         } else {
-            self.width_diffs.borrow().query(column - 1)
+            borrowed.query(column - 1)
         }
     }
 

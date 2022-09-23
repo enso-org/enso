@@ -206,24 +206,20 @@ impl Model {
     }
 
     fn enter_module(&self, module: EnteredModule) -> Option<()> {
-        match module {
+        let id = match module {
             EnteredModule::Entry(group, entry_id) => {
                 let view_id = list_panel::EntryId { group, entry_id };
                 let component = self.component_by_view_id(view_id)?;
-                let id = component.id()?;
-                let names = self.controller.enter_module(&id);
-                for name in names {
-                    self.push_breadcrumb(name);
-                }
+                component.id()?
             }
             EnteredModule::Group(group_id) => {
                 let group = self.group_by_view_id(group_id)?;
-                let id = group.component_id?;
-                let names = self.controller.enter_module(&id);
-                for name in names {
-                    self.push_breadcrumb(name);
-                }
+                group.component_id?
             }
+        };
+        let names = self.controller.enter_module(&id);
+        for name in names {
+            self.push_breadcrumb(name);
         }
         Some(())
     }
