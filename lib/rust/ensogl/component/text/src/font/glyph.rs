@@ -11,7 +11,7 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
-use crate::buffer::style::PropertyDiffApply;
+use crate::buffer::formatting::PropertyDiffApply;
 use enso_frp::stream::ValueProvider;
 use enso_text::CodePointIndex;
 use enso_text::UBytes;

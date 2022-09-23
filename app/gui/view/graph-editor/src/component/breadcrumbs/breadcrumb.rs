@@ -350,7 +350,7 @@ impl BreadcrumbModel {
         let color = if self.is_selected() { full_color } else { transparent_color };
 
         self.label.set_default_color.emit(color);
-        self.label.set_default_text_size(text::style::Size::from(TEXT_SIZE));
+        self.label.set_default_text_size(text::formatting::Size::from(TEXT_SIZE));
         self.label.single_line(true);
         self.label.set_position_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
         self.label.set_position_y(TEXT_SIZE / 2.0);

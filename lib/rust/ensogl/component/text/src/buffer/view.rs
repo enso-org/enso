@@ -4,8 +4,8 @@ use crate::prelude::*;
 use enso_text::unit::*;
 
 use crate::buffer;
-use crate::buffer::style;
-use crate::buffer::style::Formatting;
+use crate::buffer::formatting;
+use crate::buffer::formatting::Formatting;
 use crate::buffer::Buffer;
 // use crate::buffer::DefaultSetter;
 
@@ -433,7 +433,7 @@ impl ViewBuffer {
 
     pub fn chunks_per_font_face<'a>(
         font: &'a font::Font,
-        line_style: &'a style::Formatting,
+        line_style: &'a formatting::Formatting,
         content: &'a str,
     ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
@@ -823,9 +823,9 @@ ensogl_core::define_endpoints! {
         redo                       (),
         // set_default_color          (color::Rgba),
         // set_default_text_size      (style::Size),
-        set_property               (Vec<buffer::Range<UBytes>>, Option<style::Property>),
-        mod_property               (Vec<buffer::Range<UBytes>>, Option<style::PropertyDiff>),
-        set_property_default       (Option<style::ResolvedProperty>),
+        set_property               (Vec<buffer::Range<UBytes>>, Option<formatting::Property>),
+        mod_property               (Vec<buffer::Range<UBytes>>, Option<formatting::PropertyDiff>),
+        set_property_default       (Option<formatting::ResolvedProperty>),
         set_first_view_line        (Line),
         mod_first_view_line        (LineDiff),
     }
@@ -979,7 +979,7 @@ impl ViewModel {
         line
     }
 
-    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<style::Property>) {
+    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<formatting::Property>) {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
@@ -991,7 +991,7 @@ impl ViewModel {
     fn mod_property(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
-        property: Option<style::PropertyDiff>,
+        property: Option<formatting::PropertyDiff>,
     ) {
         if let Some(property) = property {
             for range in ranges {
@@ -1001,13 +1001,13 @@ impl ViewModel {
         }
     }
 
-    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
+    fn set_property_default(&self, property: Option<formatting::ResolvedProperty>) {
         if let Some(property) = property {
             self.data.formatting.set_property_default(property)
         }
     }
 
-    pub fn resolve_property(&self, property: style::Property) -> style::ResolvedProperty {
+    pub fn resolve_property(&self, property: formatting::Property) -> formatting::ResolvedProperty {
         self.formatting.resolve_property(property)
     }
 

@@ -9,7 +9,7 @@ use crate::prelude::*;
 // === Export ===
 // ==============
 
-pub mod style;
+pub mod formatting;
 pub mod view;
 
 
@@ -19,7 +19,7 @@ pub mod traits {
     pub use enso_text::traits::*;
 }
 
-pub use style::*;
+pub use formatting::*;
 pub use view::*;
 
 pub use enso_text::unit::*;

@@ -198,7 +198,7 @@ impl Entry for GlyphHighlightedLabel {
             set_highlight <- all(highlight, highlight_bold, content_changed);
             eval set_highlight ([label]((highlight, bold, ())) {
                 for range in highlight {
-                   label.set_sdf_weight(range, text::style::SdfWeight::new(*bold));
+                   label.set_sdf_weight(range, text::formatting::SdfWeight::new(*bold));
                 }
             });
         }

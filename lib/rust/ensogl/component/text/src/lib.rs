@@ -56,8 +56,8 @@ pub mod prelude {
 }
 
 // pub use buffer::*;
-pub use buffer::style;
-pub use buffer::style::*;
+pub use buffer::formatting;
+pub use buffer::formatting::*;
 pub use buffer::traits;
 pub use component::Text;
 pub use enso_text::unit::*;

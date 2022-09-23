@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::buffer::style;
+use crate::buffer::formatting;
 use crate::font::glyph::Glyph;
 use enso_text::unit::*;
 use ensogl_core::display;
@@ -155,8 +155,8 @@ impl From<f32> for TruncationSize {
     }
 }
 
-impl From<style::Size> for TruncationSize {
-    fn from(size: style::Size) -> Self {
+impl From<formatting::Size> for TruncationSize {
+    fn from(size: formatting::Size) -> Self {
         let scale = size.value / ELLIPSIS_SCALE;
         Self::new(scale)
     }
@@ -285,7 +285,7 @@ impl View {
     }
 
     /// Set the truncation of the line to the specified size.
-    pub fn set_truncated(&mut self, size: Option<style::Size>) {
+    pub fn set_truncated(&mut self, size: Option<formatting::Size>) {
         if let Some(size) = size {
             let ellipsis = ellipsis::View::new();
             self.add_child(&ellipsis);

@@ -33,7 +33,7 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::shape::*;
 use ensogl_core::system::web;
 use ensogl_text::buffer;
-use ensogl_text::style;
+use ensogl_text::formatting;
 use ensogl_text::Column;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
@@ -314,45 +314,57 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                         area.set_property(buffer::RangeLike::Selections, color::Rgba::blue());
                     }
                 } else if key == "Digit0" {
-                    area.set_property(buffer::RangeLike::Selections, style::Property::Color(None));
+                    area.set_property(
+                        buffer::RangeLike::Selections,
+                        formatting::Property::Color(None),
+                    );
                 } else if key == "KeyB" {
                     if event.shift_key() {
-                        area.set_property_default(style::Weight::Bold);
+                        area.set_property_default(formatting::Weight::Bold);
                     } else {
                         if event.alt_key() {
                             area.set_property(
                                 buffer::RangeLike::Selections,
-                                style::Property::Weight(None),
+                                formatting::Property::Weight(None),
                             );
                         } else {
-                            area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
+                            area.set_property(
+                                buffer::RangeLike::Selections,
+                                formatting::Weight::Bold,
+                            );
                         }
                     }
                 } else if key == "KeyH" {
                     if event.shift_key() {
-                        area.set_property_default(style::SdfWeight(0.02));
+                        area.set_property_default(formatting::SdfWeight(0.02));
                     } else {
-                        area.set_property(buffer::RangeLike::Selections, style::SdfWeight(0.02));
+                        area.set_property(
+                            buffer::RangeLike::Selections,
+                            formatting::SdfWeight(0.02),
+                        );
                     }
                 } else if key == "KeyI" {
                     if event.shift_key() {
-                        area.set_property_default(style::Style::Italic);
+                        area.set_property_default(formatting::Style::Italic);
                     } else {
-                        area.set_property(buffer::RangeLike::Selections, style::Style::Italic);
+                        area.set_property(buffer::RangeLike::Selections, formatting::Style::Italic);
                     }
                 } else if key == "Equal" {
                     if event.shift_key() {
-                        area.set_property_default(style::Size(16.0));
+                        area.set_property_default(formatting::Size(16.0));
                     } else {
                         // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
-                        area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(2.0));
+                        area.mod_property(buffer::RangeLike::Selections, formatting::SizeDiff(2.0));
                     }
                 } else if key == "Minus" {
                     if event.shift_key() {
-                        area.set_property_default(style::Size(16.0));
+                        area.set_property_default(formatting::Size(16.0));
                     } else {
                         // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
-                        area.mod_property(buffer::RangeLike::Selections, style::SizeDiff(-2.0));
+                        area.mod_property(
+                            buffer::RangeLike::Selections,
+                            formatting::SizeDiff(-2.0),
+                        );
                     }
                 } else if key == "ArrowUp" {
                     area.mod_first_view_line(-1);

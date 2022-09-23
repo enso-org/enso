@@ -18,7 +18,7 @@ use ensogl::display::object::ObjectOps;
 use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
-use ensogl_component::text::style::Size as TextSize;
+use ensogl_component::text::formatting::Size as TextSize;
 use ensogl_hardcoded_theme as theme;
 use logger::DefaultWarningLogger as Logger;
 

@@ -6,7 +6,7 @@ use enso_text::unit;
 use enso_text::unit::*;
 
 use crate::buffer;
-use crate::buffer::style;
+use crate::buffer::formatting;
 use crate::buffer::Transform;
 use crate::component::line;
 use crate::component::selection;
@@ -281,9 +281,9 @@ ensogl_core::define_endpoints_2! {
         add_cursor (LocationLike),
         paste_string (String),
         insert (String),
-        set_property (RangeLike, Option<style::Property>),
-        set_property_default (Option<style::ResolvedProperty>),
-        mod_property (RangeLike, Option<style::PropertyDiff>),
+        set_property (RangeLike, Option<formatting::Property>),
+        set_property_default (Option<formatting::ResolvedProperty>),
+        mod_property (RangeLike, Option<formatting::PropertyDiff>),
 
         /// Set color of selections (the cursor or characters selection).
         set_selection_color (color::Rgb),
@@ -1227,20 +1227,20 @@ impl TextModel {
 impl TextModel {
     /// Check whether the property change will invalidate the cache, and thus, will require line
     /// re-shaping and re-drawing.
-    fn property_change_invalidates_cache(property: impl Into<style::PropertyTag>) -> bool {
+    fn property_change_invalidates_cache(property: impl Into<formatting::PropertyTag>) -> bool {
         let tag = property.into();
         match tag {
-            style::PropertyTag::Size => true,
-            style::PropertyTag::Color => false,
-            style::PropertyTag::Weight => true,
-            style::PropertyTag::Width => true,
-            style::PropertyTag::Style => true,
-            style::PropertyTag::SdfWeight => false,
+            formatting::PropertyTag::Size => true,
+            formatting::PropertyTag::Color => false,
+            formatting::PropertyTag::Weight => true,
+            formatting::PropertyTag::Width => true,
+            formatting::PropertyTag::Style => true,
+            formatting::PropertyTag::SdfWeight => false,
         }
     }
 
     /// Set the property to selected glyphs. Redraw lines if needed.
-    fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::Property) {
+    fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: formatting::Property) {
         if Self::property_change_invalidates_cache(property) {
             self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
         } else {
@@ -1249,7 +1249,11 @@ impl TextModel {
     }
 
     /// Modify the property of selected glyphs. Redraw lines if needed.
-    fn mod_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: style::PropertyDiff) {
+    fn mod_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: formatting::PropertyDiff,
+    ) {
         if Self::property_change_invalidates_cache(property) {
             self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
         } else {
@@ -1261,7 +1265,7 @@ impl TextModel {
     fn set_glyphs_property_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
-        property: style::Property,
+        property: formatting::Property,
     ) {
         let property = self.buffer.resolve_property(property);
         self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.set_property(property));
@@ -1271,7 +1275,7 @@ impl TextModel {
     fn mod_glyphs_property_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<UBytes>>,
-        property: style::PropertyDiff,
+        property: formatting::PropertyDiff,
     ) {
         self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
     }
@@ -1336,7 +1340,7 @@ impl TextModel {
 
 impl TextModel {
     /// Change a default value of a property.
-    fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
+    fn set_property_default(&self, property: Option<formatting::ResolvedProperty>) {
         if let Some(property) = property {
             if Self::property_change_invalidates_cache(property) {
                 self.set_property_default_with_line_redraw(property)
@@ -1348,7 +1352,7 @@ impl TextModel {
 
     /// Change a default value of a property that requires line redraw, like changing the default
     /// glyph weight or size.
-    fn set_property_default_with_line_redraw(&self, property: style::ResolvedProperty) {
+    fn set_property_default_with_line_redraw(&self, property: formatting::ResolvedProperty) {
         let range = self.buffer.full_range();
         let formatting = self.buffer.sub_style(range);
         let span_ranges = formatting.span_ranges_of_default_values(property.tag());
@@ -1357,7 +1361,7 @@ impl TextModel {
 
     /// Change a default value of a property  that does not require line redraw, like changing the
     /// default glyph color.
-    fn set_property_default_without_line_redraw(&self, property: style::ResolvedProperty) {
+    fn set_property_default_without_line_redraw(&self, property: formatting::ResolvedProperty) {
         let range = self.buffer.full_range();
         let formatting = self.buffer.sub_style(range);
         let span_ranges = formatting.span_ranges_of_default_values(property.tag());
