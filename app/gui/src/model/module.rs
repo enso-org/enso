@@ -369,7 +369,7 @@ pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
-    #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     import:  HashMap<ImportId, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
@@ -780,7 +780,7 @@ pub mod test {
         assert_eq!(qualified.to_string(), "n.P.Foo.Bar");
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn outdated_metadata_parses() {
         // Metadata here will fail to serialize because `File` is not a valid qualified name.
         // Expected behavior is that invalid metadata parts will be filled with defaults.
