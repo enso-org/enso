@@ -214,6 +214,7 @@ fn init(app: Application) {
     //  _eval <- map -> eval w text.rs
 
     // TODO: change divs to Vec from NonEmptyVec
+    // TOOD: bufferView / buffermodel - better names
 
     // area.set_cursor_at_end();
     //

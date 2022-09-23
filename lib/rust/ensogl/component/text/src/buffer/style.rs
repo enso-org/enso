@@ -252,15 +252,13 @@ impl Formatting {
         )
     }
 
-    // FIXME: tu powinnismy gdzies zunifikowac chunki bo czasem sa takie same gdy np zrobilismy
-    // literke 2 czerwona a potem z powortem defualtowa - wtedy i tak czunki beda 3 defaultowe
 
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,
     ) -> impl Iterator<Item = (std::ops::Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
         let seq_font_header = self.non_variable_font_spans();
-        gen_iter!(move {
+        let iter = gen_iter!(move {
             let mut start_byte = UBytes(0);
             let mut end_byte = UBytes(0);
             let mut header_iter = seq_font_header.into_iter();
@@ -279,25 +277,17 @@ impl Formatting {
                 error!("Misaligned bytes found when shaping text. {:?} != {:?}", start_byte, end_byte);
                 yield (start_byte..end_byte, default());
             }
+        });
+        // We are merging subsequent ranges if they have the same header.
+        iter.coalesce(|mut a, b| {
+            if a.1 == b.1 {
+                a.0.end = b.0.end;
+                Ok(a)
+            } else {
+                Err((a, b))
+            }
         })
     }
-}
-
-fn merge_same_values<T>(mut iterator: impl Iterator<Item = T>) -> impl Iterator<Item = T> {
-    gen_iter!(move {
-        let mut to_be_yielded = None;
-        for t in iterator {
-            if let Some(to_be_yielded) = to_be_yielded {
-                if to_be_yielded != t {
-                    yield to_be_yielded;
-                    to_be_yielded = None;
-                }
-            } else {
-                to_be_yielded = Some(t);
-            }
-            yield t;
-        }
-    })
 }
 
 
