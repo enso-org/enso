@@ -14,10 +14,10 @@ polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    spec_with "Date_Time" Date_Time.new Date_Time.parse
-    spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
-    spec_with "JavaZonedDateTime" java_datetime java_parse
-    spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
+    spec_with "Date_Time" Date_Time.new Date_Time.parse datetime_tpe=Date_Time.Date_Time
+    spec_with "JavascriptDate" js_datetime js_parse datetime_tpe=ZonedDateTime nanoseconds_loss_in_precision=True
+    spec_with "JavaZonedDateTime" java_datetime java_parse datetime_tpe=ZonedDateTime
+    spec_with "JavascriptDataInArray" js_array_datetime js_parse datetime_tpe=ZonedDateTime nanoseconds_loss_in_precision=True
 
     Test.group "Date_Time equality" <|
         Test.specify "should work with values coming from various sources" <|
@@ -32,7 +32,7 @@ spec =
             d3 . should_equal d4
             d4 . should_equal d5
 
-spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
+spec_with name create_new_datetime parse_datetime datetime_tpe nanoseconds_loss_in_precision=False =
     Test.group name <|
 
         Test.specify "should create time" <|
@@ -314,6 +314,13 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
+
+        Test.specify "should correctly determine the type of datetime" <|
+            new_datetime = create_new_datetime 2020 6 1 10 0 0
+            parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
+
+            Meta.type_of new_datetime . should_equal_type datetime_tpe
+            Meta.type_of parsed_datetime . should_equal_type datetime_tpe
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Date_Period containing the current datetime" <|

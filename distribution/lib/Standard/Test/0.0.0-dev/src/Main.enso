@@ -286,6 +286,28 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
         msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         fail msg
 
+## Asserts that `self` value is equal to the expected type value.
+
+   Arguments:
+   - that: The type to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that some type is equal to another.,
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_equal = Examples.some_tpe . should_equal_tpe Vector.Vector
+Any.should_equal_type : Any -> Integer -> Assertion
+Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that) of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
+        fail msg
+
 ## Asserts that `self` value is not equal to the expected value.
 
    Arguments:
@@ -306,6 +328,28 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
+        fail msg
+
+## Asserts that `self` value is not equal to the expected type value.
+
+   Arguments:
+   - that: The type to check `self` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that some type is equal to another.,
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_not_equal = Examples.some_tpe . should_not_equal_tpe Vector.Vector
+Any.should_not_equal_type : Any -> Integer -> Assertion
+Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that . not) of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
         fail msg
 
 ## Asserts that `self` value is equal to the expected value.

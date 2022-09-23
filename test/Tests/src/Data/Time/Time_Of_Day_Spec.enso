@@ -9,10 +9,10 @@ polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    specWith "Time_Of_Day" enso_time Time_Of_Day.parse
-    specWith "JavaLocalTime" java_time java_parse
+    specWith "Time_Of_Day" enso_time Time_Of_Day.parse Time_Of_Day.Time_Of_Day
+    specWith "JavaLocalTime" java_time java_parse LocalTime
 
-specWith name create_new_time parse_time =
+specWith name create_new_time parse_time timeofday_tpe =
     Test.group name <|
 
         Test.specify "should create local time" <|
@@ -116,6 +116,13 @@ specWith name create_new_time parse_time =
             time_1!=time_2 . should_be_true
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
+
+        Test.specify "should correctly determine the type of timeofday" <|
+            new_timeofday = create_new_time 15 37 58
+            parsed_timeofday =  parse_time "10:00:00"
+
+            Meta.type_of new_timeofday . should_equal_type timeofday_tpe
+            Meta.type_of parsed_timeofday . should_equal_type timeofday_tpe
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|

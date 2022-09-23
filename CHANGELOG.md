@@ -199,7 +199,7 @@
 - [Implemented `start_of` and `end_of` methods for date/time types allowing to
   find start and end of a period of time containing the provided time.][3695]
 - [Implemented `type_of` and `is_of_type` methods for getting the type of a
-  value and comparing types, respectively][3722]
+  value and comparing types, respectively.][3722]
 - [Implemented `work_days_until` for counting work dys between dates and
   `add_work_days` which allows to shift a date by a number of work days.][3726]
 - [Added `query` and `read` functions to Database connections.][3727]

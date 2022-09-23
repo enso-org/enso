@@ -45,7 +45,8 @@ public abstract class TimeZoneBranchNode extends BranchNode {
     accept(frame, state, new Object[0]);
   }
 
-  @Specialization(guards = "interop.isTimeZone(zone)")
+  @Specialization(
+      guards = {"!interop.isDate(zone)", "!interop.isTime(zone)", "interop.isTimeZone(zone)"})
   void doZone(
       VirtualFrame frame,
       Object state,

@@ -45,7 +45,7 @@ public abstract class DateBranchNode extends BranchNode {
     accept(frame, state, new Object[0]);
   }
 
-  @Specialization(guards = "interop.isDate(date)")
+  @Specialization(guards = {"interop.isDate(date)", "!interop.isTime(date)"})
   void doDate(
       VirtualFrame frame,
       Object state,

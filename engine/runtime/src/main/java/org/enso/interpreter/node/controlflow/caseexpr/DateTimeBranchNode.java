@@ -49,7 +49,6 @@ public abstract class DateTimeBranchNode extends BranchNode {
       guards = {
         "interop.isDate(dateTime)",
         "interop.isTime(dateTime)",
-        "interop.isTimeZone(dateTime)"
       })
   void doDateTime(
       VirtualFrame frame,

@@ -45,7 +45,7 @@ public abstract class TimeOfDayBranchNode extends BranchNode {
     accept(frame, state, new Object[0]);
   }
 
-  @Specialization(guards = "interop.isTime(timeOfDay)")
+  @Specialization(guards = {"!interop.isDate(timeOfDay)", "interop.isTime(timeOfDay)"})
   void doTime(
       VirtualFrame frame,
       Object state,
