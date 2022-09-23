@@ -26,6 +26,7 @@ pub mod plain;
 pub mod synchronized;
 
 pub use double_representation::module::Id;
+use double_representation::module::ImportId;
 pub use double_representation::module::QualifiedName;
 pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
@@ -35,10 +36,15 @@ pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 // == Errors ==
 // ============
 
-/// Failure for missing node metadata.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Fail)]
 #[fail(display = "Node with ID {} was not found in metadata.", _0)]
 pub struct NodeMetadataNotFound(pub ast::Id);
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Import with ID {} was not found in metadata.", _0)]
+pub struct ImportMetadataNotFound(pub ImportId);
 
 /// Failed attempt to tread a file path as a module path.
 #[derive(Clone, Debug, Fail)]
@@ -363,6 +369,8 @@ pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    import:  HashMap<ImportId, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
@@ -515,6 +523,15 @@ pub struct UploadingFile {
     pub error:          Option<String>,
 }
 
+#[allow(missing_docs)]
+#[allow(missing_copy_implementations)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct ImportMetadata {
+    #[serde(skip_serializing_if = "core::ops::Not::not")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    pub is_temporary: bool,
+}
+
 
 // ==============
 // === Module ===
@@ -584,6 +601,19 @@ pub trait API: Debug + model::undo_redo::Aware {
         id: ast::Id,
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
     ) -> FallibleResult;
+
+    /// Modify metadata of given import.
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult;
+
+    /// Returns the import metadata fof the module.
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)>;
+
+    /// Removes the import metadata of the import.
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata>;
 
     /// This method exists as a monomorphication for [`with_project_metadata`]. Users are encouraged
     /// to use it rather then this method.

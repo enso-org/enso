@@ -541,7 +541,9 @@ impl Searcher {
     ///
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes.
-    pub fn abort_editing(self) {}
+    pub fn abort_editing(self) {
+        self.model.controller.abort_editing()
+    }
 
     /// Returns the node view that is being edited by the searcher.
     pub fn input_view(&self) -> ViewNodeId {
