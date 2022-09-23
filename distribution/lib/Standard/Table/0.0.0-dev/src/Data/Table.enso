@@ -5,6 +5,7 @@ import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
+from Standard.Table.Data.Filter_Condition import all
 
 import Standard.Table.Data.Column
 import Standard.Table.Internal.Table_Helpers
@@ -803,13 +804,32 @@ type Table
 
              import Standard.Examples
 
-             example_where =
+             example_filter =
                  table = Examples.inventory_table
-                 mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
-                 table.where mask
-    where : Column -> Table
-    where self indexes =
-        Table_Data (self.java_table.mask indexes.java_column)
+                 mask = (table.at  > (table.at "total_stock" / 2))
+                 table.filter "sold_stock"
+    filter : (Text | Integer) -> Filter_Condition -> Table
+    filter self column_name_or_index filter =
+        column = self.at column_name_or_index
+
+        filter_column = case filter of
+            Equal value -> (column == value)
+            Not_Equal value -> (column != value)
+            Less value -> (column < value)
+            Less_Or_Equal value -> (column <= value)
+            Greater value -> (column > value)
+            Greater_Or_Equal value -> (column >= value)
+            Between lower upper -> ((column >= lower) && (column <= upper))
+            Like sql_like_pattern ->
+                is_like_function = is_like sql_like_pattern
+                (column.map is_like_function)
+            Not_Like sql_like_pattern ->
+                is_like_function = is_like sql_like_pattern
+                (column.map t->(is_like_function t).not)
+            Is_Nothing -> (column == Nothing)
+            Not_Nothing -> (column != Nothing)
+
+        Table_Data (self.java_table.mask filter_column.java_column)
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
@@ -942,45 +962,6 @@ type Table
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table_Data t ->
                 Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
-
-    ## ALIAS Clean Rows
-
-       Returns a new Table without rows that contained missing values in any of
-       the columns.
-
-       > Example
-         Remove any rows that contain missing values from the table.
-
-             import Standard.Examples
-
-             example_drop_missing_rows =
-                 Examples.inventory_table.drop_missing_rows
-    drop_missing_rows : Table
-    drop_missing_rows self =
-        cols = self.columns
-        case cols.not_empty of
-            True ->
-                any_missing_mask = cols.map .is_missing . reduce (||)
-                non_missing_mask = any_missing_mask.not
-                self.where non_missing_mask
-            False -> self
-
-    ## ALIAS Clean Columns
-
-       Returns a new Table without columns that contained any missing values.
-
-       > Example
-         Remove any columns that contain missing values from the table.
-
-             import Standard.Examples
-
-             example_drop_missing_cols =
-                 Examples.inventory_table.drop_missing_columns
-    drop_missing_columns : Table
-    drop_missing_columns self =
-        non_missing = self.columns . filter (col -> col.count_missing == 0)
-        index = self.java_table.getIndex
-        Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the number of rows in this table.
 
