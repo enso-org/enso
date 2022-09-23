@@ -2,19 +2,22 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArraySlice implements TruffleObject {
+class ArraySlice implements TruffleObject {
   private final Object storage;
   private final long start;
   private final long end;
 
-  public ArraySlice(Object storage, long start, long end) {
+  ArraySlice(Object storage, long start, long end) {
     if (storage instanceof ArraySlice slice) {
       this.storage = slice.storage;
       this.start = slice.start + start;
@@ -22,7 +25,7 @@ public class ArraySlice implements TruffleObject {
     } else {
       if (CompilerDirectives.inInterpreter()) {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
-          throw new IllegalStateException("Vector needs array-like delegate, but got: " + storage);
+          throw new IllegalStateException("ArraySlice needs array-like delegate, but got: " + storage);
         }
       }
 
@@ -46,7 +49,7 @@ public class ArraySlice implements TruffleObject {
   public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     long storageSize = interop.getArraySize(storage);
-    return Math.min(storageSize, end) - start;
+    return Math.max(0, Math.min(storageSize, end) - start);
   }
 
   /**
