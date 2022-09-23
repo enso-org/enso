@@ -881,7 +881,16 @@ impl<'s> From<Token<'s>> for Tree<'s> {
                 Tree::group(Some(token.with_variant(s)), default(), default()),
             token::Variant::CloseSymbol(s) =>
                 Tree::group(default(), default(), Some(token.with_variant(s))),
-            _ => {
+            // These should be unreachable: They are handled when assembling items into blocks,
+            // before parsing proper.
+            token::Variant::Newline(_)
+            | token::Variant::BlockStart(_)
+            | token::Variant::BlockEnd(_)
+            // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
+            // operators.
+            | token::Variant::Operator(_)
+            // Map an error case in the lexer to an error in the AST.
+            | token::Variant::Invalid(_) => {
                 let message = format!("Unexpected token: {token:?}");
                 let ident = token::variant::Ident(false, 0, false, false);
                 let value = Tree::ident(token.with_variant(ident));

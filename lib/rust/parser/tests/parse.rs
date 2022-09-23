@@ -1,5 +1,7 @@
 //! Parse expressions and compare their results to expected values.
 
+// === Features ===
+#![feature(let_else)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -510,7 +512,7 @@ fn operator_sections() {
     #[rustfmt::skip]
     test("+1 + x", block![
         (OprSectionBoundary 1 0 (OprApp (OprApp () (Ok "+") (Number () "1" ()))
-                              (Ok "+") (Ident x)))]);
+                                (Ok "+") (Ident x)))]);
 }
 
 #[test]
@@ -774,6 +776,7 @@ fn inline_text_literals() {
         (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
          (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
         (r#"('\n')"#, block![(Group (TextLiteral #((Escape '\n'))))]),
+        (r#"`"#, block![(Invalid)]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -781,7 +784,7 @@ fn inline_text_literals() {
 #[test]
 fn multiline_text_literals() {
     test("'''", block![(TextLiteral #())]);
-    const CODE: &str = r#""""
+    let code = r#""""
     part of the string
        3-spaces indented line, part of the Text Block
     this does not end the string -> '''
@@ -799,7 +802,16 @@ x"#;
            (Section "`also` part of the string\n")))
         (Ident x)
     ];
-    test(CODE, expected);
+    test(code, expected);
+    let code = r#""""
+    multiline string that doesn't end in a newline
+x"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral #((Section "multiline string that doesn't end in a newline")))
+        (Ident x)
+    ];
+    test(code, expected);
 }
 
 #[test]
@@ -1095,12 +1107,19 @@ where T: serde::Serialize + Reflect {
         }
         last.unwrap()
     };
+    let strip_invalid = |list| {
+        let Value::Cons(cons) = list else { unreachable!() };
+        let (car, _) = cons.into_pair();
+        Value::cons(car, Value::Null)
+    };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
     let case = rust_to_meta[&tree::Case::reflect().id];
+    let invalid = rust_to_meta[&tree::Invalid::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);
     to_s_expr.mapper(case, simplify_case);
+    to_s_expr.mapper(invalid, strip_invalid);
     to_s_expr.mapper(text_escape_token, simplify_escape);
     to_s_expr.skip(newline_token);
     to_s_expr.skip(wildcard_token);

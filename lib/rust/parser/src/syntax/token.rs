@@ -276,7 +276,6 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(skip)]
             pub properties: OperatorProperties,
         },
-        DocComment,
         Digits {
             pub base: Option<Base>
         },
@@ -290,15 +289,20 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(as = "char")]
             pub value: Option<char>,
         },
+        Invalid,
     }
 }}}
 
 impl Variant {
     /// Return whether this token can introduce a macro invocation.
     pub fn can_start_macro(&self) -> bool {
-        // Prevent macro interpretation of symbols that have been lexically contextualized as text
-        // escape control characters.
-        !matches!(self, Variant::TextEscape(_) | Variant::TextSection(_))
+        !matches!(self,
+            // Prevent macro interpretation of symbols that have been lexically contextualized as
+            // text escape control characters.
+            Variant::TextEscape(_) | Variant::TextSection(_)
+            // Prevent macro interpretation of lexically-inappropriate tokens.
+            | Variant::Invalid(_)
+        )
     }
 }
 

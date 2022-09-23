@@ -764,6 +764,9 @@ impl<'s> Lexer<'s> {
             Some('`') => {
                 if let Some(state) = self.stack.pop() {
                     self.end_splice(state);
+                } else {
+                    let token = self.token(|this| this.take_next()).unwrap();
+                    self.submit_token(token.with_variant(token::Variant::invalid()));
                 }
                 return;
             }
@@ -1643,6 +1646,8 @@ mod benches {
     fn bench_idents(b: &mut Bencher) {
         let reps = 1_000_000;
         let str = "test ".repeat(reps);
+        // Trim the trailing space off.
+        let str = &str[..str.len()-1];
 
         b.iter(move || {
             let lexer = Lexer::new(&str);
