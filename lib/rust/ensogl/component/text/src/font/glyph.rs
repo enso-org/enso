@@ -35,46 +35,29 @@ use owned_ttf_parser::GlyphId;
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
 ensogl_core::define_endpoints_2! {
     Input {
         set_color(color::Lcha),
         skip_color_animation(),
     }
-    Output {
-
-    }
 }
+
 
 // =============
 // === Glyph ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
-pub struct WeakGlyph {
-    data: Weak<GlyphData>,
-}
-
-impl WeakGlyph {
-    pub fn upgrade(&self) -> Option<Glyph> {
-        self.data.upgrade().map(|data| Glyph { data })
-    }
-}
-
 /// Glyph texture. Contains all letters encoded in MSDF format.
 pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
 /// A glyph rendered on screen.
-///
-/// The underlying sprite's size is automatically adjusted depending on char and font size set.
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Glyph {
     data: Rc<GlyphData>,
-}
-
-impl Glyph {
-    pub fn downgrade(&self) -> WeakGlyph {
-        WeakGlyph { data: Rc::downgrade(&self.data) }
-    }
 }
 
 /// Internal structure of [`Glyph`].
@@ -105,8 +88,25 @@ pub struct GlyphData {
 }
 
 
-// === Properties getters and setters ===
+// === Face Header Properties Getters and Setters ===
 
+/// For each property, such as `Weight(Thin, ExtraLight, ...)` defines:
+/// ```text
+/// pub fn weight(&self) -> Weight { ... }
+/// pub fn set_weight(&self, weight: Weight) { ... }
+/// pub fn set_weight_thin(&self) { ... }
+/// pub fn set_weight_extra_light(&self) { ... }
+/// ...
+/// pub fn is_weight_thin(&self) { ... }
+/// pub fn is_weight_extra_light(&self) { ... }
+/// ...
+/// ```
+///
+/// It also defines:
+///
+/// ``text
+/// pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) { ... }
+/// ```
 macro_rules! define_prop_setters_and_getters {
     ($($prop:ident ($($variant:ident),* $(,)?)),*$(,)?) => { paste! {
 
@@ -116,7 +116,7 @@ macro_rules! define_prop_setters_and_getters {
             $(
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](props.[<$prop:snake:lower>]);
             )*
-            self.refresh(); // FIXME do it via dirty flag
+            self.refresh();
         }
 
         $(
@@ -126,7 +126,7 @@ macro_rules! define_prop_setters_and_getters {
             pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
                 self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
-                self.refresh(); // FIXME do it via dirty flag
+                self.refresh();
             }
 
             #[doc = "Gets the current `"]
@@ -159,6 +159,37 @@ macro_rules! define_prop_setters_and_getters {
     }};
 }
 
+impl Glyph {
+    define_prop_setters_and_getters![
+        Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
+        Style(Normal, Italic, Oblique),
+        Width(
+            UltraCondensed,
+            ExtraCondensed,
+            Condensed,
+            SemiCondensed,
+            Normal,
+            SemiExpanded,
+            Expanded,
+            ExtraExpanded,
+            UltraExpanded
+        )
+    ];
+}
+
+
+// === Formatting properties ===
+
+/// For each formatting property defines:
+/// ```text
+/// pub fn mod_size(&self, f: impl FnOnce(Size) -> Size) { ... }
+/// ...
+/// ```
+///
+/// It also defines:
+/// ```text
+/// pub fn set_property(&self, property: ResolvedProperty) { ... }
+/// ```
 macro_rules! define_formatting_setters_and_mods {
     ($($name:ident : $tp:ty),* $(,)?) => {
         paste! {
@@ -179,24 +210,14 @@ macro_rules! define_formatting_setters_and_mods {
 
 
 impl Glyph {
-    define_prop_setters_and_getters![
-        Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
-        Style(Normal, Italic, Oblique),
-        Width(
-            UltraCondensed,
-            ExtraCondensed,
-            Condensed,
-            SemiCondensed,
-            Normal,
-            SemiExpanded,
-            Expanded,
-            ExtraExpanded,
-            UltraExpanded
-        )
-    ];
-
     crate::with_format_definition! {define_formatting_setters_and_mods}
+}
 
+
+// === Properties Getters and Setters ===
+
+impl Glyph {
+    /// Apply the property diff.
     pub fn mod_property(&self, property: PropertyDiff) {
         match property {
             PropertyDiff::Size(diff) => self.mod_size(|t| t.apply_diff(diff)),
@@ -208,13 +229,13 @@ impl Glyph {
         self.set_color.value()
     }
 
-    /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
-    /// values lower than 0 makes it thinner.
+    /// SDF-based glyph thickness getter.
     pub fn sdf_weight(&self) -> SdfWeight {
         SdfWeight(self.sdf_weight.get())
     }
 
-    /// SDF-based glyph thickness getter.
+    /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
+    /// values lower than 0 makes it thinner.
     pub fn set_sdf_weight(&self, value: impl Into<SdfWeight>) {
         self.sdf_weight.set(value.into().value);
     }
@@ -239,36 +260,36 @@ impl Glyph {
             error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
     }
+}
 
-    // TODO: remove and update examples
-    /// Change the displayed character.
-    pub fn set_char(&self, ch: char) {
-        let opt_glyph_id =
-            self.font.glyph_id_of_code_point(self.properties.get(), &self.variations.borrow(), ch);
-        if let Some(glyph_id) = opt_glyph_id {
-            self.set_glyph_id(glyph_id)
-        }
-        // FIXME[WD]: display not found char. https://www.pivotaltracker.com/story/show/182746060
-    }
 
+// === Glyph Modification ===
+
+impl Glyph {
     /// Change the displayed character.
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
-        let opt_glyph_info =
-            self.font.glyph_info(self.properties.get(), &self.variations.borrow(), glyph_id);
+        let variations = self.variations.borrow();
+        let opt_glyph_info = self.font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            let size = self.size();
-            self.sprite.size.set(glyph_info.scale.scale(size.value));
+            self.sprite.size.set(glyph_info.scale.scale(self.size().value));
         } else {
-            // FIXME[WD]: This should display a bad character. https://www.pivotaltracker.com/story/show/182746060
-            panic!()
+            // This should not happen. Fonts contain special glyph for missing characters.
+            warn!("Cannot find glyph render info for glyph id: {:?}.", glyph_id);
         }
     }
 
-    // FIXME: remove
-    pub fn refresh(&self) {
+    /// Refresh the glyph.
+    ///
+    /// # Performance
+    /// It might be possible to get better performance by using dirty flags. Right now, after
+    /// modification of each glyph property which causes the glyph to be re-rendered, such as
+    /// weight or style, we call this method. This is not optimal when multiple properties are
+    /// changed at once. However, such a situation is not common as many property modifiers, such as
+    /// color do not call this method.
+    fn refresh(&self) {
         self.set_glyph_id(self.glyph_id.get());
     }
 
@@ -284,12 +305,6 @@ impl Glyph {
             self.atlas.set(texture);
         }
     }
-
-    // /// Check whether a new glyph should be baked to the atlas and reload the texture if needed.
-    // /// This is useful for example after changing the width of the glyph.
-    // fn refresh(&self) {
-    //     self.set_glyph_id(self.glyph_id.get());
-    // }
 }
 
 impl display::Object for Glyph {
@@ -298,6 +313,31 @@ impl display::Object for Glyph {
     }
 }
 
+
+
+// =================
+// === WeakGlyph ===
+// =================
+
+/// Weak version of [`Glyph`].
+#[derive(Clone, CloneRef, Debug)]
+pub struct WeakGlyph {
+    data: Weak<GlyphData>,
+}
+
+impl Glyph {
+    /// Create a weak version of this glyph.
+    pub fn downgrade(&self) -> WeakGlyph {
+        WeakGlyph { data: Rc::downgrade(&self.data) }
+    }
+}
+
+impl WeakGlyph {
+    /// Upgrade the weak glyph to a strong one.
+    pub fn upgrade(&self) -> Option<Glyph> {
+        self.data.upgrade().map(|data| Glyph { data })
+    }
+}
 
 
 // ==============
@@ -420,6 +460,7 @@ impl display::Object for System {
 
 
 // === Material ===
+
 #[cfg(target_os = "macos")]
 const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
 #[cfg(not(target_os = "macos"))]
