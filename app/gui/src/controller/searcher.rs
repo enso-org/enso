@@ -644,13 +644,11 @@ impl Searcher {
         let builder = breadcrumbs::Builder::for_module(&self.database, module);
         let breadcrumbs = builder.build(&self.components()).unwrap_or_default();
         self.breadcrumbs.clear();
-        for breadcrumbs::BreadcrumbEntry { component_id, .. } in &breadcrumbs {
-            self.breadcrumbs.push(*component_id);
+        for entry in &breadcrumbs {
+            self.breadcrumbs.push(entry.id());
         }
         self.notifier.notify(Notification::NewActionList);
-        breadcrumbs
-            .into_iter()
-            .map(|breadcrumbs::BreadcrumbEntry { displayed_name, .. }| displayed_name)
+        breadcrumbs.into_iter().map(|entry| entry.name())
     }
 
     pub fn select_breadcrumb(&self, id: usize) {
