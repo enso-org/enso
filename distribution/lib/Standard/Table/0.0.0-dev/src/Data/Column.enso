@@ -481,20 +481,6 @@ type Column
         col = Java_Column.new name index new_st
         Column_Data col
 
-    ## ALIAS Drop Missing
-
-       Returns a new column without rows that had missing values.
-
-       > Example
-         Drop missing values from a column.
-
-             import Standard.Examples
-
-             example_drop_missing = Examples.decimal_column.drop_missing
-    drop_missing : Any -> Column
-    drop_missing self =
-        self.where self.is_missing.not
-
     ## Checks for each element of the column if it starts with `other`.
 
        Arguments:
@@ -737,27 +723,6 @@ type Column
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
-
-    ## Selects only the rows of this column that correspond to `True` values in
-       `indexes`.
-
-       Arguments:
-       - indexes: A column containing boolean values that is used to mask
-         `self`.
-
-       This is useful for filtering the rows by given predicate.
-
-       > Example
-         Select only the rows of the column where the length of the text exceeds
-         2.
-
-             import Standard.Examples
-
-             example_where =
-                 Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
-    where : Column -> Column
-    where self indexes =
-        Column_Data (self.java_column.mask indexes.java_column)
 
     ## Returns a vector containing all the elements in this column.
 
