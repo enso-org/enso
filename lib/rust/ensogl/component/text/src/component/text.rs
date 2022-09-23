@@ -699,7 +699,7 @@ impl TextModel {
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
             &display_object,
-            buffer.formatting.borrow().size.default.value,
+            buffer.formatting.size().default.value,
         ));
         let width_dirty = default();
         let height_dirty = default();
@@ -763,7 +763,7 @@ impl TextModel {
         let line = Self::new_line_helper(
             &self.app.display.default_scene.frp.frame_time,
             &self.display_object,
-            self.buffer.formatting.borrow().size.default.value,
+            self.buffer.formatting.size().default.value,
         );
         self.init_line(&line);
         line
@@ -1027,7 +1027,7 @@ impl TextModel {
         let mut column = Column(0);
         let mut to_be_truncated = 0;
         let mut truncated = false;
-        let default_size = self.buffer.formatting.borrow().size.default;
+        let default_size = self.buffer.formatting.size().default;
         let line_index = Line::from_in_context(self, view_line);
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {

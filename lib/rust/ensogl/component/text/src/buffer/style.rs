@@ -421,6 +421,9 @@ macro_rules! with_formatting_property_diffs {
 
 macro_rules! define_property_diffs {
     ($($field:ident : $tp:ty = $def:expr),* $(,)?) => {paste! {
+
+        $(def_unit!{[<$field Diff>]($tp) = $def})*
+
         /// A diff for a property. It is used to modify a property in a given range. A struct is used
         /// instead of a closure to better fit the FRP-model.
         #[allow(missing_docs)]
@@ -429,7 +432,13 @@ macro_rules! define_property_diffs {
             $($field([<$field Diff>])),*
         }
 
-        $(def_unit!{[<$field Diff>]($tp) = $def})*
+        impl From<PropertyDiff> for PropertyTag {
+            fn from(t: PropertyDiff) -> Self {
+                match t {
+                    $(PropertyDiff::$field(_) => PropertyTag::$field),*
+                }
+            }
+        }
 
         impl Formatting {
             /// Applies the property diff to the given property.
@@ -487,26 +496,14 @@ impl PropertyDiffApply<SdfWeightDiff> for SdfWeight {
     }
 }
 
-impl From<PropertyDiff> for PropertyTag {
-    fn from(t: PropertyDiff) -> Self {
-        match t {
-            PropertyDiff::Size(_) => PropertyTag::Size,
-            PropertyDiff::Weight(_) => PropertyTag::Weight,
-            PropertyDiff::Width(_) => PropertyTag::Width,
-            PropertyDiff::SdfWeight(_) => PropertyTag::SdfWeight,
-        }
-    }
-}
 
 
-
-// =================
+// ======================
 // === FormattingCell ===
-// =================
+// ======================
 
-// fixme: remove deref
 /// Internally mutable version of `Formatting`.
-#[derive(Clone, Debug, Default, Deref)]
+#[derive(Clone, Debug, Default)]
 pub struct FormattingCell {
     cell: RefCell<Formatting>,
 }
@@ -539,11 +536,38 @@ impl FormattingCell {
         self.cell.borrow_mut().set_resize_with_default(range, len)
     }
 
+    /// Set the property for the given range.
     pub fn set_property(&self, range: Range<UBytes>, property: Property) {
         self.cell.borrow_mut().set_property(range, property)
     }
 
+    /// Modify the property in the given range.
     pub fn mod_property(&self, range: Range<UBytes>, property: PropertyDiff) {
         self.cell.borrow_mut().mod_property(range, property)
     }
+
+    /// Set property default value in the given range.
+    pub fn set_property_default(&self, property: ResolvedProperty) {
+        self.cell.borrow_mut().set_property_default(property)
+    }
+
+    /// Resolve property by applying default values if needed.
+    pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
+        self.cell.borrow().resolve_property(property)
+    }
 }
+
+macro_rules! define_formatting_cell_getters {
+    ($($field:ident : $field_type:ty),* $(,)?) => {paste! {
+        impl FormattingCell {
+            $(
+                /// Property getter.
+                pub fn [<$field:snake:lower>](&self) -> Spanned<$field_type> {
+                    self.cell.borrow().[<$field:snake:lower>].clone()
+                }
+            )*
+        }
+    }};
+}
+
+with_formatting_properties! { define_formatting_cell_getters }

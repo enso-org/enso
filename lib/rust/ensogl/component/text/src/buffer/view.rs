@@ -1003,12 +1003,12 @@ impl ViewModel {
 
     fn set_property_default(&self, property: Option<style::ResolvedProperty>) {
         if let Some(property) = property {
-            self.data.formatting.borrow_mut().set_property_default(property)
+            self.data.formatting.set_property_default(property)
         }
     }
 
     pub fn resolve_property(&self, property: style::Property) -> style::ResolvedProperty {
-        self.formatting.borrow().resolve_property(property)
+        self.formatting.resolve_property(property)
     }
 
     /// Set the selection to a new value.
