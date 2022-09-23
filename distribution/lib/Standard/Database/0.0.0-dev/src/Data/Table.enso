@@ -4,6 +4,7 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Database.Internal.Helpers
 import Standard.Database.Internal.Aggregate_Helper
 import Standard.Database.Internal.IR
+from Standard.Database.Data.SQL_Query import Raw_SQL
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
 import Standard.Table.Data.Column as Materialized_Column
@@ -49,7 +50,7 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.reset_index.to_dataframe max_rows=show_rows
+        df = self.reset_index.read max_rows=show_rows
         indices_count = self.context.meta_index.length
         all_rows_count = self.row_count
         display_dataframe df indices_count all_rows_count format_terminal
@@ -401,7 +402,7 @@ type Table
          result as one could expect if the limit was applied before the filters.
              t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
              t2 = t1.where (t1.at 'A' > 5)
-             t2.to_dataframe
+             t2.read
     limit : Integer -> Table
     limit self max_rows =
         new_ctx = self.context.set_limit max_rows
@@ -715,13 +716,13 @@ type Table
                 self.updated_context_and_columns new_ctx new_columns
 
     ## Parsing values is not supported in database tables, the table has to be
-       materialized first with `to_dataframe`.
+       loaded into memory first with `read`.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [value_formatter, column_types, on_problems]
-        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
+        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
@@ -746,7 +747,7 @@ type Table
         cols = self.internal_columns.map (c -> [c.name, make_count_expr c.expression])
         query = IR.Select [[all_rows_column_name, rows_expr]]+cols self.context
         sql = self.connection.dialect.generate_sql query
-        table = self.connection.execute_query sql
+        table = self.connection.read_statement sql
         all_rows = table.at all_rows_column_name . at 0
         kept_columns = self.internal_columns . filter c->
             all_rows == table.at c.name . at 0
@@ -765,7 +766,7 @@ type Table
         new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
-        table = self.connection.execute_query sql
+        table = self.connection.read_statement sql
         table.at column_name . at 0
 
     ## UNSTABLE
@@ -775,8 +776,8 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
-    to_dataframe self max_rows=Nothing =
+    read : (Integer | Nothing) -> Materialized_Table.Table
+    read self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
             True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
@@ -788,7 +789,7 @@ type Table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
-                        table = self.connection.execute_query sql expected_types
+                        table = self.connection.read_statement sql expected_types
                         case self.context.meta_index.length == 1 of
                             False -> table
                             True ->
@@ -834,7 +835,7 @@ type Table
                 [column.name, IR.Operation "COUNT" [column.expression]]
             query = IR.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
-        count_table = self.connection.execute_query count_query
+        count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
@@ -905,7 +906,7 @@ type Table
     insert self values =
         table_name = case self.context.from_spec of
             IR.From_Table name _ -> name
-            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
@@ -968,12 +969,12 @@ type Table
 
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
-                 table = connection.access_table "Table"
+                 table = connection.query (Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.to_dataframe.write path format on_existing_file match_columns on_problems
+        self.read.write path format on_existing_file match_columns on_problems
 
 type Integrity_Error
 
@@ -1000,10 +1001,10 @@ type Integrity_Error
    - connection: The connection to a database.
    - table_name: The name of the table to get.
    - columns: The names of the columns to get.
-# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Table
-make_table : Connection -> Text -> Vector -> Table
-make_table connection table_name columns =
-    ctx = IR.context_for_table table_name
+   - ctx: The context to use for the table.
+# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> IR.Context -> Table
+make_table : Connection -> Text -> Vector -> IR.Context -> Table
+make_table connection table_name columns ctx =
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
     Table_Data table_name connection cols ctx
 

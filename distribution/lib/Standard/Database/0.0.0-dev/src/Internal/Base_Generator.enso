@@ -46,8 +46,8 @@ make_binary_op name =
     arguments ->
         case arguments.length == 2 of
             True ->
-                op = code " "+name+" "
-                (arguments.at 0)++op++(arguments.at 1) . paren
+                op = " " + name + " "
+                ((arguments.at 0) ++ op ++ (arguments.at 1)).paren
             False ->
                 Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
 
@@ -110,7 +110,7 @@ make_right_unary_op name =
     arguments ->
         case arguments.length == 1 of
             True ->
-                (arguments.at 0)++(code " "+name) . paren
+                (arguments.at 0)++(" " + name) . paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
@@ -181,8 +181,7 @@ base_dialect =
 generate_expression : Internal_Dialect -> IR.Expression -> Builder
 generate_expression dialect expr = case expr of
     IR.Column origin name ->
-        dot = code '.'
-        dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
+        dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> SQL.interpolation sql_type value
     IR.Operation kind arguments ->
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
@@ -214,6 +213,8 @@ generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
+    IR.From_Query raw_sql as_name ->
+        code raw_sql . paren ++ alias dialect as_name
     IR.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
@@ -223,7 +224,7 @@ generate_from_part dialect from_spec = case from_spec of
             IR.Join_Right -> "RIGHT JOIN"
             IR.Join_Cross -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
-        left ++ (code " "+prefix+" ") ++ right ++ ons
+        left ++ (" " + prefix + " ") ++ right ++ ons
     IR.Sub_Query columns context as_name ->
         sub = generate_query dialect (IR.Select columns context)
         sub.paren ++ alias dialect as_name
@@ -238,15 +239,15 @@ generate_from_part dialect from_spec = case from_spec of
 generate_order : Internal_Dialect -> Order_Descriptor -> Builder
 generate_order dialect order_descriptor =
     order_suffix = case order_descriptor.direction of
-        Sort_Direction.Ascending -> code " ASC"
-        Sort_Direction.Descending -> code " DESC"
+        Sort_Direction.Ascending -> " ASC"
+        Sort_Direction.Descending -> " DESC"
     nulls_suffix = case order_descriptor.nulls_order of
-        Nothing -> SQL.empty
-        IR.Nulls_First -> code " NULLS FIRST"
-        IR.Nulls_Last -> code " NULLS LAST"
+        Nothing -> ""
+        IR.Nulls_First -> " NULLS FIRST"
+        IR.Nulls_Last -> " NULLS LAST"
     collation = case order_descriptor.collation of
-        Nothing -> SQL.empty
-        collation_name -> code ' COLLATE "'+collation_name+'"'
+        Nothing -> ""
+        collation_name -> ' COLLATE "' + collation_name + '"'
     base_expression = generate_expression dialect order_descriptor.expression
     base_expression ++ collation ++ order_suffix ++ nulls_suffix
 
@@ -265,8 +266,8 @@ generate_select_context dialect ctx =
     where_part = (SQL.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
     group_part = (SQL.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
     limit_part = case ctx.limit of
-        Nothing -> SQL.empty
-        Integer -> code " LIMIT "+ctx.limit.to_text
+        Nothing -> ""
+        Integer -> " LIMIT " + ctx.limit.to_text
 
     orders = ctx.orders.map (generate_order dialect)
     order_part = (SQL.join ", " orders) . prefix_if_present " ORDER BY "
@@ -287,7 +288,7 @@ generate_insert_query dialect table_name pairs =
     values = SQL.join ", " <| pairs.map (.second >> generate_expression dialect)
     into = dialect.wrap_identifier table_name
 
-    code "INSERT INTO " ++ into ++ code " (" ++ names ++ code ") VALUES (" ++ values ++ code ")"
+    code "INSERT INTO " ++ into ++ " (" ++ names ++ ") VALUES (" ++ values ++ ")"
 
 ## PRIVATE
 
@@ -301,9 +302,9 @@ generate_query dialect query = case query of
     IR.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
         cols = SQL.join ", " (columns.map gen_column)
-        (code "SELECT ") ++ cols ++ generate_select_context dialect ctx
+        code "SELECT " ++ cols ++ generate_select_context dialect ctx
     IR.Select_All ctx ->
-        (code "SELECT * ") ++ generate_select_context dialect ctx
+        code "SELECT * " ++ generate_select_context dialect ctx
     IR.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."
@@ -337,19 +338,19 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
         separator = args.at 1
         prefix = args.at 2
         suffix = args.at 3
-        append = code " || "
+        append = " || "
         possibly_quoted = case has_quote of
             True ->
                 quote = args.at 4
-                includes_separator = separator ++ code " != '' AND " ++ make_contains_expr expr separator
+                includes_separator = separator ++ " != '' AND " ++ make_contains_expr expr separator
                 ## We use the assumption that `has_quote` is True iff `quote` is not empty.
                 includes_quote = make_contains_expr expr quote
-                is_empty = expr ++ code " = ''"
-                needs_quoting = includes_separator.paren ++ code " OR " ++ includes_quote.paren ++ code " OR " ++ is_empty.paren
-                escaped = code "replace(" ++ expr ++ code ", " ++ quote ++ code ", " ++ quote ++ append ++ quote ++ code ")"
+                is_empty = expr ++ " = ''"
+                needs_quoting = includes_separator.paren ++ " OR " ++ includes_quote.paren ++ " OR " ++ is_empty.paren
+                escaped = code "replace(" ++ expr ++ ", " ++ quote ++ ", " ++ quote ++ append ++ quote ++ ")"
                 quoted = quote ++ append ++ escaped ++ append ++ quote
-                code "CASE WHEN " ++ needs_quoting ++ code " THEN " ++ quoted ++ code " ELSE " ++ expr ++ code " END"
+                code "CASE WHEN " ++ needs_quoting ++ " THEN " ++ quoted ++ " ELSE " ++ expr ++ " END"
             False -> expr
-        transformed_expr = code "CASE WHEN " ++ expr ++ code " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ code " END"
+        transformed_expr = code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
         concatenated = make_raw_concat_expr transformed_expr separator
         prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren
