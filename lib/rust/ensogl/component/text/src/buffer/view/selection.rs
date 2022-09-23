@@ -16,6 +16,18 @@ pub trait Boundary = Copy + Ord + Eq;
 
 
 
+// ==========
+// === Id ===
+// ==========
+
+/// Selection ID.
+#[derive(Clone, Copy, Debug, Display, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Id {
+    pub value: usize,
+}
+
+
+
 // =============
 // === Shape ===
 // =============
@@ -54,6 +66,7 @@ impl<T: Boundary> Shape<T> {
         (self.min()..self.max()).into()
     }
 
+    /// Normalized version of selection where the start is always smaller than the end.
     pub fn normalized(self) -> Self {
         if self.start <= self.end {
             self
@@ -62,6 +75,7 @@ impl<T: Boundary> Shape<T> {
         }
     }
 
+    /// Reversed version of selection.
     pub fn reversed(self) -> Self {
         let start = self.end;
         let end = self.start;
@@ -125,36 +139,21 @@ impl<T: Boundary> Shape<T> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Display, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Id {
-    pub value: usize,
-}
 
 
 // =================
 // === Selection ===
 // =================
 
-/// Text selection. It is a text selection `Shape` bundled with an `id` information, which is used
-/// by graphical interface to track and animate the movement of the selections.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+/// Text selection. It is a text selection [`Shape`] bundled with an [`Id`] information, which is
+/// used by graphical interface to track and animate the movement of the selections.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Deref, DerefMut)]
 #[allow(missing_docs)]
 pub struct Selection<T = Location> {
+    #[deref]
+    #[deref_mut]
     pub shape: Shape<T>,
     pub id:    Id,
-}
-
-impl<T> Deref for Selection<T> {
-    type Target = Shape<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.shape
-    }
-}
-
-impl<T> DerefMut for Selection<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.shape
-    }
 }
 
 /// Constructor.
@@ -187,6 +186,7 @@ impl<T: Boundary> Selection<T> {
         self.with_shape(f(self.shape))
     }
 
+    /// Map the id value.
     pub fn map_id(self, f: impl FnOnce(Id) -> Id) -> Self {
         let id = f(self.id);
         Self { id, ..self }
@@ -258,8 +258,8 @@ impl<T: Boundary> Selection<T> {
 
 /// A set of zero or more selections.
 ///
-/// The selections are kept in sorted order in order to maintain a good performance in algorithms.
-/// It is used in many places, including selection merging process.
+/// The selections are kept in sorted order to maintain a good performance in algorithms. It is used
+/// in many places, including selection merging process.
 #[derive(Clone, Debug, Default)]
 pub struct Group {
     sorted_selections: Vec<Selection>,
