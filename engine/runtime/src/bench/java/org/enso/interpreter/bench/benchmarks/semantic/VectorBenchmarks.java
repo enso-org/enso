@@ -72,11 +72,16 @@ public class VectorBenchmarks {
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
-    Value arr = getMethod.apply("fibarr").execute(self, 1000, Integer.MAX_VALUE);
+    var length = 1000;
+    Value arr = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
     switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
       case "averageOverVector": {
         this.arrayOfFibNumbers = arr;
+        break;
+      }
+      case "averageOverSlice": {
+        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, arr, 10, length);
         break;
       }
       case "averageOverArray": {
@@ -109,6 +114,11 @@ public class VectorBenchmarks {
 
   @Benchmark
   public void averageOverVector(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void averageOverSlice(Blackhole matter) {
     performBenchmark(matter);
   }
 
