@@ -25,6 +25,7 @@ public class Date_Period_Utils implements TimeUtilsBase {
       };
 
   public static TemporalAdjuster end_of_week(DayOfWeek first_day) {
-      return (Temporal temporal) -> temporal.with(TemporalAdjusters.next(first_day)).minus(1, ChronoUnit.DAYS);
+    return (Temporal temporal) ->
+        temporal.with(TemporalAdjusters.next(first_day)).minus(1, ChronoUnit.DAYS);
   }
 }

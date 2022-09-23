@@ -141,6 +141,12 @@ spec_with name create_new_date parse_date =
             d1.end_of Date_Period.Quarter . should_equal (Date.new 2022 9 30)
             d1.start_of Date_Period.Month . should_equal (Date.new 2022 9 1)
             d1.end_of Date_Period.Month . should_equal (Date.new 2022 9 30)
+            d1.start_of (Date_Period.Week) . should_equal (Date.new 2022 9 12)
+            d1.end_of (Date_Period.Week) . should_equal (Date.new 2022 9 18)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date.new 2022 9 11)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date.new 2022 9 17)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date.new 2022 9 10)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date.new 2022 9 16)
 
             d2 = create_new_date 2022 2 7
             d2.start_of Date_Period.Quarter . should_equal (Date.new 2022 1 1)
@@ -148,11 +154,15 @@ spec_with name create_new_date parse_date =
             d2.start_of Date_Period.Month . should_equal (Date.new 2022 2 1)
             d2.end_of Date_Period.Month . should_equal (Date.new 2022 2 28)
 
-            d3 = create_new_date 2020 2 17
+            d3 = create_new_date 2020 2 19
             d3.start_of Date_Period.Year . should_equal (Date.new 2020 1 1)
             d3.end_of Date_Period.Year . should_equal (Date.new 2020 12 31)
             d3.start_of Date_Period.Month . should_equal (Date.new 2020 2 1)
             d3.end_of Date_Period.Month . should_equal (Date.new 2020 2 29)
+            d3.start_of (Date_Period.Week) . should_equal (Date.new 2020 2 17)
+            d3.end_of (Date_Period.Week) . should_equal (Date.new 2020 2 23)
+            d3.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date.new 2020 2 16)
+            d3.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date.new 2020 2 22)
 
             d4 = create_new_date 1970 12 31
             d4.start_of Date_Period.Year . should_equal (Date.new 1970 1 1)
