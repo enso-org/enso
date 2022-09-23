@@ -111,9 +111,7 @@ fn resolve_operator_precedence_internal<'s>(
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default)]
 struct ExpressionBuilder<'s> {
-    elided:         u32,
-    wildcards:      u32,
-    output:         Vec<syntax::Item<'s>>,
+    output:         Vec<Operand<syntax::Item<'s>>>,
     operator_stack: Vec<Operator<'s>>,
     prev_type:      Option<ItemType>,
     nospace:        bool,
@@ -122,22 +120,13 @@ struct ExpressionBuilder<'s> {
 impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, item: syntax::Item<'s>) {
-        if let syntax::Item::Token(token) = &item
-                && let token::Variant::Wildcard(_) = &token.variant {
-            self.wildcards += 1;
+        let mut operand = Operand::from(item);
+        if self.prev_type.replace(ItemType::Ast) == Some(ItemType::Ast) {
+            operand = map2(self.output.pop().unwrap(), operand, |lhs, rhs| {
+                syntax::tree::apply(lhs.to_ast(), rhs.to_ast()).into()
+            });
         }
-        let item = if self.prev_type == Some(ItemType::Ast) {
-            // Multiple non-operators next to each other.
-            let lhs = self.output.pop().unwrap();
-            let lhs = lhs.to_ast();
-            let rhs = item.to_ast();
-            syntax::tree::apply(lhs, rhs).into()
-        } else {
-            // Non-operator that follows previously consumed operator.
-            item
-        };
-        self.prev_type = Some(ItemType::Ast);
-        self.output.push(item);
+        self.output.push(operand);
     }
 
     /// Extend the expression with an operator.
@@ -182,7 +171,7 @@ impl<'s> ExpressionBuilder<'s> {
                 };
                 let tp = token::Variant::ident(false, 0, false, false);
                 let prev = Token(prev.left_offset, prev.code, tp);
-                self.output.push(syntax::item::Item::Token(prev));
+                self.output.push(syntax::item::Item::Token(prev).into());
             } else {
                 oprs.push(opr);
                 return;
@@ -204,10 +193,10 @@ impl<'s> ExpressionBuilder<'s> {
             // If the previous item was also an operator, this must be a unary operator following a
             // binary operator; we cannot reduce the stack because the unary operator must be
             // evaluated before the binary operator, regardless of precedence.
-            let mut rhs = self.output.pop().map(|rhs| rhs.to_ast());
+            let mut rhs = self.output.pop();
             self.reduce(precedence, &mut rhs);
             if let Some(rhs) = rhs {
-                self.output.push(rhs.into());
+                self.output.push(rhs);
             }
         }
         self.operator_stack.push(opr);
@@ -217,21 +206,42 @@ impl<'s> ExpressionBuilder<'s> {
     /// Given a starting value, replace it with the result of successively applying to it all
     /// operators in the `operator_stack` that have precedence greater than or equal to the
     /// specified value, consuming LHS values from the `output` stack as needed.
-    fn reduce(&mut self, prec: token::Precedence, rhs: &mut Option<syntax::Tree<'s>>) {
+    fn reduce(&mut self, prec: token::Precedence, rhs: &mut Option<Operand<syntax::Item<'s>>>) {
         while let Some(opr) = self.operator_stack.pop_if(|opr| {
             opr.precedence > prec
                 || (opr.precedence == prec && opr.associativity == token::Associativity::Left)
         }) {
             let rhs_ = rhs.take();
+            let map_ast = |item: Option<syntax::Item<'s>>| item.map(|item| item.to_ast().into());
             let ast = match opr.opr {
-                Arity::Unary(opr) => syntax::Tree::unary_opr_app(opr, rhs_),
+                Arity::Unary(opr) => Operand::from(rhs_)
+                    .map(|item| syntax::Tree::unary_opr_app(opr, map_ast(item)).into()),
                 Arity::Binary(opr) => {
-                    let lhs = self.output.pop().map(|t| t.to_ast());
-                    let can_form_section = opr.len() != 1 || opr[0].properties.can_form_section();
-                    if can_form_section {
-                        self.elided += lhs.is_none() as u32 + rhs_.is_none() as u32;
+                    let lhs = self.output.pop();
+                    if opr.iter().any(|op| op.properties.is_operator_section_barrier()) {
+                        let lhs = lhs.map(syntax::Tree::from);
+                        let rhs = rhs_.map(syntax::Tree::from);
+                        let ast = syntax::tree::apply_operator(lhs, opr, rhs, self.nospace);
+                        syntax::Item::from(ast).into()
+                    } else {
+                        let lhs = Operand::from(lhs);
+                        let rhs = Operand::from(rhs_);
+                        let mut elided = 0;
+                        if opr.len() != 1 || opr[0].properties.can_form_section() {
+                            elided += lhs.value.is_none() as u32 + rhs.value.is_none() as u32;
+                        }
+                        let mut operand = map2(lhs, rhs, |lhs, rhs| {
+                            syntax::tree::apply_operator(
+                                map_ast(lhs),
+                                opr,
+                                map_ast(rhs),
+                                self.nospace,
+                            )
+                            .into()
+                        });
+                        operand.elided += elided;
+                        operand
                     }
-                    syntax::tree::apply_operator(lhs, opr, rhs_, self.nospace)
                 }
             };
             *rhs = Some(ast);
@@ -242,23 +252,14 @@ impl<'s> ExpressionBuilder<'s> {
     /// inputs were provided.
     pub fn finish(mut self) -> Option<syntax::Tree<'s>> {
         use ItemType::*;
-        let mut item =
-            (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop().map(|t| t.to_ast()));
-        self.reduce(token::Precedence::min(), &mut item);
+        let mut out = (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop());
+        self.reduce(token::Precedence::min(), &mut out);
         if !self.output.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed while constructing the expression."
             );
         }
-        let out = if self.elided != 0 || self.wildcards != 0 {
-            // This can't fail: `elided` + `wildcards` won't be non-zero unless we had at least one
-            // input, and if we have at least one input, we have output.
-            let out = item.unwrap();
-            Some(syntax::tree::operator_section(self.elided, self.wildcards, out))
-        } else {
-            item
-        };
-        out
+        out.map(syntax::Tree::from)
     }
 }
 
@@ -283,4 +284,68 @@ struct Operator<'s> {
 enum Arity<'s> {
     Unary(token::Operator<'s>),
     Binary(Vec<token::Operator<'s>>),
+}
+
+
+// === Operand ===
+
+#[derive(Default, Debug)]
+struct Operand<T> {
+    value:     T,
+    elided:    u32,
+    wildcards: u32,
+}
+
+impl<T> From<Option<Operand<T>>> for Operand<Option<T>> {
+    fn from(operand: Option<Operand<T>>) -> Self {
+        match operand {
+            Some(Operand { value, elided, wildcards }) =>
+                Self { value: Some(value), elided, wildcards },
+            None => default(),
+        }
+    }
+}
+
+impl<'s> From<syntax::Item<'s>> for Operand<syntax::Item<'s>> {
+    fn from(value: syntax::Item<'s>) -> Self {
+        let is_wildcard = matches!(
+            value,
+            syntax::Item::Token(Token { variant: token::Variant::Wildcard(_), .. })
+        );
+        let wildcards = is_wildcard as _;
+        Self { value, wildcards, elided: default() }
+    }
+}
+
+impl<'s> From<Operand<syntax::Item<'s>>> for syntax::Tree<'s> {
+    fn from(operand: Operand<syntax::Item<'s>>) -> Self {
+        let Operand { value, elided, wildcards } = operand;
+        let value = value.to_ast();
+        if elided != 0 || wildcards != 0 {
+            syntax::tree::operator_section(elided, wildcards, value)
+        } else {
+            value
+        }
+    }
+}
+
+impl<T> Operand<T> {
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> Operand<U> {
+        let Self { value, elided, wildcards } = self;
+        let value = f(value);
+        Operand { value, elided, wildcards }
+    }
+}
+
+impl<T> Operand<Operand<T>> {
+    fn join(self) -> Operand<T> {
+        let Self { mut value, elided, wildcards } = self;
+        value.elided += elided;
+        value.wildcards += wildcards;
+        value
+    }
+}
+
+fn map2<T, U, V>(t: Operand<T>, u: Operand<U>, f: impl FnOnce(T, U) -> V) -> Operand<V> {
+    t.map(|t| u.map(|u| f(t, u))).join()
 }

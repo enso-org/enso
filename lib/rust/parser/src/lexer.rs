@@ -1647,7 +1647,7 @@ mod benches {
         let reps = 1_000_000;
         let str = "test ".repeat(reps);
         // Trim the trailing space off.
-        let str = &str[..str.len()-1];
+        let str = &str[..str.len() - 1];
 
         b.iter(move || {
             let lexer = Lexer::new(&str);

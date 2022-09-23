@@ -331,18 +331,19 @@ impl Default for Variant {
 )]
 pub struct OperatorProperties {
     // Precedence
-    binary_infix_precedence:   Option<Precedence>,
-    unary_prefix_precedence:   Option<Precedence>,
+    binary_infix_precedence:     Option<Precedence>,
+    unary_prefix_precedence:     Option<Precedence>,
     // Special properties
-    is_compile_time_operation: bool,
-    is_right_associative:      bool,
-    can_be_decimal_operator:   bool,
+    is_compile_time_operation:   bool,
+    is_right_associative:        bool,
+    can_be_decimal_operator:     bool,
+    is_operator_section_barrier: bool,
     // Unique operators
-    is_type_annotation:        bool,
-    is_assignment:             bool,
-    is_arrow:                  bool,
-    is_sequence:               bool,
-    is_suspension:             bool,
+    is_type_annotation:          bool,
+    is_assignment:               bool,
+    is_arrow:                    bool,
+    is_sequence:                 bool,
+    is_suspension:               bool,
 }
 
 impl OperatorProperties {
@@ -369,6 +370,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as right associative.
     pub fn as_right_associative(self) -> Self {
         Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an operator-section barrier.
+    pub fn as_operator_section_barrier(self) -> Self {
+        Self { is_operator_section_barrier: true, ..self }
     }
 
     /// Return a copy of this operator, modified to be flagged as a type annotation operator.
@@ -419,6 +425,11 @@ impl OperatorProperties {
     /// Return whether this operator is the type annotation operator.
     pub fn is_type_annotation(&self) -> bool {
         self.is_type_annotation
+    }
+
+    /// Return whether this operator is an operator-section barrier.
+    pub fn is_operator_section_barrier(&self) -> bool {
+        self.is_operator_section_barrier
     }
 
     /// Return whether this operator is the assignment operator.
