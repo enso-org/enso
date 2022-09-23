@@ -24,7 +24,6 @@ macro_rules! def_unit {
         #[derive(Clone, Copy, Debug, From, PartialEq, PartialOrd)]
         #[allow(missing_docs)]
         pub struct $name {
-            /// The value, weakly typed value.
             pub value: $field_type,
         }
 
@@ -53,119 +52,118 @@ def_unit!(Size(f32) = 12.0);
 def_unit!(SdfWeight(f32) = 0.0);
 
 
+
+/// ==================
+/// === Properties ===
+/// ==================
+
+/// Run the provided macro with formatting properties definition.
+#[macro_export]
+macro_rules! with_formatting_properties {
+    ($macro_name:ident) => {
+        $macro_name! {
+            size       : Size,
+            color      : color::Lcha,
+            weight     : Weight,
+            width      : Width,
+            style      : Style,
+            sdf_weight : SdfWeight,
+        }
+    };
+}
+
+/// Define formatting properties. See the usage to learn more.
+macro_rules! define_property {
+    ($($field:ident : $field_type:ty),* $(,)?) => {paste! {
+        /// Unresolved formatting property. Value of [`None`] indicates a default value.
+        #[allow(missing_docs)]
+        #[derive(Clone, Copy, Debug, From)]
+        pub enum Property {
+            $([<$field:camel>] (Option<$field_type>)),*
+        }
+
+        impl Property {
+            /// The property tag accessor.
+            pub fn tag(self) -> PropertyTag {
+                self.into()
+            }
+        }
+
+         $(
+            impl From<$field_type> for Property {
+                fn from(value: $field_type) -> Self {
+                    Property::[<$field:camel>] (Some(value))
+                }
+            }
+        )*
+
+        /// Resolved property. Just like [`Property`] but without the possibility to use default
+        /// value placeholder.
+        #[allow(missing_docs)]
+        #[derive(Clone, Copy, Debug, From)]
+        pub enum ResolvedProperty {
+            $([<$field:camel>] ($field_type)),*
+        }
+
+        impl ResolvedProperty {
+            /// The property tag accessor.
+            pub fn tag(self) -> PropertyTag {
+                self.into()
+            }
+        }
+
+        /// A property name without values.
+        #[allow(missing_docs)]
+        #[derive(Clone, Copy, Debug, From)]
+        pub enum PropertyTag {
+            $([<$field:camel>]),*
+        }
+
+        impl From<Property> for PropertyTag {
+            fn from(property: Property) -> Self {
+                match property {
+                    $(Property::[<$field:camel>](_) => Self::[<$field:camel>]),*
+                }
+            }
+        }
+
+        impl From<ResolvedProperty> for PropertyTag {
+            fn from(property: ResolvedProperty) -> Self {
+                match property {
+                    $(ResolvedProperty::[<$field:camel>](_) => Self::[<$field:camel>]),*
+                }
+            }
+        }
+    }};
+}
+
+with_formatting_properties! { define_property }
+
+impl From<color::Rgba> for Property {
+    fn from(t: color::Rgba) -> Self {
+        Property::Color(Some(t.into()))
+    }
+}
+
+impl From<color::Rgba> for ResolvedProperty {
+    fn from(t: color::Rgba) -> Self {
+        ResolvedProperty::Color(t.into())
+    }
+}
+
+
+
+// ==================
+// === Formatting ===
+// ==================
+
 /// Defines struct containing all styles information. Also defines many utils, like iterator for it.
 /// See the usage below to learn more.
-macro_rules! define_format {
+macro_rules! define_formatting {
     ($($field:ident : $field_type:ty),* $(,)?) => {paste! {
 
-        // === Format ===
-
-
-            #[derive(Clone, Copy, Debug, From)]
-            pub enum Property {
-                $([<$field:camel>] (Option<$field_type>)),*
-            }
-
-            #[derive(Clone, Copy, Debug, From)]
-            pub enum ResolvedProperty {
-                $([<$field:camel>] ($field_type)),*
-            }
-
-            #[derive(Clone, Copy, Debug, From)]
-            pub enum PropertyTag {
-                $([<$field:camel>]),*
-            }
-
-            impl From<Property> for PropertyTag {
-                fn from(property: Property) -> Self {
-                    match property {
-                        $(Property::[<$field:camel>](_) => Self::[<$field:camel>]),*
-                    }
-                }
-            }
-
-            impl From<ResolvedProperty> for PropertyTag {
-                fn from(property: ResolvedProperty) -> Self {
-                    match property {
-                        $(ResolvedProperty::[<$field:camel>](_) => Self::[<$field:camel>]),*
-                    }
-                }
-            }
-
-            impl Property {
-                pub fn tag(self) -> PropertyTag {
-                    self.into()
-                }
-            }
-
-            impl ResolvedProperty {
-                pub fn tag(self) -> PropertyTag {
-                    self.into()
-                }
-            }
-
-            $(
-                impl From<$field_type> for Property {
-                    fn from(value: $field_type) -> Self {
-                        Property::[<$field:camel>] (Some(value))
-                    }
-                }
-            )*
-
-            // impl Setter<Option<Property>> for Buffer {
-            //     fn replace(&self, range:impl enso_text::RangeBounds, data:Option<Property>) {
-            //         if let Some(data) = data { match data {
-            //             $(Property::[<$field:camel>] (t) => self.replace(range,t)),*
-            //         }}
-            //     }
-            // }
-
-
-
-        #[derive(Clone, Copy, Debug, Default, From)]
-        pub struct Format {
-            $(pub $field : $field_type),*
-        }
-
-        /// The value of a style at some point in the buffer.
-        #[derive(Clone,Copy,Debug,Default)]
-        #[allow(missing_docs)]
-        pub struct StyleValueForByte {
-            $(pub $field : $field_type),*
-        }
-
-        #[derive(Debug)]
-        struct StyleIteratorComponents {
-            $($field : std::vec::IntoIter<RangedValue<UBytes ,$field_type>>),*
-        }
-
-
-        // === Iterator ===
-
-        #[derive(Debug,Default)]
-        struct StyleIteratorValue {
-            $($field : Option<RangedValue<UBytes, $field_type>>),*
-        }
-
-        impl Iterator for StyleIterator {
-            type Item = StyleValueForByte;
-            fn next(&mut self) -> Option<Self::Item> {
-                $(
-                    if self.value.$field.map(|t| self.offset < t.range.end) != Some(true) {
-                        self.value.$field = self.component.$field.next()
-                    }
-                    let $field = self.value.$field?.value;
-                )*
-                self.offset += 1.ubytes();
-                Some(StyleValueForByte {$($field),*})
-            }
-        }
-
-
-        // === Formatting ===
-
         /// Definition of possible text styles, like `color`, or `bold`. Each style is encoded as
-        /// `Spanned` for some spans in the buffer.
+        /// [`Spanned`] for some spans in the buffer.
         #[derive(Clone,Debug,Default)]
         #[allow(missing_docs)]
         pub struct Formatting {
@@ -191,205 +189,57 @@ macro_rules! define_format {
                 $(self.$field.replace_resize(range,len,None);)*
             }
 
-            /// Iterate over style values for subsequent bytes of the buffer.
-            pub fn iter(&self) -> StyleIterator {
-                $(let $field = self.$field.to_vector().into_iter();)*
-                StyleIterator::new(StyleIteratorComponents {$($field),*})
-            }
-
+            /// Return all span ranges of default values for the given property.
             pub fn span_ranges_of_default_values(&self, tag:PropertyTag) -> Vec<Range<UBytes>> {
                 match tag {
                     $(PropertyTag::[<$field:camel>] => {
                         let spans = self.$field.spans.to_vector();
-                        spans.into_iter().filter(|t| t.value.is_none()).map(|t| t.range).collect_vec()
+                        spans.into_iter().filter(|t| t.value.is_none()).map(|t| t.range)
+                            .collect_vec()
                     })*
                 }
             }
         }
 
         impl Formatting {
+            /// Set the value of the given property for the given range.
             pub fn set_property(&mut self, range:Range<UBytes>, property: Property) {
-                let range_size = UBytes::try_from(range.size()).unwrap_or_default();
+                let size = UBytes::try_from(range.size()).unwrap_or_default();
                 match property {
-                    $(Property::[<$field:camel>] (t) => self.$field.replace_resize(range, range_size, t)),*
+                    $(Property::[<$field:camel>](t) => self.$field.replace_resize(range, size, t)),*
                 }
             }
 
+            /// Resolve the property. Applies the default value if the property value was [`None`].
             pub fn resolve_property(&self, property: Property) -> ResolvedProperty {
                 match property {
-                    $(Property::[<$field:camel>] (t) => ResolvedProperty::[<$field:camel>] (t.unwrap_or_default())),*
+                    $(Property::[<$field:camel>](t) => ResolvedProperty::[<$field:camel>]
+                        (t.unwrap_or_default())),*
                 }
             }
 
+            /// Sets a new default value for the given property.
             pub fn set_property_default(&mut self, property: ResolvedProperty) {
                 match property {
-                    $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
+                    $(ResolvedProperty::[<$field:camel>](t) => self.$field.default = t),*
                 }
             }
 
+            /// Applies the property diff to the given property.
             pub fn mod_property(&mut self, range:Range<UBytes>, property: PropertyDiff) {
                 match property {
                     PropertyDiff::Size(diff) => self.size.modify_resolved(range, |p|p.apply_diff(diff)),
                 }
-                // match property {
-                //     $(ResolvedProperty::[<$field:camel>] (t) => self.$field.default = t),*
-                // }
             }
         }
     }};
 }
 
-// // FIXME: TODO: make it working for other types, not owned by this crate.
-// impl ensogl_core::frp::IntoParam<Option<Property>> for SdfWeight {
-//     fn into_param(self) -> Option<Property> {
-//         Some(self.into())
-//     }
-// }
-
-
-
-/// Byte-based iterator for the `Formatting`.
-#[derive(Debug)]
-pub struct StyleIterator {
-    offset:    UBytes,
-    value:     StyleIteratorValue,
-    component: StyleIteratorComponents,
-}
-
-impl StyleIterator {
-    fn new(component: StyleIteratorComponents) -> Self {
-        let offset = default();
-        let value = default();
-        Self { offset, value, component }
-    }
-
-    /// Drop the given amount of bytes.
-    pub fn drop(&mut self, bytes: UBytes) {
-        for _ in 0..bytes.value {
-            self.next();
-        }
-    }
-}
-
-
-
-// ================
-// === Spanned ===
-// ================
-
-/// Formatting property, like `color` or `bold`. Records text spans it is applied to and a
-/// default value used for places not covered by spans. Please note that the default value can be
-/// changed at runtime, which is useful when defining text field which should use white letters by
-/// default (when new letter is written).
-#[derive(Clone, Debug, Default)]
-#[allow(missing_docs)]
-pub struct Spanned<T: Copy> {
-    pub spans:   enso_text::Spans<Option<T>>,
-    pub default: T,
-}
-
-impl<T: Copy + Debug> Spanned<T> {
-    /// Return new property narrowed to the given range.
-    pub fn sub(&self, range: Range<UBytes>) -> Self {
-        let spans = self.spans.sub(range);
-        let default = self.default;
-        Self { spans, default }
-    }
-
-    /// Convert the property to a vector of spans.
-    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
-        let spans_iter = self.spans.to_vector().into_iter();
-        spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
-    }
-
-    pub fn modify_resolved(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
-        self.spans.modify(range, |t| Some(f(t.unwrap_or(self.default))))
-    }
-}
-
-
-// === Deref ===
-
-impl<T: Copy> Deref for Spanned<T> {
-    type Target = enso_text::Spans<Option<T>>;
-    fn deref(&self) -> &Self::Target {
-        &self.spans
-    }
-}
-
-impl<T: Copy> DerefMut for Spanned<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.spans
-    }
-}
-
-
-
-// =============
-// === Formatting ===
-// =============
-
-#[macro_export]
-macro_rules! with_format_definition {
-    ($macro_name:ident) => {
-        $macro_name! {
-            size       : Size,
-            color      : color::Lcha,
-            weight     : Weight,
-            width      : Width,
-            style      : Style,
-            sdf_weight : SdfWeight,
-        }
-    };
-}
-
-with_format_definition! { define_format }
-
-
-impl From<color::Rgba> for Property {
-    fn from(t: color::Rgba) -> Self {
-        Property::Color(Some(t.into()))
-    }
-}
-
-impl From<color::Rgba> for ResolvedProperty {
-    fn from(t: color::Rgba) -> Self {
-        ResolvedProperty::Color(t.into())
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct SizeDiff {
-    pub value: f32,
-}
-
-pub fn SizeDiff(value: f32) -> SizeDiff {
-    SizeDiff { value }
-}
-
-#[derive(Clone, Copy, Debug, From)]
-pub enum PropertyDiff {
-    Size(SizeDiff),
-}
-
-impl From<PropertyDiff> for PropertyTag {
-    fn from(t: PropertyDiff) -> Self {
-        match t {
-            PropertyDiff::Size(_) => PropertyTag::Size,
-        }
-    }
-}
-
-impl Size {
-    pub fn apply_diff(&self, diff: SizeDiff) -> Self {
-        let value = self.value + diff.value;
-        let value = if value < 0.0 { 0.0 } else { value };
-        Size { value }
-    }
-}
-
+with_formatting_properties! { define_formatting }
 
 impl Formatting {
+    /// Returns list of spans for triples of (width, weight, style). The triple is used to identify
+    /// a non-variable font family.
     pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, font::NonVariableFaceHeader>> {
         let seq_width = self.width.to_vector();
         let seq_weight = self.weight.to_vector();
@@ -432,6 +282,170 @@ impl Formatting {
         })
     }
 }
+
+fn merge_same_values<T>(mut iterator: impl Iterator<Item = T>) -> impl Iterator<Item = T> {
+    gen_iter!(move {
+        let mut to_be_yielded = None;
+        for t in iterator {
+            if let Some(to_be_yielded) = to_be_yielded {
+                if to_be_yielded != t {
+                    yield to_be_yielded;
+                    to_be_yielded = None;
+                }
+            } else {
+                to_be_yielded = Some(t);
+            }
+            yield t;
+        }
+    })
+}
+
+
+
+// =================
+// === Iterators ===
+// =================
+
+/// Byte-based iterator for the [`Formatting`].
+#[derive(Debug)]
+pub struct FormattingIterator {
+    offset:    UBytes,
+    value:     StyleIteratorValue,
+    component: StyleIteratorComponents,
+}
+
+impl FormattingIterator {
+    fn new(component: StyleIteratorComponents) -> Self {
+        let offset = default();
+        let value = default();
+        Self { offset, value, component }
+    }
+
+    /// Skip the given amount of bytes.
+    pub fn skip_bytes(&mut self, bytes: UBytes) {
+        for _ in 0..bytes.value {
+            self.next();
+        }
+    }
+}
+
+macro_rules! define_iterators {
+    ($($field:ident : $field_type:ty),* $(,)?) => {paste! {
+
+        /// The formatting for the given byte in the buffer.
+        #[allow(missing_docs)]
+        #[derive(Clone,Copy,Debug,Default)]
+        pub struct FormattingForByte {
+            $(pub $field : $field_type),*
+        }
+
+        #[derive(Debug)]
+        struct StyleIteratorComponents {
+            $($field : std::vec::IntoIter<RangedValue<UBytes ,$field_type>>),*
+        }
+
+        #[derive(Debug,Default)]
+        struct StyleIteratorValue {
+            $($field : Option<RangedValue<UBytes, $field_type>>),*
+        }
+
+        impl Iterator for FormattingIterator {
+            type Item = FormattingForByte;
+            fn next(&mut self) -> Option<Self::Item> {
+                $(
+                    if self.value.$field.map(|t| self.offset < t.range.end) != Some(true) {
+                        self.value.$field = self.component.$field.next()
+                    }
+                    let $field = self.value.$field?.value;
+                )*
+                self.offset += UBytes(1);
+                Some(FormattingForByte {$($field),*})
+            }
+        }
+
+        impl Formatting {
+            /// Iterate over style values for subsequent bytes of the buffer.
+            pub fn iter(&self) -> FormattingIterator {
+                $(let $field = self.$field.to_vector().into_iter();)*
+                FormattingIterator::new(StyleIteratorComponents {$($field),*})
+            }
+        }
+    }};
+}
+
+with_formatting_properties! { define_iterators }
+
+
+
+// ===============
+// === Spanned ===
+// ===============
+
+/// Formatting property spanned over text. It also contains a default value to be used for places
+/// not covered by the spans. The default value can be changed at runtime (e.g. the default color of
+/// a text.
+#[derive(Clone, Debug, Default, Deref, DerefMut)]
+#[allow(missing_docs)]
+pub struct Spanned<T: Copy> {
+    #[deref]
+    #[deref_mut]
+    pub spans:   enso_text::Spans<Option<T>>,
+    pub default: T,
+}
+
+impl<T: Copy + Debug> Spanned<T> {
+    /// Return new property narrowed to the given range.
+    pub fn sub(&self, range: Range<UBytes>) -> Self {
+        let spans = self.spans.sub(range);
+        let default = self.default;
+        Self { spans, default }
+    }
+
+    /// Convert the property to a vector of spans.
+    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
+        let spans_iter = self.spans.to_vector().into_iter();
+        spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
+    }
+
+    /// Modify the values in the given range, first resolving them. If a value was not set, the
+    /// default value will be used instead.
+    pub fn modify_resolved(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
+        self.spans.modify(range, |t| Some(f(t.unwrap_or(self.default))))
+    }
+}
+
+
+
+// ====================
+// === PropertyDiff ===
+// ====================
+
+/// A diff for a property. It is used to modify a property in a given range. A struct is used
+/// instead of a closure to better fit the FRP-model.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, From)]
+pub enum PropertyDiff {
+    Size(SizeDiff),
+}
+
+def_unit!(SizeDiff(f32) = 0.0);
+
+impl Size {
+    pub fn apply_diff(&self, diff: SizeDiff) -> Self {
+        let value = self.value + diff.value;
+        let value = if value < 0.0 { 0.0 } else { value };
+        Size { value }
+    }
+}
+
+impl From<PropertyDiff> for PropertyTag {
+    fn from(t: PropertyDiff) -> Self {
+        match t {
+            PropertyDiff::Size(_) => PropertyTag::Size,
+        }
+    }
+}
+
 
 
 // =================

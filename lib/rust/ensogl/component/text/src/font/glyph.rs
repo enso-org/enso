@@ -210,7 +210,7 @@ macro_rules! define_formatting_setters_and_mods {
 
 
 impl Glyph {
-    crate::with_format_definition! {define_formatting_setters_and_mods}
+    crate::with_formatting_properties! {define_formatting_setters_and_mods}
 }
 
 

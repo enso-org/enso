@@ -351,6 +351,10 @@ impl ViewBuffer {
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {
+            warn!(
+                "chunk: {:?}, requested_non_variable_variations: {:?}",
+                range, requested_non_variable_variations
+            );
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
             let non_variable_variations = non_variable_variations_match.variations;

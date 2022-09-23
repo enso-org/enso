@@ -682,13 +682,7 @@ pub struct TextModelData {
 
 impl TextModel {
     /// Constructor.
-    pub fn new(
-        app: &Application,
-        frp: &Frp,
-        // frp_out_get: &api::public::Output,
-        // frp_out_set: &api::private::Output,
-        // frp_network: &frp::Network,
-    ) -> Self {
+    pub fn new(app: &Application, frp: &Frp) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let selection_map = default();
@@ -741,6 +735,7 @@ impl TextModel {
     }
 
     fn init_line(&self, line: &line::View) {
+        // TODO: Use Line Network tu
         if let Some(network) = self.frp.network.upgrade() {
             frp::extend! { network
                 self.frp.private.output.refresh_height <+_ line.descent;
@@ -748,6 +743,7 @@ impl TextModel {
         }
     }
 
+    // FIXME: docs
     fn new_line_helper(
         frame_time: &enso_frp::Stream<f32>,
         display_object: &display::object::Instance,
@@ -755,7 +751,7 @@ impl TextModel {
     ) -> line::View {
         let mut line = line::View::new(frame_time);
         let ascender = default_size;
-        let descender = ascender / 10.0;
+        let descender = ascender / 10.0; // FIXME: magic value
         let gap = 0.0;
         let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
@@ -1056,7 +1052,7 @@ impl TextModel {
                             // during the call to `line_style_iter.next()`.
                             let cluster_diff = glyph_byte_start - prev_cluster_byte_off - Bytes(1);
                             let cluster_diff = UBytes::try_from(cluster_diff).unwrap_or_default();
-                            line_style_iter.drop(cluster_diff);
+                            line_style_iter.skip_bytes(cluster_diff);
                             let style = line_style_iter.next().unwrap_or_default();
                             prev_cluster_byte_off = glyph_byte_start;
 

@@ -195,7 +195,25 @@ fn init(app: Application) {
 
 
     // FIXME: bug - second line longer, arrow up, multiple arrows left needed!
+    // TODO: UBytes -> Bytes, Bytes -> BytesDiff
+    // TODO: macrem definiowanie NotSame
 
+    // TODO: Lines -> ViewLines
+    // TODO: Task na unit testyy do textow
+    // TODO: API -> struct Text + style guide?
+
+    // TODO: next PR - > Text area to gui component.
+
+    // TODO: -> prelude CRange
+    // TODO -> String -> ImString
+    // TODO: add docs to setview_width
+    // TODO: FRP - dodac info ze set first view line nie dziala.
+
+    // TODO: Set Veiw width - zmienic nazwe na trucnated bo to powinno robic slider
+    // TODO - sel_end_1 -> sel_end_on_click etc
+    //  _eval <- map -> eval w text.rs
+
+    // TODO: change divs to Vec from NonEmptyVec
 
     // area.set_cursor_at_end();
     //
@@ -300,7 +318,14 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                     if event.shift_key() {
                         area.set_property_default(style::Weight::Bold);
                     } else {
-                        area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
+                        if event.alt_key() {
+                            area.set_property(
+                                buffer::RangeLike::Selections,
+                                style::Property::Weight(None),
+                            );
+                        } else {
+                            area.set_property(buffer::RangeLike::Selections, style::Weight::Bold);
+                        }
                     }
                 } else if key == "KeyH" {
                     if event.shift_key() {
