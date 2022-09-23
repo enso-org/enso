@@ -1083,6 +1083,30 @@ class IrToTruffle(
                 )
               )
           }
+        case tpePattern: Pattern.Type =>
+          // FIXME: This is incomplete, needs to handle type check
+          val arg = List(
+            IR.DefinitionArgument.Specified(
+              tpePattern.name,
+              None,
+              None,
+              suspended = false,
+              tpePattern.location,
+              passData    = tpePattern.name.passData,
+              diagnostics = tpePattern.name.diagnostics
+            )
+          )
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            arg,
+            branch.expression,
+            branch.location
+          )
+
+          val branchNode =
+            CatchAllBranchNode.build(branchCodeNode.getCallTarget)
+
+          Right(branchNode)
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."

@@ -665,6 +665,15 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
       case literal: Pattern.Literal =>
         literal.updateMetadata(this -->> info)
+      case Pattern.Type(name, tpe, _, _, _) =>
+        val nameDep = asStatic(name)
+        info.dependents.updateAt(nameDep, Set(patternDep))
+        info.dependencies.updateAt(patternDep, Set(nameDep))
+        val tpeDep = asStatic(tpe)
+        info.dependents.updateAt(tpeDep, Set(patternDep))
+        info.dependencies.updateAt(patternDep, Set(tpeDep))
+
+        pattern.updateMetadata(this -->> info)
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
