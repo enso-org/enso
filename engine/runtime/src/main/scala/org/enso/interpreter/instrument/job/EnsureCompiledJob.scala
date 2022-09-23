@@ -325,10 +325,12 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         val knownKeys   = stack.top.cache.getWeights.entrySet
         val cachedKeys  = stack.top.cache.getKeys
         val pendingKeys = new java.util.HashSet[UUID]()
+
         knownKeys.forEach(e => {
           if (e.getValue > 0) {
             if (!cachedKeys.contains(e.getKey)) {
               pendingKeys.add(e.getKey)
+              System.out.println("  found key with " + e.getValue + " key: " + e.getKey)
             }
           }
         });

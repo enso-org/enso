@@ -186,12 +186,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         FunctionCallInfo cachedCall = cache.getCall(nodeId);
         ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
+        System.out.println("onReturnValue " + nodeId + " value: " + result + " type: " + resultType);
         ExpressionValue expressionValue =
             new ExpressionValue(
                 nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
-        if (expressionValue.isTypeChanged() || expressionValue.isFunctionCallChanged()) {
-          syncState.setExpressionUnsync(nodeId);
-        }
+        syncState.setExpressionUnsync(nodeId);
         syncState.setVisualisationUnsync(nodeId);
 
         // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
