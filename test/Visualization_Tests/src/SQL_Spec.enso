@@ -9,7 +9,7 @@ import Standard.Test
 
 visualization_spec connection =
     connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
-    t = connection.access_table "T"
+    t = connection.query (Table_Name "T")
     Test.group "SQL Visualization" <|
         Test.specify "should provide type metadata for interpolations" <|
             q = t.where ((t.at "B" == 2) && (t.at "A" == True)) . at "C"

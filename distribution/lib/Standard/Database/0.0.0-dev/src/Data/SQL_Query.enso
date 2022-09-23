@@ -1,0 +1,8 @@
+from Standard.Base import Text
+
+type SQL_Query
+    ## Query a whole table or view.
+    Table_Name name:Text
+
+    ## Raw SQL query statement.
+    Raw_SQL sql:Text

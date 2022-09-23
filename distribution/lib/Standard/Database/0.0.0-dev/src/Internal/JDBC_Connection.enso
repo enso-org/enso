@@ -80,7 +80,7 @@ type JDBC_Connection
 
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : PreparedStatement -> Any
+    fetch_columns : Text | Statement -> Any
     fetch_columns self statement =
         self.with_prepared_statement statement stmt->
             metadata = stmt.executeQuery.getMetaData
@@ -183,9 +183,9 @@ create_table_statement name table temporary =
     column_types = table.columns.map col-> default_storage_type col.storage_type
     column_names = table.columns.map .name
     col_makers = column_names.zip column_types name-> typ->
-        Base_Generator.wrap_in_quotes name ++ SQL.code " " ++ SQL.code typ.name
-    create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-    (SQL.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ SQL.code " (" ++ (SQL.join ", " col_makers) ++ SQL.code ")").build
+        Base_Generator.wrap_in_quotes name ++ " " ++ typ.name
+    create_prefix = SQL.code <| if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
+    (create_prefix ++ Base_Generator.wrap_in_quotes name ++ " (" ++ (SQL.join ", " col_makers) ++ ")").build
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.

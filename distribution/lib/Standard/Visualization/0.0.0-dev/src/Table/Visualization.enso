@@ -30,7 +30,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
 
     Database_Table.Table_Data _ _ _ _ ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
-        df = x.reset_index.to_dataframe max_rows
+        df = x.reset_index.read max_rows
         # Then split into actual columns and indices.
         vis_df = df.select_columns (By_Name (x.columns.map .name))
         indices = df.select_columns (By_Name (x.indices.map .name)) . columns
