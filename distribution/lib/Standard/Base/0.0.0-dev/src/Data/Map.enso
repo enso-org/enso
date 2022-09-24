@@ -42,6 +42,10 @@ singleton key value = Bin 1 key value Tip Tip
 from_vector : Vector.Vector Any -> Map
 from_vector vec = vec.fold empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
+# TODO Dubious constructor export
+from project.Data.Map.Map import all
+from project.Data.Map.Map export all
+
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
 type Map
@@ -457,6 +461,10 @@ type Map
             Bin _ k v _ r -> @Tail_Call last (Pair_Data k v) r
             Tip -> p
         last Nothing self
+
+# TODO Dubious constructor export
+from project.Data.Map.No_Value_For_Key_Error import all
+from project.Data.Map.No_Value_For_Key_Error export all
 
 ## UNSTABLE
 

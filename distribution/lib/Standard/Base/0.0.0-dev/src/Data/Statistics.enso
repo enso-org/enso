@@ -14,6 +14,10 @@ polyglot java import org.enso.base.statistics.Rank
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.NullPointerException
 
+# TODO Dubious constructor export
+from project.Data.Statistics.Statistic import all
+from project.Data.Statistics.Statistic export all
+
 type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent.

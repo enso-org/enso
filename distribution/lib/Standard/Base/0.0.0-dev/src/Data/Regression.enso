@@ -3,6 +3,10 @@ from Standard.Base import all
 polyglot java import org.enso.base.statistics.Regression
 polyglot java import org.enso.base.statistics.FitError
 
+# TODO Dubious constructor export
+from project.Data.Regression.Model import all
+from project.Data.Regression.Model export all
+
 type Model
     ## Fit a line (y = A x + B) to the data with an optional fixed intercept.
     Linear_Model (intercept:Number|Nothing=Nothing)
@@ -39,6 +43,10 @@ fit_least_squares known_xs known_ys model=Linear_Model =
             fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
             fitted_model_with_r_squared Fitted_Power_Model fitted.intercept.exp fitted.slope known_xs known_ys
         _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported model.")
+
+# TODO Dubious constructor export
+from project.Data.Regression.Fitted_Model import all
+from project.Data.Regression.Fitted_Model export all
 
 type Fitted_Model
     ## Fitted line (y = slope x + intercept).
@@ -88,6 +96,10 @@ ln_series xs series_name="Values" =
     ln_with_panic x = if x.is_nothing then Nothing else
         if x <= 0 then Panic.throw (Illegal_Argument_Error_Data (series_name + " must be positive.")) else x.ln
     Panic.recover Illegal_Argument_Error_Data <| xs.map ln_with_panic
+
+# TODO Dubious constructor export
+from project.Data.Regression.Fit_Error import all
+from project.Data.Regression.Fit_Error export all
 
 ## PRIVATE
 
