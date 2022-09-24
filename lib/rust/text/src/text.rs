@@ -1005,10 +1005,8 @@ mod test {
             fn run(&self) {
                 let text: Text = self.text.into();
                 let (exp_line, exp_column) = self.expected;
-                let expected = Location {
-                    line:             exp_line.into(),
-                    code_point_index: exp_column.into(),
-                };
+                let expected =
+                    Location { line: exp_line.into(), offset: UBytes(exp_column.into()) };
                 let result = text.location_of_text_end();
                 assert_eq!(result, expected, "Wrong text end location in case \"{}\"", text);
             }

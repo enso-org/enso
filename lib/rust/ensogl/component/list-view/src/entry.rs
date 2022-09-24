@@ -71,9 +71,9 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// Resize the entry's view to fit a new width.
     fn set_max_width(&self, max_width_px: f32);
 
-    /// Set the layer of all [`text::Area`] components inside. The [`text::Area`] component is
+    /// Set the layer of all [`text::Text`] components inside. The [`text::Text`] component is
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
-    /// in [`text::Area::add_to_scene_layer`] method.
+    /// in [`text::Text::add_to_scene_layer`] method.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
 }
 
@@ -89,7 +89,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
     display_object:  display::object::Instance,
-    pub label:       text::Area,
+    pub label:       text::Text,
     text:            frp::Source<String>,
     max_width_px:    frp::Source<f32>,
     /// The `network` is public to allow extending it in components based on a [`Label`]. This
@@ -104,7 +104,7 @@ impl Label {
     /// Constructor.
     pub fn new(app: &Application, style_prefix: &Path) -> Self {
         let display_object = display::object::Instance::new();
-        let label = app.new_view::<ensogl_text::Area>();
+        let label = app.new_view::<ensogl_text::Text>();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let text_style = style_prefix.sub("text");

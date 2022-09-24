@@ -95,7 +95,7 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     app:            Application,
     background:     background::View,
-    label:          Rc<RefCell<Option<text::Area>>>,
+    label:          Rc<RefCell<Option<text::Text>>>,
     display_object: display::object::Instance,
 }
 

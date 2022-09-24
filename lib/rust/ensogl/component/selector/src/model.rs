@@ -52,15 +52,15 @@ pub struct Model {
     /// that is centered on the decimal label.
     pub label:              FloatLabel,
     /// A label that is aligned to the left edge of the background
-    pub label_left:         text::Area,
+    pub label_left:         text::Text,
     /// A label that is aligned to the right edge of the background
-    pub label_right:        text::Area,
+    pub label_right:        text::Text,
     /// A label that is left aligned on the background. Meant to contain a caption describing the
     /// value that is selected. For example "Alpha", "Red", or "Size".
-    pub caption_left:       text::Area,
+    pub caption_left:       text::Text,
     /// A label that is centered on the background. Meant to contain a caption describing the
     /// range that is selected. For example "Allowed Size", or "Valid Price".
-    pub caption_center:     text::Area,
+    pub caption_center:     text::Text,
     /// Shape root that all other elements are parented to. Should be used to place the shapes as
     /// a group.
     pub root:               display::object::Instance,
@@ -79,10 +79,10 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
         let label = FloatLabel::new(app);
-        let label_left = app.new_view::<text::Area>();
-        let label_right = app.new_view::<text::Area>();
-        let caption_center = app.new_view::<text::Area>();
-        let caption_left = app.new_view::<text::Area>();
+        let label_left = app.new_view::<text::Text>();
+        let label_right = app.new_view::<text::Text>();
+        let caption_center = app.new_view::<text::Text>();
+        let caption_left = app.new_view::<text::Text>();
         let background = background::View::new();
         let track = track::View::new();
         let track_handle_left = io_rect::View::new();

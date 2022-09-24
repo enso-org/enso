@@ -49,8 +49,13 @@ macro_rules! ranged_fn {
 
 pub trait Index = Copy + From<usize> + Into<usize>;
 
-// #[derive(Reflect)]
+#[derive(crate::serde_reexports::Serialize)]
+#[derive(crate::serde_reexports::Deserialize)]
 pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
+    #[serde(bound(
+        serialize = "Vec<T, A>: crate::serde_reexports::Serialize",
+        deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
+    ))]
     vec: Vec<T, A>,
     key: PhantomData<I>,
 }
@@ -364,5 +369,12 @@ impl<T, I> FromIterator<T> for VecIndexedBy<T, I> {
     fn from_iter<Iter: IntoIterator<Item = T>>(iter: Iter) -> VecIndexedBy<T, I> {
         let vec = Vec::from_iter(iter);
         Self { vec, key: default() }
+    }
+}
+
+impl<T, I> Deref for VecIndexedBy<T, I> {
+    type Target = [T];
+    fn deref(&self) -> &Self::Target {
+        &self.vec
     }
 }

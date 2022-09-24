@@ -264,7 +264,7 @@ pub struct BreadcrumbModel {
     view:              background::View,
     separator:         separator::View,
     icon:              icon::View,
-    label:             text::Area,
+    label:             text::Text,
     animations:        Animations,
     style:             StyleWatch,
     /// Breadcrumb information such as name and expression id.
@@ -288,7 +288,7 @@ impl BreadcrumbModel {
         let view = background::View::new();
         let icon = icon::View::new();
         let separator = separator::View::new();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let expression_id = *expression_id;
         let method_pointer = method_pointer.clone();
         let info = Rc::new(BreadcrumbInfo { method_pointer, expression_id });

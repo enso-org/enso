@@ -63,7 +63,7 @@
 
 #### EnsoGL (rendering engine)
 
-- [You can change font and set letters bold in the <code>text::Area</code>
+- [You can change font and set letters bold in the <code>text::Text</code>
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
 - [Fixed a text rendering issue in nested sublayer][3486].

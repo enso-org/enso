@@ -151,7 +151,7 @@ struct Model {
     display_object:  display::object::Instance,
     root:            display::object::Instance,
     background:      background::View,
-    label:           text::Area,
+    label:           text::Text,
     events:          Rc<RefCell<Vec<event::Label>>>,
     processes:       Rc<RefCell<HashMap<process::Id, process::Label>>>,
     next_process_id: Rc<RefCell<process::Id>>,
@@ -165,7 +165,7 @@ impl Model {
         let display_object = display::object::Instance::new();
         let root = display::object::Instance::new();
         let background = background::View::new();
-        let label = text::Area::new(app);
+        let label = text::Text::new(app);
         let events = default();
         let processes = default();
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));

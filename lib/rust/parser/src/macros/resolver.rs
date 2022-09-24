@@ -459,7 +459,10 @@ impl<'s> Resolver<'s> {
     /// the resolution of the `(a)` macro in the `(a) x (b)` expression will return the `(a)` AST
     /// and the `x` and `(b)` items (already resolved).
     fn resolve(m: PartiallyMatchedMacro<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
-        let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
+        let segments = NonEmptyVec::<MatchedSegment, usize>::new_with_last(
+            m.resolved_segments,
+            m.current_segment,
+        );
         let resolved_segments = segments.mapped(|segment| {
             let mut items: VecDeque<syntax::Item<'s>> = default();
             for item in segment.body {

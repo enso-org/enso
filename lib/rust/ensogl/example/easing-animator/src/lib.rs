@@ -236,7 +236,7 @@ impl Sampler {
 // ===============
 
 struct Example {
-    _animator: animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>,
+    _animator: animation::Loop,
 }
 
 impl Example {

@@ -242,7 +242,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ide_view::component_browser::list_panel::column_grid::ColumnGrid>();
     app.views.register::<ide_view::component_browser::component_group::View>();
     app.views.register::<ide_view::component_browser::component_group::wide::View>();
-    app.views.register::<ensogl_component::text::Area>();
+    app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
 

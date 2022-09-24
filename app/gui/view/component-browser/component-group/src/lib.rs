@@ -632,12 +632,12 @@ impl LayersInner {
 pub struct Model {
     display_object: display::object::Instance,
     entries: list_view::ListView<Entry>,
-    header: text::Area,
+    header: text::Text,
     header_background: header_background::View,
     header_text: Rc<RefCell<String>>,
     header_overlay: header_overlay::View,
     background: background::View,
-    selected_header: text::Area,
+    selected_header: text::Text,
     selection_header_background: selection_header_background::View,
     selection_background: background::View,
 }
@@ -661,8 +661,8 @@ impl component::Model for Model {
         let selection_background = background::View::new();
         let header_background = header_background::View::new();
         let selection_header_background = selection_header_background::View::new();
-        let header = text::Area::new(app);
-        let selected_header = text::Area::new(app);
+        let header = text::Text::new(app);
+        let selected_header = text::Text::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);

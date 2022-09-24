@@ -260,7 +260,7 @@ struct Model {
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
-    prompt:                 ensogl_text::Area,
+    prompt:                 ensogl_text::Text,
     open_dialog:            Rc<OpenDialog>,
     debug_mode_popup:       debug_mode_popup::View,
 }
@@ -276,7 +276,7 @@ impl Model {
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new();
-        let prompt = ensogl_text::Area::new(app);
+        let prompt = ensogl_text::Text::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();

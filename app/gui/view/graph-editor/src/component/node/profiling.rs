@@ -180,7 +180,7 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProfilingLabel {
     root:   display::object::Instance,
-    label:  text::Area,
+    label:  text::Text,
     frp:    Frp,
     styles: StyleWatchFrp,
 }
@@ -199,7 +199,7 @@ impl ProfilingLabel {
         let scene = &app.display.default_scene;
         let root = display::object::Instance::new();
 
-        let label = text::Area::new(app);
+        let label = text::Text::new(app);
         root.add_child(&label);
         label.set_position_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
         label.remove_from_scene_layer(&scene.layers.main);

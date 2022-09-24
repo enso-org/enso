@@ -157,7 +157,7 @@ pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
     port_count:     Cell<usize>,
@@ -173,7 +173,7 @@ impl Model {
         let display_object = display::object::Instance::new();
         let ports = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let port_count = default();

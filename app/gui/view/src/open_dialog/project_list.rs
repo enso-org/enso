@@ -69,7 +69,7 @@ pub struct ProjectList {
     network:        frp::Network,
     display_object: display::object::Instance,
     background:     background::View, //TODO[ao] use Card instead.
-    caption:        text::Area,
+    caption:        text::Text,
     list:           list_view::ListView<Entry>,
     style_watch:    StyleWatchFrp,
 }
@@ -89,7 +89,7 @@ impl ProjectList {
         let network = frp::Network::new("ProjectList");
         let display_object = display::object::Instance::new();
         let background = background::View::new();
-        let caption = app.new_view::<text::Area>();
+        let caption = app.new_view::<text::Text>();
         let list = app.new_view::<list_view::ListView<Entry>>();
         display_object.add_child(&background);
         display_object.add_child(&caption);

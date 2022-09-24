@@ -81,7 +81,7 @@ ensogl_core::define_endpoints! {
 #[derive(Clone, Debug)]
 struct Model {
     background:     background::View,
-    label:          text::Area,
+    label:          text::Text,
     display_object: display::object::Instance,
     style:          StyleWatch,
 }
@@ -91,7 +91,7 @@ impl Model {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let background = background::View::new();
 
         display_object.add_child(&background);
@@ -177,7 +177,7 @@ impl Label {
     }
 
     /// Set layers for Label's background and text respectively. This is needed because
-    /// `text::Area` uses its own `add_to_scene_layer` method instead of utilizing more common
+    /// `text::Text` uses its own `add_to_scene_layer` method instead of utilizing more common
     /// [`Layer::add_exclusive`].
     pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
         self.model.set_layers(background_layer, text_layer);

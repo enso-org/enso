@@ -452,7 +452,7 @@ ensogl::define_endpoints! {
 pub struct Model {
     pub frp:            Option<Frp>,
     pub shape:          Option<PortShapeView>,
-    pub type_label:     Option<text::Area>,
+    pub type_label:     Option<text::Text>,
     pub display_object: Option<display::object::Instance>,
     pub index:          Bytes,
     pub length:         Bytes,
@@ -482,7 +482,7 @@ impl Model {
         shape.set_padding_right(padding_right);
         self.shape = Some(shape.clone());
 
-        let type_label = app.new_view::<text::Area>();
+        let type_label = app.new_view::<text::Text>();
         let offset_y =
             styles.get_number(ensogl_hardcoded_theme::graph_editor::node::type_label::offset_y);
         type_label.set_position_y(offset_y);
@@ -503,7 +503,7 @@ impl Model {
     fn init_frp(
         &mut self,
         shape: &PortShapeView,
-        type_label: &text::Area,
+        type_label: &text::Text,
         styles: &StyleWatch,
         styles_frp: &StyleWatchFrp,
     ) {

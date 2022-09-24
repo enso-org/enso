@@ -44,18 +44,18 @@ pub struct Model {
     /// base position of the root, depending on the position of the decimal separator.
     root:       display::object::Instance,
     /// Label containing the text to display. This is the label that will be shown.
-    label_full: text::Area,
+    label_full: text::Text,
     /// This label contains the text to the left of the decimal. This is here, so we can get
     /// information about the text width of this portion of the label. This label will
     /// not appear in the UI.
-    label_left: text::Area,
+    label_left: text::Text,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
-        let label_full = app.new_view::<text::Area>();
-        let label_left = app.new_view::<text::Area>();
+        let label_full = app.new_view::<text::Text>();
+        let label_left = app.new_view::<text::Text>();
 
         label_full.remove_from_scene_layer(&app.display.default_scene.layers.main);
         label_full.add_to_scene_layer(&app.display.default_scene.layers.label);

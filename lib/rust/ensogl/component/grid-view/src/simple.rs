@@ -93,14 +93,14 @@ impl<T: Into<ImString>> From<T> for EntryModel {
 #[derive(Clone, Debug)]
 pub struct EntryData {
     display_object: display::object::Instance,
-    pub label:      text::Area,
+    pub label:      text::Text,
     pub background: entry::shape::View,
 }
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let display_object = display::object::Instance::new();
-        let label = app.new_view::<ensogl_text::Area>();
+        let label = app.new_view::<ensogl_text::Text>();
         let background = entry::shape::View::new();
         display_object.add_child(&label);
         display_object.add_child(&background);

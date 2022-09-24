@@ -443,7 +443,7 @@ pub struct NodeModel {
     pub action_bar:          action_bar::ActionBar,
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
-    pub comment:             text::Area,
+    pub comment:             text::Text,
 }
 
 impl NodeModel {
@@ -510,7 +510,7 @@ impl NodeModel {
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-        let comment = text::Area::new(app);
+        let comment = text::Text::new(app);
         display_object.add_child(&comment);
 
         let app = app.clone_ref();

@@ -224,7 +224,7 @@ pub struct Model {
     display_object: display::object::Instance,
     ports:          display::object::Instance,
     header:         display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
     styles:         StyleWatch,
@@ -239,7 +239,7 @@ impl Model {
         let ports = display::object::Instance::new();
         let header = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
@@ -482,7 +482,7 @@ impl Area {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn label(&self) -> &text::Area {
+    pub fn label(&self) -> &text::Text {
         &self.model.label
     }
 

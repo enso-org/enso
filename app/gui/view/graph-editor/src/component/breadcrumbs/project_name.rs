@@ -126,7 +126,7 @@ struct ProjectNameModel {
     display_object: display::object::Instance,
     view:           background::View,
     style:          StyleWatch,
-    text_field:     text::Area,
+    text_field:     text::Text,
     project_name:   Rc<RefCell<String>>,
 }
 
@@ -142,7 +142,7 @@ impl ProjectNameModel {
         let style = StyleWatch::new(&scene.style_sheet);
         let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
         let text_size: TextSize = TEXT_SIZE.into();
-        let text_field = app.new_view::<text::Area>();
+        let text_field = app.new_view::<text::Text>();
         text_field.set_default_color.emit(base_color);
         text_field.set_default_text_size(text_size);
         text_field.single_line(true);

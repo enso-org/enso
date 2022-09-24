@@ -122,7 +122,7 @@ struct Model {
     icon:         arrow::View,
     icon_overlay: chooser_hover_area::View,
 
-    label:          text::Area,
+    label:          text::Text,
     selection_menu: list_view::ListView<Entry>,
 
     // `SingleMaskedProvider` allows us to hide the selected element.
@@ -135,7 +135,7 @@ impl Model {
         let icon = arrow::View::new();
         let icon_overlay = chooser_hover_area::View::new();
         let selection_menu = list_view::ListView::new(app);
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let content = default();
 
         Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()

@@ -16,11 +16,12 @@ use std::vec::Splice;
 
 /// A version of [`std::vec::Vec`] that can't be empty.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut)] //, Reflect)] // FIXME
-// #[reflect(transparent)] // FIXME
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut, Reflect)]
+#[reflect(transparent)]
+#[derive(crate::serde_reexports::Serialize)]
+#[derive(crate::serde_reexports::Deserialize)]
 pub struct NonEmptyVec<T, I = usize> {
+    #[reflect(as = "Vec<T>")]
     pub elems: VecIndexedBy<T, I>,
 }
 

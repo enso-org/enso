@@ -52,7 +52,7 @@ ensogl::define_endpoints! {
 /// The View of IDE Code Editor.
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    model:  text::Area,
+    model:  text::Text,
     styles: StyleWatchFrp,
     frp:    Frp,
 }
@@ -71,7 +71,7 @@ impl View {
         let styles = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = Frp::new();
         let network = &frp.network;
-        let model = app.new_view::<text::Area>();
+        let model = app.new_view::<text::Text>();
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
@@ -120,7 +120,7 @@ impl View {
     }
 
     /// Return the Text Area component inside this editor.
-    pub fn text_area(&self) -> &text::Area {
+    pub fn text_area(&self) -> &text::Text {
         &self.model
     }
 }
