@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -85,7 +84,7 @@ impl BufferData {
     }
 
     /// Text setter.
-    pub(crate) fn set_text(&self, text: impl Into<Text>) {
+    pub fn set_text(&self, text: impl Into<Text>) {
         self.text.set(text);
     }
 
@@ -95,7 +94,7 @@ impl BufferData {
     }
 
     /// Formatting setter.
-    pub(crate) fn set_style(&self, style: Formatting) {
+    pub fn set_style(&self, style: Formatting) {
         self.formatting.set(style)
     }
 

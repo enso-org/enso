@@ -7,18 +7,16 @@ use crate::buffer;
 use crate::buffer::formatting;
 use crate::buffer::formatting::Formatting;
 use crate::buffer::Buffer;
-
-use crate::font;
 use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
+
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
 use enso_text::Text;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
-
 
 
 // ==============
@@ -59,6 +57,7 @@ pub enum RangeLike {
 
 /// A location-like description. Any of the enum variants can be used to describe a location in
 /// text. There are conversions defined, so you never need to use this type explicitly.
+#[allow(missing_docs)]
 #[derive(Debug, Copy, Clone, From)]
 pub enum LocationLike {
     LocationColumnLine(Location<Column, Line>),
@@ -259,7 +258,7 @@ impl ViewBuffer {
                     buffer::Range::new(start, end)
                 })
                 .collect(),
-            RangeLike::BufferRangeUBytes(range) => vec![range.clone()],
+            RangeLike::BufferRangeUBytes(range) => vec![*range],
             RangeLike::RangeBytes(range) => vec![range.into()],
             RangeLike::RangeFull(_) => vec![self.full_range()],
             RangeLike::BufferRangeLocationColumn(range) => {
@@ -308,13 +307,11 @@ impl ViewBuffer {
     pub fn prev_column(&self, location: Location) -> Location {
         if location.offset > Column(0) {
             location.with_offset(location.offset - Column(1))
+        } else if location.line > Line(0) {
+            let location = location.dec_line();
+            location.with_offset(self.line_last_column(location.line))
         } else {
-            if location.line > Line(0) {
-                let location = location.dec_line();
-                location.with_offset(self.line_last_column(location.line))
-            } else {
-                location
-            }
+            location
         }
     }
 
@@ -322,12 +319,10 @@ impl ViewBuffer {
         let desired_column = location.offset + Column(1);
         if desired_column <= self.line_last_column(location.line) {
             location.with_offset(desired_column)
+        } else if location.line < self.last_line_index() {
+            location.inc_line().zero_offset()
         } else {
-            if location.line < self.last_line_index() {
-                location.inc_line().zero_offset()
-            } else {
-                location
-            }
+            location
         }
     }
 
@@ -385,7 +380,7 @@ impl ViewBuffer {
 
     fn shape_range(&self, range: Range<UBytes>) -> Vec<ShapedGlyphSet> {
         let line_style = self.sub_style(range.clone());
-        let content = self.buffer.sub(range.clone()).to_string();
+        let content = self.buffer.sub(range).to_string();
         let font = &self.font;
         let mut glyph_sets = vec![];
         let mut prev_cluster_byte_offset = 0;
@@ -416,13 +411,13 @@ impl ViewBuffer {
                 let variable_variations = default();
                 let glyphs = shaped
                     .glyph_positions()
-                    .into_iter()
+                    .iter()
                     .zip(shaped.glyph_infos())
                     .map(|(&position, &info)| {
                         let mut info = info;
                         // FIXME:
                         // let variable_variations = glyph.variations.borrow();
-                        let glyph_id = font::GlyphId(info.glyph_id as u16);
+                        let glyph_id = GlyphId(info.glyph_id as u16);
                         let render_info = font.glyph_info_of_known_face(
                             non_variable_variations,
                             &variable_variations,
@@ -473,20 +468,20 @@ impl ViewBuffer {
     }
 
     pub fn chunks_per_font_face<'a>(
-        font: &'a font::Font,
-        line_style: &'a formatting::Formatting,
+        font: &'a Font,
+        line_style: &'a Formatting,
         content: &'a str,
-    ) -> impl Iterator<Item = (Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (Range<UBytes>, NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
             match font {
-                font::Font::NonVariable(_) =>
+                Font::NonVariable(_) =>
                     for a in line_style.chunks_per_font_face(content) {
                         yield a;
                     }
-                font::Font::Variable(_) => {
+                Font::Variable(_) => {
                     let range = UBytes(0)..UBytes(content.len());
                     // For variable fonts, we do not care about non-variable variations.
-                    let non_variable_variations = font::NonVariableFaceHeader::default();
+                    let non_variable_variations = NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);
                 }
             }
@@ -797,10 +792,6 @@ impl ViewBuffer {
     fn offset_to_location(&self, offset: UBytes) -> Location<UBytes> {
         let line = self.line_index_of_byte_offset_snapped(offset);
         let line_offset = self.byte_offset_of_line_index(line).unwrap();
-        let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
-            error!("Internal error. Line offset overflow ({:?}).", line_offset);
-            UBytes(0)
-        });
         // fixme: tu byl snap_bytes_location_error - potrzebny?
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
@@ -939,7 +930,8 @@ impl View {
             sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
 
             sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
-            sel_on_undo       <= input.undo.map(f_!(m.undo()));
+            // FIXME: this should be here:
+            // sel_on_undo       <= input.undo.map(f_!(m.undo()));
 
             // eval input.set_default_color     ((t) m.set_default(*t));
             // eval input.set_default_text_size ((t) m.set_default(*t));
@@ -1091,9 +1083,9 @@ impl ViewModel {
 
     /// Number of lines visible in this buffer view.
     pub fn view_line_count(&self) -> usize {
-        self.view_line_count.get().unwrap_or_else(|| {
-            (self.last_line_index().value + 1 - self.first_view_line.get().value) as usize
-        })
+        self.view_line_count
+            .get()
+            .unwrap_or_else(|| self.last_line_index().value + 1 - self.first_view_line.get().value)
     }
 
     pub fn last_view_line_index(&self) -> ViewLine {
@@ -1137,12 +1129,12 @@ impl ViewModel {
 
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.first_view_line().into()).unwrap() // FIXME
+        self.byte_offset_of_line_index(self.first_view_line()).unwrap() // FIXME
     }
 
     /// Byte offset of the last line of this buffer view.
     pub fn last_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.last_view_line().into()).unwrap()
+        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
     }
 
     /// Byte offset range of lines visible in this buffer view.
@@ -1152,7 +1144,7 @@ impl ViewModel {
 
     /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
     pub fn view_end_byte_offset_snapped(&self) -> UBytes {
-        self.end_byte_offset_of_line_index_snapped(self.last_view_line().into())
+        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
     }
 
     /// Return the offset after the last character of a given view line if the line exists.
@@ -1358,10 +1350,6 @@ impl FromInContext<&ViewBuffer, UBytes> for Location<UBytes> {
     fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
-        let line_offset = UBytes::try_from(line_offset).unwrap_or_else(|_| {
-            warn!("Internal error. Line offset overflow ({:?}).", line_offset);
-            UBytes(0)
-        });
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
     }
@@ -1397,8 +1385,8 @@ impl FromInContext<&ViewModel, Line> for ViewLine {
 
 impl TryFromInContext<&ViewModel, Line> for ViewLine {
     fn try_from_in_context(buffer: &ViewModel, line: Line) -> Option<Self> {
-        let line = line.value as usize;
-        let first_view_line = buffer.first_view_line.get().value as usize;
+        let line = line.value;
+        let first_view_line = buffer.first_view_line.get().value;
         (first_view_line <= line).as_some_from(|| ViewLine(line - first_view_line))
     }
 }

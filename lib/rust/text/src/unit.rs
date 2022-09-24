@@ -38,6 +38,7 @@ impl Bytes {
         self.value.max(0) as usize
     }
 
+    /// Convert to [`UBytes`]. If the value is negative, returns [`Bytes(0)`] and prints a warning.
     pub fn as_ubytes(self) -> UBytes {
         if self.value < 0 {
             warn!("Trying to convert negative Bytes to UBytes.");
@@ -137,6 +138,7 @@ impl Add<UBytes> for Bytes {
     }
 }
 
+/// Conversion error.
 #[derive(Debug, Clone, Copy)]
 pub struct BytesToUBytesConversionError;
 
@@ -275,6 +277,7 @@ use std::ops::AddAssign;
 
 macro_rules! define_line_unit {
     ($name:ident) => {
+        /// A line unit.
         #[derive(
             Clone, Copy, Debug, Display, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into
         )]
@@ -418,6 +421,7 @@ macro_rules! define_line_unit {
         // }
 
         impl $name {
+            /// Increment the value.
             pub fn inc(self) -> Self {
                 self + $name(1)
             }
@@ -445,12 +449,16 @@ macro_rules! define_line_unit {
 define_line_unit!(Line);
 define_line_unit!(ViewLine);
 
+/// The difference between lines.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into)]
 pub struct LineDiff {
     #[allow(missing_docs)]
     pub value: i32,
 }
 
+/// Constructor.
+#[allow(non_snake_case)]
 pub fn LineDiff(value: i32) -> LineDiff {
     LineDiff { value }
 }
@@ -616,11 +624,13 @@ mod location {
             Location { line: self.line, offset }
         }
 
+        /// Modify the line value.
         pub fn mod_line<Line2>(self, f: impl FnOnce(Line) -> Line2) -> Location<Offset, Line2> {
             let line = f(self.line);
             Location { line, offset: self.offset }
         }
 
+        /// Modify the offset value.
         pub fn mod_offset<Offset2>(
             self,
             f: impl FnOnce(Offset) -> Offset2,
@@ -629,31 +639,37 @@ mod location {
             Location { line: self.line, offset }
         }
 
+        /// Sets the line to zero.
         pub fn zero_line(self) -> Location<Offset, Line>
         where Line: From<usize> {
             self.with_line(Line::from(0_usize))
         }
 
+        /// Sets the offset to zero.
         pub fn zero_offset(self) -> Location<Offset, Line>
         where Offset: From<usize> {
             self.with_offset(Offset::from(0_usize))
         }
 
+        /// Increment the line index.
         pub fn inc_line(self) -> Location<Offset, <Line as Add<usize>>::Output>
         where Line: Add<usize> + From<usize> {
             self.mod_line(|t| t + 1_usize)
         }
 
+        /// Decrement the line index.
         pub fn dec_line(self) -> Location<Offset, <Line as Sub<usize>>::Output>
         where Line: Sub<usize> + From<usize> {
             self.mod_line(|t| t - 1_usize)
         }
 
+        /// Increment the offset.
         pub fn inc_offset(self) -> Location<<Offset as Add>::Output, Line>
         where Offset: Add + From<usize> {
             self.mod_offset(|t| t + Offset::from(1_usize))
         }
 
+        /// Decrement the offset.
         pub fn dec_offset(self) -> Location<<Offset as Sub>::Output, Line>
         where Offset: Sub + From<usize> {
             self.mod_offset(|t| t - Offset::from(1_usize))
@@ -759,5 +775,5 @@ mod location {
 pub use location::*;
 
 
-
+/// Alias for [`Location`] with [`ViewLine`] as line index.
 pub type ViewLocation<Offset = Column> = Location<Offset, ViewLine>;

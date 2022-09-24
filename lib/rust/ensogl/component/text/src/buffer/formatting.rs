@@ -1,10 +1,16 @@
 //! Text style definition (color, bold, italics, etc.).
 
 use super::*;
-use enso_text::spans::RangedValue;
 
 use crate::buffer::Range;
 use crate::font;
+
+use enso_text::spans::RangedValue;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::data::color;
 pub use font::Style;
@@ -455,6 +461,8 @@ macro_rules! define_property_diffs {
 
 with_formatting_property_diffs!(define_property_diffs);
 
+/// Apply the property diff.
+#[allow(missing_docs)]
 pub trait PropertyDiffApply<Diff> {
     fn apply_diff(&self, diff: Diff) -> Self;
 }

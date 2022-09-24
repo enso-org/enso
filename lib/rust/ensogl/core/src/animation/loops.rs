@@ -2,12 +2,12 @@
 
 use crate::prelude::*;
 use crate::system::web::traits::*;
+use enso_callback::traits::*;
 
 use crate::system::web;
 use crate::types::unit2::Duration;
-use enso_callback as callback;
-use enso_callback::traits::*;
 
+use enso_callback as callback;
 use web::Closure;
 
 
@@ -16,16 +16,8 @@ use web::Closure;
 // === TimeInfo ===
 // ================
 
-
 /// Time data of a given animation frame. Contains information about the animation loop start,
 /// previous frame time, and the time elapsed since the animation loop start till now.
-///
-/// Note: the [`animation_loop_start`] field will be computed on first loop iteration. We cannot
-/// compute it upfront, as other time functions, like `performance.now()`, can output results that
-/// can provide different values (both earlier or later than the time stamp provided to the
-/// `requestAnimationFrame` callback. The exact results differ across browsers and browser versions.
-/// We have even observed that `performance.now()` can sometimes provide a bigger value than time
-/// provided to `requestAnimationFrame` callback later, which resulted in a negative frame time.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct TimeInfo {
@@ -56,36 +48,34 @@ impl TimeInfo {
 
 
 
-// ===============
-// === RawLoop ===
-// ===============
-
+// ==============
+// === JsLoop ===
+// ==============
 
 // === Types ===
 
-/// Callback for `RawLoop`.
+/// Callback for `JsLoop`.
 pub trait RawOnFrameCallback = FnMut(Duration) + 'static;
 
 
 // === Definition ===
 
-/// The most performant animation loop possible. However, if you are looking for a way to define
-/// an animation loop, you are probably looking for the [`Loop`] which adds slight complexity
-/// in order to provide better time information. The complexity is so small that it would not be
-/// noticeable in almost any use case.
+/// Binding to JS `requestAnimationFrame` function. This is not exported publicly because it should
+/// not be used directly as it does not give us control over the animation loop evaluation order.
+/// Use [`Loop`] instead.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-pub struct RawLoop<OnFrame> {
-    data: Rc<RefCell<RawLoopData<OnFrame>>>,
+struct JsLoop<OnFrame> {
+    data: Rc<RefCell<JsLoopData<OnFrame>>>,
 }
 
-impl<OnFrame> RawLoop<OnFrame>
+impl<OnFrame> JsLoop<OnFrame>
 where OnFrame: RawOnFrameCallback
 {
     /// Create and start a new animation loop.
-    pub fn new(on_frame: OnFrame) -> Self {
-        let data = Rc::new(RefCell::new(RawLoopData::new(on_frame)));
+    fn new(on_frame: OnFrame) -> Self {
+        let data = Rc::new(RefCell::new(JsLoopData::new(on_frame)));
         let weak_data = Rc::downgrade(&data);
         let js_on_frame =
             move |time: f64| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
@@ -98,17 +88,17 @@ where OnFrame: RawOnFrameCallback
     }
 }
 
-/// The internal state of the `RawLoop`.
+/// The internal state of the `JsLoop`.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct RawLoopData<OnFrame> {
+struct JsLoopData<OnFrame> {
     #[derivative(Debug = "ignore")]
     on_frame:              OnFrame,
     js_on_frame:           Option<Closure<dyn FnMut(f64)>>,
     js_on_frame_handle_id: i32,
 }
 
-impl<OnFrame> RawLoopData<OnFrame> {
+impl<OnFrame> JsLoopData<OnFrame> {
     /// Constructor.
     fn new(on_frame: OnFrame) -> Self {
         let js_on_frame = default();
@@ -128,22 +118,9 @@ impl<OnFrame> RawLoopData<OnFrame> {
     }
 }
 
-impl<OnFrame> Drop for RawLoopData<OnFrame> {
+impl<OnFrame> Drop for JsLoopData<OnFrame> {
     fn drop(&mut self) {
-        web::window.cancel_animation_frame_or_panic(self.js_on_frame_handle_id);
-    }
-}
-
-
-#[derive(Clone, Debug)]
-pub struct Loop {
-    handle: callback::Handle,
-}
-
-impl Loop {
-    pub fn new(callback: impl OnFrameCallback) -> Self {
-        let handle = LOOP_REGISTRY.with(|registry| registry.add(callback));
-        Self { handle }
+        web::window.cancel_animation_frame_or_warn(self.js_on_frame_handle_id);
     }
 }
 
@@ -153,6 +130,26 @@ impl Loop {
 // === Loop ===
 // ============
 
+/// Animation loop handler. This is the basic animation loop that you should use in most cases.
+#[derive(Clone, Debug)]
+pub struct Loop {
+    handle: callback::Handle,
+}
+
+impl Loop {
+    /// Constructor.
+    pub fn new(callback: impl OnFrameCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add(callback));
+        Self { handle }
+    }
+}
+
+
+
+// ====================
+// === LoopRegistry ===
+// ====================
+
 // === Types ===
 
 /// Type of the function that will be called on every animation frame.
@@ -161,10 +158,10 @@ pub trait OnFrameCallback = FnMut(TimeInfo) + 'static;
 
 crate::define_endpoints_2! {
     Output {
-        frame_start(TimeInfo),
-        before_animations(TimeInfo),
-        after_animations(TimeInfo),
-        before_rendering(TimeInfo),
+        on_frame_start(TimeInfo),
+        on_before_animations(TimeInfo),
+        on_after_animations(TimeInfo),
+        on_before_rendering(TimeInfo),
         frame_end(TimeInfo),
     }
 }
@@ -172,27 +169,32 @@ crate::define_endpoints_2! {
 // === Definition ===
 
 thread_local! {
-    pub static LOOP_REGISTRY: LoopRegistry = LoopRegistry::new();
+    static LOOP_REGISTRY: LoopRegistry = LoopRegistry::new();
 }
 
-pub fn frame_start() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.frame_start.clone_ref())
+/// Fires at the beginning of every animation frame.
+pub fn on_frame_start() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_frame_start.clone_ref())
 }
 
+/// Fires at the end of every animation frame.
 pub fn frame_end() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.frame_end.clone_ref())
 }
 
-pub fn before_animations() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.before_animations.clone_ref())
+/// Fires before the animations are evaluated.
+pub fn on_before_animations() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_before_animations.clone_ref())
 }
 
-pub fn after_animations() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.after_animations.clone_ref())
+/// Fires after the animations are evaluated.
+pub fn on_after_animations() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_after_animations.clone_ref())
 }
 
-pub fn before_rendering() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.before_rendering.clone_ref())
+/// Fires before the rendering is performed.
+pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_before_rendering.clone_ref())
 }
 
 /// An animation loop. Runs the provided [`OnFrame`] callback on every animation frame.
@@ -203,7 +205,7 @@ pub struct LoopRegistry {
     #[deref]
     frp:            Frp,
     callbacks:      callback::registry::MutNoArgs,
-    animation_loop: RawLoop<OnFrameClosure>,
+    animation_loop: JsLoop<OnFrameClosure>,
 }
 
 impl LoopRegistry {
@@ -211,11 +213,11 @@ impl LoopRegistry {
     fn new() -> Self {
         let frp = default();
         let callbacks = default();
-        let animation_loop = RawLoop::new(on_frame_closure(&frp, &callbacks));
+        let animation_loop = JsLoop::new(on_frame_closure(&frp, &callbacks));
         Self { frp, callbacks, animation_loop }
     }
 
-    pub fn add(&self, mut callback: impl OnFrameCallback) -> callback::Handle {
+    fn add(&self, callback: impl OnFrameCallback) -> callback::Handle {
         self.callbacks.add(create_callback_wrapper(callback))
     }
 }
@@ -241,16 +243,16 @@ fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut() {
 /// Callback for an animation frame.
 pub type OnFrameClosure = impl FnMut(Duration);
 fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::MutNoArgs) -> OnFrameClosure {
-    let frame_start = frp.private.output.frame_start.clone_ref();
+    let on_frame_start = frp.private.output.on_frame_start.clone_ref();
     let frame_end = frp.private.output.frame_end.clone_ref();
-    let before_animations = frp.private.output.before_animations.clone_ref();
-    let after_animations = frp.private.output.after_animations.clone_ref();
-    let before_rendering = frp.private.output.before_rendering.clone_ref();
-    let mut frame_start_fn = create_callback_wrapper(move |t| frame_start.emit(t));
+    let on_before_animations = frp.private.output.on_before_animations.clone_ref();
+    let on_after_animations = frp.private.output.on_after_animations.clone_ref();
+    let on_before_rendering = frp.private.output.on_before_rendering.clone_ref();
+    let mut frame_start_fn = create_callback_wrapper(move |t| on_frame_start.emit(t));
     let mut frame_end_fn = create_callback_wrapper(move |t| frame_end.emit(t));
-    let mut before_animations_fn = create_callback_wrapper(move |t| before_animations.emit(t));
-    let mut after_animations_fn = create_callback_wrapper(move |t| after_animations.emit(t));
-    let mut before_rendering_fn = create_callback_wrapper(move |t| before_rendering.emit(t));
+    let mut before_animations_fn = create_callback_wrapper(move |t| on_before_animations.emit(t));
+    let mut after_animations_fn = create_callback_wrapper(move |t| on_after_animations.emit(t));
+    let mut before_rendering_fn = create_callback_wrapper(move |t| on_before_rendering.emit(t));
     let callbacks = callbacks.clone_ref();
     move |_: Duration| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
@@ -294,7 +296,7 @@ impl<OnFrame, OnTooManyFramesSkipped> FixedFrameRateSampler<OnFrame, OnTooManyFr
         callback: OnFrame,
         on_too_many_frames_skipped: OnTooManyFramesSkipped,
     ) -> Self {
-        let max_skipped_frames = 200; // FIXME !!!!!!!!!!!!!!!!!!!!!!! Revert to "2" after testing.
+        let max_skipped_frames = 2;
         let frame_time = (1000.0 / fps).ms();
         let local_time = default();
         // The first call to this sampler will be with frame time 0, which would drop this
@@ -351,7 +353,7 @@ where
             self.local_time = time.since_animation_loop_started;
             (self.callback)(time);
         } else {
-            warn!("Animations running slow. Skipping {} frames.", skipped_frames);
+            debug!("Animations running slow. Skipping {} frames.", skipped_frames);
             self.local_time = time.since_animation_loop_started;
             self.time_buffer = 0.ms();
             (self.on_too_many_frames_skipped)();
@@ -368,10 +370,7 @@ where
 /// Callback used if too many frames were skipped.
 pub trait OnTooManyFramesSkippedCallback = FnMut() + 'static;
 
-/// Loop with a `FixedFrameRateSampler` attached.
-pub type FixedFrameRateLoop = Loop;
-
-impl FixedFrameRateLoop {
+impl Loop {
     /// Constructor.
     pub fn new_with_fixed_frame_rate<
         OnFrame: OnFrameCallback,

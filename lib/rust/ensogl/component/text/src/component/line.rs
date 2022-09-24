@@ -1,13 +1,14 @@
 use crate::prelude::*;
+use enso_text::unit::*;
+use ensogl_core::display::shape::*;
 
 use crate::buffer::formatting;
 use crate::font::glyph::Glyph;
-use enso_text::unit::*;
+
 use ensogl_core::display;
+use ensogl_core::display::IntoGlsl;
 use ensogl_core::Animation;
 
-use ensogl_core::display::shape::*;
-use ensogl_core::display::IntoGlsl;
 
 
 // ================

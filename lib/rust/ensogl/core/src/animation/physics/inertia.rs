@@ -782,12 +782,12 @@ impl<T, OnStep, OnStart, OnEnd> Debug for WeakSimulator<T, OnStep, OnStart, OnEn
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
 pub struct AnimationLoopSlot {
-    animation_loop: Rc<CloneCell<Option<FixedFrameRateLoop>>>,
+    animation_loop: Rc<CloneCell<Option<animation::Loop>>>,
 }
 
 #[allow(clippy::type_complexity)]
 impl Deref for AnimationLoopSlot {
-    type Target = Rc<CloneCell<Option<FixedFrameRateLoop>>>;
+    type Target = Rc<CloneCell<Option<animation::Loop>>>;
     fn deref(&self) -> &Self::Target {
         &self.animation_loop
     }
@@ -812,7 +812,7 @@ impl AnimationLoopSlot {
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct WeakAnimationLoopSlot {
-    animation_loop: Weak<CloneCell<Option<FixedFrameRateLoop>>>,
+    animation_loop: Weak<CloneCell<Option<animation::Loop>>>,
 }
 
 impl WeakAnimationLoopSlot {
@@ -826,9 +826,6 @@ impl WeakAnimationLoopSlot {
 // ==========================
 // === FixedFrameRateLoop ===
 // ==========================
-
-/// Alias for [`FixedFrameRateLoop`] with specified step callback.
-pub type FixedFrameRateLoop = animation::FixedFrameRateLoop;
 
 /// Callback for an animation step.
 pub type Step<T, OnStep, OnStart, OnEnd> = impl Fn(animation::TimeInfo);

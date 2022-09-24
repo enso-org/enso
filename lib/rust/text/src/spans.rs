@@ -43,6 +43,7 @@ impl<T: Clone + Debug> Spans<T> {
         self.raw.edit(range.into_rope_interval(), builder.build())
     }
 
+    /// Modify the parameter value in the given range.
     pub fn modify(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
         let subseq = self.raw.subseq(range.into_rope_interval());
         for t in subseq.iter() {

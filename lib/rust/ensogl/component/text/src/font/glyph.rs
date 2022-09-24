@@ -4,6 +4,7 @@
 use crate::prelude::*;
 use ensogl_core::display::world::*;
 
+use crate::buffer::formatting::PropertyDiffApply;
 use crate::font;
 use crate::font::VariationAxes;
 use crate::PropertyDiff;
@@ -11,9 +12,7 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
-use crate::buffer::formatting::PropertyDiffApply;
 use enso_frp::stream::ValueProvider;
-use enso_text::CodePointIndex;
 use enso_text::UBytes;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;
@@ -26,7 +25,6 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use ensogl_core::Animation;
 use font::Font;
 use font::GlyphRenderInfo;
 use font::Style;
@@ -124,7 +122,7 @@ macro_rules! define_prop_setters_and_getters {
             #[doc = "Setter of the glyph `"]
             #[doc = stringify!($prop)]
             #[doc = "` property."]
-            pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
+            pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
                 self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
                 self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
                 self.refresh();
@@ -133,7 +131,7 @@ macro_rules! define_prop_setters_and_getters {
             #[doc = "Gets the current `"]
             #[doc = stringify!($prop)]
             #[doc = "` property value.`"]
-            pub fn [<$prop:snake:lower>](&self) -> font::$prop {
+            pub fn [<$prop:snake:lower>](&self) -> $prop {
                 self.properties.get().[<$prop:snake:lower>]
             }
 
@@ -144,7 +142,7 @@ macro_rules! define_prop_setters_and_getters {
                 #[doc = stringify!($variant)]
                 #[doc = "`."]
                 pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
-                    self.[<set_ $prop:snake:lower>](font::$prop::$variant)
+                    self.[<set_ $prop:snake:lower>]($prop::$variant)
                 }
 
                 #[doc = "Checks whether the `"]
@@ -153,7 +151,7 @@ macro_rules! define_prop_setters_and_getters {
                 #[doc = stringify!($variant)]
                 #[doc = "`."]
                 pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
-                    self.properties.get().[<$prop:snake:lower>] == font::$prop::$variant
+                    self.properties.get().[<$prop:snake:lower>] == $prop::$variant
                 }
             )*
         )*

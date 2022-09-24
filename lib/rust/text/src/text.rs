@@ -219,6 +219,7 @@ impl Text {
     //     self.column_of_byte_offset(self.byte_size()).unwrap()
     // }
 
+    /// The end location of the last line.
     pub fn last_line_end_column_byte_offset(&self) -> UBytes {
         self.line_byte_offset_of_byte_offset(self.byte_size()).unwrap()
     }
@@ -292,6 +293,7 @@ impl Text {
     }
 
     // FIXME: unwraps
+    /// Byte length of the given line. Does not include the newline characters.
     pub fn line_byte_length(&self, line: Line) -> UBytes {
         let line_start = self.byte_offset_of_line_index(line).unwrap();
         let line_end = self.end_byte_offset_of_line_index(line).unwrap();
@@ -423,6 +425,8 @@ impl Text {
     //     }
     // }
 
+    // FIXME: docs
+    /// Test
     pub fn line_byte_offset_of_byte_offset(
         &self,
         tgt_offset: UBytes,
@@ -725,7 +729,7 @@ impl TextCell {
     pub fn lines_vec(&self, range: std::ops::Range<UBytes>) -> Vec<String> {
         let rope_range = range.start.value..range.end.value;
         let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
-        if lines.len() == 0 {
+        if lines.is_empty() {
             // Rope returns `[]` if the line is empty.
             lines.push("".into())
         }

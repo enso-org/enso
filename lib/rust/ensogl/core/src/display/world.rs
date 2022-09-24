@@ -155,12 +155,12 @@ impl WorldDataWithLoop {
     pub fn new() -> Self {
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
-        let frame_start = animation::frame_start();
-        let before_rendering = animation::before_rendering();
+        let on_frame_start = animation::on_frame_start();
+        let on_before_rendering = animation::on_before_rendering();
         let network = frp.network();
         crate::frp::extend! {network
-            eval_ frame_start (data.run_stats());
-            eval before_rendering ((t) data.run_next_frame(*t));
+            eval_ on_frame_start (data.run_stats());
+            eval on_before_rendering ((t) data.run_next_frame(*t));
         }
 
         Self { frp, data }

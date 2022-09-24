@@ -14,6 +14,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -91,7 +92,24 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "warn(variant_size_differences)",
     // Rustc lints that emit a warning by default:
     // "deny(unconditional_recursion)",
-    "[allow(clippy::let_and_return)]",
+    // This is allowed because in some cases, it allows way nicer formatting. For example, the
+    // code: ```
+    // fn test(x: usize) -> usize {
+    //     if x > 1 {
+    //         0
+    //     } else {
+    //         1
+    // }
+    // ```
+    // is automatically formatted as a multi-line expression. However, it is shorter when using a
+    // local variable and it cannot be configured in rustfmt.
+    // ```
+    // fn test(x: usize) -> usize {
+    //     let out = if x > 1 { 0 } else { 1 };
+    //     out
+    // }
+    // ```
+    "allow(clippy::let_and_return)",
 ];
 
 

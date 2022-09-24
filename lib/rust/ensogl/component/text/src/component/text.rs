@@ -2,11 +2,12 @@
 //! text editors.
 
 use crate::prelude::*;
-use enso_text::unit;
 use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::formatting;
+use crate::buffer::view::FromInContext;
+use crate::buffer::view::TryFromInContext;
 use crate::buffer::Transform;
 use crate::component::line;
 use crate::component::selection;
@@ -15,27 +16,27 @@ use crate::font;
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
 
-use crate::buffer::view::FromInContext;
-use crate::buffer::view::IntoInContext;
-pub use crate::buffer::view::LocationLike;
-use crate::buffer::view::TryFromInContext;
-pub use crate::buffer::RangeLike;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
+use enso_frp::stream::ValueProvider;
 use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::IntoGlsl;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
-use owned_ttf_parser::AsFaceRef;
-use rustybuzz;
 use std::ops::Not;
 
-use enso_frp::stream::ValueProvider;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::buffer::view::LocationLike;
+pub use crate::buffer::RangeLike;
 
 
 
@@ -92,7 +93,7 @@ impl Lines {
     /// The index of the last visible line.
     pub fn last_line_index(&self) -> ViewLine {
         // This is safe because we are using [`NonEmptyVec`] to store lines.
-        ViewLine((self.len() - 1))
+        ViewLine(self.len() - 1)
     }
 
     /// Resize the line container and use the provided function to construct missing elements.
@@ -345,17 +346,16 @@ impl Text {
             hovered <- bool(&input.unhover,&input.hover);
             hovered <- any(&input.set_hover,&hovered);
             out.hovered <+ hovered;
-            out.pointer_style <+ out.hovered.map(|h| h.then_or_default(|| cursor::Style::cursor()));
+            out.pointer_style <+ out.hovered.map(|h| h.then_or_default(cursor::Style::cursor));
         }
     }
 
     fn init_single_line_mode(&self) {
-        let m = &self.data;
-        let network = self.frp.network();
+        let _network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;
 
-        frp::extend! { network
+        frp::extend! { _network
             out.single_line_mode <+ input.set_single_line_mode;
         }
     }
@@ -505,7 +505,7 @@ impl Text {
         let network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;
-        let after_animations = ensogl_core::animation::after_animations();
+        let after_animations = ensogl_core::animation::on_after_animations();
 
         frp::extend! { network
 
@@ -749,7 +749,7 @@ impl TextModel {
         display_object: &display::object::Instance,
         default_size: f32,
     ) -> line::View {
-        let mut line = line::View::new(frame_time);
+        let line = line::View::new(frame_time);
         let ascender = default_size;
         let descender = ascender / 10.0; // FIXME: magic value
         let gap = 0.0;
@@ -887,6 +887,7 @@ impl TextModel {
                         let second_line_index = view_change_range.start().inc();
 
                         let mut lines = self.lines.borrow_mut();
+                        #[allow(clippy::comparison_chain)]
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
@@ -990,7 +991,7 @@ impl TextModel {
     /// Resize lines vector to contain the required lines count.
     fn resize_lines(&self) {
         let line_count = self.buffer.view_line_count();
-        self.lines.resize_with(line_count, |ix| self.new_line());
+        self.lines.resize_with(line_count, |_| self.new_line());
     }
 
     /// Redraw all the text. This function should be used only when necessary as it is very costly.
@@ -1202,7 +1203,7 @@ impl TextModel {
     pub fn detach_glyphs_from_cursors(&self) {
         let selection_map = self.selection_map.borrow();
         for (&line, cursor_map) in &selection_map.location_map {
-            for (_, cursor_id) in cursor_map {
+            for cursor_id in cursor_map.values() {
                 let selection = selection_map.id_map.get(cursor_id).unwrap();
                 for glyph in &*selection.set_attached_glyphs.value() {
                     if let Some(glyph) = glyph.upgrade() {
@@ -1306,7 +1307,7 @@ impl TextModel {
                     break;
                 }
                 if glyph.start_byte_offset.get() >= range.start.offset {
-                    f(&glyph)
+                    f(glyph)
                 }
             }
         } else {
@@ -1315,17 +1316,17 @@ impl TextModel {
             let last_line = range.end.line;
             for glyph in &lines[first_line] {
                 if glyph.start_byte_offset.get() >= range.start.offset {
-                    f(&glyph)
+                    f(glyph)
                 }
             }
             for line in &lines[second_line..last_line] {
                 for glyph in line {
-                    f(&glyph)
+                    f(glyph)
                 }
             }
             for glyph in &lines[last_line] {
                 if glyph.start_byte_offset.get() < range.end.offset {
-                    f(&glyph)
+                    f(glyph)
                 }
             }
         }
@@ -1453,11 +1454,11 @@ impl TextModel {
         sorted_line_ranges: impl Iterator<Item = RangeInclusive<ViewLine>>,
     ) {
         let mut first_ok_line_index = None;
-        let mut line_index_to_position = ViewLine(0);
+        let mut line_index_to_position;
         for range in sorted_line_ranges {
             line_index_to_position = match first_ok_line_index {
                 None => *range.start(),
-                Some(p) => std::cmp::max((p + ViewLine(1)), *range.start()),
+                Some(p) => std::cmp::max(p + ViewLine(1), *range.start()),
             };
             // We are positioning one more line, because if a line is removed, the last redraw line
             // index can be placed in the previous line, that was already well positioned. The next

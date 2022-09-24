@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -20,17 +21,18 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use ensogl_text::traits::*;
 use wasm_bindgen::prelude::*;
 
 use crate::buffer::Line;
 use crate::buffer::Location;
+
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::shape::*;
 use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::formatting;
@@ -38,6 +40,8 @@ use ensogl_text::Column;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
+
+
 
 // ==============
 // === Shapes ===
@@ -215,6 +219,8 @@ fn init(app: Application) {
 
     // TODO: change divs to Vec from NonEmptyVec
     // TOOD: bufferView / buffermodel - better names
+
+    // TODO: Check if profiling works well with new animation loops (if time works there nicely)
 
     // area.set_cursor_at_end();
     //

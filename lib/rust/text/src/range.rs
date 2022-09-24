@@ -31,6 +31,7 @@ impl<T> Range<T> {
         Self { start, end }
     }
 
+    /// Checks whether the range is empty.
     pub fn is_empty(&self) -> bool
     where T: PartialEq {
         self.start == self.end
@@ -102,6 +103,7 @@ impl<T> Range<T> {
 }
 
 impl<Offset, Line: PartialEq> Range<Location<Offset, Line>> {
+    /// Checks whether the range describes a single line.
     pub fn single_line(&self) -> bool {
         self.start.line == self.end.line
     }
@@ -159,8 +161,8 @@ impl From<RangeTo<UBytes>> for Range<UBytes> {
     }
 }
 
-impl From<std::ops::RangeInclusive<UBytes>> for Range<UBytes> {
-    fn from(range: std::ops::RangeInclusive<UBytes>) -> Range<UBytes> {
+impl From<RangeInclusive<UBytes>> for Range<UBytes> {
+    fn from(range: RangeInclusive<UBytes>) -> Range<UBytes> {
         Range::new(*range.start(), range.end().saturating_add(1.ubytes()))
     }
 }
@@ -248,25 +250,6 @@ impl TryFrom<Range<Bytes>> for Range<UBytes> {
         let start = t.start.try_into()?;
         let end = t.end.try_into()?;
         Ok(Self { start, end })
-    }
-}
-
-
-
-// ======================
-// === RangeInclusive ===
-// ======================
-
-#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub struct RangeInclusive<T> {
-    pub start: T,
-    pub end:   T,
-}
-
-impl<T> RangeInclusive<T> {
-    pub fn new(start: T, end: T) -> Self {
-        Self { start, end }
     }
 }
 

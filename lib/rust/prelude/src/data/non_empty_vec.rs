@@ -1,8 +1,9 @@
 //! This file contains an implementation of Vec that can't be empty.
 
+use crate::*;
+
 use crate::data::vec_indexed_by;
 use crate::VecIndexedBy;
-use crate::*;
 
 use std::ops::Bound;
 use std::vec::Drain;

@@ -282,6 +282,7 @@ where
         self.cache.get()
     }
 
+    /// Modify the parameter value.
     pub fn modify(&self, f: impl FnOnce(T::Item) -> T::Item) {
         self.set(f(self.get()))
     }

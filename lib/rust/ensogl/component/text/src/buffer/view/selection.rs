@@ -21,6 +21,7 @@ pub trait Boundary = Copy + Ord + Eq;
 // ==========
 
 /// Selection ID.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Display, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id {
     pub value: usize,
@@ -202,6 +203,7 @@ impl<T: Boundary> Selection<T> {
         self.map_shape(|s| s.with_end(end))
     }
 
+    /// Replace the location value.
     pub fn with_location(self, location: T) -> Self {
         self.with_start(location).with_end(location)
     }

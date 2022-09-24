@@ -251,6 +251,7 @@ impl<Host> Model<Host> {
         });
     }
 
+    /// Removes all children of this display object and returns them.
     pub fn remove_all_children(&self) -> Vec<Instance<Host>> {
         let children: Vec<Instance<Host>> =
             self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();

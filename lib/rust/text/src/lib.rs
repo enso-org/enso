@@ -1,7 +1,3 @@
-#![feature(step_trait)]
-#![feature(auto_traits)]
-#![feature(negative_impls)]
-
 //! The text operation utilities.
 //!
 //! This crate contains several utility structures for operations on text:
@@ -81,9 +77,14 @@
 //! "code points except high-surrogate and low-surrogate code points" - but the surrogate code
 //! points are not used uin UTF-8 anyway).
 
+// === Features ===
+#![feature(step_trait)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

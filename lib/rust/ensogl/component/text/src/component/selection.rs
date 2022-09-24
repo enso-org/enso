@@ -3,16 +3,20 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
+use crate::font::glyph::WeakGlyph;
+
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
-use ensogl_core::system::web;
-use ensogl_core::system::web::traits::*;
 use ensogl_core::Animation;
-// FIXME: circular dep?
-use crate::font::glyph::WeakGlyph;
+
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::buffer::view::selection::Id;
 
@@ -161,11 +165,11 @@ impl Selection {
         let frp = Frp::new();
         let network = frp.network();
         let model = SelectionModel::new(edit_mode);
-        let position = Animation::new(&network);
-        let width = Animation::new(&network);
-        let ascender = Animation::new(&network);
-        let descender = Animation::new(&network);
-        let not_blinking = Animation::<f32>::new(&network);
+        let position = Animation::new(network);
+        let width = Animation::new(network);
+        let ascender = Animation::new(network);
+        let descender = Animation::new(network);
+        let not_blinking = Animation::<f32>::new(network);
         let frame_time = frame_time.clone_ref();
         position.simulator.update_spring(|spring| spring * crate::DEBUG_ANIMATION_SPRING_FACTOR);
         width.simulator.update_spring(|spring| spring * crate::DEBUG_ANIMATION_SPRING_FACTOR);
