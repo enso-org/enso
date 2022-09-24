@@ -652,6 +652,7 @@ impl From<Rope> for Text {
         Self { rope: t }
     }
 }
+
 impl From<&Rope> for Text {
     fn from(t: &Rope) -> Self {
         t.clone().into()
@@ -663,21 +664,43 @@ impl From<&str> for Text {
         Self { rope: t.into() }
     }
 }
+
 impl From<String> for Text {
     fn from(t: String) -> Self {
         Self { rope: t.into() }
     }
 }
+
 impl From<&String> for Text {
     fn from(t: &String) -> Self {
         Self { rope: t.into() }
     }
 }
+
 impl From<&&String> for Text {
     fn from(t: &&String) -> Self {
         (*t).into()
     }
 }
+
+impl From<ImString> for Text {
+    fn from(t: ImString) -> Self {
+        Self { rope: t.into() }
+    }
+}
+
+impl From<&ImString> for Text {
+    fn from(t: &ImString) -> Self {
+        Self { rope: t.into() }
+    }
+}
+
+impl From<&&ImString> for Text {
+    fn from(t: &&ImString) -> Self {
+        (*t).into()
+    }
+}
+
 impl From<&&str> for Text {
     fn from(t: &&str) -> Self {
         (*t).into()
@@ -689,11 +712,13 @@ impl From<Text> for String {
         t.rope.into()
     }
 }
+
 impl From<&Text> for String {
     fn from(t: &Text) -> Self {
         t.clone().into()
     }
 }
+
 impl From<&&Text> for String {
     fn from(t: &&Text) -> Self {
         (*t).into()

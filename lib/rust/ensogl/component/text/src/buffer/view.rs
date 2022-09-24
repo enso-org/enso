@@ -850,7 +850,7 @@ ensogl_core::define_endpoints! {
         add_cursor                 (Location),
         set_newest_selection_end   (Location),
         set_oldest_selection_end   (Location),
-        insert                     (String),
+        insert                     (ImString),
         paste                      (Vec<String>),
         remove_all_cursors         (),
         delete_left                (),
@@ -868,8 +868,6 @@ ensogl_core::define_endpoints! {
         keep_newest_cursor_only    (),
         undo                       (),
         redo                       (),
-        // set_default_color          (color::Rgba),
-        // set_default_text_size      (style::Size),
         set_property               (Vec<buffer::Range<UBytes>>, Option<formatting::Property>),
         mod_property               (Vec<buffer::Range<UBytes>>, Option<formatting::PropertyDiff>),
         set_property_default       (Option<formatting::ResolvedProperty>),
@@ -880,7 +878,7 @@ ensogl_core::define_endpoints! {
     Output {
         selection_edit_mode     (Modification),
         selection_non_edit_mode (selection::Group),
-        text_change             (Vec<ChangeWithSelection>),
+        text_change             (Rc<Vec<ChangeWithSelection>>),
         first_view_line         (Line),
     }
 }
@@ -924,7 +922,7 @@ impl View {
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
             // sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
-            output.source.text_change <+ modification.gate(&changed).map(|m| m.changes.clone());
+            output.source.text_change <+ modification.gate(&changed).map(|m| Rc::new(m.changes.clone()));
 
             sel_on_move            <- input.cursors_move.map(f!((t) m.moved_selection2(*t,false)));
             sel_on_mod             <- input.cursors_select.map(f!((t) m.moved_selection2(*t,true)));

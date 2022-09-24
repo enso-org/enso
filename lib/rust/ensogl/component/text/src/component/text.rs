@@ -280,8 +280,8 @@ ensogl_core::define_endpoints_2! {
 
         set_cursor (LocationLike),
         add_cursor (LocationLike),
-        paste_string (String),
-        insert (String),
+        paste_string (ImString),
+        insert (ImString),
         set_property (RangeLike, Option<formatting::Property>),
         set_property_default (Option<formatting::ResolvedProperty>),
         mod_property (RangeLike, Option<formatting::PropertyDiff>),
@@ -293,8 +293,8 @@ ensogl_core::define_endpoints_2! {
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
         /// lines, but also re-load internal structures for rendering (like WebGL buffers,
         /// MSDF texture, etc.).
-        set_font (String),
-        set_content (String),
+        set_font (ImString),
+        set_content (ImString),
 
         set_first_view_line(Line),
         mod_first_view_line(LineDiff),
@@ -304,7 +304,7 @@ ensogl_core::define_endpoints_2! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Vec<buffer::ChangeWithSelection>),
+        changed         (Rc<Vec<buffer::ChangeWithSelection>>),
         content         (buffer::Text),
         hovered         (bool),
         selection_color (color::Rgb),
@@ -518,7 +518,7 @@ impl Text {
 
             key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
             key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
-            key_to_insert <= key_down.map(f!((key) m.key_to_string(key)));
+            key_to_insert <= key_down.map(f!((key) m.key_to_string(key).map(ImString::from)));
             str_to_insert <- any(&input.insert, &key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ((s) {
