@@ -8,6 +8,10 @@ from Standard.Base.Data.Json import all
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
 
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Consumer import all
+from project.Data.Json.Internal.Consumer export all
+
 ## PRIVATE
 
    A JSON parser event consumer, passed to the Java parser backend.
@@ -134,6 +138,10 @@ type Consumer
     on_null : Nothing
     on_null self = self.on_value Null
 
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Array_Consumer import all
+from project.Data.Json.Internal.Array_Consumer export all
+
 ## PRIVATE
 
    A child consumer, used to process events inside arrays.
@@ -163,6 +171,10 @@ type Array_Consumer
     seal self =
         vec = self.builder.to_vector
         Array vec
+
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Object_Consumer import all
+from project.Data.Json.Internal.Object_Consumer export all
 
 ## PRIVATE
 

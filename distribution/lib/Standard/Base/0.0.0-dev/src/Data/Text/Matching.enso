@@ -4,6 +4,10 @@ from Standard.Base.Data.Text.Case import Case_Insensitive, Case_Insensitive_Data
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Wrapped_Dataflow_Error_Data
 
+# TODO Dubious constructor export
+from project.Data.Text.Matching.No_Matches_Found import all
+from project.Data.Text.Matching.No_Matches_Found export all
+
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
 type No_Matches_Found
@@ -12,6 +16,10 @@ type No_Matches_Found
     to_display_text : Text
     to_display_text self =
         "The criteria "+self.criteria.to_text+" did not match any names in the input."
+
+# TODO Dubious constructor export
+from project.Data.Text.Matching.Text_Matcher import all
+from project.Data.Text.Matching.Text_Matcher export all
 
 ## Represents exact text matching mode.
 
@@ -80,6 +88,9 @@ type Text_Matcher
     match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
     match_criteria self = match_criteria_implementation self
 
+# TODO Dubious constructor export
+from project.Data.Text.Matching.Regex_Matcher import all
+from project.Data.Text.Matching.Regex_Matcher export all
 
 ## Represents regex matching mode.
 
@@ -195,6 +206,10 @@ match_criteria_callback matcher objects criteria problem_callback reorder=False 
     unmatched_criteria = result.second
     problem_callback unmatched_criteria
     result.first
+
+# TODO Dubious constructor export
+from project.Data.Text.Matching.Match_Matrix import all
+from project.Data.Text.Matching.Match_Matrix export all
 
 type Match_Matrix
     ## PRIVATE

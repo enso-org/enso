@@ -5,6 +5,10 @@ polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
 
+# TODO Dubious constructor export
+from project.Data.Time.Date_Period.Date_Period import all
+from project.Data.Time.Date_Period.Date_Period export all
+
 ## Represents a period of time longer on the scale of days (longer than a day).
 type Date_Period
     Year
