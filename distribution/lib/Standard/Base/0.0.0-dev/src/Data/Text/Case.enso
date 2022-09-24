@@ -17,22 +17,11 @@ type Case
     ## First letter of each word in upper case, rest in lower case.
     Title
 
-# TODO Dubious constructor export
-from project.Data.Text.Case.Case_Insensitive import all
-from project.Data.Text.Case.Case_Insensitive export all
-
-## Represents case-insensitive comparison mode.
-
-   Arguments:
-   - locale: The locale used for the comparison.
-type Case_Insensitive
-    Case_Insensitive_Data locale=Locale.default
-
 ## PRIVATE
-   Creates a Java `TextFoldingStrategy` from the case sensitivity setting. 
-folding_strategy : (True|Case_Insensitive) -> TextFoldingStrategy
-folding_strategy case_sensitive = case case_sensitive of
-    True -> TextFoldingStrategy.unicodeNormalizedFold
-    Case_Insensitive_Data locale ->
+   Creates a Java `TextFoldingStrategy` from the case sensitivity setting.
+folding_strategy : Case_Sensitivity -> TextFoldingStrategy
+folding_strategy case_sensitivity = case case_sensitivity of
+    Case_Sensitivity.Sensitive -> TextFoldingStrategy.unicodeNormalizedFold
+    Case_Sensitivity.Insensitive locale ->
         TextFoldingStrategy.caseInsensitiveFold locale.java_locale
 

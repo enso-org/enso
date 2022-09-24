@@ -309,7 +309,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Case_Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -689,15 +689,15 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
-    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
-    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
+    distinct : Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
-        text_folding_strategy = Case.folding_strategy case_sensitive
+        text_folding_strategy = Case.folding_strategy case_sensitivity
         java_table = Illegal_Argument_Error.handle_java_exception <|
             self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table_Data java_table) <|

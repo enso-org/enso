@@ -572,9 +572,9 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
-    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
-    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
-        _ = [columns, case_sensitive, on_problems]
+    distinct : Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+        _ = [columns, case_sensitivity, on_problems]
         Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
 
     ## UNSTABLE
