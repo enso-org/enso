@@ -573,11 +573,11 @@ impl Text {
 
             // === Style ===
 
-            new_prop <- input.set_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
+            new_prop <- input.set_property.map(f!([m]((r, p)) (Rc::new(m.expand_range_like(r)),*p)));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ([m](t) t.1.map(|p| m.set_property(&t.0, p)));
 
-            mod_prop <- input.mod_property.map(f!([m]((r, p)) (m.expand_range_like(r),*p)));
+            mod_prop <- input.mod_property.map(f!([m]((r, p)) (Rc::new(m.expand_range_like(r)),*p)));
             m.buffer.frp.mod_property <+ mod_prop;
             eval mod_prop ([m](t) t.1.map(|p| m.mod_property(&t.0, p)));
         }
