@@ -32,7 +32,7 @@ type Regex_Matcher
        > Example
          Check if the provided name matches a regular expression.
 
-             Regex_Matcher case_sensitive=Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
+             Regex_Matcher.Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
     match_single_criterion : Text -> Text -> Boolean
     match_single_criterion self name criterion =
         self.compile criterion . matches name
