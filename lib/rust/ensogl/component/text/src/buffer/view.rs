@@ -920,7 +920,6 @@ impl View {
             mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
                 ,mod_on_delete_word_left,mod_on_delete_word_right);
             modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
-            // sel_on_modification       <- modification.map(|m| m.selection_group.clone());
             changed                   <- modification.map(|m| !m.changes.is_empty());
             output.source.text_change <+ modification.gate(&changed).map(|m| Rc::new(m.changes.clone()));
 
@@ -943,19 +942,14 @@ impl View {
             sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
 
             sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
-            // FIXME: this should be here:
-            // sel_on_undo       <= input.undo.map(f_!(m.undo()));
+            sel_on_undo       <= input.undo.map(f_!(m.undo()));
 
-            // eval input.set_default_color     ((t) m.set_default(*t));
-            // eval input.set_default_text_size ((t) m.set_default(*t));
             eval input.set_property          (((range,value)) m.replace(range,*value));
             eval input.mod_property          (((range,value)) m.mod_property(range,*value));
             eval input.set_property_default  ((prop) m.set_property_default(*prop));
 
-            // eval input.set_default_color     ((color) m.set_default(*color));
-
             output.source.selection_edit_mode     <+ modification;
-            // output.source.selection_edit_mode     <+ sel_on_undo;
+            output.source.selection_non_edit_mode <+ sel_on_undo;
             output.source.selection_non_edit_mode <+ sel_on_move;
             output.source.selection_non_edit_mode <+ sel_on_mod;
             output.source.selection_non_edit_mode <+ sel_on_clear;

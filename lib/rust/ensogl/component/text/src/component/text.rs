@@ -288,6 +288,7 @@ ensogl_core::define_endpoints_2! {
 
         /// Set color of selections (the cursor or characters selection).
         set_selection_color (color::Rgb),
+
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
@@ -295,7 +296,6 @@ ensogl_core::define_endpoints_2! {
         /// MSDF texture, etc.).
         set_font (ImString),
         set_content (ImString),
-
 
         /// Set the width of the text view. If set to [`None`], the text view will be unlimited.
         /// If set to a smaller value, either a horizontal scrollbar will appear or text will be
@@ -322,9 +322,6 @@ ensogl_core::define_endpoints_2! {
         hovered         (bool),
         selection_color (color::Rgb),
         single_line_mode(bool),
-        // FIXME: this was here:
-        // /// Color that is used for all text that does not explicitly have a color set.
-        // default_color   (color::Rgba),
         view_width(Option<f32>),
         long_text_truncation_mode(bool),
 
@@ -622,6 +619,7 @@ impl Text {
 
         frp::extend! { network
             eval_ input.undo (m.buffer.frp.undo());
+            eval_ input.undo (m.redraw());
             eval_ input.redo (m.buffer.frp.redo());
         }
     }
@@ -1011,12 +1009,15 @@ impl TextModel {
         self.lines.resize_with(line_count, |_| self.new_line());
     }
 
-    /// Redraw all the text. This function should be used only when necessary as it is very costly.
+    /// Clean all the glyph shape caches and redraw all the text. This function should be used only
+    /// when necessary as it is very costly.
     #[profile(Debug)]
     pub fn redraw(&self) {
+        mem::take(&mut *self.buffer.shaped_lines.borrow_mut());
         let end = ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line());
         // FIXME: Unwrap used here. To be fixed when view area will be implemented properly.
         let end = end.unwrap();
+        self.detach_glyphs_from_cursors();
         self.redraw_sorted_line_ranges(std::iter::once(ViewLine(0)..=end));
         self.update_selections();
     }
@@ -1723,6 +1724,7 @@ impl application::View for Text {
             (Press, "cmd c", "copy"),
             (Press, "cmd x", "cut"),
             (Press, "cmd v", "paste"),
+            (Press, "cmd z", "undo"),
             (Press, "escape", "keep_oldest_cursor_only"),
         ])
             .iter()
