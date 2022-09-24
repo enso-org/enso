@@ -260,11 +260,16 @@ pub trait Family {
     fn with_borrowed_face<F, T>(&self, variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T;
 
+    /// Get the closest font face header for the given font face header. Not all font face headers
+    /// can be defined in a font family. For example, a font family may not contain a face with both
+    /// bold and italic glyphs. In such a case, this function will return the bold glyphs face.
     fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
     ) -> Option<NonVariableFaceHeaderMatch>;
 
+    /// Just like [`closest_non_variable_variations`], but panics if the face does not contain any
+    /// styles.
     fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
@@ -306,7 +311,7 @@ impl NonVariableFamily {
         }
     }
 
-    pub fn closest_variations(
+    fn closest_variations(
         &self,
         variation: NonVariableFaceHeader,
     ) -> Option<NonVariableFaceHeaderMatch> {
@@ -327,7 +332,7 @@ impl NonVariableFamily {
         }
     }
 
-    pub fn closest_variations_or_panic(
+    fn closest_variations_or_panic(
         &self,
         variation: NonVariableFaceHeader,
     ) -> NonVariableFaceHeaderMatch {
@@ -459,7 +464,7 @@ impl Font {
         }
     }
 
-    /// Get render info for one character, generating one if not found.
+    /// Get render info for the provided glyph, generating one if not found.
     pub fn glyph_info(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -472,6 +477,7 @@ impl Font {
         }
     }
 
+    /// Get render info for the provided glyph, generating one if not found.
     pub fn glyph_info_of_known_face(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -487,6 +493,7 @@ impl Font {
         }
     }
 
+    /// Get the closest font-face header to the provided one.
     pub fn closest_non_variable_variations(
         &self,
         variations: NonVariableFaceHeader,
@@ -497,6 +504,8 @@ impl Font {
         }
     }
 
+    /// Get the closest font-face header to the provided one. Panics if the face does not define
+    /// any styles.
     pub fn closest_non_variable_variations_or_panic(
         &self,
         variations: NonVariableFaceHeader,
@@ -557,6 +566,7 @@ impl Font {
         }
     }
 
+    /// Perform the provided closure with a borrowed font face.
     pub fn with_borrowed_face<F, T>(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -661,6 +671,7 @@ impl<F: Family> FontTemplate<F> {
         }
     }
 
+    /// Get render info for one character, generating one if not found.
     pub fn glyph_info_of_known_face(
         &self,
         variations: &F::Variations,

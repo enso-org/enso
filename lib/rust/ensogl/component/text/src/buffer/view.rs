@@ -101,6 +101,7 @@ pub struct HistoryData {
 
 /// The summary of single text modification, usually returned by `modify`-like functions in
 /// `ViewBuffer`.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Modification<T = UBytes> {
     pub changes:         Vec<ChangeWithSelection<T>>,
@@ -180,6 +181,7 @@ impl ShapedLine {
 }
 
 /// A shaped set of glyphs.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct ShapedGlyphSet {
     pub units_per_em:            u16,
@@ -196,7 +198,7 @@ pub struct ShapedGlyphSet {
 /// A shaped glyph description. See the [`rustybuzz`] library to learn more about data stored in
 /// this struct.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ShapedGlyph {
     pub position:    rustybuzz::GlyphPosition,
     pub info:        rustybuzz::GlyphInfo,
@@ -238,6 +240,7 @@ pub struct ViewBuffer {
 }
 
 impl ViewBuffer {
+    /// Constructor.
     pub fn new(font: Font) -> Self {
         let buffer = default();
         let selection = default();
@@ -247,6 +250,7 @@ impl ViewBuffer {
         Self { buffer, selection, next_selection_id, font, shaped_lines, history }
     }
 
+    /// Expand the [`RangeLike`] to vector of text ranges.
     pub fn expand_range_like(&self, range: &RangeLike) -> Vec<buffer::Range<UBytes>> {
         match range {
             RangeLike::Selections => self
@@ -269,6 +273,7 @@ impl ViewBuffer {
         }
     }
 
+    /// The full text range.
     pub fn full_range(&self) -> buffer::Range<UBytes> {
         let start = UBytes::from(0);
         let end = self.last_line_end_byte_offset();
@@ -304,6 +309,7 @@ impl ViewBuffer {
     //     })
     // }
 
+    /// Get the previous column of the provided location.
     pub fn prev_column(&self, location: Location) -> Location {
         if location.offset > Column(0) {
             location.with_offset(location.offset - Column(1))
@@ -315,6 +321,7 @@ impl ViewBuffer {
         }
     }
 
+    /// Get the next column of the provided location.
     pub fn next_column(&self, location: Location) -> Location {
         let desired_column = location.offset + Column(1);
         if desired_column <= self.line_last_column(location.line) {
@@ -366,6 +373,8 @@ impl ViewBuffer {
     //     })
     // }
 
+    /// Run the closure with the shaped line. If the line was not in the shaped lines cache, it will
+    /// be first re-shaped.
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
         let mut shaped_lines = self.shaped_lines.borrow_mut();
         if let Some(shaped_line) = shaped_lines.get(&line) {
@@ -378,6 +387,7 @@ impl ViewBuffer {
         }
     }
 
+    /// Recompute the shape of the provided byte range.
     fn shape_range(&self, range: Range<UBytes>) -> Vec<ShapedGlyphSet> {
         let line_style = self.sub_style(range.clone());
         let content = self.buffer.sub(range).to_string();
@@ -443,12 +453,10 @@ impl ViewBuffer {
         glyph_sets
     }
 
+    /// Recompute the shape of the provided line index.
     pub fn shape_line(&self, line: Line) -> ShapedLine {
         let line_range = self.byte_range_of_line_index_snapped(line);
         let glyph_sets = self.shape_range(line_range.clone());
-
-
-
         match NonEmptyVec::try_from(glyph_sets) {
             Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
             Err(_) => {
@@ -467,6 +475,7 @@ impl ViewBuffer {
         }
     }
 
+    /// Return list of spans for different [`NonVariableFaceHeader`].
     pub fn chunks_per_font_face<'a>(
         font: &'a Font,
         line_style: &'a Formatting,
@@ -488,6 +497,7 @@ impl ViewBuffer {
         })
     }
 
+    /// Content of the provided line.
     pub fn single_line_content2(&self, line: Line) -> String {
         let start_byte_offset = self.byte_offset_of_line_index(line).unwrap();
         let end_byte_offset = self.end_byte_offset_of_line_index_snapped(line);
@@ -759,6 +769,7 @@ impl ViewBuffer {
         Modification { changes, selection_group, byte_offset }
     }
 
+    /// Current selections expressed in bytes.
     pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
         let selections = self.selection.borrow().clone();
         selections.iter().map(|s| self.to_bytes_selection(*s)).collect()
@@ -797,6 +808,7 @@ impl ViewBuffer {
         Location(line, byte_offset)
     }
 
+    /// Convert the byte range to location range.
     pub fn offset_range_to_location(
         &self,
         range: buffer::Range<UBytes>,
@@ -806,14 +818,17 @@ impl ViewBuffer {
         buffer::Range::new(start, end)
     }
 
+    /// Last column of the provided line index.
     pub fn line_last_column(&self, line: Line) -> Column {
         self.with_shaped_line(line, |shaped_line| Column(shaped_line.glyph_count()))
     }
 
+    /// Last column of the last line.
     pub fn last_line_last_column(&self) -> Column {
         self.line_last_column(self.last_line_index())
     }
 
+    /// Last location of the last line.
     pub fn last_line_last_location(&self) -> Location {
         let line = self.last_line_index();
         let offset = self.line_last_column(line);
@@ -1040,6 +1055,7 @@ impl ViewModel {
         }
     }
 
+    /// Resolve the provided property by applying a default value if needed.
     pub fn resolve_property(&self, property: formatting::Property) -> formatting::ResolvedProperty {
         self.formatting.resolve_property(property)
     }
@@ -1088,28 +1104,38 @@ impl ViewModel {
             .unwrap_or_else(|| self.last_line_index().value + 1 - self.first_view_line.get().value)
     }
 
+    /// Last index of visible lines.
     pub fn last_view_line_index(&self) -> ViewLine {
         ViewLine(self.view_line_count() - 1)
     }
 
+    /// Range of visible lines.
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
         ViewLine(0)..=self.line_to_view_line(self.last_view_line())
     }
 
+    // FIXME: remove
+    /// remove
     pub fn line_to_view_line(&self, line: Line) -> ViewLine {
         ViewLine::from_in_context(self, line)
     }
 
+    // FIXME: remove
+    /// remove
     pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
         Line::from_in_context(self, view_line)
     }
 
+    // FIXME: remove
+    /// remove
     pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
         let line = self.line_to_view_line(location.line);
         let offset = location.offset;
         Location { line, offset }
     }
 
+    // FIXME: move to from_in_context
+    /// Convert the location range to view location range.
     pub fn location_range_to_view_location_range(
         &self,
         range: buffer::Range<Location<UBytes>>,
@@ -1119,6 +1145,8 @@ impl ViewModel {
         buffer::Range { start, end }
     }
 
+    // FIXME: move to from_in_context
+    /// Convert the selection to view selection.
     pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
         let start = self.location_to_view_location(selection.shape.start);
         let end = self.location_to_view_location(selection.shape.end);
@@ -1176,6 +1204,7 @@ impl ViewModel {
         self.lines_vec(self.view_byte_range())
     }
 
+    /// Get content for lines in the given range.
     pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
         let start_line = self.view_line_to_line(*range.start());
         let end_line = self.view_line_to_line(*range.end());
@@ -1185,33 +1214,42 @@ impl ViewModel {
         self.lines_vec(range)
     }
 
+    /// End byte offset of the last line.
     pub fn last_line_end_byte_offset(&self) -> UBytes {
         self.buffer.text().last_line_end_byte_offset()
     }
 }
 
+
+/// Perform conversion between two values. It is just like the [`From`] trait, but it performs the
+/// conversion in a "context". The "context" is an object containing additional information required
+/// to perform the conversion. For example, the context can be a text buffer, which is needed to
+/// convert byte offset to line-column location.
+#[allow(missing_docs)]
 pub trait FromInContext<Ctx, T> {
     fn from_in_context(context: Ctx, arg: T) -> Self;
 }
 
 
-
+/// Try performing conversion between two values. It is like the [`FromInContext`] trait, but can
+/// fail.
+#[allow(missing_docs)]
 pub trait TryFromInContext<Ctx, T>
 where Self: Sized {
     fn try_from_in_context(context: Ctx, arg: T) -> Option<Self>;
 }
-
-pub trait IntoInContext<Ctx, T> {
-    fn into_in_context(self, context: Ctx) -> T;
-}
-
-impl<Ctx, T, U> IntoInContext<Ctx, U> for T
-where U: FromInContext<Ctx, T>
-{
-    fn into_in_context(self, context: Ctx) -> U {
-        U::from_in_context(context, self)
-    }
-}
+//
+// pub trait IntoInContext<Ctx, T> {
+//     fn into_in_context(self, context: Ctx) -> T;
+// }
+//
+// impl<Ctx, T, U> IntoInContext<Ctx, U> for T
+// where U: FromInContext<Ctx, T>
+// {
+//     fn into_in_context(self, context: Ctx) -> U {
+//         U::from_in_context(context, self)
+//     }
+// }
 
 
 impl<T, U> FromInContext<&View, U> for T
@@ -1342,7 +1380,7 @@ impl FromInContext<&ViewBuffer, Location<UBytes>> for UBytes {
 
 impl FromInContext<&ViewBuffer, Location> for UBytes {
     fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
-        Location::from_in_context(context, location).into_in_context(context)
+        UBytes::from_in_context(context, Location::from_in_context(context, location))
     }
 }
 
@@ -1365,8 +1403,8 @@ impl<S, T> FromInContext<&ViewBuffer, buffer::Range<S>> for buffer::Range<T>
 where T: for<'t> FromInContext<&'t ViewBuffer, S>
 {
     fn from_in_context(context: &ViewBuffer, range: buffer::Range<S>) -> Self {
-        let start = range.start.into_in_context(context);
-        let end = range.end.into_in_context(context);
+        let start = T::from_in_context(context, range.start);
+        let end = T::from_in_context(context, range.end);
         buffer::Range::new(start, end)
     }
 }

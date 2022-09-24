@@ -49,6 +49,7 @@ impl Buffer {
     //     View::new(self)
     // }
 
+    /// Replace the content of the buffer with the provided text.
     pub fn replace(&self, range: impl enso_text::RangeBounds, text: impl Into<Text>) {
         let text = text.into();
         let range = self.crop_byte_range(range);

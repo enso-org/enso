@@ -1,3 +1,5 @@
+//! Visible line component implementation. Line is a set of visible glyphs.
+
 use crate::prelude::*;
 use enso_text::unit::*;
 use ensogl_core::display::shape::*;
@@ -71,7 +73,7 @@ pub struct Truncation {
 }
 
 impl Truncation {
-    pub fn set_start_time(&self, time: f32) {
+    fn set_animation_start_time(&self, time: f32) {
         if let Some(data) = &*self.borrow() {
             data.ellipsis.start_time.set(time);
         }
@@ -114,6 +116,7 @@ pub struct TruncationSize {
 }
 
 impl TruncationSize {
+    /// Constructor.
     pub fn new(scale: f32) -> Self {
         Self { scale }
     }
@@ -224,6 +227,7 @@ ensogl_core::define_endpoints_2! {
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when
 /// clicking inside of the text area, it allows us to binary search the place of the mouse
 /// pointer.
+#[allow(missing_docs)]
 #[derive(Debug, Deref)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct View {
@@ -272,12 +276,14 @@ impl View {
             // === Truncation ===
 
             start_time <- frame_time.sample(&frp.show_ellipsis);
-            eval start_time ((t) truncation.set_start_time(*t));
+            eval start_time ((t) truncation.set_animation_start_time(*t));
         }
 
         Self { frp, display_object, glyphs, divs, centers, truncation, baseline_anim }
     }
 
+    // FIXME: this will fail if column index is too big
+    /// Get glyph for the provided column or create a new one if it does not exist.
     pub fn get_or_create(&mut self, column: Column, cons: impl Fn() -> Glyph) -> &Glyph {
         if column >= Column(self.glyphs.len()) {
             self.push_glyph(cons());

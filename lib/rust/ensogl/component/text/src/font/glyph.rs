@@ -192,6 +192,7 @@ impl Glyph {
 macro_rules! define_formatting_setters_and_mods {
     ($($name:ident : $tp:ty),* $(,)?) => {
         paste! {
+            /// Property value setter.
             pub fn set_property(&self, property: ResolvedProperty) {
                 match property {
                     $(ResolvedProperty::[<$name:camel>](t) => self.[<set_ $name:snake:lower>](t)),*
@@ -199,6 +200,7 @@ macro_rules! define_formatting_setters_and_mods {
             }
 
             $(
+                /// Property value modifier.
                 pub fn [<mod_ $name:snake:lower>](&self, f:impl FnOnce($tp) -> $tp) {
                     self.[<set_ $name:snake:lower>](f(self.[<$name:snake:lower>]()))
                 }

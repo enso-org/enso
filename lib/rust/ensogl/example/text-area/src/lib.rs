@@ -23,11 +23,7 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use ensogl_text::traits::*;
 use wasm_bindgen::prelude::*;
-
-use crate::buffer::Line;
-use crate::buffer::Location;
 
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
@@ -36,7 +32,6 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::system::web;
 use ensogl_text::buffer;
 use ensogl_text::formatting;
-use ensogl_text::Column;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::JsCast;
@@ -89,7 +84,7 @@ mod v_line {
 ensogl_core::define_endpoints_2! {}
 
 #[derive(Debug, Clone, CloneRef, Default)]
-pub struct Borders {
+struct Borders {
     left: h_line::View,
     right: h_line::View,
     bottom: v_line::View,
@@ -171,7 +166,7 @@ fn init(app: Application) {
     let snowman = "\u{2603}";
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
-    let text = "test".to_string();
+    let _text = "test".to_string();
     // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
     area.set_content("abcde1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
@@ -327,18 +322,13 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                 } else if key == "KeyB" {
                     if event.shift_key() {
                         area.set_property_default(formatting::Weight::Bold);
+                    } else if event.alt_key() {
+                        area.set_property(
+                            buffer::RangeLike::Selections,
+                            formatting::Property::Weight(None),
+                        );
                     } else {
-                        if event.alt_key() {
-                            area.set_property(
-                                buffer::RangeLike::Selections,
-                                formatting::Property::Weight(None),
-                            );
-                        } else {
-                            area.set_property(
-                                buffer::RangeLike::Selections,
-                                formatting::Weight::Bold,
-                            );
-                        }
+                        area.set_property(buffer::RangeLike::Selections, formatting::Weight::Bold);
                     }
                 } else if key == "KeyH" {
                     if event.shift_key() {
