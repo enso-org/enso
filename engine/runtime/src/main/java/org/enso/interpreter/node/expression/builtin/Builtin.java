@@ -67,7 +67,9 @@ public abstract class Builtin {
       var conses = getDeclaredConstructors();
       constructors = new AtomConstructor[conses.size()];
       for (int i = 0; i < constructors.length; i++) {
-        constructors[i] = conses.get(i).build(scope, type);
+        var cons = conses.get(i).build(scope, type);
+        constructors[i] = cons;
+        type.registerConstructor(cons);
       }
     }
     type.generateGetters(language);

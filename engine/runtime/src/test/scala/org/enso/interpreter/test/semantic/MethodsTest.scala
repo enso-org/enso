@@ -143,7 +143,7 @@ class MethodsTest extends InterpreterTest {
       @unused val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.method = 1
+          |Any.method self = 1
           |
           |main =
           |    2.method
@@ -162,7 +162,7 @@ class MethodsTest extends InterpreterTest {
           |
           |main = Foo.new 123
           |""".stripMargin
-      eval(code).toString shouldEqual "(Foo.Mk_Foo 123)"
+      eval(code).toString shouldEqual "(Mk_Foo 123)"
     }
 
     "not be callable on types when non-static" in {
@@ -192,7 +192,7 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
-      ) should have message "Method `new` of Foo.Mk_Foo could not be found."
+      ) should have message "Method `new` of Mk_Foo could not be found."
     }
   }
 }

@@ -25,7 +25,6 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    // TODO
     val types = localBindings.definedEntities.collect {
       case t: BindingsMap.Type => t
     }
@@ -45,7 +44,6 @@ class RuntimeStubsGenerator(builtins: Builtins) {
             s"Wrong constructors declared in the builtin ${tp.name}."
           )
         }
-        builtinType.getConstructors.foreach(builtinType.getType.registerConstructor)
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope, true)
       } else {

@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
@@ -50,7 +51,11 @@ public abstract class TypeToDisplayTextNode extends Node {
       return "Function";
     } else if (value instanceof Atom atom) {
       var cons = atom.getConstructor();
-      return cons.getName();
+      if (cons.getName().equals("Value")) {
+        return cons.getType().getName() + "." + cons.getName();
+      } else {
+        return cons.getName();
+      }
     } else if (value instanceof AtomConstructor cons) {
       return cons.getType().getName() + "." + cons.getName() + " (Constructor)";
     } else if (TypesGen.isType(value)) {
