@@ -50,6 +50,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -107,6 +108,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -168,6 +170,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -230,6 +233,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -294,6 +298,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -359,6 +364,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -431,6 +437,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -500,6 +507,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -566,6 +574,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -574,6 +583,11 @@ jobs:
           ./run ide upload --wasm-source current-ci-run --backend-source release
           --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
+          APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
+          CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -634,6 +648,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
+          submodules: recursive
       - name: Build Script Setup
         run: ./run --help
         env:
@@ -643,6 +658,8 @@ jobs:
           --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'

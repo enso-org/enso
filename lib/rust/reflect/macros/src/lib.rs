@@ -33,6 +33,10 @@
 //! In target languages that support it, the field will be hidden from direct access. In the Java
 //! target, this prevents the generation of accessors.
 //!
+//! ### `#[reflect(rename)]` (field attribute)
+//! Represent the type as if the field were defined with a different name. This is useful if the
+//! field's name is mangled to avoid colliding with a Rust keyword, like `type`.
+//!
 //! ### `#[reflect(flatten)]` (field attribute)
 //! In abstracted reflection data, the field will be replaced in this `struct` with the contents of
 //! its type, which must be a `struct` type.
@@ -159,6 +163,7 @@ struct NamedField {
     refer:   Option<Box<syn::Type>>,
     flatten: bool,
     hide:    bool,
+    rename:  Option<syn::LitStr>,
 }
 
 impl NamedField {
@@ -167,7 +172,8 @@ impl NamedField {
         let refer = Default::default();
         let flatten = Default::default();
         let hide = Default::default();
-        Self { name, type_, subtype, refer, flatten, hide }
+        let rename = Default::default();
+        Self { name, type_, subtype, refer, flatten, hide, rename }
     }
 }
 

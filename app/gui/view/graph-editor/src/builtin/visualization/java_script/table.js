@@ -16,8 +16,7 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessorModule('Standard.Visualization.Table.Visualization')
-        this.setPreprocessorCode(`x -> prepare_visualization x 1000`)
+        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization')
     }
 
     onDataReceived(data) {

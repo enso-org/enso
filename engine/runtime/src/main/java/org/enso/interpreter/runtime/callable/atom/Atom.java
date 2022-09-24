@@ -10,8 +10,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -106,7 +104,7 @@ public final class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Array getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     if (members == null) {
       return new Array(0);
     }
@@ -117,7 +115,7 @@ public final class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     return members != null && members.containsKey(member);
   }
 

@@ -15,9 +15,9 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -34,6 +34,7 @@ import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -175,7 +176,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
+      @Cached MethodResolverNode preResolveMethod,
+      @Bind("getPolyglotCallType(self, symbol.getName(), interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
@@ -240,6 +242,59 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ARRAY",
+      },
+      rewriteOn = AbstractMethodError.class)
+  Stateful doConvertArray(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode)
+      throws AbstractMethodError {
+    var ctx = Context.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    var function = methodResolverNode.execute(arrayType, symbol);
+    if (function != null) {
+      arguments[0] = self;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } else {
+      // let's replace us with a doConvertArrayWithCheck
+      CompilerDirectives.transferToInterpreter();
+      throw new AbstractMethodError();
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop, methodResolverNode) == CONVERT_TO_ARRAY"
+      },
+      replaces = "doConvertArray")
+  Stateful doConvertArrayWithCheck(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
+    arguments[0] = self;
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE"
       })
   Stateful doConvertDate(
@@ -283,8 +338,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
-      var hostZonedDateTime = hostLocalDate.atTime(hostLocalTime).atZone(ZoneId.systemDefault());
-      var dateTime = new EnsoDateTime(hostZonedDateTime);
+      var dateTime = new EnsoDateTime(dateTime(hostLocalDate, hostLocalTime));
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
 
@@ -293,6 +347,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ZonedDateTime dateTime(LocalDate date, LocalTime time) {
+    return date.atTime(time).atZone(ZoneId.systemDefault());
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private ZonedDateTime dateTime(LocalDate date, LocalTime time, ZoneId zone) {
+    return date.atTime(time).atZone(zone);
   }
 
   @Specialization(
@@ -315,7 +379,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
       var hostZone = interop.asTimeZone(self);
-      var dateTime = new EnsoDateTime(hostLocalDate.atTime(hostLocalTime).atZone(hostZone));
+      var dateTime = new EnsoDateTime(dateTime(hostLocalDate, hostLocalTime, hostZone));
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
       arguments[0] = dateTime;

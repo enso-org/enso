@@ -1,8 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -11,6 +8,10 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.List;
 
 /** A boolean column storage. */
 public class BoolStorage extends Storage {
@@ -39,7 +40,7 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public long getType() {
+  public int getType() {
     return Type.BOOL;
   }
 
@@ -98,9 +99,9 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof Boolean) {
-      return fillMissingBoolean((Boolean) arg);
+  public Storage fillMissing(Value arg) {
+    if (arg.isBoolean()) {
+      return fillMissingBoolean(arg.asBoolean());
     } else {
       return super.fillMissing(arg);
     }

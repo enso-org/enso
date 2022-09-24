@@ -1,0 +1,4 @@
+@Builtin_Type
+type Date_Time
+
+now = @Builtin_Method "Date_Time.now"

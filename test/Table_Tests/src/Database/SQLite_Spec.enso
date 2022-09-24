@@ -3,8 +3,9 @@ import Standard.Base.Runtime.Ref
 
 import Standard.Table as Materialized_Table
 
+import Standard.Database
 from Standard.Database import all
-from Standard.Database.Connection.Connection import Sql_Error_Data
+from Standard.Database.Errors import SQL_Error_Data
 
 import Standard.Test
 
@@ -14,19 +15,69 @@ import project.Common_Table_Spec
 import project.Aggregate_Spec
 
 sqlite_specific_spec connection =
+    Test.group "[SQLite] Schemas and Databases" <|
+        Test.specify "should be able to get current database and list databases" <|
+            connection.database . should_equal Nothing
+            connection.databases . should_equal [Nothing]
+            Meta.is_same_object connection (connection.set_database Nothing) . should_be_true
+
+        Test.specify "should be able to get current schema and list schemas" <|
+            connection.schema . should_equal Nothing
+            connection.schemas . should_equal [Nothing]
+            Meta.is_same_object connection (connection.set_schema Nothing) . should_be_true
+
+        Test.specify "does not allow changing schema or database" <|
+            connection.set_schema "foo" . should_fail_with SQL_Error_Data
+            connection.set_database "foo" . should_fail_with SQL_Error_Data
+
+    Test.group "[SQLite] Tables and Table Types" <|
+        tinfo = Name_Generator.random_name "TestTable"
+        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("A" VARCHAR)'
+
+        vinfo = Name_Generator.random_name "TestView"
+        connection.execute_update 'CREATE VIEW "'+vinfo+'" AS SELECT "A" FROM "'+tinfo+'";'
+
+        Test.specify "should be able to list table types" <|
+            table_types = connection.table_types
+            table_types.length . should_not_equal 0
+            table_types.contains "TABLE" . should_be_true
+            table_types.contains "VIEW" . should_be_true
+
+        Test.specify "should be able to list tables" <|
+            tables = connection.tables
+            tables.row_count . should_not_equal 0
+            tables.columns.map .name . should_equal ["Database", "Schema", "Name", "Type", "Description"]
+            tables.at "Name" . to_vector . contains tinfo . should_be_true
+            tables.at "Name" . to_vector . contains vinfo . should_be_true
+
+        Test.specify "should be able to filter tables by name" <|
+            tables = connection.tables tinfo
+            tables.row_count . should_equal 1
+            tables.at "Database" . to_vector . at 0 . should_equal Nothing
+            tables.at "Schema" . to_vector . at 0 . should_equal Nothing
+            tables.at "Name" . to_vector . at 0 . should_equal tinfo
+            tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
+            connection.tables "TestT_ble%" . row_count . should_equal 1
+
+        Test.specify "should be able to filter tables by type" <|
+            tables = connection.tables types=["VIEW"]
+            tables.row_count . should_not_equal 0
+            tables.at "Name" . to_vector . contains tinfo . should_be_false
+            tables.at "Name" . to_vector . contains vinfo . should_be_true
+
     Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.execute_query "foobar" . should_fail_with Sql_Error_Data
-            connection.execute_update "foobar" . should_fail_with Sql_Error_Data
+            connection.read (Raw_SQL "foobar") . should_fail_with SQL_Error_Data
+            connection.execute_update "foobar" . should_fail_with SQL_Error_Data
 
-            action = connection.execute_query "SELECT A FROM undefined_table"
-            action . should_fail_with Sql_Error_Data
+            action = connection.read (Raw_SQL "SELECT A FROM undefined_table")
+            action . should_fail_with SQL_Error_Data
             action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
 
     Test.group "[SQLite] Metadata" <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        t = connection.access_table tinfo
+        t = connection.query (Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
         t.insert ["def", 42, True, 1.4]
@@ -55,7 +106,7 @@ sqlite_spec connection prefix =
 
         in_mem_table = Materialized_Table.new columns
         connection.upload_table name in_mem_table
-    materialize = .to_dataframe
+    materialize = .read
 
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
@@ -70,7 +121,7 @@ sqlite_spec connection prefix =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    selection = Aggregate_Spec.Test_Selection_Data advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False
+    selection = Aggregate_Spec.Test_Selection_Data advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
@@ -82,9 +133,9 @@ spec =
     enso_project.data.create_directory
     file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    sqlite_spec (Database.connect (SQLite_Data file)) "[SQLite] "
+    sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
     file.delete
 
-    sqlite_spec (Database.connect (SQLite_Data In_Memory)) "[SQLite Memory] "
+    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
 
 main = Test.Suite.run_main spec

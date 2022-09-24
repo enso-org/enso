@@ -965,6 +965,7 @@ class IrToTruffle(
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
                   val any         = context.getBuiltins.any
                   val array       = context.getBuiltins.array
+                  val vector      = context.getBuiltins.vector
                   val file        = context.getBuiltins.file
                   val builtinBool = context.getBuiltins.bool.getType
                   val number      = context.getBuiltins.number
@@ -988,6 +989,8 @@ class IrToTruffle(
                     NumberBranchNode.build(number, branchCodeNode.getCallTarget)
                   } else if (tpe == array) {
                     ArrayBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == vector) {
+                    VectorBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == file) {
                     FileBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == polyglot) {

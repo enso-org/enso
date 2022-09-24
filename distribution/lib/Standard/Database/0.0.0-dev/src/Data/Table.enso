@@ -1,32 +1,29 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Database.Data.Internal.Helpers
-import Standard.Database.Data.Internal.Aggregate_Helper
-import Standard.Database.Data.Internal.IR
-import Standard.Database.Data.Sql
+import Standard.Database.Internal.Helpers
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.IR
+from Standard.Database.Data.SQL_Query import Raw_SQL
+from Standard.Database.Data.SQL import Statement, SQL_Type
 
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.IO.File_Format
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
+
+from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-
-import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
-from Standard.Database.Data.Column import Column, Aggregate_Column_Builder, Column_Data
-from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
-from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
-import Standard.Table.Data.Column_Name_Mapping
+
+from Standard.Database.Data.Column import Column, Column_Data
+from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+
 import Standard.Table.Data.Position
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-import Standard.Table.Data.Match_Columns
 
 polyglot java import java.sql.JDBCType
 
@@ -42,10 +39,7 @@ type Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    # type Table (name : Text) (connection : Connection)
-    #            (internal_columns : Vector Internal_Column)
-    #            (context : IR.Context)
-    Table_Data name connection internal_columns context
+    Table_Data name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
 
     ## UNSTABLE
 
@@ -56,7 +50,7 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.reset_index.to_dataframe max_rows=show_rows
+        df = self.reset_index.read max_rows=show_rows
         indices_count = self.context.meta_index.length
         all_rows_count = self.row_count
         display_dataframe df indices_count all_rows_count format_terminal
@@ -408,7 +402,7 @@ type Table
          result as one could expect if the limit was applied before the filters.
              t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
              t2 = t1.where (t1.at 'A' > 5)
-             t2.to_dataframe
+             t2.read
     limit : Integer -> Table
     limit self max_rows =
         new_ctx = self.context.set_limit max_rows
@@ -546,6 +540,38 @@ type Table
                     self.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
+
+    ## Returns the distinct set of rows within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns, the
+       first row of each such set is returned.
+
+       For the in-memory table, the unique rows will be in the order they
+       occurred in the input (this is not guaranteed for database operations).
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitive: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Grouping` warning.
+    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
+        _ = [columns, case_sensitive, on_problems]
+        Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
 
     ## UNSTABLE
 
@@ -690,13 +716,13 @@ type Table
                 self.updated_context_and_columns new_ctx new_columns
 
     ## Parsing values is not supported in database tables, the table has to be
-       materialized first with `to_dataframe`.
+       loaded into memory first with `read`.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [value_formatter, column_types, on_problems]
-        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
+        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
@@ -721,7 +747,7 @@ type Table
         cols = self.internal_columns.map (c -> [c.name, make_count_expr c.expression])
         query = IR.Select [[all_rows_column_name, rows_expr]]+cols self.context
         sql = self.connection.dialect.generate_sql query
-        table = self.connection.execute_query sql
+        table = self.connection.read_statement sql
         all_rows = table.at all_rows_column_name . at 0
         kept_columns = self.internal_columns . filter c->
             all_rows == table.at c.name . at 0
@@ -740,7 +766,7 @@ type Table
         new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
-        table = self.connection.execute_query sql
+        table = self.connection.read_statement sql
         table.at column_name . at 0
 
     ## UNSTABLE
@@ -750,8 +776,8 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
-    to_dataframe self max_rows=Nothing =
+    read : (Integer | Nothing) -> Materialized_Table.Table
+    read self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
             True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
@@ -763,7 +789,7 @@ type Table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
-                        table = self.connection.execute_query sql expected_types
+                        table = self.connection.read_statement sql expected_types
                         case self.context.meta_index.length == 1 of
                             False -> table
                             True ->
@@ -782,7 +808,7 @@ type Table
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this table.
-    to_sql : Sql.Statement
+    to_sql : Statement
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
@@ -809,7 +835,7 @@ type Table
                 [column.name, IR.Operation "COUNT" [column.expression]]
             query = IR.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
-        count_table = self.connection.execute_query count_query
+        count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
@@ -880,7 +906,7 @@ type Table
     insert self values =
         table_name = case self.context.from_spec of
             IR.From_Table name _ -> name
-            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
@@ -897,9 +923,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -928,13 +954,12 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+         - `Auto_Detect`: The file format is determined by the provided file.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+            the `write` function. If passed as format, an
+            `Illegal_Argument_Error` is raised. To write out the table as plain
+            text, the user needs to call the `Text.from Table` method and then
+            use the `Text.write` function.
 
        > Example
          Write a database table to a CSV file.
@@ -944,12 +969,12 @@ type Table
 
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
-                 table = connection.access_table "Table"
+                 table = connection.query (Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.to_dataframe.write path format on_existing_file match_columns on_problems
+        self.read.write path format on_existing_file match_columns on_problems
 
 type Integrity_Error
 
@@ -976,10 +1001,10 @@ type Integrity_Error
    - connection: The connection to a database.
    - table_name: The name of the table to get.
    - columns: The names of the columns to get.
-# make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
-make_table : Connection -> Text -> Vector -> Table
-make_table connection table_name columns =
-    ctx = IR.make_ctx_from table_name
+   - ctx: The context to use for the table.
+# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> IR.Context -> Table
+make_table : Connection -> Text -> Vector -> IR.Context -> Table
+make_table connection table_name columns ctx =
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
     Table_Data table_name connection cols ctx
 

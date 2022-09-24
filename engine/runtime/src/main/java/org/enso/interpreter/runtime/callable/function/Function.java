@@ -202,6 +202,7 @@ public final class Function implements TruffleObject {
    * @throws UnknownIdentifierException when an invalid member is requested.
    */
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   Object invokeMember(String member, Object... args)
       throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
     switch (member) {

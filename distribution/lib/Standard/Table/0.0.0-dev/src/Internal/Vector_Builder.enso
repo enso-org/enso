@@ -56,7 +56,7 @@ type Vector_Builder
                ix2 = go ix l
                go ix2 r
        go 0 self
-       Vector.Vector_Data array
+       Vector.from_polyglot_array array
 
     ## PRIVATE
 
@@ -73,7 +73,7 @@ type Vector_Builder
         case other of
             Leaf _ -> Append self other len
             Append _ _ _ -> Append self other len
-            Vector.Vector_Data _ -> Append self (Leaf other) len
+            Vector.Vector -> Append self (Leaf other) len
 
 ## PRIVATE
 

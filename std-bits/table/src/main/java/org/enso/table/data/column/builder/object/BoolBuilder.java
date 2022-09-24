@@ -1,8 +1,9 @@
 package org.enso.table.data.column.builder.object;
 
-import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.BitSet;
 
 /** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
@@ -30,6 +31,11 @@ public class BoolBuilder extends TypedBuilder {
       }
     }
     size++;
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    return o instanceof Boolean;
   }
 
   @Override
@@ -63,11 +69,6 @@ public class BoolBuilder extends TypedBuilder {
   @Override
   public int getCurrentSize() {
     return size;
-  }
-
-  @Override
-  public int getCurrentCapacity() {
-    return vals.size();
   }
 
   @Override

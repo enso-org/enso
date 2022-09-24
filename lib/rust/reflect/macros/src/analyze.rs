@@ -61,6 +61,7 @@ fn parse_fields(fields: syn::Fields) -> Fields {
                         FieldAttr::Hide => field_.hide = true,
                         FieldAttr::Subtype => field_.subtype = true,
                         FieldAttr::As(ty) => field_.refer = Some(ty),
+                        FieldAttr::Rename(ident) => field_.rename = Some(ident),
                         // NOTE: Implementing `skip` at analysis time makes our Rust information
                         // incomplete. For `reflect` to be used to generate Rust deserialization
                         // code, we'd need to emit a field with a type that is a marker type,
@@ -115,8 +116,8 @@ impl From<syn::Variant> for Variant {
 /// Helper attribute identifier. Must match the value `attributes(_)` parameter in the
 /// `proc_macro_derive` annotation on this crate's entry point.
 const HELPER_ATTRIBUTE_PATH: &str = "reflect";
-const INVALID_HELPER_SYNTAX: &str = "Unknown helper attribute syntax.";
-const UNKNOWN_HELPER: &str = "Unknown helper attribute.";
+const INVALID_HELPER_SYNTAX: &str = "Unknown helper attribute syntax";
+const UNKNOWN_HELPER: &str = "Unknown helper attribute";
 
 
 // === Field Attributes ===
@@ -128,6 +129,7 @@ enum FieldAttr {
     Skip,
     Subtype,
     As(Box<syn::Type>),
+    Rename(syn::LitStr),
 }
 
 fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
@@ -167,6 +169,7 @@ fn parse_field_annotation(meta: &syn::NestedMeta, attr: &syn::Attribute) -> Fiel
             let ident = path.get_ident().expect(INVALID_HELPER_SYNTAX);
             match ident.to_string().as_str() {
                 "as" => FieldAttr::As(Box::new(lit.parse().expect(INVALID_HELPER_SYNTAX))),
+                "rename" => FieldAttr::Rename(lit.clone()),
                 _ => panic!("{}: {}.", UNKNOWN_HELPER, ident.into_token_stream()),
             }
         }

@@ -8,8 +8,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Text type.")

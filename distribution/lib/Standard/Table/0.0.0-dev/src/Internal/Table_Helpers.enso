@@ -299,13 +299,13 @@ select_indices_preserving_order vector indices =
    If the negative index is sufficiently large, a negative result can still be
    returned. This function does not ensure that the resulting indices are within
    bounds.
-resolve_index : Integer->Integer->Integer
+resolve_index : Integer -> Integer -> Integer
 resolve_index length ix =
     if ix < 0 then length+ix else ix
 
 ## PRIVATE
    Checks if the given index is in the valid range for the provided vector.
-is_index_valid : Integer->Integer->Boolean
+is_index_valid : Integer -> Integer -> Boolean
 is_index_valid length ix =
     actual_ix = resolve_index length ix
     actual_ix>=0 && actual_ix<length

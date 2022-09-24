@@ -9,7 +9,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
 
 ## Compile the provided `expression` into a regex pattern that can be used for
@@ -123,10 +122,10 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
 type No_Such_Group_Error
     No_Such_Group_Error_Data (id : Text | Integer)
 
-## PRIVATE
+    ## PRIVATE
 
-   Provides a human-readable representation of the `No_Such_Group_Error`.
-No_Such_Group_Error.to_display_text : Text
-No_Such_Group_Error.to_display_text self = case self.id of
-    Integer -> "No group exists with the index " + self.id.to_text + "."
-    Text -> "No group exists with the name " + self.id + "."
+       Provides a human-readable representation of the `No_Such_Group_Error`.
+    to_display_text : Text
+    to_display_text self = case self.id of
+        Integer -> "No group exists with the index " + self.id.to_text + "."
+        Text -> "No group exists with the name " + self.id + "."

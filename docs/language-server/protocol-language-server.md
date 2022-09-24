@@ -391,6 +391,9 @@ interface VisualisationConfiguration {
 
   /** An expression that creates a visualisation. */
   expression: String | MethodPointer;
+
+  /** A list of arguments to pass to the visualization expression. */
+  positionalArgumentsExpressions?: string[];
 }
 ```
 

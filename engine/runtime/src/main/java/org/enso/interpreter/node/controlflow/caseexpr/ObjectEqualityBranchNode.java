@@ -2,7 +2,6 @@ package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.enso.interpreter.runtime.Context;
 
 public class ObjectEqualityBranchNode extends BranchNode {
   private final Object expected;

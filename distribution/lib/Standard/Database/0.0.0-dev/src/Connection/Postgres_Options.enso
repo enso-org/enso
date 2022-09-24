@@ -1,0 +1,105 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Numbers import Parse_Error_Data
+
+import Standard.Database.Internal.Postgres.Postgres_Connection
+import Standard.Database.Connection.Connection_Options
+
+from Standard.Database.Connection.Credentials import Credentials, Username_And_Password
+
+import Standard.Database.Connection.SSL_Mode
+from Standard.Database.Connection.SSL_Mode import all
+
+import Standard.Database.Connection.Client_Certificate
+
+import Standard.Database.Internal.Postgres.Pgpass
+
+polyglot java import org.postgresql.Driver
+
+type Postgres_Options
+    ## Connect to a PostgreSQL database.
+
+       Arguments:
+       - host: The hostname of the database server (defaults to localhost).
+       - port: The port of the database server (defaults to 5432).
+       - database: The database to connect to. If empty, the default database will be used.
+       - schema: The schema to connect to. If empty, the default schema will be used.
+       - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
+       - use_ssl: Whether to use SSL (defaults to `Prefer`).
+       - client_cert: The client certificate to use or `Nothing` if not needed.
+    Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+
+    ## Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options
+    connect self options =
+        if Driver.isRegistered.not then Driver.register
+
+        properties = options.merge self.jdbc_properties
+
+        ## Cannot use default argument values as gets in an infinite loop if you do.
+        make_new database schema =
+            Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+
+        Postgres_Connection.create self.jdbc_url properties make_new
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url self =
+        'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
+
+    ## Provides the properties for the connection.
+    jdbc_properties : [Pair Text Text]
+    jdbc_properties self =
+        credentials = case self.credentials of
+            Nothing ->
+                env_user = Environment.get "PGUSER"
+                env_password = Environment.get "PGPASSWORD"
+                case Pair_Data env_user env_password of
+                    Pair_Data Nothing Nothing ->
+                        Pgpass.read self.host self.port self.database
+                    Pair_Data Nothing _ ->
+                        Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
+                    Pair_Data username Nothing ->
+                        Pgpass.read self.host self.port self.database username
+                    Pair_Data username password ->
+                        [Pair_Data 'user' username, Pair_Data 'password' password]
+            Username_And_Password username password ->
+                [Pair_Data 'user' username, Pair_Data 'password' password]
+
+        ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
+
+        cert_properties = if self.client_cert.is_nothing then [] else
+            self.client_cert.properties
+
+        (if self.schema == '' then [] else [Pair_Data 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
+
+## PRIVATE
+   Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
+   connection.
+ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
+ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
+    Disable -> []
+    Prefer -> [Pair_Data 'sslmode' 'prefer']
+    Require -> [Pair_Data 'sslmode' 'require']
+    Verify_CA cert_file ->
+        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-ca'] else
+            [Pair_Data 'sslmode' 'verify-ca', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
+    Full_Verification cert_file ->
+        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-full'] else
+            [Pair_Data 'sslmode' 'verify-full', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
+
+## PRIVATE
+default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
+
+## PRIVATE
+default_postgres_port =
+    hardcoded_port = 5432
+    case Environment.get "PGPORT" of
+        Nothing -> hardcoded_port
+        port -> Integer.parse port . catch Parse_Error_Data (_->hardcoded_port)
+
+## PRIVATE
+default_postgres_database = Environment.get_or_else "PGDATABASE" ""

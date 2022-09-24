@@ -9,7 +9,7 @@ polyglot java import org.enso.base.ObjectComparator
    - custom_comparator:
      If `Nothing` will get a singleton instance for `.compare_to`.
      Otherwise can support a custom fallback comparator.
-new : Nothing | (Any->Any->Ordering) -> ObjectComparator
+new : Nothing | (Any -> Any -> Ordering) -> ObjectComparator
 new custom_comparator=Nothing =
     comparator_to_java cmp x y = Vector.handle_incomparable_value (cmp x y . to_sign)
 

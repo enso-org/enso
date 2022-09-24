@@ -351,12 +351,11 @@ type List
 
    An error representing that the list is empty.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the empty error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The List is empty."
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = "The List is empty."
 
 ## PRIVATE
    A helper for the `map` function.

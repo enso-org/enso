@@ -1,4 +1,4 @@
-from Standard.Base import Any, Boolean
+from Standard.Base import Any, Boolean, False
 import Standard.Base.Meta
 
 polyglot java import org.enso.base.Text_Utils
@@ -46,4 +46,6 @@ type Text
              ('é' == 'e\u0301') == True
     == : Any -> Boolean
     == self that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
-        Text_Utils.equals self that
+        case that of
+            Text -> Text_Utils.equals self that
+            _ -> False

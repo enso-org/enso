@@ -168,7 +168,7 @@ public class ExecutionService {
       interopLibrary.execute(call);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(binding -> binding.dispose());
+      listener.ifPresent(EventBinding::dispose);
     }
   }
 
@@ -257,28 +257,27 @@ public class ExecutionService {
   /**
    * Calls a function with the given argument and attaching an execution instrument.
    *
+   * @param cache the runtime cache
    * @param module the module providing scope for the function
    * @param function the function object
-   * @param argument the argument applied to the function
-   * @param cache the runtime cache
+   * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
-      Module module, Object function, Object argument, RuntimeCache cache)
+      RuntimeCache cache, Module module, Object function, Object... arguments)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
     MethodCallsCache methodCallsCache = new MethodCallsCache();
     UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<IdExecutionService.ExpressionCall> funCallCallback =
-        (value) -> context.getLogger().finest("ON_CACHED_CALL " + value.getExpressionId());
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback = (value) -> {};
     Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
-        (value) -> context.getLogger().finest("ON_COMPUTED " + value.getExpressionId());
+        (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
-        (value) -> context.getLogger().finest("ON_CACHED_VALUE " + value.getExpressionId());
+        (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<Exception> onExceptionalCallback =
-        (value) -> context.getLogger().finest("ON_ERROR " + value);
+        (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
@@ -296,7 +295,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      return interopLibrary.execute(function, argument);
+      return interopLibrary.execute(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       listener.ifPresent(EventBinding::dispose);

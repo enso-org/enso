@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
+    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
     "esbuild": "^0.14.43",
     "esbuild-dev-server": "^0.3.0",
     "esbuild-copy-static-files": "^0.1.0",

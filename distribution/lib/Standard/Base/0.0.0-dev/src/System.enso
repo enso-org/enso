@@ -58,7 +58,7 @@ default_line_separator = Java_System.lineSeparator
 
 ## PRIVATE
 
-   The type representing the result of a subprocess exiting.
+   The type representing the result of a process.
 
    Arguments:
    - exit_code: The exit code of the child process.

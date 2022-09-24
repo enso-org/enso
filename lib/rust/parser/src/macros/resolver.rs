@@ -434,7 +434,7 @@ impl<'s> Resolver<'s> {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
-        } else if let Some(segments) = root_macro_map.get(repr) {
+        } else if let Some(segments) = root_macro_map.get(repr) && token.variant.can_start_macro() {
             event!(TRACE, "Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let mut current_macro = PartiallyMatchedMacro {

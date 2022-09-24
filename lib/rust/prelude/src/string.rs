@@ -315,6 +315,12 @@ macro_rules! im_string_newtype_without_serde {
                 Self::new(t)
             }
         }
+
+        impl From<&$name> for String {
+            fn from(t:&$name) -> Self {
+                t.content.to_string()
+            }
+        }
     )*};
 }
 

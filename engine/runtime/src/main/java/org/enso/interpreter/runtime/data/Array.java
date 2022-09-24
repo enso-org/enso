@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -12,12 +13,13 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
-public class Array implements TruffleObject {
+public final class Array implements TruffleObject {
   public static class InvalidIndexException extends RuntimeException {
     private final long index;
     private final Array array;
@@ -85,11 +87,13 @@ public class Array implements TruffleObject {
     if (index >= items.length || index < 0) {
       throw InvalidArrayIndexException.create(index);
     }
-    return items[(int) index];
+    var e = items[(int) index];
+    if (e instanceof WithWarnings w) {
+      return w.getValue();
+    }
+    return e;
   }
 
-  /** @return the size of this array */
-  @Builtin.Method(description = "Returns the size of this array.")
   public long length() {
     return this.getItems().length;
   }
@@ -116,15 +120,6 @@ public class Array implements TruffleObject {
     return items.length;
   }
 
-  @Builtin.Method(name = "at", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = InvalidIndexException.class, to = InvalidArrayIndexError.class)
-  public Object get(long index) {
-    if (index < 0 || index >= items.length) {
-      throw new InvalidIndexException(index, this);
-    }
-    return getItems()[(int) index];
-  }
-
   /**
    * Exposes an index validity check through the polyglot API.
    *
@@ -142,6 +137,7 @@ public class Array implements TruffleObject {
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public String toString() {
     return Arrays.toString(items);
   }

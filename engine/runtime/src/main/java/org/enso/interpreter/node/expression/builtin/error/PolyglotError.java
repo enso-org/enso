@@ -1,8 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;

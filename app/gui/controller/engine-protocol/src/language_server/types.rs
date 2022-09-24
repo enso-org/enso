@@ -649,12 +649,12 @@ pub type ExpressionId = Uuid;
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct VisualisationConfiguration {
-    #[allow(missing_docs)]
+    /// An execution context of the visualization.
     pub execution_context_id: ContextId,
-    /// A qualified name of the module containing the expression which creates visualisation.
-    pub visualisation_module: String,
-    /// An enso lambda that will transform the data into expected format, i.e. `a -> a.json`.
-    pub expression:           String,
+    /// An enso function that will transform the data into expected format.
+    pub expression: MethodPointer,
+    /// A list of arguments to pass to the visualization expression.
+    pub positional_arguments_expressions: Vec<String>,
 }
 
 /// Used to enter deeper in the execution context stack. In general, all consequent stack items

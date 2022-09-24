@@ -298,6 +298,9 @@ object IR {
     * @param passData the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
+  @SerialVersionUID(
+    3667L // removes Vector.Vector_Data constructor
+  )       // prevents reading broken caches, see PR-3692 for details
   sealed case class Module(
     imports: List[Module.Scope.Import],
     exports: List[Module.Scope.Export],
@@ -7215,7 +7218,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      ast: AST,
+      at: AnyRef,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7225,6 +7228,8 @@ object IR {
         with IR.Module.Scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
+
+      def ast: AST = at.asInstanceOf[AST]
 
       /** Creates a copy of `this`.
         *
@@ -7236,7 +7241,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AST                       = ast,
+        ast: AnyRef                    = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
@@ -7267,8 +7272,12 @@ object IR {
         this
 
       /** @inheritdoc */
+      @annotation.nowarn
       override val location: Option[IdentifiedLocation] =
-        ast.location.map(IdentifiedLocation(_, ast.id))
+        at match {
+          case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
+          case _        => None
+        }
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7277,7 +7286,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $ast,
+        |ast = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},

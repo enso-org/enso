@@ -6,11 +6,13 @@ use crate::entry;
 use crate::Col;
 use crate::ColumnWidths;
 use crate::Entry;
+use crate::Margins;
 use crate::Row;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_scroll_area::Viewport;
 
 
 
@@ -75,14 +77,20 @@ where EntryParams: frp::node::Data
     ///
     /// The new instance will have all its FRP endpoints connected to appropriate endpoints of
     /// `self` and overlay mouse events.
+    ///
+    /// The second value in the returned tuple is an `init` FRP endpoint that must be triggered
+    /// as soon as the entry is created. It is not triggered automatically to allow calling
+    /// `create_entry` without the risk of multiple RefCell borrows. Some FRP endpoints of the
+    /// entry may cause double borrows, as they are already connected to the grid view handlers
+    /// at the time of the `create_entry` call.
     pub fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
         text_layer: Option<&Layer>,
-    ) -> VisibleEntry<E> {
+    ) -> (VisibleEntry<E>, Option<frp::Source<()>>) {
         let entry = E::new(&self.app, text_layer);
         let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
         entry.add_child(&overlay);
-        if let Some(network) = self.network.upgrade_or_warn() {
+        let init = if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
             let mouse = &self.app.display.default_scene.mouse.frp;
@@ -92,6 +100,8 @@ where EntryParams: frp::node::Data
                 entry_frp.set_params <+ all(init, self.set_entry_params)._1();
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
+                contour_offset <- all(init, entry_frp.contour_offset)._1();
+                eval contour_offset ((off) overlay.set_position_xy(*off));
 
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
@@ -124,9 +134,11 @@ where EntryParams: frp::node::Data
                     |width, col| (*col, *width)
                 );
             }
-            init.emit(());
-        }
-        VisibleEntry { entry, overlay }
+            Some(init)
+        } else {
+            None
+        };
+        (VisibleEntry { entry, overlay }, init)
     }
 }
 
@@ -161,4 +173,110 @@ pub fn set_position<E: display::Object>(
     column_widths: &ColumnWidths,
 ) {
     entry.set_position_xy(position(row, col, entry_size, column_widths));
+}
+
+/// Get size of entry at given row and column.
+pub fn size(
+    _row: Row,
+    col: Col,
+    base_entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) -> Vector2 {
+    Vector2(base_entry_size.x + column_widths.width_diff(col), base_entry_size.y)
+}
+
+/// Return the position of the top-left corner of a viewport containing the area around the entry
+/// at given row and column. The area around an entry is defined as the bounding box of the entry
+/// enlarged by given margins. If there is more than one such viewport possible, return the one
+/// closest to the given viewport. The returned viewport has the same size as given viewport.
+///
+/// In the picture below, the dashed border represents the viewport, while the solid border
+/// represents the entry contained in the viewport.
+/// ```text
+/// ┌┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
+/// ┆                     ▲             ┆
+/// ┆         margins.top │             ┆
+/// ┆                     ▼             ┆
+/// ┆ margins ┌───────────────┐ margins ┆
+/// ┆  .left  │  entry        │  .right ┆
+/// ┆ ◀─────▶ └───────────────┘ ◀─────▶ ┆
+/// ┆                     ▲             ┆
+/// ┆      margins.bottom │             ┆
+/// ┆                     ▼             ┆
+/// └┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘
+/// ```
+pub fn position_of_viewport_containing_entry(
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
+    column_widths: &ColumnWidths,
+    viewport: Viewport,
+    margins: Margins,
+) -> Vector2 {
+    let pos = position(row, col, entry_size, column_widths);
+    let size = size(row, col, entry_size, column_widths);
+    let entry = Viewport::from_center_point_and_size(pos, size);
+    let entry_plus_margins = Viewport {
+        top:    entry.top + margins.top,
+        bottom: entry.bottom - margins.bottom,
+        left:   entry.left - margins.left,
+        right:  entry.right + margins.right,
+    };
+    let moved_viewport = viewport.moved_to_contain(entry_plus_margins);
+    Vector2(moved_viewport.left, moved_viewport.top)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ENTRY_SIZE: Vector2 = Vector2(20.0, 10.0);
+    const COL_COUNT: usize = 100;
+    const MARGINS: Margins = Margins { top: 1.0, bottom: 2.0, left: 3.0, right: 4.0 };
+    const VIEWPORT_SIZE: Vector2 = Vector2(200.0, 100.0);
+    const ROW: Row = 3;
+    const COL: Col = 5;
+
+    fn sample_column_widths() -> ColumnWidths {
+        ColumnWidths::new(COL_COUNT)
+    }
+
+    fn pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(
+        center: Vector2,
+    ) -> Vector2 {
+        let viewport = Viewport::from_center_point_and_size(center, VIEWPORT_SIZE);
+        let column_widths = sample_column_widths();
+        position_of_viewport_containing_entry(
+            ROW,
+            COL,
+            ENTRY_SIZE,
+            &column_widths,
+            viewport,
+            MARGINS,
+        )
+    }
+
+    #[test]
+    fn position_of_viewport_scrolled_up_and_left_to_contain_entry() {
+        let center = Vector2(1000.0, -1000.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, 97.0);
+        assert_approx_eq!(pos.y, -29.0);
+    }
+
+    #[test]
+    fn position_of_viewport_scrolled_down_and_right_to_contain_entry() {
+        let center = Vector2(-1000.0, 1000.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, -76.0);
+        assert_approx_eq!(pos.y, 58.0);
+    }
+
+    #[test]
+    fn position_of_viewport_not_modified_because_it_already_contains_entry() {
+        let center = Vector2(100.0, -30.0);
+        let pos = pos_of_viewport_centered_and_then_repositioned_to_contain_sample_entry(center);
+        assert_approx_eq!(pos.x, center.x - VIEWPORT_SIZE.x / 2.0);
+        assert_approx_eq!(pos.y, center.y + VIEWPORT_SIZE.y / 2.0);
+    }
 }

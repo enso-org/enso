@@ -696,11 +696,12 @@ type Http
 type Request_Error
     Request_Error_Data error_type message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Convert a request error to a human-readable form.
-Request_Error.to_display_text self =
-    description_text = case self.message of
-        Nothing -> ""
-        _ -> " " + self.message
-    self.error_type + " error when sending request." + description_text
+       Convert a request error to a human-readable form.
+    to_display_text : Text
+    to_display_text self =
+        description_text = case self.message of
+            Nothing -> ""
+            _ -> " " + self.message
+        self.error_type + " error when sending request." + description_text

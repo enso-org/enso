@@ -5,7 +5,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 
 /**
@@ -17,6 +16,10 @@ import org.enso.interpreter.runtime.data.text.Text;
 public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
+  }
+
+  public static HostValueToEnsoNode getUncached() {
+    return HostValueToEnsoNodeGen.getUncached();
   }
 
   /**

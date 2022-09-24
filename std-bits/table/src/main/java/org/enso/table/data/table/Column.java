@@ -1,11 +1,6 @@
 package org.enso.table.data.table;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.IntStream;
+import org.enso.base.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -17,6 +12,13 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -89,11 +91,10 @@ public class Column {
    * @return the result of masking this column with the provided column
    */
   public Column mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage)) {
+    if (!(maskCol.getStorage() instanceof BoolStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, getStorage().size());
@@ -122,29 +123,12 @@ public class Column {
    */
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
-    for (var item : items) {
-      builder.appendNoGrow(convertDateOrTime(item));
+    for (Value item : items) {
+      Object converted = Polyglot_Utils.convertPolyglotValue(item);
+      builder.appendNoGrow(converted);
     }
-    return new Column(name, new DefaultIndex(items.size()), builder.seal());
-  }
-
-  private static Object convertDateOrTime(Value item) {
-    if (item.isDate()) {
-      LocalDate d = item.asDate();
-      if (item.isTime()) {
-        LocalDateTime dtime = d.atTime(item.asTime());
-        if (item.isTimeZone()) {
-          return dtime.atZone(item.asTimeZone());
-        } else {
-          return dtime;
-        }
-      } else {
-        return d;
-      }
-    } else if (item.isTime()) {
-      return item.asTime();
-    }
-    return item.as(Object.class);
+    var storage = builder.seal();
+    return new Column(name, new DefaultIndex(items.size()), storage);
   }
 
   /**
@@ -185,7 +169,7 @@ public class Column {
    *     specified operation.
    */
   public Object aggregate(
-      String aggName, Function<List<Object>, Object> aggregatorFunction, boolean skipNa) {
+      String aggName, Function<List<Object>, Value> aggregatorFunction, boolean skipNa) {
     Aggregator aggregator = storage.getAggregator(aggName, aggregatorFunction, skipNa, 1);
 
     IntStream ixes = IntStream.range(0, storage.size());

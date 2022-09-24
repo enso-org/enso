@@ -39,6 +39,7 @@ public abstract class AnyToTextNode extends Node {
     try {
       return Text.create(showObject(object));
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       return Text.create(object.toString());
     }
   }

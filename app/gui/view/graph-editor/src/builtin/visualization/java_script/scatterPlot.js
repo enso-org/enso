@@ -62,11 +62,14 @@ class ScatterPlot extends Visualization {
     }
 
     updatePreprocessor() {
-        let fn = 'x -> process_to_json_text x limit=' + this.limit
+        let args = []
         if (this.bounds) {
-            fn += ' bounds=[' + this.bounds.join(',') + ']'
+            args.push('[' + this.bounds.join(',') + ']')
+        } else {
+            args.push('Nothing')
         }
-        this.setPreprocessor(fn, 'Standard.Visualization.Scatter_Plot')
+        args.push(this.limit.toString())
+        this.setPreprocessor('Standard.Visualization.Scatter_Plot', 'process_to_json_text', ...args)
     }
 
     /**

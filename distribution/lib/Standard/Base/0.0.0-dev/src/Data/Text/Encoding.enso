@@ -99,5 +99,8 @@ type Encoding
 type Encoding_Error
     Encoding_Error_Data (message:Text)
 
-Encoding_Error.to_display_text : Text
-Encoding_Error.to_display_text self = "Encoding_Error: " + self.message
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Encoding_Error: " + self.message

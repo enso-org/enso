@@ -192,6 +192,9 @@ define_themes! { [light:0, dark:1]
                     content_corner_radius = 15.0, 15.0;
                     content_background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
 
+                    breadcrumbs_crop_left = 9.0, 9.0;
+                    breadcrumbs_crop_right = 3.0, 3.0;
+
                     section_divider_height = 2.0, 2.0;
                     section_heading_size = 16.0, 16.0;
                     section_heading_offset = 50.0, 50.0;
@@ -221,6 +224,32 @@ define_themes! { [light:0, dark:1]
                             padding = 14.5, 14.5;
                         }
                         padding = 5.0, 5.0;
+                    }
+                    breadcrumbs {
+                        height = 28.0, 28.0;
+                        separator {
+                            width = 8.0, 8.0;
+                            height = 6.0, 6.0;
+                        }
+                        ellipsis {
+                            background_width = 24.0, 24.0;
+                            background_height = 10.0, 10.0;
+                            background_corners_radius = 16.0, 16.0;
+                            background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
+                            circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
+                            circles_radius = 2.0, 2.0;
+                            circles_gap = 2.0, 2.0;
+                        }
+                        entry {
+                            margin = 1.0, 1.0;
+                            hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
+                            font = "default", "default";
+                            text_padding_left = 7.0, 7.0;
+                            text_size = 12.0, 12.0;
+                            selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
+                            highlight_corners_radius = 15.0, 15.0;
+                            greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);
+                        }
                     }
 
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);

@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameInstance;
@@ -121,6 +122,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       if (!isTopFrame(entryCallTarget)) {
         return;
       }
+      onEnterImpl(context);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private void onEnterImpl(EventContext context) {
       UUID nodeId = getNodeId(context.getInstrumentedNode());
 
       // Add a flag to say it was cached.
@@ -166,17 +172,27 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
         UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-        calls.put(
-            nodeId, new FunctionCallInfo((FunctionCallInstrumentationNode.FunctionCall) result));
-        functionCallCallback.accept(
-            new ExpressionCall(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result));
-        // Return cached value after capturing the enterable function call in `functionCallCallback`
-        Object cachedResult = cache.get(nodeId);
-        if (cachedResult != null) {
-          throw context.createUnwind(cachedResult);
-        }
-        callsCache.setExecuted(nodeId);
+        onFunctionReturn(nodeId, result, context);
       } else if (node instanceof ExpressionNode) {
+        onExpressionReturn(result, node, context);
+      }
+    }
+
+    @Override
+    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+      if (exception instanceof TailCallException) {
+        onTailCallReturn(exception, context);
+      } else if (exception instanceof PanicException) {
+        PanicException panicException = (PanicException) exception;
+        onReturnValue(
+            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+      } else if (exception instanceof PanicSentinel) {
+        onReturnValue(context, frame, exception);
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
         boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
@@ -187,10 +203,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
         ExpressionValue expressionValue =
-            new ExpressionValue(
-                nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+                new ExpressionValue(
+                        nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
         if (expressionValue.isTypeChanged() || expressionValue.isFunctionCallChanged()) {
-          syncState.setExpressionUnsync(nodeId);
+            syncState.setExpressionUnsync(nodeId);
         }
         syncState.setVisualisationUnsync(nodeId);
 
@@ -198,40 +214,46 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         // like imports, and the invalidation mechanism can not always track those changes and
         // appropriately invalidate all dependent expressions.
         if (!isPanic) {
-          cache.offer(nodeId, result);
+            cache.offer(nodeId, result);
         }
         cache.putType(nodeId, resultType);
         cache.putCall(nodeId, call);
 
         onComputedCallback.accept(expressionValue);
         if (isPanic) {
-          throw context.createUnwind(result);
+            throw context.createUnwind(result);
         }
-      }
     }
 
-    @Override
-    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-      if (exception instanceof TailCallException) {
-        try {
-          TailCallException tailCallException = (TailCallException) exception;
-          FunctionCallInstrumentationNode.FunctionCall functionCall =
-              new FunctionCallInstrumentationNode.FunctionCall(
-                  tailCallException.getFunction(),
-                  tailCallException.getState(),
-                  tailCallException.getArguments());
-          Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
-          onReturnValue(context, frame, result);
-        } catch (InteropException e) {
-          onExceptionalCallback.accept(e);
+
+    @CompilerDirectives.TruffleBoundary
+    private void onFunctionReturn(UUID nodeId, Object result, EventContext context) throws ThreadDeath {
+        calls.put(
+                nodeId, new FunctionCallInfo((FunctionCallInstrumentationNode.FunctionCall) result));
+        functionCallCallback.accept(
+                new ExpressionCall(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result));
+        // Return cached value after capturing the enterable function call in `functionCallCallback`
+        Object cachedResult = cache.get(nodeId);
+        if (cachedResult != null) {
+            throw context.createUnwind(cachedResult);
         }
-      } else if (exception instanceof PanicException) {
-        PanicException panicException = (PanicException) exception;
-        onReturnValue(
-            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-      } else if (exception instanceof PanicSentinel) {
-        onReturnValue(context, frame, exception);
-      }
+        callsCache.setExecuted(nodeId);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private void onTailCallReturn(Throwable exception, EventContext context) {
+        try {
+            TailCallException tailCallException = (TailCallException) exception;
+            FunctionCallInstrumentationNode.FunctionCall functionCall =
+                    new FunctionCallInstrumentationNode.FunctionCall(
+                            tailCallException.getFunction(),
+                            tailCallException.getState(),
+                            tailCallException.getArguments());
+            Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
+            onReturnValue(context, null, result);
+        } catch (InteropException e) {
+            onExceptionalCallback.accept(e);
+        }
     }
 
     /**

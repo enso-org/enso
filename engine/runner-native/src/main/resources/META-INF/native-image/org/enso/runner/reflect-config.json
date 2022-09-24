@@ -1,0 +1,1394 @@
+[
+  {
+    "name":"[Ljava.lang.Object;"}
+,
+  {
+    "name":"[Ljava.nio.file.Path;"}
+,
+  {
+    "name":"[Lorg.enso.interpreter.node.ExpressionNode;"}
+,
+  {
+    "name":"[Lorg.enso.interpreter.runtime.callable.argument.CallArgument;"}
+,
+  {
+    "name":"[Lorg.enso.text.buffer.Node;"}
+,
+  {
+    "name":"[Lscala.Tuple2;"}
+,
+  {
+    "name":"java.lang.ClassValue"}
+,
+  {
+    "name":"java.lang.invoke.VarHandle",
+    "methods":[{"name":"releaseFence","parameterTypes":[] }]}
+,
+  {
+    "name":"java.lang.reflect.Method",
+    "methods":[{"name":"isDefault","parameterTypes":[] }]}
+,
+  {
+    "name":"java.nio.Buffer"}
+,
+  {
+    "name":"java.security.MessageDigestSpi"}
+,
+  {
+    "name":"java.security.SecureRandomParameters"}
+,
+  {
+    "name":"java.sql.Date"}
+,
+  {
+    "name":"java.sql.Timestamp"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Any",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Boolean",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.CreateProcessSystemMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Error",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.ExitSystemMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Is_unixSystemMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.NanoTimeSystemMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Nothing",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.OsSystemMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.Polyglot",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.AndMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.CompareToMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.EqualsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.IfThenElseMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.IfThenMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.NotMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.bool.OrMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.AtZoneDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.Date",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.DateTime",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.DayDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.DayDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.FormatDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.FormatTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.HourDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.HourTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.InternalNewDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.InternalParseDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinuteDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinuteTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MonthDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MonthDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NanosecondDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NanosecondTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NewBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NewBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NewBuiltinTimeZoneMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NowDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NowDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NowTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ParseBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ParseBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ParseBuiltinTimeZoneMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.SecondDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.SecondTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.SystemTimeZoneMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.TimeOfDay",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.TimeZone",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToEnsoDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToEpochMillisecondsDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToEpochSecondsDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToLocaldateBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToLocaltimeBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToSecondsTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTextDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTextTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTextTimeZoneMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTimeBuiltinDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTimeBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ToTimeBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.YearDateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.YearDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ZoneDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.ZoneIdTimeZoneMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.debug.Debug",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ArithmeticError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ArityError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.AttachWithStacktraceWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CaughtPanic",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CompileError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.CreateWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ErrorToTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.GetAllArrayWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.GetReassignmentsWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.GetStackTraceTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatchError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.InvalidConversionTargetError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.NoSuchConversionError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.NotInvokableError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.OriginWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.Panic",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.PolyglotError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.SetArrayWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.SyntaxError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.TypeError",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.UninitializedState",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTypes",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.ValueWarningMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.Warning",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.ArithmeticErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.ArityErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.CompileErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.InexhaustivePatternMatchErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.InvalidArrayIndexErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.InvalidConversionTargetErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.ModuleDoesNotExistErrorToDisplayTextMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.ModuleNotInPackageErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.NoSuchConversionErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.NoSuchMethodErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.NotInvokableErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.PolyglotErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.SyntaxErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.TypeErrorToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.UninitializedStateErrorToDisplayTextMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.error.displaytext.UnsupportedArgumentTypesToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.function.Function",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.FromArrayBuiltinVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.FromPolyglotArrayBuiltinVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.LengthVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.NewBuiltinVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.ToArrayVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.UnsafeAtVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.Vector",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.ExecuteMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetArraySizeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetExecutableNameMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMemberMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMembersMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetSourceLocationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.HasSourceLocationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InstantiateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InvokeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.IsLanguageInstalledMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.generic.ReadArrayElementMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.AbsoluteFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.CopyBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.CreateDirectoryFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.CreationTimeBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.DeleteBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.EqualsEqualsFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ExistsFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.File",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.GetCwdFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.GetFileFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.HomeFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.InputStreamFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.IsAbsoluteFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.IsDirectoryFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.IsRegularFileFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.LastModifiedTimeBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ListImmediateChildrenArrayFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.MoveBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.NameFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.NormalizeFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.OutputStreamFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ParentFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.PathFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.PosixPermissionsBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ReadLastBytesBuiltinFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.RelativizeFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.ResolveFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.io.StartsWithFileMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.CreateUnresolvedSymbolMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetAtomConstructorMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetAtomFieldsMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetConstructorFieldNamesMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetConstructorNameMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetPolyglotLanguageMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetQualifiedTypeNameMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetSimpleTypeNameMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetSourceLocationMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetUnresolvedSymbolNameMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.GetUnresolvedSymbolScopeMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsAtomConstructorMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsAtomMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsErrorMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsPolyglotMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsSameObjectMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.IsUnresolvedSymbolMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.NewAtomInstanceMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.ProjectDescription",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.Array",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.ArrayAtMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.ArrayLengthMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.CopyMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.EmptyArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.GetRefMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.New1ArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.New2ArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.New3ArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.New4ArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.NewArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.NewRefMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.PutRefMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.Ref",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.SortMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.mutable.ToArrayArrayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.BigInteger",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.Decimal",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.Integer",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.Number",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.SmallInteger",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AbsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AddMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitAndMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitNotMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitOrMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftRightMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.BitXorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.CeilMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.CompareToMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivideMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.EqualsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.FloorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ModMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.NegateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.PowMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.SubtractMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ToDecimalMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AbsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AddMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.CeilMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.CompareToMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.DivideMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.EqualsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.FloorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.ModMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.NegateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.PowMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.SubtractMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.decimal.ToDecimalMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AbsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AddMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitAndMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitNotMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitOrMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftRightMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.BitXorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.CeilMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.CompareToMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.FloorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ModMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.PowMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.ordering.Ordering",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.BracketMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.FinalizeManagedResourceMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.ManagedResource",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.RegisterManagedResourceMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.TakeManagedResourceMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.resource.WithMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.special.JoinThreadMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.special.NewRefMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.special.ReadRefMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.special.RunThreadMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.special.WriteRefMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.system.SystemProcessResult",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.AnyToDisplayTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.ConcatMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.OptimizeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.PrimTextHelper",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.text.Text",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen"}
+,
+  {
+    "name":"org.enso.interpreter.runtime.library.dispatch.TypesLibrary"}
+,
+  {
+    "name":"org.jline.terminal.impl.jna.linux.CLibrary$termios",
+    "allDeclaredFields":true}
+,
+  {
+    "name":"org.jline.terminal.impl.jna.linux.CLibrary$winsize",
+    "allDeclaredFields":true}
+,
+  {
+    "name":"sun.security.provider.NativePRNG",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"sun.security.provider.SHA",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name": "com.sun.crypto.provider.AESCipher$General",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.DHParameters",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsKeyMaterialGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsPrfGenerator$V12",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "java.io.Serializable"
+  },
+  {
+    "name": "java.lang.Boolean"
+  },
+  {
+    "name": "java.lang.Class[]"
+  },
+  {
+    "name": "java.lang.Integer"
+  },
+  {
+    "name": "java.lang.Long"
+  },
+  {
+    "name": "java.lang.String",
+    "fields": [{ "name": "value", "allowUnsafeAccess": true }]
+  },
+  {
+    "name": "java.lang.String[]"
+  },
+  {
+    "name": "java.lang.invoke.VarHandle"
+  },
+  {
+    "name": "java.nio.file.Path[]"
+  },
+  {
+    "name": "java.security.AlgorithmParametersSpi"
+  },
+  {
+    "name": "java.security.KeyStoreSpi"
+  },
+  {
+    "name": "java.security.MessageDigestSpi"
+  },
+  {
+    "name": "java.security.SecureRandomParameters"
+  },
+  {
+    "name": "java.security.interfaces.ECPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.ECPublicKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPublicKey"
+  },
+  {
+    "name": "java.sql.Date"
+  },
+  {
+    "name": "java.sql.Timestamp"
+  },
+  {
+    "name": "java.util.Date"
+  },
+  {
+    "name": "javax.net.ssl.KeyManager[]"
+  },
+  {
+    "name": "javax.net.ssl.TrustManager[]"
+  },
+  {
+    "name": "javax.security.auth.x500.X500Principal",
+    "fields": [{ "name": "thisX500Name" }],
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["sun.security.x509.X500Name"] }
+    ]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.JarMarker",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X000A_NTFS",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X7875_NewUnix",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]

@@ -6,15 +6,11 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.checkerframework.checker.units.qual.C;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @GenerateUncached
 @ReportPolymorphism

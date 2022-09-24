@@ -9,14 +9,16 @@ use crate::prelude::*;
 // ============
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap, Serialize, Reflect, Deserialize)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Default, Eq, PartialEq, Shrinkwrap, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
-    #[reflect(as = "crate::serialization::Code", flatten)]
-    pub repr: Cow<'s, str>,
+    #[reflect(as = "crate::serialization::Code", flatten, hide)]
+    #[shrinkwrap(main_field)]
+    pub repr:  Cow<'s, str>,
+    #[reflect(hide)]
+    pub utf16: usize,
 }
 
 impl<'s> Code<'s> {
@@ -25,13 +27,34 @@ impl<'s> Code<'s> {
     pub fn len(&self) -> Bytes {
         Bytes(self.repr.len())
     }
+
+    /// Length of the code.
+    #[inline(always)]
+    pub fn length(&self) -> Length {
+        Length { utf8: self.repr.len(), utf16: self.utf16 }
+    }
+
+    /// True if the code is the empty string.
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.repr.is_empty()
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for Code<'a> {
+    #[inline(always)]
+    fn from(repr: Cow<'a, str>) -> Self {
+        let utf16 = repr.encode_utf16().count();
+        Self { repr, utf16 }
+    }
 }
 
 impl<'a> From<&'a str> for Code<'a> {
     #[inline(always)]
     fn from(str: &'a str) -> Self {
+        let utf16 = str.encode_utf16().count();
         let repr = str.into();
-        Self { repr }
+        Self { repr, utf16 }
     }
 }
 
@@ -72,6 +95,7 @@ impl<'s> std::ops::AddAssign<Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: Code<'s>) {
         self.repr.add_assign(other.repr);
+        self.utf16.add_assign(other.utf16);
     }
 }
 
@@ -79,5 +103,47 @@ impl<'s> std::ops::AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
         self.repr.add_assign(other.repr.clone());
+        self.utf16.add_assign(other.utf16);
+    }
+}
+
+
+// === Code length ===
+
+/// The length of a [`Code`] object.
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+pub struct Length {
+    utf8:  usize,
+    utf16: usize,
+}
+
+impl Length {
+    /// Returns true if the code is empty.
+    #[inline(always)]
+    pub fn is_zero(&self) -> bool {
+        self.utf8 == 0
+    }
+}
+
+impl Add for Length {
+    type Output = Length;
+
+    #[inline(always)]
+    fn add(self, rhs: Self) -> Self::Output {
+        let Self { utf8, utf16 } = self;
+        Self { utf8: utf8 + rhs.utf8, utf16: utf16 + rhs.utf16 }
+    }
+}
+
+impl std::ops::AddAssign for Length {
+    #[inline(always)]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl Display for Length {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.utf8)
     }
 }

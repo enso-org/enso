@@ -5,7 +5,7 @@ from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
-from Standard.Database.Error import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -13,9 +13,7 @@ import Standard.Test.Problems
 polyglot java import java.lang.Double
 
 type Test_Selection
-    Test_Selection_Data problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True
-
-all_tests = Test_Selection_Data True True True True True True True True True True
+    Test_Selection_Data problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
 spec =
     table = (enso_project.data / "data.csv") . read
@@ -39,7 +37,7 @@ spec =
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
-aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=all_tests pending=Nothing =
+aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection_Data pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
@@ -1151,6 +1149,29 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 0 . name . should_equal "B"
             materialized.columns.at 0 . to_vector . should_equal [2, 3, 2]
 
+        if test_selection.date_support then
+            Test.specify "should allow grouping by dates" <|
+                dates = ["Date", [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31, Date.new 2000 2 2, Date.new 1997]]
+                times = ["Time", [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500100900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 0 0 0, Time_Of_Day.new 11 25 40]]
+                datetimes = ["DateTime", [Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5, Date_Time.new 1999 1 1 0 0 0, Date_Time.new 1998, Date_Time.new 1998]]
+                ints = ["Int", [1, 2, 4, 8, 16]]
+                table = table_builder [dates, times, datetimes, ints]
+
+                g1 = table.aggregate [Group_By "Date", Sum "Int"]
+                m1 = materialize g1 . order_by (Sort_Column_Selector.By_Name ["Date"])
+                m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
+                m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
+
+                g2 = table.aggregate [Group_By "Time", Sum "Int"]
+                m2 = materialize g2 . order_by (Sort_Column_Selector.By_Name ["Time"])
+                m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500100900, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
+                m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
+
+                g3 = table.aggregate [Group_By "DateTime", Sum "Int"]
+                m3 = materialize g3 . order_by (Sort_Column_Selector.By_Name ["DateTime"])
+                m3.at "DateTime" . to_vector . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
+                m3.at "Sum Int" . to_vector . should_equal [24, 5, 2]
+
         if test_selection.first_last && test_selection.first_last_row_order.not then
             Test.specify "should report a warning and ignore problematic columns if a feature is not supported" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
@@ -1234,7 +1255,8 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
-            problems = [Floating_Point_Grouping_Data "GroupBy" [2]]
+            # All rows are marked as floating point, because the integers get coerced to double when stored in DoubleStorage
+            problems = [Floating_Point_Grouping_Data "GroupBy" [0, 1, 2]]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 
@@ -1312,7 +1334,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
             problems.at 0 . is_an Floating_Point_Grouping_Data . should_be_true
-            problems.at 0 . rows . length . should_equal 9
+            problems.at 0 . rows . length . should_equal 15
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" pending=pending <|

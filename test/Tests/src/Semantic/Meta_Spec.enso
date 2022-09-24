@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base
 
 import Standard.Base.System.Platform
 
@@ -84,7 +85,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:86:15-40"
+        loc = "Meta_Spec.enso:87:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

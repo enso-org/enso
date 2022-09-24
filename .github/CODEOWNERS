@@ -27,10 +27,10 @@ Cargo.toml
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
-/build.sbt @4e6
+/build.sbt @4e6 @jaroslavtulach @hubertp
 /distribution/ @4e6
 /engine/ @4e6 @jaroslavtulach
-/project/ @4e6
+/project/ @4e6 @jaroslavtulach @hubertp
 /test/ @jdunkerley @radeusgd
 /tools/ @4e6
 

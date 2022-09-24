@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-// import org.enso.interpreter.runtime.ConstantsGen;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -49,6 +48,7 @@ import org.enso.polyglot.data.TypeGraph;
   Ref.class,
   PanicException.class,
   PanicSentinel.class,
+  Vector.class,
   Warning.class,
   EnsoFile.class,
   EnsoDate.class,
@@ -58,7 +58,7 @@ import org.enso.polyglot.data.TypeGraph;
 })
 public class Types {
 
-  private static TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final TypeGraph typeHierarchy = buildTypeHierarchy();
 
   /**
    * A simple pair type
@@ -67,8 +67,8 @@ public class Types {
    * @param <B> the type of the second element
    */
   public static class Pair<A, B> {
-    private A first;
-    private B second;
+    private final A first;
+    private final B second;
 
     private Pair(A first, B second) {
       this.first = first;
@@ -137,6 +137,18 @@ public class Types {
       return ConstantsGen.MANAGED_RESOURCE;
     } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
+    } else if (TypesGen.isVector(value)) {
+      return ConstantsGen.VECTOR;
+    } else if (TypesGen.isEnsoDate(value)) {
+      return ConstantsGen.DATE;
+    } else if (TypesGen.isEnsoDateTime(value)) {
+      return ConstantsGen.DATE_TIME;
+    } else if (TypesGen.isEnsoTimeOfDay(value)) {
+      return ConstantsGen.TIME_OF_DAY;
+    } else if (TypesGen.isEnsoTimeZone(value)) {
+      return ConstantsGen.TIME_ZONE;
+    } else if (TypesGen.isEnsoFile(value)) {
+      return ConstantsGen.FILE;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {

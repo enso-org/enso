@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -33,12 +34,14 @@ public class EnsoTimeOfDay implements TruffleObject {
       description = "Constructs a new DateTime from text with optional pattern")
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay parse(String text) {
     return new EnsoTimeOfDay(LocalTime.parse(text));
   }
 
   @Builtin.Method(name = "new_builtin", description = "Constructs a new Time_OF_Day from an hour")
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
     return new EnsoTimeOfDay(
         LocalTime.of(
@@ -49,6 +52,7 @@ public class EnsoTimeOfDay implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets a value of hour")
+  @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay now() {
     return new EnsoTimeOfDay(LocalTime.now());
   }
@@ -74,6 +78,7 @@ public class EnsoTimeOfDay implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets a value second")
+  @CompilerDirectives.TruffleBoundary
   public long toSeconds() {
     return localTime.toSecondOfDay();
   }
@@ -81,17 +86,20 @@ public class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(
       name = "to_time_builtin",
       description = "Combine this time of day with a date to create a point in time.")
+  @CompilerDirectives.TruffleBoundary
   public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
     return new EnsoDateTime(localTime.atDate(date.asDate()).atZone(zone.asTimeZone()));
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @CompilerDirectives.TruffleBoundary
   public Text toText() {
     return Text.create(DateTimeFormatter.ISO_LOCAL_TIME.format(localTime));
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
   @Builtin.Specialize
+  @CompilerDirectives.TruffleBoundary
   public Text format(String pattern) {
     return Text.create(DateTimeFormatter.ofPattern(pattern).format(localTime));
   }

@@ -140,11 +140,11 @@ propagated_events! {
         selected:                  Option<(GroupId, Selected)>,
         suggestion_accepted:       (GroupId, entry::Id),
         expression_accepted:       (GroupId, entry::Id),
-        header_accepted:           GroupId,
         selection_position_target: (GroupId, Vector2<f32>),
         selection_size:            (GroupId, Vector2<f32>),
         selection_corners_radius:  (GroupId, f32),
         focused:                   (GroupId, bool),
+        module_entered:            EnteredModule,
     }
 }
 
@@ -178,6 +178,21 @@ impl GroupId {
     /// Get id of the only group in "Local Scope" section.
     pub fn local_scope_group() -> Self {
         GroupId { section: SectionId::LocalScope, index: default() }
+    }
+}
+
+/// The identifier of the entered module.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum EnteredModule {
+    /// User entered the module by selecting the component group header.
+    Group(GroupId),
+    /// User entered the module by selecting the entry in some component group.
+    Entry(GroupId, entry::Id),
+}
+
+impl Default for EnteredModule {
+    fn default() -> Self {
+        Self::Group(default())
     }
 }
 
@@ -267,6 +282,8 @@ impl Wrapper {
             Group::OneColumn(group) => {
                 frp::extend! { network
                     events.focused <+ group.focused.map(move |f| (id, *f));
+                    header_accepted <- group.header_accepted.gate(&group.focused);
+                    events.module_entered <+ header_accepted.map(move|_| EnteredModule::Group(id));
                 }
                 propagate_frp! { network, group, events,
                     (selected, move |s| s.map(|s| (id, s))),
@@ -275,7 +292,7 @@ impl Wrapper {
                     (selection_position_target, move |p| (id, *p)),
                     (selection_size, move |p| (id, *p)),
                     (selection_corners_radius, move |r| (id, *r)),
-                    (header_accepted, move |_| id)
+                    (module_entered, move |e| EnteredModule::Entry(id, *e))
                 }
             }
             Group::Wide(group) => {
@@ -288,7 +305,8 @@ impl Wrapper {
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
                     (selection_size, move |p| (id, *p)),
-                    (selection_corners_radius, move |r| (id, *r))
+                    (selection_corners_radius, move |r| (id, *r)),
+                    (module_entered, move |e| EnteredModule::Entry(id, *e))
                 }
             }
         }

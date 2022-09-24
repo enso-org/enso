@@ -3,21 +3,25 @@ import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
-import Standard.Table.IO.File_Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
-import Standard.Table.Internal.Delimited_Reader
-import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Table.IO.Auto_Detect import Auto_Detect
+
+from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
+import Standard.Table.Delimited.Delimited_Reader
+import Standard.Table.Delimited.Delimited_Writer
+
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
@@ -51,7 +55,7 @@ new : Vector (Vector | Column) -> Table
 new columns =
     cols = columns.map c->
         case c of
-            Vector.Vector_Data _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
+            Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
             Column.Column_Data java_col -> java_col
     from_columns cols
 
@@ -255,7 +259,7 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         Integer ->
-            java_columns = Vector.Vector_Data self.java_table.getColumns
+            java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Column_Data (java_columns.at selector)
         Text ->
             case self.java_table.getColumnOrIndexByName selector of
@@ -541,7 +545,7 @@ type Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
-        on_problems.attach_problems_before validated.problems <|
+        on_problems.attach_problems_before validated.problems <| Illegal_Argument_Error.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -650,8 +654,52 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+            java_table = Illegal_Argument_Error.handle_java_exception <|
+                self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table_Data java_table
+
+    ## Returns the distinct set of rows within the specified columns from the
+       input table.
+
+       When multiple rows have the same values within the specified columns, the
+       first row of each such set is returned.
+
+       For the in-memory table, the unique rows will be in the order they
+       occurred in the input (this is not guaranteed for database operations).
+
+       Arguments:
+       - columns: The columns of the table to use for distinguishing the rows.
+       - case_sensitive: Specifies if the text values should be compared case
+         sensitively.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If floating points values are present in the distinct columns, a
+           `Floating_Point_Grouping` warning.
+    distinct : Column_Selector -> (True|Case_Insensitive) -> Problem_Behavior -> Table
+    distinct self (columns = By_Name (self.columns.map .name)) case_sensitive=True on_problems=Report_Warning =
+        warning_mapper error = case error of
+            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
+            _ -> Nothing
+        key_columns = Warning.map_warnings_and_errors warning_mapper <|
+            Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
+        java_columns = key_columns.map .java_column
+        text_folding_strategy = Case.folding_strategy case_sensitive
+        java_table = Illegal_Argument_Error.handle_java_exception <|
+            self.java_table.distinct java_columns.to_array text_folding_strategy
+        on_problems.attach_problems_after (Table_Data java_table) <|
+            problems = java_table.getProblems
+            Aggregate_Column_Helper.parse_aggregated_problems problems
+
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
@@ -792,7 +840,7 @@ type Table
                  table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
     set self name column = case column of
-        Vector.Vector_Data _ ->
+        Vector.Vector ->
             self.set name (Column.from_vector name column)
         Column.Column_Data _ ->
             Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
@@ -1017,9 +1065,9 @@ type Table
        Arguments:
        - path: The path to the output file.
        - format: The format of the file.
-         If `File_Format.Auto` is specified; the file extension determines the
-         specific type and uses the default settings for that type to be used.
-         Details of this type are below.
+         If `Auto_Detect` is specified; the provided file determines the
+         specific type and configures it appropriately. Details of this type are
+         below.
        - on_existing_file: Specified how to handle if the file already exists.
        - match_columns: Specifies how to match columns against an existing file.
          If `Match_Columns.By_Name` - the columns are mapped by name against an
@@ -1048,10 +1096,9 @@ type Table
 
        ? `File_Format` write behaviors
 
-         - `File_Format.Auto`: The file format is determined by the file
-           extension of the path argument.
-         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
-           support these types in the `write` function. If passed as format, an
+         - `Auto_Detect`: The file format is determined by the provided file.
+         - `Bytes` and `Plain_Text`: The Table does not support these types in
+           the `write` function. If passed as format, an
            `Illegal_Argument_Error` is raised. To write out the table as plain
            text, the user needs to call the `Text.from Table` method and then
            use the `Text.write` function.
@@ -1061,34 +1108,35 @@ type Table
 
              import Standard.Examples
              import Standard.Table
+             from Standard.Table import Delimited
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (File_Format.Delimited_Data delimiter="," headers=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Delimited delimiter="," headers=False)
 
        > Example
          Write a table to an XLSX file.
 
              import Standard.Examples
              import Standard.Table
+             from Standard.Table import Excel
 
-             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
+             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (File_Format.Delimited_Data delimiter=",")
+    to_csv self = Text.from self (Delimited delimiter=",")
 
 ## UNSTABLE
 
    An error returned when the table contains no rows.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The table is empty."
+       Pretty prints the empty table error.
+    to_display_text : Text
+    to_display_text self = "The table is empty."
 
 ## PRIVATE
 from_columns cols = Table_Data (Java_Table.new cols.to_array)
@@ -1147,12 +1195,12 @@ print_table header rows indices_count format_term =
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
 
-Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a File_Format.Delimited_Data then Delimited_Reader.read_text that format on_problems else
+Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    if format.is_a Delimited then Delimited_Reader.read_text that format on_problems else
         Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
-Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') =
-    if format.is_a File_Format.Delimited_Data then Delimited_Writer.write_text that format else
+Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
+    if format.is_a Delimited then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
 
 ## PRIVATE

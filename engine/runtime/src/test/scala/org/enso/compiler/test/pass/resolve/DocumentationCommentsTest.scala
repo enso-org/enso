@@ -318,7 +318,6 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       implicit val moduleContext: ModuleContext =
         buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
-      println("TUTEJ")
       val ir =
         """## Module Docs
           |
@@ -343,7 +342,6 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessModule
 
       val t1 = ir.bindings.head
-      println("IN TEST " + ir.bindings.head.getClass.getSimpleName)
       getDoc(t1) shouldEqual " the type Foo"
       inside(ir.bindings(1)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>

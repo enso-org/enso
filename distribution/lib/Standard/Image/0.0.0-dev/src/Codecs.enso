@@ -33,7 +33,7 @@ read location flags=[] =
         File.File -> location.path
         _ -> location
     read_flags = case flags of
-        Vector.Vector_Data _ ->
+        Vector.Vector ->
             if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                 flags.map .to_integer . reduce (_.bit_or _)
         _ -> flags.to_integer
@@ -65,7 +65,7 @@ Image.Image.write self location flags=[] =
         File.File -> location.path
         _ -> location
     write_flags = case flags of
-        Vector.Vector_Data _ -> flags
+        Vector.Vector -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
     Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->

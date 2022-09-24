@@ -1,0 +1,42 @@
+from Standard.Base import all
+from Standard.Base.Error.Common import unimplemented
+
+type File_Format
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read _ _ = unimplemented "This is an interface only."
+
+type Plain_Text_Format
+    Plain_Text (encoding:Encoding=Encoding.utf_8)
+
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Plain_Text_Format | Nothing
+    for_file file =
+        case file.extension of
+            ".txt" -> Plain_Text
+            ".log" -> Plain_Text
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        file.read_text self.encoding on_problems
+
+type Bytes
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Bytes | Nothing
+    for_file file =
+        case file.extension of
+            ".dat" -> Bytes
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file _ =
+        file.read_bytes
+
+## A setting to infer the default behaviour of some option.
+type Infer

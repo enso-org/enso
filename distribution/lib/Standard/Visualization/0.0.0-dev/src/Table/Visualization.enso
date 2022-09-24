@@ -19,7 +19,7 @@ import Standard.Visualization.Helpers
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Json
-prepare_visualization x max_rows = Helpers.recover_errors <| case x of
+prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     Dataframe_Table.Table_Data _ ->
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
@@ -30,7 +30,7 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
 
     Database_Table.Table_Data _ _ _ _ ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
-        df = x.reset_index.to_dataframe max_rows
+        df = x.reset_index.read max_rows
         # Then split into actual columns and indices.
         vis_df = df.select_columns (By_Name (x.columns.map .name))
         indices = df.select_columns (By_Name (x.indices.map .name)) . columns
@@ -47,16 +47,14 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     Dataframe_Column.Aggregate_Column_Data _ ->
         ungrouped = Dataframe_Column.Column_Data x.java_column.getColumn
         prepare_visualization ungrouped.to_table max_rows
-    Database_Column.Aggregate_Column_Builder_Data _ _ _ _ _ ->
-        prepare_visualization x.ungrouped.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays
-    Vector.Vector_Data _ ->
+    Vector.Vector ->
         truncated = x.take (First max_rows)
         Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     Array ->
-        prepare_visualization (Vector.Vector_Data x) max_rows
+        prepare_visualization (Vector.from_polyglot_array x) max_rows
 
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->

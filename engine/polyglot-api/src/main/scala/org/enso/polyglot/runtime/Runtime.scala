@@ -515,16 +515,23 @@ object Runtime {
       /** Visualization expression represented as a module method.
         *
         * @param methodPointer a pointer to a method definition
+        * @param positionalArgumentsExpressions the list of arguments that will
+        * be passed to the method
         */
-      case class ModuleMethod(methodPointer: MethodPointer)
-          extends VisualisationExpression {
+      case class ModuleMethod(
+        methodPointer: MethodPointer,
+        positionalArgumentsExpressions: Vector[String]
+      ) extends VisualisationExpression {
 
         /** @inheritdoc */
         override val module: String = methodPointer.module
 
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
-          s"ModuleMethod(methodPointer=$methodPointer)"
+          s"ModuleMethod(methodPointer=$methodPointer," +
+          s"positionalArgumentsExpressions=" +
+          (if (shouldMask) STUB else positionalArgumentsExpressions) +
+          s")"
       }
     }
 

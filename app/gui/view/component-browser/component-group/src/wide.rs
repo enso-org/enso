@@ -126,6 +126,7 @@ ensogl::define_endpoints_2! {
         selection_position_target(Vector2<f32>),
         selection_size(Vector2<f32>),
         selection_corners_radius(f32),
+        module_entered(entry::Id),
         entry_count(usize),
         size(Vector2<f32>),
     }
@@ -223,9 +224,14 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 out.suggestion_accepted <+ accepted_entry.map2(&entry_count, f!(
                         [](&e, &total) local_idx_to_global::<COLUMNS>(col_id, e, total)
                 ));
-                out.expression_accepted <+ chosen_entry.map2(&entry_count, f!(
+                chosen_entry <- chosen_entry.map2(&entry_count, f!(
                         [](&e, &total) local_idx_to_global::<COLUMNS>(col_id, e, total)
                 ));
+                chosen_entry <- chosen_entry.map2(&input.set_entries, |id, p| {
+                    (*id, p.get(*id).map_or(false, |e| e.is_enterable))
+                });
+                out.module_entered <+ chosen_entry.filter(|(_, is_enterable)| *is_enterable)._0();
+                out.expression_accepted <+ chosen_entry.filter(|(_, is_enterable)| !is_enterable)._0();
 
 
                 // === Selected entry ===

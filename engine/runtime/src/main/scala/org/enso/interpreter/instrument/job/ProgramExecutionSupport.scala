@@ -243,11 +243,12 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
+    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
         s"Execution of function $itemName interrupted."
       case _ =>
-        s"Execution of function $itemName failed. ${error.getMessage}"
+        s"Execution of function $itemName failed ($reason)."
     }
     ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
@@ -387,6 +388,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
+  @com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
   private def sendVisualisationUpdates(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
@@ -433,10 +435,10 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
+            visualisation.cache,
             visualisation.module,
             visualisation.callback,
-            expressionValue,
-            visualisation.cache
+            expressionValue +: visualisation.arguments: _*
           )
         }
         .flatMap {

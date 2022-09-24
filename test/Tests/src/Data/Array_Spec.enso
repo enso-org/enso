@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test
 
-polyglot java import java.util.ArrayList
+polyglot java import java.util.LinkedHashSet
 
 Array.method self = 0
 
@@ -16,7 +16,7 @@ make_enso_array vector =
 ## Returns an array with the same contents as the given vector, surely backed by
    a Java array.
 make_java_array vector =
-    builder = ArrayList.new
+    builder = LinkedHashSet.new
     vector.each x->
         builder.add x
     builder.toArray
@@ -49,7 +49,7 @@ spec =
             arr = make_enso_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.Vector_Data Number)
+            as_vec = json.into (Vector.fill 1 Number)
             as_vec.should_equal <| Vector.fill 100 0
 
     Test.group "Polyglot Arrays" <|
@@ -59,7 +59,7 @@ spec =
             arr = make_java_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.Vector_Data Number)
+            as_vec = json.into (Vector.fill 1 Number)
             as_vec.should_equal <| Vector.fill 100 0
 
 main = Test.Suite.run_main spec

@@ -49,8 +49,7 @@
      break ties in descending order.
 
          import Standard.Examples
-         import Standard.Table.Data.Sort_Column_Selector
-         import Standard.Table.Data.Sort_Column
+         from Standard.Table import Sort_Column, Sort_Column_Selector
 
          example_sort =
              table = Examples.inventory_table

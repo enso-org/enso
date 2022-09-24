@@ -44,17 +44,10 @@ trait TypeMatchers {
       sig: Sig,
       expr: IR.Expression
     ): Option[(Sig, IR.Expression, String)] = (sig, expr) match {
-      case (Name(n), t: IR.Name.Literal) if n == t.name =>
-        if (n == t.name) {
-          None
-        } else {
-          Some((sig, expr, "names do not match"))
-        }
+      case (Name(n), t: IR.Name.Literal) =>
+        Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
         val meta = expr.getMetadata(TypeNames)
-        if (meta.isEmpty) {
-          return Some((sig, expr, "the expression does not have a resolution"))
-        }
         meta match {
           case None =>
             Some((sig, expr, "the expression does not have a resolution"))
@@ -73,18 +66,20 @@ trait TypeMatchers {
         }
       case (Fn(args, res), t: IR.Type.Function) =>
         if (args.length != t.args.length) {
-          return Some((sig, expr, "arity does not match"))
+          Some((sig, expr, "arity does not match"))
+        } else {
+          args
+            .lazyZip(t.args)
+            .flatMap(findInequalityWitness)
+            .headOption
+            .orElse(findInequalityWitness(res, t.result))
         }
-        args
-          .lazyZip(t.args)
-          .flatMap(findInequalityWitness)
-          .headOption
-          .orElse(findInequalityWitness(res, t.result))
       case (Union(items), t: IR.Type.Set.Union) =>
         if (items.length != t.operands.length) {
-          return Some((sig, expr, "number of items does not match"))
+          Some((sig, expr, "number of items does not match"))
+        } else {
+          items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-        items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
       case _ => Some((sig, expr, "constructors are incompatible"))
     }
 

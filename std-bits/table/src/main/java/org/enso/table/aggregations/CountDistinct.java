@@ -1,11 +1,14 @@
 package org.enso.table.aggregations;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.MultiValueKey;
+import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
@@ -33,9 +36,9 @@ public class CountDistinct extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
-    Set<MultiValueKey> set = new HashSet<>();
+    HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
-      MultiValueKey key = new MultiValueKey(storage, row, objectComparator);
+      UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row);
       if (key.hasFloatValues()) {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));
       }

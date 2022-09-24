@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.type;
 
 import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Type;
 
 /**

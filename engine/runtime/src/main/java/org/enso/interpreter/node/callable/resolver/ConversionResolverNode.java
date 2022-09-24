@@ -8,7 +8,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;

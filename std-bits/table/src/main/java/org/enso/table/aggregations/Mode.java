@@ -13,7 +13,7 @@ public class Mode extends Aggregator {
   private final Storage storage;
 
   public Mode(String name, Column column) {
-    super(name, Storage.Type.OBJECT);
+    super(name, column.getStorage().getType());
     this.storage = column.getStorage();
   }
 
