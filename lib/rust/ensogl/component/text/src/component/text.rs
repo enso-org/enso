@@ -296,9 +296,22 @@ ensogl_core::define_endpoints_2! {
         set_font (ImString),
         set_content (ImString),
 
+
+        /// Set the width of the text view. If set to [`None`], the text view will be unlimited.
+        /// If set to a smaller value, either a horizontal scrollbar will appear or text will be
+        /// truncated (see the [`set_long_text_truncation_mode`]) if any of the lines is longer.
+        /// Please note that the support for scrollbars is not implemented yet.
+        set_view_width(Option<f32>),
+
+        /// Truncate text not fitting the view. Truncated text will be displayed as three dots.
+        /// Please note that you have to set the view width as well.
+        set_long_text_truncation_mode(bool),
+
+        // === NOT FINISHED YET ===
+        // The following endpoints control the view area of the text area. They are not finished
+        // yet and using them will probably cause panics and rendering issues.
         set_first_view_line(Line),
         mod_first_view_line(LineDiff),
-        set_view_width(Option<f32>),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -313,6 +326,7 @@ ensogl_core::define_endpoints_2! {
         // /// Color that is used for all text that does not explicitly have a color set.
         // default_color   (color::Rgba),
         view_width(Option<f32>),
+        long_text_truncation_mode(bool),
 
         // === Internal API ===
 
@@ -437,13 +451,13 @@ impl Text {
         let input = &self.frp.input;
 
         frp::extend! { network
-            _eval <- m.buffer.frp.selection_edit_mode.map(f!((sels)
+            eval m.buffer.frp.selection_edit_mode ((sels)
                 m.on_modified_selection(&sels.selection_group, Some(&sels.changes))
-            ));
+            );
 
-            _eval <- m.buffer.frp.selection_non_edit_mode.map(f!((sels)
+            eval m.buffer.frp.selection_non_edit_mode ((sels)
                 m.on_modified_selection(sels, None)
-            ));
+            );
 
             selecting <- bool
                 ( &input.stop_newest_selection_end_follow_mouse
@@ -595,6 +609,9 @@ impl Text {
             eval_ m.buffer.frp.first_view_line (m.redraw());
             out.view_width <+ self.frp.set_view_width;
             eval_ self.frp.set_view_width (m.redraw());
+
+            out.long_text_truncation_mode <+ self.frp.set_long_text_truncation_mode;
+            eval_ self.frp.set_long_text_truncation_mode (m.redraw());
         }
     }
 
@@ -1035,6 +1052,8 @@ impl TextModel {
                 buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
                     let glyph_system = self.glyph_system.borrow();
                     let view_width = self.frp.output.view_width.value();
+                    let long_text_truncation_mode =
+                        self.frp.output.long_text_truncation_mode.value();
                     let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line);
                     let line_style = self.buffer.sub_style(line_range.start..line_range.end);
                     let mut line_style_iter = line_style.iter_bytes();
@@ -1064,14 +1083,16 @@ impl TextModel {
                             let x_advance = shaped_glyph.position.x_advance as f32 / scale;
                             let glyph_rhs = glyph_offset_x + x_advance;
 
-                            if let Some(view_width) = view_width {
-                                if glyph_rhs > view_width {
-                                    truncated = true;
-                                    break;
-                                } else if glyph_rhs > view_width - ellipsis_width {
-                                    to_be_truncated += 1;
-                                }
-                            };
+                            if long_text_truncation_mode {
+                                if let Some(view_width) = view_width {
+                                    if glyph_rhs > view_width {
+                                        truncated = true;
+                                        break;
+                                    } else if glyph_rhs > view_width - ellipsis_width {
+                                        to_be_truncated += 1;
+                                    }
+                                };
+                            }
 
                             let glyph = &line.get_or_create(column, || glyph_system.new_glyph());
                             glyph.start_byte_offset.set(glyph_byte_start);

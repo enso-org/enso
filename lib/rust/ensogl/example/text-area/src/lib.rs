@@ -183,13 +183,7 @@ fn init(app: Application) {
 
 
 
-    // TODO: add column unit and allow setting properties with it
-    // TODO: check scrolled area
-    // TODO: text width endpoints
-    // TODO: check support for glyphs with multiple code points
     // TODO: set selection color
-    // TODO: insertowanie ą i innych
-    // TODO: chodzenie po literkach ktorych byte != 1
     // TODO: remove line shape cache from ofscreen for lines without cursors
 
 
@@ -204,15 +198,9 @@ fn init(app: Application) {
     // TODO: next PR - > Text area to gui component.
 
     // TODO: -> prelude CRange
-    // TODO -> String -> ImString
-    // TODO: add docs to setview_width
-    // TODO: FRP - dodac info ze set first view line nie dziala.
 
-    // TODO: Set Veiw width - zmienic nazwe na trucnated bo to powinno robic slider
     // TODO - sel_end_1 -> sel_end_on_click etc
-    //  _eval <- map -> eval w text.rs
 
-    // TODO: change divs to Vec from NonEmptyVec
     // TOOD: bufferView / buffermodel - better names
 
     // TODO: Check if profiling works well with new animation loops (if time works there nicely)
@@ -367,6 +355,7 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                 } else if key == "ArrowDown" {
                     area.mod_first_view_line(1);
                 } else if key == "KeyW" {
+                    area.set_long_text_truncation_mode(true);
                     area.set_view_width(60.0);
                 }
                 // } else if key == "Digit0" {
