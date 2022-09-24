@@ -49,13 +49,16 @@ macro_rules! ranged_fn {
 
 pub trait Index = Copy + From<usize> + Into<usize>;
 
-#[derive(crate::serde_reexports::Serialize)]
-#[derive(crate::serde_reexports::Deserialize)]
+#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
+#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
 pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
-    #[serde(bound(
-        serialize = "Vec<T, A>: crate::serde_reexports::Serialize",
-        deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
-    ))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(bound(
+            serialize = "Vec<T, A>: crate::serde_reexports::Serialize",
+            deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
+        ))
+    )]
     vec: Vec<T, A>,
     key: PhantomData<I>,
 }
