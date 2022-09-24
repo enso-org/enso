@@ -72,62 +72,77 @@ impl<T, I> VecIndexedBy<T, I> {
 impl<T, I, A> VecIndexedBy<T, I, A>
 where A: Allocator
 {
+    /// Length of the vector.
     pub fn len(&self) -> usize {
         self.vec.len()
     }
 
+    /// Check if the vector is empty.
+    pub fn is_empty(&self) -> bool {
+        self.vec.is_empty()
+    }
+
+    /// Push a new element to the vector.
     pub fn push(&mut self, value: T) {
         self.vec.push(value)
     }
 
+    /// Extend the vector with new elements.
     pub fn extend<Iter: IntoIterator<Item = T>>(&mut self, iter: Iter) {
         self.vec.extend(iter)
     }
 
+    /// Reserves capacity for at least additional more elements to be inserted in the given vector.
     pub fn reserve(&mut self, additional: usize) {
         self.vec.reserve(additional)
     }
 
+    /// Shrinks the capacity of the vector as much as possible.
     pub fn shrink_to_fit(&mut self) {
         self.vec.shrink_to_fit()
     }
 
+    /// Removes the last element from a vector and returns it, or [`None`] if it is empty.
     pub fn pop(&mut self) -> Option<T> {
         self.vec.pop()
     }
 
+    /// Returns the first element of the slice, or [`None`] if it is empty.
     pub fn first(&self) -> Option<&T> {
         self.vec.first()
     }
 
+    /// Returns the last element of the slice, or [`None`] if it is empty.
     pub fn last(&self) -> Option<&T> {
         self.vec.last()
     }
 
+    /// Returns a mutable pointer to the first element of the slice, or [`None`] if it is empty.
     pub fn first_mut(&mut self) -> Option<&mut T> {
         self.vec.first_mut()
     }
 
+    /// Returns a mutable pointer to the last element of the slice, or [`None`] if it is empty.
     pub fn last_mut(&mut self) -> Option<&mut T> {
         self.vec.last_mut()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+    /// Returns an iterator over the slice.
+    pub fn iter(&self) -> slice::Iter<'_, T> {
         self.vec.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
+    /// Returns a mutable iterator over the slice.
+    pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
         self.vec.iter_mut()
     }
 
-    pub fn into_iter(self) -> std::vec::IntoIter<T, A> {
-        self.vec.into_iter()
-    }
-
+    /// Resizes the Vec in-place so that len is equal to new_len.
     pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> T) {
         self.vec.resize_with(new_len, f)
     }
 
+    /// Shortens the vector, keeping the first len elements and dropping the rest.
     pub fn truncate(&mut self, len: usize) {
         self.vec.truncate(len)
     }

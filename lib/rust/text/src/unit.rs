@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use enso_types::newtype;
 use enso_types::unit;
 
 
@@ -273,7 +272,6 @@ impl<'de> serde::Deserialize<'de> for Chars {
 // }
 
 use std::ops::AddAssign;
-use std::ops::SubAssign;
 
 macro_rules! define_line_unit {
     ($name:ident) => {
@@ -599,8 +597,6 @@ impl<T> !NotSame for (T, T) {}
 
 mod location {
     use super::*;
-    use std::ops::AddAssign;
-    use std::ops::SubAssign;
     #[doc = " A type representing 2d measurements."]
     #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
     #[allow(missing_docs)]

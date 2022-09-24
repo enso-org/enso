@@ -427,10 +427,8 @@ impl Text {
         &self,
         tgt_offset: UBytes,
     ) -> Result<UBytes, LocationError<CodePointIndex>> {
-        use self::BoundsError::*;
-        use LocationError::*;
         let line_index = self.line_index_of_byte_offset(tgt_offset)?;
-        let mut line_offset = self.byte_offset_of_line_index(line_index)?;
+        let line_offset = self.byte_offset_of_line_index(line_index)?;
         let offset = UBytes::try_from(tgt_offset - line_offset).unwrap();
         Ok(offset)
     }

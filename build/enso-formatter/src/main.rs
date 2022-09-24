@@ -91,6 +91,7 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "warn(variant_size_differences)",
     // Rustc lints that emit a warning by default:
     // "deny(unconditional_recursion)",
+    "[allow(clippy::let_and_return)]",
 ];
 
 

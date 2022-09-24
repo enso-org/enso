@@ -45,12 +45,6 @@ pub mod traits {
 // === Helpers ===
 // ===============
 
-fn hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
-
 /// Pretty prints the provided matrix.
 pub fn print_matrix(matrix: &data::Matrix<dfa::State>) {
     println!("rows x cols = {} x {} ({})", matrix.rows, matrix.columns, matrix.matrix.len());
@@ -62,10 +56,6 @@ pub fn print_matrix(matrix: &data::Matrix<dfa::State>) {
         }
         println!();
     }
-}
-
-fn reverse_key(key: &str) -> String {
-    format!("-{}", key)
 }
 
 /// List of special keys. Special keys can be grouped together to distinguish action sequences like

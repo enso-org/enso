@@ -252,7 +252,7 @@ fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::MutNoArgs) -> OnF
     let mut after_animations_fn = create_callback_wrapper(move |t| after_animations.emit(t));
     let mut before_rendering_fn = create_callback_wrapper(move |t| before_rendering.emit(t));
     let callbacks = callbacks.clone_ref();
-    move |current_time: Duration| {
+    move |_: Duration| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         frame_start_fn();
         before_animations_fn();
