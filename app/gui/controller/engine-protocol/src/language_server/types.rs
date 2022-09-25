@@ -565,8 +565,8 @@ impl TextEdit {
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
     pub fn from_prefix_postfix_differences(
-        source: impl Into<enso_text::Text>,
-        target: impl Into<enso_text::Text>,
+        source: impl Into<enso_text::Rope>,
+        target: impl Into<enso_text::Rope>,
     ) -> TextEdit {
         use enso_text::unit::*;
         use enso_text::Range;

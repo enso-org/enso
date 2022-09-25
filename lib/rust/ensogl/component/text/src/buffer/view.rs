@@ -907,7 +907,7 @@ impl Buffer {
         let network = &frp.network;
         let input = &frp.input;
         let output = &frp.output;
-        let model = ViewModel::new(input, view_buffer);
+        let model = ViewModel::new(view_buffer);
         let m = &model;
 
         frp::extend! { network
@@ -993,7 +993,6 @@ impl Buffer {
 pub struct ViewModel {
     #[deref]
     pub view_buffer: BufferModel,
-    pub frp:         FrpInputs,
     /// The line that corresponds to `ViewLine(0)`.
     first_view_line: Rc<Cell<Line>>,
     view_line_count: Rc<Cell<Option<usize>>>,
@@ -1001,12 +1000,11 @@ pub struct ViewModel {
 
 impl ViewModel {
     /// Constructor.
-    pub fn new(frp: &FrpInputs, view_buffer: impl Into<BufferModel>) -> Self {
-        let frp = frp.clone_ref();
+    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
         let view_buffer = view_buffer.into();
         let first_view_line = default();
         let view_line_count = default();
-        Self { frp, view_buffer, first_view_line, view_line_count }
+        Self { view_buffer, first_view_line, view_line_count }
     }
 
     fn set_first_view_line(&self, line: Line) {
