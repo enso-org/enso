@@ -17,7 +17,7 @@ type My_Type
         r <- self@my_method_2(y)
         r + 1
 
-    foreign r my_throw = """
+    foreign r my_throw self = """
         stop("error in R code!", call.=FALSE)
 
     do_throw self = Panic.throw "error!"

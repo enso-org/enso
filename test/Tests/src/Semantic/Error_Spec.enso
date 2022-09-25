@@ -48,7 +48,7 @@ spec =
 
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
-            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type.Value"]]).to_text
+            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "Value"]]).to_text
 
         Test.specify "should be able to be shown in the default vector visualization" <|
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
@@ -56,9 +56,9 @@ spec =
             expected_json = Json.parse '''
                 [
                   { "foo":"bar",
-                    "type":"My_Type.Value"
+                    "type":"Value"
                   },
-                  { "content":{ "foo":42, "type":"My_Type.Value" },
+                  { "content":{ "foo":42, "type":"Value" },
                     "message":"My_Type.Value",
                     "type":"Error"
                   }
