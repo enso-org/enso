@@ -21,11 +21,12 @@ pub mod metric {
 
 pub use spans::Spans;
 
+pub use xi_rope;
 pub use xi_rope::interval::Interval;
 pub use xi_rope::interval::IntervalBounds;
 pub use xi_rope::rope::Lines;
 pub use xi_rope::Cursor;
 pub use xi_rope::DeltaBuilder;
-pub use xi_rope::Rope;
+pub use xi_rope::Rope as XiRope;
 pub use xi_rope::RopeDelta as Delta;
 pub use xi_rope::RopeInfo as Info;

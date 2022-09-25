@@ -1,4 +1,4 @@
-//! View part of the text editor.
+//! Buffer part of the text editor.
 
 use crate::prelude::*;
 use enso_text::unit::*;
@@ -6,7 +6,7 @@ use enso_text::unit::*;
 use crate::buffer;
 use crate::buffer::formatting;
 use crate::buffer::formatting::Formatting;
-use crate::buffer::Buffer;
+use crate::buffer::FormattedRope;
 use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
@@ -14,7 +14,7 @@ use crate::font::GlyphRenderInfo;
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
-use enso_text::Text;
+use enso_text::Rope;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
 
@@ -87,10 +87,10 @@ pub struct History {
 /// Internal representation of `History`.
 #[derive(Debug, Clone, Default)]
 pub struct HistoryData {
-    undo_stack: Vec<(Text, Formatting, selection::Group)>,
+    undo_stack: Vec<(Rope, Formatting, selection::Group)>,
     #[allow(dead_code)]
     /// Not yet implemented.
-    redo_stack: Vec<(Text, Formatting, selection::Group)>,
+    redo_stack: Vec<(Rope, Formatting, selection::Group)>,
 }
 
 
@@ -100,7 +100,7 @@ pub struct HistoryData {
 // ====================
 
 /// The summary of single text modification, usually returned by `modify`-like functions in
-/// `ViewBuffer`.
+/// `BufferModel`.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Modification<T = UBytes> {
@@ -130,7 +130,7 @@ impl<T> Modification<T> {
 /// A change to the text with a selection showing where it was made.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref)]
-pub struct ChangeWithSelection<Metric = UBytes, Str = Text, Loc = Location> {
+pub struct ChangeWithSelection<Metric = UBytes, Str = Rope, Loc = Location> {
     #[deref]
     pub change:       Change<Metric, Str>,
     pub selection:    Selection<Loc>,
@@ -219,19 +219,19 @@ impl ShapedGlyph {
 
 
 
-// ==================
-// === ViewBuffer ===
-// ==================
+// ===================
+// === BufferModel ===
+// ===================
 
-/// Specialized form of `Buffer` with view-related information, such as selection and undo redo
-/// history (containing also cursor movement history). This form of buffer is mainly used by `View`,
-/// but can also be combined with other `ViewBuffer`s to display cursors, selections, and edits of
-/// several users at the same time.
+/// Specialized form of `FormattedRope` with view-related information, such as selection and undo
+/// redo history (containing also cursor movement history). This form of buffer is mainly used by
+/// `Buffer`, but can also be combined with other `BufferModel`s to display cursors, selections, and
+/// edits of several users at the same time.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
-pub struct ViewBuffer {
+pub struct BufferModel {
     #[deref]
-    pub buffer:            Buffer,
+    pub buffer:            FormattedRope,
     pub selection:         Rc<RefCell<selection::Group>>,
     pub next_selection_id: Rc<Cell<selection::Id>>,
     pub font:              Font,
@@ -239,7 +239,7 @@ pub struct ViewBuffer {
     pub history:           History,
 }
 
-impl ViewBuffer {
+impl BufferModel {
     /// Constructor.
     pub fn new(font: Font) -> Self {
         let buffer = default();
@@ -506,8 +506,8 @@ impl ViewBuffer {
     }
 }
 
-// impl From<Buffer> for ViewBuffer {
-//     fn from(buffer: Buffer) -> Self {
+// impl From<FormattedRope> for BufferModel {
+//     fn from(buffer: FormattedRope) -> Self {
 //         let selection = default();
 //         let next_selection_id = default();
 //         let history = default();
@@ -516,19 +516,19 @@ impl ViewBuffer {
 //     }
 // }
 
-// impl From<&Buffer> for ViewBuffer {
-//     fn from(buffer: &Buffer) -> Self {
+// impl From<&FormattedRope> for BufferModel {
+//     fn from(buffer: &FormattedRope) -> Self {
 //         buffer.clone_ref().into()
 //     }
 // }
 //
-// impl Default for ViewBuffer {
+// impl Default for BufferModel {
 //     fn default() -> Self {
-//         Buffer::default().into()
+//         FormattedRope::default().into()
 //     }
 // }
 
-impl ViewBuffer {
+impl BufferModel {
     fn commit_history(&self) {
         let text = self.buffer.text();
         let style = self.buffer.style();
@@ -611,7 +611,7 @@ impl ViewBuffer {
     }
 
     /// Insert new text in the place of current selections / cursors.
-    fn insert(&self, text: impl Into<Text>) -> Modification {
+    fn insert(&self, text: impl Into<Rope>) -> Modification {
         self.modify(text, None)
     }
 
@@ -657,7 +657,7 @@ impl ViewBuffer {
     /// This function converts all selections to byte-based ones first, and then applies all
     /// modification rules. This way, it can work in an 1D byte-based space (as opposed to 2D
     /// location-based space), which makes handling multiple cursors much easier.
-    fn modify(&self, text: impl Into<Text>, transform: Option<Transform>) -> Modification {
+    fn modify(&self, text: impl Into<Rope>, transform: Option<Transform>) -> Modification {
         self.commit_history();
         let text = text.into();
         let mut modification = Modification::default();
@@ -684,7 +684,7 @@ impl ViewBuffer {
     fn modify_iter<I, S>(&self, mut iter: I, transform: Option<Transform>) -> Modification
     where
         I: Iterator<Item = S>,
-        S: Into<Text>, {
+        S: Into<Rope>, {
         self.commit_history();
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
@@ -713,7 +713,7 @@ impl ViewBuffer {
     fn modify_selection(
         &self,
         selection: Selection,
-        text: Text,
+        text: Rope,
         transform: Option<Transform>,
     ) -> Modification {
         let text_byte_size = text.byte_size();
@@ -885,24 +885,24 @@ ensogl_core::define_endpoints! {
 
 
 
-// ============
-// === View ===
-// ============
+// ==============
+// === Buffer ===
+// ==============
 
-/// View for a region of a buffer. There are several cases where multiple views share the same
+/// Buffer for a region of a buffer. There are several cases where multiple views share the same
 /// buffer, including displaying the buffer in separate tabs or displaying multiple users in the
 /// same file (keeping a view per user and merging them visually).
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
-pub struct View {
+pub struct Buffer {
     #[deref]
     model:   ViewModel,
     pub frp: Frp,
 }
 
-impl View {
+impl Buffer {
     /// Constructor.
-    pub fn new(view_buffer: impl Into<ViewBuffer>) -> Self {
+    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
         let input = &frp.input;
@@ -970,7 +970,7 @@ impl View {
             eval output.source.selection_edit_mode     ((t) m.set_selection(&t.selection_group));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
 
-            // === View Area Management ===
+            // === Buffer Area Management ===
 
             eval input.set_first_view_line ((line) m.set_first_view_line(*line));
             output.source.first_view_line <+ input.set_first_view_line;
@@ -987,12 +987,12 @@ impl View {
 // === ViewModel ===
 // =================
 
-/// Internal model for the `View`.
+/// Internal model for the `Buffer`.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct ViewModel {
     #[deref]
-    pub view_buffer: ViewBuffer,
+    pub view_buffer: BufferModel,
     pub frp:         FrpInputs,
     /// The line that corresponds to `ViewLine(0)`.
     first_view_line: Rc<Cell<Line>>,
@@ -1001,7 +1001,7 @@ pub struct ViewModel {
 
 impl ViewModel {
     /// Constructor.
-    pub fn new(frp: &FrpInputs, view_buffer: impl Into<ViewBuffer>) -> Self {
+    pub fn new(frp: &FrpInputs, view_buffer: impl Into<BufferModel>) -> Self {
         let frp = frp.clone_ref();
         let view_buffer = view_buffer.into();
         let first_view_line = default();
@@ -1023,7 +1023,7 @@ impl ViewModel {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
-                self.data.formatting.set_property(range, property)
+                self.formatting.set_property(range, property)
             }
         }
     }
@@ -1036,14 +1036,14 @@ impl ViewModel {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
-                self.data.formatting.mod_property(range, property)
+                self.formatting.mod_property(range, property)
             }
         }
     }
 
     fn set_property_default(&self, property: Option<formatting::ResolvedProperty>) {
         if let Some(property) = property {
-            self.data.formatting.set_property_default(property)
+            self.formatting.set_property_default(property)
         }
     }
 
@@ -1244,32 +1244,32 @@ where Self: Sized {
 // }
 
 
-impl<T, U> FromInContext<&View, U> for T
+impl<T, U> FromInContext<&Buffer, U> for T
 where T: for<'t> FromInContext<&'t ViewModel, U>
 {
-    fn from_in_context(context: &View, elem: U) -> Self {
+    fn from_in_context(context: &Buffer, elem: U) -> Self {
         T::from_in_context(&context.model, elem)
     }
 }
 
 impl<T, U> FromInContext<&ViewModel, U> for T
-where T: for<'t> FromInContext<&'t ViewBuffer, U>
+where T: for<'t> FromInContext<&'t BufferModel, U>
 {
     fn from_in_context(model: &ViewModel, elem: U) -> Self {
         T::from_in_context(&model.view_buffer, elem)
     }
 }
 
-impl<T, U> TryFromInContext<&View, U> for T
+impl<T, U> TryFromInContext<&Buffer, U> for T
 where T: for<'t> TryFromInContext<&'t ViewModel, U>
 {
-    fn try_from_in_context(context: &View, elem: U) -> Option<Self> {
+    fn try_from_in_context(context: &Buffer, elem: U) -> Option<Self> {
         T::try_from_in_context(&context.model, elem)
     }
 }
 
 impl<T, U> TryFromInContext<&ViewModel, U> for T
-where T: for<'t> TryFromInContext<&'t ViewBuffer, U>
+where T: for<'t> TryFromInContext<&'t BufferModel, U>
 {
     fn try_from_in_context(model: &ViewModel, elem: U) -> Option<Self> {
         T::try_from_in_context(&model.view_buffer, elem)
@@ -1277,8 +1277,8 @@ where T: for<'t> TryFromInContext<&'t ViewBuffer, U>
 }
 
 
-impl FromInContext<&ViewBuffer, Location<UBytes>> for Location {
-    fn from_in_context(context: &ViewBuffer, location: Location<UBytes>) -> Self {
+impl FromInContext<&BufferModel, Location<UBytes>> for Location {
+    fn from_in_context(context: &BufferModel, location: Location<UBytes>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
@@ -1311,8 +1311,8 @@ impl FromInContext<&ViewBuffer, Location<UBytes>> for Location {
     }
 }
 
-impl FromInContext<&ViewBuffer, Location> for Location<UBytes> {
-    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+impl FromInContext<&BufferModel, Location> for Location<UBytes> {
+    fn from_in_context(context: &BufferModel, location: Location) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
@@ -1364,20 +1364,20 @@ impl FromInContext<&ViewModel, Location<UBytes, ViewLine>> for Location {
     }
 }
 
-impl FromInContext<&ViewBuffer, Location<UBytes>> for UBytes {
-    fn from_in_context(context: &ViewBuffer, location: Location<UBytes>) -> Self {
+impl FromInContext<&BufferModel, Location<UBytes>> for UBytes {
+    fn from_in_context(context: &BufferModel, location: Location<UBytes>) -> Self {
         context.byte_offset_of_line_index(location.line).unwrap() + location.offset
     }
 }
 
-impl FromInContext<&ViewBuffer, Location> for UBytes {
-    fn from_in_context(context: &ViewBuffer, location: Location) -> Self {
+impl FromInContext<&BufferModel, Location> for UBytes {
+    fn from_in_context(context: &BufferModel, location: Location) -> Self {
         UBytes::from_in_context(context, Location::from_in_context(context, location))
     }
 }
 
-impl FromInContext<&ViewBuffer, UBytes> for Location<UBytes> {
-    fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
+impl FromInContext<&BufferModel, UBytes> for Location<UBytes> {
+    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
@@ -1385,16 +1385,16 @@ impl FromInContext<&ViewBuffer, UBytes> for Location<UBytes> {
     }
 }
 
-impl FromInContext<&ViewBuffer, UBytes> for Location {
-    fn from_in_context(context: &ViewBuffer, offset: UBytes) -> Self {
+impl FromInContext<&BufferModel, UBytes> for Location {
+    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
         Location::from_in_context(context, Location::<UBytes>::from_in_context(context, offset))
     }
 }
 
-impl<S, T> FromInContext<&ViewBuffer, buffer::Range<S>> for buffer::Range<T>
-where T: for<'t> FromInContext<&'t ViewBuffer, S>
+impl<S, T> FromInContext<&BufferModel, buffer::Range<S>> for buffer::Range<T>
+where T: for<'t> FromInContext<&'t BufferModel, S>
 {
-    fn from_in_context(context: &ViewBuffer, range: buffer::Range<S>) -> Self {
+    fn from_in_context(context: &BufferModel, range: buffer::Range<S>) -> Self {
         let start = T::from_in_context(context, range.start);
         let end = T::from_in_context(context, range.end);
         buffer::Range::new(start, end)

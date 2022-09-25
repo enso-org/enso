@@ -318,7 +318,7 @@ ensogl_core::define_endpoints_2! {
         width           (f32),
         height          (f32),
         changed         (Rc<Vec<buffer::ChangeWithSelection>>),
-        content         (buffer::Text),
+        content         (buffer::Rope),
         hovered         (bool),
         selection_color (color::Rgb),
         single_line_mode(bool),
@@ -680,7 +680,7 @@ pub struct TextModel {
 #[derive(Debug, Deref)]
 pub struct TextModelData {
     #[deref]
-    buffer:         buffer::View,
+    buffer:         buffer::Buffer,
     app:            Application,
     frp:            WeakFrp,
     display_object: display::object::Instance,
@@ -709,7 +709,7 @@ impl TextModel {
             display_object.add_child(&glyph_system);
             RefCell::new(glyph_system)
         };
-        let buffer = buffer::View::new(buffer::ViewBuffer::new(font));
+        let buffer = buffer::Buffer::new(buffer::BufferModel::new(font));
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
@@ -1645,7 +1645,7 @@ impl TextModel {
 // ==============
 
 impl<S, T> FromInContext<&TextModel, S> for T
-where T: for<'t> FromInContext<&'t buffer::View, S>
+where T: for<'t> FromInContext<&'t buffer::Buffer, S>
 {
     fn from_in_context(context: &TextModel, arg: S) -> Self {
         T::from_in_context(&context.buffer, arg)

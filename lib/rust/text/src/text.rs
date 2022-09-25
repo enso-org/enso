@@ -7,18 +7,17 @@ use crate::prelude::fmt::Formatter;
 use crate::range::Range;
 use crate::range::RangeBounds;
 use crate::rope;
-use crate::rope::Rope;
 
 use enso_types::min;
 
 
 
 // ============
-// === Text ===
+// === Rope ===
 // ============
 
 /// Efficient, immutable text container used by the text buffer. Implemented as a rope under the
-/// hood. Use `TextCell` if you are looking for an internally mutable version.
+/// hood. Use `RopeCell` if you are looking for an internally mutable version.
 ///
 /// A [rope](https://en.wikipedia.org/wiki/Rope_(data_structure)) is a data structure for strings,
 /// specialized for incremental editing operations. Most operations (such as insert, delete,
@@ -39,10 +38,10 @@ use enso_types::min;
 /// library.
 #[derive(Debug, Clone, Default, Deref)]
 #[allow(missing_docs)]
-pub struct Text {
-    pub rope: Rope,
+pub struct Rope {
+    pub rope: xi_rope::Rope,
 }
-impl_clone_ref_as_clone!(Text);
+impl_clone_ref_as_clone!(Rope);
 
 
 
@@ -52,7 +51,7 @@ impl_clone_ref_as_clone!(Text);
 
 // === Constructors and Info ===
 
-impl Text {
+impl Rope {
     /// Constructor.
     pub fn new() -> Self {
         default()
@@ -64,10 +63,10 @@ impl Text {
     }
 
     /// Return text narrowed to the given range.
-    pub fn sub(&self, range: impl RangeBounds) -> Text {
+    pub fn sub(&self, range: impl RangeBounds) -> Rope {
         let range = self.crop_byte_range(range);
         let rope = self.rope.subseq(range.into_rope_interval());
-        Text { rope }
+        Rope { rope }
     }
 
     /// The number of grapheme clusters in this text.
@@ -145,7 +144,7 @@ impl Text {
     }
 
     /// Replaces the provided range with the provided text.
-    pub fn replace(&mut self, range: impl RangeBounds, text: impl Into<Text>) {
+    pub fn replace(&mut self, range: impl RangeBounds, text: impl Into<Rope>) {
         let text = text.into();
         let range = self.crop_byte_range(range);
         self.rope.edit(range.into_rope_interval(), text.rope);
@@ -154,7 +153,7 @@ impl Text {
     /// Apply the given change on the current text.
     ///
     /// See also [`Self::replace`].
-    pub fn apply_change(&mut self, change: Change<UBytes, impl Into<Text>>) {
+    pub fn apply_change(&mut self, change: Change<UBytes, impl Into<Rope>>) {
         self.replace(change.range, change.text)
     }
 }
@@ -162,7 +161,7 @@ impl Text {
 
 // === First Line ===
 
-impl Text {
+impl Rope {
     /// The first valid line index in this text.
     pub fn first_line_index(&self) -> Line {
         Line(0)
@@ -189,7 +188,7 @@ impl Text {
 
 // === Last Line ===
 
-impl Text {
+impl Rope {
     /// The last valid line index in this text. If the text ends with the newline character,
     /// it means that there is an empty last line.
     pub fn last_line_index(&self) -> Line {
@@ -240,7 +239,7 @@ impl Text {
 
 // === Validation ===
 
-impl Text {
+impl Rope {
     /// Check whether the provided line index is valid in this text.
     pub fn validate_line_index(&self, line: Line) -> Result<Line, BoundsError> {
         use BoundsError::*;
@@ -274,7 +273,7 @@ impl Text {
 
 // === Into Byte Offset ===
 
-impl Text {
+impl Rope {
     /// Return the offset after the last character of a given line if the line exists.
     pub fn end_byte_offset_of_line_index(&self, line: Line) -> Result<UBytes, BoundsError> {
         self.validate_line_index(line)?;
@@ -364,7 +363,7 @@ impl Text {
 
 // === Into Line Index ===
 
-impl Text {
+impl Rope {
     /// The line of a given byte offset. Panics in case the offset was invalid.
     pub fn line_index_of_byte_offset_unchecked(&self, offset: UBytes) -> Line {
         self.rope.line_of_offset(offset.value).into()
@@ -391,7 +390,7 @@ impl Text {
 
 // === Into CodePointIndex ===
 
-impl Text {
+impl Rope {
     // /// The last column number of the given line.
     // pub fn line_end_column(&self, line: Line) -> Result<CodePointIndex, BoundsError> {
     //     let offset = self.end_byte_offset_of_line_index(line)?;
@@ -473,7 +472,7 @@ impl Text {
 // === Into Location ===
 
 
-impl Text {
+impl Rope {
     /// The location of text end.
     pub fn location_of_text_end(&self) -> Location<UBytes> {
         let lines_count = self.lines(self.byte_range()).count();
@@ -546,7 +545,7 @@ impl<T> From<BoundsError> for LocationError<T> {
     }
 }
 
-impl Text {
+impl Rope {
     // /// Snaps the `LocationError<CodePointIndex>` to the closest valid column.
     // pub fn snap_column_location_error(&self, err: LocationError<CodePointIndex>) ->
     // CodePointIndex {     use self::BoundsError::*;
@@ -614,7 +613,7 @@ impl Text {
 
 // === Common Prefix and Suffix ===
 
-/// The return value of [`Text::common_prefix_and_suffix`] function.
+/// The return value of [`Rope::common_prefix_and_suffix`] function.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CommonPrefixAndSuffix {
@@ -622,12 +621,12 @@ pub struct CommonPrefixAndSuffix {
     pub suffix: UBytes,
 }
 
-impl Text {
+impl Rope {
     /// Returns the length in bytes of common prefix and suffix.
     ///
     /// The prefix and suffix lengths does not overlap, so the sum of their length will not exceed
     /// the length of both texts.
-    pub fn common_prefix_and_suffix(&self, other: &Text) -> CommonPrefixAndSuffix {
+    pub fn common_prefix_and_suffix(&self, other: &Rope) -> CommonPrefixAndSuffix {
         let mut scanner = xi_rope::compare::RopeScanner::new(&self.rope, &other.rope);
         let (prefix, suffix) = scanner.find_min_diff_range();
         CommonPrefixAndSuffix { prefix: prefix.into(), suffix: suffix.into() }
@@ -636,7 +635,7 @@ impl Text {
 
 // === Display ===
 
-impl Display for Text {
+impl Display for Rope {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.rope, f)
     }
@@ -647,80 +646,80 @@ impl Display for Text {
 // === Conversions ===
 // ===================
 
-impl From<Rope> for Text {
-    fn from(t: Rope) -> Self {
+impl From<xi_rope::Rope> for Rope {
+    fn from(t: xi_rope::Rope) -> Self {
         Self { rope: t }
     }
 }
 
-impl From<&Rope> for Text {
-    fn from(t: &Rope) -> Self {
+impl From<&xi_rope::Rope> for Rope {
+    fn from(t: &xi_rope::Rope) -> Self {
         t.clone().into()
     }
 }
 
-impl From<&str> for Text {
+impl From<&str> for Rope {
     fn from(t: &str) -> Self {
         Self { rope: t.into() }
     }
 }
 
-impl From<String> for Text {
+impl From<String> for Rope {
     fn from(t: String) -> Self {
         Self { rope: t.into() }
     }
 }
 
-impl From<&String> for Text {
+impl From<&String> for Rope {
     fn from(t: &String) -> Self {
         Self { rope: t.into() }
     }
 }
 
-impl From<&&String> for Text {
+impl From<&&String> for Rope {
     fn from(t: &&String) -> Self {
         (*t).into()
     }
 }
 
-impl From<ImString> for Text {
+impl From<ImString> for Rope {
     fn from(t: ImString) -> Self {
         Self { rope: t.into() }
     }
 }
 
-impl From<&ImString> for Text {
+impl From<&ImString> for Rope {
     fn from(t: &ImString) -> Self {
         Self { rope: t.into() }
     }
 }
 
-impl From<&&ImString> for Text {
+impl From<&&ImString> for Rope {
     fn from(t: &&ImString) -> Self {
         (*t).into()
     }
 }
 
-impl From<&&str> for Text {
+impl From<&&str> for Rope {
     fn from(t: &&str) -> Self {
         (*t).into()
     }
 }
 
-impl From<Text> for String {
-    fn from(t: Text) -> Self {
+impl From<Rope> for String {
+    fn from(t: Rope) -> Self {
         t.rope.into()
     }
 }
 
-impl From<&Text> for String {
-    fn from(t: &Text) -> Self {
+impl From<&Rope> for String {
+    fn from(t: &Rope) -> Self {
         t.clone().into()
     }
 }
 
-impl From<&&Text> for String {
-    fn from(t: &&Text) -> Self {
+impl From<&&Rope> for String {
+    fn from(t: &&Rope) -> Self {
         (*t).into()
     }
 }
@@ -728,24 +727,24 @@ impl From<&&Text> for String {
 
 
 // ================
-// === TextCell ===
+// === RopeCell ===
 // ================
 
-/// Internally mutable version of `Text`.
+/// Internally mutable version of `Rope`.
 #[derive(Debug, Clone, Default, Deref)]
 #[allow(missing_docs)]
-pub struct TextCell {
-    cell: RefCell<Text>,
+pub struct RopeCell {
+    cell: RefCell<Rope>,
 }
 
-impl TextCell {
+impl RopeCell {
     /// Getter of the current value of the cell.
-    pub fn get(&self) -> Text {
+    pub fn get(&self) -> Rope {
         self.cell.borrow().clone()
     }
 
     /// Setter of the value of the cell.
-    pub fn set(&self, new_text: impl Into<Text>) {
+    pub fn set(&self, new_text: impl Into<Rope>) {
         let new_text = new_text.into();
         *self.cell.borrow_mut() = new_text;
     }
@@ -755,16 +754,16 @@ impl TextCell {
         let rope_range = range.start.value..range.end.value;
         let mut lines = self.cell.borrow().lines(rope_range).map(|t| t.into()).collect_vec();
         if lines.is_empty() {
-            // Rope returns `[]` if the line is empty.
+            // xi_rope::Rope returns `[]` if the line is empty.
             lines.push("".into())
         }
         lines
     }
 }
 
-/// See docs in `Text`.
+/// See docs in `Rope`.
 #[allow(missing_docs)]
-impl TextCell {
+impl RopeCell {
     pub fn new() -> Self {
         default()
     }
@@ -773,7 +772,7 @@ impl TextCell {
         self.cell.borrow().is_empty()
     }
 
-    pub fn sub(&self, range: impl RangeBounds) -> Text {
+    pub fn sub(&self, range: impl RangeBounds) -> Rope {
         self.cell.borrow().sub(range)
     }
 
@@ -805,7 +804,7 @@ impl TextCell {
         self.cell.borrow().prev_grapheme_offset(offset)
     }
 
-    pub fn replace(&self, range: impl RangeBounds, text: impl Into<Text>) {
+    pub fn replace(&self, range: impl RangeBounds, text: impl Into<Rope>) {
         self.cell.borrow_mut().replace(range, text)
     }
 
@@ -969,7 +968,7 @@ impl TextCell {
 
 /// A single change done to the text content.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Change<Metric = UBytes, Str = Text> {
+pub struct Change<Metric = UBytes, Str = Rope> {
     /// Range of old text being replaced.
     pub range: Range<Metric>,
     /// The text inserted in place of `range`.
@@ -1030,7 +1029,7 @@ mod test {
 
         impl Case {
             fn run(&self) {
-                let text: Text = self.text.into();
+                let text: Rope = self.text.into();
                 let (exp_line, exp_column) = self.expected;
                 let expected =
                     Location { line: exp_line.into(), offset: UBytes(exp_column.into()) };

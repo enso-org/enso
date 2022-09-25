@@ -111,8 +111,8 @@ pub use rope::metric;
 pub use rope::Cursor;
 pub use spans::Spans;
 pub use text::Change;
-pub use text::Text;
-pub use text::TextCell;
+pub use text::Rope;
+pub use text::RopeCell;
 pub use unit::traits;
 pub use unit::*;
 

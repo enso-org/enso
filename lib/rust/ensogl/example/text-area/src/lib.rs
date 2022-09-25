@@ -184,7 +184,6 @@ fn init(app: Application) {
 
 
     // TODO: set selection color
-    // TODO: remove line shape cache from ofscreen for lines without cursors
 
 
     // FIXME: bug - second line longer, arrow up, multiple arrows left needed!

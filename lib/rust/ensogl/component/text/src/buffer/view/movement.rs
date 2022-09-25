@@ -52,7 +52,7 @@ pub enum Transform {
 // === Transform Handling ===
 // ==========================
 
-impl ViewBuffer {
+impl BufferModel {
     /// Convert selection to cursor location after a vertical movement.
     fn vertical_motion_selection_to_location(
         &self,
