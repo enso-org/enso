@@ -12,6 +12,10 @@ import Standard.Test.Problems
 
 polyglot java import java.lang.Double
 
+# TODO Dubious constructor export
+from project.Aggregate_Spec.Test_Selection import all
+from project.Aggregate_Spec.Test_Selection export all
+
 type Test_Selection
     Test_Selection_Data problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 

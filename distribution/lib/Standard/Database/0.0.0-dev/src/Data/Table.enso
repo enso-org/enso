@@ -27,6 +27,10 @@ import Standard.Table.Data.Position
 
 polyglot java import java.sql.JDBCType
 
+# TODO Dubious constructor export
+from project.Data.Table.Table import all
+from project.Data.Table.Table export all
+
 ## Represents a column-oriented table data structure backed by a database.
 type Table
 
@@ -975,6 +979,10 @@ type Table
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
+
+# TODO Dubious constructor export
+from project.Data.Table.Integrity_Error import all
+from project.Data.Table.Integrity_Error export all
 
 type Integrity_Error
 

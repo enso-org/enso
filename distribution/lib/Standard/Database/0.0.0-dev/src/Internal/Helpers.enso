@@ -36,6 +36,10 @@ unify_vector_singleton x = case x of
     Vector.Vector -> x
     _ -> [x]
 
+# TODO Dubious constructor export
+from project.Internal.Helpers.Unsupported_Name_Error import all
+from project.Internal.Helpers.Unsupported_Name_Error export all
+
 ## UNSTABLE
 
    Signals that a name for a column or table is not supported.
