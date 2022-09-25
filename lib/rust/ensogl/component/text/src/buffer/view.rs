@@ -6,7 +6,10 @@ use enso_text::unit::*;
 use crate::buffer;
 use crate::buffer::formatting;
 use crate::buffer::formatting::Formatting;
-use crate::buffer::FormattedRope;
+use crate::buffer::movement::*;
+use crate::buffer::rope::formatted::FormattedRope;
+use crate::buffer::selection;
+use crate::buffer::selection::Selection;
 use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
@@ -17,18 +20,6 @@ use enso_text::text::Change;
 use enso_text::Rope;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub mod movement;
-pub mod selection;
-pub mod word;
-
-pub use movement::*;
-pub use selection::Selection;
 
 
 
@@ -133,7 +124,7 @@ impl<T> Modification<T> {
 pub struct ChangeWithSelection<Metric = UBytes, Str = Rope, Loc = Location> {
     #[deref]
     pub change:       Change<Metric, Str>,
-    pub selection:    Selection<Loc>,
+    selection:        Selection<Loc>,
     pub change_range: RangeInclusive<Line>,
     pub line_diff:    LineDiff,
 }
@@ -1007,7 +998,7 @@ impl BufferModel {
         };
 
 
-        let byte_selection = self.to_bytes_selection(transformed);
+        let byte_selection = Selection::<UBytes>::from_in_context(self, transformed);
         let range = byte_selection.range();
         self.buffer.replace(range, &text);
 
@@ -1019,6 +1010,8 @@ impl BufferModel {
 
         let redraw_start_line = transformed.min().line;
         let redraw_end_line = transformed.max().line;
+
+        warn!("redraw_start_line: {}, redraw_end_line: {}", redraw_start_line, redraw_end_line);
 
         // FIXME, rmoeve these + Line(1), as they zero in diff computation
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
@@ -1048,6 +1041,7 @@ impl BufferModel {
         let change = Change { range, text };
         let change_range = redraw_start_line..=redraw_end_line;
         let change = ChangeWithSelection { change, selection, change_range, line_diff };
+        warn!("change: {:?}", change);
         let changes = vec![change];
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
@@ -1056,23 +1050,19 @@ impl BufferModel {
     /// Current selections expressed in bytes.
     pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
         let selections = self.selection.borrow().clone();
-        selections.iter().map(|s| self.to_bytes_selection(*s)).collect()
+        selections.iter().map(|s| Selection::<UBytes>::from_in_context(self, *s)).collect()
     }
 
-    fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-        let selection_start = Location::from_in_context(self, selection.start);
-        let selection_end = Location::from_in_context(self, selection.end);
-        let start = self.byte_offset_of_location_snapped(selection_start);
-        let end = self.byte_offset_of_location_snapped(selection_end);
-        let id = selection.id;
-        Selection::new(start, end, id)
-    }
+    // fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
+    //     let start = UBytes::from_in_context(self, selection.start);
+    //     let end = UBytes::from_in_context(self, selection.end);
+    //     let id = selection.id;
+    //     Selection::new(start, end, id)
+    // }
 
     fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
-        let start = self.offset_to_location(selection.start);
-        let end = self.offset_to_location(selection.end);
-        let start = Location::from_in_context(self, start);
-        let end = Location::from_in_context(self, end);
+        let start = Location::from_in_context(self, selection.start);
+        let end = Location::from_in_context(self, selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -1335,6 +1325,21 @@ impl FromInContext<&BufferViewModel, LocationLike> for Location {
     }
 }
 
+
+// === Selections ===
+
+impl<T, S> FromInContext<&BufferModel, Selection<T>> for Selection<S>
+where
+    T: Copy,
+    S: for<'t> FromInContext<&'t BufferModel, T>,
+{
+    fn from_in_context(buffer: &BufferModel, selection: Selection<T>) -> Self {
+        let start = S::from_in_context(buffer, selection.start);
+        let end = S::from_in_context(buffer, selection.end);
+        let id = selection.id;
+        Selection::new(start, end, id)
+    }
+}
 
 
 // // warn!("offset_to_location: {:?}", offset);

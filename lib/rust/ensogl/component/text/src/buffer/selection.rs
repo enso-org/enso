@@ -46,16 +46,18 @@ pub struct Shape<T = Location> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Shape<T: Boundary>(start: T, end: T) -> Shape<T> {
+pub fn Shape<T>(start: T, end: T) -> Shape<T> {
     Shape::new(start, end)
 }
 
-impl<T: Boundary> Shape<T> {
+impl<T> Shape<T> {
     /// Constructor.
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
+}
 
+impl<T: Boundary> Shape<T> {
     /// Cursor constructor.
     pub fn new_cursor(start: T) -> Self {
         let end = start;
@@ -159,17 +161,19 @@ pub struct Selection<T = Location> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Selection<T: Boundary>(start: T, end: T, id: Id) -> Selection<T> {
+pub fn Selection<T>(start: T, end: T, id: Id) -> Selection<T> {
     Selection::new(start, end, id)
 }
 
-impl<T: Boundary> Selection<T> {
+impl<T> Selection<T> {
     /// Constructor.
     pub fn new(start: T, end: T, id: Id) -> Self {
         let shape = Shape::new(start, end);
         Self { shape, id }
     }
+}
 
+impl<T: Boundary> Selection<T> {
     /// Cursor constructor.
     pub fn new_cursor(offset: T, id: Id) -> Self {
         let shape = Shape::new_cursor(offset);

@@ -18,7 +18,7 @@ use ensogl_core::Animation;
 // === Export ===
 // ==============
 
-pub use crate::buffer::view::selection::Id;
+pub use crate::buffer::selection::Id;
 
 
 

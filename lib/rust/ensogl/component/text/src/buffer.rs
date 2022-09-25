@@ -8,8 +8,10 @@ use crate::prelude::*;
 // === Export ===
 // ==============
 
-pub mod formatted_rope;
 pub mod formatting;
+pub mod movement;
+pub mod rope;
+pub mod selection;
 pub mod view;
 
 
@@ -19,10 +21,10 @@ pub mod traits {
 }
 
 pub use formatting::*;
+pub use movement::*;
 pub use view::*;
 
 pub use enso_text::unit::*;
 pub use enso_text::Range;
 pub use enso_text::Rope;
 pub use enso_text::RopeCell;
-pub use formatted_rope::*;
