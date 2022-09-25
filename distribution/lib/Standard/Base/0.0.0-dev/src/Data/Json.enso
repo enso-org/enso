@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Parse_Error_Data, Array, Boolean, Number
 import Standard.Base
 
 import Standard.Base.Data.Json.Internal

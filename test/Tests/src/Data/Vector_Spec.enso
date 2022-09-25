@@ -4,17 +4,17 @@ from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
 import Standard.Test
 
 type T
-    T_Data a b
+    Value a b
 
 T.== self that = self.a == that.a
 T.compare_to self that = if self == that then Ordering.Equal else
     if self.a > that.a then Ordering.Greater else Ordering.Less
 
 type My_Error
-    My_Error_Data a
+    Value a
 
 type Foo
-    Foo_Data vec
+    Value vec
 
 compare_tco a b = case a.vec.length == b.vec.length of
     False -> a.vec.length . compare_to b.vec.length
@@ -72,9 +72,9 @@ spec = Test.group "Vectors" <|
         [1,2,3].at 2 . should_equal 3
 
     Test.specify "should allow to store dataflow errors and raise them on access" <|
-        vec = [Error.throw (My_Error_Data "foo"), "bar"]
+        vec = [Error.throw (My_Error.Value "foo"), "bar"]
         vec.at 1 . should_equal "bar"
-        vec.at 0 . should_fail_with My_Error_Data
+        vec.at 0 . should_fail_with My_Error.Value
 
     Test.specify "should allow accessing elements with negative indices" <|
         [1,2,3].at -1 . should_equal 3
@@ -98,7 +98,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow summing elements if they define +" <|
         [1,2,3].sum . should_equal 6
         [].sum . should_fail_with Vector.Empty_Error
-        [T_Data 1 2, T_Data 3 4].sum . should_fail_with No_Such_Method_Error_Data
+        [T.Value 1 2, T.Value 3 4].sum . should_fail_with No_Such_Method_Error_Data
 
     Test.specify "should check exists" <|
         vec = [1, 2, 3, 4, 5]
@@ -137,20 +137,20 @@ spec = Test.group "Vectors" <|
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
-        vec.filter (x -> if x == 2 then Error.throw <| My_Error_Data "foo" else True) . should_fail_with My_Error_Data
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
 
     Test.specify "should filter elements with indices" <|
         [0, 10, 2, 2].filter_with_index (==) . should_equal [0, 2]
         ([1, 2, 3, 4].filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error_Data "foo" else True) . should_fail_with My_Error_Data
+        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
 
     Test.specify "should partition elements" <|
         [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) . should_equal <| Pair_Data [2, 4] [1, 3, 5]
-        ([1, 2, 3, 4].partition x-> if x == 1 then Error.throw <| My_Error_Data "foo" else True) . should_fail_with My_Error_Data
+        ([1, 2, 3, 4].partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
 
     Test.specify "should partition elements with indices" <|
         ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair_Data ["a", "c"] ["b", "d"])
-        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error_Data "foo" else True) . should_fail_with My_Error_Data
+        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
 
     Test.specify "should allow to join a vector of text elements to form a single text" <|
         ["a", "b", "c"].join . should_equal "abc"
@@ -174,7 +174,7 @@ spec = Test.group "Vectors" <|
         [[], []].flatten . should_equal []
         [[1]].flatten . should_equal [1]
         [[[1], [2, 3]], [[4]]].flatten . should_equal [[1], [2, 3], [4]]
-        [["a", 2], [], [[[3]]], [T_Data 1 2, 44]].flatten . should_equal ["a", 2, [[3]], T_Data 1 2, 44]
+        [["a", 2], [], [[[3]]], [T.Value 1 2, 44]].flatten . should_equal ["a", 2, [[3]], T.Value 1 2, 44]
         (["polyglot", " ", "array"].map .utf_8).flatten . should_equal "polyglot array".utf_8
 
     Test.specify "should allow applying a function to each element" <|
@@ -394,13 +394,13 @@ spec = Test.group "Vectors" <|
         sorted . should_equal [2, 2, 2, 3, 3, 4]
 
     Test.specify "should have a stable sort" <|
-        small_vec = [T_Data 1 8, T_Data 1 3, T_Data -20 0, T_Data -1 1, T_Data -1 10, T_Data 4 0]
-        small_expected = [T_Data -20 0, T_Data -1 1, T_Data -1 10, T_Data 1 8, T_Data 1 3, T_Data 4 0]
+        small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
+        small_expected = [T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value 4 0]
         small_vec.sort . should_equal small_expected
 
     Test.specify "should be able to use a custom element projection" <|
-        small_vec = [T_Data 1 8, T_Data 1 3, T_Data -20 0, T_Data -1 1, T_Data -1 10, T_Data 4 0]
-        small_expected = [T_Data -20 0, T_Data 4 0, T_Data -1 1, T_Data 1 3, T_Data 1 8, T_Data -1 10]
+        small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
+        small_expected = [T.Value -20 0, T.Value 4 0, T.Value -1 1, T.Value 1 3, T.Value 1 8, T.Value -1 10]
         small_vec.sort (on = _.b) . should_equal small_expected
 
     Test.specify "should be able to use a custom comparator" <|
@@ -409,13 +409,13 @@ spec = Test.group "Vectors" <|
         small_vec.sort (by = l -> r -> r.compare_to l) . should_equal small_expected
 
     Test.specify "should allow tail-recursive comparators in sort" <|
-         v = [Foo_Data [4,2,2], Foo_Data [1,2,3], Foo_Data [1,2,4]]
-         r = [Foo_Data [1,2,3], Foo_Data [1,2,4], Foo_Data [4,2,2]]
+         v = [Foo.Value [4,2,2], Foo.Value [1,2,3], Foo.Value [1,2,4]]
+         r = [Foo.Value [1,2,3], Foo.Value [1,2,4], Foo.Value [4,2,2]]
          v.sort by=compare_tco . should_equal r
 
     Test.specify "should be able to use a custom comparator and projection" <|
-        small_vec = [T_Data 1 8, T_Data 1 3, T_Data -20 0, T_Data -1 1, T_Data -1 10, T_Data 4 0]
-        small_expected = [T_Data -1 10, T_Data 1 8, T_Data 1 3, T_Data -1 1, T_Data -20 0, T_Data 4 0]
+        small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
+        small_expected = [T.Value -1 10, T.Value 1 8, T.Value 1 3, T.Value -1 1, T.Value -20 0, T.Value 4 0]
         small_vec.sort (on = _.b) (by = l -> r -> r.compare_to l) . should_equal small_expected
 
     Test.specify "should be able to sort in descending order" <|
@@ -424,14 +424,14 @@ spec = Test.group "Vectors" <|
         small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should be stable in descending order" <|
-        small_vec = [T_Data 1 8, T_Data 1 3, T_Data -20 0, T_Data -1 1, T_Data -1 10, T_Data 4 0]
-        small_expected = [T_Data 4 0, T_Data 1 3, T_Data 1 8, T_Data -1 10, T_Data -1 1, T_Data -20 0]
+        small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
+        small_expected = [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
         small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should correctly propagate error through map" <|
         [1, 2, 3].map Error.throw . catch . should_equal 1
-        fun a = if a == 3 then Error.throw (My_Error_Data a) else a
-        [1, 2, 3, 4].map fun . catch My_Error_Data . should_equal (My_Error_Data 3)
+        fun a = if a == 3 then Error.throw (My_Error.Value a) else a
+        [1, 2, 3, 4].map fun . catch My_Error.Value . should_equal (My_Error.Value 3)
 
     Test.specify "should be able to be efficiently converted to a visualisation" <|
         vec = Vector.fill 1000 0
@@ -478,7 +478,7 @@ spec = Test.group "Vectors" <|
         [Pair_Data 1 2, Pair_Data 3 4].distinct . should_fail_with Vector.Incomparable_Values_Error
 
     Test.specify "should correctly handle distinct with custom types like Atoms that implement compare_to" <|
-        [T_Data 1 2, T_Data 3 3, T_Data 1 2].distinct . should_equal [T_Data 1 2, T_Data 3 3]
+        [T.Value 1 2, T.Value 3 3, T.Value 1 2].distinct . should_equal [T.Value 1 2, T.Value 3 3]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
         [Pair_Data 1 "a", Pair_Data 2 "b", Pair_Data 1 "c"] . distinct (on = _.first) . should_equal [Pair_Data 1 "a", Pair_Data 2 "b"]

@@ -1,8 +1,12 @@
-from Standard.Base import all
+from Standard.Base import all hiding Error
 
 import Standard.Base.System.File.Option
 import Standard.Base.Error.Common
 from Standard.Base.System.File import File_Already_Exists_Error, IO_Error, File_Not_Found
+
+# TODO Dubious constructor export
+from project.System.File.Existing_File_Behavior.Existing_File_Behavior import all
+from project.System.File.Existing_File_Behavior.Existing_File_Behavior export all
 
 ## Specifies the behavior of a write operation when the destination file
    already exists.
@@ -101,9 +105,17 @@ write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Fo
     go 0
 
 
+# TODO Dubious constructor export
+from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Panicked import all
+from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Panicked export all
+
 ## PRIVATE
 type Internal_Write_Operation_Panicked
     Internal_Write_Operation_Panicked_Data (cause : Caught_Panic)
+
+# TODO Dubious constructor export
+from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Errored import all
+from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Errored export all
 
 ## PRIVATE
 type Internal_Write_Operation_Errored

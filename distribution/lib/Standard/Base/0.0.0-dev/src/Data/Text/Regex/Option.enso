@@ -5,6 +5,11 @@
 
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Option.Option import all
+from project.Data.Text.Regex.Option.Option export all
+from project.Data.Text.Regex.Engine.Engine export all
+
 type Option
 
     ## Specifies that all predefined character classes and POSIX character

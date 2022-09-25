@@ -56,6 +56,10 @@ os = @Builtin_Method "System.os"
 default_line_separator : Text
 default_line_separator = Java_System.lineSeparator
 
+# TODO Dubious constructor export
+from project.System.System_Process_Result import all
+from project.System.System_Process_Result export all
+
 ## PRIVATE
 
    The type representing the result of a process.

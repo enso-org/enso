@@ -2,6 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.nio.file.attribute.PosixFilePermission
 
+# TODO Dubious constructor export
+from project.System.File.File_Permissions.Permission import all
+from project.System.File.File_Permissions.Permission export all
+
 type Permission
     ## Permission for read access for a given entity.
     Read
@@ -11,6 +15,10 @@ type Permission
 
     ## Permission for execute access for a given entity.
     Execute
+
+# TODO Dubious constructor export
+from project.System.File.File_Permissions.File_Permissions import all
+from project.System.File.File_Permissions.File_Permissions export all
 
 type File_Permissions
     ## Access permissions for a file.

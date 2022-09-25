@@ -8,10 +8,10 @@ from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Test
 
 type Auto
-    Auto_Data a
+    Value a
 
 type Manual
-    Manual_Data b
+    Value b
 
 Manual.to_text self = "[[[MyREP " + self.b.to_text + "]]]"
 
@@ -232,8 +232,8 @@ spec =
             'abc  def\tghi'.split '\\s+' Regex_Matcher_Data . should_equal ["abc", "def", "ghi"]
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
-            t = Auto_Data (Manual_Data 123) . to_text
-            t.should_equal "(Auto_Data [[[MyREP 123]]])"
+            t = Auto.Value (Manual.Value 123) . to_text
+            t.should_equal "(Auto.Value [[[MyREP 123]]])"
 
         Test.specify "should escape special characters when debug-printing text" <|
             text_1 = '''

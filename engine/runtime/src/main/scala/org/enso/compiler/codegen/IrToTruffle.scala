@@ -5,7 +5,13 @@ import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
+import org.enso.compiler.core.IR.Name.Special
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
@@ -51,20 +57,20 @@ import org.enso.interpreter.node.{
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.runtime.callable.{
-  UnresolvedConversion,
-  UnresolvedSymbol
-}
 import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.Atom
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
 }
+import org.enso.interpreter.runtime.callable.{
+  UnresolvedConversion,
+  UnresolvedSymbol
+}
+import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{
   FramePointer,
@@ -74,10 +80,6 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
-import org.enso.compiler.core.IR.Name.Special
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedModule}
-import org.enso.interpreter.runtime.data.Type
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
@@ -623,7 +625,10 @@ class IrToTruffle(
     )
     bindingsMap.exportedSymbols.foreach {
       case (name, resolution :: _) =>
-        if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
+        if (
+          resolution.isInstanceOf[ResolvedConstructor] || resolution.module
+            .unsafeAsModule() != moduleScope.getModule
+        ) {
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>
               val runtimeTp =
