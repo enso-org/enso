@@ -268,18 +268,18 @@ ensogl_core::define_endpoints! {
 #[allow(missing_docs)]
 pub struct Buffer {
     #[deref]
-    model:   BufferViewModel,
+    model:   BufferModel,
     pub frp: Frp,
 }
 
 impl Buffer {
     /// Constructor.
-    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
+    pub fn new(model: impl Into<BufferModel>) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
         let input = &frp.input;
         let output = &frp.output;
-        let model = BufferViewModel::new(view_buffer);
+        let model = model.into();
         let m = &model;
 
         frp::extend! { network
@@ -357,29 +357,11 @@ impl Buffer {
 
 
 // =======================
-// === BufferViewModel ===
+// === BufferModel ===
 // =======================
 
-/// Buffer model with view information (e.g. first visible line or visible line count).
-#[derive(Debug, Clone, CloneRef, Deref)]
-#[allow(missing_docs)]
-pub struct BufferViewModel {
-    #[deref]
-    pub view_buffer: BufferModel,
-    /// The line that corresponds to `ViewLine(0)`.
-    first_view_line: Rc<Cell<Line>>,
-    view_line_count: Rc<Cell<Option<usize>>>,
-}
 
-impl BufferViewModel {
-    /// Constructor.
-    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
-        let view_buffer = view_buffer.into();
-        let first_view_line = default();
-        let view_line_count = default();
-        Self { view_buffer, first_view_line, view_line_count }
-    }
-
+impl BufferModel {
     fn set_first_view_line(&self, line: Line) {
         self.first_view_line.set(line);
     }
@@ -603,6 +585,9 @@ pub struct BufferModel {
     pub font:              Font,
     pub shaped_lines:      Rc<RefCell<BTreeMap<Line, ShapedLine>>>,
     pub history:           History,
+    /// The line that corresponds to `ViewLine(0)`.
+    first_view_line:       Rc<Cell<Line>>,
+    view_line_count:       Rc<Cell<Option<usize>>>,
 }
 
 impl BufferModel {
@@ -613,7 +598,18 @@ impl BufferModel {
         let next_selection_id = default();
         let shaped_lines = default();
         let history = default();
-        Self { buffer, selection, next_selection_id, font, shaped_lines, history }
+        let first_view_line = default();
+        let view_line_count = default();
+        Self {
+            buffer,
+            selection,
+            next_selection_id,
+            font,
+            shaped_lines,
+            history,
+            first_view_line,
+            view_line_count,
+        }
     }
 
     /// Expand the [`RangeLike`] to vector of text ranges.
@@ -1136,36 +1132,21 @@ where Self: Sized {
 // === Generic Impls ===
 
 impl<T, U> FromInContext<&Buffer, U> for T
-where T: for<'t> FromInContext<&'t BufferViewModel, U>
+where T: for<'t> FromInContext<&'t BufferModel, U>
 {
     fn from_in_context(context: &Buffer, elem: U) -> Self {
         T::from_in_context(&context.model, elem)
     }
 }
 
-impl<T, U> FromInContext<&BufferViewModel, U> for T
-where T: for<'t> FromInContext<&'t BufferModel, U>
-{
-    fn from_in_context(model: &BufferViewModel, elem: U) -> Self {
-        T::from_in_context(&model.view_buffer, elem)
-    }
-}
-
 impl<T, U> TryFromInContext<&Buffer, U> for T
-where T: for<'t> TryFromInContext<&'t BufferViewModel, U>
+where T: for<'t> TryFromInContext<&'t BufferModel, U>
 {
     fn try_from_in_context(context: &Buffer, elem: U) -> Option<Self> {
         T::try_from_in_context(&context.model, elem)
     }
 }
 
-impl<T, U> TryFromInContext<&BufferViewModel, U> for T
-where T: for<'t> TryFromInContext<&'t BufferModel, U>
-{
-    fn try_from_in_context(model: &BufferViewModel, elem: U) -> Option<Self> {
-        T::try_from_in_context(&model.view_buffer, elem)
-    }
-}
 
 
 // === Location conversions ===
@@ -1243,15 +1224,15 @@ impl FromInContext<&BufferModel, Location> for Location<UBytes> {
     }
 }
 
-impl FromInContext<&BufferViewModel, Location<Column, ViewLine>> for Location {
-    fn from_in_context(context: &BufferViewModel, location: Location<Column, ViewLine>) -> Self {
+impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location {
+    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
         let line = Line::from_in_context(context, location.line);
         Location(line, location.offset)
     }
 }
 
-impl FromInContext<&BufferViewModel, Location<UBytes, ViewLine>> for Location {
-    fn from_in_context(context: &BufferViewModel, location: Location<UBytes, ViewLine>) -> Self {
+impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location {
+    fn from_in_context(context: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
         let line = Line::from_in_context(context, location.line);
         Location::from_in_context(context, Location(line, location.offset))
     }
@@ -1294,28 +1275,28 @@ where T: for<'t> FromInContext<&'t BufferModel, S>
     }
 }
 
-impl FromInContext<&BufferViewModel, ViewLine> for Line {
-    fn from_in_context(buffer: &BufferViewModel, view_line: ViewLine) -> Self {
+impl FromInContext<&BufferModel, ViewLine> for Line {
+    fn from_in_context(buffer: &BufferModel, view_line: ViewLine) -> Self {
         buffer.first_view_line() + Line(view_line.value)
     }
 }
 
-impl FromInContext<&BufferViewModel, Line> for ViewLine {
-    fn from_in_context(buffer: &BufferViewModel, view_line: Line) -> Self {
+impl FromInContext<&BufferModel, Line> for ViewLine {
+    fn from_in_context(buffer: &BufferModel, view_line: Line) -> Self {
         ViewLine((view_line - buffer.first_view_line()).value as usize)
     }
 }
 
-impl TryFromInContext<&BufferViewModel, Line> for ViewLine {
-    fn try_from_in_context(buffer: &BufferViewModel, line: Line) -> Option<Self> {
+impl TryFromInContext<&BufferModel, Line> for ViewLine {
+    fn try_from_in_context(buffer: &BufferModel, line: Line) -> Option<Self> {
         let line = line.value;
         let first_view_line = buffer.first_view_line.get().value;
         (first_view_line <= line).as_some_from(|| ViewLine(line - first_view_line))
     }
 }
 
-impl FromInContext<&BufferViewModel, LocationLike> for Location {
-    fn from_in_context(buffer: &BufferViewModel, location: LocationLike) -> Self {
+impl FromInContext<&BufferModel, LocationLike> for Location {
+    fn from_in_context(buffer: &BufferModel, location: LocationLike) -> Self {
         match location {
             LocationLike::LocationColumnLine(loc) => loc,
             LocationLike::LocationUBytesLine(loc) => Location::from_in_context(buffer, loc),
