@@ -219,6 +219,381 @@ impl ShapedGlyph {
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+ensogl_core::define_endpoints! {
+    Input {
+        cursors_move               (Option<Transform>),
+        cursors_select             (Option<Transform>),
+        set_cursor                 (Location),
+        add_cursor                 (Location),
+        set_newest_selection_end   (Location),
+        set_oldest_selection_end   (Location),
+        insert                     (ImString),
+        paste                      (Rc<Vec<String>>),
+        remove_all_cursors         (),
+        delete_left                (),
+        delete_right               (),
+        delete_word_left           (),
+        delete_word_right          (),
+        clear_selection            (),
+        keep_first_selection_only  (),
+        keep_last_selection_only   (),
+        keep_first_cursor_only     (),
+        keep_last_cursor_only      (),
+        keep_oldest_selection_only (),
+        keep_newest_selection_only (),
+        keep_oldest_cursor_only    (),
+        keep_newest_cursor_only    (),
+        undo                       (),
+        redo                       (),
+        set_property               (Rc<Vec<buffer::Range<UBytes>>>, Option<formatting::Property>),
+        mod_property               (Rc<Vec<buffer::Range<UBytes>>>, Option<formatting::PropertyDiff>),
+        set_property_default       (Option<formatting::ResolvedProperty>),
+        set_first_view_line        (Line),
+        mod_first_view_line        (LineDiff),
+    }
+
+    Output {
+        selection_edit_mode     (Modification),
+        selection_non_edit_mode (selection::Group),
+        text_change             (Rc<Vec<ChangeWithSelection>>),
+        first_view_line         (Line),
+    }
+}
+
+
+
+// ==============
+// === Buffer ===
+// ==============
+
+/// Buffer for a region of a buffer. There are several cases where multiple views share the same
+/// buffer, including displaying the buffer in separate tabs or displaying multiple users in the
+/// same file (keeping a view per user and merging them visually).
+#[derive(Debug, Clone, CloneRef, Deref)]
+#[allow(missing_docs)]
+pub struct Buffer {
+    #[deref]
+    model:   BufferViewModel,
+    pub frp: Frp,
+}
+
+impl Buffer {
+    /// Constructor.
+    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
+        let frp = Frp::new();
+        let network = &frp.network;
+        let input = &frp.input;
+        let output = &frp.output;
+        let model = BufferViewModel::new(view_buffer);
+        let m = &model;
+
+        frp::extend! { network
+            mod_on_insert            <- input.insert.map(f!((s) m.insert(s)));
+            mod_on_paste             <- input.paste.map(f!((s) m.paste(s)));
+            mod_on_delete_left       <- input.delete_left.map(f_!(m.delete_left()));
+            mod_on_delete_right      <- input.delete_right.map(f_!(m.delete_right()));
+            mod_on_delete_word_left  <- input.delete_word_left.map(f_!(m.delete_word_left()));
+            mod_on_delete_word_right <- input.delete_word_right.map(f_!(m.delete_word_right()));
+            mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
+                ,mod_on_delete_word_left,mod_on_delete_word_right);
+            modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
+            changed                   <- modification.map(|m| !m.changes.is_empty());
+            output.source.text_change <+ modification.gate(&changed).map(|m| Rc::new(m.changes.clone()));
+
+            sel_on_move            <- input.cursors_move.map(f!((t) m.moved_selection2(*t,false)));
+            sel_on_mod             <- input.cursors_select.map(f!((t) m.moved_selection2(*t,true)));
+            sel_on_clear           <- input.clear_selection.constant(default());
+            sel_on_keep_last       <- input.keep_last_selection_only.map(f_!(m.last_selection()));
+            sel_on_keep_first      <- input.keep_first_selection_only.map(f_!(m.first_selection()));
+            sel_on_keep_lst_cursor <- input.keep_last_cursor_only.map(f_!(m.last_cursor()));
+            sel_on_keep_fst_cursor <- input.keep_first_cursor_only.map(f_!(m.first_cursor()));
+
+            sel_on_keep_newest       <- input.keep_newest_selection_only.map(f_!(m.newest_selection()));
+            sel_on_keep_oldest       <- input.keep_oldest_selection_only.map(f_!(m.oldest_selection()));
+            sel_on_keep_newest_cursor <- input.keep_newest_cursor_only.map(f_!(m.newest_cursor()));
+            sel_on_keep_oldest_cursor <- input.keep_oldest_cursor_only.map(f_!(m.oldest_cursor()));
+
+            sel_on_set_cursor        <- input.set_cursor.map(f!((t) m.set_cursor(*t)));
+            sel_on_add_cursor        <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
+            sel_on_set_newest_end    <- input.set_newest_selection_end.map(f!((t) m.set_newest_selection_end(*t)));
+            sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
+
+            sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
+            sel_on_undo       <= input.undo.map(f_!(m.undo()));
+
+            eval input.set_property          (((range,value)) m.replace(range,*value));
+            eval input.mod_property          (((range,value)) m.mod_property(range,*value));
+            eval input.set_property_default  ((prop) m.set_property_default(*prop));
+
+            output.source.selection_edit_mode     <+ modification;
+            output.source.selection_non_edit_mode <+ sel_on_undo;
+            output.source.selection_non_edit_mode <+ sel_on_move;
+            output.source.selection_non_edit_mode <+ sel_on_mod;
+            output.source.selection_non_edit_mode <+ sel_on_clear;
+            output.source.selection_non_edit_mode <+ sel_on_keep_last;
+            output.source.selection_non_edit_mode <+ sel_on_keep_first;
+            output.source.selection_non_edit_mode <+ sel_on_keep_newest;
+            output.source.selection_non_edit_mode <+ sel_on_keep_oldest;
+            output.source.selection_non_edit_mode <+ sel_on_keep_lst_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_keep_fst_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_keep_newest_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_keep_oldest_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_set_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_add_cursor;
+            output.source.selection_non_edit_mode <+ sel_on_set_newest_end;
+            output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
+            output.source.selection_non_edit_mode <+ sel_on_remove_all;
+
+            eval output.source.selection_edit_mode     ((t) m.set_selection(&t.selection_group));
+            eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
+
+            // === Buffer Area Management ===
+
+            eval input.set_first_view_line ((line) m.set_first_view_line(*line));
+            output.source.first_view_line <+ input.set_first_view_line;
+
+            new_first_view_line <- input.mod_first_view_line.map(f!((diff) m.mod_first_view_line(*diff)));
+            output.source.first_view_line <+ new_first_view_line;
+        }
+        Self { model, frp }
+    }
+}
+
+
+
+// =======================
+// === BufferViewModel ===
+// =======================
+
+/// Buffer model with view information (e.g. first visible line or visible line count).
+#[derive(Debug, Clone, CloneRef, Deref)]
+#[allow(missing_docs)]
+pub struct BufferViewModel {
+    #[deref]
+    pub view_buffer: BufferModel,
+    /// The line that corresponds to `ViewLine(0)`.
+    first_view_line: Rc<Cell<Line>>,
+    view_line_count: Rc<Cell<Option<usize>>>,
+}
+
+impl BufferViewModel {
+    /// Constructor.
+    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
+        let view_buffer = view_buffer.into();
+        let first_view_line = default();
+        let view_line_count = default();
+        Self { view_buffer, first_view_line, view_line_count }
+    }
+
+    fn set_first_view_line(&self, line: Line) {
+        self.first_view_line.set(line);
+    }
+
+    fn mod_first_view_line(&self, diff: LineDiff) -> Line {
+        let line = self.first_view_line.get() + diff;
+        self.set_first_view_line(line);
+        line
+    }
+
+    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<formatting::Property>) {
+        if let Some(property) = property {
+            for range in ranges {
+                let range = self.crop_byte_range(range);
+                self.formatting.set_property(range, property)
+            }
+        }
+    }
+
+    fn mod_property(
+        &self,
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: Option<formatting::PropertyDiff>,
+    ) {
+        if let Some(property) = property {
+            for range in ranges {
+                let range = self.crop_byte_range(range);
+                self.formatting.mod_property(range, property)
+            }
+        }
+    }
+
+    fn set_property_default(&self, property: Option<formatting::ResolvedProperty>) {
+        if let Some(property) = property {
+            self.formatting.set_property_default(property)
+        }
+    }
+
+    /// Resolve the provided property by applying a default value if needed.
+    pub fn resolve_property(&self, property: formatting::Property) -> formatting::ResolvedProperty {
+        self.formatting.resolve_property(property)
+    }
+
+    /// Set the selection to a new value.
+    pub fn set_selection(&self, selection: &selection::Group) {
+        *self.selection.borrow_mut() = selection.clone();
+    }
+
+    /// Return all active selections.
+    pub fn selections(&self) -> selection::Group {
+        self.selection.borrow().clone()
+    }
+
+    /// Return all selections as vector of strings. For cursors, the string will be empty.
+    pub fn selections_contents(&self) -> Vec<String> {
+        let mut result = Vec::<String>::new();
+        for selection in self.byte_selections() {
+            result.push(self.buffer.text.sub(selection.range()).into())
+        }
+        result
+    }
+
+    // FIXME: rename - left fixme
+    fn moved_selection2(&self, movement: Option<Transform>, modify: bool) -> selection::Group {
+        movement.map(|t| self.moved_selection(t, modify)).unwrap_or_default()
+    }
+
+    /// Index of the first line of this buffer view.
+    pub fn first_view_line(&self) -> Line {
+        self.first_view_line.get()
+    }
+
+    /// Index of the last line of this buffer view.
+    pub fn last_view_line(&self) -> Line {
+        let max_line = self.last_line_index();
+        let view_line_diff = LineDiff(self.view_line_count() as i32 - 1);
+        let last_view_line = self.first_view_line() + view_line_diff;
+        last_view_line.min(max_line)
+    }
+
+    /// Number of lines visible in this buffer view.
+    pub fn view_line_count(&self) -> usize {
+        self.view_line_count
+            .get()
+            .unwrap_or_else(|| self.last_line_index().value + 1 - self.first_view_line.get().value)
+    }
+
+    /// Last index of visible lines.
+    pub fn last_view_line_index(&self) -> ViewLine {
+        ViewLine(self.view_line_count() - 1)
+    }
+
+    /// Range of visible lines.
+    pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
+        ViewLine(0)..=self.line_to_view_line(self.last_view_line())
+    }
+
+    // FIXME: remove
+    /// remove
+    pub fn line_to_view_line(&self, line: Line) -> ViewLine {
+        ViewLine::from_in_context(self, line)
+    }
+
+    // FIXME: remove
+    /// remove
+    pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
+        Line::from_in_context(self, view_line)
+    }
+
+    // FIXME: remove
+    /// remove
+    pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
+        let line = self.line_to_view_line(location.line);
+        let offset = location.offset;
+        Location { line, offset }
+    }
+
+    // FIXME: move to from_in_context
+    /// Convert the location range to view location range.
+    pub fn location_range_to_view_location_range(
+        &self,
+        range: buffer::Range<Location<UBytes>>,
+    ) -> buffer::Range<ViewLocation<UBytes>> {
+        let start = self.location_to_view_location(range.start);
+        let end = self.location_to_view_location(range.end);
+        buffer::Range { start, end }
+    }
+
+    // FIXME: move to from_in_context
+    /// Convert the selection to view selection.
+    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
+        let start = self.location_to_view_location(selection.shape.start);
+        let end = self.location_to_view_location(selection.shape.end);
+        let shape = selection::Shape { start, end };
+        let id = selection.id;
+        Selection { shape, id }
+    }
+
+    /// Byte offset of the first line of this buffer view.
+    pub fn first_view_line_byte_offset(&self) -> UBytes {
+        self.byte_offset_of_line_index(self.first_view_line()).unwrap() // FIXME
+    }
+
+    /// Byte offset of the last line of this buffer view.
+    pub fn last_view_line_byte_offset(&self) -> UBytes {
+        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
+    }
+
+    /// Byte offset range of lines visible in this buffer view.
+    pub fn view_line_byte_offset_range(&self) -> Range<UBytes> {
+        self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
+    }
+
+    /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
+    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
+        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
+    }
+
+    /// Return the offset after the last character of a given view line if the line exists.
+    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
+        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
+    }
+
+    /// The byte range of this buffer view.
+    pub fn view_byte_range(&self) -> Range<UBytes> {
+        self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
+    }
+
+    /// The byte offset of the given buffer view line index.
+    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
+        let line = self.first_view_line() + view_line;
+        self.byte_offset_of_line_index(line)
+    }
+
+    // FIXME: is this snapping needed?
+    /// Byte range of the given view line.
+    pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
+        let line = self.view_line_to_line(view_line);
+        self.byte_range_of_line_index_snapped(line)
+    }
+
+    // FIXME: clone of str vec!
+    /// Return all lines of this buffer view.
+    pub fn view_lines(&self) -> Vec<String> {
+        self.lines_vec(self.view_byte_range())
+    }
+
+    /// Get content for lines in the given range.
+    pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
+        let start_line = self.view_line_to_line(*range.start());
+        let end_line = self.view_line_to_line(*range.end());
+        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
+        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
+        let range = start_byte_offset..end_byte_offset;
+        self.lines_vec(range)
+    }
+
+    /// End byte offset of the last line.
+    pub fn last_line_end_byte_offset(&self) -> UBytes {
+        self.buffer.text().last_line_end_byte_offset()
+    }
+}
+
+
+
 // ===================
 // === BufferModel ===
 // ===================
@@ -280,35 +655,6 @@ impl BufferModel {
         buffer::Range { start, end }
     }
 
-    // pub fn prev_column_location(&self, location: Location) -> Location {
-    //     self.with_shaped_line(location.line, |shaped_line| {
-    //         let mut byte_offset = None;
-    //         let mut found = false;
-    //         for glyph_set in &shaped_line.glyph_sets {
-    //             for glyph in &glyph_set.glyphs {
-    //                 let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-    //                 if glyph_byte_offset >= location.offset {
-    //                     found = true;
-    //                     break;
-    //                 }
-    //                 byte_offset = Some(glyph_byte_offset);
-    //             }
-    //             if found {
-    //                 break;
-    //             }
-    //         }
-    //         byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-    //             if location.line > Line(0) {
-    //                 let line = location.line - Line(1);
-    //                 let offset = self.end_byte_offset_of_line_index(line).unwrap();
-    //                 Location { line, offset }
-    //             } else {
-    //                 default()
-    //             }
-    //         })
-    //     })
-    // }
-
     /// Get the previous column of the provided location.
     pub fn prev_column(&self, location: Location) -> Location {
         if location.offset > Column(0) {
@@ -332,46 +678,6 @@ impl BufferModel {
             location
         }
     }
-
-    // pub fn next_column_location(&self, location: Location) -> Location {
-    //     warn!("next_column_location: {:?}", location);
-    //     self.with_shaped_line(location.line, |shaped_line| {
-    //         let mut byte_offset = None;
-    //         let mut prev_was_exact_match = false;
-    //         for glyph_set in &shaped_line.glyph_sets {
-    //             for glyph in &glyph_set.glyphs {
-    //                 let glyph_byte_offset = UBytes(glyph.info.cluster as usize);
-    //                 if glyph_byte_offset == location.offset {
-    //                     prev_was_exact_match = true;
-    //                 } else if glyph_byte_offset > location.offset {
-    //                     byte_offset = Some(glyph_byte_offset);
-    //                     break;
-    //                 }
-    //             }
-    //             if byte_offset.is_some() {
-    //                 break;
-    //             }
-    //         }
-    //         byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-    //             if prev_was_exact_match {
-    //                 let line = location.line;
-    //                 let offset = self.end_byte_offset_of_line_index(line).unwrap();
-    //                 Location { line, offset }
-    //             } else {
-    //                 let last_line = self.last_line_index();
-    //                 if location.line < last_line {
-    //                     let line = location.line + Line(1);
-    //                     let offset = UBytes(0);
-    //                     Location { line, offset }
-    //                 } else {
-    //                     let line = last_line;
-    //                     let offset = self.end_byte_offset_of_line_index(line).unwrap();
-    //                     Location { line, offset }
-    //                 }
-    //             }
-    //         })
-    //     })
-    // }
 
     /// Run the closure with the shaped line. If the line was not in the shaped lines cache, it will
     /// be first re-shaped.
@@ -505,28 +811,6 @@ impl BufferModel {
         self.lines_vec(range).first().cloned().unwrap_or_default()
     }
 }
-
-// impl From<FormattedRope> for BufferModel {
-//     fn from(buffer: FormattedRope) -> Self {
-//         let selection = default();
-//         let next_selection_id = default();
-//         let history = default();
-//         let shaped_lines = default();
-//         Self { buffer, selection, next_selection_id, shaped_lines, history }
-//     }
-// }
-
-// impl From<&FormattedRope> for BufferModel {
-//     fn from(buffer: &FormattedRope) -> Self {
-//         buffer.clone_ref().into()
-//     }
-// }
-//
-// impl Default for BufferModel {
-//     fn default() -> Self {
-//         FormattedRope::default().into()
-//     }
-// }
 
 impl BufferModel {
     fn commit_history(&self) {
@@ -837,379 +1121,9 @@ impl BufferModel {
 }
 
 
-
-// ===========
-// === FRP ===
-// ===========
-
-ensogl_core::define_endpoints! {
-    Input {
-        cursors_move               (Option<Transform>),
-        cursors_select             (Option<Transform>),
-        set_cursor                 (Location),
-        add_cursor                 (Location),
-        set_newest_selection_end   (Location),
-        set_oldest_selection_end   (Location),
-        insert                     (ImString),
-        paste                      (Rc<Vec<String>>),
-        remove_all_cursors         (),
-        delete_left                (),
-        delete_right               (),
-        delete_word_left           (),
-        delete_word_right          (),
-        clear_selection            (),
-        keep_first_selection_only  (),
-        keep_last_selection_only   (),
-        keep_first_cursor_only     (),
-        keep_last_cursor_only      (),
-        keep_oldest_selection_only (),
-        keep_newest_selection_only (),
-        keep_oldest_cursor_only    (),
-        keep_newest_cursor_only    (),
-        undo                       (),
-        redo                       (),
-        set_property               (Rc<Vec<buffer::Range<UBytes>>>, Option<formatting::Property>),
-        mod_property               (Rc<Vec<buffer::Range<UBytes>>>, Option<formatting::PropertyDiff>),
-        set_property_default       (Option<formatting::ResolvedProperty>),
-        set_first_view_line        (Line),
-        mod_first_view_line        (LineDiff),
-    }
-
-    Output {
-        selection_edit_mode     (Modification),
-        selection_non_edit_mode (selection::Group),
-        text_change             (Rc<Vec<ChangeWithSelection>>),
-        first_view_line         (Line),
-    }
-}
-
-
-
-// ==============
-// === Buffer ===
-// ==============
-
-/// Buffer for a region of a buffer. There are several cases where multiple views share the same
-/// buffer, including displaying the buffer in separate tabs or displaying multiple users in the
-/// same file (keeping a view per user and merging them visually).
-#[derive(Debug, Clone, CloneRef, Deref)]
-#[allow(missing_docs)]
-pub struct Buffer {
-    #[deref]
-    model:   ViewModel,
-    pub frp: Frp,
-}
-
-impl Buffer {
-    /// Constructor.
-    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
-        let frp = Frp::new();
-        let network = &frp.network;
-        let input = &frp.input;
-        let output = &frp.output;
-        let model = ViewModel::new(view_buffer);
-        let m = &model;
-
-        frp::extend! { network
-            mod_on_insert            <- input.insert.map(f!((s) m.insert(s)));
-            mod_on_paste             <- input.paste.map(f!((s) m.paste(s)));
-            mod_on_delete_left       <- input.delete_left.map(f_!(m.delete_left()));
-            mod_on_delete_right      <- input.delete_right.map(f_!(m.delete_right()));
-            mod_on_delete_word_left  <- input.delete_word_left.map(f_!(m.delete_word_left()));
-            mod_on_delete_word_right <- input.delete_word_right.map(f_!(m.delete_word_right()));
-            mod_on_delete            <- any(mod_on_delete_left,mod_on_delete_right
-                ,mod_on_delete_word_left,mod_on_delete_word_right);
-            modification              <- any(mod_on_insert,mod_on_paste,mod_on_delete);
-            changed                   <- modification.map(|m| !m.changes.is_empty());
-            output.source.text_change <+ modification.gate(&changed).map(|m| Rc::new(m.changes.clone()));
-
-            sel_on_move            <- input.cursors_move.map(f!((t) m.moved_selection2(*t,false)));
-            sel_on_mod             <- input.cursors_select.map(f!((t) m.moved_selection2(*t,true)));
-            sel_on_clear           <- input.clear_selection.constant(default());
-            sel_on_keep_last       <- input.keep_last_selection_only.map(f_!(m.last_selection()));
-            sel_on_keep_first      <- input.keep_first_selection_only.map(f_!(m.first_selection()));
-            sel_on_keep_lst_cursor <- input.keep_last_cursor_only.map(f_!(m.last_cursor()));
-            sel_on_keep_fst_cursor <- input.keep_first_cursor_only.map(f_!(m.first_cursor()));
-
-            sel_on_keep_newest       <- input.keep_newest_selection_only.map(f_!(m.newest_selection()));
-            sel_on_keep_oldest       <- input.keep_oldest_selection_only.map(f_!(m.oldest_selection()));
-            sel_on_keep_newest_cursor <- input.keep_newest_cursor_only.map(f_!(m.newest_cursor()));
-            sel_on_keep_oldest_cursor <- input.keep_oldest_cursor_only.map(f_!(m.oldest_cursor()));
-
-            sel_on_set_cursor        <- input.set_cursor.map(f!((t) m.set_cursor(*t)));
-            sel_on_add_cursor        <- input.add_cursor.map(f!((t) m.add_cursor(*t)));
-            sel_on_set_newest_end    <- input.set_newest_selection_end.map(f!((t) m.set_newest_selection_end(*t)));
-            sel_on_set_oldest_end    <- input.set_oldest_selection_end.map(f!((t) m.set_oldest_selection_end(*t)));
-
-            sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
-            sel_on_undo       <= input.undo.map(f_!(m.undo()));
-
-            eval input.set_property          (((range,value)) m.replace(range,*value));
-            eval input.mod_property          (((range,value)) m.mod_property(range,*value));
-            eval input.set_property_default  ((prop) m.set_property_default(*prop));
-
-            output.source.selection_edit_mode     <+ modification;
-            output.source.selection_non_edit_mode <+ sel_on_undo;
-            output.source.selection_non_edit_mode <+ sel_on_move;
-            output.source.selection_non_edit_mode <+ sel_on_mod;
-            output.source.selection_non_edit_mode <+ sel_on_clear;
-            output.source.selection_non_edit_mode <+ sel_on_keep_last;
-            output.source.selection_non_edit_mode <+ sel_on_keep_first;
-            output.source.selection_non_edit_mode <+ sel_on_keep_newest;
-            output.source.selection_non_edit_mode <+ sel_on_keep_oldest;
-            output.source.selection_non_edit_mode <+ sel_on_keep_lst_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_fst_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_newest_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_keep_oldest_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_set_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_add_cursor;
-            output.source.selection_non_edit_mode <+ sel_on_set_newest_end;
-            output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
-            output.source.selection_non_edit_mode <+ sel_on_remove_all;
-
-            eval output.source.selection_edit_mode     ((t) m.set_selection(&t.selection_group));
-            eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
-
-            // === Buffer Area Management ===
-
-            eval input.set_first_view_line ((line) m.set_first_view_line(*line));
-            output.source.first_view_line <+ input.set_first_view_line;
-
-            new_first_view_line <- input.mod_first_view_line.map(f!((diff) m.mod_first_view_line(*diff)));
-            output.source.first_view_line <+ new_first_view_line;
-        }
-        Self { model, frp }
-    }
-}
-
-
-// =================
-// === ViewModel ===
-// =================
-
-/// Internal model for the `Buffer`.
-#[derive(Debug, Clone, CloneRef, Deref)]
-#[allow(missing_docs)]
-pub struct ViewModel {
-    #[deref]
-    pub view_buffer: BufferModel,
-    /// The line that corresponds to `ViewLine(0)`.
-    first_view_line: Rc<Cell<Line>>,
-    view_line_count: Rc<Cell<Option<usize>>>,
-}
-
-impl ViewModel {
-    /// Constructor.
-    pub fn new(view_buffer: impl Into<BufferModel>) -> Self {
-        let view_buffer = view_buffer.into();
-        let first_view_line = default();
-        let view_line_count = default();
-        Self { view_buffer, first_view_line, view_line_count }
-    }
-
-    fn set_first_view_line(&self, line: Line) {
-        self.first_view_line.set(line);
-    }
-
-    fn mod_first_view_line(&self, diff: LineDiff) -> Line {
-        let line = self.first_view_line.get() + diff;
-        self.set_first_view_line(line);
-        line
-    }
-
-    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<formatting::Property>) {
-        if let Some(property) = property {
-            for range in ranges {
-                let range = self.crop_byte_range(range);
-                self.formatting.set_property(range, property)
-            }
-        }
-    }
-
-    fn mod_property(
-        &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
-        property: Option<formatting::PropertyDiff>,
-    ) {
-        if let Some(property) = property {
-            for range in ranges {
-                let range = self.crop_byte_range(range);
-                self.formatting.mod_property(range, property)
-            }
-        }
-    }
-
-    fn set_property_default(&self, property: Option<formatting::ResolvedProperty>) {
-        if let Some(property) = property {
-            self.formatting.set_property_default(property)
-        }
-    }
-
-    /// Resolve the provided property by applying a default value if needed.
-    pub fn resolve_property(&self, property: formatting::Property) -> formatting::ResolvedProperty {
-        self.formatting.resolve_property(property)
-    }
-
-    /// Set the selection to a new value.
-    pub fn set_selection(&self, selection: &selection::Group) {
-        *self.selection.borrow_mut() = selection.clone();
-    }
-
-    /// Return all active selections.
-    pub fn selections(&self) -> selection::Group {
-        self.selection.borrow().clone()
-    }
-
-    /// Return all selections as vector of strings. For cursors, the string will be empty.
-    pub fn selections_contents(&self) -> Vec<String> {
-        let mut result = Vec::<String>::new();
-        for selection in self.byte_selections() {
-            result.push(self.buffer.text.sub(selection.range()).into())
-        }
-        result
-    }
-
-    // FIXME: rename - left fixme
-    fn moved_selection2(&self, movement: Option<Transform>, modify: bool) -> selection::Group {
-        movement.map(|t| self.moved_selection(t, modify)).unwrap_or_default()
-    }
-
-    /// Index of the first line of this buffer view.
-    pub fn first_view_line(&self) -> Line {
-        self.first_view_line.get()
-    }
-
-    /// Index of the last line of this buffer view.
-    pub fn last_view_line(&self) -> Line {
-        let max_line = self.last_line_index();
-        let view_line_diff = LineDiff(self.view_line_count() as i32 - 1);
-        let last_view_line = self.first_view_line() + view_line_diff;
-        last_view_line.min(max_line)
-    }
-
-    /// Number of lines visible in this buffer view.
-    pub fn view_line_count(&self) -> usize {
-        self.view_line_count
-            .get()
-            .unwrap_or_else(|| self.last_line_index().value + 1 - self.first_view_line.get().value)
-    }
-
-    /// Last index of visible lines.
-    pub fn last_view_line_index(&self) -> ViewLine {
-        ViewLine(self.view_line_count() - 1)
-    }
-
-    /// Range of visible lines.
-    pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
-        ViewLine(0)..=self.line_to_view_line(self.last_view_line())
-    }
-
-    // FIXME: remove
-    /// remove
-    pub fn line_to_view_line(&self, line: Line) -> ViewLine {
-        ViewLine::from_in_context(self, line)
-    }
-
-    // FIXME: remove
-    /// remove
-    pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
-        Line::from_in_context(self, view_line)
-    }
-
-    // FIXME: remove
-    /// remove
-    pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
-        let line = self.line_to_view_line(location.line);
-        let offset = location.offset;
-        Location { line, offset }
-    }
-
-    // FIXME: move to from_in_context
-    /// Convert the location range to view location range.
-    pub fn location_range_to_view_location_range(
-        &self,
-        range: buffer::Range<Location<UBytes>>,
-    ) -> buffer::Range<ViewLocation<UBytes>> {
-        let start = self.location_to_view_location(range.start);
-        let end = self.location_to_view_location(range.end);
-        buffer::Range { start, end }
-    }
-
-    // FIXME: move to from_in_context
-    /// Convert the selection to view selection.
-    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
-        let start = self.location_to_view_location(selection.shape.start);
-        let end = self.location_to_view_location(selection.shape.end);
-        let shape = selection::Shape { start, end };
-        let id = selection.id;
-        Selection { shape, id }
-    }
-
-    /// Byte offset of the first line of this buffer view.
-    pub fn first_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.first_view_line()).unwrap() // FIXME
-    }
-
-    /// Byte offset of the last line of this buffer view.
-    pub fn last_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
-    }
-
-    /// Byte offset range of lines visible in this buffer view.
-    pub fn view_line_byte_offset_range(&self) -> Range<UBytes> {
-        self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
-    }
-
-    /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
-    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
-        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
-    }
-
-    /// Return the offset after the last character of a given view line if the line exists.
-    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
-        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
-    }
-
-    /// The byte range of this buffer view.
-    pub fn view_byte_range(&self) -> Range<UBytes> {
-        self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
-    }
-
-    /// The byte offset of the given buffer view line index.
-    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
-        let line = self.first_view_line() + view_line;
-        self.byte_offset_of_line_index(line)
-    }
-
-    // FIXME: is this snapping needed?
-    /// Byte range of the given view line.
-    pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
-        let line = self.view_line_to_line(view_line);
-        self.byte_range_of_line_index_snapped(line)
-    }
-
-    // FIXME: clone of str vec!
-    /// Return all lines of this buffer view.
-    pub fn view_lines(&self) -> Vec<String> {
-        self.lines_vec(self.view_byte_range())
-    }
-
-    /// Get content for lines in the given range.
-    pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
-        let start_line = self.view_line_to_line(*range.start());
-        let end_line = self.view_line_to_line(*range.end());
-        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
-        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
-        let range = start_byte_offset..end_byte_offset;
-        self.lines_vec(range)
-    }
-
-    /// End byte offset of the last line.
-    pub fn last_line_end_byte_offset(&self) -> UBytes {
-        self.buffer.text().last_line_end_byte_offset()
-    }
-}
-
+// ===================
+// === Conversions ===
+// ===================
 
 /// Perform conversion between two values. It is just like the [`From`] trait, but it performs the
 /// conversion in a "context". The "context" is an object containing additional information required
@@ -1220,7 +1134,6 @@ pub trait FromInContext<Ctx, T> {
     fn from_in_context(context: Ctx, arg: T) -> Self;
 }
 
-
 /// Try performing conversion between two values. It is like the [`FromInContext`] trait, but can
 /// fail.
 #[allow(missing_docs)]
@@ -1228,52 +1141,44 @@ pub trait TryFromInContext<Ctx, T>
 where Self: Sized {
     fn try_from_in_context(context: Ctx, arg: T) -> Option<Self>;
 }
-//
-// pub trait IntoInContext<Ctx, T> {
-//     fn into_in_context(self, context: Ctx) -> T;
-// }
-//
-// impl<Ctx, T, U> IntoInContext<Ctx, U> for T
-// where U: FromInContext<Ctx, T>
-// {
-//     fn into_in_context(self, context: Ctx) -> U {
-//         U::from_in_context(context, self)
-//     }
-// }
 
+
+// === Generic Impls ===
 
 impl<T, U> FromInContext<&Buffer, U> for T
-where T: for<'t> FromInContext<&'t ViewModel, U>
+where T: for<'t> FromInContext<&'t BufferViewModel, U>
 {
     fn from_in_context(context: &Buffer, elem: U) -> Self {
         T::from_in_context(&context.model, elem)
     }
 }
 
-impl<T, U> FromInContext<&ViewModel, U> for T
+impl<T, U> FromInContext<&BufferViewModel, U> for T
 where T: for<'t> FromInContext<&'t BufferModel, U>
 {
-    fn from_in_context(model: &ViewModel, elem: U) -> Self {
+    fn from_in_context(model: &BufferViewModel, elem: U) -> Self {
         T::from_in_context(&model.view_buffer, elem)
     }
 }
 
 impl<T, U> TryFromInContext<&Buffer, U> for T
-where T: for<'t> TryFromInContext<&'t ViewModel, U>
+where T: for<'t> TryFromInContext<&'t BufferViewModel, U>
 {
     fn try_from_in_context(context: &Buffer, elem: U) -> Option<Self> {
         T::try_from_in_context(&context.model, elem)
     }
 }
 
-impl<T, U> TryFromInContext<&ViewModel, U> for T
+impl<T, U> TryFromInContext<&BufferViewModel, U> for T
 where T: for<'t> TryFromInContext<&'t BufferModel, U>
 {
-    fn try_from_in_context(model: &ViewModel, elem: U) -> Option<Self> {
+    fn try_from_in_context(model: &BufferViewModel, elem: U) -> Option<Self> {
         T::try_from_in_context(&model.view_buffer, elem)
     }
 }
 
+
+// === Location conversions ===
 
 impl FromInContext<&BufferModel, Location<UBytes>> for Location {
     fn from_in_context(context: &BufferModel, location: Location<UBytes>) -> Self {
@@ -1348,15 +1253,15 @@ impl FromInContext<&BufferModel, Location> for Location<UBytes> {
     }
 }
 
-impl FromInContext<&ViewModel, Location<Column, ViewLine>> for Location {
-    fn from_in_context(context: &ViewModel, location: Location<Column, ViewLine>) -> Self {
+impl FromInContext<&BufferViewModel, Location<Column, ViewLine>> for Location {
+    fn from_in_context(context: &BufferViewModel, location: Location<Column, ViewLine>) -> Self {
         let line = Line::from_in_context(context, location.line);
         Location(line, location.offset)
     }
 }
 
-impl FromInContext<&ViewModel, Location<UBytes, ViewLine>> for Location {
-    fn from_in_context(context: &ViewModel, location: Location<UBytes, ViewLine>) -> Self {
+impl FromInContext<&BufferViewModel, Location<UBytes, ViewLine>> for Location {
+    fn from_in_context(context: &BufferViewModel, location: Location<UBytes, ViewLine>) -> Self {
         let line = Line::from_in_context(context, location.line);
         Location::from_in_context(context, Location(line, location.offset))
     }
@@ -1399,28 +1304,28 @@ where T: for<'t> FromInContext<&'t BufferModel, S>
     }
 }
 
-impl FromInContext<&ViewModel, ViewLine> for Line {
-    fn from_in_context(buffer: &ViewModel, view_line: ViewLine) -> Self {
+impl FromInContext<&BufferViewModel, ViewLine> for Line {
+    fn from_in_context(buffer: &BufferViewModel, view_line: ViewLine) -> Self {
         buffer.first_view_line() + Line(view_line.value)
     }
 }
 
-impl FromInContext<&ViewModel, Line> for ViewLine {
-    fn from_in_context(buffer: &ViewModel, view_line: Line) -> Self {
+impl FromInContext<&BufferViewModel, Line> for ViewLine {
+    fn from_in_context(buffer: &BufferViewModel, view_line: Line) -> Self {
         ViewLine((view_line - buffer.first_view_line()).value as usize)
     }
 }
 
-impl TryFromInContext<&ViewModel, Line> for ViewLine {
-    fn try_from_in_context(buffer: &ViewModel, line: Line) -> Option<Self> {
+impl TryFromInContext<&BufferViewModel, Line> for ViewLine {
+    fn try_from_in_context(buffer: &BufferViewModel, line: Line) -> Option<Self> {
         let line = line.value;
         let first_view_line = buffer.first_view_line.get().value;
         (first_view_line <= line).as_some_from(|| ViewLine(line - first_view_line))
     }
 }
 
-impl FromInContext<&ViewModel, LocationLike> for Location {
-    fn from_in_context(buffer: &ViewModel, location: LocationLike) -> Self {
+impl FromInContext<&BufferViewModel, LocationLike> for Location {
+    fn from_in_context(buffer: &BufferViewModel, location: LocationLike) -> Self {
         match location {
             LocationLike::LocationColumnLine(loc) => loc,
             LocationLike::LocationUBytesLine(loc) => Location::from_in_context(buffer, loc),
