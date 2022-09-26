@@ -90,13 +90,10 @@ impl JsonIdMap {
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
             let byte_start = range.start.value as usize;
             let byte_end = range.end.value as usize;
-            let start: Chars = char_offsets.binary_search(&byte_start).unwrap_both().into();
-            let end: Chars = char_offsets.binary_search(&byte_end).unwrap_both().into();
+            let start = char_offsets.binary_search(&byte_start).unwrap_both();
+            let end = char_offsets.binary_search(&byte_end).unwrap_both();
             let size = end - start;
-            let span = Span {
-                index: Index { value: start.as_usize() },
-                size:  Size { value: size.as_usize() },
-            };
+            let span = Span { index: Index { value: start }, size: Size { value: size } };
             (span, *id)
         });
         Self { vec: mapped_vec.collect() }

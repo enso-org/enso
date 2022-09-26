@@ -43,11 +43,11 @@ pub struct SourceFile {
     /// The whole content of file.
     pub content:  String,
     /// The range in bytes of module's "Code" section.
-    pub code:     Range<Bytes>,
+    pub code:     Range<ByteDiff>,
     /// The range in bytes of module's "Id Map" section.
-    pub id_map:   Range<Bytes>,
+    pub id_map:   Range<ByteDiff>,
     /// The range in bytes of module's "Metadata" section.
-    pub metadata: Range<Bytes>,
+    pub metadata: Range<ByteDiff>,
 }
 
 impl Display for SourceFile {
@@ -65,7 +65,7 @@ impl SourceFile {
     pub fn new(content: String) -> Self {
         pub const METADATA_LINES: usize = 3;
         let nl_offsets = content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(ix));
-        let nl_offsets_bytes = nl_offsets.map(Bytes::from);
+        let nl_offsets_bytes = nl_offsets.map(ByteDiff::from);
         let nl_offsets_from_end = nl_offsets_bytes.rev().take(METADATA_LINES).collect_vec();
         match nl_offsets_from_end.as_slice() {
             [last, before_last, two_before_last] => {
@@ -73,11 +73,12 @@ impl SourceFile {
                 // metadata tag.
                 // We check that tag matches and that trailing lines looks like JSON list/object
                 // respectively.
-                let code_length = *two_before_last + 1.bytes() - Bytes::from(NEWLINES_BEFORE_TAG);
-                let code_range = 0.bytes()..code_length;
-                let tag_range = two_before_last + 1.bytes()..*before_last;
-                let id_map_range = before_last + 1.bytes()..*last;
-                let metadata_range = last + 1.bytes()..Bytes::from(content.len());
+                let code_length =
+                    *two_before_last + 1.byte_diff() - ByteDiff::from(NEWLINES_BEFORE_TAG);
+                let code_range = 0.byte_diff()..code_length;
+                let tag_range = two_before_last + 1.byte_diff()..*before_last;
+                let id_map_range = before_last + 1.byte_diff()..*last;
+                let metadata_range = last + 1.byte_diff()..ByteDiff::from(content.len());
                 let tag = &content[tag_range.start.as_usize()..tag_range.end.as_usize()];
                 let idmap = &content[id_map_range.start.as_usize()..id_map_range.end.as_usize()];
                 let metadata =
@@ -102,9 +103,9 @@ impl SourceFile {
 
     /// Create a description of source file consisting only of code, with no metadata.
     fn new_without_metadata(content: String) -> Self {
-        let length = Bytes::from(content.len());
+        let length = ByteDiff::from(content.len());
         Self {
-            code: (0.bytes()..length).into(),
+            code: (0.byte_diff()..length).into(),
             id_map: (length..length).into(),
             metadata: (length..length).into(),
             content,
@@ -136,7 +137,7 @@ impl SourceFile {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<Bytes>) -> &str {
+    fn slice(&self, range: &Range<ByteDiff>) -> &str {
         let start = range.start.as_usize();
         let end = range.end.as_usize();
         &self.content[start..end]
@@ -197,17 +198,18 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let metadata = to_json_single_line(&self.metadata)?;
 
         let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
-        let id_map_start_bytes = Bytes::from(id_map_start);
+        let id_map_start_bytes = ByteDiff::from(id_map_start);
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
-        let metadata_start_bytes = Bytes::from(metadata_start);
+        let metadata_start_bytes = ByteDiff::from(metadata_start);
         Ok(SourceFile {
             content:  iformat!(
                 "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
                                  {before_metadata}{metadata}"
             ),
-            code:     (0.bytes()..Bytes::from(code.len())).into(),
-            id_map:   (id_map_start_bytes..id_map_start_bytes + Bytes::from(id_map.len())).into(),
-            metadata: (metadata_start_bytes..metadata_start_bytes + Bytes::from(metadata.len()))
+            code:     (0.byte_diff()..ByteDiff::from(code.len())).into(),
+            id_map:   (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len()))
+                .into(),
+            metadata: (metadata_start_bytes..metadata_start_bytes + ByteDiff::from(metadata.len()))
                 .into(),
         })
     }

@@ -15,56 +15,56 @@ use std::ops::AddAssign;
 /// Common traits.
 pub mod traits {
     pub use super::byte::Into as TRAIT_ubytes_into;
-    pub use super::bytes::Into as TRAIT_bytes_into;
+    pub use super::byte_diff::Into as TRAIT_byte_diff_into;
 }
 pub use traits::*;
 
 
 
-// =============
-// === Bytes ===
-// =============
+// ================
+// === ByteDiff ===
+// ================
 
 unit! {
 /// An offset in the buffer in bytes.
-Bytes::bytes(i32)
+ByteDiff::byte_diff(i32)
 }
 
-impl Bytes {
+impl ByteDiff {
     /// Saturating conversion to `usize`.
     pub fn as_usize(self) -> usize {
         self.value.max(0) as usize
     }
 }
 
-impl<T: Into<Bytes>> bytes::Into for Range<T> {
-    type Output = Range<Bytes>;
-    fn bytes(self) -> Self::Output {
+impl<T: Into<ByteDiff>> byte_diff::Into for Range<T> {
+    type Output = Range<ByteDiff>;
+    fn byte_diff(self) -> Self::Output {
         let start = self.start.into();
         let end = self.end.into();
         Range { start, end }
     }
 }
 
-impl From<usize> for Bytes {
+impl From<usize> for ByteDiff {
     fn from(t: usize) -> Self {
         (t as i32).into()
     }
 }
 
-impl From<&usize> for Bytes {
+impl From<&usize> for ByteDiff {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
     }
 }
 
-impl From<Byte> for Bytes {
+impl From<Byte> for ByteDiff {
     fn from(t: Byte) -> Self {
         (t.value as i32).into()
     }
 }
 
-impl From<&Byte> for Bytes {
+impl From<&Byte> for ByteDiff {
     fn from(t: &Byte) -> Self {
         (t.value as i32).into()
     }
@@ -91,35 +91,35 @@ impl<T: Into<Byte>> byte::Into for Range<T> {
 }
 
 impl Sub<Byte> for Byte {
-    type Output = Bytes;
+    type Output = ByteDiff;
     fn sub(self, rhs: Byte) -> Self::Output {
         (self.value as i32 - rhs.value as i32).into()
     }
 }
 
-impl Sub<Bytes> for Byte {
-    type Output = Bytes;
-    fn sub(self, rhs: Bytes) -> Self::Output {
+impl Sub<ByteDiff> for Byte {
+    type Output = ByteDiff;
+    fn sub(self, rhs: ByteDiff) -> Self::Output {
         (self.value as i32 - rhs.value).into()
     }
 }
 
-impl Sub<Byte> for Bytes {
-    type Output = Bytes;
+impl Sub<Byte> for ByteDiff {
+    type Output = ByteDiff;
     fn sub(self, rhs: Byte) -> Self::Output {
         (self.value - rhs.value as i32).into()
     }
 }
 
-impl Add<Bytes> for Byte {
-    type Output = Bytes;
-    fn add(self, rhs: Bytes) -> Self::Output {
+impl Add<ByteDiff> for Byte {
+    type Output = ByteDiff;
+    fn add(self, rhs: ByteDiff) -> Self::Output {
         (self.value as i32 + rhs.value).into()
     }
 }
 
-impl Add<Byte> for Bytes {
-    type Output = Bytes;
+impl Add<Byte> for ByteDiff {
+    type Output = ByteDiff;
     fn add(self, rhs: Byte) -> Self::Output {
         (self.value + rhs.value as i32).into()
     }
@@ -127,14 +127,14 @@ impl Add<Byte> for Bytes {
 
 /// Conversion error.
 #[derive(Debug, Clone, Copy)]
-pub struct BytesToUBytesConversionError;
+pub struct ByteDiffToByteConversionError;
 
-impl TryFrom<Bytes> for Byte {
-    type Error = BytesToUBytesConversionError;
+impl TryFrom<ByteDiff> for Byte {
+    type Error = ByteDiffToByteConversionError;
 
-    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
+    fn try_from(bytes: ByteDiff) -> Result<Self, Self::Error> {
         if bytes.value < 0 {
-            Err(BytesToUBytesConversionError)
+            Err(ByteDiffToByteConversionError)
         } else {
             Ok(Byte::from(bytes.value as usize))
         }

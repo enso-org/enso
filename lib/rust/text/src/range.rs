@@ -189,18 +189,18 @@ impl Index<Range<Byte>> for String {
     }
 }
 
-impl Index<Range<Bytes>> for str {
+impl Index<Range<ByteDiff>> for str {
     type Output = str;
-    fn index(&self, index: Range<Bytes>) -> &Self::Output {
+    fn index(&self, index: Range<ByteDiff>) -> &Self::Output {
         let start = index.start.value;
         let end = index.end.value;
         &self[start as usize..end as usize]
     }
 }
 
-impl Index<Range<Bytes>> for String {
+impl Index<Range<ByteDiff>> for String {
     type Output = str;
-    fn index(&self, index: Range<Bytes>) -> &Self::Output {
+    fn index(&self, index: Range<ByteDiff>) -> &Self::Output {
         &self.as_str()[index]
     }
 }
@@ -220,7 +220,7 @@ impl From<Range<Byte>> for rope::Interval {
     }
 }
 
-impl From<Range<Byte>> for Range<Bytes> {
+impl From<Range<Byte>> for Range<ByteDiff> {
     fn from(t: Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
@@ -228,7 +228,7 @@ impl From<Range<Byte>> for Range<Bytes> {
     }
 }
 
-impl From<&Range<Byte>> for Range<Bytes> {
+impl From<&Range<Byte>> for Range<ByteDiff> {
     fn from(t: &Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
@@ -236,7 +236,7 @@ impl From<&Range<Byte>> for Range<Bytes> {
     }
 }
 
-impl From<&mut Range<Byte>> for Range<Bytes> {
+impl From<&mut Range<Byte>> for Range<ByteDiff> {
     fn from(t: &mut Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
@@ -244,9 +244,9 @@ impl From<&mut Range<Byte>> for Range<Bytes> {
     }
 }
 
-impl TryFrom<Range<Bytes>> for Range<Byte> {
-    type Error = BytesToUBytesConversionError;
-    fn try_from(t: Range<Bytes>) -> Result<Self, Self::Error> {
+impl TryFrom<Range<ByteDiff>> for Range<Byte> {
+    type Error = ByteDiffToByteConversionError;
+    fn try_from(t: Range<ByteDiff>) -> Result<Self, Self::Error> {
         let start = t.start.try_into()?;
         let end = t.end.try_into()?;
         Ok(Self { start, end })

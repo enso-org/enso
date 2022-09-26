@@ -1361,9 +1361,9 @@ macro_rules! define_endpoints_2_normalized_glue {
                 pub network: $crate::frp::WeakNetwork,
             }
 
-            impl Frp {
+            impl $($ctx)* Frp $($param)* {
                 /// Create a weak version of FRP.
-                pub fn downgrade(&self) -> WeakFrp {
+                pub fn downgrade(&self) -> WeakFrp $($param)* {
                     let public = self.public.clone_ref();
                     let private = self.private.clone_ref();
                     let network = self.network.downgrade();
@@ -1371,9 +1371,9 @@ macro_rules! define_endpoints_2_normalized_glue {
                 }
             }
 
-            impl WeakFrp {
+            impl $($ctx)* WeakFrp $($param)* {
                 /// Upgrade the weak version of FRP.
-                pub fn upgrade(&self) -> Option<Frp> {
+                pub fn upgrade(&self) -> Option<Frp $($param)*> {
                     let public = self.public.clone_ref();
                     let private = self.private.clone_ref();
                     let network = self.network.upgrade()?;

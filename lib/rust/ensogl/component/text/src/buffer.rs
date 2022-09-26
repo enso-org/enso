@@ -78,7 +78,7 @@ pub struct Modification<T = Byte> {
     pub selection_group: selection::Group,
     /// Byte offset of this modification. For example, after pressing a backspace with a cursor
     /// placed after an ASCII char, this should result in `-1`.
-    pub byte_offset:     Bytes,
+    pub byte_offset:     ByteDiff,
 }
 
 impl<T> Modification<T> {
