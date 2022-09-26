@@ -193,6 +193,8 @@ fn init(app: Application) {
     // TOOD: bufferView / buffermodel - better names
     // TODO: Check if profiling works well with new animation loops (if time works there nicely)
     // TODO: Bug, last added line - no animation
+    // TODO: Remove network from FRP::Private
+    // TODO: add desription for this demo scene
 
     // TODO: Task na unit testyy do textow
 

@@ -147,8 +147,8 @@ impl Model {
     fn set_opacity(&self, value: f32) {
         let text_color_path = theme::text;
         let text_color = self.style.get_color(text_color_path).multiply_alpha(value);
-        self.label.frp.set_color_all.emit(text_color);
-        self.label.frp.set_default_color.emit(text_color);
+        self.label.frp.set_property(.., text_color);
+        self.label.frp.set_property_default(text_color);
 
         let bg_color_path = theme::background;
         let bg_color = self.style.get_color(bg_color_path).multiply_alpha(value);

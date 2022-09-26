@@ -1188,14 +1188,17 @@ macro_rules! define_endpoints_2_normalized_private {
         pub struct Private $($ctx)* {
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
+            pub network: $crate::frp::Network,
         }
 
         impl $($ctx)* Private $($param)* {
             pub fn new(
                 input: private::Input $($param)*,
-                output: private::Output $($param)*
+                output: private::Output $($param)*,
+                network: &$crate::frp::Network,
             ) -> Self {
-                Self {input, output}
+                let network = network.clone_ref();
+                Self {input, output, network}
             }
         }
 
@@ -1290,7 +1293,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
                     let combined = api::public::Combined::new(&pub_input,&pub_output);
                     let public = api::Public::new(pub_input, pub_output, combined);
-                    let private = api::Private::new(priv_input, priv_output);
+                    let private = api::Private::new(priv_input, priv_output, &network);
                     Self { public, private, network }
                 }
             }

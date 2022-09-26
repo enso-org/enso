@@ -78,7 +78,7 @@ impl Frp {
             //  separator, which might be different from "." in some locales. We need a way to get
             //  the current locale dependent decimal separator for this.
             //  See https://github.com/enso-org/ide/issues/1542 for progress on this.
-            left <- formatted.map(|s| s.split('.').next().map(|s| s.to_string())).unwrap();
+            left <- formatted.map(|s| s.split('.').next().map(|s| s.to_string().into())).unwrap();
 
             model.label_left.set_content <+ left;
             model.label_full.set_content <+ formatted;
