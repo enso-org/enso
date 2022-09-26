@@ -408,8 +408,10 @@ impl BufferModel {
 
     /// Get the previous column of the provided location.
     pub fn prev_column(&self, location: Location) -> Location {
-        if location.offset > Column(0) {
-            location.with_offset(location.offset - Column(1))
+        let line_last_column = self.line_last_column(location.line);
+        let current_column = std::cmp::min(location.offset, line_last_column);
+        if current_column > Column(0) {
+            location.with_offset(current_column - Column(1))
         } else if location.line > Line(0) {
             let location = location.dec_line();
             location.with_offset(self.line_last_column(location.line))
@@ -1255,7 +1257,7 @@ impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Col
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
-            if let ShapedLine::NonEmpty {glyph_sets} = &shaped_line {
+            if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
                 for glyph_set in glyph_sets {
                     for glyph in &glyph_set.glyphs {
                         let byte_offset = UBytes(glyph.info.cluster as usize);
@@ -1276,7 +1278,7 @@ impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Col
             found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
                 let offset = context.line_byte_length(location.line);
                 if offset != location.offset {
-                    error!("Glyph byte offset mismatch. Requested {} byte offset, but line {} has only {} bytes. Using max offset instead.", location.offset, location.line, offset);
+                    // Too big glyph offset requested, returning last column.
                 }
                 location.with_offset(column)
             })
@@ -1384,7 +1386,7 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBy
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
-            if let ShapedLine::NonEmpty {glyph_sets} = &shaped_line {
+            if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
                 for glyph_set in glyph_sets {
                     for glyph in &glyph_set.glyphs {
                         if column == location.offset {
@@ -1400,15 +1402,10 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBy
                 }
             }
             let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                if column != location.offset {
-                    error!(
-                        "Column {} requested while line {} has only {} columns. Using last column instead.",
-                        location.offset, location.line, column
-                    );
-                }
-                // FIXME: unwrap
+                // Too big column requested, returning last column.
                 let end_byte_offset = buffer.end_byte_offset_of_line_index(location.line).unwrap();
-                let location2 = Location::<UBytes, Line>::from_in_context_snapped(buffer, end_byte_offset);
+                let location2 =
+                    Location::<UBytes, Line>::from_in_context_snapped(buffer, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)
             });
