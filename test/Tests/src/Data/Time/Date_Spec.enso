@@ -133,6 +133,13 @@ spec_with name create_new_date parse_date =
             date_1>date_2 . should_be_true
             date_1<date_2 . should_be_false
 
+        Test.specify "should correctly determine the type of date" <|
+            new_date = create_new_date 2020 6 1
+            parsed_date = parse_date "2021-01-02"
+
+            Meta.type_of new_date . should_equal_type Date.Date
+            Meta.type_of parsed_date . should_equal_type Date.Date
+
         Test.specify "should allow to find start and end of a Date_Period containing the current date" <|
             d1 = create_new_date 2022 9 12
             d1.start_of Date_Period.Year . should_equal (Date.new 2022 1 1)
