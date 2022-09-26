@@ -18,7 +18,7 @@ use model::suggestion_database::Entry;
 /// controller and the view is done by the [searcher presenter](crate::presenter::searcher).
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
-    list:     Rc<RefCell<Vec<component::Id>>>,
+    list:     Rc<RefCell<Vec<BreadcrumbEntry>>>,
     selected: Rc<Cell<usize>>,
 }
 
@@ -28,15 +28,19 @@ impl Breadcrumbs {
         default()
     }
 
-    pub fn set_content<'a>(&self, breadcrumbs: impl Iterator<Item = &'a BreadcrumbEntry>) {
+    /// Set the list of breadcrumbs to be displayed in the breadcrumbs panel.
+    pub fn set_content(&self, breadcrumbs: impl Iterator<Item = BreadcrumbEntry>) {
         let selected = self.selected.get();
         let mut borrowed = self.list.borrow_mut();
         if selected != borrowed.len() {
             borrowed.truncate(selected);
         }
-        let ids = breadcrumbs.map(|entry| entry.id());
-        borrowed.extend(ids);
+        borrowed.extend(breadcrumbs);
         self.select(borrowed.len());
+    }
+
+    pub fn names(&self) -> Vec<ImString> {
+        self.list.borrow().iter().map(|entry| entry.name()).collect()
     }
 
     /// Mark the entry with the given index as selected.
@@ -56,7 +60,7 @@ impl Breadcrumbs {
             None
         } else {
             let index = self.selected.get();
-            self.list.borrow().get(index - 1).cloned()
+            self.list.borrow().get(index - 1).map(|entry| entry.id())
         }
     }
 }

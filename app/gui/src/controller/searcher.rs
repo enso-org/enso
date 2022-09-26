@@ -5,7 +5,6 @@ use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::searcher::component::group;
-use crate::model::module;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
@@ -640,14 +639,21 @@ impl Searcher {
     }
 
     /// Enter the specified module. The displayed content of the browser will be updated.
-    pub fn enter_module(&self, module: &component::Id) -> impl Iterator<Item = ImString> {
+    pub fn enter_module(&self, module: &component::Id) {
         let builder = breadcrumbs::Builder::new(&self.database, self.components());
         let breadcrumbs = builder.build(module).unwrap_or_default();
-        self.breadcrumbs.set_content(breadcrumbs.iter());
+        self.breadcrumbs.set_content(breadcrumbs.into_iter());
         self.notifier.notify(Notification::NewActionList);
-        breadcrumbs.into_iter().map(|entry| entry.name())
     }
 
+    /// A list of breadcrumbs' text labels to be displayed. The list is updated by
+    /// [`Self::enter_module`].
+    pub fn breadcrumbs(&self) -> Vec<ImString> {
+        self.breadcrumbs.names()
+    }
+
+    /// Select the breadcrumb with the index [`id`]. The displayed content of the browser will be
+    /// updated.
     pub fn select_breadcrumb(&self, id: usize) {
         self.breadcrumbs.select(id);
         self.notifier.notify(Notification::NewActionList);

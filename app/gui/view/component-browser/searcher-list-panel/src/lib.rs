@@ -512,9 +512,8 @@ impl Model {
         LabeledSection::new(content, app)
     }
 
-    fn clear_breadcrumbs(&self) {
-        self.breadcrumbs.clear();
-        self.breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
+    fn set_initial_breadcrumbs(&self) {
+        self.breadcrumbs.set_entries_from((vec![breadcrumbs::Breadcrumb::new("All")], 0));
     }
 
     fn update_style(&self, style: &Style) {
@@ -940,7 +939,8 @@ define_endpoints_2! {
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
-        push_breadcrumb(ImString),
+        /// See [`breadcrumbs::Breadcrumb::Frp::set_entries_from`].
+        set_breadcrumbs_from((Vec<breadcrumbs::Breadcrumb>, usize)),
         /// The component browser is displayed on screen.
         show(),
         /// The component browser is hidden from screen.
@@ -1080,9 +1080,9 @@ impl component::Frp<Model> for Frp {
 
             // === Breadcrumbs ===
 
-            eval input.push_breadcrumb((breadcrumb) model.breadcrumbs.push(breadcrumbs::Breadcrumb::new(breadcrumb)));
+            model.breadcrumbs.set_entries_from <+ input.set_breadcrumbs_from;
             output.selected_breadcrumb <+ model.breadcrumbs.selected;
-            eval_ input.show(model.clear_breadcrumbs());
+            eval_ input.show(model.set_initial_breadcrumbs());
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

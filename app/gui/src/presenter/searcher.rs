@@ -195,9 +195,9 @@ impl Model {
         self.controller.select_breadcrumb(id);
     }
 
-    fn push_breadcrumb(&self, name: ImString) {
+    fn set_breadcrumbs(&self, names: impl Iterator<Item = ImString>) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            browser.model().list.push_breadcrumb(name);
+            browser.model().list.set_breadcrumbs_from((names.map(Into::into).collect(), 1));
         }
     }
 
@@ -217,10 +217,9 @@ impl Model {
                 group.component_id?
             }
         };
-        let names = self.controller.enter_module(&id);
-        for name in names {
-            self.push_breadcrumb(name);
-        }
+        self.controller.enter_module(&id);
+        let names = self.controller.breadcrumbs();
+        self.set_breadcrumbs(names.into_iter());
         Some(())
     }
 

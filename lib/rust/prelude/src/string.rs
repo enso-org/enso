@@ -304,6 +304,12 @@ macro_rules! im_string_newtype_without_serde {
             }
         }
 
+        impl From<ImString> for $name {
+            fn from(t:ImString) -> Self {
+                Self::new(t)
+            }
+        }
+
         impl From<&str> for $name {
             fn from(t:&str) -> Self {
                 Self::new(t)
