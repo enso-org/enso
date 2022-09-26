@@ -191,9 +191,9 @@ impl NonVariableFaceHeader {
         Self { width, weight, style }
     }
 
-    /// Distance between two font variations. It is used to find a closest variations if the
+    /// Distance between two font variations. It is used to find the closest variations if the
     /// provided is not available.
-    pub fn distance(&self, other: NonVariableFaceHeader) -> usize {
+    pub fn similarity_distance(&self, other: NonVariableFaceHeader) -> usize {
         let width_weight = 10;
         let weight_weight = 100;
         let style_weight = 1;

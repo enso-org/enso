@@ -160,7 +160,10 @@ pub struct ShapedGlyphSet {
     pub non_variable_variations: NonVariableFaceHeader,
     /// Please note that shaped glyphs in this set have cumulative offsets. This means that even if
     /// they were produced by separate calls to `rustybuzz::shape`, their `info.cluster` is summed
-    /// between the calls.
+    /// between the calls. For example, if there are two regular glyphs and two bold glyphs, the
+    /// `rustybuzz::shape` function will be called twice, and thus, the third buffer's
+    /// `info.cluster` will be zero. This is fixed here and the third buffer's `info.cluster` will
+    /// be the byte size of first two glyphs.
     pub glyphs:                  Vec<ShapedGlyph>,
 }
 
@@ -354,18 +357,18 @@ pub struct BufferModel {
 #[derive(Debug, Deref)]
 pub struct BufferModelData {
     #[deref]
-    pub rope:              FormattedRope,
-    pub selection:         RefCell<selection::Group>,
-    pub next_selection_id: Cell<selection::Id>,
-    pub font:              Font,
+    pub rope:          FormattedRope,
+    pub selection:     RefCell<selection::Group>,
+    next_selection_id: Cell<selection::Id>,
+    font:              Font,
     /// Cache of shaped lines. Shaped lines are needed for many operations, like cursor movement.
     /// For example, moving the cursor right requires knowing the glyph on its right side, which
     /// depends on the used font. It also applies to the non-visible lines.
-    shaped_lines:          RefCell<BTreeMap<Line, ShapedLine>>,
-    pub history:           History,
+    shaped_lines:      RefCell<BTreeMap<Line, ShapedLine>>,
+    pub history:       History,
     /// The line that corresponds to `ViewLine(0)`.
-    first_view_line:       Cell<Line>,
-    view_line_count:       Cell<Option<usize>>,
+    first_view_line:   Cell<Line>,
+    view_line_count:   Cell<Option<usize>>,
 }
 
 impl BufferModel {

@@ -1096,7 +1096,7 @@ impl TextModel {
                             }
 
                             let glyph = &line.get_or_create(column, || glyph_system.new_glyph());
-                            glyph.start_byte_offset.set(glyph_byte_start);
+                            glyph.line_byte_offset.set(glyph_byte_start);
 
                             let glyph_line_metrics = line::Metrics { ascender, descender, gap };
                             line_metrics = line_metrics.concat(Some(glyph_line_metrics));
@@ -1324,10 +1324,10 @@ impl TextModel {
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
             for glyph in &lines[range.start.line] {
-                if glyph.start_byte_offset.get() >= range.end.offset {
+                if glyph.line_byte_offset.get() >= range.end.offset {
                     break;
                 }
-                if glyph.start_byte_offset.get() >= range.start.offset {
+                if glyph.line_byte_offset.get() >= range.start.offset {
                     f(glyph)
                 }
             }
@@ -1336,7 +1336,7 @@ impl TextModel {
             let second_line = first_line + ViewLine(1);
             let last_line = range.end.line;
             for glyph in &lines[first_line] {
-                if glyph.start_byte_offset.get() >= range.start.offset {
+                if glyph.line_byte_offset.get() >= range.start.offset {
                     f(glyph)
                 }
             }
@@ -1346,7 +1346,7 @@ impl TextModel {
                 }
             }
             for glyph in &lines[last_line] {
-                if glyph.start_byte_offset.get() < range.end.offset {
+                if glyph.line_byte_offset.get() < range.end.offset {
                     f(glyph)
                 }
             }

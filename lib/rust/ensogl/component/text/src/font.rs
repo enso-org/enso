@@ -322,7 +322,7 @@ impl NonVariableFamily {
             let mut closest = None;
             let mut closest_distance = usize::MAX;
             for known_header in faces.keys() {
-                let distance = known_header.distance(variation);
+                let distance = known_header.similarity_distance(variation);
                 if distance < closest_distance {
                     closest_distance = distance;
                     closest = Some(NonVariableFaceHeaderMatch::closest(*known_header));

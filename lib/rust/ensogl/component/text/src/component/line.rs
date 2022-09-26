@@ -108,7 +108,9 @@ impl TruncationData {
     }
 }
 
-/// Internal representation of [`Truncation`].
+/// Size properties of [`Truncation`]. Allows to query for the size of the truncation without its
+/// creation. This can be used for example to check how much space needs to be left in a line
+/// before displaying the truncation.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Deref)]
 pub struct TruncationSize {

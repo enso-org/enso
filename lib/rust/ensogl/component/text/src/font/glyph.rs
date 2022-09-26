@@ -46,6 +46,7 @@ ensogl_core::define_endpoints_2! {
 }
 
 
+
 // =============
 // === Glyph ===
 // =============
@@ -63,10 +64,12 @@ pub struct Glyph {
 #[allow(missing_docs)]
 #[derive(Debug, Deref)]
 pub struct GlyphData {
+    // Please note that [`GlyphData`] does not implement [`Clone`]. This FRP network will not be
+    // cloned in the FRP definition and thus will not cause any mem leak.
     #[deref]
     pub frp:                Frp,
     pub glyph_id:           Cell<GlyphId>,
-    pub start_byte_offset:  Cell<UBytes>,
+    pub line_byte_offset:   Cell<UBytes>,
     pub display_object:     display::object::Instance,
     pub sprite:             Sprite,
     pub context:            Context,
@@ -422,7 +425,7 @@ impl System {
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
         let glyph_id = default();
-        let start_byte_offset = default();
+        let line_byte_offset = default();
         let properties = default();
         let variations = default();
         let color_animation = color::Animation::new(frp.network());
@@ -452,7 +455,7 @@ impl System {
                 atlas_index,
                 atlas,
                 glyph_id,
-                start_byte_offset,
+                line_byte_offset,
                 properties,
                 variations,
                 color_animation,

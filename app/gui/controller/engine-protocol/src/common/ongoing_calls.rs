@@ -23,7 +23,6 @@ impl<Id, Reply> OngoingCalls<Id, Reply>
 where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
 {
     /// Creates a new, empty ongoing request storage.
-    #[allow(clippy::new_without_default)]
     pub fn new() -> OngoingCalls<Id, Reply> {
         default()
     }
