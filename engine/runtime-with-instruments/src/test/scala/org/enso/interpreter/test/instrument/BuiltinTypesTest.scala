@@ -320,7 +320,7 @@ class BuiltinTypesTest
 
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, "Standard.Base.Function.Function"),
+      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
       context.executionComplete(contextId)
     )
   }
