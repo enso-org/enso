@@ -110,7 +110,7 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
+                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] Text_Matcher.Case_Insensitive)
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
@@ -145,14 +145,14 @@ spec prefix table_builder test_selection pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
+            selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
             problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
+            selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
             problems = [Duplicate_Column_Selectors_Data ["foo"]]
@@ -234,7 +234,7 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
+                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] Text_Matcher.Case_Insensitive)
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["b.*", "f.+"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
@@ -268,14 +268,14 @@ spec prefix table_builder test_selection pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
+            selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             problems = [Duplicate_Column_Selectors_Data ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
+            selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             problems = [Duplicate_Column_Selectors_Data ["foo"]]
@@ -357,7 +357,7 @@ spec prefix table_builder test_selection pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher_Data Case_Insensitive_Data))
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] Text_Matcher.Case_Insensitive)
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["bar", "foo", "foo_1", "foo_2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["b.*", "f.+"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
@@ -477,12 +477,12 @@ spec prefix table_builder test_selection pending=Nothing =
         Test.specify "should work by name" <|
             map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher_Data True))
+                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher.Case_Sensitive))
 
         Test.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher_Data Case_Insensitive_Data))
+                table.rename_columns (Column_Name_Mapping.By_Name map Text_Matcher.Case_Insensitive)
 
         Test.specify "should work by name using regex" <|
             map = Map.from_vector [["a.*", "FirstColumn"]]
@@ -627,7 +627,7 @@ spec prefix table_builder test_selection pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" <|
-            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] (Text_Matcher_Data case_sensitive=Case_Insensitive_Data)
+            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] Text_Matcher.Case_Insensitive
             action = table.order_by selector on_problems=_
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]

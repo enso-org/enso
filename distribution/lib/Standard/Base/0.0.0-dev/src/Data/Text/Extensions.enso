@@ -893,9 +893,8 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "[A-Z]" Regex_Matcher == True
 Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
-    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.starts_with self prefix
-        Case_Insensitive_Data locale ->
+    Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
+    Text_Matcher.Case_Insensitive locale ->
             self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
@@ -929,9 +928,8 @@ Text.starts_with self prefix matcher=Text_Matcher_Data = case matcher of
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
 Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher_Data = case matcher of
-    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.ends_with self suffix
-        Case_Insensitive_Data locale ->
+    Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
+    Text_Matcher.Case_Insensitive locale ->
             self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
@@ -992,9 +990,8 @@ Text.ends_with self suffix matcher=Text_Matcher_Data = case matcher of
          "Hello!".contains "[a-z]" Regex_Matcher
 Text.contains : Text -> Matcher -> Boolean
 Text.contains self term="" matcher=Text_Matcher_Data = case matcher of
-    Text_Matcher_Data case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.contains self term
-        Case_Insensitive_Data locale ->
+    Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
+    Text_Matcher.Case_Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
     Regex_Matcher_Data _ _ _ _ _ ->
         compiled_pattern = matcher.compile term
