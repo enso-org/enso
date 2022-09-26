@@ -1995,15 +1995,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-build3"
-version = "0.1.0"
-dependencies = [
- "enso-build",
- "enso-build-cli",
- "ide-ci",
-]
-
-[[package]]
 name = "enso-callback"
 version = "0.1.0"
 dependencies = [
