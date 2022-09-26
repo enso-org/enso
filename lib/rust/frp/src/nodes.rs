@@ -1510,8 +1510,7 @@ impl<Out: Data> Source<Out> {
     }
 }
 
-auto trait NotSame {}
-impl<T> !NotSame for (T, T) {}
+define_not_same_trait!();
 impl<T> !NotSame for (T, &T) {}
 impl<T> !NotSame for (Option<T>, T) {}
 impl<T> !NotSame for (Option<T>, &T) {}

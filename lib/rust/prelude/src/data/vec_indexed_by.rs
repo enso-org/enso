@@ -6,10 +6,6 @@ use std::ops::Bound;
 
 
 
-auto trait NotSame {}
-impl<T> !NotSame for (T, T) {}
-
-
 // =====================
 // === Helper macros ===
 // =====================
@@ -150,6 +146,14 @@ where A: Allocator
         self.vec.truncate(len)
     }
 }
+
+
+
+// ==============
+// === Traits ===
+// ==============
+
+define_not_same_trait!();
 
 impl<T, I, A> VecIndexedBy<T, I, A>
 where

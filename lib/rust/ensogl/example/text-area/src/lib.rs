@@ -183,25 +183,19 @@ fn init(app: Application) {
 
 
 
-    // TODO: set selection color
-
-
     // TODO: UBytes -> Bytes, Bytes -> BytesDiff
     // TODO: macrem definiowanie NotSame
-
     // TODO: Lines -> ViewLines
-    // TODO: Task na unit testyy do textow
     // TODO: API -> struct Text + style guide?
-
     // TODO: next PR - > Text area to gui component.
-
     // TODO: -> prelude CRange
-
     // TODO - sel_end_1 -> sel_end_on_click etc
-
     // TOOD: bufferView / buffermodel - better names
-
     // TODO: Check if profiling works well with new animation loops (if time works there nicely)
+    // TODO: Bug, last added line - no animation
+
+    // TODO: Task na unit testyy do textow
+
 
     // area.set_cursor_at_end();
     //

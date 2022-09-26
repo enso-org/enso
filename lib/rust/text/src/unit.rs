@@ -600,8 +600,7 @@ impl From<&usize> for CodePointIndex {
 // === Location ===
 // ================
 
-auto trait NotSame {}
-impl<T> !NotSame for (T, T) {}
+define_not_same_trait!();
 
 mod location {
     use super::*;
