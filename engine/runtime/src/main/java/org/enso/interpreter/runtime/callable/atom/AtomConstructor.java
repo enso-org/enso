@@ -253,17 +253,13 @@ public final class AtomConstructor implements TruffleObject {
     return "Constructor<" + name + ">";
   }
 
-  /**
-   * @return the fully qualified name of this constructor.
-   */
+  /** @return the fully qualified name of this constructor. */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
 
-  /**
-   * @return the fields defined by this constructor.
-   */
+  /** @return the fields defined by this constructor. */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }

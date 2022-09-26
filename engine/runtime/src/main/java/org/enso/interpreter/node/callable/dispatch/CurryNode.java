@@ -128,8 +128,7 @@ public class CurryNode extends BaseNode {
             }
           }
 
-          return oversaturatedCallableNode.execute(
-              value, frame, result.getState(), new Object[0]);
+          return oversaturatedCallableNode.execute(value, frame, result.getState(), new Object[0]);
         } else {
           return result;
         }
