@@ -18,7 +18,7 @@ spec =
     spec_with "JavaDate" java_date java_parse
     spec_with "JavaScriptArrayWithADate" js_array_date js_parse
 
-spec_with name create_new_date parse_date date_tpe=Date.Date =
+spec_with name create_new_date parse_date =
     Test.group name <|
 
         Test.specify "should create local date" <|
@@ -137,8 +137,8 @@ spec_with name create_new_date parse_date date_tpe=Date.Date =
             new_date = create_new_date 2020 6 1
             parsed_date = parse_date "2021-01-02"
 
-            Meta.type_of new_date . should_equal_type date_tpe
-            Meta.type_of parsed_date . should_equal_type date_tpe
+            Meta.type_of new_date . should_equal_type Date.Date
+            Meta.type_of parsed_date . should_equal_type Date.Date
 
         Test.specify "should allow to find start and end of a Date_Period containing the current date" <|
             d1 = create_new_date 2022 9 12

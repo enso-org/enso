@@ -47,14 +47,14 @@ public abstract class TypeOfNode extends Node {
     return ctx.getBuiltins().number().getInteger();
   }
 
-  @Specialization(guards = {"interop.isDate(value)", "interop.isTime(value)"})
+  @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
     return ctx.getBuiltins().dateTime();
   }
 
   @Specialization(
-      guards = {"!interop.isDate(value)", "!interop.isTime(value)", "interop.isTimeZone(value)"})
+      guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
     return ctx.getBuiltins().timeZone();
@@ -66,7 +66,7 @@ public abstract class TypeOfNode extends Node {
     return ctx.getBuiltins().date();
   }
 
-  @Specialization(guards = {"!interop.isDate(value)", "interop.isTime(value)"})
+  @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
     return ctx.getBuiltins().timeOfDay();
@@ -103,6 +103,6 @@ public abstract class TypeOfNode extends Node {
 
   @Fallback
   Object doAny(Object value) {
-    return Context.get(this).getBuiltins().any();
+    return Context.get(this).getBuiltins().error().makeCompileError("unknown type_of for " + value);
   }
 }

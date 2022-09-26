@@ -97,18 +97,21 @@ spec = Test.group "Pattern Matches" <|
         case new_date of
             Date_Time.Date_Time -> Test.fail "Expected date value to match Date."
             Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date."
+            Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date."
             Date.Date -> Nothing
             _ -> Test.fail "Expected date value to match Date."
 
         case new_date_time of
             Date.Date -> Test.fail "Expected datetime value to match Date_Time."
             Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time."
+            Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time."
             Date_Time.Date_Time -> Nothing
             _ -> Test.fail "Expected datetime value to match Date_Time."
 
         case new_time of
             Date.Date -> Test.fail "Expected time value to match Time_Of_Day."
             Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day."
+            Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day."
             Time_Of_Day.Time_Of_Day -> Nothing
             _ -> Test.fail "Expected time value to match Time_Of_Day."
 
