@@ -167,7 +167,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -251,7 +253,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -330,7 +334,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -397,7 +403,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -480,7 +488,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -554,7 +564,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -586,7 +598,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
@@ -697,7 +711,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -729,7 +745,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
+    context.receiveNIgnorePendingExpressionUpdates(
       1
     ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
@@ -790,7 +806,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -823,7 +841,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
@@ -877,7 +897,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -923,7 +945,7 @@ class RuntimeErrorsTest
       )
     )
 
-    context.receiveNIgnoreExpressionUpdates(
+    context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
@@ -980,7 +1002,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1038,7 +1062,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
@@ -1097,7 +1123,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1142,7 +1170,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       TestMessages.panic(
         contextId,
         xId,
@@ -1221,7 +1251,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1267,7 +1299,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
+    context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
       TestMessages.update(
@@ -1333,7 +1365,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1370,7 +1404,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreExpressionUpdates(
+    context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
       TestMessages.update(
@@ -1431,7 +1465,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1481,7 +1517,9 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
       TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
