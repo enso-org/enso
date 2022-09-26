@@ -59,11 +59,11 @@ type Point_Data
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names self = self.all_fields.map _.name
+    recognized_names = Point_Data.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized self column = self.recognized_names.contains column.name
+    is_recognized self column = Point_Data.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
@@ -72,7 +72,7 @@ type Point_Data
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
-        X -> table.index.catch_ <| self.iota table.row_count
+        X -> table.index.catch_ <| Point_Data.iota table.row_count
         Y ->
             x_column = X.lookup_in table
             candidates = table.all_columns
