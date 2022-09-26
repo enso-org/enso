@@ -868,7 +868,7 @@ impl BufferModel {
         let change_range = redraw_start_line..=redraw_end_line;
         let change = Change { change, change_range, line_diff, selection: line_selection };
         let changes = vec![change];
-        let byte_offset = text_byte_size - range.size();
+        let byte_offset = text_byte_size.to_diff() - range.size();
         Modification { changes, selection_group, byte_offset }
     }
 }
