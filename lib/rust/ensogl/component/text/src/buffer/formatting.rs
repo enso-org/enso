@@ -183,7 +183,7 @@ macro_rules! define_formatting {
             }
 
             /// Return new style narrowed to the given range.
-            pub fn sub(&self, range:Range<UBytes>) -> Self {
+            pub fn sub(&self, range:Range<Byte>) -> Self {
                 $(let $field = self.$field.sub(range);)*
                 Self {$($field),*}
             }
@@ -191,12 +191,12 @@ macro_rules! define_formatting {
             /// Replace the provided `range` with the `None` value (default), repeated over `len`
             /// bytes. Use with care, as it's very easy to provide incorrect byte size value, which
             /// may result in styles being applied to parts of grapheme clusters only.
-            pub fn set_resize_with_default(&mut self, range:Range<UBytes>, len:UBytes) {
+            pub fn set_resize_with_default(&mut self, range:Range<Byte>, len:Byte) {
                 $(self.$field.replace_resize(range,len,None);)*
             }
 
             /// Return all span ranges of default values for the given property.
-            pub fn span_ranges_of_default_values(&self, tag:PropertyTag) -> Vec<Range<UBytes>> {
+            pub fn span_ranges_of_default_values(&self, tag:PropertyTag) -> Vec<Range<Byte>> {
                 match tag {
                     $(PropertyTag::[<$field:camel>] => {
                         let spans = self.$field.spans.to_vector();
@@ -209,8 +209,8 @@ macro_rules! define_formatting {
 
         impl Formatting {
             /// Set the value of the given property for the given range.
-            pub fn set_property(&mut self, range:Range<UBytes>, property: Property) {
-                let size = UBytes::try_from(range.size()).unwrap_or_default();
+            pub fn set_property(&mut self, range:Range<Byte>, property: Property) {
+                let size = Byte::try_from(range.size()).unwrap_or_default();
                 match property {
                     $(Property::[<$field:camel>](t) => self.$field.replace_resize(range, size, t)),*
                 }
@@ -239,7 +239,7 @@ with_formatting_properties! { define_formatting }
 impl Formatting {
     /// Returns list of spans for triples of (width, weight, style). The triple is used to identify
     /// a non-variable font family.
-    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, NonVariableFaceHeader>> {
+    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<Byte, NonVariableFaceHeader>> {
         let seq_width = self.width.to_vector();
         let seq_weight = self.weight.to_vector();
         let seq_style = self.style.to_vector();
@@ -250,15 +250,15 @@ impl Formatting {
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,
-    ) -> impl Iterator<Item = (std::ops::Range<UBytes>, NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (std::ops::Range<Byte>, NonVariableFaceHeader)> + 'a {
         let seq_font_header = self.non_variable_font_spans();
         let iter = gen_iter!(move {
-            let mut start_byte = UBytes(0);
-            let mut end_byte = UBytes(0);
+            let mut start_byte = Byte(0);
+            let mut end_byte = Byte(0);
             let mut header_iter = seq_font_header.into_iter();
             let mut opt_header = header_iter.next();
             for chr in content.chars() {
-                end_byte += UBytes(chr.len_utf8());
+                end_byte += Byte(chr.len_utf8());
                 if let Some(header) = opt_header {
                     if end_byte == header.range.end {
                         yield (start_byte..end_byte, header.value);
@@ -295,7 +295,7 @@ impl Formatting {
 /// Byte-based iterator for the [`Formatting`].
 #[derive(Debug)]
 pub struct FormattingByteIterator {
-    offset:    UBytes,
+    offset:    Byte,
     value:     StyleIteratorValue,
     component: StyleIteratorComponents,
 }
@@ -309,7 +309,7 @@ impl FormattingByteIterator {
     }
 
     /// Skip the given amount of bytes.
-    pub fn skip_bytes(&mut self, bytes: UBytes) {
+    pub fn skip_bytes(&mut self, bytes: Byte) {
         for _ in 0..bytes.value {
             self.next();
         }
@@ -328,12 +328,12 @@ macro_rules! define_iterators {
 
         #[derive(Debug)]
         struct StyleIteratorComponents {
-            $($field : std::vec::IntoIter<RangedValue<UBytes ,$field_type>>),*
+            $($field : std::vec::IntoIter<RangedValue<Byte ,$field_type>>),*
         }
 
         #[derive(Debug,Default)]
         struct StyleIteratorValue {
-            $($field : Option<RangedValue<UBytes, $field_type>>),*
+            $($field : Option<RangedValue<Byte, $field_type>>),*
         }
 
         impl Iterator for FormattingByteIterator {
@@ -345,7 +345,7 @@ macro_rules! define_iterators {
                     }
                     let $field = self.value.$field?.value;
                 )*
-                self.offset += UBytes(1);
+                self.offset += Byte(1);
                 Some(FormattingForByte {$($field),*})
             }
         }
@@ -382,21 +382,21 @@ pub struct Spanned<T: Copy> {
 
 impl<T: Copy + Debug> Spanned<T> {
     /// Return new property narrowed to the given range.
-    pub fn sub(&self, range: Range<UBytes>) -> Self {
+    pub fn sub(&self, range: Range<Byte>) -> Self {
         let spans = self.spans.sub(range);
         let default = self.default;
         Self { spans, default }
     }
 
     /// Convert the property to a vector of spans.
-    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
+    pub fn to_vector(&self) -> Vec<RangedValue<Byte, T>> {
         let spans_iter = self.spans.to_vector().into_iter();
         spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
     }
 
     /// Modify the values in the given range, first resolving them. If a value was not set, the
     /// default value will be used instead.
-    pub fn modify_resolved(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
+    pub fn modify_resolved(&mut self, range: Range<Byte>, f: impl Fn(T) -> T) {
         self.spans.modify(range, |t| Some(f(t.unwrap_or(self.default))))
     }
 }
@@ -443,7 +443,7 @@ macro_rules! define_property_diffs {
 
         impl Formatting {
             /// Applies the property diff to the given property.
-            pub fn mod_property(&mut self, range:Range<UBytes>, property: PropertyDiff) {
+            pub fn mod_property(&mut self, range:Range<Byte>, property: PropertyDiff) {
                 match property {
                     $(PropertyDiff::$field(t) => {
                         self.[<$field:snake:lower>].modify_resolved(range, |p| p.apply_diff(t))
@@ -528,24 +528,24 @@ impl FormattingCell {
     }
 
     /// Return style narrowed to the given range.
-    pub fn sub(&self, range: Range<UBytes>) -> Formatting {
+    pub fn sub(&self, range: Range<Byte>) -> Formatting {
         self.cell.borrow().sub(range)
     }
 
     /// Replace the provided `range` with the `None` value (default), repeated over `len`
     /// bytes. Use with care, as it's very easy to provide incorrect byte size value, which
     /// may result in styles being applied to parts of grapheme clusters only.
-    pub fn set_resize_with_default(&self, range: Range<UBytes>, len: UBytes) {
+    pub fn set_resize_with_default(&self, range: Range<Byte>, len: Byte) {
         self.cell.borrow_mut().set_resize_with_default(range, len)
     }
 
     /// Set the property for the given range.
-    pub fn set_property(&self, range: Range<UBytes>, property: Property) {
+    pub fn set_property(&self, range: Range<Byte>, property: Property) {
         self.cell.borrow_mut().set_property(range, property)
     }
 
     /// Modify the property in the given range.
-    pub fn mod_property(&self, range: Range<UBytes>, property: PropertyDiff) {
+    pub fn mod_property(&self, range: Range<Byte>, property: PropertyDiff) {
         self.cell.borrow_mut().mod_property(range, property)
     }
 

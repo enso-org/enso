@@ -108,13 +108,13 @@ impl Debug for Expression {
 /// Helper struct used for `Expression` conversions.
 #[derive(Debug, Default)]
 struct ExprConversion {
-    prev_tok_local_index:  UBytes,
+    prev_tok_local_index:  Byte,
     /// Index of the last traverse parent node in the `SpanTree`.
-    last_parent_tok_index: UBytes,
+    last_parent_tok_index: Byte,
 }
 
 impl ExprConversion {
-    fn new(last_parent_tok_index: UBytes) -> Self {
+    fn new(last_parent_tok_index: Byte) -> Self {
         let prev_tok_local_index = default();
         Self { prev_tok_local_index, last_parent_tok_index }
     }
@@ -126,14 +126,14 @@ impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0.ubytes();
+        let mut shift = 0.byte();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = UBytes::try_from(span.size()).unwrap(); // FIXME: hande errors
+            let mut size = Byte::try_from(span.size()).unwrap(); // FIXME: hande errors
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
             info.prev_tok_local_index = node.offset + size;
@@ -145,8 +145,8 @@ impl From<node::Expression> for Expression {
             if is_expected_arg {
                 if let Some(name) = node.name() {
                     size = name.len().into();
-                    index += 1.ubytes();
-                    shift += 1.ubytes() + size;
+                    index += 1.byte();
+                    shift += 1.byte() + size;
                     viz_code += " ";
                     viz_code += name;
                 }
@@ -822,7 +822,7 @@ impl Area {
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
-                        let range = enso_text::Range::<UBytes>::try_from(range).unwrap(); // FIXME: handle errors
+                        let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }

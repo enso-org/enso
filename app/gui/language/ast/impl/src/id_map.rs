@@ -21,20 +21,20 @@ use uuid::Uuid;
 /// A mapping between text position and immutable ID.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct IdMap {
-    pub vec: Vec<(enso_text::Range<UBytes>, Id)>,
+    pub vec: Vec<(enso_text::Range<Byte>, Id)>,
 }
 
 impl IdMap {
     /// Create a new instance.
-    pub fn new(vec: Vec<(enso_text::Range<UBytes>, Id)>) -> IdMap {
+    pub fn new(vec: Vec<(enso_text::Range<Byte>, Id)>) -> IdMap {
         IdMap { vec }
     }
     /// Assigns Span to given ID.
-    pub fn insert(&mut self, span: impl Into<enso_text::Range<UBytes>>, id: Id) {
+    pub fn insert(&mut self, span: impl Into<enso_text::Range<Byte>>, id: Id) {
         self.vec.push((span.into(), id));
     }
     /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<enso_text::Range<UBytes>>) {
+    pub fn generate(&mut self, span: impl Into<enso_text::Range<Byte>>) {
         self.vec.push((span.into(), Uuid::new_v4()));
     }
 }

@@ -13,7 +13,7 @@ use crate::SdfWeight;
 use crate::Size;
 
 use enso_frp::stream::ValueProvider;
-use enso_text::UBytes;
+use enso_text::Byte;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
@@ -69,7 +69,7 @@ pub struct GlyphData {
     #[deref]
     pub frp:                Frp,
     pub glyph_id:           Cell<GlyphId>,
-    pub line_byte_offset:   Cell<UBytes>,
+    pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
     pub sprite:             Sprite,
     pub context:            Context,

@@ -786,7 +786,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<enso_text::Range<UBytes>> {
+) -> FallibleResult<enso_text::Range<Byte>> {
     let location = locate(ast, id)?;
     ast.range_of_descendant_at(&location.crumbs)
 }

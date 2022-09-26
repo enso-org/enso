@@ -331,10 +331,10 @@ impl Ast {
     ///
     /// Returned index is the position of the first character of child's text representation within
     /// the text representation of this AST node.
-    pub fn child_offset(&self, child: &Ast) -> FallibleResult<UBytes> {
+    pub fn child_offset(&self, child: &Ast) -> FallibleResult<Byte> {
         let searched_token = Token::Ast(child);
         let mut found_child = false;
-        let mut position = 0.ubytes();
+        let mut position = 0.byte();
         self.shape().feed_to(&mut |token: Token| {
             if searched_token == token {
                 found_child = true
@@ -350,7 +350,7 @@ impl Ast {
     }
 
     /// Get the span (relative to self) for a child node identified by given crumb.
-    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<enso_text::Range<UBytes>> {
+    pub fn span_of_child_at(&self, crumb: &Crumb) -> FallibleResult<enso_text::Range<Byte>> {
         let child = self.get(crumb)?;
         let offset = self.child_offset(child)?;
         Ok(enso_text::Range::new(offset, offset + child.len()))
@@ -1067,15 +1067,15 @@ pub trait HasIdMap {
 #[derive(Debug, Clone, Default)]
 struct IdMapBuilder {
     id_map: IdMap,
-    offset: UBytes,
+    offset: Byte,
 }
 
 impl TokenConsumer for IdMapBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.offset += UBytes::from(' '.len_utf8() * val),
-            Token::Chr(_) => self.offset += 1.ubytes(),
-            Token::Str(val) => self.offset += UBytes::from(val.len()),
+            Token::Off(val) => self.offset += Byte::from(' '.len_utf8() * val),
+            Token::Chr(_) => self.offset += 1.byte(),
+            Token::Str(val) => self.offset += Byte::from(val.len()),
             Token::Ast(val) => {
                 let begin = self.offset;
                 val.shape().feed_to(self);
@@ -1108,13 +1108,13 @@ pub trait HasRepr {
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
     /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
-    fn len(&self) -> UBytes {
+    fn len(&self) -> Byte {
         self.repr().len().into()
     }
 
     /// Check if the representation is empty.
     fn is_empty(&self) -> bool {
-        self.len() >= 0.ubytes()
+        self.len() >= 0.byte()
     }
 
     /// Get the representation length in chars.
@@ -1144,15 +1144,15 @@ impl TokenConsumer for ReprBuilder {
 
 #[derive(Debug, Clone, Copy, Default)]
 struct LengthBuilder {
-    length: UBytes,
+    length: Byte,
 }
 
 impl TokenConsumer for LengthBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.length += UBytes::from(' '.len_utf8() * val),
-            Token::Chr(chr) => self.length += UBytes::from(chr.len_utf8()),
-            Token::Str(val) => self.length += UBytes::from(val.len()),
+            Token::Off(val) => self.length += Byte::from(' '.len_utf8() * val),
+            Token::Chr(chr) => self.length += Byte::from(chr.len_utf8()),
+            Token::Str(val) => self.length += Byte::from(val.len()),
             Token::Ast(val) => val.shape().feed_to(self),
         }
     }
@@ -1182,7 +1182,7 @@ impl<T: HasTokens> HasRepr for T {
         consumer.repr
     }
 
-    fn len(&self) -> UBytes {
+    fn len(&self) -> Byte {
         let mut consumer = LengthBuilder::default();
         self.feed_to(&mut consumer);
         consumer.length
@@ -1234,7 +1234,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> UBytes {
+    fn len(&self) -> Byte {
         self.deref().len()
     }
 
@@ -1306,7 +1306,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> UBytes {
+    fn len(&self) -> Byte {
         self.deref().len()
     }
 
@@ -1763,7 +1763,7 @@ mod tests {
     #[test]
     fn ast_length() {
         let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
-        assert_eq!(ast.len(), 6.ubytes());
+        assert_eq!(ast.len(), 6.byte());
         assert_eq!(ast.char_count(), 5.chars());
     }
 
@@ -1776,7 +1776,7 @@ mod tests {
     #[test]
     fn ast_id_map() {
         let span = |ix: usize, length: usize| {
-            enso_text::Range::<UBytes>::new(ix.into(), (ix + length).into())
+            enso_text::Range::<Byte>::new(ix.into(), (ix + length).into())
         };
         let uid = default();
         let ids = vec![(span(0, 2), uid), (span(3, 2), uid), (span(0, 5), uid)];
@@ -1901,14 +1901,14 @@ mod tests {
     fn utf8_lengths() {
         let var = Ast::var("価");
         assert_eq!(var.char_count(), 1.chars());
-        assert_eq!(var.len(), 3.ubytes());
+        assert_eq!(var.len(), 3.byte());
 
         let idmap = var.id_map();
-        assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.ubytes(), 3.ubytes()));
+        assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.byte(), 3.byte()));
         assert_eq!(idmap.vec[0].1, var.id.unwrap());
 
         let builder_with_char = Token::Chr('壱');
         assert_eq!(builder_with_char.char_count(), 1.chars());
-        assert_eq!(builder_with_char.len(), 3.ubytes());
+        assert_eq!(builder_with_char.len(), 3.byte());
     }
 }

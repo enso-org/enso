@@ -17,7 +17,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_text::UBytes;
+use enso_text::Byte;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
@@ -91,7 +91,7 @@ struct MockEntries {
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
         const HIGHLIGHTED_ENTRY_NAME: &str = "convert";
-        const HIGHLIGHTED_RANGE: Range<UBytes> = UBytes(0)..UBytes(3);
+        const HIGHLIGHTED_RANGE: Range<Byte> = Byte(0)..Byte(3);
         Rc::new(Self {
             entries: PREPARED_ITEMS
                 .iter()

@@ -11,7 +11,7 @@ use enso_text::Range;
 // === Boundary ===
 // ================
 
-/// Selection boundary data type. In most cases it's either `Location` or `UBytes`.
+/// Selection boundary data type. In most cases it's either `Location` or `Byte`.
 pub trait Boundary = Copy + Ord + Eq;
 
 

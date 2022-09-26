@@ -1060,7 +1060,7 @@ impl TextModel {
                     let line_style = self.buffer.sub_style(line_range.start..line_range.end);
                     let mut line_style_iter = line_style.iter_bytes();
                     let mut glyph_offset_x = 0.0;
-                    let mut prev_cluster_byte_off = UBytes(0);
+                    let mut prev_cluster_byte_off = Byte(0);
                     let truncation_size = line::TruncationSize::from(default_size);
                     let ellipsis_width = truncation_size.width_with_text_offset();
                     let mut line_metrics = None;
@@ -1073,7 +1073,7 @@ impl TextModel {
                             // Drop styles assigned to skipped bytes. One byte will be skipped
                             // during the call to `line_style_iter.next()`.
                             let cluster_diff = glyph_byte_start - prev_cluster_byte_off - Bytes(1);
-                            let cluster_diff = UBytes::try_from(cluster_diff).unwrap_or_default();
+                            let cluster_diff = Byte::try_from(cluster_diff).unwrap_or_default();
                             line_style_iter.skip_bytes(cluster_diff);
                             let style = line_style_iter.next().unwrap_or_default();
                             prev_cluster_byte_off = glyph_byte_start;
@@ -1159,7 +1159,7 @@ impl TextModel {
     /// style or changing glyph size.
     pub fn clear_cache_and_redraw_sorted_line_ranges(
         &self,
-        ranges: impl IntoIterator<Item = buffer::Range<UBytes>>,
+        ranges: impl IntoIterator<Item = buffer::Range<Byte>>,
     ) {
         let view_line_ranges = ranges.into_iter().map(|range| {
             let range = buffer::Range::<Location>::from_in_context_snapped(self, range);
@@ -1264,7 +1264,7 @@ impl TextModel {
     }
 
     /// Set the property to selected glyphs. Redraw lines if needed.
-    fn set_property(&self, ranges: &Vec<buffer::Range<UBytes>>, property: formatting::Property) {
+    fn set_property(&self, ranges: &Vec<buffer::Range<Byte>>, property: formatting::Property) {
         if Self::property_change_invalidates_cache(property) {
             self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
         } else {
@@ -1273,11 +1273,7 @@ impl TextModel {
     }
 
     /// Modify the property of selected glyphs. Redraw lines if needed.
-    fn mod_property(
-        &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
-        property: formatting::PropertyDiff,
-    ) {
+    fn mod_property(&self, ranges: &Vec<buffer::Range<Byte>>, property: formatting::PropertyDiff) {
         if Self::property_change_invalidates_cache(property) {
             self.clear_cache_and_redraw_sorted_line_ranges(ranges.iter().copied())
         } else {
@@ -1288,7 +1284,7 @@ impl TextModel {
     /// Set the property to selected glyphs. No redraw will be performed.
     fn set_glyphs_property_without_line_redraw(
         &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
+        ranges: &Vec<buffer::Range<Byte>>,
         property: formatting::Property,
     ) {
         let property = self.buffer.resolve_property(property);
@@ -1298,7 +1294,7 @@ impl TextModel {
     /// Modify the property of selected glyphs. No redraw will be performed.
     fn mod_glyphs_property_without_line_redraw(
         &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
+        ranges: &Vec<buffer::Range<Byte>>,
         property: formatting::PropertyDiff,
     ) {
         self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
@@ -1307,7 +1303,7 @@ impl TextModel {
     /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_ranges_without_line_redraw(
         &self,
-        ranges: &Vec<buffer::Range<UBytes>>,
+        ranges: &Vec<buffer::Range<Byte>>,
         f: impl Fn(&Glyph),
     ) {
         for &range in ranges {
@@ -1318,10 +1314,10 @@ impl TextModel {
     /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_range_without_line_redraw(
         &self,
-        range: buffer::Range<UBytes>,
+        range: buffer::Range<Byte>,
         f: impl Fn(&Glyph),
     ) {
-        let range = buffer::Range::<ViewLocation<UBytes>>::from_in_context_snapped(self, range);
+        let range = buffer::Range::<ViewLocation<Byte>>::from_in_context_snapped(self, range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
             for glyph in &lines[range.start.line] {

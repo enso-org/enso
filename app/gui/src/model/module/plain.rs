@@ -259,7 +259,7 @@ mod test {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
         let change = TextChange {
-            range: enso_text::Range::new(2.ubytes(), 5.ubytes()),
+            range: enso_text::Range::new(2.byte(), 5.byte()),
             text:  "- abc".to_string(),
         };
         module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
@@ -290,7 +290,7 @@ mod test {
 
         // Code change
         let change = TextChange {
-            range: enso_text::Range::new(0.ubytes(), 1.ubytes()),
+            range: enso_text::Range::new(0.byte(), 1.byte()),
             text:  "foo".to_string(),
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();

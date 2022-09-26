@@ -1,9 +1,10 @@
-//! Definition of strongly typed units, like `Line`, `CodePointIndex`, or `Location`. Used to
-//! express type level dependencies in the whole library.
+//! Definition of strongly typed units, like `Line`, `Byte`, or `Location`. Used to express type
+//! level dependencies in the whole library.
 
 use crate::prelude::*;
 
 use enso_types::unit;
+use std::ops::AddAssign;
 
 
 
@@ -13,11 +14,8 @@ use enso_types::unit;
 
 /// Common traits.
 pub mod traits {
+    pub use super::byte::Into as TRAIT_ubytes_into;
     pub use super::bytes::Into as TRAIT_bytes_into;
-    pub use super::chars::Into as TRAIT_chars_into;
-    pub use super::code_point_index::Into as TRAIT_column_into;
-    // pub use super::line::Into as TRAIT_line_into;
-    pub use super::ubytes::Into as TRAIT_ubytes_into;
 }
 pub use traits::*;
 
@@ -36,16 +34,6 @@ impl Bytes {
     /// Saturating conversion to `usize`.
     pub fn as_usize(self) -> usize {
         self.value.max(0) as usize
-    }
-
-    /// Convert to [`UBytes`]. If the value is negative, returns [`Bytes(0)`] and prints a warning.
-    pub fn as_ubytes(self) -> UBytes {
-        if self.value < 0 {
-            warn!("Trying to convert negative Bytes to UBytes.");
-            UBytes(0)
-        } else {
-            UBytes(self.value as usize)
-        }
     }
 }
 
@@ -70,70 +58,69 @@ impl From<&usize> for Bytes {
     }
 }
 
-impl From<UBytes> for Bytes {
-    fn from(t: UBytes) -> Self {
+impl From<Byte> for Bytes {
+    fn from(t: Byte) -> Self {
         (t.value as i32).into()
     }
 }
 
-impl From<&UBytes> for Bytes {
-    fn from(t: &UBytes) -> Self {
+impl From<&Byte> for Bytes {
+    fn from(t: &Byte) -> Self {
         (t.value as i32).into()
     }
 }
 
 
 
-// ==============
-// === UBytes ===
-// ==============
+// ============
+// === Byte ===
+// ============
 
-// FIXME: change to u32, just as rustybuzz does
 unit! {
-/// Unsigned bytes unit.
-UBytes::ubytes(usize) NO_SUB
+/// A byte index.
+Byte::byte(usize) NO_SUB
 }
 
-impl<T: Into<UBytes>> ubytes::Into for Range<T> {
-    type Output = Range<UBytes>;
-    fn ubytes(self) -> Self::Output {
+impl<T: Into<Byte>> byte::Into for Range<T> {
+    type Output = Range<Byte>;
+    fn byte(self) -> Self::Output {
         let start = self.start.into();
         let end = self.end.into();
         Range { start, end }
     }
 }
 
-impl Sub<UBytes> for UBytes {
+impl Sub<Byte> for Byte {
     type Output = Bytes;
-    fn sub(self, rhs: UBytes) -> Self::Output {
+    fn sub(self, rhs: Byte) -> Self::Output {
         (self.value as i32 - rhs.value as i32).into()
     }
 }
 
-impl Sub<Bytes> for UBytes {
+impl Sub<Bytes> for Byte {
     type Output = Bytes;
     fn sub(self, rhs: Bytes) -> Self::Output {
         (self.value as i32 - rhs.value).into()
     }
 }
 
-impl Sub<UBytes> for Bytes {
+impl Sub<Byte> for Bytes {
     type Output = Bytes;
-    fn sub(self, rhs: UBytes) -> Self::Output {
+    fn sub(self, rhs: Byte) -> Self::Output {
         (self.value - rhs.value as i32).into()
     }
 }
 
-impl Add<Bytes> for UBytes {
+impl Add<Bytes> for Byte {
     type Output = Bytes;
     fn add(self, rhs: Bytes) -> Self::Output {
         (self.value as i32 + rhs.value).into()
     }
 }
 
-impl Add<UBytes> for Bytes {
+impl Add<Byte> for Bytes {
     type Output = Bytes;
-    fn add(self, rhs: UBytes) -> Self::Output {
+    fn add(self, rhs: Byte) -> Self::Output {
         (self.value + rhs.value as i32).into()
     }
 }
@@ -142,142 +129,27 @@ impl Add<UBytes> for Bytes {
 #[derive(Debug, Clone, Copy)]
 pub struct BytesToUBytesConversionError;
 
-impl TryFrom<Bytes> for UBytes {
+impl TryFrom<Bytes> for Byte {
     type Error = BytesToUBytesConversionError;
 
     fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
         if bytes.value < 0 {
             Err(BytesToUBytesConversionError)
         } else {
-            Ok(UBytes::from(bytes.value as usize))
+            Ok(Byte::from(bytes.value as usize))
         }
     }
 }
 
 
 
-// =============
-// === Chars ===
-// =============
-
-// FIXME: use CodePointIndex instead
-unit! {
-/// An offset in the buffer in Rust's chars (being roughly the Unicode code points.
-///
-/// See [`crate`] documentation to know more about codepoints.
-Chars::chars(i32)
-}
-
-impl Chars {
-    /// Saturating conversion to `usize`.
-    pub fn as_usize(self) -> usize {
-        self.value.max(0) as usize
-    }
-}
-
-impl<T: Into<Chars>> chars::Into for Range<T> {
-    type Output = Range<Chars>;
-    fn chars(self) -> Self::Output {
-        let start = self.start.into();
-        let end = self.end.into();
-        Range { start, end }
-    }
-}
-
-impl From<usize> for Chars {
-    fn from(t: usize) -> Self {
-        (t as i32).into()
-    }
-}
-
-impl From<&usize> for Chars {
-    fn from(t: &usize) -> Self {
-        (*t as i32).into()
-    }
-}
-
-impl serde::Serialize for Chars {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        i32::from(self).serialize(serializer)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Chars {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
-        i32::deserialize(deserializer).map(|val| val.into())
-    }
-}
-
-
 // ============
 // === Line ===
 // ============
 
-// // FIXME: make Line usize and separate type for LineDiff - this should not be implemented for i32
-//
-// // TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
-// //       This will make this unit safer.
-// unit! {
-// /// A type representing vertical measurements.
-// Line::line(i32)
-// }
-//
-// impl Line {
-//     /// Saturating conversion to `usize`.
-//     pub fn as_usize(self) -> usize {
-//         self.value.max(0) as usize
-//     }
-//
-//     /// Compute the absolute value of this line.
-//     pub fn abs(self) -> Self {
-//         self.value.saturating_abs().into()
-//     }
-// }
-//
-// impl From<usize> for Line {
-//     fn from(t: usize) -> Self {
-//         (t as i32).into()
-//     }
-// }
-//
-// impl From<&usize> for Line {
-//     fn from(t: &usize) -> Self {
-//         (*t as i32).into()
-//     }
-// }
-//
-// impl std::iter::Step for Line {
-//     fn steps_between(start: &Self, end: &Self) -> Option<usize> {
-//         if start.value <= end.value {
-//             Some((end.value - start.value) as usize)
-//         } else {
-//             None
-//         }
-//     }
-//
-//     fn forward_checked(start: Self, count: usize) -> Option<Self> {
-//         let new_value = start.value.checked_add(count as i32)?;
-//         Some(new_value.into())
-//     }
-//
-//     fn backward_checked(start: Self, count: usize) -> Option<Self> {
-//         let new_value = start.value.checked_sub(count as i32)?;
-//         Some(new_value.into())
-//     }
-// }
-
-
-// unit! {
-//     ViewLine::view_line(usize)
-// }
-
-use std::ops::AddAssign;
-
 macro_rules! define_line_unit {
     ($name:ident) => {
-        /// A line unit.
+        /// A line index.
         #[derive(
             Clone, Copy, Debug, Display, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into
         )]
@@ -406,20 +278,6 @@ macro_rules! define_line_unit {
             }
         }
 
-        // #[allow(clippy::needless_update)]
-        // impl SubAssign<$name> for $name {
-        //     fn sub_assign(&mut self, rhs: $name) {
-        //         *self = self.sub(rhs)
-        //     }
-        // }
-        //
-        // #[allow(clippy::needless_update)]
-        // impl SubAssign<&$name> for $name {
-        //     fn sub_assign(&mut self, rhs: &$name) {
-        //         self.sub_assign(*rhs)
-        //     }
-        // }
-
         impl $name {
             /// Increment the value.
             pub fn inc(self) -> Self {
@@ -448,6 +306,12 @@ macro_rules! define_line_unit {
 
 define_line_unit!(Line);
 define_line_unit!(ViewLine);
+
+
+
+// ================
+// === LineDiff ===
+// ================
 
 /// The difference between lines.
 #[allow(missing_docs)]
@@ -544,8 +408,13 @@ impl Add<&LineDiff> for &ViewLine {
 }
 
 
+
+// ==============
+// === Column ===
+// ==============
+
 unit! {
-/// Unsigned bytes unit.
+/// A column index.
 Column::column(usize)
 }
 
@@ -555,42 +424,6 @@ impl<T: Into<Column>> column::Into for Range<T> {
         let start = self.start.into();
         let end = self.end.into();
         Range { start, end }
-    }
-}
-
-
-
-// ==============
-// === CodePointIndex ===
-// ==============
-
-// TODO: Improvement idea. Create `i32Saturated` type which will have all operations saturated.
-//       This will make this unit safer.
-unit! {
-CodePointIndex::code_point_index(i32)
-}
-
-impl CodePointIndex {
-    /// Saturating conversion to `usize`.
-    pub fn as_usize(self) -> usize {
-        self.value.max(0) as usize
-    }
-
-    /// Compute the absolute value of this column.
-    pub fn abs(self) -> Self {
-        self.value.saturating_abs().into()
-    }
-}
-
-impl From<usize> for CodePointIndex {
-    fn from(t: usize) -> Self {
-        (t as i32).into()
-    }
-}
-
-impl From<&usize> for CodePointIndex {
-    fn from(t: &usize) -> Self {
-        (*t as i32).into()
     }
 }
 
@@ -773,6 +606,11 @@ mod location {
 }
 pub use location::*;
 
+
+
+// ====================
+// === ViewLocation ===
+// ====================
 
 /// Alias for [`Location`] with [`ViewLine`] as line index.
 pub type ViewLocation<Offset = Column> = Location<Offset, ViewLine>;

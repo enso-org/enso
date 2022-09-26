@@ -21,7 +21,7 @@ pub struct Spans<T: Clone> {
 
 impl<T: Clone + Debug> Spans<T> {
     /// The number of bytes of this span.
-    pub fn len(&self) -> UBytes {
+    pub fn len(&self) -> Byte {
         self.raw.len().into()
     }
 
@@ -37,39 +37,39 @@ impl<T: Clone + Debug> Spans<T> {
     /// and then creates a new byte subsequence of the length `length` and associates it with the
     /// `value`. Use with caution, as it can easily lead to wrong amount of bytes covered by the
     /// span.
-    pub fn replace_resize(&mut self, range: Range<UBytes>, length: UBytes, value: T) {
+    pub fn replace_resize(&mut self, range: Range<Byte>, length: Byte, value: T) {
         let mut builder = rope::spans::Builder::new(length.value);
         builder.add_span(.., value);
         self.raw.edit(range.into_rope_interval(), builder.build())
     }
 
     /// Modify the parameter value in the given range.
-    pub fn modify(&mut self, range: Range<UBytes>, f: impl Fn(T) -> T) {
+    pub fn modify(&mut self, range: Range<Byte>, f: impl Fn(T) -> T) {
         let subseq = self.raw.subseq(range.into_rope_interval());
         for t in subseq.iter() {
-            let sub_start: UBytes = t.0.start.into();
-            let sub_end: UBytes = t.0.end.into();
+            let sub_start: Byte = t.0.start.into();
+            let sub_end: Byte = t.0.end.into();
             let start = range.start + sub_start;
             let end = range.start + sub_end;
             let range = Range::new(start, end);
-            let size = UBytes::try_from(range.size()).unwrap();
+            let size = Byte::try_from(range.size()).unwrap();
             self.replace_resize(range, size, f(t.1.clone()));
         }
     }
 
     /// Return all spans contained in the provided range.
-    pub fn sub(&self, range: Range<UBytes>) -> Self {
+    pub fn sub(&self, range: Range<Byte>) -> Self {
         Self { raw: self.raw.subseq(range.into_rope_interval()) }
     }
 
     // FIXME: convert to iterator
     /// Convert the span tree to vector of non-overlapping ranges and their values.
-    pub fn to_vector(&self) -> Vec<RangedValue<UBytes, T>> {
+    pub fn to_vector(&self) -> Vec<RangedValue<Byte, T>> {
         self.raw
             .iter()
             .map(|t| {
-                let start: UBytes = t.0.start.into();
-                let end: UBytes = t.0.end.into();
+                let start: Byte = t.0.start.into();
+                let end: Byte = t.0.end.into();
                 RangedValue::new(start..end, t.1.clone())
             })
             .collect()

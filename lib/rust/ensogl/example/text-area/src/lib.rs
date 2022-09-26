@@ -183,7 +183,7 @@ fn init(app: Application) {
 
 
 
-    // TODO: UBytes -> Bytes, Bytes -> BytesDiff
+    // TODO: Byte -> Bytes, Bytes -> BytesDiff
     // TODO: macrem definiowanie NotSame
     // TODO: Lines -> ViewLines
     // TODO: API -> struct Text + style guide?
@@ -203,13 +203,13 @@ fn init(app: Application) {
     //     Range::new(Column(0), Column(3)),
     //     style::Property::Weight(style::Weight::Bold),
     // );
-    // area.set_format_option(Range::new(4.ubytes(), 6.ubytes()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(7.ubytes(), 15.ubytes()), style::SdfWeight(0.04));
-    // area.set_sdf_weight(Range::new(24.ubytes(), 26.ubytes()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(37.ubytes(), 41.ubytes()), style::SdfWeight(0.05));
-    // area.set_sdf_weight(Range::new(55.ubytes(), 56.ubytes()), style::SdfWeight(0.03));
-    // let quote_length = UBytes::from(quote.len());
-    // let text_length = UBytes::from(text.len());
+    // area.set_format_option(Range::new(4.byte(), 6.byte()), style::SdfWeight(0.02));
+    // area.set_sdf_weight(Range::new(7.byte(), 15.byte()), style::SdfWeight(0.04));
+    // area.set_sdf_weight(Range::new(24.byte(), 26.byte()), style::SdfWeight(0.02));
+    // area.set_sdf_weight(Range::new(37.byte(), 41.byte()), style::SdfWeight(0.05));
+    // area.set_sdf_weight(Range::new(55.byte(), 56.byte()), style::SdfWeight(0.03));
+    // let quote_length = Byte::from(quote.len());
+    // let text_length = Byte::from(text.len());
     // area.set_sdf_weight(Range::new(quote_length, text_length), style::SdfWeight(0.02));
 
     let scene = &app.display.default_scene;
@@ -222,12 +222,12 @@ fn init(app: Application) {
     // let range_green: buffer::Range<Location> =
     //     buffer::Range::from(Location(Line(0), Column(1))..Location(Line(0), Column(71)));
     // area.set_property(range_green, color::Rgba::green());
-    // area.set_property(buffer::Range::from(UBytes(1)..UBytes(3)), style::Weight::Bold);
+    // area.set_property(buffer::Range::from(Byte(1)..Byte(3)), style::Weight::Bold);
 
     // area.set_color(range_green, color::Rgba::red());
-    // area.format(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
+    // area.format(buffer::Range::from(Byte(1)..Byte(3)), style::SdfWeight(0.02));
     // area.set_color_all(color::Rgba::red());
-    // area.set_sdf_weight(buffer::Range::from(UBytes(1)..UBytes(3)), style::SdfWeight(0.02));
+    // area.set_sdf_weight(buffer::Range::from(Byte(1)..Byte(3)), style::SdfWeight(0.02));
 
 
     // let text = "red green blue";
@@ -238,9 +238,9 @@ fn init(app: Application) {
     //
     // colored_area.set_default_color(color::Rgba::black());
     // colored_area.set_content(text);
-    // let range_green = buffer::Range::from(UBytes(4)..UBytes(9));
+    // let range_green = buffer::Range::from(Byte(4)..Byte(9));
     // colored_area.set_color(range_green, color::Rgba::green());
-    // let range_blue = buffer::Range::from(UBytes(10)..UBytes(14));
+    // let range_blue = buffer::Range::from(Byte(10)..Byte(14));
     // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
     warn!("=========================\n\n\n\n");
 

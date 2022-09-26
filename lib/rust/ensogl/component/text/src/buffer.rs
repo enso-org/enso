@@ -73,7 +73,7 @@ pub struct HistoryData {
 /// `BufferModel`.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
-pub struct Modification<T = UBytes> {
+pub struct Modification<T = Byte> {
     pub changes:         Vec<Change<T>>,
     pub selection_group: selection::Group,
     /// Byte offset of this modification. For example, after pressing a backspace with a cursor
@@ -101,7 +101,7 @@ impl<T> Modification<T> {
 /// redrawing.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref)]
-pub struct Change<Metric = UBytes, Str = Rope> {
+pub struct Change<Metric = Byte, Str = Rope> {
     #[deref]
     pub change:       text::Change<Metric, Str>,
     pub change_range: RangeInclusive<Line>,
@@ -135,7 +135,7 @@ pub enum ShapedLine {
     Empty {
         /// Shaped newline character ending the previous line if any. It is used to calculate the
         /// line style (e.g. its height) for empty lines.
-        prev_glyph_info: Option<(UBytes, ShapedGlyphSet)>,
+        prev_glyph_info: Option<(Byte, ShapedGlyphSet)>,
     },
 }
 
@@ -179,8 +179,8 @@ pub struct ShapedGlyph {
 
 impl ShapedGlyph {
     /// Returns the byte start of this glyph.
-    pub fn start_byte(&self) -> UBytes {
-        UBytes(self.info.cluster as usize)
+    pub fn start_byte(&self) -> Byte {
+        Byte(self.info.cluster as usize)
     }
 
     /// The glyph id, index of glyph in the font.
@@ -221,8 +221,8 @@ ensogl_core::define_endpoints! {
         keep_newest_cursor_only    (),
         undo                       (),
         redo                       (),
-        set_property               (Rc<Vec<Range<UBytes>>>, Option<Property>),
-        mod_property               (Rc<Vec<Range<UBytes>>>, Option<PropertyDiff>),
+        set_property               (Rc<Vec<Range<Byte>>>, Option<Property>),
+        mod_property               (Rc<Vec<Range<Byte>>>, Option<PropertyDiff>),
         set_property_default       (Option<ResolvedProperty>),
         set_first_view_line        (Line),
         mod_first_view_line        (LineDiff),
@@ -400,8 +400,8 @@ impl BufferModel {
 
 impl BufferModel {
     /// The full text range.
-    pub fn full_range(&self) -> Range<UBytes> {
-        let start = UBytes::from(0);
+    pub fn full_range(&self) -> Range<Byte> {
+        let start = Byte::from(0);
         let end = self.last_line_end_byte_offset();
         Range { start, end }
     }
@@ -453,37 +453,37 @@ impl BufferModel {
     }
 
     /// Byte offset of the first line of this buffer view.
-    pub fn first_view_line_byte_offset(&self) -> UBytes {
+    pub fn first_view_line_byte_offset(&self) -> Byte {
         self.byte_offset_of_line_index(self.first_view_line()).unwrap()
     }
 
     /// Byte offset of the last line of this buffer view.
-    pub fn last_view_line_byte_offset(&self) -> UBytes {
+    pub fn last_view_line_byte_offset(&self) -> Byte {
         self.byte_offset_of_line_index(self.last_view_line()).unwrap()
     }
 
     /// Byte offset range of lines visible in this buffer view.
-    pub fn view_line_byte_offset_range(&self) -> std::ops::Range<UBytes> {
+    pub fn view_line_byte_offset_range(&self) -> std::ops::Range<Byte> {
         self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
     }
 
     /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
-    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
+    pub fn view_end_byte_offset_snapped(&self) -> Byte {
         self.end_byte_offset_of_line_index_snapped(self.last_view_line())
     }
 
     /// Return the offset after the last character of a given view line if the line exists.
-    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
+    pub fn end_offset_of_view_line(&self, line: Line) -> Option<Byte> {
         self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
     }
 
     /// The byte range of this buffer view.
-    pub fn view_byte_range(&self) -> std::ops::Range<UBytes> {
+    pub fn view_byte_range(&self) -> std::ops::Range<Byte> {
         self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
     }
 
     /// The byte offset of the given buffer view line index.
-    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
+    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<Byte, BoundsError> {
         let line = self.first_view_line() + view_line;
         self.byte_offset_of_line_index(line)
     }
@@ -492,13 +492,13 @@ impl BufferModel {
     pub fn byte_range_of_view_line_index_snapped(
         &self,
         view_line: ViewLine,
-    ) -> std::ops::Range<UBytes> {
+    ) -> std::ops::Range<Byte> {
         let line = Line::from_in_context_snapped(self, view_line);
         self.byte_range_of_line_index_snapped(line)
     }
 
     /// End byte offset of the last line.
-    pub fn last_line_end_byte_offset(&self) -> UBytes {
+    pub fn last_line_end_byte_offset(&self) -> Byte {
         self.rope.text().last_line_end_byte_offset()
     }
 }
@@ -573,9 +573,9 @@ impl BufferModel {
     }
 
     /// Current selections expressed in bytes.
-    pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
+    pub fn byte_selections(&self) -> Vec<Selection<Byte>> {
         let selections = self.selection.borrow().clone();
-        selections.iter().map(|s| Selection::<UBytes>::from_in_context_snapped(self, *s)).collect()
+        selections.iter().map(|s| Selection::<Byte>::from_in_context_snapped(self, *s)).collect()
     }
 
     /// Set the selection to a new value.
@@ -628,7 +628,7 @@ impl BufferModel {
     }
 
     /// Recompute the shape of the provided byte range.
-    fn shape_range(&self, range: std::ops::Range<UBytes>) -> Vec<ShapedGlyphSet> {
+    fn shape_range(&self, range: std::ops::Range<Byte>) -> Vec<ShapedGlyphSet> {
         let line_style = self.sub_style(range.clone());
         let content = self.rope.sub(range).to_string();
         let font = &self.font;
@@ -718,7 +718,7 @@ impl BufferModel {
         font: &'a Font,
         line_style: &'a Formatting,
         content: &'a str,
-    ) -> impl Iterator<Item = (std::ops::Range<UBytes>, NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (std::ops::Range<Byte>, NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
             match font {
                 Font::NonVariable(_) =>
@@ -726,7 +726,7 @@ impl BufferModel {
                         yield chunk;
                     }
                 Font::Variable(_) => {
-                    let range = UBytes(0)..UBytes(content.len());
+                    let range = Byte(0)..Byte(content.len());
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);
@@ -800,9 +800,9 @@ impl BufferModel {
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
             let byte_selection = byte_selection.map_shape(|t| {
                 t.map(|bytes| {
-                    UBytes::try_from(bytes).unwrap_or_else(|_| {
+                    Byte::try_from(bytes).unwrap_or_else(|_| {
                         error!("Negative byte selection");
-                        UBytes(0)
+                        Byte(0)
                     })
                 })
             });
@@ -830,7 +830,7 @@ impl BufferModel {
             _ => selection,
         };
 
-        let byte_selection = Selection::<UBytes>::from_in_context_snapped(self, transformed);
+        let byte_selection = Selection::<Byte>::from_in_context_snapped(self, transformed);
         let line_selection =
             Selection::<ViewLocation>::from_in_context_snapped(self, byte_selection);
         let line_selection = line_selection.map_shape(|s| s.normalized());
@@ -840,7 +840,7 @@ impl BufferModel {
         let new_byte_cursor_pos = range.start + text_byte_size;
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
         let local_byte_selection =
-            Selection::<Location<UBytes>>::from_in_context_snapped(self, new_byte_selection);
+            Selection::<Location<Byte>>::from_in_context_snapped(self, new_byte_selection);
 
         let redraw_start_line = transformed.min().line;
         let redraw_end_line = transformed.max().line;
@@ -877,7 +877,7 @@ impl BufferModel {
 // === Properties ===
 
 impl BufferModel {
-    fn set_property(&self, ranges: &Vec<Range<UBytes>>, property: Option<Property>) {
+    fn set_property(&self, ranges: &Vec<Range<Byte>>, property: Option<Property>) {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
@@ -886,7 +886,7 @@ impl BufferModel {
         }
     }
 
-    fn mod_property(&self, ranges: &Vec<Range<UBytes>>, property: Option<PropertyDiff>) {
+    fn mod_property(&self, ranges: &Vec<Range<Byte>>, property: Option<PropertyDiff>) {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
@@ -989,15 +989,15 @@ impl BufferModel {
 pub enum RangeLike {
     #[default]
     Selections,
-    BufferRangeUBytes(Range<UBytes>),
+    BufferRangeUBytes(Range<Byte>),
     BufferRangeLocationColumn(Range<Location>),
-    RangeBytes(std::ops::Range<UBytes>),
+    RangeBytes(std::ops::Range<Byte>),
     RangeFull(RangeFull),
 }
 
 impl RangeLike {
     /// Expand the [`RangeLike`] to vector of text ranges.
-    pub fn expand(&self, buffer: &BufferModel) -> Vec<Range<UBytes>> {
+    pub fn expand(&self, buffer: &BufferModel) -> Vec<Range<Byte>> {
         match self {
             RangeLike::Selections => {
                 let byte_selections = buffer.byte_selections().into_iter();
@@ -1013,8 +1013,8 @@ impl RangeLike {
             RangeLike::RangeBytes(range) => vec![range.into()],
             RangeLike::RangeFull(_) => vec![buffer.full_range()],
             RangeLike::BufferRangeLocationColumn(range) => {
-                let start = UBytes::from_in_context_snapped(buffer, range.start);
-                let end = UBytes::from_in_context_snapped(buffer, range.end);
+                let start = Byte::from_in_context_snapped(buffer, range.start);
+                let end = Byte::from_in_context_snapped(buffer, range.end);
                 vec![Range::new(start, end)]
             }
         }
@@ -1033,9 +1033,9 @@ impl RangeLike {
 #[derive(Debug, Copy, Clone, From)]
 pub enum LocationLike {
     LocationColumnLine(Location<Column, Line>),
-    LocationUBytesLine(Location<UBytes, Line>),
+    LocationUBytesLine(Location<Byte, Line>),
     LocationColumnViewLine(Location<Column, ViewLine>),
-    LocationUBytesViewLine(Location<UBytes, ViewLine>),
+    LocationUBytesViewLine(Location<Byte, ViewLine>),
 }
 
 impl Default for LocationLike {
@@ -1169,9 +1169,9 @@ impl<T> FromInContextSnapped<&BufferModel, Location<T, ViewLine>> for Line {
     }
 }
 
-impl FromInContextSnapped<&BufferModel, UBytes> for Line {
-    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
-        Location::<UBytes, Line>::from_in_context_snapped(buffer, offset).line
+impl FromInContextSnapped<&BufferModel, Byte> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Byte) -> Self {
+        Location::<Byte, Line>::from_in_context_snapped(buffer, offset).line
     }
 }
 
@@ -1220,50 +1220,50 @@ impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
 }
 
 
-// === Conversions to UBytes ===
+// === Conversions to Byte ===
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for UBytes {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Byte {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
         buffer.byte_offset_of_line_index(location.line).unwrap() + location.offset
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for UBytes {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, location);
-        UBytes::from_in_context_snapped(buffer, location)
+impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Byte {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, ViewLine>) -> Self {
+        let location = Location::<Byte, Line>::from_in_context_snapped(buffer, location);
+        Byte::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for UBytes {
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Byte {
     fn from_in_context_snapped(context: &BufferModel, location: Location) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context_snapped(context, location);
-        UBytes::from_in_context_snapped(context, location)
+        let location = Location::<Byte, Line>::from_in_context_snapped(context, location);
+        Byte::from_in_context_snapped(context, location)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for UBytes {
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Byte {
     fn from_in_context_snapped(
         context: &BufferModel,
         location: Location<Column, ViewLine>,
     ) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context_snapped(context, location);
-        UBytes::from_in_context_snapped(context, location)
+        let location = Location::<Byte, Line>::from_in_context_snapped(context, location);
+        Byte::from_in_context_snapped(context, location)
     }
 }
 
 
 // === Conversions to Location<Column, Line> ===
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Column, Line> {
-    fn from_in_context_snapped(context: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Column, Line> {
+    fn from_in_context_snapped(context: &BufferModel, location: Location<Byte, Line>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
             if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
                 for glyph_set in glyph_sets {
                     for glyph in &glyph_set.glyphs {
-                        let byte_offset = UBytes(glyph.info.cluster as usize);
+                        let byte_offset = Byte(glyph.info.cluster as usize);
                         if byte_offset >= location.offset {
                             if byte_offset > location.offset {
                                 error!("Glyph byte offset mismatch");
@@ -1299,53 +1299,50 @@ impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, Line> {
-    fn from_in_context_snapped(
-        context: &BufferModel,
-        location: Location<UBytes, ViewLine>,
-    ) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Location<Column, Line> {
+    fn from_in_context_snapped(context: &BufferModel, location: Location<Byte, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(context, location.line);
         Location::from_in_context_snapped(context, Location(line, location.offset))
     }
 }
 
-impl FromInContextSnapped<&BufferModel, UBytes> for Location<Column, Line> {
-    fn from_in_context_snapped(context: &BufferModel, offset: UBytes) -> Self {
+impl FromInContextSnapped<&BufferModel, Byte> for Location<Column, Line> {
+    fn from_in_context_snapped(context: &BufferModel, offset: Byte) -> Self {
         Location::from_in_context_snapped(
             context,
-            Location::<UBytes>::from_in_context_snapped(context, offset),
+            Location::<Byte>::from_in_context_snapped(context, offset),
         )
     }
 }
 
 
-// === Conversions to Location<UBytes, ViewLine> ===
+// === Conversions to Location<Byte, ViewLine> ===
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<UBytes, ViewLine> {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Byte, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
         let line = ViewLine::from_in_context_snapped(buffer, location.line);
         location.with_line(line)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBytes, ViewLine> {
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byte, ViewLine> {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, location);
-        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location)
+        let location = Location::<Byte, Line>::from_in_context_snapped(buffer, location);
+        Location::<Byte, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, ViewLine> {
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<Byte, ViewLine> {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(buffer, location.line);
-        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location.with_line(line))
+        Location::<Byte, ViewLine>::from_in_context_snapped(buffer, location.with_line(line))
     }
 }
 
-impl FromInContextSnapped<&BufferModel, UBytes> for Location<UBytes, ViewLine> {
-    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, offset);
-        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location)
+impl FromInContextSnapped<&BufferModel, Byte> for Location<Byte, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Byte) -> Self {
+        let location = Location::<Byte, Line>::from_in_context_snapped(buffer, offset);
+        Location::<Byte, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
@@ -1359,31 +1356,31 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Col
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Column, ViewLine> {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
         let location = Location::<Column, Line>::from_in_context_snapped(buffer, location);
         Location::<Column, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, ViewLine> {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(buffer, location.line);
         Location::<Column, ViewLine>::from_in_context_snapped(buffer, location.with_line(line))
     }
 }
 
-impl FromInContextSnapped<&BufferModel, UBytes> for Location<Column, ViewLine> {
-    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
+impl FromInContextSnapped<&BufferModel, Byte> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Byte) -> Self {
         let location = Location::<Column, Line>::from_in_context_snapped(buffer, offset);
         Location::<Column, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
 
-// === Conversions to Location<UBytes, Line> ===
+// === Conversions to Location<Byte, Line> ===
 
-impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBytes, Line> {
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byte, Line> {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
         buffer.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
@@ -1393,7 +1390,7 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBy
                 for glyph_set in glyph_sets {
                     for glyph in &glyph_set.glyphs {
                         if column == location.offset {
-                            byte_offset = Some(UBytes(glyph.info.cluster as usize));
+                            byte_offset = Some(Byte(glyph.info.cluster as usize));
                             found = true;
                             break;
                         }
@@ -1408,7 +1405,7 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBy
                 // Too big column requested, returning last column.
                 let end_byte_offset = buffer.end_byte_offset_of_line_index(location.line).unwrap();
                 let location2 =
-                    Location::<UBytes, Line>::from_in_context_snapped(buffer, end_byte_offset);
+                    Location::<Byte, Line>::from_in_context_snapped(buffer, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)
             });
@@ -1417,23 +1414,23 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBy
     }
 }
 
-impl FromInContextSnapped<&BufferModel, UBytes> for Location<UBytes, Line> {
-    fn from_in_context_snapped(context: &BufferModel, offset: UBytes) -> Self {
+impl FromInContextSnapped<&BufferModel, Byte> for Location<Byte, Line> {
+    fn from_in_context_snapped(context: &BufferModel, offset: Byte) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
-        let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
+        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<UBytes, Line> {
-    fn from_in_context_snapped(buffer: &BufferModel, offset: Location<UBytes, ViewLine>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Location<Byte, Line> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Location<Byte, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(buffer, offset.line);
         Location(line, offset.offset)
     }
 }
 
-impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, Line> {
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<Byte, Line> {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(buffer, location.line);
         Location::from_in_context_snapped(buffer, location.with_line(line))

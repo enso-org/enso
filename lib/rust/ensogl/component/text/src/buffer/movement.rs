@@ -175,15 +175,15 @@ impl BufferModel {
             }
 
             Transform::LeftWord => {
-                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
+                let end_offset = Byte::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
-                let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.ubytes());
+                let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.byte());
                 let end = Location::from_in_context_snapped(self, offset);
                 shape(selection.start, end)
             }
 
             Transform::RightWord => {
-                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
+                let end_offset = Byte::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offset = word_cursor.next_boundary().unwrap_or_else(|| text.byte_size());
                 let end = Location::from_in_context_snapped(self, offset);
@@ -191,7 +191,7 @@ impl BufferModel {
             }
 
             Transform::Word => {
-                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
+                let end_offset = Byte::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offsets = word_cursor.select_word();
                 let start = Location::from_in_context_snapped(self, offsets.0);

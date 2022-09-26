@@ -577,14 +577,14 @@ impl TextEdit {
 
         let source_start_byte = common_lengths.prefix;
         let source_end_byte = Bytes::from(source.len()) - common_lengths.suffix;
-        let source_end_byte = UBytes::try_from(source_end_byte).unwrap(); // FIXME: handle error
+        let source_end_byte = Byte::try_from(source_end_byte).unwrap(); // FIXME: handle error
 
         let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
         let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
         let target_len: Bytes = target.len().into();
-        let end = UBytes::try_from(target_len - common_lengths.suffix).unwrap(); // FIXME: handle error
+        let end = Byte::try_from(target_len - common_lengths.suffix).unwrap(); // FIXME: handle error
         let target_range = common_lengths.prefix..end;
         let target_text = target.sub(target_range).to_string();
 

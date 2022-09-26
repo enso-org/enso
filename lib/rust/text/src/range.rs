@@ -110,9 +110,9 @@ impl<Offset, Line: PartialEq> Range<Location<Offset, Line>> {
 }
 
 
-// === Range<UBytes> methods ===
+// === Range<Byte> methods ===
 
-impl Range<UBytes> {
+impl Range<Byte> {
     /// Convert to `rope::Interval`.
     pub fn into_rope_interval(self) -> rope::Interval {
         self.into()
@@ -153,38 +153,38 @@ impl<T: PartialEq<T>> PartialEq<std::ops::Range<T>> for Range<T> {
 }
 
 
-// === UBytes Impls ===
+// === Byte Impls ===
 
-impl From<RangeTo<UBytes>> for Range<UBytes> {
-    fn from(range: RangeTo<UBytes>) -> Range<UBytes> {
-        Range::new(0.ubytes(), range.end)
+impl From<RangeTo<Byte>> for Range<Byte> {
+    fn from(range: RangeTo<Byte>) -> Range<Byte> {
+        Range::new(0.byte(), range.end)
     }
 }
 
-impl From<RangeInclusive<UBytes>> for Range<UBytes> {
-    fn from(range: RangeInclusive<UBytes>) -> Range<UBytes> {
-        Range::new(*range.start(), range.end().saturating_add(1.ubytes()))
+impl From<RangeInclusive<Byte>> for Range<Byte> {
+    fn from(range: RangeInclusive<Byte>) -> Range<Byte> {
+        Range::new(*range.start(), range.end().saturating_add(1.byte()))
     }
 }
 
-impl From<RangeToInclusive<UBytes>> for Range<UBytes> {
-    fn from(range: RangeToInclusive<UBytes>) -> Range<UBytes> {
-        Range::new(0.ubytes(), range.end.saturating_add(1.ubytes()))
+impl From<RangeToInclusive<Byte>> for Range<Byte> {
+    fn from(range: RangeToInclusive<Byte>) -> Range<Byte> {
+        Range::new(0.byte(), range.end.saturating_add(1.byte()))
     }
 }
 
-impl Index<Range<UBytes>> for str {
+impl Index<Range<Byte>> for str {
     type Output = str;
-    fn index(&self, index: Range<UBytes>) -> &Self::Output {
+    fn index(&self, index: Range<Byte>) -> &Self::Output {
         let start = index.start.value;
         let end = index.end.value;
         &self[start..end]
     }
 }
 
-impl Index<Range<UBytes>> for String {
+impl Index<Range<Byte>> for String {
     type Output = str;
-    fn index(&self, index: Range<UBytes>) -> &Self::Output {
+    fn index(&self, index: Range<Byte>) -> &Self::Output {
         &self.as_str()[index]
     }
 }
@@ -214,37 +214,37 @@ impl<T: Clone> From<&Range<T>> for Range<T> {
     }
 }
 
-impl From<Range<UBytes>> for rope::Interval {
-    fn from(t: Range<UBytes>) -> Self {
+impl From<Range<Byte>> for rope::Interval {
+    fn from(t: Range<Byte>) -> Self {
         Self { start: t.start.value, end: t.end.value }
     }
 }
 
-impl From<Range<UBytes>> for Range<Bytes> {
-    fn from(t: Range<UBytes>) -> Self {
+impl From<Range<Byte>> for Range<Bytes> {
+    fn from(t: Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
         Self { start, end }
     }
 }
 
-impl From<&Range<UBytes>> for Range<Bytes> {
-    fn from(t: &Range<UBytes>) -> Self {
+impl From<&Range<Byte>> for Range<Bytes> {
+    fn from(t: &Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
         Self { start, end }
     }
 }
 
-impl From<&mut Range<UBytes>> for Range<Bytes> {
-    fn from(t: &mut Range<UBytes>) -> Self {
+impl From<&mut Range<Byte>> for Range<Bytes> {
+    fn from(t: &mut Range<Byte>) -> Self {
         let start = t.start.into();
         let end = t.end.into();
         Self { start, end }
     }
 }
 
-impl TryFrom<Range<Bytes>> for Range<UBytes> {
+impl TryFrom<Range<Bytes>> for Range<Byte> {
     type Error = BytesToUBytesConversionError;
     fn try_from(t: Range<Bytes>) -> Result<Self, Self::Error> {
         let start = t.start.try_into()?;
@@ -264,23 +264,23 @@ impl TryFrom<Range<Bytes>> for Range<UBytes> {
 /// 0 bytes and the total bytes of the text.
 pub trait RangeBounds {
     /// Clamp the range to the total bytes of the text/
-    fn with_upper_bound(self, upper_bound: UBytes) -> Range<UBytes>;
+    fn with_upper_bound(self, upper_bound: Byte) -> Range<Byte>;
 }
 
-impl<T: Into<Range<UBytes>>> RangeBounds for T {
-    fn with_upper_bound(self, _upper_bound: UBytes) -> Range<UBytes> {
+impl<T: Into<Range<Byte>>> RangeBounds for T {
+    fn with_upper_bound(self, _upper_bound: Byte) -> Range<Byte> {
         self.into()
     }
 }
 
-impl RangeBounds for RangeFrom<UBytes> {
-    fn with_upper_bound(self, upper_bound: UBytes) -> Range<UBytes> {
+impl RangeBounds for RangeFrom<Byte> {
+    fn with_upper_bound(self, upper_bound: Byte) -> Range<Byte> {
         Range::new(self.start, upper_bound)
     }
 }
 
 impl RangeBounds for RangeFull {
-    fn with_upper_bound(self, upper_bound: UBytes) -> Range<UBytes> {
-        Range::new(0.ubytes(), upper_bound)
+    fn with_upper_bound(self, upper_bound: Byte) -> Range<Byte> {
+        Range::new(0.byte(), upper_bound)
     }
 }
