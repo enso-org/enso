@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
 
 /** An implementation of the case expression specialised to working on Time_Zone. */
-@NodeInfo(shortName = "DateMatch")
+@NodeInfo(shortName = "TimeZoneMatch")
 public abstract class TimeZoneBranchNode extends BranchNode {
   private final Type timeZone;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();

@@ -52,7 +52,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         [].to_array.is_an Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
         [1,2,3].is_a Vector.Vector . should_be_true
-        [1,2,3].is_a Array . should_be_false
+        [1,2,3].is_an Array . should_be_false
 
         Boolean.is_a Boolean . should_be_true
         True.is_a Boolean . should_be_true

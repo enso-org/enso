@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.Type;
 
 /** An implementation of the case expression specialised to working on Date_Time. */
-@NodeInfo(shortName = "DateMatch")
+@NodeInfo(shortName = "DateTimeMatch")
 public abstract class DateTimeBranchNode extends BranchNode {
   private final Type dateTime;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
