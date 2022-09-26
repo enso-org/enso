@@ -57,6 +57,12 @@ type Filter_Condition
     ## Is the value not contained in `values`?
     Not_In values:Vector
 
+    ## Is the value equal to True (Boolean only)?
+    Is_True
+
+    ## Is the value equal to False (Boolean only)?
+    Is_False
+
 
 ## PRIVATE
    Convert a SQL like
