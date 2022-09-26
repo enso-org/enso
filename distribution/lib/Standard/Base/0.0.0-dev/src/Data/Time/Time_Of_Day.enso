@@ -330,5 +330,9 @@ type Time_Of_Day
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
     == self that =
-        sign = Time_Utils.compare_to_localtime self that
-        0 == sign
+        case that of
+            Time_Of_Day ->
+                sign = Time_Utils.compare_to_localtime self that
+                0 == sign
+            _ ->
+                False

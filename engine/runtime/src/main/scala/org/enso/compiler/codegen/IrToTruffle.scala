@@ -951,6 +951,10 @@ class IrToTruffle(
                   val any         = context.getBuiltins.any
                   val array       = context.getBuiltins.array
                   val vector      = context.getBuiltins.vector
+                  val date        = context.getBuiltins.date
+                  val dateTime    = context.getBuiltins.dateTime
+                  val timeOfDay   = context.getBuiltins.timeOfDay
+                  val timeZone    = context.getBuiltins.timeZone
                   val file        = context.getBuiltins.file
                   val builtinBool = context.getBuiltins.bool.getType
                   val number      = context.getBuiltins.number
@@ -976,6 +980,14 @@ class IrToTruffle(
                     ArrayBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == vector) {
                     VectorBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == date) {
+                    DateBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == dateTime) {
+                    DateTimeBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == timeOfDay) {
+                    TimeOfDayBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == timeZone) {
+                    TimeZoneBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == file) {
                     FileBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == polyglot) {

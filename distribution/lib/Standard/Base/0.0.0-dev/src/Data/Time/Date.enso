@@ -502,8 +502,11 @@ type Date
     ## Compares two Dates for equality.
     == : Date -> Boolean
     == self that =
-        sign = Time_Utils.compare_to_localdate self that
-        0 == sign
+        case that of
+            Date ->
+                sign = Time_Utils.compare_to_localdate self that
+                0 == sign
+            _    -> False
 
 ## PRIVATE
 week_days_between start end =

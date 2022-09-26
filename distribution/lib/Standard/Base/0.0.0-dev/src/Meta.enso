@@ -253,6 +253,17 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
 ## UNSTABLE
    ADVANCED
 
+   Checks whether `self` represents the same underlying reference as `value`.
+
+   Arguments:
+   - value_1: The first value.
+   - value_2: The second value.
+Any.is_same_object_as : Any -> Boolean
+Any.is_same_object_as self value = is_same_object self value
+
+## UNSTABLE
+   ADVANCED
+
    Checks if `self` is an instance of `typ`.
 
    Arguments:
@@ -267,28 +278,8 @@ Any.is_a self typ = is_a self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Any.is_an : Any -> Boolean
-Any.is_an self typ = is_a self typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
 Base.Error.is_a : Any -> Boolean
-Base.Error.is_a self typ = self.is_an typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
-Base.Error.is_an : Any -> Boolean
-Base.Error.is_an self typ = typ==Any || typ==Base.Error
+Base.Error.is_a self typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED
@@ -303,12 +294,17 @@ is_a value typ = if is_same_object value typ then True else
     if typ == Any then True else
         if is_error value then typ == Base.Error else
             case value of
-                Array -> typ == Array
+                Vector.Vector -> typ.is_same_object_as Vector.Vector
+                Array -> typ.is_same_object_as Array
                 Boolean -> if typ == Boolean then True else value == typ
                 Text -> typ == Text
                 Number -> if typ == Number then True else case value of
                     Integer -> typ == Integer
                     Decimal -> typ == Decimal
+                Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
+                Date.Date      -> typ.is_same_object_as Date.Date
+                Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
+                Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
                 Base.Polyglot ->
                     typ==Base.Polyglot || java_instance_check value typ
                 _ ->
@@ -335,13 +331,12 @@ java_instance_check value typ =
 ## UNSTABLE
    ADVANCED
 
-   Checks if `value` is an instance of `typ`.
+   Returns the type of the given value.
 
    Arguments:
-   - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `self` against.
-is_an : Any -> Any -> Boolean
-is_an value typ = is_a value typ
+   - value: the value to get the type of.
+type_of : Any -> Any
+type_of value = @Builtin_Method "Meta.type_of_builtin"
 
 ## Represents a polyglot language.
 type Language
