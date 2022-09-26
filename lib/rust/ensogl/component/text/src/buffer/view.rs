@@ -23,48 +23,6 @@ use owned_ttf_parser::AsFaceRef;
 
 
 
-// =================
-// === RangeLike ===
-// =================
-
-/// A range-like description. Any of the enum variants can be used to describe a range in text.
-/// There are conversions defined, so you never need to use this type explicitly.
-#[allow(missing_docs)]
-#[derive(Debug, Clone, Default, From)]
-pub enum RangeLike {
-    #[default]
-    Selections,
-    BufferRangeUBytes(buffer::Range<UBytes>),
-    BufferRangeLocationColumn(buffer::Range<Location>),
-    RangeBytes(Range<UBytes>),
-    RangeFull(RangeFull),
-}
-
-
-
-// ====================
-// === LocationLike ===
-// ====================
-
-/// A location-like description. Any of the enum variants can be used to describe a location in
-/// text. There are conversions defined, so you never need to use this type explicitly.
-#[allow(missing_docs)]
-#[derive(Debug, Copy, Clone, From)]
-pub enum LocationLike {
-    LocationColumnLine(Location<Column, Line>),
-    LocationUBytesLine(Location<UBytes, Line>),
-    LocationColumnViewLine(Location<Column, ViewLine>),
-    LocationUBytesViewLine(Location<UBytes, ViewLine>),
-}
-
-impl Default for LocationLike {
-    fn default() -> Self {
-        LocationLike::LocationColumnLine(default())
-    }
-}
-
-
-
 // ===============
 // === History ===
 // ===============
@@ -412,30 +370,11 @@ impl BufferModel {
         };
         Self { data: Rc::new(data) }
     }
+}
 
-    /// Expand the [`RangeLike`] to vector of text ranges.
-    pub fn expand_range_like(&self, range: &RangeLike) -> Vec<buffer::Range<UBytes>> {
-        match range {
-            RangeLike::Selections => self
-                .byte_selections()
-                .into_iter()
-                .map(|t| {
-                    let start = std::cmp::min(t.start, t.end);
-                    let end = std::cmp::max(t.start, t.end);
-                    buffer::Range::new(start, end)
-                })
-                .collect(),
-            RangeLike::BufferRangeUBytes(range) => vec![*range],
-            RangeLike::RangeBytes(range) => vec![range.into()],
-            RangeLike::RangeFull(_) => vec![self.full_range()],
-            RangeLike::BufferRangeLocationColumn(range) => {
-                let start = UBytes::from_in_context_snapped(self, range.start);
-                let end = UBytes::from_in_context_snapped(self, range.end);
-                vec![buffer::Range::new(start, end)]
-            }
-        }
-    }
+// === Location ===
 
+impl BufferModel {
     /// The full text range.
     pub fn full_range(&self) -> buffer::Range<UBytes> {
         let start = UBytes::from(0);
@@ -466,7 +405,87 @@ impl BufferModel {
             location
         }
     }
+}
 
+// === Selection ===
+
+impl BufferModel {
+    fn first_selection(&self) -> selection::Group {
+        self.selection.borrow().first().cloned().into()
+    }
+
+    fn last_selection(&self) -> selection::Group {
+        self.selection.borrow().last().cloned().into()
+    }
+
+    fn first_cursor(&self) -> selection::Group {
+        self.first_selection().snap_selections_to_start()
+    }
+
+    fn last_cursor(&self) -> selection::Group {
+        self.last_selection().snap_selections_to_start()
+    }
+
+    fn newest_selection(&self) -> selection::Group {
+        self.selection.borrow().newest().cloned().into()
+    }
+
+    fn oldest_selection(&self) -> selection::Group {
+        self.selection.borrow().oldest().cloned().into()
+    }
+
+    fn newest_cursor(&self) -> selection::Group {
+        self.newest_selection().snap_selections_to_start()
+    }
+
+    fn oldest_cursor(&self) -> selection::Group {
+        self.oldest_selection().snap_selections_to_start()
+    }
+
+    fn new_cursor(&self, location: Location) -> Selection {
+        let id = self.next_selection_id.get();
+        self.next_selection_id.set(selection::Id { value: id.value + 1 });
+        Selection::new_cursor(location, id)
+    }
+
+    /// Returns the last used selection or a new one if no active selection exists. This allows for
+    /// nice animations when moving cursor between lines after clicking with mouse.
+    fn set_cursor(&self, location: Location) -> selection::Group {
+        let last_selection = self.selection.borrow().last().cloned();
+        let opt_existing = last_selection.map(|t| t.with_location(location));
+        opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()
+    }
+
+    fn add_cursor(&self, location: Location) -> selection::Group {
+        let mut selection = self.selection.borrow().clone();
+        let selection_group = self.new_cursor(location);
+        selection.merge(selection_group);
+        selection
+    }
+
+    fn set_newest_selection_end(&self, location: Location) -> selection::Group {
+        let mut group = self.selection.borrow().clone();
+        group.newest_mut().for_each(|s| s.end = location);
+        group
+    }
+
+    fn set_oldest_selection_end(&self, location: Location) -> selection::Group {
+        let mut group = self.selection.borrow().clone();
+        group.oldest_mut().for_each(|s| s.end = location);
+        group
+    }
+
+    /// Current selections expressed in bytes.
+    pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
+        let selections = self.selection.borrow().clone();
+        selections.iter().map(|s| Selection::<UBytes>::from_in_context_snapped(self, *s)).collect()
+    }
+}
+
+
+// === Line Shaping ===
+
+impl BufferModel {
     /// Run the closure with the shaped line. If the line was not in the shaped lines cache, it will
     /// be first re-shaped.
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
@@ -599,88 +618,9 @@ impl BufferModel {
     }
 }
 
+// === Modification ===
+
 impl BufferModel {
-    fn commit_history(&self) {
-        let text = self.rope.text();
-        let style = self.rope.style();
-        let selection = self.selection.borrow().clone();
-        self.history.data.borrow_mut().undo_stack.push((text, style, selection));
-    }
-
-    fn undo(&self) -> Option<selection::Group> {
-        let item = self.history.data.borrow_mut().undo_stack.pop();
-        item.map(|(text, style, selection)| {
-            self.rope.set_text(text);
-            self.rope.set_style(style);
-            selection
-        })
-    }
-
-    fn first_selection(&self) -> selection::Group {
-        self.selection.borrow().first().cloned().into()
-    }
-
-    fn last_selection(&self) -> selection::Group {
-        self.selection.borrow().last().cloned().into()
-    }
-
-    fn first_cursor(&self) -> selection::Group {
-        self.first_selection().snap_selections_to_start()
-    }
-
-    fn last_cursor(&self) -> selection::Group {
-        self.last_selection().snap_selections_to_start()
-    }
-
-    fn newest_selection(&self) -> selection::Group {
-        self.selection.borrow().newest().cloned().into()
-    }
-
-    fn oldest_selection(&self) -> selection::Group {
-        self.selection.borrow().oldest().cloned().into()
-    }
-
-    fn newest_cursor(&self) -> selection::Group {
-        self.newest_selection().snap_selections_to_start()
-    }
-
-    fn oldest_cursor(&self) -> selection::Group {
-        self.oldest_selection().snap_selections_to_start()
-    }
-
-    fn new_cursor(&self, location: Location) -> Selection {
-        let id = self.next_selection_id.get();
-        self.next_selection_id.set(selection::Id { value: id.value + 1 });
-        Selection::new_cursor(location, id)
-    }
-
-    /// Returns the last used selection or a new one if no active selection exists. This allows for
-    /// nice animations when moving cursor between lines after clicking with mouse.
-    fn set_cursor(&self, location: Location) -> selection::Group {
-        let last_selection = self.selection.borrow().last().cloned();
-        let opt_existing = last_selection.map(|t| t.with_location(location));
-        opt_existing.unwrap_or_else(|| self.new_cursor(location)).into()
-    }
-
-    fn add_cursor(&self, location: Location) -> selection::Group {
-        let mut selection = self.selection.borrow().clone();
-        let selection_group = self.new_cursor(location);
-        selection.merge(selection_group);
-        selection
-    }
-
-    fn set_newest_selection_end(&self, location: Location) -> selection::Group {
-        let mut group = self.selection.borrow().clone();
-        group.newest_mut().for_each(|s| s.end = location);
-        group
-    }
-
-    fn set_oldest_selection_end(&self, location: Location) -> selection::Group {
-        let mut group = self.selection.borrow().clone();
-        group.oldest_mut().for_each(|s| s.end = location);
-        group
-    }
-
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text: impl Into<Rope>) -> Modification {
         self.modify(text, None)
@@ -742,7 +682,7 @@ impl BufferModel {
                     })
                 })
             });
-            let selection = self.to_location_selection(byte_selection);
+            let selection = Selection::<Location>::from_in_context_snapped(self, byte_selection);
             modification.merge(self.modify_selection(selection, text.clone(), transform));
         }
         modification
@@ -769,7 +709,7 @@ impl BufferModel {
                     })
                 })
             }); // FIXME repeated code above
-            let selection = self.to_location_selection(byte_selection);
+            let selection = Selection::<Location>::from_in_context_snapped(self, byte_selection);
             modification.merge(self.modify_selection(selection, text, transform));
         }
         modification
@@ -832,8 +772,9 @@ impl BufferModel {
         }
 
         // FIXME: construct the below with the local_byte_selection information above
-        let selection_group =
-            selection::Group::from(self.to_location_selection(new_byte_selection));
+        let loc_selection =
+            Selection::<Location>::from_in_context_snapped(self, new_byte_selection);
+        let selection_group = selection::Group::from(loc_selection);
         let change = Change { range, text };
         let change_range = redraw_start_line..=redraw_end_line;
         let change = ChangeWithSelection { change, selection, change_range, line_diff };
@@ -842,26 +783,34 @@ impl BufferModel {
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
     }
+}
 
-    /// Current selections expressed in bytes.
-    pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
-        let selections = self.selection.borrow().clone();
-        selections.iter().map(|s| Selection::<UBytes>::from_in_context_snapped(self, *s)).collect()
+
+// === Undo / Redo ===
+
+impl BufferModel {
+    fn commit_history(&self) {
+        let text = self.rope.text();
+        let style = self.rope.style();
+        let selection = self.selection.borrow().clone();
+        self.history.data.borrow_mut().undo_stack.push((text, style, selection));
     }
 
-    // fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-    //     let start = UBytes::from_in_context_snapped(self, selection.start);
-    //     let end = UBytes::from_in_context_snapped(self, selection.end);
+    fn undo(&self) -> Option<selection::Group> {
+        let item = self.history.data.borrow_mut().undo_stack.pop();
+        item.map(|(text, style, selection)| {
+            self.rope.set_text(text);
+            self.rope.set_style(style);
+            selection
+        })
+    }
+
+    // fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
+    //     let start = Location::from_in_context_snapped(self, selection.start);
+    //     let end = Location::from_in_context_snapped(self, selection.end);
     //     let id = selection.id;
     //     Selection::new(start, end, id)
     // }
-
-    fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
-        let start = Location::from_in_context_snapped(self, selection.start);
-        let end = Location::from_in_context_snapped(self, selection.end);
-        let id = selection.id;
-        Selection::new(start, end, id)
-    }
 
     fn to_location_selection2(&self, selection: Selection<UBytes>) -> Selection<Location<UBytes>> {
         let start = self.offset_to_location(selection.start);
@@ -1098,6 +1047,86 @@ impl BufferModel {
     }
 }
 
+
+
+// =================
+// === RangeLike ===
+// =================
+
+/// A range-like description. Any of the enum variants can be used to describe a range in text.
+/// There are conversions defined, so you never need to use this type explicitly.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Default, From)]
+pub enum RangeLike {
+    #[default]
+    Selections,
+    BufferRangeUBytes(buffer::Range<UBytes>),
+    BufferRangeLocationColumn(buffer::Range<Location>),
+    RangeBytes(Range<UBytes>),
+    RangeFull(RangeFull),
+}
+
+impl RangeLike {
+    /// Expand the [`RangeLike`] to vector of text ranges.
+    pub fn expand(&self, buffer: &BufferModel) -> Vec<buffer::Range<UBytes>> {
+        match self {
+            RangeLike::Selections => {
+                let byte_selections = buffer.byte_selections().into_iter();
+                byte_selections
+                    .map(|t| {
+                        let start = std::cmp::min(t.start, t.end);
+                        let end = std::cmp::max(t.start, t.end);
+                        buffer::Range::new(start, end)
+                    })
+                    .collect()
+            }
+            RangeLike::BufferRangeUBytes(range) => vec![*range],
+            RangeLike::RangeBytes(range) => vec![range.into()],
+            RangeLike::RangeFull(_) => vec![buffer.full_range()],
+            RangeLike::BufferRangeLocationColumn(range) => {
+                let start = UBytes::from_in_context_snapped(buffer, range.start);
+                let end = UBytes::from_in_context_snapped(buffer, range.end);
+                vec![buffer::Range::new(start, end)]
+            }
+        }
+    }
+}
+
+
+
+// ====================
+// === LocationLike ===
+// ====================
+
+/// A location-like description. Any of the enum variants can be used to describe a location in
+/// text. There are conversions defined, so you never need to use this type explicitly.
+#[allow(missing_docs)]
+#[derive(Debug, Copy, Clone, From)]
+pub enum LocationLike {
+    LocationColumnLine(Location<Column, Line>),
+    LocationUBytesLine(Location<UBytes, Line>),
+    LocationColumnViewLine(Location<Column, ViewLine>),
+    LocationUBytesViewLine(Location<UBytes, ViewLine>),
+}
+
+impl Default for LocationLike {
+    fn default() -> Self {
+        LocationLike::LocationColumnLine(default())
+    }
+}
+
+impl LocationLike {
+    pub fn expand(self, buffer: &BufferModel) -> Location<Column, Line> {
+        match self {
+            LocationLike::LocationColumnLine(loc) => loc,
+            LocationLike::LocationUBytesLine(loc) => Location::from_in_context_snapped(buffer, loc),
+            LocationLike::LocationColumnViewLine(loc) =>
+                Location::from_in_context_snapped(buffer, loc),
+            LocationLike::LocationUBytesViewLine(loc) =>
+                Location::from_in_context_snapped(buffer, loc),
+        }
+    }
+}
 
 
 // ===================
@@ -1490,20 +1519,6 @@ where T: FromInContextSnapped<&'t BufferModel, S>
     }
 }
 
-
-
-impl FromInContextSnapped<&BufferModel, LocationLike> for Location {
-    fn from_in_context_snapped(buffer: &BufferModel, location: LocationLike) -> Self {
-        match location {
-            LocationLike::LocationColumnLine(loc) => loc,
-            LocationLike::LocationUBytesLine(loc) => Location::from_in_context_snapped(buffer, loc),
-            LocationLike::LocationColumnViewLine(loc) =>
-                Location::from_in_context_snapped(buffer, loc),
-            LocationLike::LocationUBytesViewLine(loc) =>
-                Location::from_in_context_snapped(buffer, loc),
-        }
-    }
-}
 
 
 // === Selections ===

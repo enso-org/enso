@@ -382,8 +382,8 @@ impl Text {
 
             // === Setting Cursors ===
 
-            loc_on_set <- input.set_cursor.map(f!([m](t) Location::from_in_context_snapped(&m, *t)));
-            loc_on_add <- input.add_cursor.map(f!([m](t) Location::from_in_context_snapped(&m, *t)));
+            loc_on_set <- input.set_cursor.map(f!([m](t) t.expand(&m)));
+            loc_on_add <- input.add_cursor.map(f!([m](t) t.expand(&m)));
 
             mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
             mouse_on_add <- mouse.position.sample(&input.add_cursor_at_mouse_position);
@@ -584,11 +584,11 @@ impl Text {
 
             // === Style ===
 
-            new_prop <- input.set_property.map(f!([m]((r, p)) (Rc::new(m.expand_range_like(r)),*p)));
+            new_prop <- input.set_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m)),*p)));
             m.buffer.frp.set_property <+ new_prop;
             eval new_prop ([m](t) t.1.map(|p| m.set_property(&t.0, p)));
 
-            mod_prop <- input.mod_property.map(f!([m]((r, p)) (Rc::new(m.expand_range_like(r)),*p)));
+            mod_prop <- input.mod_property.map(f!([m]((r, p)) (Rc::new(r.expand(&m)),*p)));
             m.buffer.frp.mod_property <+ mod_prop;
             eval mod_prop ([m](t) t.1.map(|p| m.mod_property(&t.0, p)));
         }
