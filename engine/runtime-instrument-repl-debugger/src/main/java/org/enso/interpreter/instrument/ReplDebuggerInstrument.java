@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -205,6 +206,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return new Stateful(nodeState.getLastState(), nodeState.getLastReturn());
     }
 
+    @CompilerDirectives.TruffleBoundary
     private void startSession() {
       if (handler.hasClient()) {
         handler.startSession(this);

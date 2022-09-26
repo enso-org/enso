@@ -426,6 +426,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
+  @com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
   private def sendVisualisationUpdates(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,

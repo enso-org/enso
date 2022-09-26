@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.text;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -20,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
-  private final Lock lock = new ReentrantLock();
+  private static final Lock lock = new ReentrantLock();
 
   private Text(String string) {
     this.contents = string;
@@ -116,6 +117,7 @@ public class Text implements TruffleObject {
     return toJavaStringNode.execute(this);
   }
 
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   String toDisplayString(
       boolean allowSideEffects,

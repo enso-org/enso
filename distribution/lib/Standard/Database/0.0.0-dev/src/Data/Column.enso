@@ -74,10 +74,9 @@ type Column
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
-    to_dataframe self max_rows=Nothing =
-        df = self.to_table.to_dataframe max_rows
-        df.at self.name
+    read : (Nothing | Integer) -> Materialized_Column.Column
+    read self max_rows=Nothing =
+        self.to_table.read max_rows . at self.name
 
     ## UNSTABLE
 
@@ -87,9 +86,7 @@ type Column
         ## We remove the index to avoid fetching index data that will not be
            used anyway when constructing the raw Vector.
         without_ix = self.to_table.set_index []
-        df = without_ix . to_dataframe
-        raw_column = df.at self.name
-        raw_column.to_vector
+        without_ix . read  . at self.name . to_vector
 
     ## UNSTABLE
 
