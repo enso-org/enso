@@ -9,10 +9,10 @@ polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    specWith "Time_Of_Day" enso_time Time_Of_Day.parse Time_Of_Day.Time_Of_Day
-    specWith "JavaLocalTime" java_time java_parse LocalTime
+    specWith "Time_Of_Day" enso_time Time_Of_Day.parse
+    specWith "JavaLocalTime" java_time java_parse
 
-specWith name create_new_time parse_time timeofday_tpe =
+specWith name create_new_time parse_time timeofday_tpe=Time_Of_Day.Time_Of_Day =
     Test.group name <|
 
         Test.specify "should create local time" <|

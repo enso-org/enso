@@ -506,8 +506,7 @@ type Date
             Date ->
                 sign = Time_Utils.compare_to_localdate self that
                 0 == sign
-            _    ->
-                False
+            _    -> False
 
 ## PRIVATE
 week_days_between start end =

@@ -13,12 +13,12 @@ polyglot java import java.time.LocalDate
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    spec_with "Date" Date.new Date.parse Date.Date
-    spec_with "JavaScriptDate" js_date js_parse Date.Date
-    spec_with "JavaDate" java_date java_parse LocalDate
-    spec_with "JavaScriptArrayWithADate" js_array_date js_parse Date.Date
+    spec_with "Date" Date.new Date.parse
+    spec_with "JavaScriptDate" js_date js_parse
+    spec_with "JavaDate" java_date java_parse
+    spec_with "JavaScriptArrayWithADate" js_array_date js_parse
 
-spec_with name create_new_date parse_date date_tpe =
+spec_with name create_new_date parse_date date_tpe=Date.Date =
     Test.group name <|
 
         Test.specify "should create local date" <|

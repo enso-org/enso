@@ -127,6 +127,8 @@ spec = Test.group "Meta-Value Manipulation" <|
         (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date.Date
         (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone.Time_Zone
         (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date.Date
+        (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone.Time_Zone
+        (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone.Time_Zone
 
         list = ArrayList.new
         list.add 123
@@ -145,9 +147,10 @@ spec = Test.group "Meta-Value Manipulation" <|
     location_pending = case Platform.os of
         Platform.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
+
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:149:15-40"
+        loc = "Meta_Spec.enso:152:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

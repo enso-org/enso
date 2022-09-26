@@ -47,17 +47,43 @@ public abstract class TypeOfNode extends Node {
     return ctx.getBuiltins().number().getInteger();
   }
 
-  @Specialization(guards = "isError(value)")
-  Object doError(Object value) {
-    return Context.get(this).getBuiltins().dataflowError();
+  @Specialization(guards = {"interop.isDate(value)", "interop.isTime(value)"})
+  Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().dateTime();
   }
 
-  boolean isError(Object value) {
-    return TypesGen.isDataflowError(value);
+  @Specialization(
+      guards = {"!interop.isDate(value)", "!interop.isTime(value)", "interop.isTimeZone(value)"})
+  Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().timeZone();
   }
 
-  @Specialization(guards = "interop.hasMetaObject(value)")
-  Object doMetaObject(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+  @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
+  Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().date();
+  }
+
+  @Specialization(guards = {"!interop.isDate(value)", "interop.isTime(value)"})
+  Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().timeOfDay();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.hasMetaObject(value)",
+        "!types.hasType(value)",
+        "!interop.isDate(value)",
+        "!interop.isTime(value)",
+        "!interop.isTimeZone(value)"
+      })
+  Object doMetaObject(
+      Object value,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
     try {
       return interop.getMetaObject(value);
     } catch (UnsupportedMessageException e) {
@@ -67,8 +93,11 @@ public abstract class TypeOfNode extends Node {
     }
   }
 
-  @Specialization(guards = "types.hasType(value)")
-  Object doType(Object value, @CachedLibrary(limit = "3") TypesLibrary types) {
+  @Specialization(guards = {"types.hasType(value)", "!interop.isNumber(value)"})
+  Object doType(
+      Object value,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
     return types.getType(value);
   }
 

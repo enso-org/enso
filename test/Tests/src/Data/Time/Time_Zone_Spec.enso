@@ -67,6 +67,6 @@ spec =
                 Json.from_pairs [["type", "Time_Zone"], ["id", "UTC"]]
         Test.specify "should correctly determine the type of zone" <|
             zone = ZoneId.systemDefault
-            Meta.type_of zone . should_equal_type ZoneRegion
+            Meta.type_of zone . should_equal_type Time_Zone.Time_Zone
 
 main = Test.Suite.run_main spec
