@@ -29,13 +29,12 @@ pub fn apply_code_change_to_id_map(
     let inserted = change.text.as_str();
     let new_code = change.applied(code).unwrap_or_else(|_| code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
-    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
     let inserted_size: ByteDiff = inserted.len().into();
 
-    info!(logger, "Old code:\n```\n{code}\n```");
-    info!(logger, "New code:\n```\n{new_code}\n```");
-    info!(logger, "Updating the ID map with the following text edit: {change:?}.");
+    info!("Old code:\n```\n{code}\n```");
+    info!("New code:\n```\n{new_code}\n```");
+    info!("Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
     vector.drain_filter(|(range, _)| removed.contains_range(range));
@@ -70,23 +69,23 @@ pub fn apply_code_change_to_id_map(
         let initial_range = *range;
         info!("Processing @{range}: `{}`.", &code[*range]);
         if range.start > removed.end {
-            debug!(logger, "Node after the edited region.");
+            debug!("Node after the edited region.");
             // AST node starts after edited region — it will be simply shifted.
-            let between_range: enso_text::Range<_> = (removed.end..range.start).into();
+            let between_range: enso_text::Range<Byte> = (removed.end..range.start).into();
             let code_between = &code[between_range];
             *range = range.moved_left(removed.size()).moved_right(inserted_size);
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            debug!(logger, "Between: `{code_between}`.");
+            debug!("Between: `{code_between}`.");
             if all_spaces(code_between) && inserted_non_white {
-                debug!(logger, "Will extend the node leftwards.");
+                debug!("Will extend the node leftwards.");
                 range.start -= inserted_size + between_range.size();
                 trim_front = true;
             }
         } else if range.start >= removed.start {
             // AST node starts inside the edited region. It does not have to end inside it.
-            debug!(logger, "Node overlapping with the end of the edited region.");
+            debug!("Node overlapping with the end of the edited region.");
             let removed_before = range.start - removed.start;
             *range = range.moved_left(removed_before);
             range.end -= removed.size() - removed_before;
@@ -94,7 +93,7 @@ pub fn apply_code_change_to_id_map(
             trim_front = true;
         } else if range.end >= removed.start {
             // AST node starts before the edited region and reaches (or possibly goes past) its end.
-            debug!(logger, "Node overlapping with the beginning of the edited region.");
+            debug!("Node overlapping with the beginning of the edited region.");
             if range.end <= removed.end {
                 trim_back = true;
             }
@@ -102,13 +101,13 @@ pub fn apply_code_change_to_id_map(
             range.end -= removed_chars;
             range.end += inserted_size;
         } else {
-            debug!(logger, "Node before the edited region.");
+            debug!("Node before the edited region.");
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            let between_range: enso_text::Range<_> = (range.end..removed.start).into();
+            let between_range: enso_text::Range<Byte> = (range.end..removed.start).into();
             let between = &code[between_range];
             if all_spaces(between) && inserted_non_white {
-                debug!(logger, "Will extend ");
+                debug!("Will extend ");
                 range.end += between_range.size() + inserted_size;
                 trim_back = true;
             }
@@ -127,9 +126,9 @@ pub fn apply_code_change_to_id_map(
             let new_repr = &new_code[*range];
             // Trim trailing spaces
             let space_count = spaces_size(new_repr.chars().rev());
-            let spaces_len: ByteDiff = (space_count.as_usize() * ' '.len_utf8()).into();
+            let spaces_len: ByteDiff = (space_count.value * ' '.len_utf8()).into();
             if spaces_len > 0.byte_diff() {
-                debug!("Additionally trimming {} trailing spaces.", space_count.as_usize());
+                debug!("Additionally trimming {} trailing spaces.", space_count);
                 debug!("The would-be code: `{new_repr}`.");
                 range.end -= spaces_len;
             }
