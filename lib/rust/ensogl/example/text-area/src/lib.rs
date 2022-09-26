@@ -186,7 +186,6 @@ fn init(app: Application) {
     // TODO: set selection color
 
 
-    // FIXME: bug - second line longer, arrow up, multiple arrows left needed!
     // TODO: UBytes -> Bytes, Bytes -> BytesDiff
     // TODO: macrem definiowanie NotSame
 

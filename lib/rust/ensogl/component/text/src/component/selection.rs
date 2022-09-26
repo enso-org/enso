@@ -100,7 +100,7 @@ pub mod shape {
 
 ensogl_core::define_endpoints_2! {
     Input {
-        set_color (color::Rgb),
+        set_color (color::Lch),
         set_ascender (f32),
         set_descender (f32),
         set_attached_glyphs (Rc<Vec<WeakGlyph>>),

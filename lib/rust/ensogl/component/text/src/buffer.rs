@@ -408,6 +408,9 @@ impl BufferModel {
 
     /// Get the previous column of the provided location.
     pub fn prev_column(&self, location: Location) -> Location {
+        // Column can be bigger than last line column if the cursor moved from longer line to a
+        // shorter one. We keep the bigger column in the cursor, so if it moves back to the longer
+        // line, the column selection will be preserved.
         let line_last_column = self.line_last_column(location.line);
         let current_column = std::cmp::min(location.offset, line_last_column);
         if current_column > Column(0) {

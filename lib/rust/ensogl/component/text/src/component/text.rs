@@ -287,7 +287,7 @@ ensogl_core::define_endpoints_2! {
         mod_property (RangeLike, Option<formatting::PropertyDiff>),
 
         /// Set color of selections (the cursor or characters selection).
-        set_selection_color (color::Rgb),
+        set_selection_color (color::Lch),
 
         /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
@@ -320,7 +320,7 @@ ensogl_core::define_endpoints_2! {
         changed         (Rc<Vec<buffer::Change>>),
         content         (buffer::Rope),
         hovered         (bool),
-        selection_color (color::Rgb),
+        selection_color (color::Lch),
         single_line_mode(bool),
         view_width(Option<f32>),
         long_text_truncation_mode(bool),
@@ -579,6 +579,7 @@ impl Text {
 
             m.buffer.frp.set_property_default <+ input.set_property_default;
             eval input.set_property_default((t) m.set_property_default(*t));
+            eval self.frp.set_selection_color((t) m.set_selection_color(*t));
             out.selection_color <+ self.frp.set_selection_color;
 
 
@@ -1350,6 +1351,12 @@ impl TextModel {
                     f(glyph)
                 }
             }
+        }
+    }
+
+    fn set_selection_color(&self, color: color::Lch) {
+        for selection in self.selection_map.borrow().id_map.values() {
+            selection.set_color(color);
         }
     }
 }
