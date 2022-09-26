@@ -787,20 +787,17 @@ type Table
         on_problems.attach_problems_after result problem_builder.to_vector
 
     ## ALIAS Filter Rows
-       ALIAS Mask Columns
 
-       Selects only the rows of this table that correspond to `True` values in
-       `indexes`.
+       Selects only the rows of this table that correspond to `True` values of
+       `filter`.
 
        Arguments:
-       - indexes: The column to mask the table by. This column should contain
-         boolean values (`True` or `False`) that determine whether or not the
-         corresponding row is kept.
-
-       This is useful for filtering the rows by given predicate.
+       - column: The column to use for filtering. Can be a column name, index or
+         the `Column` object itself.
+       - filter: The filter to apply to the column.
 
        > Example
-         Select only the items where more than half the stock has been sold.
+         Select only the items where not all the stock has been sold.
 
              import Standard.Examples
 
@@ -808,28 +805,29 @@ type Table
                  table = Examples.inventory_table
                  mask = (table.at  > (table.at "total_stock" / 2))
                  table.filter "sold_stock"
-    filter : (Text | Integer) -> Filter_Condition -> Table
-    filter self column_name_or_index filter =
-        column = self.at column_name_or_index
+    filter : (Column | Text | Integer) -> Filter_Condition -> Table
+    filter self column filter = case column of
+        Text -> self.filter (self.at column) filter
+        Integer -> self.filter (self.at column) filter
+        Column _ ->
+            filter_column = case filter of
+                Equal value -> (column == value)
+                Not_Equal value -> (column != value)
+                Less value -> (column < value)
+                Less_Or_Equal value -> (column <= value)
+                Greater value -> (column > value)
+                Greater_Or_Equal value -> (column >= value)
+                Between lower upper -> ((column >= lower) && (column <= upper))
+                Like sql_like_pattern ->
+                    is_like_function = is_like sql_like_pattern
+                    (column.map is_like_function)
+                Not_Like sql_like_pattern ->
+                    is_like_function = is_like sql_like_pattern
+                    (column.map t->(is_like_function t).not)
+                Is_Nothing -> (column == Nothing)
+                Not_Nothing -> (column != Nothing)
 
-        filter_column = case filter of
-            Equal value -> (column == value)
-            Not_Equal value -> (column != value)
-            Less value -> (column < value)
-            Less_Or_Equal value -> (column <= value)
-            Greater value -> (column > value)
-            Greater_Or_Equal value -> (column >= value)
-            Between lower upper -> ((column >= lower) && (column <= upper))
-            Like sql_like_pattern ->
-                is_like_function = is_like sql_like_pattern
-                (column.map is_like_function)
-            Not_Like sql_like_pattern ->
-                is_like_function = is_like sql_like_pattern
-                (column.map t->(is_like_function t).not)
-            Is_Nothing -> (column == Nothing)
-            Not_Nothing -> (column != Nothing)
-
-        Table_Data (self.java_table.mask filter_column.java_column)
+            Table_Data (self.java_table.mask filter_column.java_column)
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
