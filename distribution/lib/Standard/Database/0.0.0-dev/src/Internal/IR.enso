@@ -1,4 +1,4 @@
-krom Standard.Base import all
+from Standard.Base import all
 from Standard.Database.Data.SQL import SQL_Type
 
 # TODO Dubious constructor export

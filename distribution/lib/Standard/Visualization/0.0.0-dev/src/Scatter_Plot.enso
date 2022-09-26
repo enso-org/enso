@@ -24,6 +24,10 @@ axis_field = 'axis'
 label_field : Text
 label_field = 'label'
 
+# TODO Dubious constructor export
+from project.Scatter_Plot.Point_Data import all
+from project.Scatter_Plot.Point_Data export all
+
 ## PRIVATE
 
    Represents a recognized point data field for a scatter plot visualization.
@@ -149,6 +153,10 @@ bound_data bounds data = case bounds of
             y = datum.get "y" . unwrap
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
+
+# TODO Dubious constructor export
+from project.Scatter_Plot.Extreme import all
+from project.Scatter_Plot.Extreme export all
 
 type Extreme
     Extreme_Data min_x max_x min_y max_y

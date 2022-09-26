@@ -28,6 +28,10 @@ from_vector : Vector -> Integer -> Integer -> Image
 from_vector values rows=1 channels=1 =
     Image_Data (Java_Image.from_vector values.to_array rows channels)
 
+# TODO Dubious constructor export
+from project.Data.Image.Image import all
+from project.Data.Image.Image export all
+
 ## UNSTABLE
 type Image
 
