@@ -456,18 +456,18 @@ impl BufferModel {
 
     /// Range of visible lines.
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
-        ViewLine(0)..=ViewLine::from_in_context(self, self.last_view_line())
+        ViewLine(0)..=ViewLine::from_in_context_snapped(self, self.last_view_line())
     }
 
     // FIXME: remove
     /// remove
     pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
-        let line = ViewLine::from_in_context(self, location.line);
+        let line = ViewLine::from_in_context_snapped(self, location.line);
         let offset = location.offset;
         Location { line, offset }
     }
 
-    // FIXME: move to from_in_context
+    // FIXME: move to from_in_context_snapped
     /// Convert the location range to view location range.
     pub fn location_range_to_view_location_range(
         &self,
@@ -478,7 +478,7 @@ impl BufferModel {
         buffer::Range { start, end }
     }
 
-    // FIXME: move to from_in_context
+    // FIXME: move to from_in_context_snapped
     /// Convert the selection to view selection.
     pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
         let start = self.location_to_view_location(selection.shape.start);
@@ -527,7 +527,7 @@ impl BufferModel {
     // FIXME: is this snapping needed?
     /// Byte range of the given view line.
     pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
-        let line = Line::from_in_context(self, view_line);
+        let line = Line::from_in_context_snapped(self, view_line);
         self.byte_range_of_line_index_snapped(line)
     }
 
@@ -539,8 +539,8 @@ impl BufferModel {
 
     /// Get content for lines in the given range.
     pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
-        let start_line = Line::from_in_context(self, *range.start());
-        let end_line = Line::from_in_context(self, *range.end());
+        let start_line = Line::from_in_context_snapped(self, *range.start());
+        let end_line = Line::from_in_context_snapped(self, *range.end());
         let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
         let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
         let range = start_byte_offset..end_byte_offset;
@@ -616,8 +616,8 @@ impl BufferModel {
             RangeLike::RangeBytes(range) => vec![range.into()],
             RangeLike::RangeFull(_) => vec![self.full_range()],
             RangeLike::BufferRangeLocationColumn(range) => {
-                let start = UBytes::from_in_context(self, range.start);
-                let end = UBytes::from_in_context(self, range.end);
+                let start = UBytes::from_in_context_snapped(self, range.start);
+                let end = UBytes::from_in_context_snapped(self, range.end);
                 vec![buffer::Range::new(start, end)]
             }
         }
@@ -982,7 +982,7 @@ impl BufferModel {
         };
 
 
-        let byte_selection = Selection::<UBytes>::from_in_context(self, transformed);
+        let byte_selection = Selection::<UBytes>::from_in_context_snapped(self, transformed);
         let range = byte_selection.range();
         self.buffer.replace(range, &text);
 
@@ -1034,19 +1034,19 @@ impl BufferModel {
     /// Current selections expressed in bytes.
     pub fn byte_selections(&self) -> Vec<Selection<UBytes>> {
         let selections = self.selection.borrow().clone();
-        selections.iter().map(|s| Selection::<UBytes>::from_in_context(self, *s)).collect()
+        selections.iter().map(|s| Selection::<UBytes>::from_in_context_snapped(self, *s)).collect()
     }
 
     // fn to_bytes_selection(&self, selection: Selection) -> Selection<UBytes> {
-    //     let start = UBytes::from_in_context(self, selection.start);
-    //     let end = UBytes::from_in_context(self, selection.end);
+    //     let start = UBytes::from_in_context_snapped(self, selection.start);
+    //     let end = UBytes::from_in_context_snapped(self, selection.end);
     //     let id = selection.id;
     //     Selection::new(start, end, id)
     // }
 
     fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
-        let start = Location::from_in_context(self, selection.start);
-        let end = Location::from_in_context(self, selection.end);
+        let start = Location::from_in_context_snapped(self, selection.start);
+        let end = Location::from_in_context_snapped(self, selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }
@@ -1099,17 +1099,21 @@ impl BufferModel {
 // === Conversions ===
 // ===================
 
+pub trait FromInContext<Ctx, T> {
+    fn from_in_context(context: Ctx, arg: T) -> Self;
+}
+
 /// Perform conversion between two values. It is just like the [`From`] trait, but it performs the
 /// conversion in a "context". The "context" is an object containing additional information required
 /// to perform the conversion. For example, the context can be a text buffer, which is needed to
 /// convert byte offset to line-column location.
 #[allow(missing_docs)]
-pub trait FromInContext<Ctx, T> {
-    fn from_in_context(context: Ctx, arg: T) -> Self;
+pub trait FromInContextSnapped<Ctx, T> {
+    fn from_in_context_snapped(context: Ctx, arg: T) -> Self;
 }
 
-/// Try performing conversion between two values. It is like the [`FromInContext`] trait, but can
-/// fail.
+/// Try performing conversion between two values. It is like the [`FromInContextSnapped`] trait, but
+/// can fail.
 #[allow(missing_docs)]
 pub trait TryFromInContext<Ctx, T>
 where Self: Sized {
@@ -1122,16 +1126,24 @@ where Self: Sized {
 impl<T, U> FromInContext<&Buffer, U> for T
 where T: for<'t> FromInContext<&'t BufferModel, U>
 {
-    fn from_in_context(context: &Buffer, elem: U) -> Self {
-        T::from_in_context(&context.model, elem)
+    fn from_in_context(buffer: &Buffer, elem: U) -> Self {
+        T::from_in_context(&buffer.model, elem)
+    }
+}
+
+impl<T, U> FromInContextSnapped<&Buffer, U> for T
+where T: for<'t> FromInContextSnapped<&'t BufferModel, U>
+{
+    fn from_in_context_snapped(buffer: &Buffer, elem: U) -> Self {
+        T::from_in_context_snapped(&buffer.model, elem)
     }
 }
 
 impl<T, U> TryFromInContext<&Buffer, U> for T
 where T: for<'t> TryFromInContext<&'t BufferModel, U>
 {
-    fn try_from_in_context(context: &Buffer, elem: U) -> Option<Self> {
-        T::try_from_in_context(&context.model, elem)
+    fn try_from_in_context(buffer: &Buffer, elem: U) -> Option<Self> {
+        T::try_from_in_context(&buffer.model, elem)
     }
 }
 
@@ -1142,35 +1154,35 @@ where T: for<'t> TryFromInContext<&'t BufferModel, U>
 
 // === Conversions to Line ===
 
-impl FromInContext<&BufferModel, ViewLine> for Line {
-    fn from_in_context(buffer: &BufferModel, view_line: ViewLine) -> Self {
+impl FromInContextSnapped<&BufferModel, ViewLine> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, view_line: ViewLine) -> Self {
         buffer.first_view_line() + Line(view_line.value)
     }
 }
 
-impl<T> FromInContext<&BufferModel, Location<T, Line>> for Line {
-    fn from_in_context(_: &BufferModel, location: Location<T, Line>) -> Self {
+impl<T> FromInContextSnapped<&BufferModel, Location<T, Line>> for Line {
+    fn from_in_context_snapped(_: &BufferModel, location: Location<T, Line>) -> Self {
         location.line
     }
 }
 
-impl<T> FromInContext<&BufferModel, Location<T, ViewLine>> for Line {
-    fn from_in_context(buffer: &BufferModel, location: Location<T, ViewLine>) -> Self {
-        Line::from_in_context(buffer, location.line)
+impl<T> FromInContextSnapped<&BufferModel, Location<T, ViewLine>> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<T, ViewLine>) -> Self {
+        Line::from_in_context_snapped(buffer, location.line)
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Line {
-    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
-        Location::<UBytes, Line>::from_in_context(buffer, offset).line
+impl FromInContextSnapped<&BufferModel, UBytes> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
+        Location::<UBytes, Line>::from_in_context_snapped(buffer, offset).line
     }
 }
 
 
 // === Conversions to ViewLine ===
 
-impl FromInContext<&BufferModel, Line> for ViewLine {
-    fn from_in_context(buffer: &BufferModel, line: Line) -> Self {
+impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
+    fn from_in_context_snapped(buffer: &BufferModel, line: Line) -> Self {
         ViewLine((line - buffer.first_view_line()).value as usize)
     }
 }
@@ -1185,38 +1197,41 @@ impl TryFromInContext<&BufferModel, Line> for ViewLine {
 
 // === Conversions to UBytes ===
 
-impl FromInContext<&BufferModel, Location<UBytes, Line>> for UBytes {
-    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for UBytes {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
         buffer.byte_offset_of_line_index(location.line).unwrap() + location.offset
     }
 }
 
-impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for UBytes {
-    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context(buffer, location);
-        UBytes::from_in_context(buffer, location)
+impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for UBytes {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, location);
+        UBytes::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, Line>> for UBytes {
-    fn from_in_context(context: &BufferModel, location: Location) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context(context, location);
-        UBytes::from_in_context(context, location)
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for UBytes {
+    fn from_in_context_snapped(context: &BufferModel, location: Location) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context_snapped(context, location);
+        UBytes::from_in_context_snapped(context, location)
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, ViewLine>> for UBytes {
-    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context(context, location);
-        UBytes::from_in_context(context, location)
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for UBytes {
+    fn from_in_context_snapped(
+        context: &BufferModel,
+        location: Location<Column, ViewLine>,
+    ) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context_snapped(context, location);
+        UBytes::from_in_context_snapped(context, location)
     }
 }
 
 
 // === Conversions to Location<Column, Line> ===
 
-impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<Column, Line> {
-    fn from_in_context(context: &BufferModel, location: Location<UBytes, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Column, Line> {
+    fn from_in_context_snapped(context: &BufferModel, location: Location<UBytes, Line>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
@@ -1249,93 +1264,102 @@ impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<Column, Li
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<Column, Line> {
-    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
-        let line = Line::from_in_context(context, location.line);
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<Column, Line> {
+    fn from_in_context_snapped(
+        context: &BufferModel,
+        location: Location<Column, ViewLine>,
+    ) -> Self {
+        let line = Line::from_in_context_snapped(context, location.line);
         Location(line, location.offset)
     }
 }
 
-impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, Line> {
-    fn from_in_context(context: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
-        let line = Line::from_in_context(context, location.line);
-        Location::from_in_context(context, Location(line, location.offset))
+impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, Line> {
+    fn from_in_context_snapped(
+        context: &BufferModel,
+        location: Location<UBytes, ViewLine>,
+    ) -> Self {
+        let line = Line::from_in_context_snapped(context, location.line);
+        Location::from_in_context_snapped(context, Location(line, location.offset))
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Location<Column, Line> {
-    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
-        Location::from_in_context(context, Location::<UBytes>::from_in_context(context, offset))
+impl FromInContextSnapped<&BufferModel, UBytes> for Location<Column, Line> {
+    fn from_in_context_snapped(context: &BufferModel, offset: UBytes) -> Self {
+        Location::from_in_context_snapped(
+            context,
+            Location::<UBytes>::from_in_context_snapped(context, offset),
+        )
     }
 }
 
 
 // === Conversions to Location<UBytes, ViewLine> ===
 
-impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<UBytes, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
-        let line = ViewLine::from_in_context(buffer, location.line);
+impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<UBytes, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+        let line = ViewLine::from_in_context_snapped(buffer, location.line);
         location.with_line(line)
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context(buffer, location);
-        Location::<UBytes, ViewLine>::from_in_context(buffer, location)
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBytes, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, location);
+        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
-        let line = Line::from_in_context(buffer, location.line);
-        Location::<UBytes, ViewLine>::from_in_context(buffer, location.with_line(line))
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let line = Line::from_in_context_snapped(buffer, location.line);
+        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location.with_line(line))
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Location<UBytes, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
-        let location = Location::<UBytes, Line>::from_in_context(buffer, offset);
-        Location::<UBytes, ViewLine>::from_in_context(buffer, location)
+impl FromInContextSnapped<&BufferModel, UBytes> for Location<UBytes, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context_snapped(buffer, offset);
+        Location::<UBytes, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
 
 // === Conversions to Location<Column, ViewLine> ===
 
-impl FromInContext<&BufferModel, Location<Column, Line>> for Location<Column, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
-        let line = ViewLine::from_in_context(buffer, location.line);
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+        let line = ViewLine::from_in_context_snapped(buffer, location.line);
         location.with_line(line)
     }
 }
 
-impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<Column, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
-        let location = Location::<Column, Line>::from_in_context(buffer, location);
-        Location::<Column, ViewLine>::from_in_context(buffer, location)
+impl FromInContextSnapped<&BufferModel, Location<UBytes, Line>> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+        let location = Location::<Column, Line>::from_in_context_snapped(buffer, location);
+        Location::<Column, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
-impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
-        let line = Line::from_in_context(buffer, location.line);
-        Location::<Column, ViewLine>::from_in_context(buffer, location.with_line(line))
+impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+        let line = Line::from_in_context_snapped(buffer, location.line);
+        Location::<Column, ViewLine>::from_in_context_snapped(buffer, location.with_line(line))
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Location<Column, ViewLine> {
-    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
-        let location = Location::<Column, Line>::from_in_context(buffer, offset);
-        Location::<Column, ViewLine>::from_in_context(buffer, location)
+impl FromInContextSnapped<&BufferModel, UBytes> for Location<Column, ViewLine> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: UBytes) -> Self {
+        let location = Location::<Column, Line>::from_in_context_snapped(buffer, offset);
+        Location::<Column, ViewLine>::from_in_context_snapped(buffer, location)
     }
 }
 
 
 // === Conversions to Location<UBytes, Line> ===
 
-impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, Line> {
-    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<UBytes, Line> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
         buffer.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
@@ -1364,7 +1388,7 @@ impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, Li
                 }
                 // FIXME: unwrap
                 let end_byte_offset = buffer.end_byte_offset_of_line_index(location.line).unwrap();
-                let location2 = Location::<UBytes, Line>::from_in_context(buffer, end_byte_offset);
+                let location2 = Location::<UBytes, Line>::from_in_context_snapped(buffer, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)
             });
@@ -1373,8 +1397,8 @@ impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, Li
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Location<UBytes, Line> {
-    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
+impl FromInContextSnapped<&BufferModel, UBytes> for Location<UBytes, Line> {
+    fn from_in_context_snapped(context: &BufferModel, offset: UBytes) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
         let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
@@ -1382,42 +1406,44 @@ impl FromInContext<&BufferModel, UBytes> for Location<UBytes, Line> {
     }
 }
 
-impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<UBytes, Line> {
-    fn from_in_context(buffer: &BufferModel, offset: Location<UBytes, ViewLine>) -> Self {
-        let line = Line::from_in_context(buffer, offset.line);
+impl FromInContextSnapped<&BufferModel, Location<UBytes, ViewLine>> for Location<UBytes, Line> {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Location<UBytes, ViewLine>) -> Self {
+        let line = Line::from_in_context_snapped(buffer, offset.line);
         Location(line, offset.offset)
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, Line> {
-    fn from_in_context(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
-        let line = Line::from_in_context(buffer, location.line);
-        Location::from_in_context(buffer, location.with_line(line))
+impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, Line> {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let line = Line::from_in_context_snapped(buffer, location.line);
+        Location::from_in_context_snapped(buffer, location.with_line(line))
     }
 }
 
 
 // === Conversions of Range ====
 
-impl<S, T> FromInContext<&BufferModel, buffer::Range<S>> for buffer::Range<T>
-where T: for<'t> FromInContext<&'t BufferModel, S>
+impl<S, T> FromInContextSnapped<&BufferModel, buffer::Range<S>> for buffer::Range<T>
+where T: for<'t> FromInContextSnapped<&'t BufferModel, S>
 {
-    fn from_in_context(context: &BufferModel, range: buffer::Range<S>) -> Self {
-        let start = T::from_in_context(context, range.start);
-        let end = T::from_in_context(context, range.end);
+    fn from_in_context_snapped(context: &BufferModel, range: buffer::Range<S>) -> Self {
+        let start = T::from_in_context_snapped(context, range.start);
+        let end = T::from_in_context_snapped(context, range.end);
         buffer::Range::new(start, end)
     }
 }
 
 
 
-impl FromInContext<&BufferModel, LocationLike> for Location {
-    fn from_in_context(buffer: &BufferModel, location: LocationLike) -> Self {
+impl FromInContextSnapped<&BufferModel, LocationLike> for Location {
+    fn from_in_context_snapped(buffer: &BufferModel, location: LocationLike) -> Self {
         match location {
             LocationLike::LocationColumnLine(loc) => loc,
-            LocationLike::LocationUBytesLine(loc) => Location::from_in_context(buffer, loc),
-            LocationLike::LocationColumnViewLine(loc) => Location::from_in_context(buffer, loc),
-            LocationLike::LocationUBytesViewLine(loc) => Location::from_in_context(buffer, loc),
+            LocationLike::LocationUBytesLine(loc) => Location::from_in_context_snapped(buffer, loc),
+            LocationLike::LocationColumnViewLine(loc) =>
+                Location::from_in_context_snapped(buffer, loc),
+            LocationLike::LocationUBytesViewLine(loc) =>
+                Location::from_in_context_snapped(buffer, loc),
         }
     }
 }
@@ -1425,14 +1451,14 @@ impl FromInContext<&BufferModel, LocationLike> for Location {
 
 // === Selections ===
 
-impl<T, S> FromInContext<&BufferModel, Selection<T>> for Selection<S>
+impl<T, S> FromInContextSnapped<&BufferModel, Selection<T>> for Selection<S>
 where
     T: Copy,
-    S: for<'t> FromInContext<&'t BufferModel, T>,
+    S: for<'t> FromInContextSnapped<&'t BufferModel, T>,
 {
-    fn from_in_context(buffer: &BufferModel, selection: Selection<T>) -> Self {
-        let start = S::from_in_context(buffer, selection.start);
-        let end = S::from_in_context(buffer, selection.end);
+    fn from_in_context_snapped(buffer: &BufferModel, selection: Selection<T>) -> Self {
+        let start = S::from_in_context_snapped(buffer, selection.start);
+        let end = S::from_in_context_snapped(buffer, selection.end);
         let id = selection.id;
         Selection::new(start, end, id)
     }

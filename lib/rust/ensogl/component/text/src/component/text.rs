@@ -6,7 +6,7 @@ use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::formatting;
-use crate::buffer::view::FromInContext;
+use crate::buffer::view::FromInContextSnapped;
 use crate::buffer::view::TryFromInContext;
 use crate::buffer::Transform;
 use crate::component::line;
@@ -382,8 +382,8 @@ impl Text {
 
             // === Setting Cursors ===
 
-            loc_on_set <- input.set_cursor.map(f!([m](t) Location::from_in_context(&m, *t)));
-            loc_on_add <- input.add_cursor.map(f!([m](t) Location::from_in_context(&m, *t)));
+            loc_on_set <- input.set_cursor.map(f!([m](t) Location::from_in_context_snapped(&m, *t)));
+            loc_on_add <- input.add_cursor.map(f!([m](t) Location::from_in_context_snapped(&m, *t)));
 
             mouse_on_set <- mouse.position.sample(&input.set_cursor_at_mouse_position);
             mouse_on_add <- mouse.position.sample(&input.add_cursor_at_mouse_position);
@@ -827,7 +827,7 @@ impl TextModel {
         }
         let view_line = std::cmp::min(view_line, self.lines.last_line_index());
         let div_index = self.lines.borrow()[view_line].div_index_close_to(object_space.x);
-        let line = Line::from_in_context(self, view_line);
+        let line = Line::from_in_context_snapped(self, view_line);
         let column = Column(div_index);
         let out = Location(line, column);
         out
@@ -895,8 +895,10 @@ impl TextModel {
                     .iter()
                     .filter_map(|change_with_selection| {
                         let change_range = &change_with_selection.change_range;
-                        let change_start = ViewLine::from_in_context(self, *change_range.start());
-                        let change_end = ViewLine::from_in_context(self, *change_range.end());
+                        let change_start =
+                            ViewLine::from_in_context_snapped(self, *change_range.start());
+                        let change_end =
+                            ViewLine::from_in_context_snapped(self, *change_range.end());
                         let view_change_range = change_start..=change_end;
                         let line_diff = change_with_selection.line_diff;
                         let second_line_index = view_change_range.start().inc();
@@ -946,8 +948,10 @@ impl TextModel {
         for buffer_selection in buffer_selections {
             let buffer_selection = self.limit_selection_to_known_values(*buffer_selection);
             let id = buffer_selection.id;
-            let selection_start_line = ViewLine::from_in_context(self, buffer_selection.start.line);
-            let selection_end_line = ViewLine::from_in_context(self, buffer_selection.end.line);
+            let selection_start_line =
+                ViewLine::from_in_context_snapped(self, buffer_selection.start.line);
+            let selection_end_line =
+                ViewLine::from_in_context_snapped(self, buffer_selection.end.line);
             let start_location = Location(selection_start_line, buffer_selection.start.offset);
             let end_location = Location(selection_end_line, buffer_selection.end.offset);
             let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
@@ -994,12 +998,12 @@ impl TextModel {
         &self,
         selection: buffer::selection::Selection,
     ) -> buffer::selection::Selection {
-        let start_location = Location::from_in_context(&self.buffer, selection.start);
-        let end_location = Location::from_in_context(&self.buffer, selection.end);
+        let start_location = Location::from_in_context_snapped(&self.buffer, selection.start);
+        let end_location = Location::from_in_context_snapped(&self.buffer, selection.end);
         let start = self.buffer.snap_location(start_location);
         let end = self.buffer.snap_location(end_location);
-        let start = Location::from_in_context(&self.buffer, start);
-        let end = Location::from_in_context(&self.buffer, end);
+        let start = Location::from_in_context_snapped(&self.buffer, start);
+        let end = Location::from_in_context_snapped(&self.buffer, end);
         selection.with_start(start).with_end(end)
     }
 
@@ -1047,7 +1051,7 @@ impl TextModel {
         let mut to_be_truncated = 0;
         let mut truncated = false;
         let default_size = self.buffer.formatting.size().default;
-        let line_index = Line::from_in_context(self, view_line);
+        let line_index = Line::from_in_context_snapped(self, view_line);
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
                 buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
@@ -1161,13 +1165,13 @@ impl TextModel {
         ranges: impl IntoIterator<Item = buffer::Range<UBytes>>,
     ) {
         let view_line_ranges = ranges.into_iter().map(|range| {
-            let range = buffer::Range::<Location>::from_in_context(self, range);
+            let range = buffer::Range::<Location>::from_in_context_snapped(self, range);
             let line_range = range.start.line..=range.end.line;
             for line_index in line_range {
                 self.buffer.shaped_lines.borrow_mut().remove(&line_index);
             }
-            let view_line_start = ViewLine::from_in_context(self, range.start.line);
-            let view_line_end = ViewLine::from_in_context(self, range.end.line);
+            let view_line_start = ViewLine::from_in_context_snapped(self, range.start.line);
+            let view_line_end = ViewLine::from_in_context_snapped(self, range.end.line);
             view_line_start..=view_line_end
         });
         self.redraw_sorted_line_ranges(view_line_ranges);
@@ -1389,27 +1393,27 @@ impl TextModel {
         let formatting = self.buffer.sub_style(range);
         let span_ranges = formatting.span_ranges_of_default_values(property.tag());
         for span_range in span_ranges {
-            let range = buffer::Range::<Location>::from_in_context(self, span_range);
+            let range = buffer::Range::<Location>::from_in_context_snapped(self, span_range);
             let mut lines = self.lines.borrow_mut();
             if range.single_line() {
-                let view_line = ViewLine::from_in_context(self, range.start.line);
+                let view_line = ViewLine::from_in_context_snapped(self, range.start.line);
                 let line = &mut lines[view_line];
                 for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
                     glyph.set_property(property);
                 }
             } else {
-                let view_line = ViewLine::from_in_context(self, range.start.line);
+                let view_line = ViewLine::from_in_context_snapped(self, range.start.line);
                 let first_line = &mut lines[view_line];
                 for glyph in &mut first_line.glyphs[range.start.offset..] {
                     glyph.set_property(property);
                 }
-                let view_line = ViewLine::from_in_context(self, range.end.line);
+                let view_line = ViewLine::from_in_context_snapped(self, range.end.line);
                 let last_line = &mut lines[view_line];
                 for glyph in &mut last_line.glyphs[..range.end.offset] {
                     glyph.set_property(property);
                 }
                 for line_index in range.start.line.value + 1..range.end.line.value {
-                    let view_line = ViewLine::from_in_context(self, Line(line_index));
+                    let view_line = ViewLine::from_in_context_snapped(self, Line(line_index));
                     let line = &mut lines[view_line];
                     for glyph in &mut line.glyphs[..] {
                         glyph.set_property(property);
@@ -1644,11 +1648,11 @@ impl TextModel {
 // === Traits ===
 // ==============
 
-impl<S, T> FromInContext<&TextModel, S> for T
-where T: for<'t> FromInContext<&'t buffer::Buffer, S>
+impl<S, T> FromInContextSnapped<&TextModel, S> for T
+where T: for<'t> FromInContextSnapped<&'t buffer::Buffer, S>
 {
-    fn from_in_context(context: &TextModel, arg: S) -> Self {
-        T::from_in_context(&context.buffer, arg)
+    fn from_in_context_snapped(context: &TextModel, arg: S) -> Self {
+        T::from_in_context_snapped(&context.buffer, arg)
     }
 }
 

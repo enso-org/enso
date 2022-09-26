@@ -130,7 +130,7 @@ impl BufferModel {
             Transform::Down => self.vertical_motion(selection, LineDiff(1), modify),
             Transform::StartOfDocument => shape(selection.start, default()),
             Transform::EndOfDocument => {
-                let end = Location::from_in_context(self, text.byte_size());
+                let end = Location::from_in_context_snapped(self, text.byte_size());
                 shape(selection.start, end)
             }
             Transform::Left => {
@@ -169,40 +169,40 @@ impl BufferModel {
                 } else {
                     text.prev_grapheme_offset(next_line_offset).unwrap_or(text_byte_size)
                 };
-                let end = Location::from_in_context(self, offset);
+                let end = Location::from_in_context_snapped(self, offset);
                 shape(selection.start, end)
             }
 
             Transform::LeftWord => {
-                let end_offset = UBytes::from_in_context(self, selection.end);
+                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offset = word_cursor.prev_boundary().unwrap_or_else(|| 0.ubytes());
-                let end = Location::from_in_context(self, offset);
+                let end = Location::from_in_context_snapped(self, offset);
                 shape(selection.start, end)
             }
 
             Transform::RightWord => {
-                let end_offset = UBytes::from_in_context(self, selection.end);
+                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offset = word_cursor.next_boundary().unwrap_or_else(|| text.byte_size());
-                let end = Location::from_in_context(self, offset);
+                let end = Location::from_in_context_snapped(self, offset);
                 shape(selection.start, end)
             }
 
             Transform::Word => {
-                let end_offset = UBytes::from_in_context(self, selection.end);
+                let end_offset = UBytes::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
                 let offsets = word_cursor.select_word();
-                let start = Location::from_in_context(self, offsets.0);
-                let end = Location::from_in_context(self, offsets.1);
+                let start = Location::from_in_context_snapped(self, offsets.0);
+                let end = Location::from_in_context_snapped(self, offsets.1);
                 shape(start, end)
             }
 
             Transform::Line => {
                 let start_offset = self.byte_offset_of_line_index_snapped(selection.start.line);
                 let end_offset = self.end_byte_offset_of_line_index_snapped(selection.end.line);
-                let start = Location::from_in_context(self, start_offset);
-                let end = Location::from_in_context(self, end_offset);
+                let start = Location::from_in_context_snapped(self, start_offset);
+                let end = Location::from_in_context_snapped(self, end_offset);
                 shape(start, end)
             }
         };
