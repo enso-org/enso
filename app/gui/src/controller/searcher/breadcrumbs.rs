@@ -3,9 +3,11 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::component;
+
 use double_representation::module;
 use model::suggestion_database::entry::QualifiedName;
 use model::suggestion_database::Entry;
+
 
 
 // ===================

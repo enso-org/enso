@@ -13,6 +13,11 @@ use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
 use parser::Parser;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use double_representation::project::INITIAL_MODULE_NAME;
 
 
