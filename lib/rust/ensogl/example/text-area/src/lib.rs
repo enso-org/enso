@@ -188,7 +188,6 @@ fn init(app: Application) {
     // TODO: Lines -> ViewLines
     // TODO: API -> struct Text + style guide?
     // TODO: next PR - > Text area to gui component.
-    // TODO: -> prelude CRange
     // TODO - sel_end_1 -> sel_end_on_click etc
     // TOOD: bufferView / buffermodel - better names
     // TODO: Check if profiling works well with new animation loops (if time works there nicely)
@@ -197,6 +196,7 @@ fn init(app: Application) {
     // TODO: add desription for this demo scene
 
     // TODO: Task na unit testyy do textow
+    // TODO: -> prelude CRange
 
 
     // area.set_cursor_at_end();
