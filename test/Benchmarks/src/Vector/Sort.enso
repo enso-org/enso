@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test.Bench
 
-import project.Vector as Vector_Utils
+import project.Vector.Vector as Vector_Utils
 
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Time_Utils
