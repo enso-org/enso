@@ -1,0 +1,23 @@
+name: "Run Github Script"
+
+on:
+  workflow_dispatch:
+    inputs:
+      runsOn:
+        description: "The runner on which to run the workflow"
+        required: true
+        type: string
+        default: x64
+      script:
+        description: "A script to be run."
+        required: true
+        type: string
+
+jobs:
+  run:
+    runs-on:
+      - ${{ inputs.runsOn }}
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: ${{ inputs.script }}
