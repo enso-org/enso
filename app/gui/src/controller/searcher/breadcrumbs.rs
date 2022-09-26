@@ -32,12 +32,8 @@ impl Breadcrumbs {
 
     /// Set the list of breadcrumbs to be displayed in the breadcrumbs panel.
     pub fn set_content(&self, breadcrumbs: impl Iterator<Item = BreadcrumbEntry>) {
-        let selected = self.selected.get();
         let mut borrowed = self.list.borrow_mut();
-        if selected != borrowed.len() {
-            borrowed.truncate(selected);
-        }
-        borrowed.extend(breadcrumbs);
+        *borrowed = breadcrumbs.collect();
         self.select(borrowed.len());
     }
 
