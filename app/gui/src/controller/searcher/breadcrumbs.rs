@@ -42,6 +42,11 @@ impl Breadcrumbs {
         self.list.borrow().iter().map(|entry| entry.name()).collect()
     }
 
+    /// The last (right-most) breadcrumb in the list.
+    pub fn last(&self) -> Option<component::Id> {
+        self.list.borrow().last().map(BreadcrumbEntry::id)
+    }
+
     /// Mark the entry with the given index as selected.
     pub fn select(&self, id: usize) {
         self.selected.set(id);
@@ -59,7 +64,7 @@ impl Breadcrumbs {
             None
         } else {
             let index = self.selected.get();
-            self.list.borrow().get(index - 1).map(|entry| entry.id())
+            self.list.borrow().get(index - 1).map(BreadcrumbEntry::id)
         }
     }
 }

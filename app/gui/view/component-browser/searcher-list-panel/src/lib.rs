@@ -941,6 +941,8 @@ define_endpoints_2! {
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
         /// See [`breadcrumbs::Breadcrumb::Frp::set_entries_from`].
         set_breadcrumbs_from((Vec<breadcrumbs::Breadcrumb>, usize)),
+        /// Show or hide the ellipsis at the end of the breadcrumbs list.
+        show_breadcrumbs_ellipsis(bool),
         /// The component browser is displayed on screen.
         show(),
         /// The component browser is hidden from screen.
@@ -1081,6 +1083,7 @@ impl component::Frp<Model> for Frp {
             // === Breadcrumbs ===
 
             model.breadcrumbs.set_entries_from <+ input.set_breadcrumbs_from;
+            model.breadcrumbs.show_ellipsis <+ input.show_breadcrumbs_ellipsis;
             output.selected_breadcrumb <+ model.breadcrumbs.selected;
             eval_ input.show(model.set_initial_breadcrumbs());
         }

@@ -646,6 +646,15 @@ impl Searcher {
         self.notifier.notify(Notification::NewActionList);
     }
 
+    /// Whether the last module in the breadcrumbs list contains more descendants or not.
+    pub fn last_module_has_submodules(&self) -> bool {
+        let last_module = self.breadcrumbs.last();
+        let components = self.components();
+        let get_submodules = |module| components.submodules_of(module).map(CloneRef::clone_ref);
+        let submodules = last_module.and_then(get_submodules);
+        submodules.map_or(false, |submodules| !submodules.is_empty())
+    }
+
     /// A list of breadcrumbs' text labels to be displayed. The list is updated by
     /// [`Self::enter_module`].
     pub fn breadcrumbs(&self) -> Vec<ImString> {

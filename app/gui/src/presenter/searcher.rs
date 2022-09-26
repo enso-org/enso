@@ -201,6 +201,12 @@ impl Model {
         }
     }
 
+    fn show_breadcrumbs_ellipsis(&self, show: bool) {
+        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
+            browser.model().list.show_breadcrumbs_ellipsis(show);
+        }
+    }
+
     fn module_entered(&self, module: EnteredModule) {
         self.enter_module(module);
     }
@@ -220,6 +226,8 @@ impl Model {
         self.controller.enter_module(&id);
         let names = self.controller.breadcrumbs();
         self.set_breadcrumbs(names.into_iter());
+        let show_ellipsis = self.controller.last_module_has_submodules();
+        self.show_breadcrumbs_ellipsis(show_ellipsis);
         Some(())
     }
 
