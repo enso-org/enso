@@ -108,7 +108,8 @@ public class CurryNode extends BaseNode {
         Stateful result = doCall(function, callerInfo, state, arguments);
         var value = result.getValue();
         if (defaultsExecutionMode.isExecute()
-            && (value instanceof Function || value instanceof AtomConstructor)) {
+            && (value instanceof Function || (value instanceof AtomConstructor cons
+              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           keepExecutingProfile.enter();
           if (oversaturatedCallableNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();

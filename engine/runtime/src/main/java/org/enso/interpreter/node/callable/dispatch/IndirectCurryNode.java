@@ -77,7 +77,8 @@ public abstract class IndirectCurryNode extends Node {
             doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
         var value = result.getValue();
         if (defaultsExecutionMode.isExecute()
-            && (value instanceof Function || value instanceof AtomConstructor)) {
+            && (value instanceof Function || (value instanceof AtomConstructor cons
+              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           return oversaturatedCallableNode.execute(
               value,
               frame,
