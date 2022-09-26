@@ -54,7 +54,12 @@ impl ColumnWidths {
 
     /// Set a width difference for the specified column.
     pub fn set_width_diff(&self, column: usize, width_diff: f32) {
-        self.width_diffs.borrow_mut().set(column, width_diff);
+        let mut width_diffs = self.width_diffs.borrow_mut();
+        if column < width_diffs.len() {
+            width_diffs.set(column, width_diff);
+        } else {
+            tracing::error!("Index out of bounds when setting column width");
+        }
     }
 
     /// Resize the storage to accommodate the new number of columns.

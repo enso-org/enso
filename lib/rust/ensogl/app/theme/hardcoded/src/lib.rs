@@ -192,6 +192,7 @@ define_themes! { [light:0, dark:1]
                     height = 398.0, 398.0;
                     padding = 3.0, 3.0;
                     column_gap = 3.0, 3.0;
+                    entry_height = 30.0, 30.0;
 
                     entry {
                         background.color_intensity = 0.2, 0.2;
@@ -201,6 +202,7 @@ define_themes! { [light:0, dark:1]
                             font = "default", "default";
                             size = 12.0, 12.0;
                             color_intensity = 1.0, 1.0;
+                            highlight_bold = 0.04, 0.04;
                         }
                         icon {
                             size = 16.0, 16.0;

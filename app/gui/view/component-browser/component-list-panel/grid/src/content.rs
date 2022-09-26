@@ -58,6 +58,10 @@ impl ElementId {
             _ => None,
         }
     }
+
+    pub fn header_group(self) -> Option<GroupId> {
+        matches!(self.element, ElementInGroup::Header).as_some(self.group)
+    }
 }
 
 /// An identifier of Component Entry in Component List.

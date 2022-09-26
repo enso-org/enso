@@ -6,6 +6,7 @@ use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::Animation;
+use ensogl_derive_theme::FromTheme;
 use ensogl_text as text;
 
 
@@ -31,6 +32,25 @@ pub struct ColorIntensities {
     pub icon_weak:       f32,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct SelectionColorIntensities {
+    pub text:        f32,
+    pub background:  f32,
+    /// The more contrasting parts of the [icon](crate::icon::Any).
+    pub icon_strong: f32,
+    /// The less contrasting parts of the [icon](crate::icon::Any).
+    pub icon_weak:   f32,
+}
+
+impl Into<ColorIntensities> for SelectionColorIntensities {
+    fn into(self) -> ColorIntensities {
+        let Self { text, background, icon_strong, icon_weak } = self;
+        let dimmed = default();
+        let hover_highlight = default();
+        ColorIntensities { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
+    }
+}
+
 
 // === Style ===
 
@@ -39,7 +59,6 @@ pub struct ColorIntensities {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Style {
-    pub color_intensities:        ColorIntensities,
     /// The distance between left/right edge of the entry and its content.
     pub padding:                  f32,
     pub icon_size:                f32,
@@ -85,25 +104,25 @@ impl Colors {
         network: &frp::Network,
         style_watch: &StyleWatchFrp,
         color: &frp::Stream<color::Rgba>,
-        style: &frp::Stream<Style>,
+        color_intensities: &frp::Stream<ColorIntensities>,
         is_dimmed: &frp::Stream<bool>,
     ) -> Self {
         fn mix((c1, c2): &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
             color::mix(*c1, *c2, *coefficient)
         }
         let app_bg = style_watch.get_color(ensogl_hardcoded_theme::application::background);
-        let style = style.clone_ref();
+        let color_intensities = color_intensities.clone_ref();
 
         let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
 
-            text_intensity <- style.map(|p| p.color_intensities.text);
-            bg_intensity <- style.map(|p| p.color_intensities.background);
-            hover_hg_intensity <- style.map(|p| p.color_intensities.hover_highlight);
-            dimmed_intensity <- style.map(|p| p.color_intensities.dimmed);
-            icon_strong_intensity <- style.map(|p| p.color_intensities.icon_strong);
-            icon_weak_intensity <- style.map(|p| p.color_intensities.icon_weak);
+            text_intensity <- color_intensities.map(|c| c.text);
+            bg_intensity <- color_intensities.map(|c| c.background);
+            hover_hg_intensity <- color_intensities.map(|c| c.hover_highlight);
+            dimmed_intensity <- color_intensities.map(|c| c.dimmed);
+            icon_strong_intensity <- color_intensities.map(|c| c.icon_strong);
+            icon_weak_intensity <- color_intensities.map(|c| c.icon_weak);
 
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();

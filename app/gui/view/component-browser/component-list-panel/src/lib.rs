@@ -248,6 +248,7 @@ impl Model {
         display_object.add_child(&navigator_shadow);
 
         let grid = app.new_view::<grid::View>();
+        display_object.add_child(&grid);
 
         let section_navigator = SectionNavigator::new(&app);
         display_object.add_child(&section_navigator);
@@ -270,7 +271,7 @@ impl Model {
 
     fn update_style(&self, style: &AllStyles) {
         // Background
-
+        tracing::warn!("Setting style {style:?}");
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.size.set(style.background_sprite_size());
         self.section_navigator.update_layout(style);
@@ -285,8 +286,8 @@ impl Model {
 
         // Grid
 
-        let grid_x = style.grid.width / 2.0 + style.navigator.width / 2.0;
-        let grid_y = style.grid.height / 2.0 + style.panel.menu_height / 2.0;
+        let grid_x = -style.grid.content_size().x / 2.0 + style.navigator.width / 2.0;
+        let grid_y = style.grid.content_size().y / 2.0 - style.panel.menu_height / 2.0;
         self.grid.set_position_xy(Vector2(grid_x, grid_y));
 
         // Scroll Area
@@ -378,6 +379,7 @@ impl component::Frp<Model> for Frp {
         let input = &frp_api.input;
         let output = &frp_api.output;
 
+        tracing::warn!("Init");
         //TODO[ao] what about it?
         // let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
         // selection_animation.set_spring.emit(spring);

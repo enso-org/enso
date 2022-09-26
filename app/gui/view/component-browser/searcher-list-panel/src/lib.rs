@@ -157,7 +157,6 @@ impl Layers {
 /// Extra space around shape to allow for shadows.
 const SHADOW_PADDING: f32 = 25.0;
 
-z
 
 const INFINITE: f32 = 999999.0;
 

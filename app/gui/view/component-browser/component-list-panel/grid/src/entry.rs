@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::content::GroupId;
 use crate::content::SectionId;
+use crate::entry::style::ColorIntensities;
 use crate::entry::style::Colors;
 use crate::Style as GridStyle;
 
@@ -156,9 +157,10 @@ impl DimmedGroups {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
-    pub style:         Style,
-    pub grid_style:    GridStyle,
-    pub dimmed_groups: DimmedGroups,
+    pub style:             Style,
+    pub grid_style:        GridStyle,
+    pub color_intensities: ColorIntensities,
+    pub dimmed_groups:     DimmedGroups,
 }
 
 
@@ -391,6 +393,7 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
+            color_intensities <- input.set_params.map(|p| p.color_intensities).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
             layout_data <- all(kind_and_style, input.set_size);
@@ -411,7 +414,7 @@ impl grid_view::Entry for View {
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            let colors = Colors::from_main_color(network, &data.style, &color, &style, &is_dimmed);
+            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
             eval colors.background ((c) data.background.color.set(c.into()));
             data.label.set_default_color <+ colors.text;
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
