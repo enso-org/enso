@@ -6,9 +6,9 @@ use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::formatting;
-use crate::buffer::view::FromInContextSnapped;
-use crate::buffer::view::TryFromInContext;
+use crate::buffer::FromInContextSnapped;
 use crate::buffer::Transform;
+use crate::buffer::TryFromInContext;
 use crate::component::line;
 use crate::component::selection;
 use crate::component::Selection;
@@ -35,7 +35,7 @@ use std::ops::Not;
 // === Export ===
 // ==============
 
-pub use crate::buffer::view::LocationLike;
+pub use crate::buffer::LocationLike;
 pub use crate::buffer::RangeLike;
 
 
@@ -1050,7 +1050,7 @@ impl TextModel {
         let line_index = Line::from_in_context_snapped(self, view_line);
         self.buffer.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
-                buffer::view::ShapedLine::NonEmpty { glyph_sets } => {
+                buffer::ShapedLine::NonEmpty { glyph_sets } => {
                     let glyph_system = self.glyph_system.borrow();
                     let view_width = self.frp.output.view_width.value();
                     let long_text_truncation_mode =
@@ -1124,7 +1124,7 @@ impl TextModel {
                         warn!("Internal error. Line metrics was not computed.")
                     }
                 }
-                buffer::view::ShapedLine::Empty { prev_glyph_info } => {
+                buffer::ShapedLine::Empty { prev_glyph_info } => {
                     if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
                         let line_style = self.buffer.sub_style(*offset..);
                         let mut line_style_iter = line_style.iter_bytes();

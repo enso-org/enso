@@ -239,23 +239,18 @@ with_formatting_properties! { define_formatting }
 impl Formatting {
     /// Returns list of spans for triples of (width, weight, style). The triple is used to identify
     /// a non-variable font family.
-    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, font::NonVariableFaceHeader>> {
+    pub fn non_variable_font_spans(&self) -> Vec<RangedValue<UBytes, NonVariableFaceHeader>> {
         let seq_width = self.width.to_vector();
         let seq_weight = self.weight.to_vector();
         let seq_style = self.style.to_vector();
-        RangedValue::zip3_def_seq(
-            &seq_width,
-            &seq_weight,
-            &seq_style,
-            font::NonVariableFaceHeader::new,
-        )
+        RangedValue::zip3_def_seq(&seq_width, &seq_weight, &seq_style, NonVariableFaceHeader::new)
     }
 
     /// Return list of spans for different [`NonVariableFaceHeader`].
     pub fn chunks_per_font_face<'a>(
         &self,
         content: &'a str,
-    ) -> impl Iterator<Item = (std::ops::Range<UBytes>, font::NonVariableFaceHeader)> + 'a {
+    ) -> impl Iterator<Item = (std::ops::Range<UBytes>, NonVariableFaceHeader)> + 'a {
         let seq_font_header = self.non_variable_font_spans();
         let iter = gen_iter!(move {
             let mut start_byte = UBytes(0);
