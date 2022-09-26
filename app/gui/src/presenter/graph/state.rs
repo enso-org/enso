@@ -669,12 +669,10 @@ impl<'a> ViewChange<'a> {
             expression
         );
         let expression_has_changed = displayed.expression != expression;
-        if expression_has_changed {
+        expression_has_changed.then(|| {
             displayed.expression = expression;
-            Some(ast_id)
-        } else {
-            None
-        }
+            ast_id
+        })
     }
 }
 
