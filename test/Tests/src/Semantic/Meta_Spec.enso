@@ -44,47 +44,47 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_err.is_a Meta.Error_Data . should_be_true
         meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
-        1.is_an Any . should_be_true
-        1.2.is_an Any . should_be_true
-        (My_Type_Data 1 "foo" Nothing).is_an Any . should_be_true
+        1.is_a Any . should_be_true
+        1.2.is_a Any . should_be_true
+        (My_Type_Data 1 "foo" Nothing).is_a Any . should_be_true
 
-        Array.is_an Array . should_be_true
-        [].to_array.is_an Array . should_be_true
+        Array.is_a Array . should_be_true
+        [].to_array.is_a Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
         [1,2,3].is_a Vector.Vector . should_be_true
-        [1,2,3].is_an Array . should_be_false
+        [1,2,3].is_a Array . should_be_false
 
         Boolean.is_a Boolean . should_be_true
         True.is_a Boolean . should_be_true
         False.is_a Boolean . should_be_true
-        True.is_an Integer . should_be_false
+        True.is_a Integer . should_be_false
 
         "".is_a Text . should_be_true
         "".is_a Decimal . should_be_false
 
-        1.is_an Array . should_be_false
-        1.is_an Integer . should_be_true
+        1.is_a Array . should_be_false
+        1.is_a Integer . should_be_true
         1.is_a Number . should_be_true
         1.is_a Decimal . should_be_false
 
         1.0.is_a Number . should_be_true
         1.0.is_a Decimal . should_be_true
-        1.0.is_an Integer . should_be_false
+        1.0.is_a Integer . should_be_false
         1.0.is_a Text . should_be_false
 
         random_gen = Random.new
         Meta.is_a random_gen Polyglot . should_be_true
-        Meta.is_an random_gen Integer . should_be_false
+        Meta.is_a random_gen Integer . should_be_false
 
         (My_Type_Data 1 "foo" Nothing).is_a My_Type_Data . should_be_true
         (My_Type_Data 1 "foo" Nothing).is_a Test_Type_Data . should_be_false
         (My_Type_Data 1 "foo" Nothing).is_a Number . should_be_false
 
         err = Error.throw "Error Value"
-        1.is_an Error . should_be_false
-        err.is_an Error . should_be_true
+        1.is_a Error . should_be_false
+        err.is_a Error . should_be_true
         err.is_a Text . should_be_false
-        Meta.is_an err Error . should_be_true
+        Meta.is_a err Error . should_be_true
         Meta.is_a err Text . should_be_false
 
         Meta.is_a Date.now Date.Date . should_be_true

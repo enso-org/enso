@@ -79,7 +79,7 @@ type Excel_Range
        unchanged.
     column_index : (Text|Integer) -> Integer
     column_index column =
-        if column.is_an Integer then column else Java_Range.parseA1Column column
+        if column.is_a Integer then column else Java_Range.parseA1Column column
 
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range

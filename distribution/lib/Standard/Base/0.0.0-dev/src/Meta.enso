@@ -278,28 +278,8 @@ Any.is_a self typ = is_a self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Any.is_an : Any -> Boolean
-Any.is_an self typ = is_a self typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
 Base.Error.is_a : Any -> Boolean
-Base.Error.is_a self typ = self.is_an typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
-Base.Error.is_an : Any -> Boolean
-Base.Error.is_an self typ = typ==Any || typ==Base.Error
+Base.Error.is_a self typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED
@@ -347,17 +327,6 @@ java_instance_check value typ =
     val_java = get_polyglot_language value == "java"
     typ_java = get_polyglot_language typ == "java"
     val_java && typ_java && Base.Java.is_instance value typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `value` is an instance of `typ`.
-
-   Arguments:
-   - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `self` against.
-is_an : Any -> Any -> Boolean
-is_an value typ = is_a value typ
 
 ## UNSTABLE
    ADVANCED

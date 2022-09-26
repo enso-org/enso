@@ -1326,14 +1326,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
-            problems.at 0 . is_an Invalid_Aggregation_Data . should_be_true
+            problems.at 0 . is_a Invalid_Aggregation_Data . should_be_true
             problems.at 0 . rows . length . should_equal 15
 
         Test.specify "should merge Floating Point Grouping warnings" <|
             new_table = table.aggregate [Group_By "Float", Count Nothing]
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
-            problems.at 0 . is_an Floating_Point_Grouping_Data . should_be_true
+            problems.at 0 . is_a Floating_Point_Grouping_Data . should_be_true
             problems.at 0 . rows . length . should_equal 15
 
     if is_database then
