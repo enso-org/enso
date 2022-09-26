@@ -6,6 +6,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -187,6 +188,34 @@ public class Type implements TruffleObject {
   @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
+  }
+
+  @ExportMessage
+  boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  Array getMembers(boolean includeInternal) {
+    return new Array(constructors.keySet().toArray(Object[]::new));
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  boolean isMemberReadable(String member) {
+    return constructors.containsKey(member);
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  Object readMember(String member) throws UnknownIdentifierException {
+    var result = constructors.get(member);
+    if (result == null) {
+      throw UnknownIdentifierException.create(member);
+    } else {
+      return result;
+    }
   }
 
   @ExportMessage
