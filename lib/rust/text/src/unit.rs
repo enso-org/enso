@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use enso_types::unit;
 use std::ops::AddAssign;
+use std::ops::SubAssign;
 
 
 
@@ -437,6 +438,17 @@ impl<T: Into<Column>> column::Into for Range<T> {
         let end = self.end.into();
         Range { start, end }
     }
+}
+
+
+
+// ======================
+// === UTF16CodeUnit ===
+// ======================
+
+unit! {
+    /// An offset in the text measured in number of code units in text in UTF-16 representation.
+    Utf16CodeUnit::utf16_code_unit(usize)
 }
 
 

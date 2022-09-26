@@ -2,8 +2,8 @@
 
 use crate::language_server::*;
 
+use enso_text::Utf16CodeUnit;
 use strum_macros::IntoStaticStr;
-
 
 
 // =============
@@ -475,17 +475,17 @@ pub struct Position {
     pub character: usize,
 }
 
-impls! { From + &From <enso_text::Location> for Position { |location|
+impls! { From + &From <enso_text::Location<enso_text::Utf16CodeUnit>> for Position { |location|
     Position {
         line: location.line.value,
-        character: location.code_point_index.as_usize(),
+        character: location.offset.value,
     }
 }}
 
-impls! { From + &From <Position> for enso_text::Location { |position|
+impls! { From + &From <Position> for enso_text::Location<enso_text::Utf16CodeUnit> { |position|
     enso_text::Location {
         line: position.line.into(),
-        code_point_index: position.character.into(),
+        offset: position.character.into(),
     }
 }}
 
@@ -503,14 +503,14 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <enso_text::Range<enso_text::Location>> for TextRange { |range|
+impls! { From + &From <enso_text::Range<enso_text::Location<enso_text::Utf16CodeUnit>>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location> { |range|
+impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location<enso_text::Utf16CodeUnit>> { |range|
     enso_text::Range::new(range.start.into(), range.end.into())
 }}
 
@@ -580,7 +580,10 @@ impl TextEdit {
         let source_end_byte = Byte::try_from(source_end_byte).unwrap(); // FIXME: handle error
 
         let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
+        let source_start_position =
+            source_start_position.mod_offset(|b| enso_text::Utf16CodeUnit(0));
         let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
+        let source_end_position = source_end_position.mod_offset(|b| enso_text::Utf16CodeUnit(0));
         let source_text_range = Range::new(source_start_position, source_end_position);
 
         let target_len: ByteDiff = target.len().into();
@@ -873,14 +876,14 @@ pub struct SuggestionEntryScope {
     pub end:   Position,
 }
 
-impls! { From + &From <RangeInclusive<enso_text::Location>> for SuggestionEntryScope { |range|
+impls! { From + &From <RangeInclusive<enso_text::Location<Utf16CodeUnit>>> for SuggestionEntryScope { |range|
     SuggestionEntryScope {
         start : range.start().into(),
         end   : range.end().into(),
     }
 }}
 
-impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location> { |this|
+impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location<Utf16CodeUnit>> { |this|
     this.start.into()..=this.end.into()
 }}
 

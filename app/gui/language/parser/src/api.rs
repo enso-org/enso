@@ -189,7 +189,7 @@ fn to_json_single_line(val: &impl Serialize) -> std::result::Result<String, serd
 impl<M: Metadata> ParsedSourceFile<M> {
     /// Serialize to the SourceFile structure,
     pub fn serialize(&self) -> std::result::Result<SourceFile, serde_json::Error> {
-        let code = self.ast.repr();
+        let code = self.ast.repr().into();
         let before_tag = "\n".repeat(NEWLINES_BEFORE_TAG);
         let before_idmap = "\n";
         let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);

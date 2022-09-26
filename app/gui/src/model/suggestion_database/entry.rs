@@ -12,6 +12,7 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_text::Byte;
 use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
@@ -199,7 +200,7 @@ pub enum Scope {
     /// Local symbol that is visible only in a particular section of the module where it has been
     /// defined.
     #[allow(missing_docs)]
-    InModule { range: RangeInclusive<Location> },
+    InModule { range: RangeInclusive<Location<Byte>> },
 }
 
 /// Represents code snippet and the imports needed for it to work.
@@ -326,7 +327,7 @@ impl Entry {
     }
 
     /// Checks if entry is visible at given location in a specific module.
-    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location) -> bool {
+    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location<Byte>) -> bool {
         match &self.scope {
             Scope::Everywhere => true,
             Scope::InModule { range } => self.module == *module && range.contains(&location),

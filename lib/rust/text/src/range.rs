@@ -58,14 +58,18 @@ impl<T> Range<T> {
     }
 
     /// Return new range with the `offset` subtracted from both ends.
-    pub fn moved_left(&self, offset: T) -> Self
-    where T: Clone + Sub<T, Output = T> {
+    pub fn moved_left<U>(&self, offset: U) -> Self
+    where
+        T: Clone + Sub<U, Output = T>,
+        U: Clone, {
         Self { start: self.start.clone() - offset.clone(), end: self.end.clone() - offset }
     }
 
     /// Return new range with the `offset` added to both ends.
-    pub fn moved_right(&self, offset: T) -> Self
-    where T: Clone + Add<T, Output = T> {
+    pub fn moved_right<U>(&self, offset: U) -> Self
+    where
+        T: Clone + Add<U, Output = T>,
+        U: Clone, {
         Self { start: self.start.clone() + offset.clone(), end: self.end.clone() + offset }
     }
 
