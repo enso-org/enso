@@ -669,7 +669,10 @@ impl<'a> ViewChange<'a> {
             expression
         );
         let expression_has_changed = displayed.expression != expression;
-        expression_has_changed.as_some(ast_id)
+        expression_has_changed.then(|| {
+            displayed.expression = expression;
+            ast_id
+        })
     }
 }
 
