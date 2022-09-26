@@ -15,8 +15,8 @@ use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
 
 use enso_frp as frp;
+use enso_text::text;
 use enso_text::text::BoundsError;
-use enso_text::text::Change;
 use enso_text::Rope;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
@@ -53,7 +53,7 @@ pub struct HistoryData {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Modification<T = UBytes> {
-    pub changes:         Vec<ChangeWithSelection<T>>,
+    pub changes:         Vec<Change<T>>,
     pub selection_group: selection::Group,
     /// Byte offset of this modification. For example, after pressing a backspace with a cursor
     /// placed after an ASCII char, this should result in `-1`.
@@ -73,29 +73,26 @@ impl<T> Modification<T> {
 
 
 // ===========================
-// === ChangeWithSelection ===
+// === Change ===
 // ===========================
 
-/// A change to the text with a selection showing where it was made.
+/// A buffer change. It is a rope change with additional information required for lazy line
+/// redrawing.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref)]
-pub struct ChangeWithSelection<Metric = UBytes, Str = Rope, Loc = Location> {
+pub struct Change<Metric = UBytes, Str = Rope> {
     #[deref]
-    pub change:       Change<Metric, Str>,
-    selection:        Selection<Loc>,
+    pub change:       text::Change<Metric, Str>,
     pub change_range: RangeInclusive<Line>,
     pub line_diff:    LineDiff,
 }
 
-impl<Metric: Default, Str: Default, Loc: Default> Default
-    for ChangeWithSelection<Metric, Str, Loc>
-{
+impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
     fn default() -> Self {
         let change = default();
-        let selection = default();
         let line_diff = default();
         let change_range = Line(0)..=Line(0);
-        Self { change, selection, change_range, line_diff }
+        Self { change, change_range, line_diff }
     }
 }
 
@@ -208,7 +205,7 @@ ensogl_core::define_endpoints! {
     Output {
         selection_edit_mode     (Modification),
         selection_non_edit_mode (selection::Group),
-        text_change             (Rc<Vec<ChangeWithSelection>>),
+        text_change             (Rc<Vec<Change>>),
         first_view_line         (Line),
     }
 }
@@ -253,8 +250,8 @@ impl Buffer {
             changed <- any_mod.map(|m| !m.changes.is_empty());
             output.source.text_change <+ any_mod.gate(&changed).map(|m| Rc::new(m.changes.clone()));
 
-            sel_on_move <- input.cursors_move.map(f!((t) m.moved_selection2(*t,false)));
-            sel_on_mod <- input.cursors_select.map(f!((t) m.moved_selection2(*t,true)));
+            sel_on_move <- input.cursors_move.map(f!((t) m.moved_selection(*t,false)));
+            sel_on_mod <- input.cursors_select.map(f!((t) m.moved_selection(*t,true)));
             sel_on_clear <- input.clear_selection.constant(default());
             sel_on_keep_last <- input.keep_last_selection_only.map(f_!(m.last_selection()));
             sel_on_keep_first <- input.keep_first_selection_only.map(f_!(m.first_selection()));
@@ -276,7 +273,7 @@ impl Buffer {
             sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
             sel_on_undo <= input.undo.map(f_!(m.undo()));
 
-            eval input.set_property (((range,value)) m.replace(range,*value));
+            eval input.set_property (((range,value)) m.set_property(range,*value));
             eval input.mod_property (((range,value)) m.mod_property(range,*value));
             eval input.set_property_default ((prop) m.set_property_default(*prop));
 
@@ -341,7 +338,7 @@ pub struct BufferModelData {
     /// Cache of shaped lines. Shaped lines are needed for many operations, like cursor movement.
     /// For example, moving the cursor right requires knowing the glyph on its right side, which
     /// depends on the used font. It also applies to the non-visible lines.
-    pub shaped_lines:      RefCell<BTreeMap<Line, ShapedLine>>,
+    shaped_lines:          RefCell<BTreeMap<Line, ShapedLine>>,
     pub history:           History,
     /// The line that corresponds to `ViewLine(0)`.
     first_view_line:       Cell<Line>,
@@ -404,6 +401,23 @@ impl BufferModel {
         } else {
             location
         }
+    }
+
+    /// Last column of the provided line index.
+    pub fn line_last_column(&self, line: Line) -> Column {
+        self.with_shaped_line(line, |shaped_line| Column(shaped_line.glyph_count()))
+    }
+
+    /// Last column of the last line.
+    pub fn last_line_last_column(&self) -> Column {
+        self.line_last_column(self.last_line_index())
+    }
+
+    /// Last location of the last line.
+    pub fn last_line_last_location(&self) -> Location {
+        let line = self.last_line_index();
+        let offset = self.line_last_column(line);
+        Location { line, offset }
     }
 }
 
@@ -480,12 +494,42 @@ impl BufferModel {
         let selections = self.selection.borrow().clone();
         selections.iter().map(|s| Selection::<UBytes>::from_in_context_snapped(self, *s)).collect()
     }
+
+    /// Set the selection to a new value.
+    pub fn set_selection(&self, selection: &selection::Group) {
+        *self.selection.borrow_mut() = selection.clone();
+    }
+
+    /// Return all active selections.
+    pub fn selections(&self) -> selection::Group {
+        self.selection.borrow().clone()
+    }
+
+    /// Return all selections as vector of strings. For cursors, the string will be empty.
+    pub fn selections_contents(&self) -> Vec<String> {
+        let mut result = Vec::<String>::new();
+        for selection in self.byte_selections() {
+            result.push(self.rope.text.sub(selection.range()).into())
+        }
+        result
+    }
 }
 
 
 // === Line Shaping ===
 
 impl BufferModel {
+    /// Clear the cache of all shaped lines. Use with caution, this will cause all required lines
+    /// to be reshaped.
+    pub fn clear_shaped_lines_cache(&self) {
+        mem::take(&mut *self.shaped_lines.borrow_mut());
+    }
+
+    /// Clear the shaped lines cache for the provided line index.
+    pub fn clear_shaped_lines_cache_for_line(&self, line: Line) {
+        self.shaped_lines.borrow_mut().remove(&line);
+    }
+
     /// Run the closure with the shaped line. If the line was not in the shaped lines cache, it will
     /// be first re-shaped.
     pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
@@ -538,7 +582,7 @@ impl BufferModel {
                     .zip(shaped.glyph_infos())
                     .map(|(&position, &info)| {
                         let mut info = info;
-                        // FIXME:
+                        // TODO: Add support for variable fonts here.
                         // let variable_variations = glyph.variations.borrow();
                         let glyph_id = GlyphId(info.glyph_id as u16);
                         let render_info = font.glyph_info_of_known_face(
@@ -573,12 +617,11 @@ impl BufferModel {
         match NonEmptyVec::try_from(glyph_sets) {
             Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
             Err(_) => {
-                if let Some(prev_grapheme_offset) = self.rope.prev_grapheme_offset(line_range.start)
-                {
-                    let prev_char_range = prev_grapheme_offset..line_range.start;
+                if let Some(prev_grapheme_off) = self.rope.prev_grapheme_offset(line_range.start) {
+                    let prev_char_range = prev_grapheme_off..line_range.start;
                     let prev_glyph_sets = self.shape_range(prev_char_range);
-                    let prev_glyph_info =
-                        prev_glyph_sets.into_iter().last().map(|t| (prev_grapheme_offset, t));
+                    let last_glyph_set = prev_glyph_sets.into_iter().last();
+                    let prev_glyph_info = last_glyph_set.map(|t| (prev_grapheme_off, t));
                     ShapedLine::Empty { prev_glyph_info }
                 } else {
                     ShapedLine::Empty { prev_glyph_info: None }
@@ -596,8 +639,8 @@ impl BufferModel {
         gen_iter!(move {
             match font {
                 Font::NonVariable(_) =>
-                    for a in line_style.chunks_per_font_face(content) {
-                        yield a;
+                    for chunk in line_style.chunks_per_font_face(content) {
+                        yield chunk;
                     }
                 Font::Variable(_) => {
                     let range = UBytes(0)..UBytes(content.len());
@@ -608,22 +651,15 @@ impl BufferModel {
             }
         })
     }
-
-    /// Content of the provided line.
-    pub fn single_line_content2(&self, line: Line) -> String {
-        let start_byte_offset = self.byte_offset_of_line_index(line).unwrap();
-        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(line);
-        let range = start_byte_offset..end_byte_offset;
-        self.lines_vec(range).first().cloned().unwrap_or_default()
-    }
 }
+
 
 // === Modification ===
 
 impl BufferModel {
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text: impl Into<Rope>) -> Modification {
-        self.modify(text, None)
+        self.modify_selections(iter::repeat(text.into()), None)
     }
 
     /// Paste new text in the place of current selections / cursors. In case of pasting multiple
@@ -633,46 +669,41 @@ impl BufferModel {
     /// strings. In case there is only one chunk, it will be pasted to all selections.
     fn paste(&self, text: &[String]) -> Modification {
         if text.len() == 1 {
-            self.modify_iter(iter::repeat(&text[0]), None)
+            self.modify_selections(iter::repeat((&text[0]).into()), None)
         } else {
-            self.modify_iter(text.iter(), None)
+            self.modify_selections(text.iter().map(|t| t.into()), None)
         }
     }
 
-    // TODO
-    // Delete left should first delete the vowel (if any) and do not move cursor. After pressing
-    // backspace second time, the consonant should be removed. Please read this topic to learn
-    // more: https://phabricator.wikimedia.org/T53472
+    // TODO: Delete left should first delete the vowel (if any) and do not move cursor. After
+    //   pressing backspace second time, the consonant should be removed. Please read this topic
+    //   to learn more: https://phabricator.wikimedia.org/T53472
     fn delete_left(&self) -> Modification {
-        self.modify("", Some(Transform::Left))
+        self.modify_selections(iter::empty(), Some(Transform::Left))
     }
 
     fn delete_right(&self) -> Modification {
-        self.modify("", Some(Transform::Right))
+        self.modify_selections(iter::empty(), Some(Transform::Right))
     }
 
     fn delete_word_left(&self) -> Modification {
-        self.modify("", Some(Transform::LeftWord))
+        self.modify_selections(iter::empty(), Some(Transform::LeftWord))
     }
 
     fn delete_word_right(&self) -> Modification {
-        self.modify("", Some(Transform::RightWord))
+        self.modify_selections(iter::empty(), Some(Transform::RightWord))
     }
 
-    /// Generic buffer modify utility. It replaces each selection range with the provided `text`.
+    /// Generic buffer modify utility. It replaces each selection range with next iterator item.
     ///
     /// If `transform` is provided, it will modify the selections being a simple cursor before
     /// applying modification, what is useful when handling delete operations.
-    ///
-    /// ## Implementation details.
-    /// This function converts all selections to byte-based ones first, and then applies all
-    /// modification rules. This way, it can work in an 1D byte-based space (as opposed to 2D
-    /// location-based space), which makes handling multiple cursors much easier.
-    fn modify(&self, text: impl Into<Rope>, transform: Option<Transform>) -> Modification {
+    fn modify_selections<I>(&self, mut iter: I, transform: Option<Transform>) -> Modification
+    where I: Iterator<Item = Rope> {
         self.commit_history();
-        let text = text.into();
         let mut modification = Modification::default();
         for rel_byte_selection in self.byte_selections() {
+            let text = iter.next().unwrap_or_default();
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
             let byte_selection = byte_selection.map_shape(|t| {
                 t.map(|bytes| {
@@ -682,33 +713,6 @@ impl BufferModel {
                     })
                 })
             });
-            let selection = Selection::<Location>::from_in_context_snapped(self, byte_selection);
-            modification.merge(self.modify_selection(selection, text.clone(), transform));
-        }
-        modification
-    }
-
-    /// Generic buffer modify utility. It replaces each selection range with next iterator item.
-    ///
-    /// If `transform` is provided, it will modify the selections being a simple cursor before
-    /// applying modification, what is useful when handling delete operations.
-    fn modify_iter<I, S>(&self, mut iter: I, transform: Option<Transform>) -> Modification
-    where
-        I: Iterator<Item = S>,
-        S: Into<Rope>, {
-        self.commit_history();
-        let mut modification = Modification::default();
-        for rel_byte_selection in self.byte_selections() {
-            let text = iter.next().map(|t| t.into()).unwrap_or_default();
-            let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
-            let byte_selection = byte_selection.map_shape(|t| {
-                t.map(|bytes| {
-                    UBytes::try_from(bytes).unwrap_or_else(|_| {
-                        error!("Negative byte selection");
-                        UBytes(0)
-                    })
-                })
-            }); // FIXME repeated code above
             let selection = Selection::<Location>::from_in_context_snapped(self, byte_selection);
             modification.merge(self.modify_selection(selection, text, transform));
         }
@@ -733,28 +737,20 @@ impl BufferModel {
             _ => selection,
         };
 
-
         let byte_selection = Selection::<UBytes>::from_in_context_snapped(self, transformed);
         let range = byte_selection.range();
         self.rope.replace(range, &text);
 
-
-
         let new_byte_cursor_pos = range.start + text_byte_size;
         let new_byte_selection = Selection::new_cursor(new_byte_cursor_pos, selection.id);
-        let local_byte_selection = self.to_location_selection2(new_byte_selection);
+        let local_byte_selection =
+            Selection::<Location<UBytes>>::from_in_context_snapped(self, new_byte_selection);
 
         let redraw_start_line = transformed.min().line;
         let redraw_end_line = transformed.max().line;
-
-        warn!("redraw_start_line: {}, redraw_end_line: {}", redraw_start_line, redraw_end_line);
-
-        // FIXME, rmoeve these + Line(1), as they zero in diff computation
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
         let inserted_line_count = local_byte_selection.end.line - redraw_start_line + Line(1);
-
         let line_diff = inserted_line_count - selected_line_count;
-
 
         if line_diff != LineDiff(0) {
             let mut shaped_lines = self.shaped_lines.borrow_mut();
@@ -765,20 +761,17 @@ impl BufferModel {
 
         let redraw_range = redraw_start_line.value..=(redraw_end_line + line_diff).value;
 
-        // FIXME: make it more inteligent.
         for line in redraw_range {
             let line = Line(line);
             self.shaped_lines.borrow_mut().remove(&line);
         }
 
-        // FIXME: construct the below with the local_byte_selection information above
         let loc_selection =
             Selection::<Location>::from_in_context_snapped(self, new_byte_selection);
         let selection_group = selection::Group::from(loc_selection);
-        let change = Change { range, text };
+        let change = text::Change { range, text };
         let change_range = redraw_start_line..=redraw_end_line;
-        let change = ChangeWithSelection { change, selection, change_range, line_diff };
-        warn!("change: {:?}", change);
+        let change = Change { change, change_range, line_diff };
         let changes = vec![change];
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
@@ -786,87 +779,14 @@ impl BufferModel {
 }
 
 
-// === Undo / Redo ===
+// === Properties ===
 
 impl BufferModel {
-    fn commit_history(&self) {
-        let text = self.rope.text();
-        let style = self.rope.style();
-        let selection = self.selection.borrow().clone();
-        self.history.data.borrow_mut().undo_stack.push((text, style, selection));
-    }
-
-    fn undo(&self) -> Option<selection::Group> {
-        let item = self.history.data.borrow_mut().undo_stack.pop();
-        item.map(|(text, style, selection)| {
-            self.rope.set_text(text);
-            self.rope.set_style(style);
-            selection
-        })
-    }
-
-    // fn to_location_selection(&self, selection: Selection<UBytes>) -> Selection {
-    //     let start = Location::from_in_context_snapped(self, selection.start);
-    //     let end = Location::from_in_context_snapped(self, selection.end);
-    //     let id = selection.id;
-    //     Selection::new(start, end, id)
-    // }
-
-    fn to_location_selection2(&self, selection: Selection<UBytes>) -> Selection<Location<UBytes>> {
-        let start = self.offset_to_location(selection.start);
-        let end = self.offset_to_location(selection.end);
-        let id = selection.id;
-        Selection::new(start, end, id)
-    }
-
-    fn offset_to_location(&self, offset: UBytes) -> Location<UBytes> {
-        let line = self.line_index_of_byte_offset_snapped(offset);
-        let line_offset = self.byte_offset_of_line_index(line).unwrap();
-        // fixme: tu byl snap_bytes_location_error - potrzebny?
-        let byte_offset = UBytes::try_from(offset - line_offset).unwrap();
-        Location(line, byte_offset)
-    }
-
-    /// Convert the byte range to location range.
-    pub fn offset_range_to_location(
+    fn set_property(
         &self,
-        range: buffer::Range<UBytes>,
-    ) -> buffer::Range<Location<UBytes>> {
-        let start = self.offset_to_location(range.start);
-        let end = self.offset_to_location(range.end);
-        buffer::Range::new(start, end)
-    }
-
-    /// Last column of the provided line index.
-    pub fn line_last_column(&self, line: Line) -> Column {
-        self.with_shaped_line(line, |shaped_line| Column(shaped_line.glyph_count()))
-    }
-
-    /// Last column of the last line.
-    pub fn last_line_last_column(&self) -> Column {
-        self.line_last_column(self.last_line_index())
-    }
-
-    /// Last location of the last line.
-    pub fn last_line_last_location(&self) -> Location {
-        let line = self.last_line_index();
-        let offset = self.line_last_column(line);
-        Location { line, offset }
-    }
-}
-
-impl BufferModel {
-    fn set_first_view_line(&self, line: Line) {
-        self.first_view_line.set(line);
-    }
-
-    fn mod_first_view_line(&self, diff: LineDiff) -> Line {
-        let line = self.first_view_line.get() + diff;
-        self.set_first_view_line(line);
-        line
-    }
-
-    fn replace(&self, ranges: &Vec<buffer::Range<UBytes>>, property: Option<formatting::Property>) {
+        ranges: &Vec<buffer::Range<UBytes>>,
+        property: Option<formatting::Property>,
+    ) {
         if let Some(property) = property {
             for range in ranges {
                 let range = self.crop_byte_range(range);
@@ -898,29 +818,20 @@ impl BufferModel {
     pub fn resolve_property(&self, property: formatting::Property) -> formatting::ResolvedProperty {
         self.formatting.resolve_property(property)
     }
+}
 
-    /// Set the selection to a new value.
-    pub fn set_selection(&self, selection: &selection::Group) {
-        *self.selection.borrow_mut() = selection.clone();
+
+// === View ===
+
+impl BufferModel {
+    fn set_first_view_line(&self, line: Line) {
+        self.first_view_line.set(line);
     }
 
-    /// Return all active selections.
-    pub fn selections(&self) -> selection::Group {
-        self.selection.borrow().clone()
-    }
-
-    /// Return all selections as vector of strings. For cursors, the string will be empty.
-    pub fn selections_contents(&self) -> Vec<String> {
-        let mut result = Vec::<String>::new();
-        for selection in self.byte_selections() {
-            result.push(self.rope.text.sub(selection.range()).into())
-        }
-        result
-    }
-
-    // FIXME: rename - left fixme
-    fn moved_selection2(&self, movement: Option<Transform>, modify: bool) -> selection::Group {
-        movement.map(|t| self.moved_selection(t, modify)).unwrap_or_default()
+    fn mod_first_view_line(&self, diff: LineDiff) -> Line {
+        let line = self.first_view_line.get() + diff;
+        self.set_first_view_line(line);
+        line
     }
 
     /// Index of the first line of this buffer view.
@@ -930,10 +841,8 @@ impl BufferModel {
 
     /// Index of the last line of this buffer view.
     pub fn last_view_line(&self) -> Line {
-        let max_line = self.last_line_index();
-        let view_line_diff = LineDiff(self.view_line_count() as i32 - 1);
-        let last_view_line = self.first_view_line() + view_line_diff;
-        last_view_line.min(max_line)
+        let last_view_line = ViewLine(self.first_view_line().value + self.view_line_count() - 1);
+        Line::from_in_context_snapped(self, last_view_line)
     }
 
     /// Number of lines visible in this buffer view.
@@ -952,36 +861,32 @@ impl BufferModel {
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
         ViewLine(0)..=ViewLine::from_in_context_snapped(self, self.last_view_line())
     }
+}
 
-    // FIXME: remove
-    /// remove
-    pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
-        let line = ViewLine::from_in_context_snapped(self, location.line);
-        let offset = location.offset;
-        Location { line, offset }
+
+// === Undo / Redo ===
+
+impl BufferModel {
+    fn commit_history(&self) {
+        let text = self.rope.text();
+        let style = self.rope.style();
+        let selection = self.selection.borrow().clone();
+        self.history.data.borrow_mut().undo_stack.push((text, style, selection));
     }
 
-    // FIXME: move to from_in_context_snapped
-    /// Convert the location range to view location range.
-    pub fn location_range_to_view_location_range(
-        &self,
-        range: buffer::Range<Location<UBytes>>,
-    ) -> buffer::Range<ViewLocation<UBytes>> {
-        let start = self.location_to_view_location(range.start);
-        let end = self.location_to_view_location(range.end);
-        buffer::Range { start, end }
+    fn undo(&self) -> Option<selection::Group> {
+        let item = self.history.data.borrow_mut().undo_stack.pop();
+        item.map(|(text, style, selection)| {
+            self.rope.set_text(text);
+            self.rope.set_style(style);
+            selection
+        })
     }
+}
 
-    // FIXME: move to from_in_context_snapped
-    /// Convert the selection to view selection.
-    pub fn selection_to_view_selection(&self, selection: Selection) -> Selection<ViewLocation> {
-        let start = self.location_to_view_location(selection.shape.start);
-        let end = self.location_to_view_location(selection.shape.end);
-        let shape = selection::Shape { start, end };
-        let id = selection.id;
-        Selection { shape, id }
-    }
 
+
+impl BufferModel {
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> UBytes {
         self.byte_offset_of_line_index(self.first_view_line()).unwrap() // FIXME

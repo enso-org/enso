@@ -101,14 +101,18 @@ impl BufferModel {
     /// If `modify` is `true`, the selections are modified, otherwise the results of individual
     /// region movements become cursors. Modify is often mapped to the `shift` button in text
     /// editors.
-    pub fn moved_selection(&self, transform: Transform, modify: bool) -> selection::Group {
-        let mut result = selection::Group::new();
-        let selections = self.selection.borrow().clone();
-        for &selection in selections.iter() {
-            let new_selection = self.moved_selection_region(transform, selection, modify);
-            result.merge(new_selection);
-        }
-        result
+    pub fn moved_selection(&self, movement: Option<Transform>, modify: bool) -> selection::Group {
+        movement
+            .map(|transform| {
+                let mut result = selection::Group::new();
+                let selections = self.selection.borrow().clone();
+                for &selection in selections.iter() {
+                    let new_selection = self.moved_selection_region(transform, selection, modify);
+                    result.merge(new_selection);
+                }
+                result
+            })
+            .unwrap_or_default()
     }
 
     /// Compute the result of movement on one selection region.

@@ -317,7 +317,7 @@ ensogl_core::define_endpoints_2! {
         pointer_style   (cursor::Style),
         width           (f32),
         height          (f32),
-        changed         (Rc<Vec<buffer::ChangeWithSelection>>),
+        changed         (Rc<Vec<buffer::Change>>),
         content         (buffer::Rope),
         hovered         (bool),
         selection_color (color::Rgb),
@@ -846,7 +846,7 @@ impl TextModel {
     fn on_modified_selection(
         &self,
         buffer_selections: &buffer::selection::Group,
-        changes: Option<&[buffer::ChangeWithSelection]>,
+        changes: Option<&[buffer::Change]>,
     ) {
         let do_edit = changes.is_some();
         self.update_lines_after_change(changes);
@@ -886,7 +886,7 @@ impl TextModel {
     /// and to the right of the insertion point. Unfortunately, the current Rustybuzz
     /// implementation does not support such use cases:
     /// https://github.com/RazrFalcon/rustybuzz/issues/54
-    fn update_lines_after_change(&self, changes: Option<&[buffer::ChangeWithSelection]>) {
+    fn update_lines_after_change(&self, changes: Option<&[buffer::Change]>) {
         debug_span!("update_lines_after_change").in_scope(|| {
             self.detach_glyphs_from_cursors();
             if let Some(changes) = changes {
@@ -1017,7 +1017,7 @@ impl TextModel {
     /// when necessary as it is very costly.
     #[profile(Debug)]
     pub fn redraw(&self) {
-        mem::take(&mut *self.buffer.shaped_lines.borrow_mut());
+        self.buffer.clear_shaped_lines_cache();
         let end = ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line());
         // FIXME: Unwrap used here. To be fixed when view area will be implemented properly.
         let end = end.unwrap();
@@ -1168,7 +1168,7 @@ impl TextModel {
             let range = buffer::Range::<Location>::from_in_context_snapped(self, range);
             let line_range = range.start.line..=range.end.line;
             for line_index in line_range {
-                self.buffer.shaped_lines.borrow_mut().remove(&line_index);
+                self.buffer.clear_shaped_lines_cache_for_line(line_index);
             }
             let view_line_start = ViewLine::from_in_context_snapped(self, range.start.line);
             let view_line_end = ViewLine::from_in_context_snapped(self, range.end.line);
@@ -1324,8 +1324,7 @@ impl TextModel {
         range: buffer::Range<UBytes>,
         f: impl Fn(&Glyph),
     ) {
-        let range = self.buffer.offset_range_to_location(range);
-        let range = self.buffer.location_range_to_view_location_range(range);
+        let range = buffer::Range::<ViewLocation<UBytes>>::from_in_context_snapped(self, range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
             for glyph in &lines[range.start.line] {
