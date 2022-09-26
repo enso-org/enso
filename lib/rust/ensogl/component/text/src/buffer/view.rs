@@ -371,6 +371,7 @@ impl BufferModel {
     }
 }
 
+
 // === Location ===
 
 impl BufferModel {
@@ -421,7 +422,55 @@ impl BufferModel {
         let offset = self.line_last_column(line);
         Location { line, offset }
     }
+
+    /// Byte offset of the first line of this buffer view.
+    pub fn first_view_line_byte_offset(&self) -> UBytes {
+        self.byte_offset_of_line_index(self.first_view_line()).unwrap()
+    }
+
+    /// Byte offset of the last line of this buffer view.
+    pub fn last_view_line_byte_offset(&self) -> UBytes {
+        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
+    }
+
+    /// Byte offset range of lines visible in this buffer view.
+    pub fn view_line_byte_offset_range(&self) -> Range<UBytes> {
+        self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
+    }
+
+    /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
+    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
+        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
+    }
+
+    /// Return the offset after the last character of a given view line if the line exists.
+    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
+        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
+    }
+
+    /// The byte range of this buffer view.
+    pub fn view_byte_range(&self) -> Range<UBytes> {
+        self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
+    }
+
+    /// The byte offset of the given buffer view line index.
+    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
+        let line = self.first_view_line() + view_line;
+        self.byte_offset_of_line_index(line)
+    }
+
+    /// Byte range of the given view line.
+    pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
+        let line = Line::from_in_context_snapped(self, view_line);
+        self.byte_range_of_line_index_snapped(line)
+    }
+
+    /// End byte offset of the last line.
+    pub fn last_line_end_byte_offset(&self) -> UBytes {
+        self.rope.text().last_line_end_byte_offset()
+    }
 }
+
 
 // === Selection ===
 
@@ -659,6 +708,16 @@ impl BufferModel {
 // === Modification ===
 
 impl BufferModel {
+    /// Get content for lines in the given range.
+    pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
+        let start_line = Line::from_in_context_snapped(self, *range.start());
+        let end_line = Line::from_in_context_snapped(self, *range.end());
+        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
+        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
+        let range = start_byte_offset..end_byte_offset;
+        self.lines_vec(range)
+    }
+
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text: impl Into<Rope>) -> Modification {
         self.modify_selections(iter::repeat(text.into()), None)
@@ -765,7 +824,6 @@ impl BufferModel {
         }
 
         let redraw_range = redraw_start_line.value..=(redraw_end_line + line_diff).value;
-
         for line in redraw_range {
             let line = Line(line);
             self.shaped_lines.borrow_mut().remove(&line);
@@ -866,6 +924,11 @@ impl BufferModel {
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
         ViewLine(0)..=ViewLine::from_in_context_snapped(self, self.last_view_line())
     }
+
+    /// Return all lines of this buffer view.
+    pub fn view_lines_content(&self) -> Vec<String> {
+        self.lines_vec(self.view_byte_range())
+    }
 }
 
 
@@ -886,74 +949,6 @@ impl BufferModel {
             self.rope.set_style(style);
             selection
         })
-    }
-}
-
-
-
-impl BufferModel {
-    /// Byte offset of the first line of this buffer view.
-    pub fn first_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.first_view_line()).unwrap() // FIXME
-    }
-
-    /// Byte offset of the last line of this buffer view.
-    pub fn last_view_line_byte_offset(&self) -> UBytes {
-        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
-    }
-
-    /// Byte offset range of lines visible in this buffer view.
-    pub fn view_line_byte_offset_range(&self) -> Range<UBytes> {
-        self.first_view_line_byte_offset()..self.last_view_line_byte_offset()
-    }
-
-    /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
-    pub fn view_end_byte_offset_snapped(&self) -> UBytes {
-        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
-    }
-
-    /// Return the offset after the last character of a given view line if the line exists.
-    pub fn end_offset_of_view_line(&self, line: Line) -> Option<UBytes> {
-        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
-    }
-
-    /// The byte range of this buffer view.
-    pub fn view_byte_range(&self) -> Range<UBytes> {
-        self.first_view_line_byte_offset()..self.view_end_byte_offset_snapped()
-    }
-
-    /// The byte offset of the given buffer view line index.
-    pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<UBytes, BoundsError> {
-        let line = self.first_view_line() + view_line;
-        self.byte_offset_of_line_index(line)
-    }
-
-    // FIXME: is this snapping needed?
-    /// Byte range of the given view line.
-    pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
-        let line = Line::from_in_context_snapped(self, view_line);
-        self.byte_range_of_line_index_snapped(line)
-    }
-
-    // FIXME: clone of str vec!
-    /// Return all lines of this buffer view.
-    pub fn view_lines(&self) -> Vec<String> {
-        self.lines_vec(self.view_byte_range())
-    }
-
-    /// Get content for lines in the given range.
-    pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
-        let start_line = Line::from_in_context_snapped(self, *range.start());
-        let end_line = Line::from_in_context_snapped(self, *range.end());
-        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
-        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
-        let range = start_byte_offset..end_byte_offset;
-        self.lines_vec(range)
-    }
-
-    /// End byte offset of the last line.
-    pub fn last_line_end_byte_offset(&self) -> UBytes {
-        self.rope.text().last_line_end_byte_offset()
     }
 }
 
@@ -1026,6 +1021,7 @@ impl Default for LocationLike {
 }
 
 impl LocationLike {
+    /// Expand the [`LocationLike`] structure to a known location.
     pub fn expand(self, buffer: &BufferModel) -> Location<Column, Line> {
         match self {
             LocationLike::LocationColumnLine(loc) => loc,
@@ -1043,14 +1039,19 @@ impl LocationLike {
 // === Conversions ===
 // ===================
 
-pub trait FromInContext<Ctx, T> {
-    fn from_in_context(context: Ctx, arg: T) -> Self;
-}
-
 /// Perform conversion between two values. It is just like the [`From`] trait, but it performs the
 /// conversion in a "context". The "context" is an object containing additional information required
 /// to perform the conversion. For example, the context can be a text buffer, which is needed to
 /// convert byte offset to line-column location.
+#[allow(missing_docs)]
+pub trait FromInContext<Ctx, T> {
+    fn from_in_context(context: Ctx, arg: T) -> Self;
+}
+
+/// Perform conversion between two values. It is just like [`FromInContext`], but the result value
+/// is snapped to the closest valid location. For example, when performing conversion between
+/// [`Line`] and [`ViewLine`], if the line is not visible, the closest visible line will be
+/// returned.
 #[allow(missing_docs)]
 pub trait FromInContextSnapped<Ctx, T> {
     fn from_in_context_snapped(context: Ctx, arg: T) -> Self;
@@ -1096,6 +1097,8 @@ where T: TryFromInContext<&'t BufferModel, U>
 
 // === Conversions to Line ===
 
+/// Conversion error between [`ViewLine`] and [`Line`].
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy)]
 pub enum ViewLineToLineConversionError {
     TooSmall,
@@ -1151,6 +1154,8 @@ impl FromInContextSnapped<&BufferModel, UBytes> for Line {
 
 // === Conversions to ViewLine ===
 
+/// Conversion error between [`Line`] and [`ViewLine`].
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy)]
 pub enum LineToViewLineConversionError {
     TooSmall,

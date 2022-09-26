@@ -894,7 +894,6 @@ impl TextModel {
                 let lines_to_redraw = changes
                     .iter()
                     .filter_map(|change_with_selection| {
-                        let change_range = &change_with_selection.change_range;
                         let change_start = change_with_selection.selection.start.line;
                         let change_end = change_with_selection.selection.end.line;
                         let view_change_range = change_start..=change_end;
