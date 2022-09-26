@@ -47,7 +47,7 @@ class EvalTest extends InterpreterTest {
            |main =
            |    x = 10
            |    Debug.eval $rawTQ
-           |        IO.println (Mk_My_Type x)
+           |        IO.println (My_Type.Mk_My_Type x)
            |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Type 10)")

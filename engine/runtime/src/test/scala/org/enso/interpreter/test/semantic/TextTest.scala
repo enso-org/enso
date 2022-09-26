@@ -42,7 +42,7 @@ class TextTest extends InterpreterTest {
           |
           |main =
           |    IO.println 5
-          |    IO.println (Mk_My_Type (Mk_My_Type 10))
+          |    IO.println (My_Type.Mk_My_Type (My_Type.Mk_My_Type 10))
           |    IO.println "123"
           |""".stripMargin
       eval(code)
