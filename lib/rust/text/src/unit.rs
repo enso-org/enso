@@ -111,25 +111,11 @@ impl Sub<ByteDiff> for Byte {
     }
 }
 
-impl Sub<Byte> for ByteDiff {
-    type Output = ByteDiff;
-    fn sub(self, rhs: Byte) -> Self::Output {
-        (self.value - rhs.value as i32).into()
-    }
-}
-
 impl Add<ByteDiff> for Byte {
     type Output = Byte;
     fn add(self, rhs: ByteDiff) -> Self::Output {
         let value = self.value as i32 + rhs.value;
         Byte(value as usize)
-    }
-}
-
-impl Add<Byte> for ByteDiff {
-    type Output = Byte;
-    fn add(self, rhs: Byte) -> Self::Output {
-        rhs + self
     }
 }
 
@@ -144,7 +130,6 @@ impl SubAssign<ByteDiff> for Byte {
         *self = *self - rhs
     }
 }
-
 
 impl Byte {
     pub fn to_diff(self) -> ByteDiff {
