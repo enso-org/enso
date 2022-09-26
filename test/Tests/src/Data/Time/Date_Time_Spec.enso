@@ -324,18 +324,32 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
             d1.start_of Date_Period.Month . should_equal (Date_Time.new 2022 9 1)
             d1.end_of Date_Period.Month . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
+            d1.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 12)
+            d1.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 18 23 59 59 max_nanos)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 11)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 17 23 59 59 max_nanos)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 10)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 16 23 59 59 max_nanos)
 
-            d2 = create_new_datetime 2022 2 7 12 34 56 123456789
+            d2 = create_new_datetime 2022 2 6 12 34 56 123456789
             d2.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 1 1)
             d2.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 3 31 23 59 59 max_nanos)
             d2.start_of Date_Period.Month . should_equal (Date_Time.new 2022 2 1)
             d2.end_of Date_Period.Month . should_equal (Date_Time.new 2022 2 28 23 59 59 max_nanos)
+            d2.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 1 31)
+            d2.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 2 6 23 59 59 max_nanos)
+            d2.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 6)
+            d2.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 12 23 59 59 max_nanos)
 
-            d3 = create_new_datetime 2020 2 17
+            d3 = create_new_datetime 2020 2 19
             d3.start_of Date_Period.Year . should_equal (Date_Time.new 2020 1 1)
             d3.end_of Date_Period.Year . should_equal (Date_Time.new 2020 12 31 23 59 59 max_nanos)
             d3.start_of Date_Period.Month . should_equal (Date_Time.new 2020 2 1)
             d3.end_of Date_Period.Month . should_equal (Date_Time.new 2020 2 29 23 59 59 max_nanos)
+            d3.start_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 17)
+            d3.end_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 23 23 59 59 max_nanos)
+            d3.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 16)
+            d3.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 22 23 59 59 max_nanos)
 
             d4 = create_new_datetime 1970 12 31 23 59 59 max_nanos
             d4.start_of Date_Period.Year . should_equal (Date_Time.new 1970 1 1)

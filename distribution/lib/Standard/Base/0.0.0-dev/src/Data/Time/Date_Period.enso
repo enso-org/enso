@@ -11,6 +11,12 @@ type Date_Period
     Quarter
     Month
 
+    ## Represents a 7-day week starting at a given day.
+
+       By default, the first day of the week is Monday, but this can be adjusted
+       to any other day.
+    Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
+
     ## PRIVATE
        This method could be replaced with matching on `Date_Period` supertype
        if/when that is supported.
@@ -24,6 +30,7 @@ type Date_Period
             Year -> TemporalAdjusters.firstDayOfYear
             Quarter -> Date_Period_Utils.quarter_start
             Month -> TemporalAdjusters.firstDayOfMonth
+            Week first_day -> TemporalAdjusters.previousOrSame first_day.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
     ## PRIVATE
@@ -33,4 +40,5 @@ type Date_Period
             Year -> TemporalAdjusters.lastDayOfYear
             Quarter -> Date_Period_Utils.quarter_end
             Month -> TemporalAdjusters.lastDayOfMonth
+            Week first_day -> Date_Period_Utils.end_of_week first_day.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster
