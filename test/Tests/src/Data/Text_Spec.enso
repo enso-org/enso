@@ -206,7 +206,7 @@ spec =
             'abc'.split '' . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
-            matcher = Text_Matcher.Case_Insensitive Case_Insensitive_Data
+            matcher = Text_Matcher.Case_Insensitive
             "AbCdABCDabDCba" . split "ab" matcher . should_equal ["", "Cd", "CD", "DCba"]
             "abc".split "d" matcher . should_equal ["abc"]
             "AAA".split "a" matcher . should_equal ["", "", "", ""]
@@ -1234,10 +1234,10 @@ spec =
             abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
 
         Test.specify "should handle overlapping matches as shown in the examples"
-            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal (Span_Data (Range_Data 1 3) "aaa")
+            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 1 3) "aaa")
             "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal (Span_Data (Range_Data 0 2) "aaa")
 
-            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal (Span_Data (Range_Data 5 7) "aaa aaa")
+            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 5 7) "aaa aaa")
             "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal (Span_Data (Range_Data 4 6) "aaa aaa")
 
     Test.group "Regex matching" <|
@@ -1501,12 +1501,12 @@ spec =
 
             "aaa".replace "aa" "c" matcher=Regex_Matcher_Data . should_equal "ca"
             "aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "ca"
-            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal "ac"
+            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal "ac"
             "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "ca"
 
-            "aaa aaa".replace "aa" "c" matcher=Text_Matcher_Data . should_equal "ca ca"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher_Data . should_equal "ca aaa"
-            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher_Data . should_equal "aaa ac"
+            "aaa aaa".replace "aa" "c" matcher=Text_Matcher.Case_Sensitive . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal "aaa ac"
             "aaa aaa".replace "aa" "c" matcher=Regex_Matcher_Data . should_equal "ca ca"
             "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher_Data . should_equal "ca aaa"
             "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher_Data . should_equal "aaa ca"

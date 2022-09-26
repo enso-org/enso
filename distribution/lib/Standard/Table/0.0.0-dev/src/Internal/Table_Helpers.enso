@@ -143,11 +143,11 @@ rename_columns internal_columns mapping on_problems =
                 Nothing -> Nothing
                 _ ->
                     matched.add index
-                    new_name = case ms of
-                        Regex_Matcher_Data _ _ _ _ _ ->
+                    new_name = case Meta.type_of ms of
+                        Regex_Matcher.Regex_Matcher ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        Text_Matcher_Data _ -> (good_names.at index).at 1
+                        Text_Matcher.Text_Matcher -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -206,8 +206,8 @@ sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns direction text_ordering =
     case_sensitive = text_ordering.case_sensitive.if_nothing True
     mapper = case case_sensitive of
-        True -> _.name
-        Case_Insensitive_Data locale ->
+        Case_Sensitivity.Sensitive -> _.name
+        Case_Sensitivity.Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare

@@ -28,7 +28,7 @@ type Regex_Matcher
            not preceded by an unescaped backslash, all characters from the
            leftmost such `#` to the end of the line are ignored. That is to say;
            they act as 'comments' in the regex.
-    Regex_Matcher_Data (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
+    Regex_Matcher_Data (case_sensitivity : Case_Sensitivity = Case_Sensitivity.Sensitive) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
 
     ## UNSTABLE
        Compiles a provided pattern according to the rules defined in this
