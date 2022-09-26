@@ -1373,33 +1373,32 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
 Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher_Data = case matcher of
-    Text_Matcher_Data case_sensitive -> case case_sensitive of
-        True ->
-            codepoint_span = case mode of
-                Matching_Mode.First -> Text_Utils.span_of self term
-                Matching_Mode.Last -> Text_Utils.last_span_of self term
-            if codepoint_span.is_nothing then Nothing else
-                start = Text_Utils.utf16_index_to_grapheme_index self codepoint_span.codeunit_start
-                ## While the codepoint_span may have different code unit length
-                   from our term, the `length` counted in grapheme clusters is
-                   guaranteed to be the same.
-                end = start + term.length
-                Span_Data (Range_Data start end) self
-        Case_Insensitive_Data locale -> case term.is_empty of
-            True -> case mode of
-                Matching_Mode.First -> Span_Data (Range_Data 0 0) self
-                Matching_Mode.Last ->
-                    end = self.length
-                    Span_Data (Range_Data end end) self
-            False ->
-                search_for_last = case mode of
-                    Matching_Mode.First -> False
-                    Matching_Mode.Last -> True
-                case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
-                    Nothing -> Nothing
-                    grapheme_span ->
-                        Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
-    Regex_Matcher_Data _ _ _ _ _ -> case mode of
+    Text_Matcher.Case_Sensitive ->
+        codepoint_span = case mode of
+            Matching_Mode.First -> Text_Utils.span_of self term
+            Matching_Mode.Last -> Text_Utils.last_span_of self term
+        if codepoint_span.is_nothing then Nothing else
+            start = Text_Utils.utf16_index_to_grapheme_index self codepoint_span.codeunit_start
+            ## While the codepoint_span may have different code unit length
+               from our term, the `length` counted in grapheme clusters is
+               guaranteed to be the same.
+            end = start + term.length
+            Span_Data (Range_Data start end) self
+    Text_Matcher.Case_Insensitive_Data locale -> case term.is_empty of
+        True -> case mode of
+            Matching_Mode.First -> Span_Data (Range_Data 0 0) self
+            Matching_Mode.Last ->
+                end = self.length
+                Span_Data (Range_Data end end) self
+        False ->
+            search_for_last = case mode of
+                Matching_Mode.First -> False
+                Matching_Mode.Last -> True
+            case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
+                Nothing -> Nothing
+                grapheme_span ->
+                    Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+    _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match self Matching_Mode.First of
                 Nothing -> Nothing
@@ -1475,7 +1474,7 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher_Data
          match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all self term="" matcher=Text_Matcher_Data = case matcher of
+Text.location_of_all self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher_Data case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case case_sensitive of
         True ->
             codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term

@@ -104,7 +104,7 @@ from project.Data.Range export all
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text.Case export Case_Insensitive_Data, Text_Matcher_Data, Regex_Matcher_Data, No_Matches_Found_Data
+from project.Data.Text.Regex_Matcher export Regex_Matcher_Data
 from project.Data.Text export all hiding Encoding, Span, Text_Ordering
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Text_Ordering export all

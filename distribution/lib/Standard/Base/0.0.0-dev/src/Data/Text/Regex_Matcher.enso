@@ -3,22 +3,45 @@ from Standard.Base.Date.Text.Matching import match_criteria_implementation
 
 ## Represents regex matching mode.
 type Regex_Matcher
-    ## Represents case-sensitive regex matching.
-    Case_Sensitive (regex_options:Regex_Options=Regex_Options.Default)
-    Case_Insensitive (locale:Locale=Locale.default) (regex_options:Regex_Options=Regex_Options.Default)
+    ## Regex matching mode.
+
+       Arguments:
+       - case_sensitivity: Specifies whether the matching should be case
+         sensitive.
+       - multiline: Enables or disables the multiline option. Multiline
+         specifies that the `^` and `$` pattern characters match the start and
+         end of lines, as to well as the start and end of the input,
+         respectively.
+       - match_ascii: Enables or disables pure-ASCII matching for the regex. If
+         you know your data only contains ASCII, you can enable this for a
+         performance boost on some regex engines.
+       - dot_matches_newline: Enables or disables the dot matches newline
+         option. This specifies that the `.` special character should match
+         everything _including_ newline characters. Without this flag, it
+         matches all characters _except_ newlines.
+       - comments: Enables or disables the comments mode for the regular
+         expression. In comments mode, the following changes apply:
+         - Whitespace within the pattern is ignored, except when within a
+           character class or when preceded by an unescaped backslash, or within
+           grouping constructs (e.g. `(?...)`).
+         - When a line contains a `#` that is not in a character class and is
+           not preceded by an unescaped backslash, all characters from the
+           leftmost such `#` to the end of the line are ignored. That is to say;
+           they act as 'comments' in the regex.
+    Regex_Matcher_Data (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
 
     ## UNSTABLE
        Compiles a provided pattern according to the rules defined in this
        `Regex_Matcher`.
     compile : Text -> Pattern
-    compile self pattern = case self of
-        Case_Sensitive regex_options ->
-            regex_options.compile pattern case_insensitive=False
-        ## TODO [RW] Currently locale is not supported in case-insensitive Regex
-           matching. There are plans to revisit it:
-           https://www.pivotaltracker.com/story/show/181313576
-        Case_Insensitive _ regex_options ->
-            regex_options.compile pattern case_insensitive=True
+    compile self pattern =
+        case_insensitive = case self.case_sensitivity of
+            Case_Sensitivity.Sensitive -> False
+            ## TODO [RW] Currently locale is not supported in case-insensitive
+               Regex matching. There are plans to revisit it:
+               https://www.pivotaltracker.com/story/show/181313576
+            Case_Sensitivity.Insensitive _ -> True
+        Regex.compile pattern case_insensitive=case_insensitive match_ascii=self.match_ascii dot_matches_newline=self.dot_matches_newline multiline=self.multiline comments=self.comments
 
     ## UNSTABLE
        Checks if a name matches the provided criterion according to the specified
@@ -32,7 +55,7 @@ type Regex_Matcher
        > Example
          Check if the provided name matches a regular expression.
 
-             Regex_Matcher.Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
+             (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive) . match_single_criterion "Foobar" "f.*" == True
     match_single_criterion : Text -> Text -> Boolean
     match_single_criterion self name criterion =
         self.compile criterion . matches name
