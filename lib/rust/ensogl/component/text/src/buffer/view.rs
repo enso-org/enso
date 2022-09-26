@@ -456,25 +456,13 @@ impl BufferModel {
 
     /// Range of visible lines.
     pub fn view_line_range(&self) -> RangeInclusive<ViewLine> {
-        ViewLine(0)..=self.line_to_view_line(self.last_view_line())
-    }
-
-    // FIXME: remove
-    /// remove
-    pub fn line_to_view_line(&self, line: Line) -> ViewLine {
-        ViewLine::from_in_context(self, line)
-    }
-
-    // FIXME: remove
-    /// remove
-    pub fn view_line_to_line(&self, view_line: ViewLine) -> Line {
-        Line::from_in_context(self, view_line)
+        ViewLine(0)..=ViewLine::from_in_context(self, self.last_view_line())
     }
 
     // FIXME: remove
     /// remove
     pub fn location_to_view_location<T>(&self, location: Location<T>) -> ViewLocation<T> {
-        let line = self.line_to_view_line(location.line);
+        let line = ViewLine::from_in_context(self, location.line);
         let offset = location.offset;
         Location { line, offset }
     }
@@ -539,7 +527,7 @@ impl BufferModel {
     // FIXME: is this snapping needed?
     /// Byte range of the given view line.
     pub fn byte_range_of_view_line_index_snapped(&self, view_line: ViewLine) -> Range<UBytes> {
-        let line = self.view_line_to_line(view_line);
+        let line = Line::from_in_context(self, view_line);
         self.byte_range_of_line_index_snapped(line)
     }
 
@@ -551,8 +539,8 @@ impl BufferModel {
 
     /// Get content for lines in the given range.
     pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
-        let start_line = self.view_line_to_line(*range.start());
-        let end_line = self.view_line_to_line(*range.end());
+        let start_line = Line::from_in_context(self, *range.start());
+        let end_line = Line::from_in_context(self, *range.end());
         let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
         let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
         let range = start_byte_offset..end_byte_offset;
@@ -1148,11 +1136,87 @@ where T: for<'t> TryFromInContext<&'t BufferModel, U>
 }
 
 
+// Ubytes, Location<UBytes, Line>, Location<UBytes, ViewLine>, Location<Column, Line>,
+// Location<Column, ViewLine>
 
-// === Location conversions ===
 
-impl FromInContext<&BufferModel, Location<UBytes>> for Location {
-    fn from_in_context(context: &BufferModel, location: Location<UBytes>) -> Self {
+// === Conversions to Line ===
+
+impl FromInContext<&BufferModel, ViewLine> for Line {
+    fn from_in_context(buffer: &BufferModel, view_line: ViewLine) -> Self {
+        buffer.first_view_line() + Line(view_line.value)
+    }
+}
+
+impl<T> FromInContext<&BufferModel, Location<T, Line>> for Line {
+    fn from_in_context(_: &BufferModel, location: Location<T, Line>) -> Self {
+        location.line
+    }
+}
+
+impl<T> FromInContext<&BufferModel, Location<T, ViewLine>> for Line {
+    fn from_in_context(buffer: &BufferModel, location: Location<T, ViewLine>) -> Self {
+        Line::from_in_context(buffer, location.line)
+    }
+}
+
+impl FromInContext<&BufferModel, UBytes> for Line {
+    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
+        Location::<UBytes, Line>::from_in_context(buffer, offset).line
+    }
+}
+
+
+// === Conversions to ViewLine ===
+
+impl FromInContext<&BufferModel, Line> for ViewLine {
+    fn from_in_context(buffer: &BufferModel, line: Line) -> Self {
+        ViewLine((line - buffer.first_view_line()).value as usize)
+    }
+}
+
+impl TryFromInContext<&BufferModel, Line> for ViewLine {
+    fn try_from_in_context(buffer: &BufferModel, line: Line) -> Option<Self> {
+        let line_diff = line - buffer.first_view_line();
+        (line_diff.value >= 0).as_some_from(|| ViewLine(line_diff.value as usize))
+    }
+}
+
+
+// === Conversions to UBytes ===
+
+impl FromInContext<&BufferModel, Location<UBytes, Line>> for UBytes {
+    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+        buffer.byte_offset_of_line_index(location.line).unwrap() + location.offset
+    }
+}
+
+impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for UBytes {
+    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context(buffer, location);
+        UBytes::from_in_context(buffer, location)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<Column, Line>> for UBytes {
+    fn from_in_context(context: &BufferModel, location: Location) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context(context, location);
+        UBytes::from_in_context(context, location)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<Column, ViewLine>> for UBytes {
+    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context(context, location);
+        UBytes::from_in_context(context, location)
+    }
+}
+
+
+// === Conversions to Location<Column, Line> ===
+
+impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<Column, Line> {
+    fn from_in_context(context: &BufferModel, location: Location<UBytes, Line>) -> Self {
         context.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
@@ -1185,9 +1249,94 @@ impl FromInContext<&BufferModel, Location<UBytes>> for Location {
     }
 }
 
-impl FromInContext<&BufferModel, Location> for Location<UBytes> {
-    fn from_in_context(context: &BufferModel, location: Location) -> Self {
-        context.with_shaped_line(location.line, |shaped_line| {
+impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<Column, Line> {
+    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let line = Line::from_in_context(context, location.line);
+        Location(line, location.offset)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, Line> {
+    fn from_in_context(context: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+        let line = Line::from_in_context(context, location.line);
+        Location::from_in_context(context, Location(line, location.offset))
+    }
+}
+
+impl FromInContext<&BufferModel, UBytes> for Location<Column, Line> {
+    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
+        Location::from_in_context(context, Location::<UBytes>::from_in_context(context, offset))
+    }
+}
+
+
+// === Conversions to Location<UBytes, ViewLine> ===
+
+impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<UBytes, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+        let line = ViewLine::from_in_context(buffer, location.line);
+        location.with_line(line)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context(buffer, location);
+        Location::<UBytes, ViewLine>::from_in_context(buffer, location)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let line = Line::from_in_context(buffer, location.line);
+        Location::<UBytes, ViewLine>::from_in_context(buffer, location.with_line(line))
+    }
+}
+
+impl FromInContext<&BufferModel, UBytes> for Location<UBytes, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
+        let location = Location::<UBytes, Line>::from_in_context(buffer, offset);
+        Location::<UBytes, ViewLine>::from_in_context(buffer, location)
+    }
+}
+
+
+// === Conversions to Location<Column, ViewLine> ===
+
+impl FromInContext<&BufferModel, Location<Column, Line>> for Location<Column, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+        let line = ViewLine::from_in_context(buffer, location.line);
+        location.with_line(line)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<UBytes, Line>> for Location<Column, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, Line>) -> Self {
+        let location = Location::<Column, Line>::from_in_context(buffer, location);
+        Location::<Column, ViewLine>::from_in_context(buffer, location)
+    }
+}
+
+impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<Column, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
+        let line = Line::from_in_context(buffer, location.line);
+        Location::<Column, ViewLine>::from_in_context(buffer, location.with_line(line))
+    }
+}
+
+impl FromInContext<&BufferModel, UBytes> for Location<Column, ViewLine> {
+    fn from_in_context(buffer: &BufferModel, offset: UBytes) -> Self {
+        let location = Location::<Column, Line>::from_in_context(buffer, offset);
+        Location::<Column, ViewLine>::from_in_context(buffer, location)
+    }
+}
+
+
+// === Conversions to Location<UBytes, Line> ===
+
+impl FromInContext<&BufferModel, Location<Column, Line>> for Location<UBytes, Line> {
+    fn from_in_context(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
+        buffer.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
@@ -1214,8 +1363,8 @@ impl FromInContext<&BufferModel, Location> for Location<UBytes> {
                     );
                 }
                 // FIXME: unwrap
-                let end_byte_offset = context.end_byte_offset_of_line_index(location.line).unwrap();
-                let location2 = Location::from_in_context(context, end_byte_offset);
+                let end_byte_offset = buffer.end_byte_offset_of_line_index(location.line).unwrap();
+                let location2 = Location::<UBytes, Line>::from_in_context(buffer, end_byte_offset);
                 let offset = location2.offset;
                 location.with_offset(offset)
             });
@@ -1224,33 +1373,7 @@ impl FromInContext<&BufferModel, Location> for Location<UBytes> {
     }
 }
 
-impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location {
-    fn from_in_context(context: &BufferModel, location: Location<Column, ViewLine>) -> Self {
-        let line = Line::from_in_context(context, location.line);
-        Location(line, location.offset)
-    }
-}
-
-impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location {
-    fn from_in_context(context: &BufferModel, location: Location<UBytes, ViewLine>) -> Self {
-        let line = Line::from_in_context(context, location.line);
-        Location::from_in_context(context, Location(line, location.offset))
-    }
-}
-
-impl FromInContext<&BufferModel, Location<UBytes>> for UBytes {
-    fn from_in_context(context: &BufferModel, location: Location<UBytes>) -> Self {
-        context.byte_offset_of_line_index(location.line).unwrap() + location.offset
-    }
-}
-
-impl FromInContext<&BufferModel, Location> for UBytes {
-    fn from_in_context(context: &BufferModel, location: Location) -> Self {
-        UBytes::from_in_context(context, Location::from_in_context(context, location))
-    }
-}
-
-impl FromInContext<&BufferModel, UBytes> for Location<UBytes> {
+impl FromInContext<&BufferModel, UBytes> for Location<UBytes, Line> {
     fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
         let line = context.line_index_of_byte_offset_snapped(offset);
         let line_offset = context.byte_offset_of_line_index(line).unwrap();
@@ -1259,11 +1382,22 @@ impl FromInContext<&BufferModel, UBytes> for Location<UBytes> {
     }
 }
 
-impl FromInContext<&BufferModel, UBytes> for Location {
-    fn from_in_context(context: &BufferModel, offset: UBytes) -> Self {
-        Location::from_in_context(context, Location::<UBytes>::from_in_context(context, offset))
+impl FromInContext<&BufferModel, Location<UBytes, ViewLine>> for Location<UBytes, Line> {
+    fn from_in_context(buffer: &BufferModel, offset: Location<UBytes, ViewLine>) -> Self {
+        let line = Line::from_in_context(buffer, offset.line);
+        Location(line, offset.offset)
     }
 }
+
+impl FromInContext<&BufferModel, Location<Column, ViewLine>> for Location<UBytes, Line> {
+    fn from_in_context(buffer: &BufferModel, location: Location<Column, ViewLine>) -> Self {
+        let line = Line::from_in_context(buffer, location.line);
+        Location::from_in_context(buffer, location.with_line(line))
+    }
+}
+
+
+// === Conversions of Range ====
 
 impl<S, T> FromInContext<&BufferModel, buffer::Range<S>> for buffer::Range<T>
 where T: for<'t> FromInContext<&'t BufferModel, S>
@@ -1275,25 +1409,7 @@ where T: for<'t> FromInContext<&'t BufferModel, S>
     }
 }
 
-impl FromInContext<&BufferModel, ViewLine> for Line {
-    fn from_in_context(buffer: &BufferModel, view_line: ViewLine) -> Self {
-        buffer.first_view_line() + Line(view_line.value)
-    }
-}
 
-impl FromInContext<&BufferModel, Line> for ViewLine {
-    fn from_in_context(buffer: &BufferModel, view_line: Line) -> Self {
-        ViewLine((view_line - buffer.first_view_line()).value as usize)
-    }
-}
-
-impl TryFromInContext<&BufferModel, Line> for ViewLine {
-    fn try_from_in_context(buffer: &BufferModel, line: Line) -> Option<Self> {
-        let line = line.value;
-        let first_view_line = buffer.first_view_line.get().value;
-        (first_view_line <= line).as_some_from(|| ViewLine(line - first_view_line))
-    }
-}
 
 impl FromInContext<&BufferModel, LocationLike> for Location {
     fn from_in_context(buffer: &BufferModel, location: LocationLike) -> Self {
