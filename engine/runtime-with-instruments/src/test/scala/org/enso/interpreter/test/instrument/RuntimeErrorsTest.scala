@@ -599,7 +599,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      3,
+      updatesOnlyFor = Set(xId, yId)
     ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
@@ -622,7 +623,10 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3,
+      updatesOnlyFor = Set(xId, yId)
+    ) should contain theSameElementsAs Seq(
       TestMessages.error(
         contextId,
         xId,
@@ -654,7 +658,10 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3,
+      updatesOnlyFor = Set(xId, yId)
+    ) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
@@ -745,7 +752,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(
+    context.receiveNIgnoreExpressionUpdates(
       1
     ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
@@ -841,7 +848,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(
+    context.receiveNIgnoreExpressionUpdates(
       1
     ) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
@@ -1405,7 +1412,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      3,
+      updatesOnlyFor = Set(xId, yId)
     ) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
