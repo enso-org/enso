@@ -1117,46 +1117,72 @@ pub trait FromInContextSnapped<Ctx, T> {
 #[allow(missing_docs)]
 pub trait TryFromInContext<Ctx, T>
 where Self: Sized {
-    fn try_from_in_context(context: Ctx, arg: T) -> Option<Self>;
+    type Error;
+    fn try_from_in_context(context: Ctx, arg: T) -> Result<Self, Self::Error>;
 }
 
 
 // === Generic Impls ===
 
-impl<T, U> FromInContext<&Buffer, U> for T
-where T: for<'t> FromInContext<&'t BufferModel, U>
+impl<'t, T, U> FromInContext<&'t Buffer, U> for T
+where T: FromInContext<&'t BufferModel, U>
 {
-    fn from_in_context(buffer: &Buffer, elem: U) -> Self {
+    fn from_in_context(buffer: &'t Buffer, elem: U) -> Self {
         T::from_in_context(&buffer.model, elem)
     }
 }
 
-impl<T, U> FromInContextSnapped<&Buffer, U> for T
-where T: for<'t> FromInContextSnapped<&'t BufferModel, U>
+impl<'t, T, U> FromInContextSnapped<&'t Buffer, U> for T
+where T: FromInContextSnapped<&'t BufferModel, U>
 {
-    fn from_in_context_snapped(buffer: &Buffer, elem: U) -> Self {
+    fn from_in_context_snapped(buffer: &'t Buffer, elem: U) -> Self {
         T::from_in_context_snapped(&buffer.model, elem)
     }
 }
 
-impl<T, U> TryFromInContext<&Buffer, U> for T
-where T: for<'t> TryFromInContext<&'t BufferModel, U>
+impl<'t, T, U> TryFromInContext<&'t Buffer, U> for T
+where T: TryFromInContext<&'t BufferModel, U>
 {
-    fn try_from_in_context(buffer: &Buffer, elem: U) -> Option<Self> {
+    type Error = <T as TryFromInContext<&'t BufferModel, U>>::Error;
+    fn try_from_in_context(buffer: &'t Buffer, elem: U) -> Result<Self, Self::Error> {
         T::try_from_in_context(&buffer.model, elem)
     }
 }
 
 
-// Ubytes, Location<UBytes, Line>, Location<UBytes, ViewLine>, Location<Column, Line>,
-// Location<Column, ViewLine>
-
-
 // === Conversions to Line ===
+
+#[derive(Debug, Clone, Copy)]
+pub enum ViewLineToLineConversionError {
+    TooSmall,
+    TooBig,
+}
+
+impl TryFromInContext<&BufferModel, ViewLine> for Line {
+    type Error = ViewLineToLineConversionError;
+    fn try_from_in_context(buffer: &BufferModel, view_line: ViewLine) -> Result<Self, Self::Error> {
+        let line = buffer.first_view_line() + Line(view_line.value);
+        if line > buffer.last_line_index() {
+            Err(ViewLineToLineConversionError::TooBig)
+        } else {
+            Ok(line)
+        }
+    }
+}
+
+impl FromInContextSnapped<&BufferModel, ViewLineToLineConversionError> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, err: ViewLineToLineConversionError) -> Self {
+        match err {
+            ViewLineToLineConversionError::TooSmall => Line(0),
+            ViewLineToLineConversionError::TooBig => buffer.last_line_index(),
+        }
+    }
+}
 
 impl FromInContextSnapped<&BufferModel, ViewLine> for Line {
     fn from_in_context_snapped(buffer: &BufferModel, view_line: ViewLine) -> Self {
-        buffer.first_view_line() + Line(view_line.value)
+        Line::try_from_in_context(buffer, view_line)
+            .unwrap_or_else(|err| Line::from_in_context_snapped(buffer, err))
     }
 }
 
@@ -1181,16 +1207,42 @@ impl FromInContextSnapped<&BufferModel, UBytes> for Line {
 
 // === Conversions to ViewLine ===
 
-impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
-    fn from_in_context_snapped(buffer: &BufferModel, line: Line) -> Self {
-        ViewLine((line - buffer.first_view_line()).value as usize)
-    }
+#[derive(Debug, Clone, Copy)]
+pub enum LineToViewLineConversionError {
+    TooSmall,
+    TooBig,
 }
 
 impl TryFromInContext<&BufferModel, Line> for ViewLine {
-    fn try_from_in_context(buffer: &BufferModel, line: Line) -> Option<Self> {
+    type Error = LineToViewLineConversionError;
+    fn try_from_in_context(buffer: &BufferModel, line: Line) -> Result<Self, Self::Error> {
         let line_diff = line - buffer.first_view_line();
-        (line_diff.value >= 0).as_some_from(|| ViewLine(line_diff.value as usize))
+        if line_diff.value < 0 {
+            Err(LineToViewLineConversionError::TooSmall)
+        } else {
+            let view_line = ViewLine(line_diff.value as usize);
+            if view_line > buffer.last_view_line_index() {
+                Err(LineToViewLineConversionError::TooBig)
+            } else {
+                Ok(view_line)
+            }
+        }
+    }
+}
+
+impl FromInContextSnapped<&BufferModel, LineToViewLineConversionError> for ViewLine {
+    fn from_in_context_snapped(buffer: &BufferModel, err: LineToViewLineConversionError) -> Self {
+        match err {
+            LineToViewLineConversionError::TooSmall => ViewLine(0),
+            LineToViewLineConversionError::TooBig => buffer.last_view_line_index(),
+        }
+    }
+}
+
+impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
+    fn from_in_context_snapped(buffer: &BufferModel, line: Line) -> Self {
+        ViewLine::try_from_in_context(buffer, line)
+            .unwrap_or_else(|err| ViewLine::from_in_context_snapped(buffer, err))
     }
 }
 
@@ -1423,10 +1475,10 @@ impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location
 
 // === Conversions of Range ====
 
-impl<S, T> FromInContextSnapped<&BufferModel, buffer::Range<S>> for buffer::Range<T>
-where T: for<'t> FromInContextSnapped<&'t BufferModel, S>
+impl<'t, S, T> FromInContextSnapped<&'t BufferModel, buffer::Range<S>> for buffer::Range<T>
+where T: FromInContextSnapped<&'t BufferModel, S>
 {
-    fn from_in_context_snapped(context: &BufferModel, range: buffer::Range<S>) -> Self {
+    fn from_in_context_snapped(context: &'t BufferModel, range: buffer::Range<S>) -> Self {
         let start = T::from_in_context_snapped(context, range.start);
         let end = T::from_in_context_snapped(context, range.end);
         buffer::Range::new(start, end)
@@ -1451,12 +1503,12 @@ impl FromInContextSnapped<&BufferModel, LocationLike> for Location {
 
 // === Selections ===
 
-impl<T, S> FromInContextSnapped<&BufferModel, Selection<T>> for Selection<S>
+impl<'t, T, S> FromInContextSnapped<&'t BufferModel, Selection<T>> for Selection<S>
 where
     T: Copy,
-    S: for<'t> FromInContextSnapped<&'t BufferModel, T>,
+    S: FromInContextSnapped<&'t BufferModel, T>,
 {
-    fn from_in_context_snapped(buffer: &BufferModel, selection: Selection<T>) -> Self {
+    fn from_in_context_snapped(buffer: &'t BufferModel, selection: Selection<T>) -> Self {
         let start = S::from_in_context_snapped(buffer, selection.start);
         let end = S::from_in_context_snapped(buffer, selection.end);
         let id = selection.id;
