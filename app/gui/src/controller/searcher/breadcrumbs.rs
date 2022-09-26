@@ -39,6 +39,7 @@ impl Breadcrumbs {
         self.select(borrowed.len());
     }
 
+    /// A list of breadcrumbs' text labels to be displayed in the panel.
     pub fn names(&self) -> Vec<ImString> {
         self.list.borrow().iter().map(|entry| entry.name()).collect()
     }
@@ -71,6 +72,7 @@ impl Breadcrumbs {
 // === BreadcrumbEntry ===
 // =======================
 
+/// A single entry in the breadcrumbs panel.
 #[derive(Debug, Clone)]
 pub struct BreadcrumbEntry {
     displayed_name: ImString,
@@ -79,14 +81,17 @@ pub struct BreadcrumbEntry {
 }
 
 impl BreadcrumbEntry {
+    /// A displayed label of the entry.
     pub fn name(&self) -> ImString {
         self.displayed_name.clone_ref()
     }
 
+    /// A component id of the entry.
     pub fn id(&self) -> component::Id {
         self.component_id
     }
 
+    /// A qualified name of the entry.
     pub fn qualified_name(&self) -> &QualifiedName {
         &self.qualified_name
     }
@@ -108,6 +113,7 @@ impl From<(component::Id, Rc<Entry>)> for BreadcrumbEntry {
 
 /// A builder for the breadcrumbs list. It is used to include all parent modules when pushing the
 /// new breadcrumb to the panel.
+#[derive(Debug)]
 pub struct Builder<'a> {
     database:   &'a model::SuggestionDatabase,
     components: component::List,
