@@ -34,6 +34,10 @@ public class TypesFromProxy {
         return builtins.array();
       case ConstantsGen.BOOLEAN:
         return builtins.bool().getType();
+      case ConstantsGen.DATE:
+        return builtins.date();
+      case ConstantsGen.DATE_TIME:
+        return builtins.dateTime();
       case ConstantsGen.DECIMAL:
         return builtins.number().getDecimal();
       case ConstantsGen.ERROR:
@@ -56,6 +60,12 @@ public class TypesFromProxy {
         return builtins.ref();
       case ConstantsGen.TEXT:
         return builtins.text();
+      case ConstantsGen.TIME_OF_DAY:
+        return builtins.timeOfDay();
+      case ConstantsGen.TIME_ZONE:
+        return builtins.timeZone();
+      case ConstantsGen.VECTOR:
+        return builtins.vector();
       default:
         throw new CompilerError("Invalid builtin type " + typeName);
     }
