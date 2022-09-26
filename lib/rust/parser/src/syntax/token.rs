@@ -296,7 +296,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
 impl Variant {
     /// Return whether this token can introduce a macro invocation.
     pub fn can_start_macro(&self) -> bool {
-        !matches!(self,
+        !matches!(
+            self,
             // Prevent macro interpretation of symbols that have been lexically contextualized as
             // text escape control characters.
             Variant::TextEscape(_) | Variant::TextSection(_)
@@ -316,34 +317,23 @@ impl Default for Variant {
 // === Operator properties ===
 
 /// Properties of an operator that are identified when lexing.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Serialize,
-    Reflect,
-    Deserialize,
-    PartialOrd,
-    Ord,
-    Default
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct OperatorProperties {
     // Precedence
-    binary_infix_precedence:     Option<Precedence>,
-    unary_prefix_precedence:     Option<Precedence>,
+    binary_infix_precedence:   Option<Precedence>,
+    unary_prefix_precedence:   Option<Precedence>,
+    // Operator section behavior
+    lhs_section_termination:   Option<crate::syntax::operator::SectionTermination>,
     // Special properties
-    is_compile_time_operation:   bool,
-    is_right_associative:        bool,
-    can_be_decimal_operator:     bool,
-    is_operator_section_barrier: bool,
+    is_compile_time_operation: bool,
+    is_right_associative:      bool,
+    can_be_decimal_operator:   bool,
     // Unique operators
-    is_type_annotation:          bool,
-    is_assignment:               bool,
-    is_arrow:                    bool,
-    is_sequence:                 bool,
-    is_suspension:               bool,
+    is_type_annotation:        bool,
+    is_assignment:             bool,
+    is_arrow:                  bool,
+    is_sequence:               bool,
+    is_suspension:             bool,
 }
 
 impl OperatorProperties {
@@ -372,9 +362,11 @@ impl OperatorProperties {
         Self { is_right_associative: true, ..self }
     }
 
-    /// Return a copy of this operator, modified to be flagged as an operator-section barrier.
-    pub fn as_operator_section_barrier(self) -> Self {
-        Self { is_operator_section_barrier: true, ..self }
+    /// Return a copy of this operator, modified to have the specified LHS operator-section/
+    /// template-function behavior.
+    pub fn with_lhs_section_termination<T>(self, lhs_section_termination: T) -> Self
+    where T: Into<Option<crate::syntax::operator::SectionTermination>> {
+        Self { lhs_section_termination: lhs_section_termination.into(), ..self }
     }
 
     /// Return a copy of this operator, modified to be flagged as a type annotation operator.
@@ -427,9 +419,9 @@ impl OperatorProperties {
         self.is_type_annotation
     }
 
-    /// Return whether this operator is an operator-section barrier.
-    pub fn is_operator_section_barrier(&self) -> bool {
-        self.is_operator_section_barrier
+    /// Return the LHS operator-section/template-function behavior of this operator.
+    pub fn lhs_section_termination(&self) -> Option<crate::syntax::operator::SectionTermination> {
+        self.lhs_section_termination
     }
 
     /// Return whether this operator is the assignment operator.

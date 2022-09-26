@@ -68,9 +68,9 @@ fn parentheses() {
 
 #[test]
 fn section_simple() {
-    let expected_lhs = block![(OprSectionBoundary 1 0 (OprApp () (Ok "+") (Ident a)))];
+    let expected_lhs = block![(OprSectionBoundary 1 (OprApp () (Ok "+") (Ident a)))];
     test("+ a", expected_lhs);
-    let expected_rhs = block![(OprSectionBoundary 1 0 (OprApp (Ident a) (Ok "+") ()))];
+    let expected_rhs = block![(OprSectionBoundary 1 (OprApp (Ident a) (Ok "+") ()))];
     test("a +", expected_rhs);
 }
 
@@ -142,7 +142,7 @@ fn type_operator_methods() {
     let expected = block![
         (TypeDef type Foo #() #()
          #((TypeSignature #"+" ":"
-            (Arrow #((Ident Foo)) "->" (Arrow #((Ident Foo)) "->" (Ident Foo))))
+            (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
             (Function #"+" #((() (Ident self) () ()) (() (Ident b) () ()))
                       "=" (Ident b))))];
     test(&code.join("\n"), expected);
@@ -232,7 +232,7 @@ fn function_inline_simple_args() {
              #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
              "=" (Ident x))],
     );
-    test(" foo _ = x", block![(Function foo #((() (Wildcard) () ())) "=" (Ident x))]);
+    test(" foo _ = x", block![(Function foo #((() (Wildcard -1) () ())) "=" (Ident x))]);
 }
 
 #[test]
@@ -321,7 +321,7 @@ fn code_block_body() {
     #[rustfmt::skip]
     let expect = block![
         (Function main #() "=" (BodyBlock #(
-         (OprSectionBoundary 1 0 (OprApp () (Ok "+") (Ident x)))
+         (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
          (App (Ident print) (Ident x)))))
     ];
     test(&code.join("\n"), expect);
@@ -371,7 +371,7 @@ fn code_block_argument_list() {
     let expect = block![
         (Assignment (Ident value) "="
          (ArgumentBlockApplication (Ident foo) #(
-          (OprSectionBoundary 1 0 (OprApp () (Ok "+") (Ident x)))
+          (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))
           (Ident bar))))
     ];
     test(&code.join("\n"), expect);
@@ -436,7 +436,7 @@ fn operator_section_in_operator_block() {
     #[rustfmt::skip]
     let expected = block![
         (OperatorBlockApplication (Ident foo)
-         #(((Ok "+") (OprSectionBoundary 1 0 (OprApp (Ident bar) (Ok "+") ()))))
+         #(((Ok "+") (OprSectionBoundary 1 (OprApp (Ident bar) (Ok "+") ()))))
          #())];
     test(&code.join("\n"), expected);
 }
@@ -486,9 +486,9 @@ fn pipeline_operators() {
 fn accessor_operator() {
     // Test that the accessor operator `.` is treated like any other operator.
     let cases = [
-        ("Console.", block![(OprSectionBoundary 1 0 (OprApp (Ident Console) (Ok ".") ()))]),
-        (".", block![(OprSectionBoundary 2 0 (OprApp () (Ok ".") ()))]),
-        (".log", block![(OprSectionBoundary 1 0 (OprApp () (Ok ".") (Ident log)))]),
+        ("Console.", block![(OprSectionBoundary 1 (OprApp (Ident Console) (Ok ".") ()))]),
+        (".", block![(OprSectionBoundary 2 (OprApp () (Ok ".") ()))]),
+        (".log", block![(OprSectionBoundary 1 (OprApp () (Ok ".") (Ident log)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -497,40 +497,43 @@ fn accessor_operator() {
 fn operator_sections() {
     #[rustfmt::skip]
     test(".map (+2 * 3) *7", block![
-        (OprSectionBoundary 1 0
+        (OprSectionBoundary 1
          (App (App (OprApp () (Ok ".") (Ident map))
                    (Group
-                    (OprSectionBoundary 1 0 (OprApp (OprApp () (Ok "+") (Number () "2" ()))
+                    (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "2" ()))
                     (Ok "*") (Number () "3" ())))))
-              (OprSectionBoundary 1 0 (OprApp () (Ok "*") (Number () "7" ())))))]);
+              (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "7" ())))))]);
     #[rustfmt::skip]
     test(".sum 1", block![
-        (OprSectionBoundary 1 0 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ())))]);
+        (OprSectionBoundary 1 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ())))]);
     #[rustfmt::skip]
     test("+1 + x", block![
-        (OprSectionBoundary 1 0 (OprApp (OprApp () (Ok "+") (Number () "1" ()))
+        (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "1" ()))
                                 (Ok "+") (Ident x)))]);
+    #[rustfmt::skip]
+    test("increment = 1 +", block![
+        (Assignment (Ident increment) "="
+         (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ())))]);
 }
 
 #[test]
 fn template_functions() {
-    test("Vector _ = x", block![(Assignment (App (Ident Vector) (Wildcard)) "=" (Ident x))]);
     #[rustfmt::skip]
     test("_.map (_+2 * 3) _*7", block![
-        (OprSectionBoundary 0 1
-         (App (App (OprApp (Wildcard) (Ok ".") (Ident map))
+        (TemplateFunction 1
+         (App (App (OprApp (Wildcard 0) (Ok ".") (Ident map))
                    (Group
-                    (OprSectionBoundary 0 1 (OprApp (OprApp (Wildcard) (Ok "+") (Number () "2" ()))
+                    (TemplateFunction 1
+                     (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "2" ()))
                     (Ok "*") (Number () "3" ())))))
-              (OprSectionBoundary 0 1 (OprApp (Wildcard) (Ok "*") (Number () "7" ())))))]);
+              (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "*") (Number () "7" ())))))]);
     #[rustfmt::skip]
     test("_.sum 1", block![
-        (OprSectionBoundary 0 1 (App (OprApp (Wildcard) (Ok ".") (Ident sum))
-                                (Number () "1" ())))]);
+        (TemplateFunction 1 (App (OprApp (Wildcard 0) (Ok ".") (Ident sum)) (Number () "1" ())))]);
     #[rustfmt::skip]
     test("_+1 + x", block![
-        (OprSectionBoundary 0 1 (OprApp (OprApp (Wildcard) (Ok "+") (Number () "1" ()))
-                              (Ok "+") (Ident x)))]);
+        (TemplateFunction 1 (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "1" ()))
+                           (Ok "+") (Ident x)))]);
 }
 
 
@@ -587,10 +590,10 @@ fn minus_binary() {
 fn minus_section() {
     #[rustfmt::skip]
     let cases = [
-        ("- x", block![(OprSectionBoundary 1 0 (OprApp () (Ok "-") (Ident x)))]),
-        ("(- x)", block![(Group (OprSectionBoundary 1 0 (OprApp () (Ok "-") (Ident x))))]),
+        ("- x", block![(OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x)))]),
+        ("(- x)", block![(Group (OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x))))]),
         ("- (x * x)", block![
-            (OprSectionBoundary 1 0 (OprApp () (Ok "-")
+            (OprSectionBoundary 1 (OprApp () (Ok "-")
              (Group (OprApp (Ident x) (Ok "*") (Ident x)))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
@@ -742,6 +745,8 @@ fn type_annotations() {
             (Assignment (Ident val) "="
              (App (Ident foo)
               (Group (TypeAnnotated (Ident x) ":" (Ident Int)))))]),
+        ("(x : My_Type _)", block![
+            (Group (TypeAnnotated (Ident x) ":" (App (Ident My_Type) (Wildcard -1))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -874,9 +879,7 @@ fn pattern_irrefutable() {
     let expected = block![(Assignment (App (Ident Point) (Ident x_val)) "=" (Ident my_point))];
     test(code, expected);
 
-    let code = "Point _ = my_point";
-    let expected = block![(Assignment (App (Ident Point) (Wildcard)) "=" (Ident my_point))];
-    test(code, expected);
+    test("Vector _ = x", block![(Assignment (App (Ident Vector) (Wildcard -1)) "=" (Ident x))]);
 }
 
 #[test]
@@ -889,9 +892,9 @@ fn case_expression() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident a) () #(
-         (Arrow #((Ident Some)) "->" (Ident x))
-         (Arrow #((Ident Int)) "->" ())))
+        (CaseOf (Ident a) #(
+         (((Ident Some) "->" (Ident x)))
+         (((Ident Int) "->" ()))))
     ];
     test(&code.join("\n"), expected);
 
@@ -902,8 +905,8 @@ fn case_expression() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident a) () #((Arrow #((Ident Vector_2d) (Ident x) (Ident y)) "->" (Ident x))))
-    ];
+        (CaseOf (Ident a) #(
+         (((App (App (Ident Vector_2d) (Ident x)) (Ident y)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 
     #[rustfmt::skip]
@@ -914,10 +917,24 @@ fn case_expression() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident self) () #(
-         (Arrow #((Ident Vector_2d)) "->" (Ident x))
-         (Arrow #((Wildcard)) "->" (Ident x))))
+        (CaseOf (Ident self) #(
+         (((Ident Vector_2d) "->" (Ident x)))
+         (((Wildcard -1) "->" (Ident x)))))];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "case foo of",
+        "    v:My_Type -> x",
+        "    v:(My_Type _ _) -> x",
     ];
+    #[rustfmt::skip]
+    let expected = block![
+        (CaseOf (Ident foo) #(
+         (((TypeAnnotated (Ident v) ":" (Ident My_Type)) "->" (Ident x)))
+         (((TypeAnnotated (Ident v) ":"
+            (Group (App (App (Ident My_Type) (Wildcard -1)) (Wildcard -1))))
+           "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 }
 
@@ -930,8 +947,7 @@ fn pattern_match_auto_scope() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (Case (Ident self) () #((Arrow #((Ident Vector_2d) (AutoScope)) "->" (Ident x))))
-    ];
+        (CaseOf (Ident self) #((((App (Ident Vector_2d) (AutoScope)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 }
 
@@ -970,8 +986,8 @@ fn numbers() {
         ("100_000", block![(Number () "100_000" ())]),
         ("10_000.99", block![(Number () "10_000" ("." "99"))]),
         ("1 . 0", block![(OprApp (Number () "1" ()) (Ok ".") (Number () "0" ()))]),
-        ("1 .0", block![(App (Number () "1" ()) (OprSectionBoundary 1 0 (OprApp () (Ok ".") (Number () "0" ()))))]),
-        ("1. 0", block![(OprSectionBoundary 1 0 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))]),
+        ("1 .0", block![(App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ()))))]),
+        ("1. 0", block![(OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))]),
         ("0b10101010", block![(Number "0b" "10101010" ())]),
         ("0o122137", block![(Number "0o" "122137" ())]),
         ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),
@@ -1107,7 +1123,7 @@ where T: serde::Serialize + Reflect {
     };
     let line = rust_to_meta[&tree::block::Line::reflect().id];
     let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
-    let case = rust_to_meta[&tree::Case::reflect().id];
+    let case = rust_to_meta[&tree::CaseOf::reflect().id];
     let invalid = rust_to_meta[&tree::Invalid::reflect().id];
     to_s_expr.mapper(line, into_car);
     to_s_expr.mapper(operator_line, into_car);

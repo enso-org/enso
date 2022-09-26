@@ -137,3 +137,25 @@ impl<'de> serde::de::Visitor<'de> for DeserializeU32 {
         Ok(i)
     }
 }
+
+
+
+// ========================================
+// === General purpose value transforms ===
+// ========================================
+
+pub(crate) fn serialize_optional_int<S>(x: &Option<u32>, s: S) -> Result<S::Ok, S::Error>
+where S: serde::Serializer {
+    s.serialize_u32(x.unwrap_or(0xFFFF_FFFF))
+}
+
+pub(crate) fn deserialize_optional_int<'c, 'de, D>(
+    deserializer: D,
+) -> Result<Option<u32>, D::Error>
+where D: serde::Deserializer<'de> {
+    let value = deserializer.deserialize_u32(DeserializeU32)?;
+    Ok(match value {
+        0xFFFF_FFFF => None,
+        x => Some(x),
+    })
+}

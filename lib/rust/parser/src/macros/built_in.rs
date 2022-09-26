@@ -49,7 +49,6 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
 }
 
 fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
     let mut polyglot = None;
     let mut from = None;
     let mut import = None;
@@ -57,7 +56,7 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut hiding = None;
     for segment in segments {
         let header = segment.header;
-        let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
         let field = match header.code.as_ref() {
             "polyglot" => &mut polyglot,
             "from" => &mut from,
@@ -89,7 +88,6 @@ fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
 }
 
 fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
     let mut from = None;
     let mut from_as = None;
     let mut export = None;
@@ -97,7 +95,7 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut hiding = None;
     for segment in segments {
         let header = segment.header;
-        let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
         let field = match header.code.as_ref() {
             "from" => &mut from,
             "as" if export.is_none() => &mut from_as,
@@ -128,13 +126,12 @@ pub fn group<'s>() -> Definition<'s> {
 }
 
 fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
     let (close, mut segments) = segments.pop();
     let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
     let open = into_open_symbol(segment.header);
     let body = segment.result.tokens();
-    let body = resolve_operator_precedence_if_non_empty(body);
+    let body = operator::resolve_operator_precedence_if_non_empty(body);
     syntax::Tree::group(Some(open), body, Some(close))
 }
 
@@ -155,7 +152,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
         }
         i = i_ + 1;
     }
-    let Some(first_line) = operator::resolve_operator_precedence_if_non_empty(tokens.by_ref().take(i)) else {
+    let Some(first_line) = operator::Precedence::new().resolve_non_section(tokens.by_ref().take(i)) else {
         let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
         return placeholder.with_error("Expected identifier after `type` keyword.");
     };
@@ -253,12 +250,14 @@ impl<'s> TypeDefBodyBuilder<'s> {
                 left_offset += &span_.left_offset;
                 left_offset += constructor.left_offset;
                 constructor.left_offset = left_offset;
-                let block = arguments.iter().cloned().map(|block::Line { newline, expression }| {
-                    ArgumentDefinitionLine {
+                let block = arguments
+                    .iter()
+                    .cloned()
+                    .map(|block::Line { newline, expression }| ArgumentDefinitionLine {
                         newline,
                         argument: expression.map(crate::parse_argument_definition),
-                    }
-                }).collect();
+                    })
+                    .collect();
                 let arguments = default();
                 return Ok(TypeConstructorDef { constructor, arguments, block });
             }
@@ -290,14 +289,13 @@ pub fn lambda<'s>() -> Definition<'s> {
 }
 
 fn lambda_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
     let (segment, _) = segments.pop();
     let operator = segment.header;
     let syntax::token::Token { left_offset, code, .. } = operator;
     let properties = syntax::token::OperatorProperties::default();
     let operator = syntax::token::operator(left_offset, code, properties);
     let arrow = segment.result.tokens();
-    let arrow = resolve_operator_precedence_if_non_empty(arrow);
+    let arrow = operator::resolve_operator_precedence_if_non_empty(arrow);
     syntax::Tree::lambda(operator, arrow)
 }
 
@@ -317,26 +315,29 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let of_ = into_ident(of.header);
     let body = of.result.tokens();
     let body = resolve_operator_precedence_if_non_empty(body);
-    let mut initial = None;
-    let mut lines = vec![];
+    let mut case_lines = vec![];
     if let Some(body) = body {
         match body.variant {
             box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, arguments }) => {
-                initial = lhs;
-                lines = arguments;
-                let mut left_offset = body.span.left_offset;
-                if let Some(initial) = initial.as_mut() {
-                    left_offset += mem::take(&mut initial.span.left_offset);
-                    initial.span.left_offset = left_offset;
-                } else if let Some(first) = lines.first_mut() {
-                    left_offset += mem::take(&mut first.newline.left_offset);
-                    first.newline.left_offset = left_offset;
+                if let Some(lhs) = lhs {
+                    case_lines.push(CaseLine { case: Some(lhs.into()), ..default() });
+                }
+                case_lines.extend(arguments.into_iter().map(
+                    |block::Line { newline, expression }| CaseLine {
+                        newline: newline.into(),
+                        case:    expression.map(Case::from),
+                    },
+                ));
+                if let Some(left_offset) =
+                    case_lines.first_mut().and_then(CaseLine::left_offset_mut)
+                {
+                    *left_offset += body.span.left_offset;
                 }
             }
-            _ => initial = Some(body),
+            _ => case_lines.push(CaseLine { case: Some(body.into()), ..default() }),
         }
     }
-    Tree::case(case_, expression, of_, initial, lines)
+    Tree::case_of(case_, expression, of_, case_lines)
 }
 
 /// Array literal.
@@ -367,14 +368,13 @@ struct GroupedSequence<'s> {
 }
 
 fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
-    use operator::resolve_operator_precedence_if_non_empty;
     use syntax::tree::*;
     let (right, mut rest) = segments.pop();
     let right_ = into_close_symbol(right.header);
     let left = rest.pop().unwrap();
     let left_ = into_open_symbol(left.header);
     let expression = left.result.tokens();
-    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let expression = operator::resolve_operator_precedence_if_non_empty(expression);
     let mut rest = vec![];
     let mut lhs_ = &expression;
     let mut left_offset = crate::source::span::Offset::default();
@@ -400,13 +400,12 @@ fn splice<'s>() -> Definition<'s> {
 }
 
 fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
     let (close, mut segments) = segments.pop();
     let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
     let open = into_open_symbol(segment.header);
     let expression = segment.result.tokens();
-    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let expression = operator::resolve_operator_precedence_if_non_empty(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
     syntax::Tree::text_literal(default(), vec![splice], default(), default())
 }

@@ -41,6 +41,8 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
                 },
             Data::Primitive(Primitive::U32)
             | Data::Primitive(Primitive::U64)
+            | Data::Primitive(Primitive::I32)
+            | Data::Primitive(Primitive::I64)
             | Data::Primitive(Primitive::Bool)
             | Data::Primitive(Primitive::Char)
             | Data::Primitive(Primitive::String) => {}

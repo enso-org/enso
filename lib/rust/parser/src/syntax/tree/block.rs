@@ -92,18 +92,14 @@ fn to_operator_block_expression(
     });
     match left_operator {
         Some(mut operator) => {
-            if let Variant::OprSectionBoundary(OprSectionBoundary { elided, .. }) =
+            if let Variant::OprSectionBoundary(OprSectionBoundary { arguments, .. }) =
                 &mut *tree.variant
             {
                 operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
-                *elided -= 1;
+                *arguments -= 1;
             }
             let expression = match *tree.variant {
-                Variant::OprSectionBoundary(OprSectionBoundary {
-                    ast,
-                    elided: 0,
-                    wildcards: 0,
-                }) => ast,
+                Variant::OprSectionBoundary(OprSectionBoundary { ast, arguments: 0 }) => ast,
                 _ => tree,
             };
             Ok(OperatorBlockExpression { operator, expression })
@@ -286,22 +282,23 @@ where
     let newline = default();
     let line = default();
     let finished = default();
-    Lines { items, newline, line, finished }
+    let precedence = default();
+    Lines { items, newline, line, finished, precedence }
 }
 
 /// An iterator of [`Line`]s.
 #[derive(Debug)]
 pub struct Lines<'s, I> {
-    items:    I,
-    newline:  token::Newline<'s>,
-    line:     Vec<Item<'s>>,
-    finished: bool,
+    items:      I,
+    newline:    token::Newline<'s>,
+    line:       Vec<Item<'s>>,
+    finished:   bool,
+    precedence: operator::Precedence<'s>,
 }
 
 impl<'s, I> Lines<'s, I> {
     fn parse_current_line(&mut self, newline: token::Newline<'s>) -> Line<'s> {
-        let line = self.line.drain(..);
-        let expression = operator::resolve_operator_precedence_if_non_empty(line);
+        let expression = self.precedence.resolve(self.line.drain(..));
         Line { newline, expression }
     }
 }

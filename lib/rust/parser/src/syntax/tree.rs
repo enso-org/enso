@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
+use crate::expression_to_pattern;
 use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -121,6 +122,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// The wildcard marker, `_`.
         Wildcard {
             pub token: token::Wildcard<'s>,
+            #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
+            #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
+            #[reflect(as = "i32")]
+            pub de_bruijn_index: Option<u32>,
         },
         /// The auto-scoping marker, `...`.
         AutoScope {
@@ -173,8 +178,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub elided:    u32,
-            pub wildcards: u32,
+            pub arguments: u32,
+            pub ast:       Tree<'s>,
+        },
+        TemplateFunction {
+            pub arguments: u32,
             pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
@@ -263,19 +271,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[reflect(rename = "type")]
             pub type_: Tree<'s>,
         },
-        /// A `case` pattern-matching expression.
-        Case {
+        /// A `case _ of` pattern-matching expression.
+        CaseOf {
             pub case:       token::Ident<'s>,
             pub expression: Option<Tree<'s>>,
             pub of:         token::Ident<'s>,
-            pub initial:    Option<Tree<'s>>,
-            pub body:       Vec<block::Line<'s>>,
-        },
-        /// An expression mapping arguments to an expression with the `->` operator.
-        Arrow {
-            pub arguments: Vec<Tree<'s>>,
-            pub arrow: token::Operator<'s>,
-            pub body: Option<Tree<'s>>,
+            pub cases:      Vec<CaseLine<'s>>,
         },
         /// A lambda expression.
         Lambda {
@@ -558,6 +559,68 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 }
 
 
+// === CaseOf ===
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct CaseLine<'s> {
+    /// The token beginning the line.
+    pub newline: Option<token::Newline<'s>>,
+    pub case:    Option<Case<'s>>,
+}
+
+impl<'s> CaseLine<'s> {
+    pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
+        self.newline
+            .as_mut()
+            .map(|t| &mut t.left_offset)
+            .or_else(|| self.case.as_mut().and_then(Case::left_offset_mut))
+    }
+}
+
+impl<'s> span::Builder<'s> for CaseLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.case)
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct Case<'s> {
+    pub pattern:    Option<Tree<'s>>,
+    pub arrow:      Option<token::Operator<'s>>,
+    pub expression: Option<Tree<'s>>,
+}
+
+impl<'s> Case<'s> {
+    pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
+        self.pattern
+            .as_mut()
+            .map(|p| &mut p.span.left_offset)
+            .or_else(|| self.arrow.as_mut().map(|t| &mut t.left_offset))
+            .or_else(|| self.expression.as_mut().map(|e| &mut e.span.left_offset))
+    }
+}
+
+impl<'s> span::Builder<'s> for Case<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
+    }
+}
+
+impl<'s> From<Tree<'s>> for Case<'s> {
+    fn from(tree: Tree<'s>) -> Self {
+        match tree.variant {
+            box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
+                let pattern = lhs.map(expression_to_pattern);
+                let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
+                *case.left_offset_mut().unwrap() += tree.span.left_offset;
+                case
+            }
+            _ => Case { expression: tree.into(), ..default() },
+        }
+    }
+}
+
+
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
@@ -661,12 +724,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         }
         _ => (),
     }
-    let mut section = None;
-    if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &*func.variant {
-        section = Some(func.clone());
-        func = ast.clone();
-    }
-    let ast_ = match &mut *arg.variant {
+    match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
             let func_left_offset = mem::take(&mut func.span.left_offset);
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -706,14 +764,6 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
-    };
-    if let Some(mut section) = section {
-        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &mut *section.variant {
-            *ast = ast_;
-        }
-        section
-    } else {
-        ast_
     }
 }
 
@@ -772,30 +822,17 @@ pub fn apply_operator<'s>(
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
-        let (lhs, rhs) = match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => (lhs, rhs),
+        return match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => {
+                let rhs = crate::expression_to_type(rhs);
+                Tree::type_annotated(lhs, opr.unwrap(), rhs)
+            },
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
                 let err = Error::new("`:` operator must be applied to two operands.");
-                return Tree::invalid(err, invalid);
+                Tree::invalid(err, invalid)
             }
         };
-        return Tree::type_annotated(lhs, opr.unwrap(), rhs);
-    }
-    if let Ok(opr) = &opr && opr.properties.is_arrow() {
-        let mut args = vec![];
-        if let Some(mut lhs) = lhs {
-            while let Tree { variant: box Variant::App(App { func, arg }), span } = lhs {
-                lhs = func;
-                let mut left_offset = span.left_offset;
-                left_offset += mem::take(&mut lhs.span.left_offset);
-                lhs.span.left_offset = left_offset;
-                args.push(arg);
-            }
-            args.push(lhs);
-            args.reverse();
-        }
-        return Tree::arrow(args, opr.clone(), rhs);
     }
     if nospace
         && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
@@ -810,13 +847,6 @@ pub fn apply_operator<'s>(
         lhs_.fractional_digits = Some(FractionalDigits { dot, digits });
         return lhs.clone();
     }
-    let mut section = None;
-    if let Some(lhs_) = &lhs {
-        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &*lhs_.variant {
-            section = Some(lhs_.clone());
-            lhs = Some(ast.clone());
-        }
-    }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
@@ -830,26 +860,7 @@ pub fn apply_operator<'s>(
             }
         }
     }
-    let ast_ = Tree::opr_app(lhs, opr, rhs);
-    if let Some(mut section) = section {
-        if let Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) = &mut *section.variant {
-            *ast = ast_;
-        }
-        section
-    } else {
-        ast_
-    }
-}
-
-/// Wrap the given tree in an operator section, unless it is an expression type that doesn't form
-/// the given type of operator sections.
-pub fn operator_section(elided: u32, wildcards: u32, ast: Tree) -> Tree {
-    if elided == 0 {
-        if let Variant::Arrow(_) = &*ast.variant {
-            return ast;
-        }
-    }
-    Tree::opr_section_boundary(elided, wildcards, ast)
+    Tree::opr_app(lhs, opr, rhs)
 }
 
 impl<'s> From<Token<'s>> for Tree<'s> {
@@ -875,7 +886,7 @@ impl<'s> From<Token<'s>> for Tree<'s> {
             }
             token::Variant::TextEnd(close) =>
                 Tree::text_literal(default(), default(), Some(token.with_variant(close)), default()),
-            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
+            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
             token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
             token::Variant::OpenSymbol(s) =>
                 Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
@@ -929,7 +940,7 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Import(_)
             | Variant::Export(_)
             | Variant::Group(_)
-            | Variant::Case(_)
+            | Variant::CaseOf(_)
             | Variant::TypeSignature(_)
             | Variant::Lambda(_)
             | Variant::Array(_)
@@ -947,16 +958,10 @@ pub fn recurse_left_mut_while<'s>(
             Variant::App(App { func: lhs, .. })
             | Variant::NamedApp(NamedApp { func: lhs, .. })
             | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
+            | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
             | Variant::DefaultApp(DefaultApp { func: lhs, .. })
             | Variant::Assignment(Assignment { pattern: lhs, .. })
             | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
-            // Special.
-            Variant::Arrow(Arrow { arguments, .. }) =>
-                if let Some(lhs) = arguments.first_mut() {
-                    lhs
-                } else {
-                    break;
-                },
         }
     }
 }

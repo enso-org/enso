@@ -634,14 +634,27 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
-        "=" => return operator.with_binary_infix_precedence(1).as_assignment(),
+        // - These 3 "consume everything to the right".
+        "=" =>
+            return operator
+                .with_binary_infix_precedence(1)
+                .as_right_associative()
+                .with_lhs_section_termination(operator::SectionTermination::Unwrap)
+                .as_assignment(),
         ":" =>
             return operator
-                .with_binary_infix_precedence(2)
+                .with_binary_infix_precedence(1)
+                .as_right_associative()
+                .with_lhs_section_termination(operator::SectionTermination::Reify)
                 .as_compile_time_operation()
                 .as_type_annotation(),
         "->" =>
-            return operator.with_binary_infix_precedence(3).as_compile_time_operation().as_arrow(),
+            return operator
+                .with_binary_infix_precedence(1)
+                .as_right_associative()
+                .with_lhs_section_termination(operator::SectionTermination::Unwrap)
+                .as_compile_time_operation()
+                .as_arrow(),
         "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
         "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),

@@ -222,13 +222,7 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         let variant = Box::new(Variant::TypeAnnotated(annotated));
         return Tree::invalid(err, Tree { variant, span });
     }
-    let tree_ = match &mut *tree.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast, .. }) => {
-            left_offset += tree.span.left_offset.clone();
-            ast
-        }
-        _ => &mut tree,
-    };
+    let tree_ = &mut tree;
     let opr_app = match tree_ {
         Tree { variant: box Variant::OprApp(opr_app), span } => {
             left_offset += &span.left_offset;
@@ -237,23 +231,24 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         _ => return tree,
     };
     if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
-        let (mut lhs_, args) = collect_arguments(lhs.clone());
+        let (mut leftmost, args) = collect_arguments(lhs.clone());
         if let Some(rhs) = rhs {
-            if let Variant::Ident(ident) = &*lhs_.variant && ident.token.variant.is_type {
+            if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
                 // If the LHS is a type, this is a (destructuring) assignment.
-                let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
+                let lhs = expression_to_pattern(mem::take(lhs));
+                let mut result = Tree::assignment(lhs, mem::take(opr), mem::take(rhs));
                 result.span.left_offset += left_offset;
                 return result;
             }
             if args.is_empty() && !is_body_block(rhs) {
                 // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
                 // this is a variable assignment.
-                let mut result = Tree::assignment(lhs_, mem::take(opr), mem::take(rhs));
+                let mut result = Tree::assignment(leftmost, mem::take(opr), mem::take(rhs));
                 result.span.left_offset += left_offset;
                 return result;
             }
         }
-        if let Variant::Ident(Ident { token }) = &mut *lhs_.variant {
+        if let Variant::Ident(Ident { token }) = &mut *leftmost.variant {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
             // an identifier, this is a function definition.
             let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));
@@ -262,6 +257,46 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }
     }
     tree
+}
+
+fn expression_to_type(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
+    use syntax::tree::*;
+    if let Variant::Wildcard(wildcard) = &mut *input.variant {
+        wildcard.de_bruijn_index = None;
+        return input;
+    }
+    let mut out = match input.variant {
+        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_type(ast),
+        box Variant::Group(Group { open, body: Some(body), close }) =>
+            Tree::group(open, Some(expression_to_type(body)), close),
+        box Variant::OprApp(OprApp { lhs, opr, rhs }) =>
+            Tree::opr_app(lhs.map(expression_to_type), opr, rhs.map(expression_to_type)),
+        box Variant::App(App { func, arg }) =>
+            Tree::app(expression_to_type(func), expression_to_type(arg)),
+        _ => return input,
+    };
+    out.span.left_offset += input.span.left_offset;
+    out
+}
+
+fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
+    use syntax::tree::*;
+    if let Variant::Wildcard(wildcard) = &mut *input.variant {
+        wildcard.de_bruijn_index = None;
+        return input;
+    }
+    let mut out = match input.variant {
+        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_pattern(ast),
+        box Variant::Group(Group { open, body: Some(body), close }) =>
+            Tree::group(open, Some(expression_to_pattern(body)), close),
+        box Variant::App(App { func, arg }) =>
+            Tree::app(expression_to_pattern(func), expression_to_pattern(arg)),
+        box Variant::TypeAnnotated(TypeAnnotated { expression, operator, type_ }) =>
+            Tree::type_annotated(expression_to_pattern(expression), operator, type_),
+        _ => return input,
+    };
+    out.span.left_offset += input.span.left_offset;
+    out
 }
 
 fn collect_arguments(
@@ -277,12 +312,13 @@ fn collect_arguments(
         let opr = syntax::token::ident(left_offset, code, false, 0, false, false);
         let mut opr = Some(syntax::Tree::ident(opr));
         let mut tree_ = rhs;
-        let mut left_offset = crate::source::Offset::default();
+        let mut left_offset = tree.span.left_offset;
         syntax::tree::recurse_left_mut_while(&mut tree_, |tree| {
             left_offset += mem::take(&mut tree.span.left_offset);
             match &mut *tree.variant {
                 syntax::tree::Variant::App(syntax::tree::App { func, .. })
-                        if !matches!(&*func.variant, syntax::tree::Variant::App(_)) => {
+                    if !matches!(&*func.variant, syntax::tree::Variant::App(_)) =>
+                {
                     let mut func_ = func.clone();
                     func_.span.left_offset = mem::take(&mut left_offset);
                     *func = syntax::Tree::app(opr.take().unwrap(), func_);
@@ -326,7 +362,16 @@ pub fn parse_argument_application<'s>(
             let default = Some(ArgumentDefault { equals, expression: arg.clone() });
             func.span.left_offset += mem::take(&mut expression.span.left_offset);
             *expression = func.clone();
-            Some(ArgumentDefinition { open, open2, pattern, suspension, default, close2, type_, close })
+            Some(ArgumentDefinition {
+                open,
+                open2,
+                pattern,
+                suspension,
+                default,
+                close2,
+                type_,
+                close,
+            })
         }
         _ => None,
     }
@@ -367,7 +412,9 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         pattern = body;
     }
     let mut type__ = default();
-    if let box Variant::TypeAnnotated(TypeAnnotated { mut expression, operator, type_ }) = pattern.variant {
+    if let box Variant::TypeAnnotated(TypeAnnotated { mut expression, operator, type_ }) =
+        pattern.variant
+    {
         expression.span.left_offset += pattern.span.left_offset;
         type__ = Some(ArgumentType { operator, type_ });
         pattern = expression;
@@ -379,6 +426,7 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         suspension = Some(opr);
         pattern = rhs.clone();
     }
+    let pattern = expression_to_pattern(pattern);
     let open = open1;
     let close = close1;
     let type_ = type__;

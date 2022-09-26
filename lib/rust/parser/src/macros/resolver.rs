@@ -521,9 +521,12 @@ impl<'s> Resolver<'s> {
                     syntax::Item::Tree(tree) => body.push_str(&tree.code()),
                 }
             }
-            let message = format!("A macro is defined beginning with this token, but the code \
+            let message = format!(
+                "A macro is defined beginning with this token, but the code \
                 following it did not match any pattern from the macro's definition. Token={:?}, \
-                body={:?}", header0_raw, &items);
+                body={:?}",
+                header0_raw, &items
+            );
             let header0 = syntax::Tree::from(header0).with_error(message);
             (header0, items)
         }
