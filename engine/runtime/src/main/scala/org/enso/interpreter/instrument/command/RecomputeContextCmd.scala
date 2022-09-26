@@ -45,8 +45,7 @@ class RecomputeContextCmd(
           .map(CacheInvalidation(CacheInvalidation.StackSelector.Top, _))
         CacheInvalidation.runAll(
           stack,
-          cacheInvalidationCommands,
-          new java.util.HashSet[java.util.UUID]()
+          cacheInvalidationCommands
         )
         reply(Api.RecomputeContextResponse(request.contextId))
         true

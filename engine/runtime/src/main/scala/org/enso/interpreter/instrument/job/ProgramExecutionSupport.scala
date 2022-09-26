@@ -41,6 +41,7 @@ import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
+import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -95,12 +96,45 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
+    def notifyPendingCacheItems(cache: RuntimeCache): Unit = {
+      val knownKeys   = cache.getWeights.entrySet
+      val cachedKeys  = cache.getKeys
+      val pendingKeys = new java.util.HashSet[UUID]()
+
+      knownKeys.forEach(e => {
+        if (e.getValue > 0) {
+          if (!cachedKeys.contains(e.getKey)) {
+            pendingKeys.add(e.getKey)
+            System.out.println(
+              "  found key with " + e.getValue + " key: " + e.getKey
+            )
+          }
+        }
+      });
+      val ids = pendingKeys.asScala.toSet.map { key =>
+        Api.ExpressionUpdate(
+          key,
+          None,
+          None,
+          Vector.empty,
+          true,
+          Api.ExpressionUpdate.Payload.Pending(None, None)
+        )
+      }
+
+      val msg = Api.Response(
+        Api.ExpressionUpdates(contextId, ids)
+      )
+      ctx.endpoint.sendToClient(msg)
+    }
+
     executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
             syncState
           ) =>
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module.toString,
           cons.item,
@@ -125,6 +159,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module,
           callData,

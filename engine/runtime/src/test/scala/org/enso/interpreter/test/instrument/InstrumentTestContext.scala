@@ -32,10 +32,14 @@ class InstrumentTestContext {
     n: Int,
     timeoutSeconds: Long = 60
   ): List[Api.Response] = {
-    receiveNWithFilter(n, {
+    receiveNWithFilter(
+      n,
+      {
         case Some(Api.Response(None, Api.ExpressionUpdates(_, _))) => false
-        case _ => true
-      }, timeoutSeconds)
+        case _                                                     => true
+      },
+      timeoutSeconds
+    )
   }
 
   def receiveNIgnoreStdLib(
@@ -44,7 +48,6 @@ class InstrumentTestContext {
   ): List[Api.Response] = {
     receiveNWithFilter(n, (_ => true), timeoutSeconds)
   }
-
 
   private def receiveNWithFilter(
     n: Int,

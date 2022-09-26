@@ -161,7 +161,8 @@ object ContextRegistryProtocol {
       /** An information about computed expression. */
       case object Value extends Payload
 
-      case class Pending(message: Option[String], progress: Option[Double]) extends Payload;
+      case class Pending(message: Option[String], progress: Option[Double])
+          extends Payload;
 
       /** Indicates that the expression was computed to an error.
         *
@@ -217,7 +218,7 @@ object ContextRegistryProtocol {
 
           case m: Payload.Pending =>
             Encoder[Payload.Pending]
-            .apply(m)
+              .apply(m)
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
               )

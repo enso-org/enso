@@ -29,7 +29,6 @@ import java.util.logging.Level
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import java.util.UUID
 
 /** A job that ensures that specified files are compiled.
   *
@@ -46,7 +45,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
     try {
       val compilationResult = ensureCompiledFiles(files)
-      setCacheWeights(new java.util.HashSet[java.util.UUID]())
+      setCacheWeights()
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -306,53 +305,16 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         changeset,
         module.getSource.getCharacters
       )
-    val invalidatedKeys = new java.util.HashSet[java.util.UUID]();
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
-          CacheInvalidation.runAll(stack, invalidationCommands, invalidatedKeys)
+          CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
     CacheInvalidation.runAllVisualisations(
       ctx.contextManager.getVisualisations(module.getName),
       invalidationCommands
     )
-
-    if (!invalidatedKeys.isEmpty()) {
-      System.err.println("Invalidated: " + invalidatedKeys)
-      val invalidatedKeysScala = invalidatedKeys.asScala.toSet
-      ctx.contextManager.getAllContexts.foreachEntry((contextId, stack) => {
-        val knownKeys   = stack.top.cache.getWeights.entrySet
-        val cachedKeys  = stack.top.cache.getKeys
-        val pendingKeys = new java.util.HashSet[UUID]()
-
-        knownKeys.forEach(e => {
-          if (e.getValue > 0) {
-            if (!cachedKeys.contains(e.getKey)) {
-              pendingKeys.add(e.getKey)
-              System.out.println("  found key with " + e.getValue + " key: " + e.getKey)
-            }
-          }
-        });
-        val ids = invalidatedKeysScala.map { key =>
-          // pendingKeys.asScala.toSet.map { key =>
-          Api.ExpressionUpdate(
-            key,
-            None,
-            None,
-            Vector.empty,
-            true,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-        }
-
-        System.err.println("  ignore pendingKeys: " + pendingKeys)
-        val msg = Api.Response(
-          Api.ExpressionUpdates(contextId, ids)
-        )
-        ctx.endpoint.sendToClient(msg)
-      })
-    }
 
     val invalidatedVisualisations =
       ctx.contextManager.getInvalidatedVisualisations(
@@ -409,9 +371,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     else
       CompilationStatus.Success
 
-  private def setCacheWeights(
-    invalidatedKeys: java.util.Set[java.util.UUID]
-  )(implicit ctx: RuntimeContext): Unit = {
+  private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAllContexts.values.foreach { stack =>
       getCacheMetadata(stack).foreach { metadata =>
         CacheInvalidation.run(
@@ -419,8 +379,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
           CacheInvalidation(
             CacheInvalidation.StackSelector.Top,
             CacheInvalidation.Command.SetMetadata(metadata)
-          ),
-          invalidatedKeys
+          )
         )
       }
     }
