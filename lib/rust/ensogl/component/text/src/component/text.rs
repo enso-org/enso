@@ -895,10 +895,8 @@ impl TextModel {
                     .iter()
                     .filter_map(|change_with_selection| {
                         let change_range = &change_with_selection.change_range;
-                        let change_start =
-                            ViewLine::from_in_context_snapped(self, *change_range.start());
-                        let change_end =
-                            ViewLine::from_in_context_snapped(self, *change_range.end());
+                        let change_start = change_with_selection.selection.start.line;
+                        let change_end = change_with_selection.selection.end.line;
                         let view_change_range = change_start..=change_end;
                         let line_diff = change_with_selection.line_diff;
                         let second_line_index = view_change_range.start().inc();
@@ -925,7 +923,6 @@ impl TextModel {
 
                         let range_end = view_change_range.end() + line_diff;
                         let range = (*view_change_range.start())..=range_end;
-
                         range.intersect(&view_line_range)
                     })
                     .collect_vec();

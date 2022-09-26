@@ -85,6 +85,7 @@ pub struct Change<Metric = UBytes, Str = Rope> {
     pub change:       text::Change<Metric, Str>,
     pub change_range: RangeInclusive<Line>,
     pub line_diff:    LineDiff,
+    pub selection:    Selection<ViewLocation>,
 }
 
 impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
@@ -92,7 +93,8 @@ impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
         let change = default();
         let line_diff = default();
         let change_range = Line(0)..=Line(0);
-        Self { change, change_range, line_diff }
+        let selection = default();
+        Self { change, change_range, line_diff, selection }
     }
 }
 
@@ -738,6 +740,9 @@ impl BufferModel {
         };
 
         let byte_selection = Selection::<UBytes>::from_in_context_snapped(self, transformed);
+        let line_selection =
+            Selection::<ViewLocation>::from_in_context_snapped(self, byte_selection);
+        let line_selection = line_selection.map_shape(|s| s.normalized());
         let range = byte_selection.range();
         self.rope.replace(range, &text);
 
@@ -771,7 +776,7 @@ impl BufferModel {
         let selection_group = selection::Group::from(loc_selection);
         let change = text::Change { range, text };
         let change_range = redraw_start_line..=redraw_end_line;
-        let change = Change { change, change_range, line_diff };
+        let change = Change { change, change_range, line_diff, selection: line_selection };
         let changes = vec![change];
         let byte_offset = text_byte_size - range.size();
         Modification { changes, selection_group, byte_offset }
