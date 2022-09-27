@@ -36,7 +36,7 @@ pub trait Payload = Default + Clone;
 #[allow(missing_docs)]
 pub struct Node<T> {
     pub kind:     Kind,
-    pub size:     Byte,
+    pub size:     ByteDiff,
     pub children: Vec<Child<T>>,
     pub ast_id:   Option<ast::Id>,
     pub payload:  T,
@@ -132,7 +132,7 @@ impl<T> Node<T> {
         self.kind = k.into();
         self
     }
-    pub fn with_size(mut self, size: Byte) -> Self {
+    pub fn with_size(mut self, size: ByteDiff) -> Self {
         self.size = size;
         self
     }
@@ -182,7 +182,7 @@ pub struct Child<T = ()> {
     /// A child node.
     pub node:       Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     Byte,
+    pub offset:     ByteDiff,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs: ast::Crumbs,
 }
@@ -263,7 +263,7 @@ impl<T: Payload> ChildBuilder<T> {
         let builder = ChildBuilder::new(new_child);
         let child = f(builder).child;
         let offset_diff = child.offset - offset;
-        node.size = Byte::try_from(node.size + child.size + offset_diff).unwrap(); // FIXME handle errors
+        node.size = node.size + child.size + offset_diff;
         node.children.push(child);
     }
 
@@ -285,7 +285,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Offset setter.
-    pub fn offset(mut self, offset: Byte) -> Self {
+    pub fn offset(mut self, offset: ByteDiff) -> Self {
         self.offset = offset;
         self
     }
@@ -303,7 +303,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Size setter.
-    pub fn size(mut self, size: Byte) -> Self {
+    pub fn size(mut self, size: ByteDiff) -> Self {
         self.node.size = size;
         self
     }
@@ -648,7 +648,7 @@ pub struct RefMut<'a, T = ()> {
     /// The node's ref.
     node:            &'a mut Node<T>,
     /// An offset counted from the parent node start to the start of this node's span.
-    pub offset:      Byte,
+    pub offset:      ByteDiff,
     /// Span begin's offset counted from the root expression.
     pub span_offset: Byte,
     /// Crumbs specifying this node position related to root.

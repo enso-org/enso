@@ -8,6 +8,19 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
+use crate::prelude::*;
+
+use ast_macros::*;
+use enso_shapely::*;
+use enso_text::traits::*;
+use enso_text::unit::*;
+use serde::de::Deserializer;
+use serde::de::Visitor;
+use serde::ser::SerializeStruct;
+use serde::ser::Serializer;
+use serde::Deserialize;
+use serde::Serialize;
+use uuid::Uuid;
 
 
 // ==============
@@ -74,23 +87,9 @@ pub mod constants {
     }
 }
 
-use crate::prelude::*;
-
 pub use crumbs::Crumb;
 pub use crumbs::Crumbs;
 pub use id_map::IdMap;
-
-use ast_macros::*;
-use enso_shapely::*;
-use enso_text::traits::*;
-use enso_text::unit::*;
-use serde::de::Deserializer;
-use serde::de::Visitor;
-use serde::ser::SerializeStruct;
-use serde::ser::Serializer;
-use serde::Deserialize;
-use serde::Serialize;
-use uuid::Uuid;
 
 /// A sequence of AST nodes, typically the "token soup".
 pub type Stream<T> = Vec<T>;
@@ -1108,13 +1107,13 @@ pub trait HasRepr {
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
     /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
-    fn len(&self) -> Byte {
-        self.repr().len().into()
+    fn len(&self) -> ByteDiff {
+        ByteDiff::from(self.repr().len())
     }
 
     /// Check if the representation is empty.
     fn is_empty(&self) -> bool {
-        self.len() >= 0.byte()
+        self.len() >= 0.byte_diff()
     }
 
     /// Get the representation length in chars.
@@ -1144,15 +1143,15 @@ impl TokenConsumer for ReprBuilder {
 
 #[derive(Debug, Clone, Copy, Default)]
 struct LengthBuilder {
-    length: Byte,
+    length: ByteDiff,
 }
 
 impl TokenConsumer for LengthBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.length += Byte::from(' '.len_utf8() * val),
-            Token::Chr(chr) => self.length += Byte::from(chr.len_utf8()),
-            Token::Str(val) => self.length += Byte::from(val.len()),
+            Token::Off(val) => self.length += ByteDiff::from(' '.len_utf8() * val),
+            Token::Chr(chr) => self.length += (chr.len_utf8() as i32).byte_diff(),
+            Token::Str(val) => self.length += (val.len() as i32).byte_diff(),
             Token::Ast(val) => val.shape().feed_to(self),
         }
     }
@@ -1182,7 +1181,7 @@ impl<T: HasTokens> HasRepr for T {
         consumer.repr
     }
 
-    fn len(&self) -> Byte {
+    fn len(&self) -> ByteDiff {
         let mut consumer = LengthBuilder::default();
         self.feed_to(&mut consumer);
         consumer.length
@@ -1234,7 +1233,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> Byte {
+    fn len(&self) -> ByteDiff {
         self.deref().len()
     }
 
@@ -1306,7 +1305,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> Byte {
+    fn len(&self) -> ByteDiff {
         self.deref().len()
     }
 

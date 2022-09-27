@@ -511,8 +511,8 @@ impl Rope {
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CommonPrefixAndSuffix {
-    pub prefix: Byte,
-    pub suffix: Byte,
+    pub prefix: ByteDiff,
+    pub suffix: ByteDiff,
 }
 
 impl Rope {

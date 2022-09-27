@@ -475,14 +475,14 @@ pub struct Position {
     pub character: usize,
 }
 
-impls! { From + &From <enso_text::Location<enso_text::Utf16CodeUnit>> for Position { |location|
+impls! { From + &From <enso_text::Location<Utf16CodeUnit>> for Position { |location|
     Position {
         line: location.line.value,
         character: location.offset.value,
     }
 }}
 
-impls! { From + &From <Position> for enso_text::Location<enso_text::Utf16CodeUnit> { |position|
+impls! { From + &From <Position> for enso_text::Location<Utf16CodeUnit> { |position|
     enso_text::Location {
         line: position.line.into(),
         offset: position.character.into(),
@@ -573,11 +573,12 @@ impl TextEdit {
 
         let source = source.into();
         let target = target.into();
+        let source_len = (source.len() as i32).byte_diff();
+        let target_len = (target.len() as i32).byte_diff();
         let common_lengths = source.common_prefix_and_suffix(&target);
 
-        let source_start_byte = common_lengths.prefix;
-        let source_end_byte = ByteDiff::from(source.len()) - common_lengths.suffix;
-        let source_end_byte = Byte::try_from(source_end_byte).unwrap(); // FIXME: handle error
+        let source_start_byte = 0.byte() + common_lengths.prefix;
+        let source_end_byte = 0.byte() + source_len - common_lengths.suffix;
 
         let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
         let source_start_position =
@@ -586,9 +587,9 @@ impl TextEdit {
         let source_end_position = source_end_position.mod_offset(|b| enso_text::Utf16CodeUnit(0));
         let source_text_range = Range::new(source_start_position, source_end_position);
 
-        let target_len: ByteDiff = target.len().into();
-        let end = Byte::try_from(target_len - common_lengths.suffix).unwrap(); // FIXME: handle error
-        let target_range = common_lengths.prefix..end;
+        let start = 0.byte() + common_lengths.prefix;
+        let end = 0.byte() + target_len - common_lengths.suffix;
+        let target_range = start..end;
         let target_text = target.sub(target_range).to_string();
 
         TextEdit { range: source_text_range.into(), text: target_text }
