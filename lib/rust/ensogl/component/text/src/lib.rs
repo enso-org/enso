@@ -12,7 +12,6 @@
 #![feature(derive_default_enum)]
 #![feature(generators)]
 #![feature(btree_drain_filter)]
-#![feature(specialization)]
 #![feature(allocator_api)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

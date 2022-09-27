@@ -1117,33 +1117,6 @@ where Self: Sized {
 
 // === Generic Impls ===
 
-impl<'t, T, U> FromInContext<&'t BufferModel, U> for T
-where T: enso_text::conversion::FromInContext<&'t Rope, U>
-{
-    default fn from_in_context(buffer: &'t BufferModel, elem: U) -> Self {
-        T::from_in_context(&buffer.data.rope.data.text.get(), elem)
-    }
-}
-
-impl<'t, T, U> FromInContextSnapped<&'t BufferModel, U> for T
-where T: enso_text::conversion::FromInContextSnapped<&'t Rope, U>
-{
-    default fn from_in_context_snapped(buffer: &'t BufferModel, elem: U) -> Self {
-        T::from_in_context_snapped(&buffer.data.rope.data.text.get(), elem)
-    }
-}
-
-impl<'t, T, U> TryFromInContext<&'t BufferModel, U> for T
-where T: enso_text::conversion::TryFromInContext<&'t Rope, U>
-{
-    type Error = T::Error;
-
-    default fn try_from_in_context(buffer: &'t BufferModel, elem: U) -> Result<Self, Self::Error> {
-        T::try_from_in_context(&buffer.data.rope.data.text.get(), elem)
-    }
-}
-
-
 impl<'t, T, U> FromInContext<&'t Buffer, U> for T
 where T: FromInContext<&'t BufferModel, U>
 {
@@ -1208,9 +1181,21 @@ impl FromInContextSnapped<&BufferModel, ViewLine> for Line {
     }
 }
 
+impl<T> FromInContextSnapped<&BufferModel, Location<T, Line>> for Line {
+    fn from_in_context_snapped(_: &BufferModel, location: Location<T, Line>) -> Self {
+        location.line
+    }
+}
+
 impl<T> FromInContextSnapped<&BufferModel, Location<T, ViewLine>> for Line {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<T, ViewLine>) -> Self {
         Line::from_in_context_snapped(buffer, location.line)
+    }
+}
+
+impl FromInContextSnapped<&BufferModel, Byte> for Line {
+    fn from_in_context_snapped(buffer: &BufferModel, offset: Byte) -> Self {
+        Location::<Byte, Line>::from_in_context_snapped(buffer, offset).line
     }
 }
 
@@ -1260,6 +1245,12 @@ impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
 
 
 // === Conversions to Byte ===
+
+impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Byte {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
+        buffer.byte_offset_of_line_index(location.line).unwrap() + location.offset
+    }
+}
 
 impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Byte {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, ViewLine>) -> Self {
@@ -1444,6 +1435,15 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byt
             });
             out
         })
+    }
+}
+
+impl FromInContextSnapped<&BufferModel, Byte> for Location<Byte, Line> {
+    fn from_in_context_snapped(context: &BufferModel, offset: Byte) -> Self {
+        let line = context.line_index_of_byte_offset_snapped(offset);
+        let line_offset = context.byte_offset_of_line_index(line).unwrap();
+        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
+        Location(line, byte_offset)
     }
 }
 
