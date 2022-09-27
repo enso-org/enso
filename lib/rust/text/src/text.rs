@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 use crate::unit::*;
+use xi_rope::rope::Utf16CodeUnitsMetric;
+use xi_rope::Metric;
 
 use crate::prelude::fmt::Formatter;
 use crate::range::Range;
@@ -432,6 +434,51 @@ impl Rope {
             Err(TooSmall) => self.first_line_start_location(),
             Err(TooBig) => self.last_line_end_location(),
         }
+    }
+
+
+    /// ```
+    /// # use enso_text::{Location, Rope};
+    /// # use enso_text::unit::*;
+    ///
+    /// let text = "first_line\n🧑🏾second_line";
+    /// let rope = Rope::from(text);
+    /// let from = Location { line: 1.line(), offset: 5.utf16_code_unit() };
+    /// let expected = Location { line: 1.line(), offset: 9.byte() };
+    /// assert_eq!(rope.location_of_utf16_code_unit_location_snapped(from), expected);
+    /// ```
+    pub fn location_of_utf16_code_unit_location_snapped(
+        &self,
+        location: Location<Utf16CodeUnit>,
+    ) -> Location<Byte> {
+        let line_start = self.byte_offset_of_line_index_snapped(location.line);
+        let from_line_start = self.rope.slice(line_start..);
+        let line = location.line;
+        let offset =
+            from_line_start.count_base_units::<Utf16CodeUnitsMetric>(location.offset.value).byte();
+        Location { line, offset }
+    }
+
+    /// ```
+    /// # use enso_text::{Location, Rope};
+    /// # use enso_text::unit::*;
+    ///
+    /// let text = "first_line\n🧑🏾second_line";
+    /// let rope = Rope::from(text);
+    /// let from = Location { line: 1.line(), offset: 9.byte() };
+    /// let expected = Location { line: 1.line(), offset: 5.utf16_code_unit() };
+    /// assert_eq!(rope.utf16_code_unit_location_of_location(from), expected);
+    /// ```
+    pub fn utf16_code_unit_location_of_location(
+        &self,
+        location: Location<Byte>,
+    ) -> Location<Utf16CodeUnit> {
+        let line_start = self.byte_offset_of_line_index_snapped(location.line);
+        let position = self.byte_offset_of_location_snapped(location);
+        let line_fragment_before = self.rope.slice(line_start..position);
+        let line = location.line;
+        let offset = line_fragment_before.measure::<Utf16CodeUnitsMetric>().utf16_code_unit();
+        Location { line, offset }
     }
 }
 
