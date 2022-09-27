@@ -468,6 +468,7 @@ pub fn convert(value: &serde_yaml::Value) -> Result<Vec<Node>> {
     }
 }
 
+/// Generate Rust code for handling known paths that are defined in a given YAML input.  
 pub fn process(yaml_input: impl Read) -> Result<String> {
     let yaml = serde_yaml::from_reader(yaml_input)?;
     let forest = convert(&yaml)?;

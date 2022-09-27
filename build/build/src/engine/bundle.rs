@@ -26,8 +26,7 @@ pub trait Bundle {
         ide_ci::fs::copy(&base_component.root, &bundle.root)?;
 
         // Add engine.
-        let bundled_engine_dir =
-            bundle.dir.join("../../../../dist").join(paths.version().to_string());
+        let bundled_engine_dir = bundle.dir.join("dist").join(paths.version().to_string());
         place_component_at(&paths.engine, &bundled_engine_dir).await?;
 
         // Add GraalVM runtime.

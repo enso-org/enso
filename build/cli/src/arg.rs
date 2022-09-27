@@ -176,7 +176,9 @@ pub struct Cli {
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
     #[clap(name = Target::SOURCE_NAME, arg_enum, long, default_value_t= SourceKind::Build,
-    enso_env(), default_value_if(Target::RUN_ID_NAME, None, Some("ci-run")),
+    enso_env(),
+    default_value_if(Target::RUN_ID_NAME, None, Some("ci-run")),
+    default_value_if(Target::PATH_NAME, None, Some("local")),
     default_value_if(Target::RELEASE_DESIGNATOR_NAME, None, Some("release")))]
     pub source: SourceKind,
 

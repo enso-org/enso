@@ -236,7 +236,7 @@ mod tests {
         //     .header(reqwest::header::CONTENT_TYPE, "application/json")
         //     .json(&PatchArtifactSize {size: file.len()});
 
-        let path = PathBuf::from("../../../../Cargo.toml");
+        let path = PathBuf::from("Cargo.toml");
         let artifact_path = path.file_name().unwrap(); // FIXME
 
         let client = reqwest::ClientBuilder::new().build()?;

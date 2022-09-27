@@ -171,20 +171,6 @@ pub trait ProgramExt: Program {
         cmd.borrow_mut().args(args);
         Ok(cmd)
     }
-
-    // fn call_arg(&self, arg: impl AsRef<OsStr>) -> BoxFuture<'static, Result> {
-    //     self.call_args(once(arg))
-    // }
-    //
-    // // We cannot use async_trait for this, as we need to separate lifetime of the future from the
-    // // arguments' lifetimes.
-    // fn call_args(&self, args: impl IntoIterator<Item: AsRef<OsStr>>) -> BoxFuture<'static,
-    // Result> {     let mut cmd = match self.args(args) {
-    //         Ok(cmd) => cmd,
-    //         e @ Err(_) => return ready(e.map(|_| ())).boxed(),
-    //     };
-    //     cmd.borrow_mut().run_ok().boxed()
-    // }
 }
 
 impl<T> ProgramExt for T where T: Program {}

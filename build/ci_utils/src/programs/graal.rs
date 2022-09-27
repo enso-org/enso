@@ -60,7 +60,15 @@ pub async fn install_missing_components(components: impl IntoIterator<Item = Com
 }
 
 #[derive(
-    Clone, Copy, Hash, PartialEq, Eq, Debug, strum::Display, strum::AsRefStr, strum::EnumString,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    Debug,
+    strum::Display,
+    strum::AsRefStr,
+    strum::EnumString
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Component {

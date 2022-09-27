@@ -133,15 +133,15 @@ pub struct Paths {
 
 impl Paths {
     pub fn distribution(&self) -> PathBuf {
-        self.repo_root.join("../../../distribution")
+        self.repo_root.join("distribution")
     }
 
     /// Create a new set of paths for building the Enso with a given version number.
     pub fn new_triple(repo_root: impl Into<PathBuf>, triple: TargetTriple) -> Result<Self> {
         let repo_root: PathBuf = repo_root.into().absolutize()?.into();
         let repo_root = new_repo_root(repo_root, &triple);
-        let build_dist_root = repo_root.join("../../../built-distribution");
-        let target = repo_root.join("../../../target");
+        let build_dist_root = repo_root.join("built-distribution");
+        let target = repo_root.join("target");
         let launcher = ComponentPaths::new(&build_dist_root, "enso-launcher", "enso", &triple);
         let engine = ComponentPaths::new(
             &build_dist_root,
@@ -195,7 +195,7 @@ impl Paths {
     }
 
     pub fn stdlib_tests(&self) -> PathBuf {
-        self.repo_root.join("../../../test")
+        self.repo_root.join("test")
     }
 
     pub fn stdlib_test(&self, test_name: impl AsRef<Path>) -> PathBuf {
@@ -290,7 +290,7 @@ pub fn project_manager(base_path: impl AsRef<Path>) -> PathBuf {
 pub fn parent_cargo_toml(initial_path: impl AsRef<Path>) -> Result<PathBuf> {
     let mut path = initial_path.as_ref().to_path_buf();
     loop {
-        path.push("../../../Cargo.toml");
+        path.push("Cargo.toml");
         if path.exists() {
             return Ok(path);
         }

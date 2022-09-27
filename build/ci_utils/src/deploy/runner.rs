@@ -98,7 +98,7 @@ impl Config {
     }
 
     pub fn guest_run_script_path(&self) -> PathBuf {
-        let mut ret = self.guest_runner_dir().join("../../../../run");
+        let mut ret = self.guest_runner_dir().join("run");
         ret.set_extension(script_extension(self.os));
         ret
     }

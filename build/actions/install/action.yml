@@ -1,14 +1,14 @@
-name: 'Install Enso Build'
-description: 'Installs enso-build tool.'
+name: "Install Enso Build"
+description: "Installs enso-build tool."
 inputs:
   clean:
     description: Whether the local build script repository should be cleaned.
     required: true
-    default: 'false'
+    default: "false"
   enso_ref:
     description: Reference to be checked out in the Enso repository.
     required: false
-    default: ''
+    default: ""
 
 runs:
   using: "composite"
@@ -35,7 +35,6 @@ runs:
         path: enso
         ref: ${{ inputs.enso_ref }}
         clean: true
-
 
     - uses: actions/checkout@v2
       with:

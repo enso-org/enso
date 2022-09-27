@@ -92,6 +92,8 @@ impl command::FallibleManipulator for IconsArtifacts {
     }
 }
 
+#[context("Failed to download Google font '{family}'.")]
+#[instrument(fields(output_path = %output_path.as_ref().display()), ret, err, skip(octocrab))]
 pub async fn download_google_font(
     octocrab: &Octocrab,
     family: &str,

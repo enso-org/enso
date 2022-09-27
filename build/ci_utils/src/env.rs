@@ -48,14 +48,19 @@ pub mod new {
     use super::*;
     use crate::program::command::FallibleManipulator;
 
-    /// An environment variable of known type.
+    /// An environment variable of known name.
+    ///
+    /// "raw" means that we do not know its "real" type and deal only with strings. When more type
+    /// safety is needed, implement `TypedVariable` as well.
     pub trait RawVariable {
         /// The name of this environment variable.
         fn name(&self) -> &str;
 
         /// Has this variable been set?
         ///
-        /// Note that a variable may be set to the empty string.
+        /// Note that a variable may be set to the empty string. This can lead to unexpected
+        /// results, because in some environments variables can be unset by setting them to the
+        /// empty string.
         fn is_set(&self) -> bool {
             std::env::var(self.name()) != Err(std::env::VarError::NotPresent)
         }

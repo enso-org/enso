@@ -558,7 +558,7 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
 }
 
 fn main() {
-    process_path("../../../..", Action::Format);
+    process_path(".", Action::Format);
 }
 
 

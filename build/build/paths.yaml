@@ -75,11 +75,10 @@ project-manager/:
   dist/:
   runtime/:
 
-
 # Engine Package
 # https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package
-? {path: enso-<version>/, var: engine_package}
-: bin/:
+{ path: enso-<version>/, var: engine_package }:
+  bin/:
   components/:
   editions/:
   lib/:
@@ -87,8 +86,8 @@ project-manager/:
 
 # Engine Bundle
 # https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
-? {path: enso/, var: engine_bundle}
-: dist/:
+{ path: enso/, var: engine_bundle }:
+  dist/:
     <version>/:
   edition/:
     <edition>.yaml:

@@ -74,7 +74,7 @@ fn blacklisted(memeber: &Path) -> bool {
 
 /// Checks if given workspace member is a proc-macro crate.
 fn is_proc_macro_crate(member: &Path) -> bool {
-    let cargo_toml_path = member.join("../../../../../Cargo.toml");
+    let cargo_toml_path = member.join("Cargo.toml");
     let cargo_toml_root = parse_toml(cargo_toml_path);
     get_proc_macro(cargo_toml_root).contains(&true)
 }

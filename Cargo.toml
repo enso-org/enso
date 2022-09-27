@@ -29,7 +29,7 @@ console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_pa
 [profile.dev]
 opt-level = 0
 lto = false
-debug = 0
+debug = true
 debug-assertions = true
 
 [profile.release]
@@ -57,8 +57,8 @@ inherits = "test"
 opt-level = 2
 
 [profile.buildscript]
-inherits = "release"
+inherits = "dev"
 opt-level = 2
 lto = false
-debug = false
+debug = true
 debug-assertions = true
