@@ -7151,6 +7151,17 @@ object IR {
           s"but methods are not allowed in $context."
       }
 
+      /** An error coming from an unexpected occurence of a module.
+        *
+        * @param context the description of a context in which the error
+        *                happened.
+        */
+      case class UnexpectedModule(context: String) extends Reason {
+        override def explain(originalName: Name): String =
+          s"The name ${originalName.name} resolved to a module, " +
+          s"but modules are not allowed in $context."
+      }
+
       /** An error coming from an unexpected occurence of a type.
         *
         * @param context the description of a context in which the error

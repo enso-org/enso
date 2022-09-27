@@ -49,7 +49,7 @@ public class VectorTest {
 
     choose x = case x of
         Vector -> "is vector module"
-        Vector.Vector -> "is vector type"
+        _ : Vector.Vector -> "is vector type"
         _ -> "nothing"
 
     check = choose [1, 2, 3]

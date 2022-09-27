@@ -196,7 +196,7 @@ object Patterns extends IRPass {
                 case Right(_: BindingsMap.ResolvedModule) =>
                   IR.Error.Resolution(
                     tpeName,
-                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                    IR.Error.Resolution.UnexpectedModule(s"type pattern case")
                   )
               }
               .getOrElse(tpeName)

@@ -160,7 +160,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
         single_slice 0 true_end
     By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
         indices = case one_or_many_descriptors of
-            Vector.Vector -> one_or_many_descriptors
+            _ : Vector.Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
         trimmed = resolve_ranges indices length
         slice_ranges trimmed
@@ -209,7 +209,7 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
         single_slice true_end length
     By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
         indices = case one_or_many_descriptors of
-            Vector.Vector -> one_or_many_descriptors
+            _ : Vector.Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
         trimmed = resolve_ranges indices length
         normalized = normalize_ranges trimmed

@@ -496,7 +496,7 @@ type Date
          (Date.new 2000).compare_to (Date.new 2001)
     compare_to : Date -> Ordering
     compare_to self that = case that of
-        Date ->
+        _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error_Data Date that "that")
@@ -504,7 +504,7 @@ type Date
     ## Compares two Dates for equality.
     == : Date -> Boolean
     == self that = case that of
-        Date ->
+        _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             0 == sign
         _ -> False

@@ -346,7 +346,7 @@ type Pattern
     matches : Text -> Boolean
     matches self input = case self.match input mode=Regex_Mode.Full of
         Match_Data _ _ _ _ -> True
-        Vector.Vector -> True
+        _ : Vector.Vector -> True
         _ -> False
 
     ## ADVANCED
@@ -415,7 +415,7 @@ type Pattern
         matches = self.match input mode
         case matches of
             Match_Data _ _ _ _ -> matches.group 0
-            Vector.Vector -> matches.map (_.group 0)
+            _ : Vector.Vector -> matches.map (_.group 0)
             _ -> matches
 
     ## ADVANCED
