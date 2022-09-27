@@ -105,9 +105,6 @@ object ProgramExecutionSupport {
         if (e.getValue > 0) {
           if (!cachedKeys.contains(e.getKey)) {
             pendingKeys.add(e.getKey)
-            System.out.println(
-              "  found key with " + e.getValue + " key: " + e.getKey
-            )
           }
         }
       });
@@ -390,9 +387,6 @@ object ProgramExecutionSupport {
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
       }
-      System.out.println(
-        "Expression update: " + value.getExpressionId + " and " + value.getValue
-      )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
