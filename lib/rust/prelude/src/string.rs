@@ -214,6 +214,50 @@ impl PartialEq<ImString> for String {
     }
 }
 
+
+
+// ==================
+// === ToImString ===
+// ==================
+
+/// Conversion of a value to [`ImString`].
+#[allow(missing_docs)]
+pub trait ToImString {
+    fn to_im_string(&self) -> ImString;
+}
+
+impl ToImString for ImString {
+    fn to_im_string(&self) -> ImString {
+        self.clone()
+    }
+}
+
+impl ToImString for String {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for &String {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for str {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for &str {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+
+
 // === Macros ===
 
 /// Defines a newtype for `ImString`.

@@ -197,7 +197,10 @@ pub trait DataMatch {
     fn invalid(&self) -> Option<&String>;
     fn number(&self) -> Option<f32>;
     fn color(&self) -> Option<color::Rgba>;
-    fn text(&self) -> Option<String>;
+    fn string(&self) -> Option<String>;
+    fn im_string(&self) -> Option<ImString> {
+        self.string().map(|t| t.into())
+    }
 
     fn number_or_else(&self, f: impl FnOnce() -> f32) -> f32 {
         self.number().unwrap_or_else(f)
@@ -207,8 +210,12 @@ pub trait DataMatch {
         self.color().unwrap_or_else(f)
     }
 
-    fn text_or_else(&self, f: impl FnOnce() -> String) -> String {
-        self.text().unwrap_or_else(f)
+    fn string_or_else(&self, f: impl FnOnce() -> String) -> String {
+        self.string().unwrap_or_else(f)
+    }
+
+    fn im_string_or_else(&self, f: impl FnOnce() -> ImString) -> ImString {
+        self.im_string().unwrap_or_else(f)
     }
 }
 
@@ -219,19 +226,22 @@ impl DataMatch for Data {
             _ => None,
         }
     }
+
     fn number(&self) -> Option<f32> {
         match self {
             Self::Number(t) => Some(*t),
             _ => None,
         }
     }
+
     fn color(&self) -> Option<color::Rgba> {
         match self {
             Self::Color(t) => Some(*t),
             _ => None,
         }
     }
-    fn text(&self) -> Option<String> {
+
+    fn string(&self) -> Option<String> {
         match self {
             Self::Text(t) => Some(t.clone()),
             _ => None,
@@ -243,13 +253,20 @@ impl DataMatch for Option<Data> {
     fn invalid(&self) -> Option<&String> {
         self.as_ref().and_then(|t| t.invalid())
     }
+
     fn number(&self) -> Option<f32> {
         self.as_ref().and_then(|t| t.number())
     }
+
     fn color(&self) -> Option<color::Rgba> {
         self.as_ref().and_then(|t| t.color())
     }
-    fn text(&self) -> Option<String> {
-        self.as_ref().and_then(|t| t.text())
+
+    fn string(&self) -> Option<String> {
+        self.as_ref().and_then(|t| t.string())
+    }
+
+    fn im_string(&self) -> Option<ImString> {
+        self.as_ref().and_then(|t| t.im_string())
     }
 }

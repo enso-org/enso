@@ -376,7 +376,7 @@ impl DropDownMenu {
         // shape system (#795)
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
-        model.label.set_default_color(text_color);
+        model.label.set_property_default(text_color);
 
         self
     }

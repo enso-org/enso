@@ -174,6 +174,38 @@ impl Network {
         self.gate(label, t, &changed)
     }
 
+    pub fn ref_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        S: Data,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| v.into())
+    }
+
+    pub fn cloned_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Data, {
+        self.map(label, t, |v| v.clone().into())
+    }
+
+    pub fn ref_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        S: Clone + Debug + 'static,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| Some(v.into()))
+    }
+
+    pub fn cloned_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Clone + Debug + 'static, {
+        self.map(label, t, |v| Some(v.clone().into()))
+    }
+
 
     // === Bool Utils ===
 

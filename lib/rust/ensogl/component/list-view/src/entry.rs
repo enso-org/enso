@@ -90,7 +90,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 pub struct Label {
     display_object:  display::object::Instance,
     pub label:       text::Text,
-    text:            frp::Source<String>,
+    text:            frp::Source<ImString>,
     max_width_px:    frp::Source<f32>,
     /// The `network` is public to allow extending it in components based on a [`Label`]. This
     /// should only be done for components that are small extensions of a Label, where creating a
@@ -111,22 +111,24 @@ impl Label {
         let font = style_watch.get_text(text_style.sub("font"));
         let size = style_watch.get_number(text_style.sub("size"));
         let color = style_watch.get_color(text_style);
+        label.set_long_text_truncation_mode(true);
 
         display_object.add_child(&label);
         frp::extend! { network
             init <- source::<()>();
-            text <- source::<String>();
+            text <- source::<ImString>();
             max_width_px <- source::<f32>();
             color <- all(&color,&init)._0();
             font <- all(&font,&init)._0();
             size <- all(&size,&init)._0();
 
-            label.set_default_color <+ color;
+            label.set_property_default <+ color.ref_into_some();
             label.set_font <+ font;
-            label.set_default_text_size <+ size.map(|v| text::Size(*v));
+            label.set_property_default <+ size.map(|v| text::Size(*v)).ref_into_some();
             eval size ((size) label.set_position_y(size/2.0));
 
-            label.set_content_truncated <+ all(&text, &max_width_px);
+            label.set_content <+ text;
+            label.set_view_width <+ max_width_px.some();
         }
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
@@ -198,7 +200,7 @@ impl Entry for GlyphHighlightedLabel {
             set_highlight <- all(highlight, highlight_bold, content_changed);
             eval set_highlight ([label]((highlight, bold, ())) {
                 for range in highlight {
-                   label.set_sdf_weight(range, text::formatting::SdfWeight::new(*bold));
+                   label.set_property(range, text::formatting::SdfWeight::new(*bold));
                 }
             });
         }

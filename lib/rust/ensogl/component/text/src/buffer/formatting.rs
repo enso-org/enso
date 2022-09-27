@@ -95,10 +95,16 @@ macro_rules! define_property {
             }
         }
 
-         $(
+        $(
             impl From<$field_type> for Property {
                 fn from(value: $field_type) -> Self {
                     Property::[<$field:camel>] (Some(value))
+                }
+            }
+
+            impl From<&$field_type> for Property {
+                fn from(value: &$field_type) -> Self {
+                    Property::[<$field:camel>] (Some(*value))
                 }
             }
         )*
@@ -117,6 +123,14 @@ macro_rules! define_property {
                 self.into()
             }
         }
+
+        $(
+            impl From<&$field_type> for ResolvedProperty {
+                fn from(value: &$field_type) -> Self {
+                    ResolvedProperty::[<$field:camel>] (*value)
+                }
+            }
+        )*
 
         /// A property name without values.
         #[allow(missing_docs)]
@@ -151,8 +165,20 @@ impl From<color::Rgba> for Property {
     }
 }
 
+impl From<&color::Rgba> for Property {
+    fn from(t: &color::Rgba) -> Self {
+        Property::Color(Some(t.into()))
+    }
+}
+
 impl From<color::Rgba> for ResolvedProperty {
     fn from(t: color::Rgba) -> Self {
+        ResolvedProperty::Color(t.into())
+    }
+}
+
+impl From<&color::Rgba> for ResolvedProperty {
+    fn from(t: &color::Rgba) -> Self {
         ResolvedProperty::Color(t.into())
     }
 }

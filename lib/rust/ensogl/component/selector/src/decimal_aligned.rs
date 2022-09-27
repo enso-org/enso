@@ -73,12 +73,12 @@ impl Frp {
         let network = &frp.network;
 
         frp::extend! { network
-            formatted <- frp.set_content.map(|value| format!("{:.2}", value));
+            formatted <- frp.set_content.map(|value| format!("{:.2}", value).to_im_string());
             // FIXME: the next line is locale dependent as it is meant to split on the decimal
             //  separator, which might be different from "." in some locales. We need a way to get
             //  the current locale dependent decimal separator for this.
             //  See https://github.com/enso-org/ide/issues/1542 for progress on this.
-            left <- formatted.map(|s| s.split('.').next().map(|s| s.to_string().into())).unwrap();
+            left <- formatted.map(|s| s.split('.').next().map(|s| s.to_im_string())).unwrap();
 
             model.label_left.set_content <+ left;
             model.label_full.set_content <+ formatted;

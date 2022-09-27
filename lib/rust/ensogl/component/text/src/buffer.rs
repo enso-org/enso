@@ -1021,6 +1021,30 @@ impl RangeLike {
     }
 }
 
+impl From<&Range<Byte>> for RangeLike {
+    fn from(range: &Range<Byte>) -> Self {
+        RangeLike::BufferRangeUBytes(*range)
+    }
+}
+
+impl From<&Range<Location>> for RangeLike {
+    fn from(range: &Range<Location>) -> Self {
+        RangeLike::BufferRangeLocationColumn(*range)
+    }
+}
+
+impl From<&std::ops::Range<Byte>> for RangeLike {
+    fn from(range: &std::ops::Range<Byte>) -> Self {
+        RangeLike::RangeBytes(range.clone())
+    }
+}
+
+impl From<&RangeFull> for RangeLike {
+    fn from(range: &RangeFull) -> Self {
+        RangeLike::RangeFull(*range)
+    }
+}
+
 
 
 // ====================
