@@ -973,8 +973,7 @@ type Column
         new_col = self.java_column.applyMask mask
         Column_Data new_col
 
-    ## UNSTABLE
-       Creates a new Column with the specified range of rows from the input
+    ## Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -983,8 +982,7 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## UNSTABLE
-       Creates a new Column from the input with the specified range of rows
+    ## Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:

@@ -3,32 +3,32 @@ from Standard.Table.Data.Table import Table
 from Standard.Table.Data.Column import Column
 
 type Filter_Condition
-    ## Is equal to a value (or another column)?
-    Equal value:(Column|Any)
-
-    ## Is not equal to a value (or another column)?
-    Not_Equal value:(Column|Any)
-
     ## Is less than a value (or another column)?
-    Less value:(Column|Any)
+    Less than:(Column|Any)
 
     ## Is less than or equal to a value (or another column)?
-    Less_Or_Equal value:(Column|Any)
+    Equal_Or_Less than:(Column|Any)
 
-    ## Is greater than a value (or another column)?
-    Greater value:(Column|Any)
+    ## Is equal to a value (or another column)?
+    Equal to:(Column|Any)
 
     ## Is greater than or equal to a value (or another column)?
-    Greater_Or_Equal value:(Column|Any)
+    Equal_Or_Greater than:(Column|Any)
+
+    ## Is greater than a value (or another column)?
+    Greater than:(Column|Any)
+
+    ## Is not equal to a value (or another column)?
+    Not_Equal to:(Column|Any)
 
     ## Is between (inclusive) two values (or columns)?'
     Between lower:(Column|Any) upper:(Column|Any)
 
     ## Does the value match the SQL pattern (Text only)?
-    Like sql_like_pattern:Text
+    Like pattern:Text
 
     ## Does the value not match the SQL pattern (Text only)?
-    Not_Like sql_like_pattern:Text
+    Not_Like pattern:Text
 
     ## Does the value start with a prefix (Text only)?
     Starts_With prefix:Text
@@ -62,7 +62,6 @@ type Filter_Condition
 
     ## Is the value equal to False (Boolean only)?
     Is_False
-
 
 ## PRIVATE
    Convert a SQL like
