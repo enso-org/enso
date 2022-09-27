@@ -188,21 +188,6 @@ impl Selection {
                 })
             );
 
-            // === Right side of last glyph computation ===
-
-            on_position_or_glyphs_change <- any_(&frp.set_attached_glyphs, &position.value);
-            changed_glyphs <- frp.set_attached_glyphs.sample(&on_position_or_glyphs_change);
-            rhs_last_glyph <- changed_glyphs.map(f!([model](glyphs) {
-                if let Some(glyph) = glyphs.last().and_then(|glyph| glyph.upgrade()) {
-                    let glyph_right_x = glyph.position().x + glyph.x_advance.get();
-                    let origin_x = model.display_object.position().x + model.right_side.position().x;
-                    origin_x + glyph_right_x
-                } else {
-                    0.0
-                }
-            }));
-            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
-
 
             // === Width ===
 
@@ -240,6 +225,23 @@ impl Selection {
                 })
             );
             eval frp.set_color((color) model.view.color_rgb.set(color.into()));
+
+
+            // === Right side of last glyph computation ===
+            // This has to be done after display object positioning.
+
+            on_position_or_glyphs_change <- any_(&frp.set_attached_glyphs, &position.value);
+            changed_glyphs <- frp.set_attached_glyphs.sample(&on_position_or_glyphs_change);
+            rhs_last_glyph <- changed_glyphs.map(f!([model](glyphs) {
+                if let Some(glyph) = glyphs.last().and_then(|glyph| glyph.upgrade()) {
+                    let glyph_right_x = glyph.position().x + glyph.x_advance.get();
+                    let origin_x = model.display_object.position().x + model.right_side.position().x;
+                    origin_x + glyph_right_x
+                } else {
+                    0.0
+                }
+            }));
+            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph;//.on_change();
         }
 
         Self { frp, model }

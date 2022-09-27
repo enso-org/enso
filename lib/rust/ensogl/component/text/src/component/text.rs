@@ -528,6 +528,7 @@ impl Text {
             eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
             key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
+            eval_ key_down([] warn!("----------"));
             key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
             key_to_insert <= key_down.map(f!((key) m.key_to_string(key).map(ImString::from)));
             str_to_insert <- any(&input.insert, &key_to_insert);
