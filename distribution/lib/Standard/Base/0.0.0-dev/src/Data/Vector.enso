@@ -88,9 +88,7 @@ type Vector a
              Vector.fill length=50 item=42
     fill : Integer -> Any -> Vector Any
     fill length ~item =
-        builder = (0.up_to length).fold (Vector.new_builder length) builder-> _->
-            builder.append item
-        builder.to_vector
+        Vector.new length _->item
 
     ## Creates a new vector builder instance.
 
@@ -182,7 +180,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.at ix)
+        f = acc -> ix -> function acc (self.unsafe_at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -215,11 +213,14 @@ type Vector a
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce self function =
-        case self.not_empty of
-            True -> if self.length == 1 then self.at 0 else
-                f = acc -> ix -> function acc (self.at ix)
-                1.up_to self.length . fold (self.at 0) f
-            False -> Error.throw Empty_Error
+        len = self.length
+        case len of
+            0 -> Error.throw Empty_Error
+            _ ->
+                fold_function current idx =
+                    if idx == len then current else
+                        @Tail_Call fold_function (function current (self.unsafe_at idx)) (idx + 1)
+                fold_function (self.unsafe_at 0) 1
 
     ## Computes the sum of the values in the vector.
 
@@ -267,13 +268,8 @@ type Vector a
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find self predicate =
-        len = self.length
-        go idx =
-            if (idx >= len) then Error.throw Nothing else
-                elem = self.at idx
-                if predicate elem then elem else
-                    @Tail_Call go idx+1
-        go 0
+        found = 0.up_to self.length . find (idx -> (predicate (self.unsafe_at idx)))
+        if found.is_nothing then found else self.unsafe_at found
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -350,9 +346,15 @@ type Vector a
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
-            builder = self.fold Vector.new_builder builder-> elem->
-                if predicate elem then builder.append elem else builder
-            builder.to_vector
+            builder = new_builder
+            loop idx =
+                if idx == len then builder.to_vector else
+                    item = self.unsafe_at idx
+                    include = predicate item
+                    if include.is_error then include else
+                        if include then builder.append item
+                        @Tail_Call loop (idx + 1)
+            loop 0
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -367,9 +369,15 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        builder = self.fold_with_index Vector.new_builder builder-> ix-> elem->
-            if predicate ix elem then builder.append elem else builder
-        builder.to_vector
+        builder = new_builder
+        loop idx =
+            if idx == len then builder.to_vector else
+                item = self.unsafe_at idx
+                include = predicate idx item
+                if include.is_error then include else
+                    if include then builder.append item
+                    @Tail_Call loop (idx + 1)
+        loop 0
 
     ## Partitions the vector into vectors of elements which satisfy a given
        predicate and ones that do not.
@@ -503,7 +511,7 @@ type Vector a
     each : (Any -> Any) -> Nothing
     each self f =
         0.up_to self.length . each ix->
-            f (self.at ix)
+            f (self.unsafe_at ix)
 
     ## Applies a function to each element of the vector.
 
@@ -1095,10 +1103,7 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector self =
-        ## This creates a fresh copy of the builders storage, so any future
-           changes to the builder will not affect the returned vector.
-        new_array = self.java_builder.toArray
-        Vector.from_polyglot_array new_array
+        Vector.from_polyglot_array self.java_builder.toArray
 
 ## UNSTABLE
 
