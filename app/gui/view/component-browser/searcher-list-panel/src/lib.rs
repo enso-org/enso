@@ -178,7 +178,7 @@ struct Style {
     section_heading_size:        f32,
     section_heading_offset:      f32,
     section_heading_text_offset: f32,
-    section_heading_font:        String,
+    section_heading_font:        ImString,
     section_heading_color:       color::Rgba,
     section_divider_color:       color::Rgba,
 
@@ -711,8 +711,8 @@ impl<T: CloneRef> LabeledSection<T> {
 
     fn set_style(&self, style: &Style) {
         self.divider.size.set(Vector2(INFINITE, style.section_divider_height));
-        self.label.set_default_color(style.section_heading_color);
-        self.label.set_default_text_size(text::Size(style.section_heading_size));
+        self.label.set_property_default(style.section_heading_color);
+        self.label.set_property_default(text::Size(style.section_heading_size));
         self.label.set_font(style.section_heading_font.clone());
         self.label.set_position_x(style.content_padding);
     }

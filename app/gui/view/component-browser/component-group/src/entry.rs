@@ -229,8 +229,8 @@ impl list_view::Entry for View {
                 label.set_max_width(*width);
                 selected_label.set_max_width(*width);
             });
-            label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            selected_label.inner.label.set_default_color <+ all(&colors.selected.entry_text,&init)._0();
+            label.inner.label.set_property_default <+ all(&colors.entry_text, &init)._0().ref_into_some();
+            selected_label.inner.label.set_property_default <+ all(&colors.selected.entry_text,&init)._0().ref_into_some();
             eval colors.icon_strong ((&c) icon.borrow().set_strong_color(c));
             eval colors.selected.icon_strong((&c) selected_icon.borrow().set_strong_color(c));
             eval colors.icon_weak ((&c) icon.borrow().set_weak_color(c));

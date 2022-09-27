@@ -460,16 +460,16 @@ impl component::Frp<Model> for Frp {
             model.header.set_font <+ header_text_font;
             model.selected_header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
-            model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
-            model.selected_header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
+            model.header.set_property_default <+ header_text_size.map(|v| text::Size(*v)).ref_into_some();
+            model.selected_header.set_property_default <+ header_text_size.map(|v| text::Size(*v)).ref_into_some();
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            model.header.set_default_color <+ colors.header_text;
-            model.selected_header.set_default_color <+ all(&colors.selected.header_text,&init)._0();
+            model.header.set_property_default <+ colors.header_text.ref_into_some();
+            model.selected_header.set_property_default <+ all(&colors.selected.header_text,&init)._0().ref_into_some();
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
             eval colors.selected.background((c) model.selection_background.color.set(c.into()));
@@ -779,9 +779,8 @@ impl Model {
         let header_padding_left = header_geometry.padding_left;
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
-        let header_text = self.header_text.borrow().clone();
-        self.header.set_content_truncated(header_text.clone(), max_text_width);
-        self.selected_header.set_content_truncated(header_text, max_text_width);
+        self.header.set_view_width(max_text_width);
+        self.selected_header.set_view_width(max_text_width);
     }
 
     fn selection_position(
