@@ -478,9 +478,12 @@ spec =
             reals = [1.3, 4.6, 3.2, 5.2, 1.6]
             bools = [False, False, True, True, False]
             texts = ["foo", "foo", "bar", "baz", "spam"]
+            dates = [Date.new 2020, Date.new 1999, Date.new 2000 10 3, Date.new 1999 12 31, Date.new 2000 2 7]
+            times = [Time_Of_Day.new 12, Time_Of_Day.new 1 30 40, Time_Of_Day.new 23 59 59, Time_Of_Day.new 12 30 0, Time_Of_Day.new 10 20 30]
+            datetimes = [Date_Time.new 2020 1 1 12, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30]
             objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
 
-            df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
+            df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes]]
             r = df.order_by (Sort_Column_Selector.By_Name ['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
@@ -497,6 +500,28 @@ spec =
 
             r.at 'objs' . to_vector . should_equal [Cons 1 2, Cons 10 30, Cons 6 7, Cons 2 3, Cons 8 9]
             df.at 'objs' . to_vector . should_equal objs
+
+            r.at 'dates' . to_vector . should_equal [Date.new 2020, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 1999, Date.new 1999 12 31]
+            df.at 'dates' . to_vector . should_equal dates
+
+            r.at 'times' . to_vector . should_equal [Time_Of_Day.new 12, Time_Of_Day.new 10 20 30, Time_Of_Day.new 23 59 59, Time_Of_Day.new 1 30 40, Time_Of_Day.new 12 30 0]
+            df.at 'times' . to_vector . should_equal times
+
+            r.at 'datetimes' . to_vector . should_equal [Date_Time.new 2020 1 1 12, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0]
+            df.at 'datetimes' . to_vector . should_equal datetimes
+
+            # TODO move this test to Common_Table_Spec once we support dates there
+            r2 = df.order_by (Sort_Column_Selector.By_Name ['dates'])
+            r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
+            r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
+
+            r3 = df.order_by (Sort_Column_Selector.By_Name ['times'])
+            r3.at 'times' . to_vector . should_equal [Time_Of_Day.new 1 30 40, Time_Of_Day.new 10 20 30, Time_Of_Day.new 12, Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 59 59]
+            r3.at 'ints' . to_vector . should_equal [2, 5, 1, 4, 3]
+
+            r4 = df.order_by (Sort_Column_Selector.By_Name ['datetimes'])
+            r4.at 'datetimes' . to_vector . should_equal [Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 2020 1 1 12]
+            r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
