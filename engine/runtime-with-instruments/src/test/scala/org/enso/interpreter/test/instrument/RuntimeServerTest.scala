@@ -161,7 +161,41 @@ class RuntimeServerTest
             )
           )
 
-        def mainY(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def pendingX(): Api.ExpressionUpdate =
+          Api.ExpressionUpdate(
+            Main.idMainX,
+            None,
+            None,
+            Vector(),
+            false,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+
+        def pendingY(): Api.ExpressionUpdate =
+          Api.ExpressionUpdate(
+            Main.idFooY,
+            None,
+            None,
+            Vector(),
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+
+        def pendingZ(): Api.ExpressionUpdate =
+          Api.ExpressionUpdate(
+            Main.idFooZ,
+            None,
+            None,
+            Vector(),
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean = false,
+          noPointer: Boolean = false
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -169,13 +203,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodPointer(
-                      "Enso_Test.Test.Main",
-                      ConstantsGen.NUMBER,
-                      "foo"
-                    )
-                  ),
+                  if (noPointer) None
+                  else
+                    Some(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        ConstantsGen.NUMBER,
+                        "foo"
+                      )
+                    ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -372,7 +408,9 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
@@ -397,8 +435,19 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        None,
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            context.Main.Update.pendingY(),
+            context.Main.Update.pendingZ()
+          )
+        )
+      ),
+      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
@@ -1083,8 +1132,26 @@ class RuntimeServerTest
 
     // pop the foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages
+        .pending(
+          contextId,
+          fooX
+        ),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          ConstantsGen.INTEGER,
+          fromCache = true
+        ),
+      TestMessages
+        .update(
+          contextId,
+          mainRes,
+          ConstantsGen.NOTHING
+        ),
       TestMessages
         .update(
           contextId,
@@ -1972,7 +2039,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(
+    context.receiveN(2) shouldEqual Seq(
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -2033,10 +2101,36 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveNIgnorePendingExpressionUpdates(
-      3
+    context.receiveN(
+      6
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        requestId,
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            context.Main.Update.pendingZ(),
+            context.Main.Update.pendingY()
+          )
+        )
+      ),
+      context.Main.Update.fooY(contextId, fromCache = true),
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              idMain,
+              Some(ConstantsGen.INTEGER),
+              None,
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              Api.ExpressionUpdate.Payload.Value()
+            )
+          )
+        )
+      ),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
@@ -3367,15 +3461,17 @@ class RuntimeServerTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
       TestMessages.update(
         contextId,
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
       ),
+      context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
   }

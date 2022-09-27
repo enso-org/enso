@@ -111,21 +111,22 @@ object ProgramExecutionSupport {
           }
         }
       });
-      val ids = pendingKeys.asScala.toSet.map { key =>
-        Api.ExpressionUpdate(
-          key,
-          None,
-          None,
-          Vector.empty,
-          true,
-          Api.ExpressionUpdate.Payload.Pending(None, None)
+      if (!pendingKeys.isEmpty())  {
+        val ids = pendingKeys.asScala.toSet.map { key =>
+          Api.ExpressionUpdate(
+            key,
+            None,
+            None,
+            Vector.empty,
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+        }
+        val msg = Api.Response(
+          Api.ExpressionUpdates(contextId, ids)
         )
+        ctx.endpoint.sendToClient(msg)
       }
-
-      val msg = Api.Response(
-        Api.ExpressionUpdates(contextId, ids)
-      )
-      ctx.endpoint.sendToClient(msg)
     }
 
     executionFrame match {
