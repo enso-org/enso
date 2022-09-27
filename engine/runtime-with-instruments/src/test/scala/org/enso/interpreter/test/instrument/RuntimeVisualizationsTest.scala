@@ -1427,7 +1427,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(4)
+    val attachVisualisationResponses = context.receiveN(6)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1450,10 +1450,14 @@ class RuntimeVisualizationsTest
 
     data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
 
-    val loadedLibraries = attachVisualisationResponses.collect {
-      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
-        (namespace, name)
-    }
+    val loadedLibraries = attachVisualisationResponses
+      .collect {
+        case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+          Some((namespace, name))
+        case _ => None
+      }
+      .filter(_.isDefined)
+      .flatten
 
     loadedLibraries should contain(("Standard", "Visualization"))
   }
@@ -1787,7 +1791,7 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receiveN(n = 4, timeoutSeconds = 60)
+    val responses = context.receiveN(n = 5, timeoutSeconds = 60)
 
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -1822,7 +1826,7 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(3)
+    val attachVisualisationResponses = context.receiveN(5)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1912,7 +1916,9 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       TestMessages.panic(
         contextId,
