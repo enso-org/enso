@@ -1090,7 +1090,10 @@ class IrToTruffle(
             case Some(
                   BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tpe))
                 ) =>
-              mod.unsafeAsModule().getScope.getType(tpe.name).toScala match {
+              // Using .getTypes because .getType may return an associated type
+              Option(
+                mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+              ) match {
                 case Some(tpe) => Right(tpe)
                 case None      => Left(BadPatternMatch.NonVisibleType(tpeName.name))
               }
