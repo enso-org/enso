@@ -23,18 +23,20 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::system::web;
+use ensogl_core::system::web::Closure;
+use ensogl_core::system::web::JsCast;
+use ensogl_core::system::web::JsValue;
 use ensogl_text::buffer;
 use ensogl_text::formatting;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
-use wasm_bindgen::JsCast;
 
 
 
