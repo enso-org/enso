@@ -44,7 +44,7 @@ find_project_root path =
 find_caller_script : [Stack_Trace_Element] -> File
 find_caller_script stack =
     find_main idx =
-        if stack.at idx . name == "Suite.run_main" then idx else
+        if stack.at idx . name == "Suite.type.run_main" then idx else
             @Tail_Call find_main (idx + 1)
     main_index = find_main 0
 
