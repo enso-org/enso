@@ -309,7 +309,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -360,7 +360,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -409,7 +409,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Swap the first two columns.

@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Text.Text_Ordering.Text_Ordering import all
+from project.Data.Text.Text_Ordering.Text_Ordering export all
+
 type Text_Ordering
     ## Specifies the ordering of text values.
 
