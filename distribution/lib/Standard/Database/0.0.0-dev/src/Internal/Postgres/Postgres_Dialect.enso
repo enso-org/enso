@@ -231,12 +231,12 @@ make_order_descriptor internal_column sort_direction text_ordering =
         True ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
-                case text_ordering.case_sensitive of
+                case text_ordering.case_sensitivity of
                     Nothing ->
                         IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation=Nothing
-                    True ->
+                    Case_Sensitivity.Sensitive ->
                         IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
-                    Case_Insensitive_Data locale -> case locale == Locale.default of
+                    Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->

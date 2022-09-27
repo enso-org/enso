@@ -13,7 +13,7 @@ type Column_Selector
        The `matcher` can be used to specify if the names should be matched
        exactly or should be treated as regular expressions. It also allows to
        specify if the matching should be case-sensitive.
-    By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher_Data)
+    By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher.Case_Sensitive)
 
     ## Selects columns by their index.
 

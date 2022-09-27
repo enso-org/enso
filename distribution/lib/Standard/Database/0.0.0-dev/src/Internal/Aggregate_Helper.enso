@@ -1,5 +1,4 @@
 from Standard.Base import all hiding First, Last
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 
 from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Internal.IR
@@ -40,14 +39,14 @@ make_expression aggregate dialect =
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering_Data
+                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of
                     False -> IR.Operation "FIRST" [c.expression]+order_bys
                     True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
         Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering_Data
+                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of
                     False -> IR.Operation "LAST" [c.expression]+order_bys
                     True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_bys
