@@ -809,7 +809,7 @@ type Table
                     is_like_function = is_like sql_like_pattern
                     (column.map t->(is_like_function t).not)
                 Starts_With prefix -> column.starts_with prefix
-                Ends_With suffix -> column.starts_with prefix
+                Ends_With suffix -> column.ends_with suffix
                 Contains substring -> column.contains prefix
                 Is_Nothing -> (column == Nothing)
                 Not_Nothing -> (column != Nothing)
