@@ -285,7 +285,7 @@ object TestMessages {
     */
   def pending(
     contextId: UUID,
-    expressionId: UUID,
+    expressionId: UUID
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(

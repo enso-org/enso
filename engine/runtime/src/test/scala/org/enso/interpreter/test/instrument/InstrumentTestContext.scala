@@ -36,7 +36,7 @@ class InstrumentTestContext {
       n,
       {
         case Some(Api.Response(None, Api.ExpressionUpdates(_, _))) => false
-        case _ => true
+        case _                                                     => true
       },
       timeoutSeconds
     )
@@ -44,16 +44,22 @@ class InstrumentTestContext {
 
   def receiveNIgnorePendingExpressionUpdates(
     n: Int,
-    timeoutSeconds: Long = 60,
+    timeoutSeconds: Long                  = 60,
     updatesOnlyFor: Set[Api.ExpressionId] = Set()
   ): List[Api.Response] = {
     receiveNWithFilter(
       n,
       {
-        case Some(Api.Response(None, Api.ExpressionUpdates(_, updates))) => updates.find({ u => u.payload match {
-            case _ : Api.ExpressionUpdate.Payload.Pending => false
-            case _ => updatesOnlyFor.isEmpty || updatesOnlyFor.contains(u.expressionId)
-        }}).isDefined
+        case Some(Api.Response(None, Api.ExpressionUpdates(_, updates))) =>
+          updates.find { u =>
+            u.payload match {
+              case _: Api.ExpressionUpdate.Payload.Pending => false
+              case _ =>
+                updatesOnlyFor.isEmpty || updatesOnlyFor.contains(
+                  u.expressionId
+                )
+            }
+          }.isDefined
         case _ => true
       },
       timeoutSeconds

@@ -108,7 +108,7 @@ object ProgramExecutionSupport {
           }
         }
       });
-      if (!pendingKeys.isEmpty())  {
+      if (!pendingKeys.isEmpty()) {
         val ids = pendingKeys.asScala.toSet.map { key =>
           Api.ExpressionUpdate(
             key,
