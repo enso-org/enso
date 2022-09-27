@@ -1439,7 +1439,7 @@ spec =
             "Iiİı" . replace "İ" "-" matcher=Text_Matcher.Case_Insensitive . should_equal "Ii-ı"
             "Iiİı" . replace "ı" "-" matcher=Text_Matcher.Case_Insensitive . should_equal "Iiİ-"
 
-            tr_insensitive = Text_Matcher.Case_Sensitive (Locale.new "tr")
+            tr_insensitive = Text_Matcher.Case_Insensitive (Locale.new "tr")
             "Iiİı" . replace "i" "-" matcher=tr_insensitive . should_equal "I--ı"
             "Iiİı" . replace "I" "-" matcher=tr_insensitive . should_equal "-iİ-"
             "Iiİı" . replace "İ" "-" matcher=tr_insensitive . should_equal "I--ı"
