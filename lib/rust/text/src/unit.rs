@@ -439,6 +439,12 @@ impl<T: Into<Column>> column::Into for Range<T> {
     }
 }
 
+impl AddAssign<usize> for Column {
+    fn add_assign(&mut self, rhs: usize) {
+        self.value += rhs
+    }
+}
+
 
 
 // ======================

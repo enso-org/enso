@@ -620,6 +620,148 @@ impl From<&&Rope> for String {
 
 
 
+// =====================
+// === FromInContext ===
+// =====================
+
+/// Perform conversion between two values. It is just like the [`From`] trait, but it performs the
+/// conversion in a "context". The "context" is an object containing additional information required
+/// to perform the conversion. For example, the context can be a text buffer, which is needed to
+/// convert byte offset to line-column location.
+#[allow(missing_docs)]
+pub trait FromInContext<Ctx, T> {
+    fn from_in_context(context: Ctx, arg: T) -> Self;
+}
+
+/// Perform conversion between two values. It is just like [`FromInContext`], but the result value
+/// is snapped to the closest valid location. For example, when performing conversion between
+/// [`Line`] and [`ViewLine`], if the line is not visible, the closest visible line will be
+/// returned.
+#[allow(missing_docs)]
+pub trait FromInContextSnapped<Ctx, T> {
+    fn from_in_context_snapped(context: Ctx, arg: T) -> Self;
+}
+
+/// Try performing conversion between two values. It is like the [`FromInContextSnapped`] trait, but
+/// can fail.
+#[allow(missing_docs)]
+pub trait TryFromInContext<Ctx, T>
+where Self: Sized {
+    type Error;
+    fn try_from_in_context(context: Ctx, arg: T) -> Result<Self, Self::Error>;
+}
+
+
+// === Conversions to Line ===
+
+impl<T> FromInContextSnapped<&Rope, Location<T, Line>> for Line {
+    fn from_in_context_snapped(_: &Rope, location: Location<T, Line>) -> Self {
+        location.line
+    }
+}
+
+// impl FromInContextSnapped<&Rope, Byte> for Line {
+//     fn from_in_context_snapped(buffer: &Rope, offset: Byte) -> Self {
+//         Location::<Byte, Line>::from_in_context_snapped(buffer, offset).line
+//     }
+// }
+
+// === Conversions to Byte ===
+
+impl FromInContextSnapped<&Rope, Location<Byte, Line>> for Byte {
+    fn from_in_context_snapped(rope: &Rope, location: Location<Byte, Line>) -> Self {
+        rope.byte_offset_of_line_index(location.line).unwrap() + location.offset
+    }
+}
+
+// impl FromInContextSnapped<&Rope, Location<Column, Line>> for Byte {
+//     fn from_in_context_snapped(context: &Rope, location: Location) -> Self {
+//         let location = Location::<Byte, Line>::from_in_context_snapped(context, location);
+//         Byte::from_in_context_snapped(context, location)
+//     }
+// }
+
+
+// === Conversions to Location<Column, Line> ===
+
+impl FromInContextSnapped<&Rope, Location<Byte, Line>> for Location<Column, Line> {
+    fn from_in_context_snapped(rope: &Rope, location: Location<Byte, Line>) -> Self {
+        warn!("ROPE from_in_context_snapped, location: {:?}", location);
+        let offset_start = rope.byte_offset_of_line_index_snapped(location.line);
+        let offset_end = offset_start + location.offset;
+        let sub_rope = rope.sub(offset_start..offset_end);
+        let mut offset = Byte(0);
+        let mut column = Column(0);
+        loop {
+            match sub_rope.next_grapheme_offset(offset) {
+                Some(next_offset) => {
+                    offset = next_offset;
+                    column += 1;
+                }
+                None => break,
+            }
+        }
+        location.with_offset(column)
+    }
+}
+
+impl FromInContextSnapped<&Rope, Byte> for Location<Column, Line> {
+    fn from_in_context_snapped(rope: &Rope, offset: Byte) -> Self {
+        Location::<Column, Line>::from_in_context_snapped(
+            rope,
+            Location::<Byte, Line>::from_in_context_snapped(rope, offset),
+        )
+    }
+}
+
+
+// === Conversions to Location<Byte, Line> ===
+
+impl FromInContextSnapped<&Rope, Location<Column, Line>> for Location<Byte, Line> {
+    fn from_in_context_snapped(rope: &Rope, location: Location<Column, Line>) -> Self {
+        let offset_start = rope.byte_offset_of_line_index_snapped(location.line);
+        let offset_end = rope.end_byte_offset_of_line_index_snapped(location.line);
+        let sub_rope = rope.sub(offset_start..offset_end);
+        let mut offset = Byte(0);
+        let mut column = Column(0);
+        while column != location.offset {
+            match sub_rope.next_grapheme_offset(offset) {
+                Some(next_offset) => {
+                    offset = next_offset;
+                    column += 1;
+                }
+                None => break,
+            }
+        }
+        location.with_offset(offset)
+    }
+}
+
+impl FromInContextSnapped<&Rope, Byte> for Location<Byte, Line> {
+    fn from_in_context_snapped(rope: &Rope, offset: Byte) -> Self {
+        let line = rope.line_index_of_byte_offset_snapped(offset);
+        let line_offset = rope.byte_offset_of_line_index_snapped(line);
+        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
+        Location(line, byte_offset)
+    }
+}
+
+
+// === Conversions of Range ====
+
+
+impl<'t, S, T> FromInContextSnapped<&'t Rope, Range<S>> for Range<T>
+where T: FromInContextSnapped<&'t Rope, S>
+{
+    fn from_in_context_snapped(rope: &'t Rope, range: Range<S>) -> Self {
+        let start = T::from_in_context_snapped(rope, range.start);
+        let end = T::from_in_context_snapped(rope, range.end);
+        Range::new(start, end)
+    }
+}
+
+
+
 // ================
 // === RopeCell ===
 // ================

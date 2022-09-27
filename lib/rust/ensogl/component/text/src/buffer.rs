@@ -630,10 +630,11 @@ impl BufferModel {
     /// Recompute the shape of the provided byte range.
     fn shape_range(&self, range: std::ops::Range<Byte>) -> Vec<ShapedGlyphSet> {
         let line_style = self.sub_style(range.clone());
-        let content = self.rope.sub(range).to_string();
+        let rope = self.rope.sub(range);
+        let content = rope.to_string();
         let font = &self.font;
         let mut glyph_sets = vec![];
-        let mut prev_cluster_byte_offset = 0;
+        let mut prev_chunk_cluster_byte_offset = 0;
         for (range, requested_non_variable_variations) in
             Self::chunks_per_font_face(font, &line_style, &content)
         {
@@ -674,7 +675,7 @@ impl BufferModel {
                             glyph_id,
                             face,
                         );
-                        info.cluster += prev_cluster_byte_offset;
+                        info.cluster += prev_chunk_cluster_byte_offset;
                         ShapedGlyph { position, info, render_info }
                     })
                     .collect();
@@ -688,8 +689,29 @@ impl BufferModel {
                 };
                 glyph_sets.push(shaped_glyph_set);
             });
-            prev_cluster_byte_offset = range.end.value as u32;
+            prev_chunk_cluster_byte_offset = range.end.value as u32;
         }
+
+        // let mut grapheme_byte_offset = Byte(0);
+        //
+        // match rope.next_grapheme_offset(grapheme_byte_offset) {
+        //     None => panic!(), // TODO
+        //     Some(next_grapheme_byte_offset) => {
+        //         if grapheme_byte_offset != Byte(info.cluster as usize) {
+        //             warn!(
+        //                                 "({:?}) {:?} != {:?}",
+        //                                 rope.sub(grapheme_byte_offset..next_grapheme_byte_offset)
+        //                                     .to_string(),
+        //                                 next_grapheme_byte_offset,
+        //                                 Byte(info.cluster as usize)
+        //                             );
+        //         } else {
+        //             grapheme_byte_offset = next_grapheme_byte_offset;
+        //         }
+        //     }
+        // }
+
+
         glyph_sets
     }
 
@@ -1280,8 +1302,8 @@ impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Byte {
 // === Conversions to Location<Column, Line> ===
 
 impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Column, Line> {
-    fn from_in_context_snapped(context: &BufferModel, location: Location<Byte, Line>) -> Self {
-        context.with_shaped_line(location.line, |shaped_line| {
+    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
+        let out = buffer.with_shaped_line(location.line, |shaped_line| {
             let mut column = Column(0);
             let mut found_column = None;
             if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
@@ -1303,13 +1325,20 @@ impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Colum
                 }
             }
             found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                let offset = context.line_byte_length(location.line);
+                let offset = buffer.line_byte_length(location.line);
                 if offset != location.offset {
                     // Too big glyph offset requested, returning last column.
                 }
                 location.with_offset(column)
             })
-        })
+        });
+        let out2 = <Location<Column, Line> as enso_text::FromInContextSnapped<
+            &enso_text::Rope,
+            Location<Byte, Line>,
+        >>::from_in_context_snapped(&*buffer.rope.text.borrow(), location);
+        warn!(">> 1 {:?}", out);
+        warn!(">> 2 {:?}", out2);
+        out
     }
 }
 
@@ -1406,7 +1435,7 @@ impl FromInContextSnapped<&BufferModel, Byte> for Location<Column, ViewLine> {
 
 impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byte, Line> {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
-        buffer.with_shaped_line(location.line, |shaped_line| {
+        let out = buffer.with_shaped_line(location.line, |shaped_line| {
             let mut byte_offset = None;
             let mut found = false;
             let mut column = Column(0);
@@ -1434,7 +1463,14 @@ impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byt
                 location.with_offset(offset)
             });
             out
-        })
+        });
+        let out2 = <Location<Byte, Line> as enso_text::FromInContextSnapped<
+            &enso_text::Rope,
+            Location<Column, Line>,
+        >>::from_in_context_snapped(&*buffer.rope.text.borrow(), location);
+        warn!(">> x1 {:?}", out);
+        warn!(">> x2 {:?}", out2);
+        out
     }
 }
 

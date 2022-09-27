@@ -152,7 +152,7 @@ impl Borders {
 // === Entry Point ===
 // ===================
 
-/// Main example runner.
+/// Main example runner.ட்
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
@@ -171,10 +171,10 @@ fn init(app: Application) {
     let _text = "test".to_string();
     // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcde1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
-                                          // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
-                                          // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
-                                          // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("abcde🧑🏾1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
+                                              // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
+                                              // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
+                                              // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
 
