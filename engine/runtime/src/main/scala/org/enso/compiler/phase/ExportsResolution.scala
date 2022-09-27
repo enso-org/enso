@@ -223,6 +223,7 @@ class ExportsResolution {
     resolveExportedSymbols(tops.map(_.module).collect {
       case m: ResolvedModule => m.module.unsafeAsModule()
     })
-    topModules.map(_.module.unsafeAsModule()).distinct
+    // Take _last_ occurrence of each module
+    topModules.map(_.module.unsafeAsModule()).reverse.distinct.reverse
   }
 }
