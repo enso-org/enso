@@ -78,6 +78,8 @@ pub fn main() {
         })
         .forget();
 
+    INFO!("Drag and drop file to the scene to test the drop manager functionality.");
+
     std::mem::forget(world);
     std::mem::forget(network);
     std::mem::forget(drop_manager);

@@ -252,7 +252,8 @@ impl Example {
         example.set_attribute_or_warn("id", name);
         example.set_style_or_warn("margin", "10px");
         let container = web::document.get_html_element_by_id("examples").unwrap();
-        let header = web::document.get_html_element_by_id("center").unwrap();
+        let header = web::document.create_div_or_panic();
+        header.set_attribute_or_warn("id", "center");
         header.set_style_or_warn("background-color", "black");
         header.set_style_or_warn("color", "white");
         header.set_inner_html(name);
