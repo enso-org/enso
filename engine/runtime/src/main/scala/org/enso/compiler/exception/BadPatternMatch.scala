@@ -30,4 +30,13 @@ object BadPatternMatch {
       extends BadPatternMatch {
     override val message: String = s"$name is not visible in this scope"
   }
+
+  /** Where the pattern match is matching on a type not visible in the
+    * current scope.
+    *
+    * @param name the name of the requested constructor
+    */
+  sealed case class NonVisibleType(name: String) extends BadPatternMatch {
+    override val message: String = s"$name is not visible in this scope"
+  }
 }

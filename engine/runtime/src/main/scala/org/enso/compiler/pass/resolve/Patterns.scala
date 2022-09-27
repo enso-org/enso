@@ -155,6 +155,53 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
+          case tpePattern @ IR.Pattern.Type(_, tpeName, _, _, _) =>
+            val resolution = tpeName match {
+              case qual: IR.Name.Qualified =>
+                val parts = qual.parts.map(_.name)
+                Some(
+                  bindings.resolveQualifiedName(parts)
+                )
+              case lit: IR.Name.Literal =>
+                Some(bindings.resolveName(lit.name))
+              case _ => None
+            }
+            val resolvedTpeName = resolution
+              .map {
+                case Left(err) =>
+                  IR.Error.Resolution(
+                    tpePattern.tpe,
+                    IR.Error.Resolution.ResolverError(err)
+                  )
+                case Right(value: BindingsMap.ResolvedType) =>
+                  tpeName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+                case Right(_: BindingsMap.ResolvedConstructor) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution
+                      .UnexpectedConstructor(s"type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedPolyglot(s"type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedMethod) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedModule) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                  )
+              }
+              .getOrElse(tpeName)
+
+            tpePattern.copy(tpe = resolvedTpeName)
           case other => other
         }
         branch.copy(

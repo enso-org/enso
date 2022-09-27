@@ -23,9 +23,9 @@ import org.enso.interpreter.runtime.type.TypesGen;
     description = "Returns the type of a value.")
 public abstract class TypeOfNode extends Node {
 
-  abstract Object execute(@AcceptsError Object value);
+  public abstract Object execute(@AcceptsError Object value);
 
-  static TypeOfNode build() {
+  public static TypeOfNode build() {
     return TypeOfNodeGen.create();
   }
 

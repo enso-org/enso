@@ -1083,30 +1083,44 @@ class IrToTruffle(
                 )
               )
           }
-        case tpePattern: Pattern.Type =>
-          // FIXME: This is incomplete, needs to handle type check
-          val arg = List(
+        case Pattern.Type(varName, tpeName, location, _, _) =>
+          val resolvedType = tpeName.getMetadata(Patterns) match {
+            case None =>
+              Left(BadPatternMatch.NonVisibleType(tpeName.name))
+            case Some(
+                  BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tpe))
+                ) =>
+              mod.unsafeAsModule().getScope.getType(tpe.name).toScala match {
+                case Some(tpe) => Right(tpe)
+                case None      => Left(BadPatternMatch.NonVisibleType(tpeName.name))
+              }
+            case Some(BindingsMap.Resolution(resolved)) =>
+              throw new CompilerError(
+                s"Impossible ${resolved} here, should be caught by Patterns resolution pass."
+              )
+          }
+
+          val argOfType = List(
             IR.DefinitionArgument.Specified(
-              tpePattern.name,
+              varName,
               None,
               None,
               suspended = false,
-              tpePattern.location,
-              passData    = tpePattern.name.passData,
-              diagnostics = tpePattern.name.diagnostics
+              location,
+              passData    = varName.passData,
+              diagnostics = varName.diagnostics
             )
           )
 
           val branchCodeNode = childProcessor.processFunctionBody(
-            arg,
+            argOfType,
             branch.expression,
             branch.location
           )
 
-          val branchNode =
-            CatchAllBranchNode.build(branchCodeNode.getCallTarget)
-
-          Right(branchNode)
+          resolvedType.map(tpe =>
+            CatchTypeBranchNode.build(tpe, branchCodeNode.getCallTarget)
+          )
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
