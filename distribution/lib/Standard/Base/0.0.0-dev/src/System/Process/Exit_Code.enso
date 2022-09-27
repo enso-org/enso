@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.System.Process.Exit_Code.Exit_Code import all
+from project.System.Process.Exit_Code.Exit_Code export all
+
 ## The exit codes that the process can return.
 type Exit_Code
 

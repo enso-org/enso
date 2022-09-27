@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Parse_Error_Data, Array, Boolean, Number
 import Standard.Base
 
 import Standard.Base.Data.Json.Internal
@@ -41,6 +41,10 @@ parse : Text -> Json ! Parse_Error
 parse json_text =
     Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
         Error.throw (Parse_Error_Data java_exception.getMessage)
+
+# TODO Dubious constructor export
+from project.Data.Json.Json import all
+from project.Data.Json.Json export all
 
 ## Represents a JSON structure.
 type Json
@@ -162,6 +166,10 @@ type Json
             x -> x
         _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
 
+# TODO Dubious constructor export
+from project.Data.Json.Parse_Error import all
+from project.Data.Json.Parse_Error export all
+
 ## UNSTABLE
 
    A failure indicating malformed text input into the JSON parser.
@@ -177,6 +185,10 @@ type Parse_Error
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
 
+# TODO Dubious constructor export
+from project.Data.Json.No_Such_Field_Error import all
+from project.Data.Json.No_Such_Field_Error export all
+
 ## UNSTABLE
 
    An error indicating that there is no such field in the JSON object.
@@ -189,6 +201,10 @@ type No_Such_Field_Error
     to_display_text : Text
     to_display_text self =
         "The field " + self.field_name.to_text + " is not present in this object."
+
+# TODO Dubious constructor export
+from project.Data.Json.Marshalling_Error import all
+from project.Data.Json.Marshalling_Error export all
 
 ## UNSTABLE
 

@@ -2,6 +2,10 @@ from Standard.Base import all
 
 polyglot java import org.enso.base.text.TextFoldingStrategy
 
+# TODO Dubious constructor export
+from project.Data.Text.Case.Case import all
+from project.Data.Text.Case.Case export all
+
 ## Specifies the casing options for text conversion.
 type Case
     ## All letters in lower case.
@@ -12,6 +16,10 @@ type Case
 
     ## First letter of each word in upper case, rest in lower case.
     Title
+
+# TODO Dubious constructor export
+from project.Data.Text.Case.Case_Insensitive import all
+from project.Data.Text.Case.Case_Insensitive export all
 
 ## Represents case-insensitive comparison mode.
 

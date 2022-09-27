@@ -11,6 +11,10 @@ from_sign : Integer -> Ordering
 from_sign sign = if sign == 0 then Equal else
     if sign > 0 then Greater else Less
 
+# TODO Dubious constructor export
+from project.Data.Ordering.Ordering import all
+from project.Data.Ordering.Ordering export all
+
 ## Types representing the ordering of values.
 
    These are intended to be returned from the `compare_to` function, that has a

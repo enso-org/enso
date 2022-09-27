@@ -2,6 +2,10 @@ from Standard.Base import all
 
 import Standard.Table.Data.Sort_Column
 
+# TODO Dubious constructor export
+from project.Data.Sort_Column_Selector.Sort_Column_Selector import all
+from project.Data.Sort_Column_Selector.Sort_Column_Selector export all
+
 type Sort_Column_Selector
     By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher_Data)
     By_Index (columns : Vector (Sort_Column.Index | Integer))

@@ -44,7 +44,7 @@ find_project_root path =
 find_caller_script : [Stack_Trace_Element] -> File
 find_caller_script stack =
     find_main idx =
-        if stack.at idx . name == "Suite.run_main" then idx else
+        if stack.at idx . name == "Suite.type.run_main" then idx else
             @Tail_Call find_main (idx + 1)
     main_index = find_main 0
 
@@ -646,6 +646,7 @@ type Verbs
             msg = subject.to_text + " did not contain " + argument.to_text + "."
             fail msg
 
+from project.Main.Suite_Config import all
 
 ## PRVATE
 type Suite_Config
@@ -660,6 +661,7 @@ type Suite_Config
     should_output_junit self =
         self.output_path.is_nothing.not
 
+from project.Main.Suite import all
 
 ## PRIVATE
 
@@ -672,6 +674,8 @@ type Suite_Config
 type Suite
     Suite_Data config specs builder
 
+from project.Main.Spec import all
+
 ## PRIVATE
 
    A group of behaviors for a test.
@@ -681,6 +685,8 @@ type Suite
    - behaviors: The results of the behaviors encapsulated in that spec.
 type Spec
     Spec_Data name behaviors
+
+from project.Main.Behavior import all
 
 ## PRIVATE
 
@@ -710,6 +716,8 @@ Spec.is_fail self = self.behaviors.any .is_fail
 Suite.is_fail : Boolean
 Suite.is_fail self = self.specs.any .is_fail
 
+from project.Main.Finished_With_Error import all
+
 ## PRIVATE
 
    An error describing that a test finished with an unexpected error.
@@ -720,6 +728,9 @@ Suite.is_fail self = self.specs.any .is_fail
      error.
 type Finished_With_Error
     Finished_With_Error_Data err stack_trace_text
+
+from project.Main.Assertion import all
+from project.Main.Assertion export all
 
 ## PRIVATE
 type Assertion

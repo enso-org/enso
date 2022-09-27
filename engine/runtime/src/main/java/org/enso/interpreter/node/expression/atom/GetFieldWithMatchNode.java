@@ -57,6 +57,7 @@ public class GetFieldWithMatchNode extends RootNode {
 
   @ExplodeLoop
   public Stateful execute(VirtualFrame frame) {
+    // this is safe, as only Atoms will ever get here through method dispatch.
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     var constructor = atom.getConstructor();

@@ -169,6 +169,9 @@ type Error
         if Meta.is_error that then that else
             Meta.is_same_object self that
 
+# TODO Dubious constructor export
+from project.Error.Common.Illegal_State_Error import all
+from project.Error.Common.Illegal_State_Error export all
 
 type Illegal_State_Error
 
@@ -182,6 +185,10 @@ type Illegal_State_Error
          performed.
        - cause: (optional) another error that is the cause of this one.
     Illegal_State_Error_Data message cause=Nothing
+
+# TODO Dubious constructor export
+from project.Error.Common.Illegal_Argument_Error import all
+from project.Error.Common.Illegal_Argument_Error export all
 
 type Illegal_Argument_Error
 
@@ -200,6 +207,10 @@ type Illegal_Argument_Error
     handle_java_exception =
         Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error_Data cause.getMessage cause))
 
+# TODO Dubious constructor export
+from project.Error.Common.Index_Out_Of_Bounds_Error import all
+from project.Error.Common.Index_Out_Of_Bounds_Error export all
+
 ## UNSTABLE
 
    An error indicating that a requested index was out of bounds of a collection.
@@ -217,6 +228,10 @@ type Index_Out_Of_Bounds_Error
     to_display_text self =
         "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
+# TODO Dubious constructor export
+from project.Error.Common.Wrapped_Dataflow_Error import all
+from project.Error.Common.Wrapped_Dataflow_Error export all
+
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
@@ -226,6 +241,10 @@ type Wrapped_Dataflow_Error
     ## PRIVATE
        Throws the original error.
     unwrap self = Error.throw self.payload
+
+# TODO Dubious constructor export
+from project.Error.Common.Caught_Panic import all
+from project.Error.Common.Caught_Panic export all
 
 @Builtin_Type
 type Caught_Panic
@@ -473,6 +492,10 @@ type Panic
         Panic.catch Wrapped_Dataflow_Error_Data action caught_panic->
             Error.throw caught_panic.payload.payload
 
+# TODO Dubious constructor export
+from project.Error.Common.Syntax_Error import all
+from project.Error.Common.Syntax_Error export all
+
 ## The runtime representation of a syntax error.
 
    Arguments:
@@ -480,6 +503,10 @@ type Panic
 @Builtin_Type
 type Syntax_Error
     Syntax_Error_Data message
+
+# TODO Dubious constructor export
+from project.Error.Common.Type_Error import all
+from project.Error.Common.Type_Error export all
 
 ## The runtime representation of a type error.
 
@@ -491,6 +518,10 @@ type Syntax_Error
 type Type_Error
     Type_Error_Data expected actual name
 
+# TODO Dubious constructor export
+from project.Error.Common.Compile_Error import all
+from project.Error.Common.Compile_Error export all
+
 ## The runtime representation of a compilation error.
 
    Arguments:
@@ -499,6 +530,10 @@ type Type_Error
 type Compile_Error
     Compile_Error_Data message
 
+# TODO Dubious constructor export
+from project.Error.Common.Inexhaustive_Pattern_Match_Error import all
+from project.Error.Common.Inexhaustive_Pattern_Match_Error export all
+
 ## The error thrown when a there is no pattern to match on the scrutinee.
 
    Arguments:
@@ -506,6 +541,10 @@ type Compile_Error
 @Builtin_Type
 type Inexhaustive_Pattern_Match_Error
     Inexhaustive_Pattern_Match_Error_Data scrutinee
+
+# TODO Dubious constructor export
+from project.Error.Common.Arity_Error import all
+from project.Error.Common.Arity_Error export all
 
 ## The error thrown when the number of arguments provided to an operation
    does not match the expected number of arguments.
@@ -518,6 +557,10 @@ type Inexhaustive_Pattern_Match_Error
 type Arity_Error
     Arity_Error_Data expected_min expected_max actual
 
+# TODO Dubious constructor export
+from project.Error.Common.Uninitialized_State import all
+from project.Error.Common.Uninitialized_State export all
+
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
 
@@ -526,6 +569,10 @@ type Arity_Error
 @Builtin_Type
 type Uninitialized_State
     Uninitialized_State_Data key
+
+# TODO Dubious constructor export
+from project.Error.Common.No_Such_Method_Error import all
+from project.Error.Common.No_Such_Method_Error export all
 
 ## The error thrown when the specified symbol does not exist as a method on
    the target.
@@ -554,6 +601,10 @@ type No_Such_Method_Error
     method_name self =
         Meta.meta self.symbol . name
 
+# TODO Dubious constructor export
+from project.Error.Common.Polyglot_Error import all
+from project.Error.Common.Polyglot_Error export all
+
 ## An error that occurred across a polyglot boundary.
 
    Arguments:
@@ -567,6 +618,10 @@ type Polyglot_Error
 @Builtin_Type
 type Module_Not_In_Package_Error
 
+# TODO Dubious constructor export
+from project.Error.Common.Arithmetic_Error import all
+from project.Error.Common.Arithmetic_Error export all
+
 ## An error for when an erroneous arithmetic computation takes place.
 
    Arguments:
@@ -574,6 +629,10 @@ type Module_Not_In_Package_Error
 @Builtin_Type
 type Arithmetic_Error
     Arithmetic_Error_Data message
+
+# TODO Dubious constructor export
+from project.Error.Common.Invalid_Array_Index_Error import all
+from project.Error.Common.Invalid_Array_Index_Error export all
 
 ## An error that occurs when a program requests a read from an array index
    that is out of bounds in the array.
@@ -585,6 +644,10 @@ type Arithmetic_Error
 type Invalid_Array_Index_Error
     Invalid_Array_Index_Error_Data array index
 
+# TODO Dubious constructor export
+from project.Error.Common.Not_Invokable_Error import all
+from project.Error.Common.Not_Invokable_Error export all
+
 ## An error that occurs when an object is used as a function in a function
    call, but it cannot be called.
 
@@ -593,6 +656,10 @@ type Invalid_Array_Index_Error
 @Builtin_Type
 type Not_Invokable_Error
     Not_Invokable_Error_Data target
+
+# TODO Dubious constructor export
+from project.Error.Common.Unsupported_Argument_Types import all
+from project.Error.Common.Unsupported_Argument_Types export all
 
 ## An error that occurs when arguments used in a function call are invalid
    types for the function.
@@ -603,6 +670,10 @@ type Not_Invokable_Error
 type Unsupported_Argument_Types
     Unsupported_Argument_Types_Data arguments
 
+## TODO Dubious constructor export
+from project.Error.Common.Module_Does_Not_Exist import all
+from project.Error.Common.Module_Does_Not_Exist export all
+
 ## An error that occurs when the specified module cannot be found.
 
    Arguments:
@@ -610,6 +681,10 @@ type Unsupported_Argument_Types
 @Builtin_Type
 type Module_Does_Not_Exist
     Module_Does_Not_Exist_Data name
+
+## TODO Dubious constructor export
+from project.Error.Common.Invalid_Conversion_Target_Error import all
+from project.Error.Common.Invalid_Conversion_Target_Error export all
 
 ## An error that occurs when the specified value cannot be converted to a given type
 ## FIXME: please check
@@ -619,6 +694,10 @@ type Module_Does_Not_Exist
 @Builtin_Type
 type Invalid_Conversion_Target_Error
     Invalid_Conversion_Target_Error_Data target
+
+## TODO Dubious constructor export
+from project.Error.Common.No_Such_Conversion_Error import all
+from project.Error.Common.No_Such_Conversion_Error export all
 
 ## An error that occurs when the conversion from one type to another does not exist
 ## FIXME: please check
@@ -630,6 +709,10 @@ type Invalid_Conversion_Target_Error
 @Builtin_Type
 type No_Such_Conversion_Error
     No_Such_Conversion_Error_Data target that conversion
+
+## TODO Dubious constructor export
+from project.Error.Common.Unimplemented_Error import all
+from project.Error.Common.Unimplemented_Error export all
 
 ## UNSTABLE
 
@@ -663,6 +746,10 @@ type Unimplemented_Error
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
 
+## TODO Dubious constructor export
+from project.Error.Common.Time_Error import all
+from project.Error.Common.Time_Error export all
+
 type Time_Error
 
     ## UNSTABLE
@@ -672,6 +759,10 @@ type Time_Error
        Arguments:
        - error_message: The message for the error.
     Time_Error_Data error_message
+
+## TODO Dubious constructor export
+from project.Error.Common.Unsupported_File_Type import all
+from project.Error.Common.Unsupported_File_Type export all
 
 ## Indicates that the given file's type is not supported.
 type Unsupported_File_Type

@@ -124,6 +124,10 @@ put addr body (headers = []) = new Method.Put addr headers body
 delete : (Text | URI) -> Vector.Vector -> Request
 delete addr (headers = []) = new Method.Delete addr headers
 
+## TODO Dubious constructor export
+from project.Network.Http.Request.Request import all
+from project.Network.Http.Request.Request export all
+
 type Request
 
     ## PRIVATE

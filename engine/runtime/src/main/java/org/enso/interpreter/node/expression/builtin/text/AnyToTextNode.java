@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
@@ -27,7 +28,7 @@ public abstract class AnyToTextNode extends Node {
   @Specialization
   Text doAtom(Atom at) {
     if (at.getFields().length == 0) {
-      return Text.create(at.getConstructor().getName());
+      return consName(at.getConstructor());
     } else {
       return doComplexAtom(at);
     }
@@ -44,8 +45,18 @@ public abstract class AnyToTextNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
+  private Text consName(AtomConstructor constructor) {
+    if (constructor.getName().equals("Value")) {
+      return Text.create(constructor.getType().getName() + "." + constructor.getName());
+    } else {
+      return Text.create(constructor.getName());
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
   private Text doComplexAtom(Atom atom) {
-    Text res = Text.create("(" + atom.getConstructor().getName() + " ");
+    Text res = Text.create("(", consName(atom.getConstructor()));
+    res = Text.create(res, " ");
     try {
       res = Text.create(res, showObject(atom.getFields()[0]));
     } catch (UnsupportedMessageException e) {

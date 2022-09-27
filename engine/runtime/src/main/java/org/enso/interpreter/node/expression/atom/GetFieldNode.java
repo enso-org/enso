@@ -38,15 +38,8 @@ public class GetFieldNode extends RootNode {
    * @return the field value at predefined index
    */
   public Stateful execute(VirtualFrame frame) {
-    if (!(Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0] instanceof Atom atom)) {
-      var msg = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-      throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .makeInexhaustivePatternMatchError(msg),
-          this);
-    }
+    // this is safe, as only Atoms will ever get here through method dispatch.
+    Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     return new Stateful(state, atom.getFields()[index]);
   }

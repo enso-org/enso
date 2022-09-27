@@ -1,13 +1,13 @@
 from Standard.Base import IO
-from project.Meh import all
+from project.Meh import Meh
 import project.A
-from project.A.B.C import Mk_C
+from project.A.B.C import C
 
 main =
-    a = Foo 10
+    a = Meh.Foo 10
     b = A.B.C.c_mod_method 10
     c = A.B.bar_mod_method 10
-    d = Mk_C 10
+    d = C.Mk_C 10
 
     IO.println a.to_text
     IO.println b.to_text

@@ -12,6 +12,10 @@ import Standard.Test.Problems
 
 from project.Util import all
 
+# TODO Dubious constructor export
+from project.Common_Table_Spec.Test_Selection import all
+from project.Common_Table_Spec.Test_Selection export all
+
 type Test_Selection
     Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
 

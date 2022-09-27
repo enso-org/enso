@@ -46,6 +46,10 @@ text_field key val = Part_Data key (Part_Text val)
 file_field : Text -> Text -> Part
 file_field key file = Part_Data key (Part_File file)
 
+## TODO Dubious constructor export
+from project.Network.Http.Form.Form import all
+from project.Network.Http.Form.Form export all
+
 ## The HTTP form containing a vector of parts.
 type Form
 
@@ -81,6 +85,10 @@ type Form
              [part_1, part_2].to_form
 Vector.Vector.to_form self = Form_Data self
 
+## TODO Dubious constructor export
+from project.Network.Http.Form.Part import all
+from project.Network.Http.Form.Part export all
+
 ## The key-value element of the form.
 type Part
 
@@ -90,6 +98,10 @@ type Part
        - key: The key for the form section.
        - value: The value of the form section.
     Part_Data key value
+
+## TODO Dubious constructor export
+from project.Network.Http.Form.Part_Value import all
+from project.Network.Http.Form.Part_Value export all
 
 ## The value of the form element.
 type Part_Value

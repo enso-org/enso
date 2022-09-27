@@ -154,6 +154,10 @@ multipart_form_data (boundary = "") =
 text_plain : Header
 text_plain = content_type "text/plain"
 
+## TODO Dubious constructor export
+from project.Network.Http.Header.Header import all
+from project.Network.Http.Header.Header export all
+
 type Header
 
     ## PRIVATE

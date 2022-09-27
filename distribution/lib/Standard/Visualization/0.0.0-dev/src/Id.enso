@@ -1,6 +1,10 @@
 from Standard.Base import all
 import Standard.Base
 
+# TODO Dubious constructor export
+from project.Id.Id import all
+from project.Id.Id export all
+
 ## An ID used by the visualization system to identify different ways of
    displaying data.
 type Id

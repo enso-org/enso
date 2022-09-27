@@ -1,5 +1,9 @@
-from Standard.Base import all
+from Standard.Base import all hiding Java
 import Standard.Base
+
+# TODO Dubious constructor export
+from project.Meta.Atom import all
+from project.Meta.Atom export all
 
 ## UNSTABLE
    ADVANCED
@@ -11,6 +15,10 @@ import Standard.Base
 type Atom
     Atom_Data value
 
+# TODO Dubious constructor export
+from project.Meta.Constructor import all
+from project.Meta.Constructor export all
+
 ## UNSTABLE
    ADVANCED
 
@@ -21,6 +29,10 @@ type Atom
 type Constructor
     Constructor_Data value
 
+# TODO Dubious constructor export
+from project.Meta.Primitive import all
+from project.Meta.Primitive export all
+
 ## UNSTABLE
    ADVANCED
 
@@ -30,6 +42,10 @@ type Constructor
    - value: The value of the primitive object in the meta representation.
 type Primitive
     Primitive_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Unresolved_Symbol import all
+from project.Meta.Unresolved_Symbol export all
 
 ## UNSTABLE
    ADVANCED
@@ -67,6 +83,10 @@ type Unresolved_Symbol
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
 
+# TODO Dubious constructor export
+from project.Meta.Error import all
+from project.Meta.Error export all
+
 ## UNSTABLE
    ADVANCED
 
@@ -76,6 +96,10 @@ type Unresolved_Symbol
    - value: The payload of the error.
 type Error
     Error_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Polyglot import all
+from project.Meta.Polyglot export all
 
 ## UNSTABLE
    ADVANCED
@@ -119,7 +143,7 @@ Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
    Returns a constructor value of the given atom.
 Atom.constructor : Atom_Constructor
-Atom.constructor self = get_atom_constructor self.value
+Atom.constructor self = get_atom_constructor self.value ...
 
 # Polyglot methods
 ## PRIVATE
@@ -337,6 +361,10 @@ java_instance_check value typ =
    - value: the value to get the type of.
 type_of : Any -> Any
 type_of value = @Builtin_Method "Meta.type_of_builtin"
+
+# TODO Dubious constructor export
+from project.Meta.Language import all
+from project.Meta.Language export all
 
 ## Represents a polyglot language.
 type Language

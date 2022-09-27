@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Cons,
   ModuleMethod,
@@ -76,19 +77,12 @@ class BindingAnalysisTest extends CompilerTest {
 
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
-      metadata.types shouldEqual List(
-        Type("Foo", List("Mk_Foo"), false),
+      metadata.definedEntities should contain theSameElementsAs List(
+        Type("Foo", List(Cons("Mk_Foo", 3, false)), false),
         Type("Bar", List(), false),
-        Type("Baz", List(), false)
-      )
-
-      metadata.constructors shouldEqual List(Cons("Mk_Foo", 3, false))
-
-      metadata.polyglotSymbols shouldEqual List(
+        Type("Baz", List(), false),
         PolyglotSymbol("MyClass"),
-        PolyglotSymbol("Renamed_Class")
-      )
-      metadata.moduleMethods shouldEqual List(
+        PolyglotSymbol("Renamed_Class"),
         ModuleMethod("enso_project"),
         ModuleMethod("foo")
       )
@@ -108,7 +102,10 @@ class BindingAnalysisTest extends CompilerTest {
            |
            |$moduleName.baz = 65
            |""".stripMargin.preprocessModule.analyse
-      ir.getMetadata(BindingAnalysis).get.moduleMethods shouldEqual List(
+      ir.getMetadata(BindingAnalysis)
+        .get
+        .definedEntities
+        .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
         ModuleMethod("enso_project"),
         ModuleMethod("bar")
       )

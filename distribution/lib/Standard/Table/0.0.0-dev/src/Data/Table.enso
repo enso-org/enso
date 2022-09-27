@@ -134,6 +134,10 @@ concat : Vector -> Table
 concat tables =
     Table_Data (Java_Table.concat (tables.map .java_table).to_array)
 
+# TODO Dubious constructor export
+from project.Data.Table.Table import all
+from project.Data.Table.Table export all
+
 ## Represents a column-oriented table data structure.
 type Table
 

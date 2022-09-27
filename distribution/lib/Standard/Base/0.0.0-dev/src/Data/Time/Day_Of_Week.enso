@@ -2,6 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.time.DayOfWeek
 
+# TODO Dubious constructor export
+from project.Data.Time.Day_Of_Week.Day_Of_Week import all
+from project.Data.Time.Day_Of_Week.Day_Of_Week export all
+
 type Day_Of_Week
     Sunday
 

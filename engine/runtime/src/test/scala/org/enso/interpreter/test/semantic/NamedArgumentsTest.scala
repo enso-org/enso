@@ -199,10 +199,10 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Nil2
           |
           |main =
-          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else C2.Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + sum t
+          |        C2.Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
           |    sum (gen_list 10)
@@ -219,10 +219,10 @@ class NamedArgumentsTest extends InterpreterTest {
           |    Cons2 head (rest = Nil2)
           |
           |main =
-          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else C2.Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + sum t
+          |        C2.Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
           |    sum (gen_list 5)
@@ -238,7 +238,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |    Cons2 head (rest = Nil2)
           |type Nil2
           |
-          |main = Cons2 5
+          |main = C2.Cons2 5
           |""".stripMargin
 
       eval(code).toString shouldEqual "(Cons2 5 Nil2)"
@@ -253,10 +253,10 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Nil2
           |
           |Nothing.sum_list = list -> case list of
-          |  Cons2 h t -> h + Nothing.sum_list t
+          |  C2.Cons2 h t -> h + Nothing.sum_list t
           |  Nil2 -> 0
           |
-          |main = Nothing.sum_list (Cons2 10)
+          |main = Nothing.sum_list (C2.Cons2 10)
         """.stripMargin
 
       eval(code) shouldEqual 10
@@ -270,7 +270,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |type My_Tp
           |    Mk_My_Tp a=10 b="hello"
           |
-          |main = IO.println Mk_My_Tp
+          |main = IO.println My_Tp.Mk_My_Tp
           |""".stripMargin
       eval(code)
       consumeOut should equal(List("(Mk_My_Tp 10 'hello')"))

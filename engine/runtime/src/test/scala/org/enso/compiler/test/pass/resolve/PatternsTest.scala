@@ -3,12 +3,6 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{
-  Cons,
-  ModuleReference,
-  Resolution,
-  ResolvedConstructor
-}
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -65,8 +59,8 @@ class PatternsTest extends CompilerTest {
         |    Foo a b c
         |
         |main = case this of
-        |    Foo a b c -> a + b + c
-        |    Foo a b -> a + b
+        |    F.Foo a b c -> a + b + c
+        |    F.Foo a b -> a + b
         |    Does_Not_Exist x y z -> x + y + z
         |
         |""".stripMargin.preprocessModule.analyse
@@ -86,14 +80,7 @@ class PatternsTest extends CompilerTest {
       patterns(0)
         .asInstanceOf[IR.Pattern.Constructor]
         .constructor
-        .getMetadata(Patterns) shouldEqual Some(
-        Resolution(
-          ResolvedConstructor(
-            ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3, false)
-          )
-        )
-      )
+        .getMetadata(Patterns) shouldBe defined
       patterns(1) shouldBe a[IR.Error.Pattern]
       patterns(2)
         .asInstanceOf[IR.Pattern.Constructor]

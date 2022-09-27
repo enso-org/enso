@@ -12,11 +12,11 @@ import org.enso.interpreter.node.callable.IndirectInvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * Handles runtime function currying and oversaturated (eta-expanded) calls.
@@ -75,9 +75,12 @@ public abstract class IndirectCurryNode extends Node {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         Stateful result =
             doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
-        if (defaultsExecutionMode.isExecute() && TypesGen.isFunction(result.getValue())) {
+        var value = result.getValue();
+        if (defaultsExecutionMode.isExecute()
+            && (value instanceof Function || (value instanceof AtomConstructor cons
+              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           return oversaturatedCallableNode.execute(
-              result.getValue(),
+              value,
               frame,
               result.getState(),
               new Object[0],
