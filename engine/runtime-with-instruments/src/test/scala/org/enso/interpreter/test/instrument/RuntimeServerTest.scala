@@ -118,11 +118,11 @@ class RuntimeServerTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(63, 1)
-      val idMainY = metadata.addItem(73, 7)
-      val idMainZ = metadata.addItem(89, 5)
-      val idFooY  = metadata.addItem(133, 8)
-      val idFooZ  = metadata.addItem(150, 5)
+      val idMainX = metadata.addItem(63, 1, "aa1")
+      val idMainY = metadata.addItem(73, 7, "aa2")
+      val idMainZ = metadata.addItem(89, 5, "aa3")
+      val idFooY  = metadata.addItem(133, 8, "ff2")
+      val idFooZ  = metadata.addItem(150, 5, "ff3")
 
       def code =
         metadata.appendToCode(
@@ -161,19 +161,9 @@ class RuntimeServerTest
             )
           )
 
-        def pendingX(): Api.ExpressionUpdate =
+        def pendingZ(): Api.ExpressionUpdate =
           Api.ExpressionUpdate(
-            Main.idMainX,
-            None,
-            None,
-            Vector(),
-            false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
-
-        def pendingY(): Api.ExpressionUpdate =
-          Api.ExpressionUpdate(
-            Main.idFooY,
+            Main.idFooZ,
             None,
             None,
             Vector(),
@@ -181,9 +171,9 @@ class RuntimeServerTest
             Api.ExpressionUpdate.Payload.Pending(None, None)
           )
 
-        def pendingZ(): Api.ExpressionUpdate =
+        def pendingY(): Api.ExpressionUpdate =
           Api.ExpressionUpdate(
-            Main.idFooZ,
+            Main.idFooY,
             None,
             None,
             Vector(),
@@ -1279,7 +1269,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47)
+    val idMain     = context.Main.metadata.addItem(54, 47, "aaaaa")
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1336,10 +1326,22 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveNIgnorePendingExpressionUpdates(
-      3
+    context.receiveN(
+      6
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        None,
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            context.Main.Update.pendingZ(),
+            context.Main.Update.pendingY()
+          )
+        )
+      ),
+      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
@@ -1357,9 +1359,9 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idResult  = metadata.addItem(45, 4)
-    val idPrintln = metadata.addItem(54, 17)
-    val idMain    = metadata.addItem(31, 40)
+    val idResult  = metadata.addItem(45, 4, "aae")
+    val idPrintln = metadata.addItem(54, 17, "aaf")
+    val idMain    = metadata.addItem(31, 40, "aaa")
     val code =
       """import Standard.Base.IO
         |
@@ -1422,10 +1424,13 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(
-      2
+    context.receiveN(
+      5
     ) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, idResult),
       TestMessages.update(contextId, idResult, ConstantsGen.TEXT),
+      TestMessages.update(contextId, idPrintln, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
@@ -1517,13 +1522,23 @@ class RuntimeServerTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      2
+      4
     ) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         idMainA,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "x")
+      ),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
       ),
       context.executionComplete(contextId)
     )
@@ -1544,7 +1559,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(1) shouldEqual Seq(context.executionComplete(contextId))
+    context.receiveNIgnoreExpressionUpdates(1) shouldEqual Seq(
+      context.executionComplete(contextId)
+    )
     context.consumeOut shouldEqual List("5")
 
     // Edit s/1000.x 5/Main.pie/
@@ -1562,12 +1579,26 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      TestMessages.pending(
+        contextId,
+        idMainA
+      ),
       TestMessages.update(
         contextId,
         idMainA,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "pie")
+      ),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
       ),
       context.executionComplete(contextId)
     )
@@ -1588,12 +1619,26 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      TestMessages.pending(
+        contextId,
+        idMainA
+      ),
       TestMessages.update(
         contextId,
         idMainA,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "uwu")
+      ),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
       ),
       context.executionComplete(contextId)
     )
@@ -1614,12 +1659,26 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      TestMessages.pending(
+        contextId,
+        idMainA
+      ),
       TestMessages.update(
         contextId,
         idMainA,
         ConstantsGen.TEXT,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "hie")
+      ),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
       ),
       context.executionComplete(contextId)
     )
@@ -1640,8 +1699,22 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      TestMessages.pending(
+        contextId,
+        idMainA
+      ),
       TestMessages.update(contextId, idMainA, ConstantsGen.TEXT),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
@@ -1653,10 +1726,10 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(122, 88)
-    val id1      = metadata.addItem(131, 15)
-    val id2      = metadata.addItem(151, 18)
-    val id3      = metadata.addItem(174, 15)
+    val idMain   = metadata.addItem(122, 88, "aaaa")
+    val id1      = metadata.addItem(131, 15, "aad1")
+    val id2      = metadata.addItem(151, 18, "aad2")
+    val id3      = metadata.addItem(174, 15, "aad3")
     // Note that Nothing.Nothing is on purpose.
     // If not provided the full name it will resolve the expression Nothing to a Nothing module.
     // Similarly Text.Text. That in turn will mismatch the expectations for method types which actually
@@ -1749,13 +1822,12 @@ class RuntimeServerTest
 
     // pop call1
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(8) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
         id1,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
@@ -1769,6 +1841,18 @@ class RuntimeServerTest
         id3,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        id1,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.executionComplete(contextId)
     )
@@ -1783,22 +1867,17 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
 
     // pop call2
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
-        fromCache = true
-      ),
       TestMessages.update(
         contextId,
         id2,
@@ -1810,6 +1889,18 @@ class RuntimeServerTest
         id3,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        id1,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.executionComplete(contextId)
     )
@@ -1824,22 +1915,17 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
 
     // pop call3
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
-        fromCache = true
-      ),
       TestMessages.update(
         contextId,
         id2,
@@ -1851,6 +1937,18 @@ class RuntimeServerTest
         id3,
         ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
+      ),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING
+      ),
+      TestMessages.update(
+        contextId,
+        id1,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.executionComplete(contextId)
     )
@@ -2049,7 +2147,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47)
+    val idMain     = context.Main.metadata.addItem(54, 47, "aaaa")
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -2106,7 +2204,7 @@ class RuntimeServerTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
-        requestId,
+        None,
         Api.ExpressionUpdates(
           contextId,
           Set(
@@ -2115,7 +2213,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.fooY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       Api.Response(
         Api.ExpressionUpdates(
           contextId,

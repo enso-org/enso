@@ -26,9 +26,6 @@ class Metadata {
       val lo = java.lang.Long.parseUnsignedLong(suggestion, 16);
       val hi = id.getMostSignificantBits();
       id = new UUID(lo, hi)
-      if (!id.toString().contains(suggestion)) {
-        throw new IllegalStateException("Expected " + suggestion + " but got " + id)
-      }
     }
     items ::= Item(start, len, id)
     id
