@@ -1,7 +1,6 @@
 //! A Wrapper for module which synchronizes opening/closing and all changes with Language Server.
 
 use crate::prelude::*;
-use enso_text::unit::*;
 
 use crate::model::module::Content;
 use crate::model::module::NodeMetadata;
@@ -18,9 +17,10 @@ use double_representation::graph::Id;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
+use enso_text::text;
+use enso_text::unit::*;
 use enso_text::Location;
 use enso_text::Range;
-use enso_text::Text;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -36,13 +36,17 @@ use parser::Parser;
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ContentSummary {
     digest:      Sha3_224,
-    end_of_file: Location,
+    /// The Engine's Locations are in java Characters, which are equal to UTF16 Code Units.
+    /// See https://docs.oracle.com/javase/8/docs/api/java/lang/Character.html
+    end_of_file: Location<enso_text::Utf16CodeUnit>,
 }
 
 impl ContentSummary {
-    fn new(text: &Text) -> Self {
+    fn new(text: &text::Rope) -> Self {
         let parts = text.rope.iter_chunks(..).map(|s| s.as_bytes());
-        Self { digest: Sha3_224::from_parts(parts), end_of_file: text.location_of_text_end() }
+        let end_location_bytes = text.location_of_text_end();
+        let end_of_file = text.utf16_code_unit_location_of_location(end_location_bytes);
+        Self { digest: Sha3_224::from_parts(parts), end_of_file }
     }
 }
 
@@ -53,22 +57,20 @@ impl ContentSummary {
 struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary:  ContentSummary,
-    source:   Text,
-    code:     Range<Location>,
-    id_map:   Range<Location>,
-    metadata: Range<Location>,
+    source:   text::Rope,
+    code:     Range<Location<enso_text::Byte>>,
+    id_map:   Range<Location<enso_text::Byte>>,
+    metadata: Range<Location<enso_text::Byte>>,
 }
 
 impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source: &SourceFile) -> Self {
-        let content = Text::from(&source.content);
-        let code =
-            source.code.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
-        let id_map =
-            source.id_map.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
-        let metadata =
-            source.metadata.map(|i| content.location_of_byte_offset_snapped(i.try_into().unwrap()));
+        let content = text::Rope::from(&source.content);
+        let to_location = |i: Byte| content.location_of_byte_offset_snapped(i);
+        let code = source.code.map(to_location);
+        let id_map = source.id_map.map(to_location);
+        let metadata = source.metadata.map(to_location);
         ParsedContentSummary {
             summary: ContentSummary::new(&content),
             source: content,
@@ -79,21 +81,21 @@ impl ParsedContentSummary {
     }
 
     // Get fragment of string with code.
-    pub fn code_slice(&self) -> Text {
+    pub fn code_slice(&self) -> text::Rope {
         self.slice(&self.code)
     }
 
     /// Get fragment of string with id map.
-    pub fn id_map_slice(&self) -> Text {
+    pub fn id_map_slice(&self) -> text::Rope {
         self.slice(&self.id_map)
     }
 
     /// Get fragment of string with metadata.
-    pub fn metadata_slice(&self) -> Text {
+    pub fn metadata_slice(&self) -> text::Rope {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<Location>) -> Text {
+    fn slice(&self, range: &Range<Location<Byte>>) -> text::Rope {
         let start_ix = self.source.byte_offset_of_location_snapped(range.start);
         let end_ix = self.source.byte_offset_of_location_snapped(range.end);
         self.source.sub(Range::new(start_ix, end_ix))
@@ -156,9 +158,10 @@ impl Module {
         let file_path = path.file_path().clone();
         info!("Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
-        let content: Text = (&opened.content).into();
+        let content: text::Rope = (&opened.content).into();
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
-        let end_of_file = content.location_of_text_end();
+        let end_of_file_byte = content.location_of_text_end();
+        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
         let source = parser.parse_with_metadata(opened.content)?;
@@ -321,6 +324,8 @@ impl Module {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
         debug!("Handling notification: {content:?}.");
+        let code = enso_text::Rope::from(self.model.serialized_content()?.content);
+        let to_engine_location = |l: Location<Byte>| code.utf16_code_unit_location_of_location(l);
         match content {
             LanguageServerContent::Desynchronized(summary) =>
                 profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
@@ -328,10 +333,12 @@ impl Module {
                 NotificationKind::Invalidate =>
                     profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
                 NotificationKind::CodeChanged { change, replaced_location } => {
-                    let code_change =
-                        TextEdit { range: replaced_location.into(), text: change.text };
+                    let code_change = TextEdit {
+                        range: replaced_location.map(to_engine_location).into(),
+                        text:  change.text,
+                    };
                     let id_map_change = TextEdit {
-                        range: summary.id_map.into(),
+                        range: summary.id_map.map(to_engine_location).into(),
                         text:  new_file.id_map_slice().to_string(),
                     };
                     //id_map goes first, because code change may alter its position.
@@ -341,7 +348,7 @@ impl Module {
                 }
                 NotificationKind::MetadataChanged => {
                     let edits = vec![TextEdit {
-                        range: summary.metadata.into(),
+                        range: summary.metadata.map(to_engine_location).into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
@@ -365,14 +372,18 @@ impl Module {
         self.notify_language_server(ls_content, &new_file, edits)
     }
 
-    fn edit_for_snipped(start: &Location, source: Text, target: Text) -> Option<TextEdit> {
+    fn edit_for_snipped(
+        start: &Location<Byte>,
+        source: text::Rope,
+        target: text::Rope,
+    ) -> Option<TextEdit> {
         // This is an implicit assumption that always seems to be true. Otherwise finding the
         // correct location for the final edit would be more complex.
-        debug_assert_eq!(start.code_point_index, 0.code_point_index());
+        debug_assert_eq!(start.offset, 0.byte());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
         (edit.range.start != edit.range.end || !edit.text.is_empty())
-            .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
+            .as_some_from(|| edit.move_by_lines(start.line.value))
     }
 
     fn edit_for_code(ls_content: &ParsedContentSummary, new_file: &SourceFile) -> Option<TextEdit> {
@@ -497,8 +508,8 @@ pub mod test {
     use engine_protocol::language_server::MockClient;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
+    use enso_text::text;
     use enso_text::Change;
-    use enso_text::Text;
     use json_rpc::error::RpcError;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -509,12 +520,12 @@ pub mod test {
     #[derive(Clone, Debug)]
     struct LsClientSetup {
         path:               Path,
-        current_ls_content: Rc<CloneCell<Text>>,
+        current_ls_content: Rc<CloneCell<text::Rope>>,
         current_ls_version: Rc<CloneCell<Sha3_224>>,
     }
 
     impl LsClientSetup {
-        fn new(path: Path, initial_content: impl Into<Text>) -> Self {
+        fn new(path: Path, initial_content: impl Into<text::Rope>) -> Self {
             let current_ls_content = initial_content.into();
             let current_ls_version =
                 Sha3_224::from_parts(current_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
@@ -581,7 +592,9 @@ pub mod test {
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
                     let idmap_range = file_so_far.id_map.map(|x| {
-                        code_so_far.location_of_byte_offset_snapped(x.try_into().unwrap())
+                        let location_bytes =
+                            code_so_far.location_of_byte_offset_snapped(x.try_into().unwrap());
+                        code_so_far.utf16_code_unit_location_of_location(location_bytes)
                     });
                     let idmap_range = TextRange::from(idmap_range);
                     assert_eq!(edit_idmap.range, idmap_range);
@@ -618,21 +631,24 @@ pub mod test {
 
         fn whole_document_range(&self) -> TextRange {
             let code_so_far = self.current_ls_content.get();
-            let end_of_file = code_so_far.location_of_text_end();
+            let end_of_file_bytes = code_so_far.location_of_text_end();
+            let end_of_file = code_so_far.utf16_code_unit_location_of_location(end_of_file_bytes);
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
     }
 
-    fn apply_edit(code: impl Into<Text>, edit: &TextEdit) -> Text {
+    fn apply_edit(code: impl Into<text::Rope>, edit: &TextEdit) -> text::Rope {
         let mut code = code.into();
-        let start_loc = code.byte_offset_of_location_snapped(edit.range.start.into());
-        let end_loc = code.byte_offset_of_location_snapped(edit.range.end.into());
-        let change = Change { range: Range::new(start_loc, end_loc), text: edit.text.clone() };
+        let start = code.location_of_utf16_code_unit_location_snapped(edit.range.start.into());
+        let start_byte = code.byte_offset_of_location_snapped(start);
+        let end = code.location_of_utf16_code_unit_location_snapped(edit.range.end.into());
+        let end_byte = code.byte_offset_of_location_snapped(end);
+        let change = Change { range: Range::new(start_byte, end_byte), text: edit.text.clone() };
         code.apply_change(change);
         code
     }
 
-    fn apply_edits(code: impl Into<Text>, file_edit: &FileEdit) -> Text {
+    fn apply_edits(code: impl Into<text::Rope>, file_edit: &FileEdit) -> text::Rope {
         let initial = code.into();
         file_edit.edits.iter().fold(initial, |content, edit| apply_edit(&content, edit))
     }
@@ -730,10 +746,10 @@ pub mod test {
 
     #[test]
     fn handle_insertion_edits_bug180558676() {
-        let source = Text::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
-        let target = Text::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let source = text::Rope::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let target = text::Rope::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
         let edit = Module::edit_for_snipped(
-            &Location { line: 0.into(), code_point_index: 0.into() },
+            &Location { line: 0.into(), offset: 0.into() },
             source,
             target,
         );

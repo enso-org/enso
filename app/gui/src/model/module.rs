@@ -283,7 +283,7 @@ pub enum NotificationKind {
         /// The code change description.
         change:            TextChange,
         /// Information about line:col position of replaced fragment.
-        replaced_location: enso_text::Range<enso_text::Location>,
+        replaced_location: enso_text::Range<enso_text::Location<enso_text::Byte>>,
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,

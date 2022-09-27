@@ -452,7 +452,7 @@ impl Rope {
         location: Location<Utf16CodeUnit>,
     ) -> Location<Byte> {
         let line_start = self.byte_offset_of_line_index_snapped(location.line);
-        let from_line_start = self.rope.slice(line_start..);
+        let from_line_start = self.rope.slice(line_start.value..);
         let line = location.line;
         let offset =
             from_line_start.count_base_units::<Utf16CodeUnitsMetric>(location.offset.value).byte();
@@ -475,9 +475,9 @@ impl Rope {
     ) -> Location<Utf16CodeUnit> {
         let line_start = self.byte_offset_of_line_index_snapped(location.line);
         let position = self.byte_offset_of_location_snapped(location);
-        let line_fragment_before = self.rope.slice(line_start..position);
+        let line_fragment_before = self.rope.slice(line_start.value..position.value);
         let line = location.line;
-        let offset = line_fragment_before.measure::<Utf16CodeUnitsMetric>().utf16_code_unit();
+        let offset = Utf16CodeUnit::from(line_fragment_before.measure::<Utf16CodeUnitsMetric>());
         Location { line, offset }
     }
 }

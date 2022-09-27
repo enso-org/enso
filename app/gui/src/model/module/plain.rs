@@ -168,7 +168,7 @@ impl model::module::API for Module {
         parser: &Parser,
         new_id_map: ast::IdMap,
     ) -> FallibleResult {
-        let mut code: enso_text::Text = self.ast().repr().into();
+        let mut code: enso_text::Rope = self.ast().repr().into();
         let replaced_start = code.location_of_byte_offset_snapped(change.range.start);
         let replaced_end = code.location_of_byte_offset_snapped(change.range.end);
         let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
@@ -252,7 +252,7 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
 
-    use enso_text::traits::*;
+    use enso_text::unit::*;
 
     #[wasm_bindgen_test]
     fn applying_code_change() {
@@ -295,14 +295,8 @@ mod test {
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
         let replaced_location = enso_text::Range {
-            start: enso_text::Location {
-                line:             0.line(),
-                code_point_index: 0.code_point_index(),
-            },
-            end:   enso_text::Location {
-                line:             0.line(),
-                code_point_index: 1.code_point_index(),
-            },
+            start: enso_text::Location { line: 0.line(), offset: 0.byte() },
+            end:   enso_text::Location { line: 0.line(), offset: 1.byte() },
         };
         expect_notification(NotificationKind::CodeChanged { change, replaced_location });
 

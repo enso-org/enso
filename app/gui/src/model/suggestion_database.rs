@@ -445,7 +445,6 @@ mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
-    use enso_text::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
