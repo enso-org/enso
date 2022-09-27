@@ -171,7 +171,7 @@ public class IncrementalUpdatesTest {
 
     Function<Character, UUID> registerRegion = (ch) -> {
       int[] beginAndLength = pos.get(ch);
-      return metadata.addItem(beginAndLength[0], beginAndLength[1]);
+      return metadata.addItem(beginAndLength[0], beginAndLength[1], null);
     };
     // foo definition
     registerRegion.apply('&');

@@ -1437,17 +1437,17 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(77, 35)
-    val idMainA  = metadata.addItem(86, 8)
-    val idMainP  = metadata.addItem(99, 12)
+    val idMain   = metadata.addItem(77, 35, "aaaa")
+    val idMainA  = metadata.addItem(86, 8, "aabb")
+    val idMainP  = metadata.addItem(99, 12, "aacc")
     // pie id
-    metadata.addItem(119, 1)
+    metadata.addItem(119, 1, "eee")
     // uwu id
-    metadata.addItem(127, 1)
+    metadata.addItem(127, 1, "bbb")
     // hie id
-    metadata.addItem(135, 6)
+    metadata.addItem(135, 6, "fff")
     // Number.x id
-    metadata.addItem(155, 1)
+    metadata.addItem(155, 1, "999")
     val code =
       """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
