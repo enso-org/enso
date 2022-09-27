@@ -16,7 +16,7 @@ use enso_text::RopeCell;
 /// A rope (efficient text representation) with formatting information.
 #[derive(Clone, CloneRef, Debug, Default, Deref)]
 pub struct FormattedRope {
-    data: Rc<FormattedRopeData>,
+    pub(crate) data: Rc<FormattedRopeData>,
 }
 
 impl FormattedRope {

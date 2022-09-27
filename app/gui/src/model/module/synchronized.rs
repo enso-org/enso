@@ -20,7 +20,7 @@ use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
 use enso_text::Location;
 use enso_text::Range;
-use enso_text::Text;
+use enso_text::Rope;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -40,7 +40,7 @@ struct ContentSummary {
 }
 
 impl ContentSummary {
-    fn new(text: &Text) -> Self {
+    fn new(text: &Rope) -> Self {
         let parts = text.rope.iter_chunks(..).map(|s| s.as_bytes());
         Self { digest: Sha3_224::from_parts(parts), end_of_file: text.location_of_text_end() }
     }

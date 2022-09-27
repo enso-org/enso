@@ -99,6 +99,7 @@
 // === Export ===
 // ==============
 
+pub mod conversion;
 pub mod range;
 pub mod rope;
 pub mod spans;

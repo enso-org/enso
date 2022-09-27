@@ -503,7 +503,7 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <enso_text::Range<enso_text::Location<enso_text::Utf16CodeUnit>>> for TextRange { |range|
+impls! { From + &From <enso_text::Range<enso_text::Location<Utf16CodeUnit>>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
