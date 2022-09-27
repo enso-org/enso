@@ -375,18 +375,18 @@ interface Panic {
 
 /**
  * Indicates the expression is currently being computed. Optionally it
- * provides description and percentate (`0.0-1.0`) of completeness.
+ * provides description and percentage (`0.0-1.0`) of completeness.
  */
 interface Pending {
   /**
-   * Message describing current operation.
+   * Optional message describing current operation.
    */
-  message: String?;
+  message?: String;
 
   /**
-   * Amount of already done work as a number between `0.0` to `1.0`.
+   * Optional amount of already done work as a number between `0.0` to `1.0`.
    */
-  progress: Number?;
+  progress?: Number;
 }
 ```
 
