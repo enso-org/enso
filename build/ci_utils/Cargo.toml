@@ -1,3 +1,4 @@
+cargo-features = ["workspace-inheritance"]
 [package]
 name = "ide-ci"
 version = "0.1.0"
@@ -41,7 +42,7 @@ lazy_static = "1.4.0"
 log = "0.4.14"
 mime = "0.3.16"
 new_mime_guess = "4.0.0"
-nix = "0.24.1"
+nix = { workspace = true }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls"
 ] }

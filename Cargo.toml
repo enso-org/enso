@@ -66,3 +66,4 @@ debug-assertions = true
 [workspace.dependencies]
 tokio = { version = "=1.20.1", features = ["full", "tracing"] }
 console-subscriber = "=0.1.7"
+nix = "=0.24.1" # DO NOT BUMP UNTIL NIGHTLY IS UPDATED. Otherwise, it brings too new libc.

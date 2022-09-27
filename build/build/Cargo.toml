@@ -42,7 +42,7 @@ lazy_static = "1.4.0"
 #git2 = "0.13.25"
 log = "0.4.14"
 mime = "0.3.16"
-nix = "0.24.1" # DO NOT BUMP UNTIL NIGHTLY IS UPDATED. Otherwise, it brings too new libc.
+nix = { workspace = true }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls"
 ] }
