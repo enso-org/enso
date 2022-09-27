@@ -34,3 +34,13 @@ type Text_Ordering
        - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
          this to `True` results in a "Natural" ordering.
     Case_Insensitive (locale:Locale=Locale.default) (sort_digits_as_numbers:Boolean=False)
+
+    ## PRIVATE
+       Returns this ordering's case sensitivity setting. It will return
+       `Nothing` for the `Default` ordering, meaning that the case sensitivity
+       is to be determined by the backend.
+    case_sensitivity : Case_Sensitivity
+    case_sensitivity self = case self of
+        Default _ -> Nothing
+        Case_Sensitive _ -> Case_Sensitivity.Sensitive
+        Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale

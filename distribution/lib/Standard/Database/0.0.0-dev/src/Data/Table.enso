@@ -556,7 +556,7 @@ type Table
 
        Arguments:
        - columns: The columns of the table to use for distinguishing the rows.
-       - case_sensitive: Specifies if the text values should be compared case
+       - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.

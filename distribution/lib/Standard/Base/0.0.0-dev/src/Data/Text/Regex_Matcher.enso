@@ -91,7 +91,7 @@ type Regex_Matcher
        > Example
          Selects objects matching one of the provided patterns, preserving the input order.
 
-             Regex_Matcher case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+             Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
        > Example
          Selects pairs matching their first element with the provided criteria and
