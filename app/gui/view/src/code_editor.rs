@@ -111,10 +111,10 @@ impl View {
             eval position ((pos) model.set_position_xy(*pos));
 
             let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
-            eval color ((color) model.set_default_color(color));
+            eval color ((color) model.set_property_default(color));
         }
         init.emit(());
-        model.set_default_color(color.value());
+        model.set_property_default(color.value());
 
         Self { model, styles, frp }
     }

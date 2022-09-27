@@ -729,8 +729,8 @@ impl View {
                     let mut color    = *color;
                     color.alpha     *= weight;
                     model.prompt_background.color_rgba.set(bg_color.into());
-                    model.prompt.set_color_all(color);
-                    model.prompt.set_default_text_size(ensogl_text::Size(*size));
+                    model.prompt.set_property(.., color);
+                    model.prompt.set_property_default(ensogl_text::Size(*size));
                 })
             );
             _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,

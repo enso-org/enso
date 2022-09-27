@@ -178,8 +178,8 @@ impl Model {
         let text_color_path = theme::application::status_bar::text;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = style.get_color(text_color_path);
-        label.frp.set_color_all.emit(text_color);
-        label.frp.set_default_color.emit(text_color);
+        label.frp.set_property(.., text_color);
+        label.frp.set_property_default(text_color);
 
         Self {
             logger,

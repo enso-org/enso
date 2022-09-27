@@ -230,7 +230,7 @@ impl ProfilingLabel {
                 (&frp.set_status,&frp.set_min_global_duration,&frp.set_max_global_duration,&theme,
                     |&status,&min,&max,&theme| status.display_color(min,max,theme)
                 );
-            label.set_default_color <+ color.value.map(|c| c.into());
+            label.set_property_default <+ color.value.ref_into_some();
 
 
             // === Position ===
@@ -241,7 +241,7 @@ impl ProfilingLabel {
 
             // === Content ===
 
-            label.set_content <+ frp.set_status.map(|status| status.to_string());
+            label.set_content <+ frp.set_status.map(|status| status.to_im_string());
         }
 
         ProfilingLabel { root, label, frp, styles }

@@ -454,8 +454,8 @@ pub struct Model {
     pub shape:          Option<PortShapeView>,
     pub type_label:     Option<text::Text>,
     pub display_object: Option<display::object::Instance>,
-    pub index:          Bytes,
-    pub length:         Bytes,
+    pub index:          ByteDiff,
+    pub length:         ByteDiff,
     port_count:         usize,
     port_index:         usize,
 }
@@ -574,7 +574,7 @@ impl Model {
             showing_full_type     <- bool(&full_type_timer.on_reset,&full_type_timer.on_end);
             type_description      <- all_with(&frp.tp,&showing_full_type,|tp,&show_full_tp| {
                 tp.map_ref(|tp| {
-                    if show_full_tp { tp.to_string() } else { tp.abbreviate().to_string() }
+                    if show_full_tp { tp.to_im_string() } else { tp.abbreviate().to_im_string() }
                 })
             });
         }
@@ -585,16 +585,16 @@ impl Model {
 
                 // === Type Label ===
 
-                type_label_visibility     <- frp.on_hover.and(&frp.set_type_label_visibility);
-                on_type_label_visible     <- type_label_visibility.on_true();
+                type_label_visibility <- frp.on_hover.and(&frp.set_type_label_visibility);
+                on_type_label_visible <- type_label_visibility.on_true();
                 type_label_opacity.target <+ on_type_label_visible.constant(PORT_OPACITY_HOVERED);
                 type_label_opacity.target <+ type_label_visibility.on_false().constant(0.0);
 
-                type_label_color             <- all_with(&color.value,&type_label_opacity.value,
-                    |color,&opacity| color.opaque.with_alpha(opacity).into());
-                type_label.set_color_all     <+ type_label_color;
-                type_label.set_default_color <+ type_label_color;
-                type_label.set_content       <+ type_description.map(|s| s.clone().unwrap_or_default());
+                type_label_color <- all_with(&color.value,&type_label_opacity.value,
+                    |color,&opacity| color.opaque.with_alpha(opacity));
+                type_label.set_property <+ type_label_color.ref_into_some().map(|t| ((..).into(),*t));
+                type_label.set_property_default <+ type_label_color.ref_into_some();
+                type_label.set_content <+ type_description.map(|s| s.clone().unwrap_or_default());
             }
         }
 
@@ -606,7 +606,7 @@ impl Model {
                 frp.source.tooltip <+ all_with(&type_description,&frp.on_hover,|text,&hovering| {
                     if hovering {
                         if let Some(text) = text.clone() {
-                            tooltip::Style::set_label(text).with_placement(TOOLTIP_LOCATION)
+                            tooltip::Style::set_label(text.into()).with_placement(TOOLTIP_LOCATION)
                         } else {
                             tooltip::Style::unset_label()
                         }

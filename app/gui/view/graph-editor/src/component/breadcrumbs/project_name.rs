@@ -143,9 +143,9 @@ impl ProjectNameModel {
         let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
         let text_size: TextSize = TEXT_SIZE.into();
         let text_field = app.new_view::<text::Text>();
-        text_field.set_default_color.emit(base_color);
-        text_field.set_default_text_size(text_size);
-        text_field.single_line(true);
+        text_field.set_property_default(base_color);
+        text_field.set_property_default(text_size);
+        text_field.set_single_line_mode(true);
 
         text_field.remove_from_scene_layer(&scene.layers.main);
         text_field.add_to_scene_layer(&scene.layers.panel_text);
@@ -200,7 +200,7 @@ impl ProjectNameModel {
     }
 
     fn set_color(&self, value: color::Rgba) {
-        self.text_field.set_default_color(value);
+        self.text_field.set_property_default(value);
     }
 
     fn set_position(&self, value: Vector3<f32>) {
@@ -340,14 +340,14 @@ impl ProjectName {
              on_mouse_over_and_editable <- all(frp.output.is_hovered,editable).map(|(a,b)| *a && *b);
              mouse_over_while_editing <- on_mouse_over_and_editable.gate(&on_mouse_over_and_editable);
              frp.output.source.pointer_style <+ mouse_over_while_editing.map(|_|
-                cursor::Style::new_text_cursor()
+                cursor::Style::cursor()
              );
              no_mouse_or_edit <- on_mouse_over_and_editable.gate_not(&on_mouse_over_and_editable);
              frp.output.source.pointer_style <+ no_mouse_or_edit.map(|_|
                 cursor::Style::default()
              );
              frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
-                cursor::Style::new_text_cursor()
+                cursor::Style::cursor()
              );
         }
 

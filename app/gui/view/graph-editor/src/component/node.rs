@@ -95,7 +95,7 @@ const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 ///
 /// This is just a plain string, as this is what text area expects and node just redirects this
 /// value,
-pub type Comment = String;
+pub type Comment = ImString;
 
 
 
@@ -320,7 +320,7 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
-        expression               (Text),
+        expression               (enso_text::Rope),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -704,11 +704,11 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area           = &model.drag_area.events;
-            drag_area_hover        <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
+            let drag_area = &model.drag_area.events;
+            drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
-            out.hover       <+ model.output.body_hover;
+            out.hover <+ model.output.body_hover;
 
 
             // === Background Press ===
@@ -742,7 +742,6 @@ impl Node {
             // === Comment ===
 
             let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
-            // comment_color.target <+ all_with(
             comment_color <- all_with(
                 &comment_base_color, &model.output.expression_label_visibility,
                 |&base_color,&expression_visible| {
@@ -753,14 +752,14 @@ impl Node {
                     });
                     color
             });
-            eval comment_color ((value) model.comment.set_color_all(color::Rgba::from(value)));
+            eval comment_color ((value) model.comment.set_property(.., color::Rgba::from(value)));
 
             eval model.comment.width ([model](width)
                 model.comment.set_position_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
                 model.comment.set_position_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
-            out.comment        <+ model.comment.content.map(|text| text.to_string());
+            out.comment <+ model.comment.content.map(|text| text.to_im_string());
 
 
             // === Size ===
@@ -772,17 +771,17 @@ impl Node {
             // === Action Bar ===
 
             let visualization_enabled = action_bar.action_visibility.clone_ref();
-            out.skip   <+ action_bar.action_skip;
+            out.skip <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
-            show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
+            show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
 
 
             // === View Mode ===
 
-            model.input.set_view_mode           <+ input.set_view_mode;
-            model.output.set_view_mode          <+ input.set_view_mode;
+            model.input.set_view_mode <+ input.set_view_mode;
+            model.output.set_view_mode <+ input.set_view_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})

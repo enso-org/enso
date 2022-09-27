@@ -206,11 +206,11 @@ impl Model {
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.single_line(true);
+        self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(text_color);
-        self.label.set_default_text_size(text::Size(input::area::TEXT_SIZE));
+        self.label.set_property_default(text_color);
+        self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
 
         self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
@@ -508,7 +508,7 @@ impl Area {
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
-            eval new_label_color ((color) model.label.set_color_all(color::Rgba::from(color)));
+            eval new_label_color ((color) model.label.set_property(.., color::Rgba::from(color)));
 
 
             // === View Mode ===

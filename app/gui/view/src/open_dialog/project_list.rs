@@ -132,8 +132,8 @@ impl ProjectList {
             eval list_size  ((size)  list.resize(*size));
             eval list_y     ((y)     list.set_position_y(*y));
             eval caption_xy ((xy)    caption.set_position_xy(*xy));
-            eval color      ((color) caption.set_default_color(color));
-            eval label_size ((size)  caption.set_default_text_size(text::Size(*size)));
+            eval color      ((color) caption.set_property_default(color));
+            eval label_size ((size)  caption.set_property_default(text::Size(*size)));
         };
         init.emit(());
 

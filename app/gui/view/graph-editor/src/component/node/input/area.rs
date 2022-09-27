@@ -15,7 +15,7 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
-use enso_text::text::Text;
+use enso_text::text::Rope;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -135,8 +135,8 @@ impl From<node::Expression> for Expression {
             let span = node.span();
             let mut size = Byte::try_from(span.size()).unwrap(); // FIXME: hande errors
             let mut index = span.start;
-            let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
-            info.prev_tok_local_index = node.offset + size;
+            let offset_from_prev_tok = node.offset - info.prev_tok_local_index.to_diff();
+            info.prev_tok_local_index = size + node.offset;
             viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
             if node.children.is_empty() {
                 viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
@@ -205,7 +205,7 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
-        expression          (Text),
+        expression          (Rope),
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
@@ -270,11 +270,11 @@ impl Model {
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.single_line(true);
+        self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(text_color);
-        self.label.set_default_text_size(text::Size(TEXT_SIZE));
+        self.label.set_property_default(text_color);
+        self.label.set_property_default(text::Size(TEXT_SIZE));
         self.label.remove_all_cursors();
 
         let origin = Vector2(TEXT_OFFSET, 0.0);
@@ -443,13 +443,13 @@ impl Area {
             selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
 
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.label.set_selection_color <+ selection_color.value.map(|&c| color::Rgb::from(c));
+            model.label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
 
             init_colors         <- source::<()>();
             std_base_color      <- all(std_base_color,init_colors)._0();
             profiled_base_color <- all(profiled_base_color,init_colors)._0();
             base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
-            eval base_color ((color) model.label.set_default_color(color));
+            eval base_color ((color) model.label.set_property_default(color));
             init_colors.emit(());
         }
 
@@ -461,11 +461,11 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let range_before = enso_text::Range::new(0.bytes(), node.payload.index);
-            let char_offset: Chars = expr.viz_code[range_before].chars().count().into();
-            let char_count: Chars = expr.viz_code[node.payload.range()].chars().count().into();
-            let width = unit * (i32::from(char_count) as f32);
-            let x = width / 2.0 + unit * (i32::from(char_offset) as f32);
+            let range_before = enso_text::Range::new(ByteDiff(0), node.payload.index);
+            let char_offset = expr.viz_code[range_before].chars().count();
+            let char_count = expr.viz_code[node.payload.range()].chars().count();
+            let width = unit * (char_count as f32);
+            let x = width / 2.0 + unit * (char_offset as f32);
             Vector2::new(TEXT_OFFSET + x, 0.0)
         })
     }
@@ -513,7 +513,7 @@ struct PortLayerBuilder {
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:           Chars,
+    shift:           usize,
     /// The depth at which the current expression is, where root is at depth 0.
     depth:           usize,
 }
@@ -525,7 +525,7 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Chars,
+        shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
@@ -543,7 +543,7 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Chars,
+        shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
@@ -598,7 +598,7 @@ impl Area {
             let range_before_start = node.payload.index - node.payload.local_index;
             let range_before_end = node.payload.index;
             let range_before = enso_text::Range::new(range_before_start, range_before_end);
-            let local_char_offset: Chars = code[range_before].chars().count().into();
+            let local_char_offset = code[range_before].chars().count();
 
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
@@ -606,16 +606,16 @@ impl Area {
                 let port = &mut node;
 
                 let index = local_char_offset + builder.shift;
-                let size: Chars = code[port.payload.range()].chars().count().into();
+                let size = code[port.payload.range()].chars().count();
                 let unit = GLYPH_WIDTH;
-                let width = unit * i32::from(size) as f32;
+                let width = unit * size as f32;
                 let width_padded = width + 2.0 * PORT_PADDING_X;
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
                 let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
 
-                port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
+                port_shape.mod_position(|t| t.x = unit * index as f32);
                 if DEBUG {
                     port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
                 }
@@ -721,7 +721,7 @@ impl Area {
                 }
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
-            let new_shift = if !not_a_port { 0.chars() } else { builder.shift + local_char_offset };
+            let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
@@ -823,7 +823,7 @@ impl Area {
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
                         let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
-                        label.set_color_bytes(range,color::Rgba::from(color));
+                        label.set_property(range,color::Rgba::from(color));
                     });
                 }
 

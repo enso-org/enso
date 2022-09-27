@@ -152,9 +152,9 @@ pub struct Model {
     pub frp:             Frp,
     pub shape:           Option<Shape>,
     pub name:            Option<String>,
-    pub index:           Bytes,
-    pub local_index:     Bytes,
-    pub length:          Bytes,
+    pub index:           ByteDiff,
+    pub local_index:     ByteDiff,
+    pub length:          ByteDiff,
     pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 
@@ -183,7 +183,7 @@ impl Model {
     }
 
     /// The range of this port.
-    pub fn range(&self) -> enso_text::Range<Bytes> {
+    pub fn range(&self) -> enso_text::Range<ByteDiff> {
         let start = self.index;
         let end = self.index + self.length;
         enso_text::Range::new(start, end)

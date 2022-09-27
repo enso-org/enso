@@ -226,6 +226,12 @@ pub trait ToImString {
     fn to_im_string(&self) -> ImString;
 }
 
+impl<T: core::fmt::Display> ToImString for T {
+    default fn to_im_string(&self) -> ImString {
+        format!("{}", self).into()
+    }
+}
+
 impl ToImString for ImString {
     fn to_im_string(&self) -> ImString {
         self.clone()
