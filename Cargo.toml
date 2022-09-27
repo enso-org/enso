@@ -62,3 +62,7 @@ opt-level = 2
 lto = false
 debug = true
 debug-assertions = true
+
+[workspace.dependencies]
+tokio = { version = "=1.20.1", features = ["full", "tracing"] }
+console-subscriber = "=0.1.7"
