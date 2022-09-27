@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Sort_Column.Sort_Column import all
+from project.Data.Sort_Column.Sort_Column export all
+
 type Sort_Column
     Name name:Text direction:Sort_Direction=Sort_Direction.Ascending
     Index index:Integer direction:Sort_Direction=Sort_Direction.Ascending

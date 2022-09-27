@@ -9,13 +9,13 @@ import Standard.Test
 # === Test Resources ===
 
 type Ord
-    Ord_Data number
+    Value number
 
 Ord.compare_to : Ord -> Ordering
 Ord.compare_to self that = that.number.compare_to self.number
 
 type No_Ord
-    No_Ord_Data number
+    Value number
 
 # Tests
 
@@ -54,11 +54,11 @@ spec = Test.group "Object Comparator" <|
         ((case_insensitive '\u00E9' '\u0065\u{301}') == 0) . should_equal True
 
     Test.specify "can compare custom types" <|
-        ((default_comparator (Ord_Data 1) (Ord_Data 0)) < 0) . should_equal True
-        ((default_comparator (Ord_Data 1) (Ord_Data 1)) == 0) . should_equal True
+        ((default_comparator (Ord.Value 1) (Ord.Value 0)) < 0) . should_equal True
+        ((default_comparator (Ord.Value 1) (Ord.Value 1)) == 0) . should_equal True
 
     Test.specify "should fail gracefully for incomparable items" <|
         (default_comparator 1 True).should_fail_with Vector.Incomparable_Values_Error
-        (default_comparator (No_Ord_Data 1) (No_Ord_Data 2)).should_fail_with Vector.Incomparable_Values_Error
+        (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Vector.Incomparable_Values_Error
 
 main = Test.Suite.run_main spec

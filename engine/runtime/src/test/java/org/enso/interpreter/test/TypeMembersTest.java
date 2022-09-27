@@ -52,18 +52,18 @@ public class TypeMembersTest {
         Head h t
 
         is_empty self = case self of
-            End -> True
+            IntList.End -> True
             _ -> False
 
         tail self = case self of
-            Head _ t -> t
-            _ -> End
+            IntList.Head _ t -> t
+            _ -> IntList.End
 
         head self = case self of
-            Head h _ -> h
+            IntList.Head h _ -> h
             _ -> -1
 
-    list1 = Head 7 <| Head 3 <| End
+    list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
 
     """, "compare.enso")
             .uri(uri)

@@ -4,6 +4,10 @@ from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe
 
+# TODO Dubious constructor export
+from project.Data.List.List import all
+from project.Data.List.List export all
+
 ## The basic cons-list type.
 
    A cons-list allows storage of an arbitrary number of elements.

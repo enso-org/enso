@@ -280,6 +280,10 @@ put uri body (headers = []) = new.put uri body headers
 put_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
 put_json uri body_json (headers = []) = new.put_json uri body_json headers
 
+## TODO Dubious constructor export
+from project.Network.Http.Http import all
+from project.Network.Http.Http export all
+
 type Http
 
     ## PRIVATE
@@ -685,6 +689,10 @@ type Http
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
+
+## TODO Dubious constructor export
+from project.Network.Http.Request_Error import all
+from project.Network.Http.Request_Error export all
 
 ## UNSTABLE
 

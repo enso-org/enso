@@ -6,6 +6,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -33,14 +34,34 @@ public class Type implements TruffleObject {
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
   private final boolean builtin;
   private final Type supertype;
+  private final Type eigentype;
+  private final Map<String, AtomConstructor> constructors;
+
   private boolean gettersGenerated;
 
-  public Type(String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
+  private Type(
+      String name, ModuleScope definitionScope, Type supertype, Type eigentype, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
     this.builtin = builtin;
-    generateQualifiedAccessor();
+    this.eigentype = Objects.requireNonNullElse(eigentype, this);
+    this.constructors = new HashMap<>();
+  }
+
+  public static Type createSingleton(
+      String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
+    var result = new Type(name, definitionScope, supertype, null, builtin);
+    result.generateQualifiedAccessor();
+    return result;
+  }
+
+  public static Type create(
+      String name, ModuleScope definitionScope, Type supertype, Type any, boolean builtin) {
+    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin);
+    var result = new Type(name, definitionScope, supertype, eigentype, builtin);
+    result.generateQualifiedAccessor();
+    return result;
   }
 
   private void generateQualifiedAccessor() {
@@ -63,7 +84,7 @@ public class Type implements TruffleObject {
     }
   }
 
-  public void setShadowDefinitions(ModuleScope scope) {
+  public void setShadowDefinitions(ModuleScope scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
@@ -74,7 +95,12 @@ public class Type implements TruffleObject {
         methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
       }
       this.definitionScope = scope;
-      generateQualifiedAccessor();
+      if (generateAccessorsInTarget) {
+        generateQualifiedAccessor();
+      }
+      if (getEigentype() != this) {
+        getEigentype().setShadowDefinitions(scope, false);
+      }
     } else {
       throw new RuntimeException(
           "Attempting to modify scope of a non-builtin type post-construction is not allowed");
@@ -97,21 +123,25 @@ public class Type implements TruffleObject {
     return supertype;
   }
 
-  public void generateGetters(Language language, List<AtomConstructor> constructors) {
+  public void generateGetters(Language language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
     var roots = new HashMap<String, RootNode>();
     if (constructors.size() != 1) {
       var names = new HashMap<String, List<GetFieldWithMatchNode.GetterPair>>();
-      constructors.forEach(
-          cons -> {
-            Arrays.stream(cons.getFields())
-                .forEach(
-                    field -> {
-                      var items = names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
-                      items.add(new GetFieldWithMatchNode.GetterPair(cons, field.getPosition()));
-                    });
-          });
+      constructors
+          .values()
+          .forEach(
+              cons -> {
+                Arrays.stream(cons.getFields())
+                    .forEach(
+                        field -> {
+                          var items =
+                              names.computeIfAbsent(field.getName(), (k) -> new ArrayList<>());
+                          items.add(
+                              new GetFieldWithMatchNode.GetterPair(cons, field.getPosition()));
+                        });
+              });
       names.forEach(
           (name, fields) -> {
             roots.put(
@@ -120,7 +150,7 @@ public class Type implements TruffleObject {
                     language, name, this, fields.toArray(new GetFieldWithMatchNode.GetterPair[0])));
           });
     } else {
-      var cons = constructors.get(0);
+      var cons = constructors.values().toArray(AtomConstructor[]::new)[0];
       Arrays.stream(cons.getFields())
           .forEach(
               field -> {
@@ -152,13 +182,40 @@ public class Type implements TruffleObject {
 
   @ExportMessage
   Type getType() {
-    // TODO[MK] make this the eigentype when implementing statics
-    return this;
+    return eigentype;
   }
 
   @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
+  }
+
+  @ExportMessage
+  boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  Array getMembers(boolean includeInternal) {
+    return new Array(constructors.keySet().toArray(Object[]::new));
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  boolean isMemberReadable(String member) {
+    return constructors.containsKey(member);
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  Object readMember(String member) throws UnknownIdentifierException {
+    var result = constructors.get(member);
+    if (result == null) {
+      throw UnknownIdentifierException.create(member);
+    } else {
+      return result;
+    }
   }
 
   @ExportMessage
@@ -169,5 +226,17 @@ public class Type implements TruffleObject {
   @Override
   public String toString() {
     return toDisplayString(true);
+  }
+
+  public Type getEigentype() {
+    return eigentype;
+  }
+
+  public void registerConstructor(AtomConstructor constructor) {
+    constructors.put(constructor.getName(), constructor);
+  }
+
+  public Map<String, AtomConstructor> getConstructors() {
+    return constructors;
   }
 }

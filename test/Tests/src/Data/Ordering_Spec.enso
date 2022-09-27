@@ -5,7 +5,7 @@ import Standard.Test
 # === Test Resources ===
 
 type Ord
-    Ord_Data number
+    Value number
 
 Ord.compare_to : Ord -> Ordering
 Ord.compare_to self that = if self.number == that.number then Ordering.Equal else
@@ -18,18 +18,18 @@ spec =
     Test.group "Ordering" <|
 
         Test.specify "should allow comparing Less" <|
-            left = Ord_Data 1032
-            right = Ord_Data 101111
+            left = Ord.Value 1032
+            right = Ord.Value 101111
             left.compare_to right . should_equal Ordering.Less
 
         Test.specify "should allow comparing Equal" <|
-            left = Ord_Data 1032
-            right = Ord_Data 1032
+            left = Ord.Value 1032
+            right = Ord.Value 1032
             left.compare_to right . should_equal Ordering.Equal
 
         Test.specify "should allow comparing Greater" <|
-            left = Ord_Data 1032
-            right = Ord_Data -1
+            left = Ord.Value 1032
+            right = Ord.Value -1
             left.compare_to right . should_equal Ordering.Greater
 
         Test.specify "should allow conversion to sign representation" <|

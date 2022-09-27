@@ -285,8 +285,7 @@ public class Builtins {
             Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
             String builtinMethodOwner = builtinName[0];
             String builtinMethodName = builtinName[1];
-            scope
-                .getLocalConstructor(builtinMethodOwner)
+            Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
                 .ifPresentOrElse(
                     constr -> {
                       Map<String, Class<BuiltinRootNode>> atomNodes =
@@ -492,7 +491,6 @@ public class Builtins {
     return array.getType();
   }
 
-  /** @return the Array constructor. */
   public Type vector() {
     return vector.getType();
   }

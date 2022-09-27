@@ -2,6 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.nio.file.StandardOpenOption
 
+# TODO Dubious constructor export
+from project.System.File.Option.Option import all
+from project.System.File.Option.Option export all
+
 ## Represents different options for opening file streams.
 
    This is intended for more advanced users, wishing to obtain lower-level

@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+## TODO Dubious constructor export
+from project.Network.Proxy.Proxy import all
+from project.Network.Proxy.Proxy export all
+
 ## Proxy settings.
 type Proxy
 

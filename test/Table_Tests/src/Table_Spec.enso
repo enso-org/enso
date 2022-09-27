@@ -18,6 +18,10 @@ import Standard.Test.Problems
 import project.Common_Table_Spec
 from project.Util import all
 
+# TODO Dubious constructor export
+from project.Table_Spec.My import all
+from project.Table_Spec.My export all
+
 type My
     My_Data x y
 

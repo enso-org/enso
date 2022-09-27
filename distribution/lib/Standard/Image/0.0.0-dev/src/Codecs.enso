@@ -71,6 +71,10 @@ Image.Image.write self location flags=[] =
     Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
         Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
 
+# TODO Dubious constructor export
+from project.Codecs.Read_Flag import all
+from project.Codecs.Read_Flag export all
+
 ## UNSTABLE
 type Read_Flag
 
@@ -89,6 +93,10 @@ type Read_Flag
        Use Geographic Data Abstraction Library (GDAL) driver to load images in
        geospatial raster data formats.
     Read_Gdal
+
+# TODO Dubious constructor export
+from project.Codecs.Write_Flag import all
+from project.Codecs.Write_Flag export all
 
 ## UNSTABLE
 type Write_Flag

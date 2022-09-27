@@ -1,3 +1,6 @@
+from project.Data.Boolean.Boolean import all
+from project.Data.Boolean.Boolean export all
+
 ## A type with only two possible values.
 
    The boolean type represents the two truth values of boolean logic. It is

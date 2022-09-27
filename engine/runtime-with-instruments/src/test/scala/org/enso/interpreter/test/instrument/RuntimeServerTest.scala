@@ -546,13 +546,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(99, 116)
-    val idMainX  = metadata.addItem(126, 8)
-    val idMainY  = metadata.addItem(143, 3)
-    val idMainM  = metadata.addItem(155, 5)
-    val idMainP  = metadata.addItem(169, 5)
-    val idMainQ  = metadata.addItem(183, 5)
-    val idMainF  = metadata.addItem(205, 9)
+    val idMain   = metadata.addItem(99, 120)
+    val idMainX  = metadata.addItem(126, 9)
+    val idMainY  = metadata.addItem(144, 3)
+    val idMainM  = metadata.addItem(156, 8)
+    val idMainP  = metadata.addItem(173, 5)
+    val idMainQ  = metadata.addItem(187, 5)
+    val idMainF  = metadata.addItem(209, 9)
 
     val code =
       """import Standard.Base.IO
@@ -567,9 +567,9 @@ class RuntimeServerTest
         |
         |main =
         |    f a b = a + b
-        |    x = Quux.foo
+        |    x = QuuxT.foo
         |    y = bar
-        |    m = A.A x
+        |    m = A.AT.A x
         |    p = m.foo
         |    q = A.bar
         |    IO.println (f x+y p+q)
@@ -582,7 +582,7 @@ class RuntimeServerTest
         |type AT
         |    A un_a
         |
-        |    foo = 11
+        |    foo self = 11
         |
         |bar = 19
         |""".stripMargin
@@ -624,7 +624,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer(
           "Enso_Test.Test.Main",
-          "Enso_Test.Test.Main.QuuxT",
+          "Enso_Test.Test.Main.QuuxT.type",
           "foo"
         )
       ),
@@ -634,7 +634,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.A"),
+      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT.A"),
       TestMessages.update(
         contextId,
         idMainP,

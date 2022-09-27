@@ -10,11 +10,11 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.concurrent.locks.Lock;
 
@@ -106,7 +106,10 @@ public class CurryNode extends BaseNode {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         Stateful result = doCall(function, callerInfo, state, arguments);
-        if (defaultsExecutionMode.isExecute() && TypesGen.isFunction(result.getValue())) {
+        var value = result.getValue();
+        if (defaultsExecutionMode.isExecute()
+            && (value instanceof Function || (value instanceof AtomConstructor cons
+              && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           keepExecutingProfile.enter();
           if (oversaturatedCallableNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -126,8 +129,7 @@ public class CurryNode extends BaseNode {
             }
           }
 
-          return oversaturatedCallableNode.execute(
-              result.getValue(), frame, result.getState(), new Object[0]);
+          return oversaturatedCallableNode.execute(value, frame, result.getState(), new Object[0]);
         } else {
           return result;
         }

@@ -43,15 +43,15 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |    Vec x y z
         |
         |Vector.squares self = case self of
-        |    Vec x y z -> Vec x*x y*y z*z
+        |    Vector.Vec x y z -> Vector.Vec x*x y*y z*z
         |
         |Vector.sum self = case self of
-        |    Vec x y z -> x + y + z
+        |    Vector.Vec x y z -> x + y + z
         |
         |Vector.squareNorm self = self.squares.sum
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
-    val vectorCons = module.getConstructor("Vec")
+    val vectorCons = module.getType("Vector").getMember("Vec")
     val squareNorm =
       module.getMethod(module.getType("Vector"), "squareNorm").get
     val testVector = vectorCons.newInstance(

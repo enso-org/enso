@@ -16,6 +16,10 @@ from Standard.Database.Errors import SQL_Error
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
 
+# TODO Dubious constructor export
+from project.Connection.Connection.Connection import all
+from project.Connection.Connection.Connection export all
+
 type Connection
     ## PRIVATE
 

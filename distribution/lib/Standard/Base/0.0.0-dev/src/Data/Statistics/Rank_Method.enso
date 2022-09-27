@@ -1,4 +1,8 @@
 
+# TODO Dubious constructor export
+from project.Data.Statistics.Rank_Method.Rank_Method import all
+from project.Data.Statistics.Rank_Method.Rank_Method export all
+
 ## Specifies how to handle ranking of equal values.
 type Rank_Method
     ## Use the mean of all ranks for equal values.

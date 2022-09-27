@@ -742,6 +742,10 @@ type File
     to_text : Text
     to_text self = self.absolute . path
 
+# TODO Dubious constructor export
+from project.System.File.Output_Stream import all
+from project.System.File.Output_Stream export all
+
 ## An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream
@@ -831,6 +835,10 @@ type Output_Stream
         results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
         on_problems.attach_problems_after results.result problems
+
+# TODO Dubious constructor export
+from project.System.File.Input_Stream import all
+from project.System.File.Input_Stream export all
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -990,6 +998,10 @@ close_stream : Any -> Nothing
 close_stream stream =
     stream.close
     Nothing
+
+# TODO Dubious constructor export
+from project.System.File.File_Error import all
+from project.System.File.File_Error export all
 
 type File_Error
 

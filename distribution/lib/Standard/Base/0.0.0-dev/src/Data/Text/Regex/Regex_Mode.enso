@@ -7,6 +7,10 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Matching_Mode import First, Last
 from Standard.Base.Data.Text.Matching_Mode export First, Last
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Regex_Mode.Regex_Mode import all
+from project.Data.Text.Regex.Regex_Mode.Regex_Mode export all
+
 type Regex_Mode
     ## The regex will make all possible matches.
     All

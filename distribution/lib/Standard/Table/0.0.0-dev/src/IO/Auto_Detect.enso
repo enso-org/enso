@@ -35,5 +35,5 @@ type Auto_Detect
         format = get_format file
         if format == Nothing then Error.throw (Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
             Panic.catch No_Such_Method_Error_Data (format.write_table file table on_existing_file match_columns on_problems) _->
-               name = Meta.get_constructor_name (Meta.meta format)
+               name = Meta.get_constructor_name (Meta.meta format).constructor
                Error.throw (Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))

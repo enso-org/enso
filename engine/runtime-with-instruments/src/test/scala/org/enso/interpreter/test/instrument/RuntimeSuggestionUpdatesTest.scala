@@ -866,6 +866,8 @@ class RuntimeSuggestionUpdatesTest
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
+        |import Enso_Test.Test.A.MyType
+        |from Enso_Test.Test.A.MyType export all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1112,6 +1114,8 @@ class RuntimeSuggestionUpdatesTest
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
+              |import Enso_Test.Test.A.MyType
+              |from Enso_Test.Test.A.MyType export all
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")
@@ -1140,7 +1144,7 @@ class RuntimeSuggestionUpdatesTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(2, 0), model.Position(5, 0)),
+              model.Range(model.Position(2, 0), model.Position(7, 0)),
               ""
             )
           ),
