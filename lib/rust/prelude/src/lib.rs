@@ -107,6 +107,7 @@ pub use std::hash::Hasher;
 pub use enso_reflect::prelude::*;
 
 pub use std::ops::AddAssign;
+pub use std::ops::SubAssign;
 
 use std::cell::UnsafeCell;
 

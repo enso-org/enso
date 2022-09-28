@@ -3,6 +3,7 @@
 
 use crate::index::*;
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 
 use crate::buffer;

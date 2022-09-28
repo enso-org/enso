@@ -29,7 +29,7 @@ impl FormattedRope {
     pub fn replace(&self, range: impl enso_text::RangeBounds, text: impl Into<Rope>) {
         let text = text.into();
         let range = self.crop_byte_range(range);
-        let size = text.byte_size();
+        let size = text.len();
         self.text.replace(range, text);
         self.formatting.set_resize_with_default(range, size);
     }

@@ -1,3 +1,5 @@
+//! Indexing units definitions.
+
 use crate::prelude::*;
 use enso_text::unit::*;
 

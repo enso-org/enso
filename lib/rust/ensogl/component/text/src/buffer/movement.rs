@@ -131,7 +131,7 @@ impl BufferModel {
             Transform::Down => self.vertical_motion(selection, LineDiff(1), modify),
             Transform::StartOfDocument => shape(selection.start, default()),
             Transform::EndOfDocument => {
-                let end = Location::from_in_context_snapped(self, text.byte_size());
+                let end = Location::from_in_context_snapped(self, text.len());
                 shape(selection.start, end)
             }
             Transform::Left => {
@@ -161,10 +161,10 @@ impl BufferModel {
 
             Transform::RightOfLine => {
                 let line = selection.end.line;
-                let text_byte_size = text.byte_size();
+                let text_byte_size = text.len();
                 let is_last_line = line == self.last_line_index();
                 let next_line_offset_opt = self.byte_offset_of_line_index(line + Line(1));
-                let next_line_offset = next_line_offset_opt.unwrap_or_else(|_| text.byte_size());
+                let next_line_offset = next_line_offset_opt.unwrap_or_else(|_| text.len());
                 let offset = if is_last_line {
                     text_byte_size
                 } else {
@@ -185,7 +185,7 @@ impl BufferModel {
             Transform::RightWord => {
                 let end_offset = Byte::from_in_context_snapped(self, selection.end);
                 let mut word_cursor = WordCursor::new(text, end_offset);
-                let offset = word_cursor.next_boundary().unwrap_or_else(|| text.byte_size());
+                let offset = word_cursor.next_boundary().unwrap_or_else(|| text.len());
                 let end = Location::from_in_context_snapped(self, offset);
                 shape(selection.start, end)
             }

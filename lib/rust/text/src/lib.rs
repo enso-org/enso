@@ -99,12 +99,14 @@
 // === Export ===
 // ==============
 
+pub mod index;
 pub mod range;
 pub mod rope;
 pub mod spans;
 pub mod text;
 pub mod unit;
 
+pub use index::*;
 pub use range::Range;
 pub use range::RangeBounds;
 pub use rope::metric;

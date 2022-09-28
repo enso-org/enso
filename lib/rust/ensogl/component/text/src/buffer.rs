@@ -39,6 +39,7 @@ pub mod traits {
 pub use formatting::*;
 pub use movement::*;
 
+pub use enso_text::index::*;
 pub use enso_text::unit::*;
 pub use enso_text::Range;
 pub use enso_text::Rope;
@@ -476,7 +477,7 @@ impl BufferModel {
 
     /// Return the offset after the last character of a given view line if the line exists.
     pub fn end_offset_of_view_line(&self, line: Line) -> Option<Byte> {
-        self.end_byte_offset_of_line_index(line + self.first_view_line.get()).ok()
+        self.line_end_offset(line + self.first_view_line.get()).ok()
     }
 
     /// The byte range of this buffer view.
@@ -745,7 +746,7 @@ impl BufferModel {
                         yield chunk;
                     }
                 Font::Variable(_) => {
-                    let range = Byte(0)..Byte(rope.len());
+                    let range = Byte(0)..rope.len();
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);
@@ -817,14 +818,6 @@ impl BufferModel {
         for rel_byte_selection in self.byte_selections() {
             let text = iter.next().unwrap_or_default();
             let byte_selection = rel_byte_selection.map(|t| t + modification.byte_offset);
-            let byte_selection = byte_selection.map_shape(|t| {
-                t.map(|bytes| {
-                    Byte::try_from(bytes).unwrap_or_else(|_| {
-                        error!("Negative byte selection");
-                        Byte(0)
-                    })
-                })
-            });
             let selection = Selection::<Location>::from_in_context_snapped(self, byte_selection);
             modification.merge(self.modify_selection(selection, text, transform));
         }
@@ -843,7 +836,7 @@ impl BufferModel {
         text: Rope,
         transform: Option<Transform>,
     ) -> Modification {
-        let text_byte_size = text.byte_size();
+        let text_byte_size = text.len();
         let transformed = match transform {
             Some(t) if selection.is_cursor() => self.moved_selection_region(t, selection, true),
             _ => selection,

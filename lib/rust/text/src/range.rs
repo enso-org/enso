@@ -1,6 +1,7 @@
 //! Text range implementation. Similar to `std::ops::Range` but with specialized implementations
 //! for text manipulation.
 
+use crate::index::*;
 use crate::prelude::*;
 use crate::unit::*;
 
