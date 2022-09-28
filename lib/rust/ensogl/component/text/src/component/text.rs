@@ -8,6 +8,7 @@ use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::formatting;
+use crate::buffer::formatting::Formatting;
 use crate::buffer::FromInContextSnapped;
 use crate::buffer::Transform;
 use crate::buffer::TryFromInContext;
@@ -17,6 +18,10 @@ use crate::component::Selection;
 use crate::font;
 use crate::font::glyph;
 use crate::font::glyph::Glyph;
+use crate::font::Font;
+use crate::font::GlyphId;
+use crate::font::GlyphRenderInfo;
+use enso_text::Rope;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -29,6 +34,8 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
+use ensogl_text_font_family::NonVariableFaceHeader;
+use owned_ttf_parser::AsFaceRef;
 use std::ops::Not;
 
 
@@ -320,7 +327,7 @@ ensogl_core::define_endpoints_2! {
         width           (f32),
         height          (f32),
         changed         (Rc<Vec<buffer::Change>>),
-        content         (buffer::Rope),
+        content         (Rope),
         hovered         (bool),
         selection_color (color::Lch),
         single_line_mode(bool),
@@ -692,10 +699,11 @@ pub struct TextModelData {
     selection_map:  RefCell<SelectionMap>,
     width_dirty:    Cell<bool>,
     height_dirty:   Cell<bool>,
-
+    /// Cache of shaped lines.
+    shaped_lines:   RefCell<BTreeMap<Line, ShapedLine>>,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
-    layer: CloneRefCell<display::scene::Layer>,
+    layer:          CloneRefCell<display::scene::Layer>,
 }
 
 impl TextModel {
@@ -708,11 +716,11 @@ impl TextModel {
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font::DEFAULT_FONT_MONO);
         let glyph_system = {
-            let glyph_system = font::glyph::System::new(&scene, font.clone());
+            let glyph_system = font::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             RefCell::new(glyph_system)
         };
-        let buffer = buffer::Buffer::new(buffer::BufferModel::new(font));
+        let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
         let lines = Lines::new(Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
@@ -721,6 +729,7 @@ impl TextModel {
         ));
         let width_dirty = default();
         let height_dirty = default();
+        let shaped_lines = default();
 
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol = &shape_system.shape_system.sprite_system.symbol;
@@ -742,6 +751,7 @@ impl TextModel {
             selection_map,
             width_dirty,
             height_dirty,
+            shaped_lines,
         };
         Self { rc: Rc::new(data) }.init()
     }
@@ -839,6 +849,229 @@ impl TextModel {
 
 
 
+// =====================
+// === Lines Shaping ===
+// =====================
+
+/// A shaped line of glyphs.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub enum ShapedLine {
+    NonEmpty {
+        glyph_sets: NonEmptyVec<ShapedGlyphSet>,
+    },
+    Empty {
+        /// Shaped newline character ending the previous line if any. It is used to calculate the
+        /// line style (e.g. its height) for empty lines.
+        prev_glyph_info: Option<(Byte, ShapedGlyphSet)>,
+    },
+}
+
+impl ShapedLine {
+    /// Number of glyphs in line.
+    pub fn glyph_count(&self) -> usize {
+        match self {
+            Self::NonEmpty { glyph_sets } => glyph_sets.iter().map(|set| set.glyphs.len()).sum(),
+            Self::Empty { .. } => 0,
+        }
+    }
+}
+
+/// A shaped set of glyphs.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct ShapedGlyphSet {
+    pub units_per_em:            u16,
+    pub ascender:                i16,
+    pub descender:               i16,
+    pub line_gap:                i16,
+    pub non_variable_variations: NonVariableFaceHeader,
+    /// Please note that shaped glyphs in this set have cumulative offsets. This means that even if
+    /// they were produced by separate calls to `rustybuzz::shape`, their `info.cluster` is summed
+    /// between the calls. For example, if there are two regular glyphs and two bold glyphs, the
+    /// `rustybuzz::shape` function will be called twice, and thus, the third buffer's
+    /// `info.cluster` will be zero. This is fixed here and the third buffer's `info.cluster` will
+    /// be the byte size of first two glyphs.
+    pub glyphs:                  Vec<ShapedGlyph>,
+}
+
+/// A shaped glyph description. See the [`rustybuzz`] library to learn more about data stored in
+/// this struct.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy)]
+pub struct ShapedGlyph {
+    pub position:    rustybuzz::GlyphPosition,
+    pub info:        rustybuzz::GlyphInfo,
+    pub render_info: GlyphRenderInfo,
+}
+
+impl ShapedGlyph {
+    /// Returns the byte start of this glyph.
+    pub fn start_byte(&self) -> Byte {
+        Byte(self.info.cluster as usize)
+    }
+
+    /// The glyph id, index of glyph in the font.
+    pub fn id(&self) -> GlyphId {
+        GlyphId(self.info.glyph_id as u16)
+    }
+}
+
+impl TextModel {
+    /// Clear the cache of all shaped lines. Use with caution, this will cause all required lines
+    /// to be reshaped.
+    pub fn clear_shaped_lines_cache(&self) {
+        mem::take(&mut *self.shaped_lines.borrow_mut());
+    }
+
+    /// Clear the shaped lines cache for the provided line index.
+    pub fn clear_shaped_lines_cache_for_line(&self, line: Line) {
+        self.shaped_lines.borrow_mut().remove(&line);
+    }
+
+    /// Run the closure with the shaped line. If the line was not in the shaped lines cache, it will
+    /// be first re-shaped.
+    pub fn with_shaped_line<T>(&self, line: Line, mut f: impl FnMut(&ShapedLine) -> T) -> T {
+        let mut shaped_lines = self.shaped_lines.borrow_mut();
+        if let Some(shaped_line) = shaped_lines.get(&line) {
+            f(shaped_line)
+        } else {
+            let shaped_line = self.shape_line(line);
+            let out = f(&shaped_line);
+            shaped_lines.insert(line, shaped_line);
+            out
+        }
+    }
+
+    /// Recompute the shape of the provided byte range.
+    fn shape_range(&self, range: Range<Byte>) -> Vec<ShapedGlyphSet> {
+        let line_style = self.sub_style(range.clone());
+        let rope = self.rope.sub(range);
+        let content = rope.to_string();
+        let glyph_system = self.glyph_system.borrow();
+        let font = &glyph_system.font;
+        let mut glyph_sets = vec![];
+        let mut prev_chunk_cluster_byte_offset = 0;
+        let mut grapheme_byte_offset = Byte(0);
+        for (range, requested_non_variable_variations) in
+            Self::chunks_per_font_face(font, &line_style, &rope)
+        {
+            let non_variable_variations_match =
+                font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
+            let non_variable_variations = non_variable_variations_match.variations;
+            if non_variable_variations_match.was_closest() {
+                warn!(
+                    "The font is not defined for the variation {:?}. Using {:?} instead.",
+                    requested_non_variable_variations, non_variable_variations
+                );
+            }
+            font.with_borrowed_face(non_variable_variations, |face| {
+                let ttf_face = face.ttf.as_face_ref();
+                let units_per_em = ttf_face.units_per_em();
+                let ascender = ttf_face.ascender();
+                let descender = ttf_face.descender();
+                let line_gap = ttf_face.line_gap();
+                // This is safe. Unwrap should be removed after rustybuzz is fixed:
+                // https://github.com/RazrFalcon/rustybuzz/issues/52
+                let buzz_face = rustybuzz::Face::from_face(ttf_face.clone()).unwrap();
+                let mut buffer = rustybuzz::UnicodeBuffer::new();
+                buffer.push_str(&content[range.start.value..range.end.value]);
+                let shaped = rustybuzz::shape(&buzz_face, &[], buffer);
+                let variable_variations = default();
+                let glyphs = shaped
+                    .glyph_positions()
+                    .iter()
+                    .zip(shaped.glyph_infos())
+                    .filter_map(|(&position, &info)| {
+                        let mut info = info;
+                        // TODO: Add support for variable fonts here.
+                        // let variable_variations = glyph.variations.borrow();
+                        let glyph_id = GlyphId(info.glyph_id as u16);
+                        let render_info = font.glyph_info_of_known_face(
+                            non_variable_variations,
+                            &variable_variations,
+                            glyph_id,
+                            face,
+                        );
+                        info.cluster += prev_chunk_cluster_byte_offset;
+                        if Byte(info.cluster as usize) < grapheme_byte_offset {
+                            // This glyph is part of the previous grapheme cluster. This is caused
+                            // by font not supporting displaying this grapheme cluster. We will not
+                            // display it.
+                            None
+                        } else {
+                            match rope.next_grapheme_offset(grapheme_byte_offset) {
+                                None => error!("Misaligned grapheme cluster boundary."),
+                                Some(next_grapheme_byte_offset) => {
+                                    grapheme_byte_offset = next_grapheme_byte_offset;
+                                }
+                            }
+                            Some(ShapedGlyph { position, info, render_info })
+                        }
+                    })
+                    .collect();
+                let shaped_glyph_set = ShapedGlyphSet {
+                    units_per_em,
+                    ascender,
+                    descender,
+                    line_gap,
+                    non_variable_variations,
+                    glyphs,
+                };
+                glyph_sets.push(shaped_glyph_set);
+            });
+            prev_chunk_cluster_byte_offset = range.end.value as u32;
+        }
+        glyph_sets
+    }
+
+    /// Recompute the shape of the provided line index.
+    pub fn shape_line(&self, line: Line) -> ShapedLine {
+        let line_range = self.byte_range_of_line_index_snapped(line);
+        let glyph_sets = self.shape_range(line_range.clone());
+        match NonEmptyVec::try_from(glyph_sets) {
+            Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },
+            Err(_) => {
+                if let Some(prev_grapheme_off) = self.rope.prev_grapheme_offset(line_range.start) {
+                    let prev_char_range = prev_grapheme_off..line_range.start;
+                    let prev_glyph_sets = self.shape_range(prev_char_range);
+                    let last_glyph_set = prev_glyph_sets.into_iter().last();
+                    let prev_glyph_info = last_glyph_set.map(|t| (prev_grapheme_off, t));
+                    ShapedLine::Empty { prev_glyph_info }
+                } else {
+                    ShapedLine::Empty { prev_glyph_info: None }
+                }
+            }
+        }
+    }
+
+    /// Return list of spans for different [`NonVariableFaceHeader`]. The result will be aligned
+    /// with grapheme cluster boundaries. If the face header changes inside a grapheme cluster, the
+    /// cluster will be associated with the header it starts with.
+    pub fn chunks_per_font_face<'a>(
+        font: &'a Font,
+        line_style: &'a Formatting,
+        rope: &'a Rope,
+    ) -> impl Iterator<Item = (Range<Byte>, NonVariableFaceHeader)> + 'a {
+        gen_iter!(move {
+            match font {
+                Font::NonVariable(_) =>
+                    for chunk in line_style.chunks_per_font_face(rope) {
+                        yield chunk;
+                    }
+                Font::Variable(_) => {
+                    let range = Byte(0)..rope.len();
+                    // For variable fonts, we do not care about non-variable variations.
+                    let non_variable_variations = NonVariableFaceHeader::default();
+                    yield (range, non_variable_variations);
+                }
+            }
+        })
+    }
+}
+
+
+
 // =============================
 // === Redrawing And Updates ===
 // =============================
@@ -897,15 +1130,32 @@ impl TextModel {
                 let lines_to_redraw = changes
                     .iter()
                     .filter_map(|change_with_selection| {
+                        // Updating shaped lines cache.
+                        let line_diff = change_with_selection.line_diff;
+                        let redraw_start_line = *change_with_selection.change_range.start();
+                        let redraw_end_line = *change_with_selection.change_range.end();
+                        if line_diff != LineDiff(0) {
+                            let mut shaped_lines = self.shaped_lines.borrow_mut();
+                            let to_update = shaped_lines.drain_filter(|l, _| *l > redraw_end_line);
+                            let updated = to_update.map(|(l, s)| (l + line_diff, s)).collect_vec();
+                            shaped_lines.extend(updated);
+                        }
+                        let redraw_range_end = (redraw_end_line + line_diff).value;
+                        let redraw_range = redraw_start_line.value..=redraw_range_end;
+                        for line in redraw_range {
+                            let line = Line(line);
+                            self.shaped_lines.borrow_mut().remove(&line);
+                        }
+
+                        // Updating lines.
                         let change_start = change_with_selection.selection.start.line;
                         let change_end = change_with_selection.selection.end.line;
                         let view_change_range = change_start..=change_end;
-                        let line_diff = change_with_selection.line_diff;
                         let first_line_index = *view_change_range.start();
                         let second_line_index = first_line_index.inc();
-
                         let mut lines = self.lines.borrow_mut();
                         let first_line_baseline = lines[first_line_index].baseline();
+
                         #[allow(clippy::comparison_chain)]
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
@@ -1023,7 +1273,7 @@ impl TextModel {
     /// when necessary as it is very costly.
     #[profile(Debug)]
     pub fn redraw(&self) {
-        self.buffer.clear_shaped_lines_cache();
+        self.clear_shaped_lines_cache();
         let end = ViewLine::try_from_in_context(&self.buffer, self.buffer.last_view_line());
         // FIXME: Unwrap used here. To be fixed when view area will be implemented properly.
         let end = end.unwrap();
@@ -1058,9 +1308,9 @@ impl TextModel {
         let mut truncated = false;
         let default_size = self.buffer.formatting.size().default;
         let line_index = Line::from_in_context_snapped(self, view_line);
-        self.buffer.with_shaped_line(line_index, |shaped_line| {
+        self.with_shaped_line(line_index, |shaped_line| {
             match shaped_line {
-                buffer::ShapedLine::NonEmpty { glyph_sets } => {
+                ShapedLine::NonEmpty { glyph_sets } => {
                     let glyph_system = self.glyph_system.borrow();
                     let view_width = self.frp.output.view_width.value();
                     let long_text_truncation_mode =
@@ -1135,7 +1385,7 @@ impl TextModel {
                         warn!("Internal error. Line metrics was not computed.")
                     }
                 }
-                buffer::ShapedLine::Empty { prev_glyph_info } => {
+                ShapedLine::Empty { prev_glyph_info } => {
                     if let Some((offset, shaped_glyph_set)) = prev_glyph_info {
                         let line_style = self.buffer.sub_style(*offset..);
                         let mut line_style_iter = line_style.iter_bytes();
@@ -1175,7 +1425,7 @@ impl TextModel {
             let range = buffer::Range::<Location>::from_in_context_snapped(self, range);
             let line_range = range.start.line..=range.end.line;
             for line_index in line_range {
-                self.buffer.clear_shaped_lines_cache_for_line(line_index);
+                self.clear_shaped_lines_cache_for_line(line_index);
             }
             let view_line_start = ViewLine::from_in_context_snapped(self, range.start.line);
             let view_line_end = ViewLine::from_in_context_snapped(self, range.end.line);
