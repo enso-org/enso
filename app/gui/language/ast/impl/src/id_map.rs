@@ -4,6 +4,7 @@
 //! source file: the parser gives the id of particular span to the AST node representing that span.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 
 use crate::Id;

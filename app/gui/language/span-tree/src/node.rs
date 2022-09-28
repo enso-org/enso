@@ -1,6 +1,7 @@
 //! A module with SpanTree structure definition.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 
 use crate::iter::LeafIterator;
@@ -850,7 +851,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::crumbs;
-    use enso_text::unit::*;
+    use enso_text::index::*;
 
     #[test]
     fn node_lookup() {

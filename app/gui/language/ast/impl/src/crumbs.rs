@@ -2,6 +2,7 @@
 //! possible in a constant time.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 

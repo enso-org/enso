@@ -568,6 +568,7 @@ impl TextEdit {
         source: impl Into<enso_text::Rope>,
         target: impl Into<enso_text::Rope>,
     ) -> TextEdit {
+        use enso_text::index::*;
         use enso_text::unit::*;
         use enso_text::Range;
 

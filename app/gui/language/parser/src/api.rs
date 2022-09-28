@@ -1,6 +1,7 @@
 //! A module containing structures and traits used in parser API.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 
@@ -196,7 +197,8 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let before_metadata = "\n";
         let metadata = to_json_single_line(&self.metadata)?;
 
-        let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
+        let id_map_start =
+            code.len().value + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
         let id_map_start_bytes = Byte::from(id_map_start);
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
         let metadata_start_bytes = Byte::from(metadata_start);

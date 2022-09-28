@@ -12,6 +12,7 @@ use crate::prelude::*;
 
 use ast_macros::*;
 use enso_shapely::*;
+use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 use serde::de::Deserializer;

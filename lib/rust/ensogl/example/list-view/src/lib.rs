@@ -24,7 +24,7 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_text::unit::Byte;
+use enso_text::index::Byte;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
