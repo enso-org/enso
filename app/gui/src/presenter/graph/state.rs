@@ -492,7 +492,7 @@ impl<'a> ControllerChange<'a> {
             None | Some(Value) => None,
             Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
             Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
-            Some(Pending { message: _, progress: _ }) => Some((Kind::Panic, Some("Pending...".to_string()), Vec::new())),
+            Some(Pending { .. }) => Some((Kind::Panic, Some("Pending...".to_string()), Vec::new())),
         }?;
         let propagated = if kind == Kind::Panic {
             let nodes = self.nodes.borrow();
