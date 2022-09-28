@@ -169,13 +169,8 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
-    // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("a\nfghij");
-    // area.set_content("abcde🧑🏾1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
-    // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
-    // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
-    // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_font("default");
     area.focus();
     area.hover();
 
@@ -183,17 +178,13 @@ fn init(app: Application) {
     borders.show(&app, &area);
 
 
-    // TODO: Fixmes and TODOS in the code
-
     // TODO: Task na unit testyy do textow
     // TODO: next PR - > Text area to gui component.
 
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
-
     app.display.default_scene.add_child(&area);
-
 
     let area = Rc::new(RefCell::new(Some(area)));
     init_debug_hotkeys(&area);
