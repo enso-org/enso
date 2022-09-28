@@ -61,7 +61,6 @@ pub mod background {
     // We don't use the usual padding of sprites, because we clip the shadow under the background
     // and clipping the shadow shape with `*` operator causes glitches.
     // See https://www.pivotaltracker.com/story/show/182593513
-
     ensogl_core::define_shape_system! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         pointer_events = false;

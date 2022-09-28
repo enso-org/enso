@@ -175,9 +175,7 @@ pub fn main() {
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(|&id| get_entry_model(id));
             _adjust <- scene.frp.shape.map(adjust_pixels);
         }
-        // grid.scroll_frp().resize(Vector2(405.0, 406.0));
-        // grid.set_entries_size(entry_size);
-        // grid.set_entries_params(&params);
+
         // grid.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
         // grid.selection_highlight_frp().set_entries_params(selection_params);
         // grid.reset_entries(provider.layout.row_count(), provider.layout.column_count());

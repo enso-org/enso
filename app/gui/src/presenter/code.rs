@@ -85,7 +85,7 @@ impl Code {
             );
             text_area.set_content <+ code_in_controller.gate(&desynchronized).map(|s| s.to_string());
 
-            maybe_change_to_apply <= text_area.changed;
+            maybe_change_to_apply <= text_area.changed.map(|c| (*c).clone());
             change_to_apply <- maybe_change_to_apply.gate(&desynchronized);
             eval change_to_apply ((change) model.apply_change_from_view(change));
 

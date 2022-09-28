@@ -45,6 +45,7 @@ pub use content::ElementId;
 pub use content::GroupEntryId;
 pub use content::GroupId;
 pub use content::SectionId;
+use ensogl_core::display::scene::Layer;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
 
@@ -131,6 +132,7 @@ impl Style {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     grid:   Grid,
+    selection_layer: Layer,
     layout: Rc<RefCell<Layout>>,
     colors: Rc<RefCell<HashMap<GroupId, color::Rgba>>>,
 }
@@ -323,8 +325,10 @@ impl component::Model for Model {
         let grid = Grid::new(app);
         let layout = default();
         let colors = default();
-
-        Self { grid, layout, colors }
+        let base_layer = &app.display.default_scene.layers.node_searcher;
+        let selection_layer = base_layer.create_sublayer();
+        grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+        Self { grid, layout, colors, selection_layer }
     }
 }
 

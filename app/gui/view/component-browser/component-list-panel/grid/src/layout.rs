@@ -221,7 +221,6 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ide_view_component_group::set::SectionId;
 
     const LEFT: usize = 0;
     const CENTER: usize = 1;
@@ -230,13 +229,14 @@ mod tests {
     #[test]
     fn group_layout() {
         let group_ids =
-            (0..6).map(|index| GroupId { section: SectionId::Favorites, index }).collect_vec();
+            (0..6).map(|index| GroupId { section: SectionId::Popular, index }).collect_vec();
         let group_sizes = vec![2, 1, 3, 3, 2, 1];
         let group_data = group_ids.iter().zip(group_sizes.into_iter());
         let mk_group = |(id, size): (&GroupId, usize)| Group {
             id:              *id,
             height:          size,
             original_height: size,
+            color: default()
         };
         let groups = group_data.map(mk_group).collect_vec();
         let groups_in_columns =
@@ -301,9 +301,10 @@ mod tests {
     fn group_layouts_with_empty_column_and_local_scope() {
         let mut layout = Layout::new(3, 3, 0);
         let group = Group {
-            id:              GroupId { section: SectionId::Favorites, index: 0 },
+            id:              GroupId { section: SectionId::Popular, index: 0 },
             height:          2,
             original_height: 2,
+            color: default(),
         };
         layout.push_group(CENTER, group);
 
@@ -311,7 +312,7 @@ mod tests {
         assert_eq!(
             layout.element_at_location(2, CENTER),
             Some(ElementId {
-                group:   GroupId { section: SectionId::Favorites, index: 0 },
+                group:   GroupId { section: SectionId::Popular, index: 0 },
                 element: ElementInGroup::Entry(1),
             })
         );

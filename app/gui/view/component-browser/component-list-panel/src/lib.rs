@@ -5,7 +5,7 @@
 //! To learn more about the Component Browser and its components, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
-#![recursion_limit = "512"]
+#![recursion_limit = "4096"]
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(negative_impls)]

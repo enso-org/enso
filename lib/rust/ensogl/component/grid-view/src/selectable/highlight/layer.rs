@@ -70,6 +70,11 @@ impl<InnerGridView> Handler<InnerGridView> {
         base_grid.add_child(&grid);
         grid.add_child(&shape);
 
+        // let dummy = shape::View::new(Logger::new("Dummy"));
+        // grid.add_child(&dummy);
+        // entries.add_exclusive(&dummy);
+        // mem::forget(dummy);
+
         // The order of instructions below is very important! We need to initialize the viewport
         // and entries size first, because its required to receive `model_for_entry` events after
         // resizing grid properly.

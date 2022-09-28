@@ -108,7 +108,7 @@ macro_rules! define_icons {
         }
 
         impl FromStr for Id {
-            type Err = $crate::icon::UnknownIcon;
+            type Err = $crate::entry::icon::UnknownIcon;
             fn from_str(s: &str) -> Result<Id, Self::Err> {
                 match s {
                     $(stringify!($variant) => Ok(Self::$variant),)*
