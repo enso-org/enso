@@ -1060,7 +1060,7 @@ impl TextModel {
                         yield chunk;
                     }
                 Font::Variable(_) => {
-                    let range = Byte(0)..rope.len();
+                    let range = Byte(0)..rope.last_byte_index();
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);

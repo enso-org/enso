@@ -590,7 +590,7 @@ impl BufferModel {
         text: Rope,
         transform: Option<Transform>,
     ) -> Modification {
-        let text_byte_size = text.len();
+        let text_byte_size = text.last_byte_index();
         let transformed = match transform {
             Some(t) if selection.is_cursor() => self.moved_selection_region(t, selection, true),
             _ => selection,

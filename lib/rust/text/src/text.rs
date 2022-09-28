@@ -65,7 +65,12 @@ impl Rope {
     }
 
     /// Length of the text in bytes.
-    pub fn len(&self) -> Byte {
+    pub fn len(&self) -> Bytes {
+        Bytes(self.rope.len())
+    }
+
+    /// Last byte index in text. There is no glyph after this byte index.
+    pub fn last_byte_index(&self) -> Byte {
         Byte(self.rope.len())
     }
 
@@ -89,7 +94,7 @@ impl Rope {
 
     /// Range of the text in bytes.
     pub fn byte_range(&self) -> Range<Byte> {
-        (..self.len()).into()
+        (..self.last_byte_index()).into()
     }
 
     /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
@@ -157,17 +162,17 @@ impl Rope {
 
     /// The last column number of the last line.
     pub fn last_line_end_column(&self) -> Column {
-        self.column_of_byte_offset(self.len()).unwrap()
+        self.column_of_byte_offset(self.last_byte_index()).unwrap()
     }
 
     /// The end location of the last line.
     pub fn last_line_end_in_line_offset(&self) -> Byte {
-        self.in_line_offset_of_offset(self.len()).unwrap()
+        self.in_line_offset_of_offset(self.last_byte_index()).unwrap()
     }
 
     /// The byte offset of the end of the last line. Equal to the byte size of the whole text.
     pub fn last_line_end_byte_offset(&self) -> Byte {
-        self.len()
+        self.last_byte_index()
     }
 
     /// The location of the last character in the text.
@@ -200,7 +205,7 @@ impl Rope {
     /// Constraint the provided byte range, so it will be contained of the range of this data. This
     /// ensures that the resulting byte range will be valid for operations on this data.
     pub fn crop_byte_range(&self, range: impl RangeBounds) -> Range<Byte> {
-        range.with_upper_bound(self.len())
+        range.with_upper_bound(self.last_byte_index())
     }
 
     /// Check whether the provided line index is valid in this text.
@@ -220,7 +225,7 @@ impl Rope {
         use BoundsError::*;
         if offset < 0.byte() {
             Err(TooSmall)
-        } else if offset > self.len() {
+        } else if offset > self.last_byte_index() {
             Err(TooBig)
         } else {
             Ok(offset)
@@ -253,7 +258,7 @@ impl Rope {
                     .unwrap_or(prev1)
             })
         });
-        let out = next_line_prev.unwrap_or_else(|| self.len());
+        let out = next_line_prev.unwrap_or_else(|| self.last_byte_index());
         out
     }
 
@@ -379,7 +384,7 @@ impl Rope {
     /// The location of text end.
     pub fn location_of_text_end(&self) -> Location<Byte> {
         let lines_count = self.lines(self.byte_range()).count();
-        let last_char_off = self.prev_codepoint_offset(self.len());
+        let last_char_off = self.prev_codepoint_offset(self.last_byte_index());
         let last_char = last_char_off.map(|off| self.rope.slice_to_cow(off.value..));
         let ends_with_eol = last_char.map_or(false, |ch| ch.starts_with('\n'));
         if ends_with_eol {
@@ -788,8 +793,12 @@ impl RopeCell {
         self.cell.borrow().grapheme_count()
     }
 
-    pub fn len(&self) -> Byte {
+    pub fn len(&self) -> Bytes {
         self.cell.borrow().len()
+    }
+
+    pub fn last_byte_index(&self) -> Byte {
+        self.cell.borrow().last_byte_index()
     }
 
     pub fn byte_range(&self) -> Range<Byte> {

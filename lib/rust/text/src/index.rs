@@ -60,7 +60,12 @@ impl Add<ByteDiff> for Byte {
     type Output = Byte;
     fn add(self, rhs: ByteDiff) -> Self::Output {
         let value = self.value as i32 + rhs.value;
-        Byte(value as usize)
+        if value < 0 {
+            error!("Addition of ByteDiff resulted in negative value.");
+            Byte(0)
+        } else {
+            Byte(value as usize)
+        }
     }
 }
 
@@ -72,6 +77,39 @@ impl AddAssign<ByteDiff> for Byte {
 
 impl SubAssign<ByteDiff> for Byte {
     fn sub_assign(&mut self, rhs: ByteDiff) {
+        *self = *self - rhs
+    }
+}
+
+impl Sub<Bytes> for Byte {
+    type Output = Byte;
+    fn sub(self, rhs: Bytes) -> Self::Output {
+        let value = self.value as i32 - rhs.value as i32;
+        if value < 0 {
+            error!("Subtraction of Bytes resulted in negative value.");
+            Byte(0)
+        } else {
+            Byte(value as usize)
+        }
+    }
+}
+
+impl Add<Bytes> for Byte {
+    type Output = Byte;
+    fn add(self, rhs: Bytes) -> Self::Output {
+        let value = self.value + rhs.value;
+        Byte(value)
+    }
+}
+
+impl AddAssign<Bytes> for Byte {
+    fn add_assign(&mut self, rhs: Bytes) {
+        *self = *self + rhs
+    }
+}
+
+impl SubAssign<Bytes> for Byte {
+    fn sub_assign(&mut self, rhs: Bytes) {
         *self = *self - rhs
     }
 }

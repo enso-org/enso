@@ -207,7 +207,7 @@ impl<M: Metadata> ParsedSourceFile<M> {
                 "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
                                  {before_metadata}{metadata}"
             ),
-            code:     (0.byte()..Byte::from(code.len())).into(),
+            code:     (0.byte()..code.len().to_byte()).into(),
             id_map:   (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len()))
                 .into(),
             metadata: (metadata_start_bytes..metadata_start_bytes + ByteDiff::from(metadata.len()))

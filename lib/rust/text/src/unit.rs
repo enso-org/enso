@@ -15,8 +15,40 @@ use enso_types::unit;
 /// Common traits.
 pub mod traits {
     pub use super::byte_diff::Into as TRAIT_byte_diff_into;
+    pub use super::bytes::Into as TRAIT_bytes_into;
 }
 pub use traits::*;
+
+
+
+// =============
+// === Bytes ===
+// =============
+
+unit! {
+/// A number of bytes.
+Bytes::bytes(usize)
+}
+
+impl<T: Into<Bytes>> bytes::Into for Range<T> {
+    type Output = Range<Bytes>;
+    fn bytes(self) -> Self::Output {
+        let start = self.start.into();
+        let end = self.end.into();
+        Range { start, end }
+    }
+}
+
+impl Bytes {
+    /// Convert the byte length to a byte index.
+    pub fn to_byte(self) -> Byte {
+        Byte(self.value)
+    }
+
+    pub fn to_diff(self) -> ByteDiff {
+        ByteDiff(self.value as i32)
+    }
+}
 
 
 
@@ -54,6 +86,34 @@ impl From<usize> for ByteDiff {
 impl From<&usize> for ByteDiff {
     fn from(t: &usize) -> Self {
         (*t as i32).into()
+    }
+}
+
+impl Sub<Bytes> for ByteDiff {
+    type Output = ByteDiff;
+    fn sub(self, rhs: Bytes) -> Self::Output {
+        let value = self.value - rhs.value as i32;
+        ByteDiff(value)
+    }
+}
+
+impl Add<Bytes> for ByteDiff {
+    type Output = ByteDiff;
+    fn add(self, rhs: Bytes) -> Self::Output {
+        let value = self.value + rhs.value as i32;
+        ByteDiff(value)
+    }
+}
+
+impl AddAssign<Bytes> for ByteDiff {
+    fn add_assign(&mut self, rhs: Bytes) {
+        *self = *self + rhs
+    }
+}
+
+impl SubAssign<Bytes> for ByteDiff {
+    fn sub_assign(&mut self, rhs: Bytes) {
+        *self = *self - rhs
     }
 }
 

@@ -1,6 +1,7 @@
 //! Definition of the node input port component.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 use ensogl::display::shape::*;

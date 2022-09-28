@@ -574,8 +574,8 @@ impl TextEdit {
 
         let source = source.into();
         let target = target.into();
-        let source_len = (source.len() as i32).byte_diff();
-        let target_len = (target.len() as i32).byte_diff();
+        let source_len = source.len().to_diff();
+        let target_len = target.len().to_diff();
         let common_lengths = source.common_prefix_and_suffix(&target);
 
         let source_start_byte = 0.byte() + common_lengths.prefix;
