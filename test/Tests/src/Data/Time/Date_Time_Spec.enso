@@ -315,6 +315,13 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
+        Test.specify "should correctly determine the type of datetime" <|
+            new_datetime = create_new_datetime 2020 6 1 10 0 0
+            parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
+
+            Meta.type_of new_datetime . should_equal_type Date_Time.Date_Time
+            Meta.type_of parsed_datetime . should_equal_type Date_Time.Date_Time
+
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Date_Period containing the current datetime" <|
             d1 = create_new_datetime 2022 9 12 15 37 58

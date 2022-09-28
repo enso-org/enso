@@ -1,3 +1,6 @@
+from project.Data.Boolean.Boolean import all
+from project.Data.Boolean.Boolean export all
+
 @Builtin_Type
 type Boolean
     True

@@ -1,0 +1,27 @@
+from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import Sample
+import Standard.Base.Data.Time.Duration
+
+import Standard.Test.Bench
+
+polyglot java import java.util.Random
+
+main =
+    iter_size = 50
+    num_iterations = 10
+
+    first_day = Date.new 2020 1 1
+    dates = Vector.new 1000 (x -> first_day + x.days)
+    holidays = dates.take (Sample 100 100)
+    shifts = [1, 5, 20, 100]
+
+    shifts.each shift->
+        shifted_dates = dates.map (d -> d + shift.days)
+        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2) "(Shift="+shift.to_text+") work_days_until" iter_size num_iterations
+        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays) "(Shift="+shift.to_text+") work_days_until with holidays" iter_size num_iterations
+
+        Bench.measure (dates.map date-> date + shift.days) "(Shift="+shift.to_text+") add regular days" iter_size num_iterations
+        Bench.measure (dates.map date-> date.add_work_days shift) "(Shift="+shift.to_text+") add work days" iter_size num_iterations
+        Bench.measure (dates.map date-> date.add_work_days shift holidays=holidays) "(Shift="+shift.to_text+") add work days with holidays" iter_size num_iterations
+
+    Nothing

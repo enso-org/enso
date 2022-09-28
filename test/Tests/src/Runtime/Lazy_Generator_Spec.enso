@@ -1,16 +1,16 @@
 import Standard.Test
 
 type Generator
-    Generator_Data h t
+    Value h t
 
 natural =
-    gen ~n = if (n >= 10) then self else Generator_Data n (@Tail_Call gen n+1)
+    gen ~n = if (n >= 10) then self else Generator.Value n (@Tail_Call gen n+1)
     gen 2
 
 Generator.n self = case self of
-    Generator_Data n _ -> n
+    Generator.Value n _ -> n
 Generator.next self = case self of
-    Generator_Data _ n -> n
+    Generator.Value _ n -> n
 
 spec = Test.group "Lazy Generator" <|
     Test.specify "Generates four numbers properly" <|

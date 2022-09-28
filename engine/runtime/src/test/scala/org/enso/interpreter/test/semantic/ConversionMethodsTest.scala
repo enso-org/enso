@@ -18,10 +18,10 @@ class ConversionMethodsTest extends InterpreterTest {
           |type Baz
           |    Mk_Baz baz
           |
-          |Foo.from (that:Bar) = Mk_Foo that.bar
-          |Foo.from (that:Baz) = Mk_Foo that.baz
+          |Foo.from (that:Bar) = Foo.Mk_Foo that.bar
+          |Foo.from (that:Baz) = Foo.Mk_Foo that.baz
           |
-          |main = (Foo.from (Mk_Baz 10)).foo + (Foo.from (Mk_Bar 20)).foo
+          |main = (Foo.from (Baz.Mk_Baz 10)).foo + (Foo.from (Bar.Mk_Bar 20)).foo
           |""".stripMargin
       eval(code) shouldEqual 30
     }

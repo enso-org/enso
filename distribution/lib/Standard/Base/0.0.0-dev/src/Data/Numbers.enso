@@ -977,6 +977,10 @@ type Integer
         Panic.catch NumberFormatException (Long.parseLong text radix) _->
              Error.throw (Parse_Error_Data text)
 
+# TODO Dubious constructor export
+from project.Data.Numbers.Parse_Error import all
+from project.Data.Numbers.Parse_Error export all
+
 ## UNSTABLE
 
    A syntax error when parsing a double.

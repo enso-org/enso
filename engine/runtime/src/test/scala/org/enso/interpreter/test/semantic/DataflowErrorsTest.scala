@@ -72,7 +72,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch_primitive Mk_My_Cons)
+          |    IO.println (unitErr.catch_primitive My_Cons.Mk_My_Cons)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Cons Nothing)")
@@ -89,10 +89,10 @@ class DataflowErrorsTest extends InterpreterTest {
           |    Mk_My_Error x
           |
           |My_Error.recover self = case self of
-          |    Mk_My_Error x -> Mk_My_Recovered x
+          |    My_Error.Mk_My_Error x -> My_Recovered.Mk_My_Recovered x
           |
           |main =
-          |    myErr = Error.throw (Mk_My_Error 20)
+          |    myErr = Error.throw (My_Error.Mk_My_Error 20)
           |    IO.println(myErr.catch_primitive .recover)
           |""".stripMargin
       eval(code)
@@ -115,7 +115,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    broken_val = Error.throw My_Error
-          |    atom = Mk_My_Atom broken_val
+          |    atom = My_Atom.Mk_My_Atom broken_val
           |
           |    IO.println atom
           |""".stripMargin

@@ -290,6 +290,10 @@ from_language_tag tag =
     java_locale = JavaLocale.forLanguageTag tag
     from_java java_locale
 
+# TODO Dubious constructor export
+from project.Data.Locale.Locale import all
+from project.Data.Locale.Locale export all
+
 ## A type representing a locale.
 
    A locale consists of three parts:

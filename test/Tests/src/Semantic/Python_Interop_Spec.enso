@@ -6,7 +6,7 @@ foreign python my_method a b = """
     return a + b
 
 type My_Type
-    My_Type_Data a b
+    Value a b
 
     foreign python my_method self = """
         return self.a + self.b
@@ -17,7 +17,7 @@ type My_Type
         r = self.my_method_2(y)
         return r + 1
 
-    foreign python my_throw = """
+    foreign python my_throw self = """
         err = RuntimeError('Error!')
         raise err
 
@@ -75,7 +75,7 @@ spec =
             my_method 1 2 . should_equal 3
 
         Test.specify "should allow mutual calling of instance-level methods" <|
-            My_Type_Data 3 4 . my_method_3 5 . should_equal 36
+            My_Type.Value 3 4 . my_method_3 5 . should_equal 36
 
         Test.specify "should expose methods and fields of Python objects" <|
             obj = make_object
@@ -145,14 +145,14 @@ spec =
             py_null . should_equal Nothing
 
         Test.specify "should allow Enso to catch Python exceptions" <|
-            value = My_Type_Data 1 2
+            value = My_Type.Value 1 2
             result = Panic.recover Any <| value.my_throw
             err = result.catch
             err.cause.args.at 0 . should_equal 'Error!'
             err.cause.to_text . should_equal "RuntimeError('Error!')"
 
         Test.specify "should allow Python to catch Enso exceptions" <|
-            value = My_Type_Data 7 2
+            value = My_Type.Value 7 2
             result = value.do_catch
             result . should_equal 7
 

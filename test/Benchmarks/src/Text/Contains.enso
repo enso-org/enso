@@ -24,7 +24,7 @@ main =
         Bench.measure (check_all big_random ["AAAAAA"] Text_Matcher) suite_prefix+" exact" 10 10
         Bench.measure (check_all big_random ["AAAAAA"] (Text_Matcher Sort_Direction)) suite_prefix+" case-insensitive" 10 10
         Bench.measure (check_all big_random ["AAAAAA"] Regex_Matcher) suite_prefix+" exact regex" 10 10
-        Bench.measure (check_all big_random ["AAAAAA"] (Regex_Matcher case_sensitive=Case_Insensitive)) suite_prefix+" case-insensitive regex" 10 10
+        Bench.measure (check_all big_random ["AAAAAA"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive)) suite_prefix+" case-insensitive regex" 10 10
         Bench.measure (check_all big_random ["A.{5000}A"] Regex_Matcher) suite_prefix+" const-width regex" 10 10
         Bench.measure (check_all big_random ["AAAAA.*AAAAA"] Regex_Matcher) suite_prefix+" wildcard regex" 10 10
 

@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Test
 
 spec = Test.group "Natural Order" <|
-    case_insensitive_compare a b = Natural_Order.compare a b Case_Insensitive_Data
+    case_insensitive_compare a b = Natural_Order.compare a b Case_Sensitivity.Insensitive
 
     Test.specify "should behave as shown in examples" <|
         Natural_Order.compare "a2" "a100" . should_equal Ordering.Less

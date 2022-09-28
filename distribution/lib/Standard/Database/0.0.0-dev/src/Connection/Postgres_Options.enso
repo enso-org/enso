@@ -16,6 +16,10 @@ import Standard.Database.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
+# TODO Dubious constructor export
+from project.Connection.Postgres_Options.Postgres_Options import all
+from project.Connection.Postgres_Options.Postgres_Options export all
+
 type Postgres_Options
     ## Connect to a PostgreSQL database.
 

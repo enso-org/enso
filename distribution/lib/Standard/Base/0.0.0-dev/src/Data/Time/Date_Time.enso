@@ -564,5 +564,9 @@ type Date_Time
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
     == self that =
-        sign = Time_Utils.compare_to_zoneddatetime self that
-        0 == sign
+        case that of
+            Date_Time ->
+                sign = Time_Utils.compare_to_zoneddatetime self that
+                0 == sign
+            _ ->
+                False

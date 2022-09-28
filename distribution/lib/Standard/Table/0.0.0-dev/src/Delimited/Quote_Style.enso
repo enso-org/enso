@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Delimited.Quote_Style.Quote_Style import all
+from project.Delimited.Quote_Style.Quote_Style export all
+
 type Quote_Style
     ## Does not handle quotes at all.
 

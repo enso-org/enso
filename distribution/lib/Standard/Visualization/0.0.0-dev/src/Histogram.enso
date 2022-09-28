@@ -18,6 +18,10 @@ Table.Table.value_column self =
     named_col = self.lookup_ignore_case 'value'
     named_col.catch_ self.first_numeric
 
+# TODO Dubious constructor export
+from project.Histogram.Update import all
+from project.Histogram.Update export all
+
 ## PRIVATE
 
    Information that are placed in an update sent to a visualization.

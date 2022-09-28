@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Test
 
+from project.Semantic.Default_Args_Spec.Box import all
+
 type Box
     type Foo (v : Bool = True)
 

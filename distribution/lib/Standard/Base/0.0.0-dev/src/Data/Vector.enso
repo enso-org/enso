@@ -932,8 +932,9 @@ type Vector a
         json = self.take (First 100) . to_json
         json.to_text
 
-## PRIVATE
-type Wrapped_Error error
+# TODO Dubious constructor export
+from project.Data.Vector.Builder import all
+from project.Data.Vector.Builder export all
 
 type Builder
 

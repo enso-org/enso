@@ -284,7 +284,7 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(65, 11)
+    val idMain   = metadata.addItem(65, 15)
 
     val code =
       """from Standard.Base import all
@@ -294,7 +294,7 @@ class BuiltinTypesTest
         |    Baz
         |
         |main =
-        |    Bar 42
+        |    Foo.Bar 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 
@@ -304,7 +304,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Bar"),
+      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
       context.executionComplete(contextId)
     )
   }
@@ -314,7 +314,7 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(65, 8)
+    val idMain   = metadata.addItem(65, 12)
 
     val code =
       """from Standard.Base import all
@@ -324,7 +324,7 @@ class BuiltinTypesTest
         |    Baz
         |
         |main =
-        |    Bar
+        |    Foo.Bar
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 
@@ -334,7 +334,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Bar"),
+      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
       context.executionComplete(contextId)
     )
   }

@@ -43,6 +43,10 @@ run command arguments=[] =
 new_builder : Text -> Vector Text -> Text -> Builder
 new_builder command arguments=[] stdin="" = Builder_Data command arguments stdin
 
+# TODO Dubious constructor export
+from project.System.Process.Builder import all
+from project.System.Process.Builder export all
+
 ## UNSTABLE
 
    The builder object that is used to create operating system processes.

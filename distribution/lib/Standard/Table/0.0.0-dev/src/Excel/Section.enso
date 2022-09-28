@@ -2,6 +2,10 @@ from Standard.Base import all
 
 from Standard.Table.Excel.Range import Excel_Range
 
+# TODO Dubious constructor export
+from project.Excel.Section.Excel_Section import all
+from project.Excel.Section.Excel_Section export all
+
 type Excel_Section
     ## Gets a list of sheets within a workbook.
     Sheet_Names

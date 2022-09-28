@@ -5,6 +5,10 @@ import Standard.Image.Data.Image
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 
 
+# TODO Dubious constructor export
+from project.Data.Histogram.Histogram import all
+from project.Data.Histogram.Histogram export all
+
 ## UNSTABLE
 type Histogram
 

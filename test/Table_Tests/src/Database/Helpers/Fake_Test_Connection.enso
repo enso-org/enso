@@ -6,6 +6,10 @@ import Standard.Database.Data.Table as Database_Table
 from Standard.Database.Data.SQL import Statement, SQL_Type
 import Standard.Database.Internal.IR
 
+# TODO Dubious constructor export
+from project.Database.Helpers.Fake_Test_Connection.Fake_Test_Connection import all
+from project.Database.Helpers.Fake_Test_Connection.Fake_Test_Connection export all
+
 type Fake_Test_Connection
     # type Fake_Test_Connection_Data (tables : Map Text (Vector [Text, SQL_Type])) (dialect : Text)
     Fake_Test_Connection_Data tables dialect

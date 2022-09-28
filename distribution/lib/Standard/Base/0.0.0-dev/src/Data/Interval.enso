@@ -48,6 +48,10 @@ end_exclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Exclusive
 inclusive : Number -> Number -> Interval
 inclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Inclusive end)
 
+# TODO Dubious constructor export
+from project.Data.Interval.Interval import all
+from project.Data.Interval.Interval export all
+
 ## A type representing an interval over real numbers.
 type Interval
 

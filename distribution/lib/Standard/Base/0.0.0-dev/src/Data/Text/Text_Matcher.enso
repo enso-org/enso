@@ -1,0 +1,72 @@
+from Standard.Base import all
+from Standard.Base.Data.Text.Matching import match_criteria_implementation
+
+# TODO Dubious constructor export
+from project.Data.Text.Text_Matcher.Text_Matcher import all
+from project.Data.Text.Text_Matcher.Text_Matcher export all
+
+## Represents exact text matching mode.
+type Text_Matcher
+    ## Represents exact text matching mode.
+    Case_Sensitive
+
+    ## Represents case-insensitive text matching mode.
+    Case_Insensitive (locale:Locale=Locale.default)
+
+    ## UNSTABLE
+       Checks if a name matches the provided criterion according to the specified
+       matching strategy.
+
+       Arguments:
+       - name: A `Text` representing the name being matched.
+       - criterion: A `Text` representing the name to be matched.
+
+       > Example
+         Check if the provided name matches a regular expression.
+
+             Text_Matcher.match_single_criterion "Foobar" "foo" == False
+    match_single_criterion : Text -> Text -> Boolean
+    match_single_criterion self name criterion = case self of
+        Case_Sensitive -> name == criterion
+        Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
+
+    ## UNSTABLE
+       Selects objects from an input list that match any of the provided criteria.
+
+       Arguments:
+       - objects: A list of objects to be matched.
+       - criteria: A list of texts representing the matching criteria. Their meaning
+         depends on the matching strategy.
+       - reorder: Specifies whether to reorder the matched objects according to the
+         order of the matching criteria.
+         If `False`, the matched entries are returned in the same order as in the
+         input.
+         If `True`, the matched entries are returned in the order of the criteria
+         matching them. If a single object has been matched by multiple criteria, it
+         is placed in the group belonging to the first matching criterion on the
+         list.
+         If a single criterion's group has more than one element, their relative
+         order is the same as in the input.
+       - name_mapper: A function mapping a provided object to its name, which will
+         then be matched with the criteria. It is set to the identity function by
+         default, thus allowing the input to be a list of names to match. But it can
+         be overridden to enable matching more complex objects.
+       - matcher: A `Matcher` instance specifying how to interpret the criterion.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+
+       > Example
+         Selects objects matching one of the provided patterns, preserving the input order.
+
+             Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+
+       > Example
+         Selects pairs matching their first element with the provided criteria and
+         ordering the result according to the order of criteria that matched them.
+
+             Text_Matcher.match_criteria [Pair_Data "foo" 42, Pair_Data "bar" 33, Pair_Data "baz" 10, Pair_Data "foo" 0, Pair_Data 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair_Data "bar" 33, Pair_Data "foo" 42, Pair_Data "foo" 0]
+    match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
+    match_criteria self = match_criteria_implementation self
