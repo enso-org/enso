@@ -60,6 +60,8 @@ pub mod prelude {
 }
 
 pub const COLUMN_COUNT: usize = 3;
+pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
+
 
 #[derive(Clone, Debug, Default)]
 pub struct HeaderModel {
@@ -97,6 +99,11 @@ ensogl_core::define_endpoints_2! {
 
 pub type Grid = grid_view::scrollable::SelectableGridViewWithHeaders<entry::View, entry::View>;
 
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct GroupColors {
+    variants: [color::Rgba; GROUP_COLOR_VARIANT_COUNT],
+    local_scope_group: color::Rgba,
+}
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
 #[base_path = "theme"]
@@ -134,7 +141,7 @@ pub struct Model {
     grid:   Grid,
     selection_layer: Layer,
     layout: Rc<RefCell<Layout>>,
-    colors: Rc<RefCell<HashMap<GroupId, color::Rgba>>>,
+    colors: Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
 }
 
 impl Model {
@@ -143,10 +150,20 @@ impl Model {
         let layout = layouter.create_layout(content.local_scope_size);
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
-        let colors =
-            content.groups.iter().filter_map(|g| Some((g.id, color::Rgba::from(g.color?))));
-        *self.colors.borrow_mut() = colors.collect();
+        *self.colors.borrow_mut() = Self::collect_colors(content);
         rows_and_cols
+    }
+
+    fn collect_colors(content: &content::Info) -> HashMap<GroupId, entry::MainColor> {
+        let variants = (0..).map(|i| i % GROUP_COLOR_VARIANT_COUNT);
+        content.groups.iter().zip(variants).map(|(group, variant)| {
+            let color = match (group.color, group.id.section) {
+                (Some(color), _) => entry::MainColor::Custom(color.into()),
+                (None, SectionId::LocalScope) => entry::MainColor::LocalScope,
+                _ => entry::MainColor::Predefined {variant},
+            };
+            (group.id, color)
+        }).collect()
     }
 
     fn location_to_headers_group_id(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
@@ -211,15 +228,17 @@ impl Model {
 
     fn entries_params(
         &self,
-        (style, entry_style, color_intensities): &(
+        (style, entry_style, color_intensities, group_colors): &(
             Style,
             entry::Style,
             entry::style::ColorIntensities,
+            GroupColors
         ),
     ) -> entry::Params {
         entry::Params {
             style:             entry_style.clone(),
             grid_style:        *style,
+            group_colors:      *group_colors,
             color_intensities: *color_intensities,
             dimmed_groups:     entry::DimmedGroups::None,
         }
@@ -264,7 +283,8 @@ impl component::Frp<Model> for Frp {
             entry_style <- source::<entry::Style>();
             color_intensities <- source::<entry::style::ColorIntensities>();
             selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
-            entries_style <- all(style.update, entry_style, color_intensities);
+            group_colors <- source::<GroupColors>();
+            entries_style <- all(style.update, entry_style, color_intensities, group_colors);
             entries_params <- entries_style.map(f!((input) model.entries_params(input)));
             selection_entries_style <- all(entries_params, selection_color_intensities);
             selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
@@ -279,9 +299,7 @@ impl component::Frp<Model> for Frp {
 
         // Set the proper number of columns so we can set column widths.
         grid.resize_grid(0, COLUMN_COUNT);
-        tracing::warn!("X");
         style.init.emit(());
-        tracing::warn!("XX");
         //TODO[ao] fix FromTheme and use it to get those values (without using source nodes).
         entry_style.emit(entry::Style {
             padding:                  17.0,
@@ -293,7 +311,6 @@ impl component::Frp<Model> for Frp {
             highlight_bold:           0.04,
             header_shadow_size:       27.0,
         });
-        tracing::warn!("XXX");
         color_intensities.emit(entry::style::ColorIntensities {
             text:            1.0,
             background:      0.2,
@@ -302,12 +319,20 @@ impl component::Frp<Model> for Frp {
             icon_strong:     1.0,
             icon_weak:       0.5,
         });
-        tracing::warn!("XXXX");
         selection_color_intensities.emit(entry::style::SelectionColorIntensities {
             text:        0.2,
             background:  1.0,
             icon_strong: 0.2,
             icon_weak:   0.5,
+        });
+        group_colors.emit(GroupColors {
+            variants: [color::Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),
+                color::Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),
+                color::Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),
+                color::Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),
+                color::Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),
+                color::Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0)],
+            local_scope_group: color::Rgba(0.0, 0.42, 0.64, 1.0),
         });
     }
 

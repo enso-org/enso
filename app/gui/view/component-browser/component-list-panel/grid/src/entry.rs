@@ -6,7 +6,7 @@ use crate::content::GroupId;
 use crate::content::SectionId;
 use crate::entry::style::ColorIntensities;
 use crate::entry::style::Colors;
-use crate::Style as GridStyle;
+use crate::{GroupColors, Style as GridStyle};
 
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -109,12 +109,33 @@ pub enum Kind {
 
 // === Model ===
 
+#[derive(Clone, Copy, Debug)]
+pub enum MainColor {
+    Predefined {variant: usize}, Custom(color::Rgba), LocalScope
+}
+
+impl Default for MainColor {
+    fn default() -> Self {
+        Self::Predefined {variant: 0}
+    }
+}
+
+impl MainColor {
+    fn obtain(self, group_colors: &GroupColors) -> color::Rgba {
+        match self {
+            Self::Predefined { variant } => group_colors.variants[variant % group_colors.variants.len()],
+            Self::Custom(color) => color,
+            Self::LocalScope => group_colors.local_scope_group,
+        }
+    }
+}
+
 /// The [model](grid_view::entry::Entry) for Component Browser Entry.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub kind:        Kind,
-    pub color:       color::Rgba,
+    pub color:       MainColor,
     pub caption:     ImString,
     pub highlighted: Rc<Vec<text::Range<text::Bytes>>>,
     pub icon:        Option<icon::Id>,
@@ -159,6 +180,7 @@ pub struct Params {
     pub style:             Style,
     pub grid_style:        GridStyle,
     pub color_intensities: ColorIntensities,
+    pub group_colors:      GroupColors,
     pub dimmed_groups:     DimmedGroups,
 }
 
@@ -393,6 +415,7 @@ impl grid_view::Entry for View {
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
             color_intensities <- input.set_params.map(|p| p.color_intensities).on_change();
+            group_colors <- input.set_params.map(|p| p.group_colors).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
             layout_data <- all(kind_and_style, input.set_size);
@@ -409,7 +432,8 @@ impl grid_view::Entry for View {
 
             // === Colors ===
 
-            color <- input.set_model.map(|m| m.color);
+            color_variant <- input.set_model.map(|m| m.color);
+            color <- all_with(&color_variant, &group_colors, |c, g| c.obtain(g));
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
