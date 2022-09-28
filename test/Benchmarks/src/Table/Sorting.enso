@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+import Standard.Table
+from Standard.Table import Column_Selector
+from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
+
+## Bench Utilities ============================================================
+
+vector_size = 2500
+iter_size = 20
+num_iterations = 10
+
+# The Benchmarks ==============================================================
+main =
+
+#    Bench.measure (table.aggregate [Count Nothing]) "Count table" iter_size num_iterations
+

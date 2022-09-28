@@ -150,11 +150,11 @@ spec =
 
         Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
             no_ord_set.compute . should_equal 3
-            no_ord_set.compute Minimum . should_fail_with Vector.Incomparable_Values_Error
-            no_ord_set.compute Maximum . should_fail_with Vector.Incomparable_Values_Error
+            no_ord_set.compute Minimum . should_fail_with Incomparable_Values_Error
+            no_ord_set.compute Maximum . should_fail_with Incomparable_Values_Error
 
         Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
-            [1, False].compute Minimum . should_fail_with Vector.Incomparable_Values_Error
+            [1, False].compute Minimum . should_fail_with Incomparable_Values_Error
 
     Test.group "Rank Data" <|
         Test.specify "can rank a Decimal data series" <|
@@ -179,10 +179,10 @@ spec =
 
         Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
             values = [No_Ord.Value 10, No_Ord.Value 2, No_Ord.Value 9]
-            rank_data values . should_fail_with Vector.Incomparable_Values_Error
+            rank_data values . should_fail_with Incomparable_Values_Error
 
         Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
-            rank_data [1, "A"] . should_fail_with Vector.Incomparable_Values_Error
+            rank_data [1, "A"] . should_fail_with Incomparable_Values_Error
 
         Test.specify "should fail with Illegal_Argument_Error on Vectors with Nothing" <|
             rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument_Error_Data
