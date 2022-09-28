@@ -1162,7 +1162,29 @@ where T: TryFromInContext<&'t BufferModel, U>
 }
 
 
+// === Conversion Redirection ===
+
+/// Redirects the conversion to [`Rope`] counterpart of conversion function. This trait introduces
+/// a new metric, the [`ViewLine`] and extends [`Rope`] conversions with it.
+macro_rules! redirect_conversion_to_rope {
+    ([$($ctx:tt)*] [$($from:tt)*] [$($to:tt)*]) => {
+        impl<$($ctx)*> FromInContextSnapped<&BufferModel, $($from)*> for $($to)*
+            where for<'t> $($to)*: enso_text::FromInContextSnapped<&'t Rope, $($from)*>
+        {
+            fn from_in_context_snapped(buffer: &BufferModel, value: $($from)*) -> Self {
+                <$($to)* as enso_text::FromInContextSnapped<&Rope, $($from)*>>::
+                    from_in_context_snapped(&*buffer.rope.text.borrow(),value)
+            }
+        }
+    };
+}
+
+
+
 // === Conversions to Line ===
+
+redirect_conversion_to_rope!([T][Location<T, Line>][Line]);
+redirect_conversion_to_rope!([][Byte][Line]);
 
 /// Conversion error between [`ViewLine`] and [`Line`].
 #[allow(missing_docs)]
@@ -1200,21 +1222,9 @@ impl FromInContextSnapped<&BufferModel, ViewLine> for Line {
     }
 }
 
-impl<T> FromInContextSnapped<&BufferModel, Location<T, Line>> for Line {
-    fn from_in_context_snapped(_: &BufferModel, location: Location<T, Line>) -> Self {
-        location.line
-    }
-}
-
 impl<T> FromInContextSnapped<&BufferModel, Location<T, ViewLine>> for Line {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<T, ViewLine>) -> Self {
         Line::from_in_context_snapped(buffer, location.line)
-    }
-}
-
-impl FromInContextSnapped<&BufferModel, Byte> for Line {
-    fn from_in_context_snapped(buffer: &BufferModel, offset: Byte) -> Self {
-        Location::<Byte, Line>::from_in_context_snapped(buffer, offset).line
     }
 }
 
@@ -1298,46 +1308,8 @@ impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Byte {
 
 // === Conversions to Location<Column, Line> ===
 
-impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Location<Column, Line> {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
-        let out = buffer.with_shaped_line(location.line, |shaped_line| {
-            let mut column = Column(0);
-            let mut found_column = None;
-            if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
-                for glyph_set in glyph_sets {
-                    for glyph in &glyph_set.glyphs {
-                        let byte_offset = Byte(glyph.info.cluster as usize);
-                        if byte_offset >= location.offset {
-                            if byte_offset > location.offset {
-                                error!("Glyph byte offset mismatch");
-                            }
-                            found_column = Some(column);
-                            break;
-                        }
-                        column += Column(1);
-                    }
-                    if found_column.is_some() {
-                        break;
-                    }
-                }
-            }
-            found_column.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                let offset = buffer.line_byte_length(location.line);
-                if offset != location.offset {
-                    // Too big glyph offset requested, returning last column.
-                }
-                location.with_offset(column)
-            })
-        });
-        let out2 = <Location<Column, Line> as enso_text::FromInContextSnapped<
-            &enso_text::Rope,
-            Location<Byte, Line>,
-        >>::from_in_context_snapped(&*buffer.rope.text.borrow(), location);
-        warn!(">> 1 {:?}", out);
-        warn!(">> 2 {:?}", out2);
-        out
-    }
-}
+redirect_conversion_to_rope!([][Location<Byte, Line>][Location<Column, Line>]);
+redirect_conversion_to_rope!([][Byte][Location<Column, Line>]);
 
 impl FromInContextSnapped<&BufferModel, Location<Column, ViewLine>> for Location<Column, Line> {
     fn from_in_context_snapped(
@@ -1353,15 +1325,6 @@ impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Location<C
     fn from_in_context_snapped(context: &BufferModel, location: Location<Byte, ViewLine>) -> Self {
         let line = Line::from_in_context_snapped(context, location.line);
         Location::from_in_context_snapped(context, Location(line, location.offset))
-    }
-}
-
-impl FromInContextSnapped<&BufferModel, Byte> for Location<Column, Line> {
-    fn from_in_context_snapped(context: &BufferModel, offset: Byte) -> Self {
-        Location::from_in_context_snapped(
-            context,
-            Location::<Byte>::from_in_context_snapped(context, offset),
-        )
     }
 }
 
@@ -1430,55 +1393,8 @@ impl FromInContextSnapped<&BufferModel, Byte> for Location<Column, ViewLine> {
 
 // === Conversions to Location<Byte, Line> ===
 
-impl FromInContextSnapped<&BufferModel, Location<Column, Line>> for Location<Byte, Line> {
-    fn from_in_context_snapped(buffer: &BufferModel, location: Location<Column, Line>) -> Self {
-        let out = buffer.with_shaped_line(location.line, |shaped_line| {
-            let mut byte_offset = None;
-            let mut found = false;
-            let mut column = Column(0);
-            if let ShapedLine::NonEmpty { glyph_sets } = &shaped_line {
-                for glyph_set in glyph_sets {
-                    for glyph in &glyph_set.glyphs {
-                        if column == location.offset {
-                            byte_offset = Some(Byte(glyph.info.cluster as usize));
-                            found = true;
-                            break;
-                        }
-                        column += Column(1);
-                    }
-                    if found {
-                        break;
-                    }
-                }
-            }
-            let out = byte_offset.map(|t| location.with_offset(t)).unwrap_or_else(|| {
-                // Too big column requested, returning last column.
-                let end_byte_offset = buffer.end_byte_offset_of_line_index(location.line).unwrap();
-                let location2 =
-                    Location::<Byte, Line>::from_in_context_snapped(buffer, end_byte_offset);
-                let offset = location2.offset;
-                location.with_offset(offset)
-            });
-            out
-        });
-        let out2 = <Location<Byte, Line> as enso_text::FromInContextSnapped<
-            &enso_text::Rope,
-            Location<Column, Line>,
-        >>::from_in_context_snapped(&*buffer.rope.text.borrow(), location);
-        warn!(">> x1 {:?}", out);
-        warn!(">> x2 {:?}", out2);
-        out
-    }
-}
-
-impl FromInContextSnapped<&BufferModel, Byte> for Location<Byte, Line> {
-    fn from_in_context_snapped(context: &BufferModel, offset: Byte) -> Self {
-        let line = context.line_index_of_byte_offset_snapped(offset);
-        let line_offset = context.byte_offset_of_line_index(line).unwrap();
-        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
-        Location(line, byte_offset)
-    }
-}
+redirect_conversion_to_rope!([][Location<Column, Line>][Location<Byte, Line>]);
+redirect_conversion_to_rope!([][Byte][Location<Byte, Line>]);
 
 impl FromInContextSnapped<&BufferModel, Location<Byte, ViewLine>> for Location<Byte, Line> {
     fn from_in_context_snapped(buffer: &BufferModel, offset: Location<Byte, ViewLine>) -> Self {
