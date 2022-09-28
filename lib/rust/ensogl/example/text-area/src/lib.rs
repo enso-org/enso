@@ -152,7 +152,7 @@ impl Borders {
 // === Entry Point ===
 // ===================
 
-/// Main example runner.ட்
+/// Main example runner.
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
@@ -169,7 +169,8 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("abcdefg");
     // area.set_font("default");
     area.focus();
     area.hover();
