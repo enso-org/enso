@@ -878,9 +878,9 @@ impl<'s> From<Token<'s>> for Tree<'s> {
             token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
             token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
             token::Variant::OpenSymbol(s) =>
-                Tree::group(Some(token.with_variant(s)), default(), default()),
+                Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
             token::Variant::CloseSymbol(s) =>
-                Tree::group(default(), default(), Some(token.with_variant(s))),
+                Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
             // These should be unreachable: They are handled when assembling items into blocks,
             // before parsing proper.
             token::Variant::Newline(_)

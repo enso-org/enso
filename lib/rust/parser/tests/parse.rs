@@ -54,9 +54,16 @@ fn application() {
 }
 
 #[test]
-fn parentheses_simple() {
-    let expected = block![(Group (App (Ident a) (Ident b)))];
-    test("(a b)", expected);
+fn parentheses() {
+    test("(a b)", block![(Group (App (Ident a) (Ident b)))]);
+    test("x)", block![(App (Ident x) (Invalid))]);
+    test("(x", block![(App (Invalid) (Ident x))]);
+    #[rustfmt::skip]
+    let expected = block![
+        (Group
+         (App (Group (App (Ident a) (Ident b)))
+              (Ident c)))];
+    test("((a b) c)", expected);
 }
 
 #[test]
@@ -65,16 +72,6 @@ fn section_simple() {
     test("+ a", expected_lhs);
     let expected_rhs = block![(OprSectionBoundary 1 0 (OprApp (Ident a) (Ok "+") ()))];
     test("a +", expected_rhs);
-}
-
-#[test]
-fn parentheses_nested() {
-    #[rustfmt::skip]
-    let expected = block![
-        (Group
-         (App (Group (App (Ident a) (Ident b)))
-              (Ident c)))];
-    test("((a b) c)", expected);
 }
 
 #[test]
