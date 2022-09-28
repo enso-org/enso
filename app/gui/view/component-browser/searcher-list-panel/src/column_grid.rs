@@ -294,12 +294,12 @@ fn get_layout(
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         _app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        let network = &frp_api.network;
         let input = &frp_api.input;
         let (layout_update, init) = get_layout(network, style);
 

@@ -680,7 +680,7 @@ impl Node {
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
-        let network = &frp.private.network;
+        let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
         let model = Rc::new(NodeModel::new(app, registry));

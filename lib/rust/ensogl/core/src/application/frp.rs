@@ -512,16 +512,18 @@ macro_rules! define_endpoints_emit_alias {
 /// Trait that describes the structure of the FRP API in terms of its public and private parts. This
 /// trait allows the `Component` (`lib/rust/ensogl/component/gui/src/component.rs`) to distinguish
 /// between public and private APIs for any API generated through the `define_endpoints_2` macro.
-pub trait API {
+pub trait API: crate::application::command::FrpNetworkProvider {
     /// Public part of this API. To be used when sending events into the API and receiving
     /// events from the API.
     type Public: crate::application::command::CommandApi;
+
     /// Private part of this API. To be used when receiving events sent into the public API and
     /// creating events to the public API outputs.
     type Private;
 
     /// Getter for `Self::Private`.
     fn private(&self) -> &Self::Private;
+
     /// Getter for `Self::Public`
     fn public(&self) -> &Self::Public;
 }
@@ -1188,17 +1190,14 @@ macro_rules! define_endpoints_2_normalized_private {
         pub struct Private $($ctx)* {
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
-            pub network: $crate::frp::Network,
         }
 
         impl $($ctx)* Private $($param)* {
             pub fn new(
                 input: private::Input $($param)*,
                 output: private::Output $($param)*,
-                network: &$crate::frp::Network,
             ) -> Self {
-                let network = network.clone_ref();
-                Self {input, output, network}
+                Self {input, output}
             }
         }
 
@@ -1293,7 +1292,7 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
                     let combined = api::public::Combined::new(&pub_input,&pub_output);
                     let public = api::Public::new(pub_input, pub_output, combined);
-                    let private = api::Private::new(priv_input, priv_output, &network);
+                    let private = api::Private::new(priv_input, priv_output);
                     Self { public, private, network }
                 }
             }

@@ -903,7 +903,7 @@ impl Area {
         self.init_port_frp_on_new_expression(&mut new_expression);
         self.init_new_expression(new_expression);
         if self.frp.editing.value() {
-            self.model.label.set_cursor_at_end();
+            self.model.label.set_cursor_at_text_end();
         }
     }
 }

@@ -410,8 +410,13 @@ ensogl::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, app: &Application, model: &Model, style: &StyleWatchFrp) {
-        let network = &api.network;
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        app: &Application,
+        model: &Model,
+        style: &StyleWatchFrp,
+    ) {
         let mouse_position = app.display.default_scene.mouse.frp.position.clone_ref();
         let input = &api.input;
         let out = &api.output;
