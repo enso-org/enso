@@ -120,12 +120,6 @@ impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
 
 
 
-// ===============
-// === Shaping ===
-// ===============
-
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -619,19 +613,6 @@ impl BufferModel {
         let selected_line_count = redraw_end_line - redraw_start_line + Line(1);
         let inserted_line_count = local_byte_selection.end.line - redraw_start_line + Line(1);
         let line_diff = inserted_line_count - selected_line_count;
-
-        // if line_diff != LineDiff(0) {
-        //     let mut shaped_lines = self.shaped_lines.borrow_mut();
-        //     let to_update = shaped_lines.drain_filter(|line, _| *line > redraw_end_line);
-        //     let to_update = to_update.map(|(line, s)| (line + line_diff, s)).collect_vec();
-        //     shaped_lines.extend(to_update);
-        // }
-        //
-        // let redraw_range = redraw_start_line.value..=(redraw_end_line + line_diff).value;
-        // for line in redraw_range {
-        //     let line = Line(line);
-        //     self.shaped_lines.borrow_mut().remove(&line);
-        // }
 
         let loc_selection =
             Selection::<Location>::from_in_context_snapped(self, new_byte_selection);
@@ -1175,7 +1156,6 @@ where T: FromInContextSnapped<&'t BufferModel, S>
         Range::new(start, end)
     }
 }
-
 
 
 // === Selections ===

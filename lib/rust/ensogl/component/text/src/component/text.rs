@@ -763,23 +763,23 @@ impl TextModel {
     }
 
     fn init_line(&self, line: &line::View) {
-        // TODO: Use Line Network tu
-        if let Some(network) = self.frp.network.upgrade() {
-            frp::extend! { network
-                self.frp.private.output.refresh_height <+_ line.descent;
-            }
+        let network = line.frp.network();
+        frp::extend! { network
+            self.frp.private.output.refresh_height <+_ line.descent;
         }
     }
 
-    // FIXME: docs
+    /// Helper for newline creation. It is used to create a new line during model initialization,
+    /// and thus, it can't be a method.
     fn new_line_helper(
         frame_time: &enso_frp::Stream<f32>,
         display_object: &display::object::Instance,
         default_size: f32,
     ) -> line::View {
+        let default_ascender_to_descender_ratio = 0.1;
         let line = line::View::new(frame_time);
         let ascender = default_size;
-        let descender = ascender / 10.0; // FIXME: magic value
+        let descender = ascender * default_ascender_to_descender_ratio;
         let gap = 0.0;
         let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
@@ -1221,12 +1221,11 @@ impl TextModel {
             } else {
                 let frame_time = &self.app.display.default_scene.frp.frame_time;
                 let selection = Selection::new(frame_time, do_edit);
-                if let Some(network) = self.frp.network.upgrade() {
-                    let out = &self.frp.private.output;
-                    frp::extend! { network
-                        out.refresh_height <+_ selection.position;
-                        out.refresh_width <+_ selection.right_side_of_last_attached_glyph;
-                    }
+                let network = selection.network();
+                let out = &self.frp.private.output;
+                frp::extend! { network
+                    out.refresh_height <+_ selection.position;
+                    out.refresh_width <+_ selection.right_side_of_last_attached_glyph;
                 }
                 self.add_child(&selection);
                 selection.set_color(self.frp.output.selection_color.value());
@@ -2005,20 +2004,19 @@ impl application::View for Text {
 // === Tests ===
 // =============
 
-// FIXME:
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     /// Assert that there is no inherent memory leak in the [text::Text].
-//     #[test]
-//     fn assert_no_leak() {
-//         let app = Application::new("root");
-//         let text = app.new_view::<Text>();
-//         let text_frp = Rc::downgrade(&text.frp);
-//         let text_data = Rc::downgrade(&text.data);
-//         drop(text);
-//         assert_eq!(text_frp.strong_count(), 0, "There are FRP references left.");
-//         assert_eq!(text_data.strong_count(), 0, "There are  data references left.");
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Assert that there is no inherent memory leak in the [text::Text].
+    #[test]
+    fn assert_no_leak() {
+        let app = Application::new("root");
+        let text = app.new_view::<Text>();
+        let text_frp = text.frp.downgrade();
+        let text_data = Rc::downgrade(&text.data);
+        drop(text);
+        assert_eq!(text_frp.strong_count(), 0, "There are FRP references left.");
+        assert_eq!(text_data.strong_count(), 0, "There are  data references left.");
+    }
+}
