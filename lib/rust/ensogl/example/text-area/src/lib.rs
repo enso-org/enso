@@ -186,10 +186,10 @@ fn init(app: Application) {
 
 
 
-    // TODO: Bug, last added line - no animation
     // TODO: add desription for this demo scene
     // TODO: shortucts requested by Adam
     // TODO: check if empty text area sends width info
+    // TODO: Fixmes and TODOS in the code
 
     // TODO: Task na unit testyy do textow
     // TODO: Remove network from FRP::Private

@@ -204,6 +204,7 @@ ensogl_core::define_endpoints_2! {
         set_metrics(Metrics),
         /// Set the baseline y-axis position.
         set_baseline(f32),
+        skip_baseline_animation(),
 
         // === Internal API ===
 
@@ -266,6 +267,7 @@ impl View {
             // === Baseline and metrics ===
 
             baseline_anim.target <+ frp.set_baseline;
+            baseline_anim.skip <+ frp.skip_baseline_animation;
             eval baseline_anim.value ((y) display_object.set_position_y(*y));
 
             new_baseline <- baseline_anim.value.on_change();

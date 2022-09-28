@@ -530,7 +530,6 @@ impl Text {
             eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
             key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
-            eval_ key_down([] warn!("----------"));
             key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
             key_to_insert <= key_down.map(f!((key) m.key_to_string(key).map(ImString::from)));
             str_to_insert <- any(&input.insert, &key_to_insert);
@@ -902,9 +901,11 @@ impl TextModel {
                         let change_end = change_with_selection.selection.end.line;
                         let view_change_range = change_start..=change_end;
                         let line_diff = change_with_selection.line_diff;
-                        let second_line_index = view_change_range.start().inc();
+                        let first_line_index = *view_change_range.start();
+                        let second_line_index = first_line_index.inc();
 
                         let mut lines = self.lines.borrow_mut();
+                        let first_line_baseline = lines[first_line_index].baseline();
                         #[allow(clippy::comparison_chain)]
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
@@ -912,8 +913,13 @@ impl TextModel {
                             let line_diff = line_diff.value as usize;
                             for i in 0..line_diff {
                                 let index_to_insert = second_line_index + ViewLine(i);
+                                let new_line = self.new_line();
+                                new_line.set_baseline(first_line_baseline);
+                                new_line.skip_baseline_animation();
                                 if index_to_insert < ViewLine(lines.len()) {
-                                    lines.insert(index_to_insert, self.new_line());
+                                    lines.insert(index_to_insert, new_line);
+                                } else {
+                                    lines.push(new_line);
                                 }
                             }
                         } else if line_diff < LineDiff(0) {
