@@ -185,20 +185,13 @@ fn init(app: Application) {
 
 
 
-    // TODO: Byte -> Bytes, Bytes -> BytesDiff
-    // TODO: macrem definiowanie NotSame
-    // TODO: Lines -> ViewLines
-    // TODO: API -> struct Text + style guide?
-    // TODO: next PR - > Text area to gui component.
-    // TODO - sel_end_1 -> sel_end_on_click etc
-    // TOOD: bufferView / buffermodel - better names
-    // TODO: Check if profiling works well with new animation loops (if time works there nicely)
     // TODO: Bug, last added line - no animation
-    // TODO: Remove network from FRP::Private
     // TODO: add desription for this demo scene
+    // TODO: shortucts requested by Adam
 
     // TODO: Task na unit testyy do textow
-    // TODO: -> prelude CRange
+    // TODO: Remove network from FRP::Private
+    // TODO: next PR - > Text area to gui component.
 
 
     // area.set_cursor_at_end();

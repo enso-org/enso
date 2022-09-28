@@ -158,7 +158,7 @@ pub trait OnFrameCallback = FnMut(TimeInfo) + 'static;
 
 crate::define_endpoints_2! {
     Output {
-        on_frame_start(TimeInfo),
+        on_frame_start(Duration),
         on_before_animations(TimeInfo),
         on_after_animations(TimeInfo),
         on_before_rendering(TimeInfo),
@@ -173,7 +173,7 @@ thread_local! {
 }
 
 /// Fires at the beginning of every animation frame.
-pub fn on_frame_start() -> enso_frp::Sampler<TimeInfo> {
+pub fn on_frame_start() -> enso_frp::Sampler<Duration> {
     LOOP_REGISTRY.with(|registry| registry.on_frame_start.clone_ref())
 }
 
@@ -248,15 +248,14 @@ fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::MutNoArgs) -> OnF
     let on_before_animations = frp.private.output.on_before_animations.clone_ref();
     let on_after_animations = frp.private.output.on_after_animations.clone_ref();
     let on_before_rendering = frp.private.output.on_before_rendering.clone_ref();
-    let mut frame_start_fn = create_callback_wrapper(move |t| on_frame_start.emit(t));
     let mut frame_end_fn = create_callback_wrapper(move |t| frame_end.emit(t));
     let mut before_animations_fn = create_callback_wrapper(move |t| on_before_animations.emit(t));
     let mut after_animations_fn = create_callback_wrapper(move |t| on_after_animations.emit(t));
     let mut before_rendering_fn = create_callback_wrapper(move |t| on_before_rendering.emit(t));
     let callbacks = callbacks.clone_ref();
-    move |_: Duration| {
+    move |t: Duration| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
-        frame_start_fn();
+        on_frame_start.emit(t);
         before_animations_fn();
         callbacks.run_all();
         after_animations_fn();

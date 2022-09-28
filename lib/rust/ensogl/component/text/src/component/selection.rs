@@ -195,7 +195,7 @@ impl Selection {
             width.skip <+ frp.skip_width_animation;
             frp.private.output.width_target <+ frp.set_width_target;
             frp.private.output.width <+ width.value;
-            not_blinking.target <+ frp.set_width_target.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
+            not_blinking.target <+ frp.set_width_target.map(|v| if *v == 0.0 { 0.0 } else { 1.0 });
             eval not_blinking.value ((v) model.view.not_blinking.set(*v));
 
 

@@ -22,9 +22,11 @@ use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::system::web;
 
+use enso_types::unit2::Duration;
 use web::prelude::Closure;
 use web::JsCast;
 use web::JsValue;
+
 
 
 // ==============
@@ -159,7 +161,7 @@ impl WorldDataWithLoop {
         let on_before_rendering = animation::on_before_rendering();
         let network = frp.network();
         crate::frp::extend! {network
-            eval_ on_frame_start (data.run_stats());
+            eval on_frame_start ((t) data.run_stats(*t));
             eval on_before_rendering ((t) data.run_next_frame(*t));
         }
 
@@ -317,8 +319,8 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
-    fn run_stats(&self) {
-        let previous_frame_stats = self.stats.begin_frame();
+    fn run_stats(&self, time: Duration) {
+        let previous_frame_stats = self.stats.begin_frame(time);
         if let Some(stats) = previous_frame_stats {
             self.on.prev_frame_stats.run_all(&stats);
         }
