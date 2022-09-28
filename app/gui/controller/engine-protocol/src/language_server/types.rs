@@ -582,9 +582,9 @@ impl TextEdit {
 
         let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
         let source_start_position =
-            source_start_position.mod_offset(|b| enso_text::Utf16CodeUnit(0));
+            source.utf16_code_unit_location_of_location(source_start_position);
         let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
-        let source_end_position = source_end_position.mod_offset(|b| enso_text::Utf16CodeUnit(0));
+        let source_end_position = source.utf16_code_unit_location_of_location(source_end_position);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
         let start = 0.byte() + common_lengths.prefix;

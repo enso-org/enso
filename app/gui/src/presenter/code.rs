@@ -80,7 +80,7 @@ impl Code {
             desynchronized <- all_with(&code_in_controller, &text_area.content, |controller, view|
                 *controller != view.to_string()
             );
-            text_area.set_content <+ code_in_controller.gate(&desynchronized).map(|s| s.to_string());
+            text_area.set_content <+ code_in_controller.gate(&desynchronized);
 
             maybe_change_to_apply <= text_area.changed;
             change_to_apply <- maybe_change_to_apply.gate(&desynchronized);
