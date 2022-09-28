@@ -1130,16 +1130,16 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.1.5"
+version = "3.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced1892c55c910c1219e98d6fc8d71f6bddba7905866ce740066d8bfea859312"
+checksum = "85a35a599b11c089a7f49105658d089b8f2cf0882993c17daf6de15285c2c35d"
 dependencies = [
  "atty",
  "bitflags",
  "clap_derive",
+ "clap_lex",
  "indexmap",
  "lazy_static",
- "os_str_bytes",
  "strsim",
  "termcolor",
  "terminal_size",
@@ -1148,15 +1148,24 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.18"
+version = "3.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
+checksum = "a3aab4734e083b809aaf5794e14e756d1c798d2c69c7f7de7a09a2f5214993c1"
 dependencies = [
  "heck",
  "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
+dependencies = [
+ "os_str_bytes",
 ]
 
 [[package]]
@@ -1868,7 +1877,7 @@ dependencies = [
  "cached",
  "cfg-if 1.0.0",
  "chrono",
- "clap 3.1.5",
+ "clap 3.1.15",
  "console-subscriber",
  "derivative",
  "derive_more",
@@ -1932,7 +1941,7 @@ dependencies = [
  "anyhow",
  "byte-unit",
  "chrono",
- "clap 3.1.5",
+ "clap 3.1.15",
  "derivative",
  "enso-build",
  "futures 0.3.24",
@@ -3804,7 +3813,7 @@ dependencies = [
  "cached",
  "cfg-if 1.0.0",
  "chrono",
- "clap 3.1.5",
+ "clap 3.1.15",
  "convert_case 0.6.0",
  "cron",
  "data-encoding",
@@ -4359,7 +4368,7 @@ dependencies = [
 name = "logstat"
 version = "0.1.0"
 dependencies = [
- "clap 3.1.5",
+ "clap 3.1.15",
  "enso-prelude",
  "lazy_static",
  "regex",
@@ -4982,9 +4991,6 @@ name = "os_str_bytes"
 version = "6.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "ouroboros"
@@ -7681,7 +7687,7 @@ name = "wstest"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.0",
- "clap 3.1.5",
+ "clap 3.1.15",
  "either",
  "enso-prelude",
  "futures 0.3.24",
