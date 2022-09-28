@@ -347,7 +347,8 @@ impl View {
         if column.value < self.divs.len() {
             self.divs[column.value]
         } else {
-            error!("Requested column is bigger then glyph amount.");
+            // Requested column is bigger then glyph amount. This can happen for example when text
+            // is truncated and the cursor is in the truncated area.
             *self.divs.last()
         }
     }
