@@ -836,6 +836,10 @@ impl RopeCell {
         self.cell.borrow().last_line_end_location()
     }
 
+    pub fn line_last_column(&self, line: Line) -> Result<Column, BoundsError> {
+        self.cell.borrow().line_last_column(line)
+    }
+
     pub fn validate_line_index(&self, line: Line) -> Result<Line, BoundsError> {
         self.cell.borrow().validate_line_index(line)
     }

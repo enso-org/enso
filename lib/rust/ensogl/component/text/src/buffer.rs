@@ -440,7 +440,7 @@ impl BufferModel {
 
     /// Last column of the provided line index.
     pub fn line_last_column(&self, line: Line) -> Column {
-        self.with_shaped_line(line, |shaped_line| Column(shaped_line.glyph_count()))
+        self.rope.line_last_column(line).unwrap()
     }
 
     /// Last column of the last line.
