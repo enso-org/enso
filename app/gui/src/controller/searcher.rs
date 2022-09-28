@@ -955,9 +955,8 @@ impl Searcher {
 
 
         // === Add new node ===
-        let here = Ast::var(ast::constants::keywords::HERE);
         let args = std::iter::empty();
-        let node_expression = ast::prefix::Chain::new_with_this(new_definition_name, here, args);
+        let node_expression = ast::prefix::Chain::new(new_definition_name, args);
         let node_expression = node_expression.into_ast();
         let node = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
         let added_node_id = node.id();
@@ -1247,9 +1246,7 @@ impl Searcher {
             self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
-            if this_name == ast::constants::keywords::HERE
-                || this_name == module_name.name().deref()
-            {
+            if this_name == module_name.name().deref() {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {

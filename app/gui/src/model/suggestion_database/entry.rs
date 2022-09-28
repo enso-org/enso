@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 
-use ast::constants::keywords;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::module;
@@ -261,14 +260,14 @@ impl Entry {
             imports.insert(self.module.clone());
         }
 
-        let this_expr = if generate_this {
+        let this_expr: Option<String> = if generate_this {
             // TODO [mwu] Currently we support `self` generation for module atoms only.
             //            This should be extended to any atom that is known to be nullary.
             //            Tracked by https://github.com/enso-org/ide/issues/1299
             if self.is_regular_module_method() {
                 if is_local_entry {
-                    // No additional import for `here`.
-                    Some(keywords::HERE.to_owned())
+                    // No additional import for entries defined in this module.
+                    None
                 } else {
                     // If we are inserting an additional `self` argument, the used name must be
                     // visible.

@@ -14,8 +14,6 @@ use crate::node;
 use crate::node::MainLine;
 use crate::node::NodeInfo;
 
-use ast::constants::keywords::HERE;
-use ast::crumbs::Located;
 use ast::BlockLine;
 use parser::Parser;
 use std::collections::BTreeSet;
@@ -320,8 +318,7 @@ impl Collapser {
     /// Does not include any pattern for assigning the resulting value.
     pub fn call_to_extracted(&self, extracted: &definition::ToAdd) -> FallibleResult<Ast> {
         // TODO actually check that generated name is single-identifier
-        let mut target = extracted.name.clone();
-        target.extended_target.insert(0, Located::new_root(HERE.to_string()));
+        let target = extracted.name.clone();
         let base = target.ast(&self.parser)?;
         let args = extracted.explicit_parameter_names.iter().map(Ast::var);
         let chain = ast::prefix::Chain::new(base, args);

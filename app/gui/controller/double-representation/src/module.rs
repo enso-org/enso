@@ -13,7 +13,6 @@ use crate::identifier::ReferentName;
 use crate::project;
 use crate::tp;
 
-use ast::constants::keywords::HERE;
 use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
@@ -780,15 +779,14 @@ pub fn locate(
 /// The module is assumed to be in the file identified by the `method.file` (for the purpose of
 /// desugaring implicit extensions methods for modules).
 ///
-/// The `module_name` parameter is the name of the module that contains `ast`. It affects how the
-/// `here` keyword is resolved.
+/// The `module_name` parameter is the name of the module that contains `ast`.
 pub fn lookup_method(
     module_name: &QualifiedName,
     ast: &known::Module,
     method: &language_server::MethodPointer,
 ) -> FallibleResult<definition::Id> {
     let qualified_typename = tp::QualifiedName::from_text(&method.defined_on_type)?;
-    let accept_here_methods = module_name == &qualified_typename;
+    let defined_in_this_module = module_name == &qualified_typename;
     let method_module_name = QualifiedName::try_from(method)?;
     let implicit_extension_allowed = method.defined_on_type == method_module_name.to_string();
     for child in ast.def_iter() {
@@ -798,8 +796,7 @@ pub fn lookup_method(
             [] => implicit_extension_allowed,
             [typename] => {
                 let explicit_type_matching = typename.item == qualified_typename.name;
-                let here_extension_matching = typename.item == HERE && accept_here_methods;
-                explicit_type_matching || here_extension_matching
+                explicit_type_matching || defined_in_this_module
             }
             _ => child_name.explicitly_extends_type(&method.defined_on_type),
         };
