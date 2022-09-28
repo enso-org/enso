@@ -271,8 +271,6 @@ impl Selection {
         self.frp.set_position_target(self.frp.position.value() + Vector2(width, 0.0));
         self.frp.skip_position_animation();
         self.frp.set_position_target(self.frp.position_target.value() + Vector2(width, 0.0));
-
-        // FIXME rename to set_width_target
         self.frp.set_width_target(-self.frp.width.value());
         self.frp.skip_width_animation();
         self.frp.set_width_target(-self.frp.width_target.value());

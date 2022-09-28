@@ -60,7 +60,7 @@ impl<'a> WordCursor<'a> {
     pub fn select_word(&mut self) -> (Byte, Byte) {
         let initial = self.cursor.pos();
         let init_cls_after = self.next_codepoint_class();
-        self.cursor.set(initial); // FIXME ???
+        self.cursor.set(initial);
         let init_cls_before = self.prev_codepoint_class();
         let mut start = initial;
         let init_boundary_opt = init_cls_before.zip_with(init_cls_after, Boundary::new_initial);
@@ -210,8 +210,7 @@ enum CharClass {
 
 fn char_class(codepoint: char) -> CharClass {
     if codepoint <= ' ' {
-        // TODO:deal with \r
-        if codepoint == '\n' {
+        if codepoint == '\n' || codepoint == '\r' {
             return CharClass::Lf;
         }
         return CharClass::Space;

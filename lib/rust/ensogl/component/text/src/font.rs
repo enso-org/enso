@@ -519,22 +519,22 @@ impl Font {
         }
     }
 
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(
-        &self,
-        non_variable_font_variations: NonVariableFaceHeader,
-        variable_font_variations: &VariationAxes,
-        code_point: char,
-    ) -> Option<GlyphId> {
-        match self {
-            Font::NonVariable(font) =>
-                font.glyph_id_of_code_point(&non_variable_font_variations, code_point),
-            Font::Variable(font) =>
-                font.glyph_id_of_code_point(variable_font_variations, code_point),
-        }
-    }
+    // // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
+    // //   https://www.pivotaltracker.com/story/show/182746060
+    // /// Get the glyph id of the provided code point.
+    // pub fn glyph_id_of_code_point(
+    //     &self,
+    //     non_variable_font_variations: NonVariableFaceHeader,
+    //     variable_font_variations: &VariationAxes,
+    //     code_point: char,
+    // ) -> Option<GlyphId> {
+    //     match self {
+    //         Font::NonVariable(font) =>
+    //             font.glyph_id_of_code_point(&non_variable_font_variations, code_point),
+    //         Font::Variable(font) =>
+    //             font.glyph_id_of_code_point(variable_font_variations, code_point),
+    //     }
+    // }
 
     /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {

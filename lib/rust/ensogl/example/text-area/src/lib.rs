@@ -186,7 +186,6 @@ fn init(app: Application) {
     // TODO: Fixmes and TODOS in the code
 
     // TODO: Task na unit testyy do textow
-    // TODO: Remove network from FRP::Private
     // TODO: next PR - > Text area to gui component.
 
 
