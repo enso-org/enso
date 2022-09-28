@@ -974,7 +974,7 @@ impl TextModel {
                 }
                 self.add_child(&selection);
                 selection.set_color(self.frp.output.selection_color.value());
-                selection.set_width(width);
+                selection.set_width_target(width);
                 selection
             };
             selection.set_position_target(start_pos);

@@ -265,8 +265,6 @@ where T: Fail {
 mod test {
     use super::*;
 
-
-
     #[derive(Clone, Debug, Default, Deserialize, Serialize)]
     struct Metadata {
         foo: usize,

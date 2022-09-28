@@ -104,7 +104,7 @@ ensogl_core::define_endpoints_2! {
         set_ascender (f32),
         set_descender (f32),
         set_attached_glyphs (Rc<Vec<WeakGlyph>>),
-        set_width (f32),
+        set_width_target (f32),
         set_position_target (Vector2),
         skip_position_animation(),
         skip_width_animation(),
@@ -191,11 +191,11 @@ impl Selection {
 
             // === Width ===
 
-            width.target <+ frp.set_width;
+            width.target <+ frp.set_width_target;
             width.skip <+ frp.skip_width_animation;
-            frp.private.output.width_target <+ frp.set_width;
+            frp.private.output.width_target <+ frp.set_width_target;
             frp.private.output.width <+ width.value;
-            not_blinking.target <+ frp.set_width.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
+            not_blinking.target <+ frp.set_width_target.map(|v:&f32| if *v == 0.0 { 0.0 } else { 1.0 });
             eval not_blinking.value ((v) model.view.not_blinking.set(*v));
 
 
@@ -263,7 +263,7 @@ impl Selection {
         if new_width == 0.0 && need_flip {
             self.flip_sides()
         }
-        self.set_width(new_width)
+        self.set_width_target(new_width)
     }
 
     fn flip_sides(&self) {
@@ -273,9 +273,9 @@ impl Selection {
         self.frp.set_position_target(self.frp.position_target.value() + Vector2(width, 0.0));
 
         // FIXME rename to set_width_target
-        self.frp.set_width(-self.frp.width.value());
+        self.frp.set_width_target(-self.frp.width.value());
         self.frp.skip_width_animation();
-        self.frp.set_width(-self.frp.width_target.value());
+        self.frp.set_width_target(-self.frp.width_target.value());
     }
 }
 
