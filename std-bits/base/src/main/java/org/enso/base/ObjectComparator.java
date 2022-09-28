@@ -1,8 +1,8 @@
 package org.enso.base;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.function.BiFunction;
@@ -126,15 +126,10 @@ public class ObjectComparator implements Comparator<Object> {
       if (thatValue instanceof LocalDate thatDate) {
         return thisDate.compareTo(thatDate);
       }
-      if (thatValue instanceof LocalDateTime thatDateTime) {
-        return thisDate.atStartOfDay().compareTo(thatDateTime);
-      }
     }
-    if (thisValue instanceof LocalDateTime thisDateTime) {
-      if (thatValue instanceof LocalDate thatDate) {
-        return thisDateTime.compareTo(thatDate.atStartOfDay());
-      }
-      if (thatValue instanceof LocalDateTime thatDateTime) {
+
+    if (thisValue instanceof ZonedDateTime thisDateTime) {
+      if (thatValue instanceof ZonedDateTime thatDateTime) {
         return thisDateTime.compareTo(thatDateTime);
       }
     }
