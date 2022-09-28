@@ -135,7 +135,7 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "should make JS arrays type pattern-matchable as arrays" <|
         arr = make_array
         r = case arr of
-            Array -> True
+            _ : Array -> True
             _ -> False
         r.should_be_true
 

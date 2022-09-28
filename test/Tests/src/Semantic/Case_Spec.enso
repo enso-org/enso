@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Data.Array as ArrayModule
 
 polyglot java import java.util.Random
+polyglot java import java.util.ArrayList
 
 import Standard.Test
 
@@ -62,10 +64,12 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected the Text constructor to match."
     Test.specify "should be able to match on the Array type" <|
         case [].to_array of
-            Array -> Nothing
-            _ -> Test.fail "Expected an array to match."
-        case Array of
-            Array -> Nothing
+            Array -> Test.fail "Expected an array type to match."
+            _ : Array -> Nothing
+            _ -> Test.fail "Expected an array type  to match."
+        case ArrayModule of
+            _ : Array -> Test.fail "Expected the Array constructor to match."
+            ArrayModule -> Nothing
             _ -> Test.fail "Expected the Array constructor to match."
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
@@ -197,5 +201,34 @@ spec = Test.group "Pattern Matches" <|
             Vector.Vector   -> Test.fail "Expected to match on a type."
             _ : Vector.Vector -> Nothing
             _               -> Test.fail "Expected to match on a type."
+
+    Test.specify "should correctly pattern match on array-like polyglot values" <|
+        list = ArrayList.new
+        list.add 1
+        list.add 2
+
+        case list of
+            _ : Vector.Vector -> Test.fail "Expected to match on Array type."
+            _ : Array -> Nothing
+            _ : ArrayList -> Test.fail "Expected to match on Array type."
+            _ -> Test.fail "Expected to match on Array type."
+
+        case list of
+            _ : Vector.Vector -> Test.fail "Expected to match on ArrayList type."
+            _ : ArrayList -> Nothing
+            _ : Array -> Test.fail "Expected to match on ArrayList type."
+            _ -> Test.fail "Expected to match on ArrayList type."
+
+        case Meta.type_of list of
+            _ : Vector.Vector -> Test.fail "Expected to match in catch-all case."
+            _ : Array -> Test.fail "Expected to match in catch-all case."
+            _ : ArrayList -> Test.fail "Expected to match in catch-all case."
+            _ -> Nothing
+
+        case Meta.type_of list of
+            Vector.Vector -> Test.fail "Expected to match on a polyglot symbol."
+            Array -> Test.fail "Expected to match on a polyglot symbol."
+            ArrayList -> Nothing
+            _ -> Test.fail "Expected to match on a polyglot symbol."
 
 main = Test.Suite.run_main spec

@@ -122,7 +122,7 @@ spec =
         Test.specify "should make Python lists type pattern-matchable as arrays" <|
             arr = make_array
             r = case arr of
-                Array -> True
+                _ : Array -> True
                 _ -> False
             r.should_be_true
 

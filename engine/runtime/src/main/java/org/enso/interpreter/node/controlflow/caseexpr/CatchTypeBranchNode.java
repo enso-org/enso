@@ -4,18 +4,23 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNodeGen;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
-/** An implementation of the case expression specialised to working on Date. */
+/** An implementation of the case expression specialised to working on types. */
 @NodeInfo(shortName = "TypeMatch")
 public abstract class CatchTypeBranchNode extends BranchNode {
 
   private final Type expectedType;
+  private final boolean isArrayExepctedType;
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
@@ -23,6 +28,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   CatchTypeBranchNode(Type tpe, RootCallTarget functionNode) {
     super(functionNode);
     this.expectedType = tpe;
+    this.isArrayExepctedType = Context.get(this).getBuiltins().array() == tpe;
   }
 
   /**
@@ -35,11 +41,24 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     return CatchTypeBranchNodeGen.create(tpe, functionNode);
   }
 
-  @Specialization
-  void doType(VirtualFrame frame, Object state, Type target) {
-    if (profile.profile(expectedType == target)) {
-      accept(frame, state, new Object[0]);
-    }
+  @Specialization(
+      guards = {
+        "isArrayExepctedType()",
+        "interop.hasArrayElements(value)",
+        "!types.hasType(value)",
+        "interop.hasMetaObject(value)"
+      })
+  void doPolyglotArray(
+      VirtualFrame frame,
+      Object state,
+      Object value,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    accept(frame, state, new Object[] {value});
+  }
+
+  boolean isArrayExepctedType() {
+    return isArrayExepctedType;
   }
 
   @Specialization

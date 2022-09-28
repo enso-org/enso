@@ -578,7 +578,7 @@ type Vector a
         _ : Vector ->
             eq_at i = self.unsafe_at i == that.unsafe_at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
-        Array ->
+        _ : Array ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ -> False

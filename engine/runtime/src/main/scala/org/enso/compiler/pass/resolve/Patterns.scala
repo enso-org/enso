@@ -106,13 +106,11 @@ object Patterns extends IRPass {
                   consName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
-                case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-                  IR.Error.Resolution(
-                    consName,
-                    IR.Error.Resolution.UnexpectedPolyglot(
-                      "a pattern match"
-                    )
+                case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+                  consName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
                   )
+
                 case Right(_: BindingsMap.ResolvedMethod) =>
                   IR.Error.Resolution(
                     consName,
@@ -128,10 +126,7 @@ object Patterns extends IRPass {
               res.target match {
                 case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                 case BindingsMap.ResolvedModule(_)            => 0
-                case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                  throw new CompilerError(
-                    "Impossible, should be transformed into an error before."
-                  )
+                case BindingsMap.ResolvedPolyglotSymbol(_, _) => 0
                 case BindingsMap.ResolvedMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
@@ -183,11 +178,14 @@ object Patterns extends IRPass {
                     IR.Error.Resolution
                       .UnexpectedConstructor(s"type pattern case")
                   )
-                case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-                  IR.Error.Resolution(
+                case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+                  tpeName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+                /*IR.Error.Resolution(
                     tpeName,
                     IR.Error.Resolution.UnexpectedPolyglot(s"type pattern case")
-                  )
+                  )*/
                 case Right(_: BindingsMap.ResolvedMethod) =>
                   IR.Error.Resolution(
                     tpeName,
