@@ -86,7 +86,7 @@ struct Column {
 #[derive(Clone, Debug, Default)]
 pub struct Layout {
     columns:                   Vec<Column>,
-    positions:                 HashMap<GroupId, (Row, Col)>,
+    positions:                 HashMap<GroupId, (Range<Row>, Col)>,
     local_scope_section_start: Row,
     local_scope_entry_count:   usize,
     row_count:                 Row,
@@ -182,7 +182,8 @@ impl Layout {
                 }
             }
         } else {
-            let &(header_pos, col) = self.positions.get(&element.group)?;
+            let (rows, col) = self.positions.get(&element.group)?.clone();
+            let header_pos = rows.start;
             match element.element {
                 ElementInGroup::Header => Some((header_pos, col)),
                 ElementInGroup::Entry(index) =>
@@ -191,13 +192,18 @@ impl Layout {
         }
     }
 
+    pub fn location_of_group(&self, group: GroupId) -> Option<(Range<Row>, Col)> {
+        self.positions.get(&group).cloned()
+    }
+
     /// Add group to the top of given column.
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
         let group_column = &mut self.columns[column];
+        let prev_header_row = group_column.top_row;
         let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT_IN_ROWS;
         group_column.groups.insert(next_header_row, group);
         group_column.top_row = next_header_row;
-        self.positions.insert(group.id, (next_header_row, column));
+        self.positions.insert(group.id, (next_header_row..prev_header_row, column));
         next_header_row
     }
 
@@ -236,7 +242,7 @@ mod tests {
             id:              *id,
             height:          size,
             original_height: size,
-            color: default()
+            color:           default(),
         };
         let groups = group_data.map(mk_group).collect_vec();
         let groups_in_columns =
@@ -304,7 +310,7 @@ mod tests {
             id:              GroupId { section: SectionId::Popular, index: 0 },
             height:          2,
             original_height: 2,
-            color: default(),
+            color:           default(),
         };
         layout.push_group(CENTER, group);
 

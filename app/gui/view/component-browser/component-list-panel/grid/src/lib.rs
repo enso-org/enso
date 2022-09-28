@@ -101,7 +101,7 @@ pub type Grid = grid_view::scrollable::SelectableGridViewWithHeaders<entry::View
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct GroupColors {
-    variants: [color::Rgba; GROUP_COLOR_VARIANT_COUNT],
+    variants:          [color::Rgba; GROUP_COLOR_VARIANT_COUNT],
     local_scope_group: color::Rgba,
 }
 
@@ -138,10 +138,11 @@ impl Style {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    grid:   Grid,
-    selection_layer: Layer,
-    layout: Rc<RefCell<Layout>>,
-    colors: Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
+    grid:                   Grid,
+    selection_layer:        Layer,
+    layout:                 Rc<RefCell<Layout>>,
+    colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
+    requested_section_info: Rc<RefCell<[Row; COLUMN_COUNT]>>,
 }
 
 impl Model {
@@ -156,14 +157,19 @@ impl Model {
 
     fn collect_colors(content: &content::Info) -> HashMap<GroupId, entry::MainColor> {
         let variants = (0..).map(|i| i % GROUP_COLOR_VARIANT_COUNT);
-        content.groups.iter().zip(variants).map(|(group, variant)| {
-            let color = match (group.color, group.id.section) {
-                (Some(color), _) => entry::MainColor::Custom(color.into()),
-                (None, SectionId::LocalScope) => entry::MainColor::LocalScope,
-                _ => entry::MainColor::Predefined {variant},
-            };
-            (group.id, color)
-        }).collect()
+        content
+            .groups
+            .iter()
+            .zip(variants)
+            .map(|(group, variant)| {
+                let color = match (group.color, group.id.section) {
+                    (Some(color), _) => entry::MainColor::Custom(color.into()),
+                    (None, SectionId::LocalScope) => entry::MainColor::LocalScope,
+                    _ => entry::MainColor::Predefined { variant },
+                };
+                (group.id, color)
+            })
+            .collect()
     }
 
     fn location_to_headers_group_id(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
@@ -189,11 +195,20 @@ impl Model {
         self.layout.borrow().location_of_element(ElementId { group, element })
     }
 
-    fn model_for_header(
+    fn section_info_requested(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
+        *self.requested_section_info.borrow_mut().get_mut(col)? = row;
+        Some(self.layout.borrow().group_at_location(row, col)?.group.id)
+    }
+
+    fn is_requested_section(&self, (rows, col, _): &(Range<Row>, Col, entry::Model)) -> bool {
+        self.requested_section_info.borrow().get(*col).map_or(false, |r| rows.contains(r))
+    }
+
+    fn make_section_info(
         &self,
         (group, model): &(GroupId, HeaderModel),
-    ) -> Option<(Row, Col, entry::Model)> {
-        let (row, col) = self.group_id_to_header_location(*group)?;
+    ) -> Option<(Range<Row>, Col, entry::Model)> {
+        let (rows, col) = self.layout.borrow().location_of_group(*group)?;
         let entry_model = entry::Model {
             kind:        entry::Kind::Header,
             color:       self.colors.borrow().get(&group).copied().unwrap_or_default(),
@@ -202,7 +217,7 @@ impl Model {
             icon:        None,
             group_id:    *group,
         };
-        Some((row, col, entry_model))
+        Some((rows, col, entry_model))
     }
 
     fn model_for_entry(
@@ -232,7 +247,7 @@ impl Model {
             Style,
             entry::Style,
             entry::style::ColorIntensities,
-            GroupColors
+            GroupColors,
         ),
     ) -> entry::Params {
         entry::Params {
@@ -271,12 +286,16 @@ impl component::Frp<Model> for Frp {
         let grid = &model.grid;
         let grid_scroll_frp = grid.scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
+        let grid_header_frp = grid.header_frp();
         let corners_radius = style.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style);
         frp::extend! { network
             grid.reset_entries <+ input.reset.map(f!((content) model.reset(content)));
-            grid.model_for_entry <+ input.model_for_header.filter_map(f!((input) model.model_for_header(input)));
+            section_info <- input.model_for_header.filter_map(f!((input) model.make_section_info(input)));
+            grid.model_for_entry <+ section_info.map(|(rows, col, model)| (rows.start, *col, model.clone()));
             grid.model_for_entry <+ input.model_for_entry.filter_map(f!((input) model.model_for_entry(input)));
+            grid_header_frp.section_info <+ section_info.filter(f!((input) model.is_requested_section(input)));
+            out.model_for_header_needed <+ grid_header_frp.section_info_needed.filter_map(f!((loc) model.section_info_requested(loc)));
             out.model_for_header_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_headers_group_id(loc)));
             out.model_for_entry_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
@@ -326,12 +345,14 @@ impl component::Frp<Model> for Frp {
             icon_weak:   0.5,
         });
         group_colors.emit(GroupColors {
-            variants: [color::Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),
+            variants:          [
+                color::Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),
                 color::Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),
                 color::Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),
                 color::Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),
                 color::Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),
-                color::Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0)],
+                color::Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),
+            ],
             local_scope_group: color::Rgba(0.0, 0.42, 0.64, 1.0),
         });
     }
@@ -350,10 +371,11 @@ impl component::Model for Model {
         let grid = Grid::new(app);
         let layout = default();
         let colors = default();
+        let requested_section_info = default();
         let base_layer = &app.display.default_scene.layers.node_searcher;
         let selection_layer = base_layer.create_sublayer();
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
-        Self { grid, layout, colors, selection_layer }
+        Self { grid, layout, colors, selection_layer, requested_section_info }
     }
 }
 
