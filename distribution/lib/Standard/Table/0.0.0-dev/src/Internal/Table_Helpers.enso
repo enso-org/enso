@@ -143,11 +143,11 @@ rename_columns internal_columns mapping on_problems =
                 Nothing -> Nothing
                 _ ->
                     matched.add index
-                    new_name = case ms of
-                        Regex_Matcher_Data _ _ _ _ _ ->
+                    new_name = case Meta.type_of ms of
+                        Regex_Matcher.Regex_Matcher ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        Text_Matcher_Data _ -> (good_names.at index).at 1
+                        Text_Matcher.Text_Matcher -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -156,7 +156,7 @@ rename_columns internal_columns mapping on_problems =
         new_names
 
     mapped = case mapping of
-        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher_Data case_sensitive=True)
+        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) Text_Matcher.Case_Sensitive
         Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Name_Mapping.By_Index map ->
             good_indices = validate_indices col_count map.keys problem_builder
@@ -204,10 +204,10 @@ rename_columns internal_columns mapping on_problems =
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns direction text_ordering =
-    case_sensitive = text_ordering.case_sensitive.if_nothing True
-    mapper = case case_sensitive of
-        True -> _.name
-        Case_Insensitive_Data locale ->
+    case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
+    mapper = case case_sensitivity of
+        Case_Sensitivity.Sensitive -> _.name
+        Case_Sensitivity.Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
@@ -245,7 +245,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
                 select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names (Text_Matcher_Data case_sensitive=True)
+        new_selector = By_Name column_names Text_Matcher.Case_Sensitive
         select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
@@ -254,7 +254,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
 resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
 resolve_column_helper internal_columns selector problem_builder = case selector of
     Text ->
-        matched_columns = Matching.match_criteria_callback (Text_Matcher_Data case_sensitive=True) internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+        matched_columns = Matching.match_criteria_callback Text_Matcher.Case_Sensitive internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         if matched_columns.length == 1 then matched_columns.first else
             if matched_columns.length == 0 then Nothing else
                 Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
@@ -465,7 +465,7 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    transform_columns_by_name internal_columns column_selectors (Text_Matcher_Data case_sensitive=True) problem_builder name_extractor
+    transform_columns_by_name internal_columns column_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
@@ -551,4 +551,4 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    select_columns_by_name internal_columns column_selectors (Text_Matcher_Data case_sensitive=True) problem_builder name_extractor
+    select_columns_by_name internal_columns column_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor

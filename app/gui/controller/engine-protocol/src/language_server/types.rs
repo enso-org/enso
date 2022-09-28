@@ -236,6 +236,11 @@ pub enum ExpressionUpdatePayload {
         message: String,
         trace:   Vec<ExpressionId>,
     },
+    #[serde(rename_all = "camelCase")]
+    Pending {
+        message:  Option<String>,
+        progress: Option<f64>,
+    },
 }
 
 

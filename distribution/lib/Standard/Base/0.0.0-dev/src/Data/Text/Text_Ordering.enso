@@ -4,14 +4,47 @@ from Standard.Base import all
 from project.Data.Text.Text_Ordering.Text_Ordering import all
 from project.Data.Text.Text_Ordering.Text_Ordering export all
 
-## Specifies an ordering of text values.
-
-   Arguments:
-   - sort_digits_as_numbers: Sort digits in the text as numbers. Setting this to
-     `True` results in a "Natural" ordering.
-   - case_sensitive: Specifies if the ordering should be case case sensitive. If
-     set to `Nothing` (the default), it chooses the default ordering for a given
-     backend. For the In-memory backend, the default ordering is case sensitive.
-     In databases, the default ordering depends on the database configuration.
 type Text_Ordering
-    Text_Ordering_Data (sort_digits_as_numbers:Boolean=False) (case_sensitive:(Nothing|True|Case_Insensitive)=Nothing)
+    ## Specifies the ordering of text values.
+
+       For the In-memory backend, the default ordering is case-sensitive. In
+       databases, the default ordering depends on the database configuration.
+
+       Arguments:
+       - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
+         this to `True` results in a "Natural" ordering.
+    Default (sort_digits_as_numbers:Boolean=False)
+
+    ## Case sensitive ordering of values.
+
+       It will ensure case-sensitive ordering regardless of backend defaults.
+       This may make database queries more complicated and may result in being
+       unable to rely on existing indices, thus potentially making the queries
+       much slower. The `Default` ordering is preferred wherever possible.
+
+       Arguments:
+       - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
+         this to `True` results in a "Natural" ordering.
+    Case_Sensitive (sort_digits_as_numbers:Boolean=False)
+
+    ## Case sensitive ordering of values.
+
+       It will ensure case-insensitive ordering regardless of backend defaults.
+       This may make database queries more complicated and may result in being
+       unable to rely on existing indices, thus potentially making the queries
+       much slower. The `Default` ordering is preferred wherever possible.
+
+       Arguments:
+       - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
+         this to `True` results in a "Natural" ordering.
+    Case_Insensitive (locale:Locale=Locale.default) (sort_digits_as_numbers:Boolean=False)
+
+    ## PRIVATE
+       Returns this ordering's case sensitivity setting. It will return
+       `Nothing` for the `Default` ordering, meaning that the case sensitivity
+       is to be determined by the backend.
+    case_sensitivity : Case_Sensitivity
+    case_sensitivity self = case self of
+        Default _ -> Nothing
+        Case_Sensitive _ -> Case_Sensitivity.Sensitive
+        Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale

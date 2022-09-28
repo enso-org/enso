@@ -537,6 +537,10 @@
     "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
   {
+    "name":"org.enso.interpreter.node.expression.builtin.immutable.SliceVectorMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
     "name":"org.enso.interpreter.node.expression.builtin.immutable.ToArrayVectorMethodGen",
     "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,

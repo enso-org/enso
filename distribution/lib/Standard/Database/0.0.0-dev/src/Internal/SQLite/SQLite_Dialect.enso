@@ -57,12 +57,12 @@ type SQLite_Dialect
     prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
-                case text_ordering.case_sensitive of
+                case text_ordering.case_sensitivity of
                     Nothing ->
                         IR.Order_Descriptor_Data internal_column.expression sort_direction collation=Nothing
-                    True ->
+                    Case_Sensitivity.Sensitive ->
                         IR.Order_Descriptor_Data internal_column.expression sort_direction collation="BINARY"
-                    Case_Insensitive_Data locale -> case locale == Locale.default of
+                    Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
