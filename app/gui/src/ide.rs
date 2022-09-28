@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::controller::project::INITIAL_MODULE_NAME;
 use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
@@ -104,8 +103,6 @@ pub struct FailedIde {
 
 
 /// The Path of the module initially opened after opening project in IDE.
-pub fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {
-    model::module::Path::from_name_segments(project.project_content_root_id(), &[
-        INITIAL_MODULE_NAME,
-    ])
+pub async fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {
+    Ok(project.main_module_model().await?.path().clone_ref())
 }

@@ -77,7 +77,14 @@ impl ColumnWidths {
     /// [`Self::resize`].
     pub fn pos_offset(&self, column: usize) -> f32 {
         let borrowed = self.width_diffs.borrow();
-        if column == 0 || column > borrowed.len() {
+        let len = borrowed.len();
+        if column == 0 {
+            0.0
+        } else if column > len {
+            tracing::warn!(
+                "Trying to get a position offset of a column that does not exist. \
+                {column} > {len}. Returning 0.0."
+            );
             0.0
         } else {
             borrowed.query(column - 1)

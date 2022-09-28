@@ -40,6 +40,7 @@ use double_representation::project;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
+    pub qualified_name:    module::QualifiedName,
     pub content:           component::Group,
     /// The flattened content contains the content of a module and all its submodules. Is set to
     /// `Some` only when such flattened content is needed (decided during construction).
@@ -49,7 +50,6 @@ pub struct ModuleGroups {
     pub flattened_content: Option<component::Group>,
     pub submodules:        component::group::AlphabeticalListBuilder,
     pub is_top_module:     bool,
-    pub qualified_name:    module::QualifiedName,
 }
 
 impl ModuleGroups {
@@ -57,7 +57,8 @@ impl ModuleGroups {
     ///
     /// The existence of flattened content is decided during construction.
     ///
-    /// Returns [`None`] if entry's qualified name can't be converted into a module name.
+    /// Returns [`FallibleResult::Err`] if entry's qualified name can't be converted into a module
+    /// name.
     pub fn new(
         component_id: component::Id,
         entry: &suggestion_database::Entry,
@@ -67,20 +68,20 @@ impl ModuleGroups {
         let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
+            qualified_name,
             content: mk_group(),
             flattened_content: is_top_module.as_some_from(mk_group),
             submodules: default(),
             is_top_module,
-            qualified_name,
         })
     }
 
     /// Build [`component::ModuleGroups`] structure with appropriately sorted submodules.
     pub fn build(self) -> component::ModuleGroups {
         component::ModuleGroups {
+            qualified_name: Rc::new(self.qualified_name),
             content:        self.content,
             submodules:     self.submodules.build(),
-            qualified_name: Rc::new(self.qualified_name),
         }
     }
 }

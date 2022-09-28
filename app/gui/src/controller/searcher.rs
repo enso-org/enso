@@ -641,8 +641,8 @@ impl Searcher {
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) {
         let builder = breadcrumbs::Builder::new(&self.database, self.components());
-        let breadcrumbs = builder.build(module).unwrap_or_default();
-        self.breadcrumbs.set_content(breadcrumbs.into_iter());
+        let breadcrumbs = builder.build(module);
+        self.breadcrumbs.set_content(breadcrumbs);
         self.notifier.notify(Notification::NewActionList);
     }
 

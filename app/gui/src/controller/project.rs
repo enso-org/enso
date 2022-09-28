@@ -14,13 +14,6 @@ use enso_frp::web::platform::Platform;
 use parser::Parser;
 
 
-// ==============
-// === Export ===
-// ==============
-
-pub use double_representation::project::INITIAL_MODULE_NAME;
-
-
 
 // =================
 // === Constants ===
@@ -119,7 +112,7 @@ impl Project {
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
         let project = self.model.clone_ref();
         let parser = self.model.parser();
-        let module_path = self.initial_module_path()?;
+        let module_path = self.initial_module_path().await?;
         let file_path = module_path.file_path().clone();
 
         // TODO [mwu] This solution to recreate missing main file should be considered provisional
@@ -156,8 +149,8 @@ impl Project {
 
 impl Project {
     /// Returns the path to the initially opened module in the given project.
-    fn initial_module_path(&self) -> FallibleResult<model::module::Path> {
-        crate::ide::initial_module_path(&self.model)
+    async fn initial_module_path(&self) -> FallibleResult<model::module::Path> {
+        crate::ide::initial_module_path(&self.model).await
     }
 
     /// Create a file with default content if it does not already exist.

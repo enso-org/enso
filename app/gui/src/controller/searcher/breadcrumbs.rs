@@ -15,8 +15,7 @@ use model::suggestion_database::Entry;
 // ===================
 
 /// A controller that keeps the path of entered modules in the Searcher and provides the
-/// functionality of the breadcrumbs panel. It is used to store the state of the breadcrumbs
-/// panel, but it does not provide any view-related functionality. The integration between the
+/// functionality of the breadcrumbs panel. The integration between the
 /// controller and the view is done by the [searcher presenter](crate::presenter::searcher).
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
@@ -133,22 +132,33 @@ impl<'a> Builder<'a> {
     /// 2. All parent modules of the [`module`].
     /// 3. The [`module`] itself.
     ///
-    /// Returns [`None`] if the [`module`] is not found in the database or in the components list.
-    pub fn build(self, module: &component::Id) -> Option<Vec<BreadcrumbEntry>> {
-        let mut result = Vec::new();
+    /// Returns an empty vector if the [`module`] is not found in the database or in the
+    /// components list.
+    pub fn build(self, module: &component::Id) -> Box<dyn Iterator<Item = BreadcrumbEntry>> {
+        let (module_name, entry) = match self.module_name_and_entry(module) {
+            Some(name_and_entry) => name_and_entry,
+            None => return Box::new(iter::empty()),
+        };
+        let project_name = module_name.project_name.clone();
+        let main_module_name = module::QualifiedName::new_main(project_name.clone());
+        let main_module = self.lookup(&main_module_name);
+        let to_main_module_entry = |entry: (component::Id, Rc<Entry>)| BreadcrumbEntry {
+            displayed_name: String::from(project_name.project).into(),
+            ..entry.into()
+        };
+        let main_module = main_module.map(to_main_module_entry).into_iter();
+        let parents = self.collect_parents(&module_name);
+        let iter = iter::once(entry).chain(parents).chain(main_module).rev();
+        Box::new(iter)
+    }
+
+    fn module_name_and_entry(
+        &self,
+        module: &component::Id,
+    ) -> Option<(Rc<module::QualifiedName>, BreadcrumbEntry)> {
         let module_name = self.components.module_qualified_name(*module)?;
         let entry = BreadcrumbEntry::from(self.lookup(&module_name)?);
-        result.push(entry);
-        result.extend(self.collect_parents(&module_name));
-        let project_name = module_name.project_name.clone();
-        let main_module = module::QualifiedName::new_main(project_name.clone());
-        if let Some(entry) = self.lookup(&main_module) {
-            result.push(BreadcrumbEntry {
-                displayed_name: String::from(project_name.project).into(),
-                ..entry.into()
-            });
-        }
-        Some(result.reversed())
+        Some((module_name, entry))
     }
 
     fn lookup(&self, name: &module::QualifiedName) -> Option<(component::Id, Rc<Entry>)> {
@@ -159,16 +169,11 @@ impl<'a> Builder<'a> {
     ///
     /// Panics if the module is not found in the database.
     fn collect_parents(&self, name: &module::QualifiedName) -> Vec<BreadcrumbEntry> {
-        let mut result = Vec::new();
-        let (_, mut current) = self.lookup(name).expect("Entry should be present in the database.");
-        while let Some(parent) = current.parent_module() {
-            if let Some((component_id, parent_entry)) = self.lookup(&parent) {
-                result.push((component_id, parent_entry.clone_ref()).into());
-                current = parent_entry;
-            } else {
-                break;
-            }
-        }
-        result
+        let parents = name.parent_modules();
+        let database_entries = parents.filter_map(|name| self.lookup(&name));
+        // Note: it would be nice to avoid allocation here, but we need to reverse the
+        // iterator later, so returning `impl Iterator` is not an option. We can only reverse
+        // `DoubleEndedIterator`.
+        database_entries.map(BreadcrumbEntry::from).collect()
     }
 }

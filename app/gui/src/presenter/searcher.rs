@@ -197,7 +197,11 @@ impl Model {
 
     fn set_breadcrumbs(&self, names: impl Iterator<Item = ImString>) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            browser.model().list.set_breadcrumbs_from((names.map(Into::into).collect(), 1));
+            // We only update the breadcrumbs starting from the second element because the first
+            // one is reserved as a section name.
+            let from = 1;
+            let breadcrumbs_from = (names.map(Into::into).collect(), from);
+            browser.model().list.set_breadcrumbs_from(breadcrumbs_from);
         }
     }
 

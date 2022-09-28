@@ -514,6 +514,7 @@ impl Model {
 
     fn set_initial_breadcrumbs(&self) {
         self.breadcrumbs.set_entries_from((vec![breadcrumbs::Breadcrumb::new("All")], 0));
+        self.breadcrumbs.show_ellipsis(true);
     }
 
     fn update_style(&self, style: &Style) {
