@@ -241,7 +241,7 @@ impl Selection {
                     0.0
                 }
             }));
-            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph;//.on_change();
+            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
         }
 
         Self { frp, model }
