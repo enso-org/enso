@@ -90,7 +90,7 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
 
     process_override : Boolean | Nothing -> Option -> Nothing
     process_override param option = case param of
-        Boolean -> if param then builder.append option
+        _ : Boolean -> if param then builder.append option
         Nothing -> if extra_opts.contains option then builder.append option
 
     process_override match_ascii Option.Ascii_Matching

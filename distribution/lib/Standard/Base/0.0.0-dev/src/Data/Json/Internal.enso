@@ -303,7 +303,7 @@ into_helper fmt json = case fmt of
     _ : Base.Vector.Vector -> case json of
         Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Boolean -> case json of
+    _ : Base.Boolean -> case json of
         Boolean v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base_Number.Number -> case json of

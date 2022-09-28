@@ -10,11 +10,13 @@ spec = Test.group "Pattern Matches" <|
             Boolean -> Nothing
             _ -> Test.fail "Expected the Boolean constructor to match."
         case True of
-            Boolean -> Nothing
-            _ -> Test.fail "Expected the True constructor to match."
+            Boolean -> Test.fail "Expected the Boolean type to match."
+            _ : Boolean -> Nothing
+            _ -> Test.fail "Expected the Boolean type to match."
         case False of
-            Boolean -> Nothing
-            _ -> Test.fail "Expected the False constructor to match."
+            Boolean -> Test.fail "Expected the Boolean type to match."
+            _ : Boolean -> Nothing
+            _ -> Test.fail "Expected the Boolean type to match."
     Test.specify "should be able to match on the Integer type" <|
         case 1 of
             Integer -> Nothing

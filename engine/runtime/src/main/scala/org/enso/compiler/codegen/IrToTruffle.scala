@@ -968,18 +968,12 @@ class IrToTruffle(
                     ) =>
                   val tpe =
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
-                  val any         = context.getBuiltins.any
-                  val array       = context.getBuiltins.array
-                  val builtinBool = context.getBuiltins.bool.getType
-                  val number      = context.getBuiltins.number
-                  val polyglot    = context.getBuiltins.polyglot
-                  val text        = context.getBuiltins.text
-                  val branch = if (tpe == builtinBool) {
-                    BooleanConstructorBranchNode.build(
-                      builtinBool,
-                      branchCodeNode.getCallTarget
-                    )
-                  } else if (tpe == text) {
+                  val any      = context.getBuiltins.any
+                  val array    = context.getBuiltins.array
+                  val number   = context.getBuiltins.number
+                  val polyglot = context.getBuiltins.polyglot
+                  val text     = context.getBuiltins.text
+                  val branch = if (tpe == text) {
                     TextBranchNode.build(text, branchCodeNode.getCallTarget)
                   } else if (tpe == number.getInteger) {
                     IntegerBranchNode.build(

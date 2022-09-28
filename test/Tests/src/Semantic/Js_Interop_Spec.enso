@@ -124,11 +124,11 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         f.should_be_true
         c = case bool of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c.should_be_true
         c_2 = case bool_2 of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c_2.should_be_true
 
