@@ -241,16 +241,20 @@ impl Rope {
     pub fn line_end_offset_unchecked(&self, line: Line) -> Byte {
         let next_line = line + Line(1);
         let next_line_off = self.byte_offset_of_line_index(next_line).ok();
+
         let next_line_prev = next_line_off.and_then(|t| {
-            self.prev_grapheme_offset(t).and_then(|prev1| {
-                self.prev_grapheme_offset(prev1).map(|prev2| {
-                    let was_rn_seq = self.slice(prev2.value..prev1.value).to_string() == "\r";
-                    let off = if was_rn_seq { prev2 } else { prev1 };
-                    off
-                })
+            self.prev_grapheme_offset(t).map(|prev1| {
+                self.prev_grapheme_offset(prev1)
+                    .map(|prev2| {
+                        let was_rn_seq = self.slice(prev2.value..prev1.value).to_string() == "\r";
+                        let off = if was_rn_seq { prev2 } else { prev1 };
+                        off
+                    })
+                    .unwrap_or(prev1)
             })
         });
-        next_line_prev.unwrap_or_else(|| self.len())
+        let out = next_line_prev.unwrap_or_else(|| self.len());
+        out
     }
 
     /// Return the offset after the last character of a given line if the line exists.

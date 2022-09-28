@@ -261,17 +261,12 @@ impl View {
         let frame_time = frame_time.clone_ref();
         baseline_anim.simulator.update_spring(|s| s * crate::DEBUG_ANIMATION_SPRING_FACTOR);
 
-        let was_positioned = Rc::new(Cell::new(false));
         frp::extend! {network
 
             // === Baseline and metrics ===
 
             baseline_anim.target <+ frp.set_baseline;
             eval baseline_anim.value ((y) display_object.set_position_y(*y));
-            already_positioned <- frp.set_baseline.map(f_!(was_positioned.get()));
-            first_positioning <- frp.set_baseline.gate_not(&already_positioned);
-            baseline_anim.skip <+_ first_positioning;
-            eval_ frp.set_baseline(was_positioned.set(true));
 
             new_baseline <- baseline_anim.value.on_change();
             frp.private.output.baseline <+ new_baseline;

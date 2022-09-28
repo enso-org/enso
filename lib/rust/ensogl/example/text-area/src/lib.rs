@@ -171,10 +171,11 @@ fn init(app: Application) {
     let _text = "test".to_string();
     // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
     // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcde🧑🏾1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
-                                              // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
-                                              // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
-                                              // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    area.set_content("a\nfghij");
+    // area.set_content("abcde🧑🏾1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
+    // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
+    // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
+    // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
     area.focus();
     area.hover();
 
@@ -188,6 +189,7 @@ fn init(app: Application) {
     // TODO: Bug, last added line - no animation
     // TODO: add desription for this demo scene
     // TODO: shortucts requested by Adam
+    // TODO: check if empty text area sends width info
 
     // TODO: Task na unit testyy do textow
     // TODO: Remove network from FRP::Private
