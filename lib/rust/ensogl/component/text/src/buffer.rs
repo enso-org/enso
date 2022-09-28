@@ -1,6 +1,7 @@
 //! Root of text buffer implementation. The text buffer is a sophisticated model for text styling
 //! and editing operations.
 
+use crate::index::*;
 use crate::prelude::*;
 use enso_text::unit::*;
 
@@ -24,6 +25,7 @@ use owned_ttf_parser::AsFaceRef;
 // ==============
 
 pub mod formatting;
+pub mod index;
 pub mod movement;
 pub mod rope;
 pub mod selection;
@@ -635,8 +637,9 @@ impl BufferModel {
         let font = &self.font;
         let mut glyph_sets = vec![];
         let mut prev_chunk_cluster_byte_offset = 0;
+        let mut grapheme_byte_offset = Byte(0);
         for (range, requested_non_variable_variations) in
-            Self::chunks_per_font_face(font, &line_style, &content)
+            Self::chunks_per_font_face(font, &line_style, &rope)
         {
             let non_variable_variations_match =
                 font.closest_non_variable_variations_or_panic(requested_non_variable_variations);
@@ -664,7 +667,7 @@ impl BufferModel {
                     .glyph_positions()
                     .iter()
                     .zip(shaped.glyph_infos())
-                    .map(|(&position, &info)| {
+                    .filter_map(|(&position, &info)| {
                         let mut info = info;
                         // TODO: Add support for variable fonts here.
                         // let variable_variations = glyph.variations.borrow();
@@ -676,7 +679,20 @@ impl BufferModel {
                             face,
                         );
                         info.cluster += prev_chunk_cluster_byte_offset;
-                        ShapedGlyph { position, info, render_info }
+                        if Byte(info.cluster as usize) < grapheme_byte_offset {
+                            // This glyph is part of the previous grapheme cluster. This is caused
+                            // by font not supporting displaying this grapheme cluster. We will not
+                            // display it.
+                            None
+                        } else {
+                            match rope.next_grapheme_offset(grapheme_byte_offset) {
+                                None => error!("Misaligned grapheme cluster boundary."),
+                                Some(next_grapheme_byte_offset) => {
+                                    grapheme_byte_offset = next_grapheme_byte_offset;
+                                }
+                            }
+                            Some(ShapedGlyph { position, info, render_info })
+                        }
                     })
                     .collect();
                 let shaped_glyph_set = ShapedGlyphSet {
@@ -691,27 +707,6 @@ impl BufferModel {
             });
             prev_chunk_cluster_byte_offset = range.end.value as u32;
         }
-
-        // let mut grapheme_byte_offset = Byte(0);
-        //
-        // match rope.next_grapheme_offset(grapheme_byte_offset) {
-        //     None => panic!(), // TODO
-        //     Some(next_grapheme_byte_offset) => {
-        //         if grapheme_byte_offset != Byte(info.cluster as usize) {
-        //             warn!(
-        //                                 "({:?}) {:?} != {:?}",
-        //                                 rope.sub(grapheme_byte_offset..next_grapheme_byte_offset)
-        //                                     .to_string(),
-        //                                 next_grapheme_byte_offset,
-        //                                 Byte(info.cluster as usize)
-        //                             );
-        //         } else {
-        //             grapheme_byte_offset = next_grapheme_byte_offset;
-        //         }
-        //     }
-        // }
-
-
         glyph_sets
     }
 
@@ -735,20 +730,22 @@ impl BufferModel {
         }
     }
 
-    /// Return list of spans for different [`NonVariableFaceHeader`].
+    /// Return list of spans for different [`NonVariableFaceHeader`]. The result will be aligned
+    /// with grapheme cluster boundaries. If the face header changes inside a grapheme cluster, the
+    /// cluster will be associated with the header it starts with.
     pub fn chunks_per_font_face<'a>(
         font: &'a Font,
         line_style: &'a Formatting,
-        content: &'a str,
+        rope: &'a Rope,
     ) -> impl Iterator<Item = (std::ops::Range<Byte>, NonVariableFaceHeader)> + 'a {
         gen_iter!(move {
             match font {
                 Font::NonVariable(_) =>
-                    for chunk in line_style.chunks_per_font_face(content) {
+                    for chunk in line_style.chunks_per_font_face(rope) {
                         yield chunk;
                     }
                 Font::Variable(_) => {
-                    let range = Byte(0)..Byte(content.len());
+                    let range = Byte(0)..Byte(rope.len());
                     // For variable fonts, we do not care about non-variable variations.
                     let non_variable_variations = NonVariableFaceHeader::default();
                     yield (range, non_variable_variations);

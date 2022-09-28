@@ -159,6 +159,7 @@ impl TryFrom<ByteDiff> for Byte {
 // === Line ===
 // ============
 
+#[macro_export]
 macro_rules! define_line_unit {
     ($name:ident) => {
         /// A line index.
@@ -317,7 +318,6 @@ macro_rules! define_line_unit {
 }
 
 define_line_unit!(Line);
-define_line_unit!(ViewLine);
 
 
 
@@ -374,46 +374,6 @@ impl Add<LineDiff> for &Line {
 
 impl Add<&LineDiff> for &Line {
     type Output = Line;
-    fn add(self, line_diff: &LineDiff) -> Self::Output {
-        *self + *line_diff
-    }
-}
-
-impl Add<LineDiff> for ViewLine {
-    type Output = ViewLine;
-    fn add(self, line_diff: LineDiff) -> Self::Output {
-        if -line_diff.value > self.value as i32 {
-            error!("Adding of LineDiff to ViewLine resulted in negative value.");
-            ViewLine(0)
-        } else {
-            ViewLine((self.value as i32 + line_diff.value) as usize)
-        }
-    }
-}
-
-impl Add<ViewLine> for LineDiff {
-    type Output = ViewLine;
-    fn add(self, line: ViewLine) -> Self::Output {
-        line + self
-    }
-}
-
-impl Add<&LineDiff> for ViewLine {
-    type Output = ViewLine;
-    fn add(self, line_diff: &LineDiff) -> Self::Output {
-        self + *line_diff
-    }
-}
-
-impl Add<LineDiff> for &ViewLine {
-    type Output = ViewLine;
-    fn add(self, line_diff: LineDiff) -> Self::Output {
-        *self + line_diff
-    }
-}
-
-impl Add<&LineDiff> for &ViewLine {
-    type Output = ViewLine;
     fn add(self, line_diff: &LineDiff) -> Self::Output {
         *self + *line_diff
     }
@@ -634,12 +594,3 @@ mod location {
     }
 }
 pub use location::*;
-
-
-
-// ====================
-// === ViewLocation ===
-// ====================
-
-/// Alias for [`Location`] with [`ViewLine`] as line index.
-pub type ViewLocation<Offset = Column> = Location<Offset, ViewLine>;

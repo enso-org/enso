@@ -1,6 +1,7 @@
 //! The text area implementation. It serves the purpose of single and multi-line text labels and
 //! text editors.
 
+use crate::index::*;
 use crate::prelude::*;
 use enso_text::unit::*;
 

@@ -272,10 +272,12 @@ impl Formatting {
         RangedValue::zip3_def_seq(&seq_width, &seq_weight, &seq_style, NonVariableFaceHeader::new)
     }
 
-    /// Return list of spans for different [`NonVariableFaceHeader`].
+    /// Return list of spans for different [`NonVariableFaceHeader`]. The result will be aligned
+    /// with grapheme cluster boundaries. If the face header changes inside a grapheme cluster, the
+    /// cluster will be associated with the header it starts with.
     pub fn chunks_per_font_face<'a>(
         &self,
-        content: &'a str,
+        rope: &'a Rope,
     ) -> impl Iterator<Item = (std::ops::Range<Byte>, NonVariableFaceHeader)> + 'a {
         let seq_font_header = self.non_variable_font_spans();
         let iter = gen_iter!(move {
@@ -283,14 +285,13 @@ impl Formatting {
             let mut end_byte = Byte(0);
             let mut header_iter = seq_font_header.into_iter();
             let mut opt_header = header_iter.next();
-            for chr in content.chars() {
-                end_byte += Byte(chr.len_utf8());
-                if let Some(header) = opt_header {
-                    if end_byte == header.range.end {
-                        yield (start_byte..end_byte, header.value);
-                        start_byte = end_byte;
-                        opt_header = header_iter.next();
-                    }
+            while let Some(header) = opt_header
+               && let Some(new_end_byte) = rope.next_grapheme_offset(end_byte) {
+                end_byte = new_end_byte;
+                if end_byte >= header.range.end {
+                    yield (start_byte..end_byte, header.value);
+                    start_byte = end_byte;
+                    opt_header = header_iter.next();
                 }
             }
             if start_byte != end_byte {

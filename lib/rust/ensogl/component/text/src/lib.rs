@@ -13,6 +13,8 @@
 #![feature(generators)]
 #![feature(btree_drain_filter)]
 #![feature(allocator_api)]
+#![feature(let_chains)]
+#![feature(step_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
