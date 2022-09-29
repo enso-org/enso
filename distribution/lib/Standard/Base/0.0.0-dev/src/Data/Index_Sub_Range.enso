@@ -3,6 +3,10 @@ from Standard.Base import all
 import Standard.Base.Random
 import Standard.Base.Runtime.Ref
 
+# TODO Dubious constructor export
+from project.Data.Index_Sub_Range.Index_Sub_Range import all
+from project.Data.Index_Sub_Range.Index_Sub_Range export all
+
 type Index_Sub_Range
     ## Select the first `count` items.
 

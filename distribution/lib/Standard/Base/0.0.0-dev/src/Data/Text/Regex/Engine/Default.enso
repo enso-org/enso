@@ -67,6 +67,10 @@ polyglot java import org.enso.base.Text_Utils
 new : Vector.Vector Option -> Engine
 new opts=[] = Engine_Data opts
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Engine import all
+from project.Data.Text.Regex.Engine.Default.Engine export all
+
 ## The default implementation of the `Data.Text.Regex.Engine.Engine` interface.
 type Engine
 
@@ -145,6 +149,10 @@ type Engine
                  engine.escape literal_string
     escape : Text -> Text
     escape self expression = Java_Pattern.quote expression
+
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Pattern import all
+from project.Data.Text.Regex.Engine.Default.Pattern export all
 
 ## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
@@ -577,6 +585,10 @@ type Pattern
                 Mode_Error_Data "Bounded replacements are not well-formed."
             _ -> do_replace_mode mode 0 (Text_Utils.char_length input)
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Match import all
+from project.Data.Text.Regex.Engine.Default.Match export all
+
 ## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
 type Match
 
@@ -824,6 +836,10 @@ handle_error error id = case error of
             Regex.No_Such_Group_Error_Data id
     other -> other
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Option import all
+from project.Data.Text.Regex.Engine.Default.Option export all
+
 ## Options specific to the `Default` regular expression engine.
 type Option
 
@@ -880,6 +896,10 @@ from_enso_options opts =
         unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
         options_bitmask.bit_or unicode
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Invalid_Bounds_Error import all
+from project.Data.Text.Regex.Engine.Default.Invalid_Bounds_Error export all
+
 ## PRIVATE
 
    An error representing that the bounds for a match are invalid.
@@ -891,6 +911,10 @@ type Invalid_Bounds_Error
     to_display_text : Text
     to_display_text =
         "The start bound cannot be greater than the end bound."
+
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Mode_Error import all
+from project.Data.Text.Regex.Engine.Default.Mode_Error export all
 
 ## PRIVATE
 
@@ -907,6 +931,10 @@ type Mode_Error
        Provides a human-readable representation of the mode error.
     to_display_text : Text
     to_display_text self = self.message.to_text
+
+# TODO Dubious constructor export
+from project.Data.Text.Regex.Engine.Default.Invalid_Option_Error import all
+from project.Data.Text.Regex.Engine.Default.Invalid_Option_Error export all
 
 ## PRIVATE
 

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -139,6 +140,7 @@ public class MethodRootNode extends ClosureRootNode {
       return newNode.executeGeneric(frame);
     }
 
+    @CompilerDirectives.TruffleBoundary
     final ExpressionNode replaceItself() {
         ExpressionNode newNode = replace(provider.get());
         notifyInserted(newNode);

@@ -95,4 +95,12 @@ class ImportsTest extends PackageTest {
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
   }
+
+  "Constructors" should "be importable" in {
+    evalTestProject("Test_Type_Imports").toString shouldEqual "(Some 10)"
+  }
+
+  "Constructors" should "be exportable" in {
+    evalTestProject("Test_Type_Exports").toString shouldEqual "(Some 10)"
+  }
 }

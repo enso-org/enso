@@ -112,6 +112,10 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
 
     builder.to_vector
 
+# TODO Dubious constructor export
+from project.Data.Text.Regex.No_Such_Group_Error import all
+from project.Data.Text.Regex.No_Such_Group_Error export all
+
 ## PRIVATE
 
    An error that is emitted when there is no such group in the match for the

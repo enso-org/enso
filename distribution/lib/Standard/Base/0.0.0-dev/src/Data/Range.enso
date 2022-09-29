@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Range.Range import all
+from project.Data.Range.Range export all
+
 ## Represents a right-exclusive range of integer values.
 type Range
 

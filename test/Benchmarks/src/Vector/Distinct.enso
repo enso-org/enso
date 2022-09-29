@@ -1,0 +1,33 @@
+from Standard.Base import all
+import Standard.Base
+
+import Standard.Test.Bench
+
+polyglot java import java.util.Random
+polyglot java import org.enso.base.Time_Utils
+
+
+## Bench Utilities ============================================================
+
+iter_size = 100
+num_iterations = 10
+
+make_random_vec : Integer -> Base.Vector.Vector
+make_random_vec n =
+    random_gen = Random.new n
+    Base.Vector.new n _->random_gen.nextLong
+
+# The Benchmarks ==============================================================
+
+main =
+    random_vec = make_random_vec 10000
+    uniform_vec = Base.Vector.fill 10000 1
+
+    random_text_vec = random_vec.map .to_text
+    uniform_text_vec = random_vec.map .to_text
+
+    Bench.measure (random_vec.distinct) "Random Integer Vector Distinct" iter_size num_iterations
+    Bench.measure (uniform_vec.distinct) "Uniform Integer Vector Distinct" iter_size num_iterations
+
+    Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
+    Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations

@@ -84,6 +84,10 @@ wrap_primitive_stack_trace_element el =
     name = Polyglot.get_executable_name el
     Stack_Trace_Element_Data name loc
 
+# TODO Dubious constructor export
+from project.Runtime.Stack_Trace_Element import all
+from project.Runtime.Stack_Trace_Element export all
+
 ## ADVANCED
    UNSTABLE
 

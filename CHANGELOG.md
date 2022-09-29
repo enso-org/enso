@@ -198,6 +198,12 @@
 - [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
 - [Implemented `start_of` and `end_of` methods for date/time types allowing to
   find start and end of a period of time containing the provided time.][3695]
+- [Implemented `type_of` and `is_of_type` methods for getting the type of a
+  value and comparing types, respectively.][3722]
+- [Implemented `work_days_until` for counting work dys between dates and
+  `add_work_days` which allows to shift a date by a number of work days.][3726]
+- [Added `query` and `read` functions to Database connections.][3727]
+- [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -316,6 +322,10 @@
 [3684]: https://github.com/enso-org/enso/pull/3684
 [3691]: https://github.com/enso-org/enso/pull/3691
 [3695]: https://github.com/enso-org/enso/pull/3695
+[3722]: https://github.com/enso-org/enso/pull/3722
+[3726]: https://github.com/enso-org/enso/pull/3726
+[3727]: https://github.com/enso-org/enso/pull/3727
+[3733]: https://github.com/enso-org/enso/pull/3733
 
 #### Enso Compiler
 
@@ -352,6 +362,7 @@
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
+- [Generate native-image for engine-runner][3638]
 - [Support pattern matching on constants][3641]
 - [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
   support][3658]
@@ -360,6 +371,8 @@
 - [main = "Hello World!" is valid Enso sample][3696]
 - [Invalidate module's IR cache if imported module changed][3703]
 - [Don't rename imported Main module that only imports names][3710]
+- [Distinguish static and instance methods][3740]
+- [Notify node status to the IDE][3729]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -401,12 +414,15 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
+[3637]: https://github.com/enso-org/enso/pull/3638
 [3641]: https://github.com/enso-org/enso/pull/3641
 [3658]: https://github.com/enso-org/enso/pull/3658
 [3671]: https://github.com/enso-org/enso/pull/3671
 [3696]: https://github.com/enso-org/enso/pull/3696
-[3696]: https://github.com/enso-org/enso/pull/3703
-[3696]: https://github.com/enso-org/enso/pull/3710
+[3703]: https://github.com/enso-org/enso/pull/3703
+[3710]: https://github.com/enso-org/enso/pull/3710
+[3729]: https://github.com/enso-org/enso/pull/3729
+[3740]: https://github.com/enso-org/enso/pull/3740
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

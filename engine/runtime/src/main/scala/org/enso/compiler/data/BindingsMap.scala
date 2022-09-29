@@ -3,7 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -22,10 +22,7 @@ import scala.annotation.unused
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  types: List[BindingsMap.Type],
-  constructors: List[BindingsMap.Cons],
-  polyglotSymbols: List[BindingsMap.PolyglotSymbol],
-  moduleMethods: List[BindingsMap.ModuleMethod],
+  definedEntities: List[DefinedEntity],
   currentModule: ModuleReference
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -129,40 +126,12 @@ case class BindingsMap(
     withSymbols
   }
 
-  private def findTypeCandidates(name: String): List[ResolvedType] = {
-    types.filter(_.name == name).map(ResolvedType(currentModule, _))
-  }
-
-  private def findConstructorCandidates(
-    name: String
-  ): List[ResolvedConstructor] = {
-    constructors
-      .filter(_.name == name)
-      .map(ResolvedConstructor(currentModule, _))
-  }
-
-  private def findPolyglotCandidates(
-    name: String
-  ): List[ResolvedPolyglotSymbol] = {
-    polyglotSymbols
-      .filter(_.name == name)
-      .map(ResolvedPolyglotSymbol(currentModule, _))
-  }
-
-  private def findMethodCandidates(
-    name: String
-  ): List[ResolvedName] =
-    moduleMethods.filter(_.name == name).map(ResolvedMethod(currentModule, _))
-
   private def findLocalCandidates(name: String): List[ResolvedName] = {
-    val types    = findTypeCandidates(name)
-    val conses   = findConstructorCandidates(name)
-    val polyglot = findPolyglotCandidates(name)
-    val methods  = findMethodCandidates(name)
-    val all      = types ++ conses ++ polyglot ++ methods
-    if (all.isEmpty && currentModule.getName.item == name) {
+    val candidates =
+      definedEntities.filter(_.name == name).map(_.resolvedIn(currentModule))
+    if (candidates.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
-    } else { all }
+    } else { candidates }
   }
 
   private def findQualifiedImportCandidates(
@@ -170,12 +139,12 @@ case class BindingsMap(
   ): List[ResolvedName] = {
     resolvedImports
       .filter(i => importMatchesName(i, name) && !i.isSynthetic())
-      .map(res => ResolvedModule(res.module))
+      .map(_.target)
   }
 
   private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
     imp.importDef.onlyNames
-      .map(_ => imp.importDef.rename.map(_.name == name).getOrElse(false))
+      .map(_ => imp.importDef.rename.exists(_.name == name))
       .getOrElse(imp.importDef.getSimpleName.name == name)
   }
 
@@ -186,20 +155,9 @@ case class BindingsMap(
     val resolvedNames = resolvedImports
       .flatMap { imp =>
         if (imp.importDef.allowsAccess(name)) {
-          imp.module match {
-            case ModuleReference.Concrete(module) =>
-              module.getIr
-                .unsafeGetMetadata(
-                  BindingAnalysis,
-                  "Wrong pass ordering. Running resolution on an unparsed module."
-                )
-                .findExportedSymbolsFor(name)
-                .map((_, imp.isSynthetic(), imp.module))
-            case ModuleReference.Abstract(name) =>
-              throw new CompilerError(
-                s"Cannot find export candidates for abstract module reference $name."
-              )
-          }
+          imp.target
+            .findExportedSymbolsFor(name)
+            .map((_, imp.isSynthetic(), imp.target))
         } else { List() }
       }
     // synthetic imports should not be reported in the ambiguity reports
@@ -209,16 +167,6 @@ case class BindingsMap(
       case _ =>
         resolvedNames
     }).map(_._1)
-  }
-
-  private def handleAmbiguity(
-    candidates: List[ResolvedName]
-  ): Either[ResolutionError, ResolvedName] = {
-    candidates.distinct match {
-      case List()   => Left(ResolutionNotFound)
-      case List(it) => Right(it)
-      case items    => Left(ResolutionAmbiguous(items))
-    }
   }
 
   /** Resolves a name in the context of current module.
@@ -232,7 +180,7 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedName] = {
     val local = findLocalCandidates(name)
     if (local.nonEmpty) {
-      return handleAmbiguity(local)
+      return BindingsMap.handleAmbiguity(local)
     }
     val qualifiedImps = findQualifiedImportCandidates(name)
     if (qualifiedImps.nonEmpty) {
@@ -259,19 +207,18 @@ case class BindingsMap(
         val consName = rest.last
         val modNames = rest.init
         resolveName(firstModuleName).flatMap {
-          case ResolvedModule(mod) =>
-            val firstModBindings: BindingsMap = getBindingsFrom(mod)
-            var currentModule                 = firstModBindings
+          case scoped: ImportTarget =>
+            var currentScope = scoped
             for (modName <- modNames) {
-              val resolution = currentModule.resolveExportedName(modName)
+              val resolution = currentScope.resolveExportedSymbol(modName)
               resolution match {
                 case Left(err) => return Left(err)
-                case Right(ResolvedModule(mod)) =>
-                  currentModule = getBindingsFrom(mod)
+                case Right(t: ImportTarget) =>
+                  currentScope = t
                 case _ => return Left(ResolutionNotFound)
               }
             }
-            currentModule.resolveExportedName(consName)
+            currentScope.resolveExportedSymbol(consName)
           case _ => Left(ResolutionNotFound)
         }
     }
@@ -328,7 +275,7 @@ case class BindingsMap(
           Set(
             SymbolRestriction.AllowedResolution(
               exp.getSimpleName.name.toLowerCase,
-              Some(ResolvedModule(mod))
+              Some(mod)
             )
           )
         )
@@ -344,17 +291,13 @@ case class BindingsMap(
 
 object BindingsMap {
 
-  private def getBindingsFrom(module: ModuleReference): BindingsMap = {
-    module match {
-      case ModuleReference.Concrete(module) =>
-        module.getIr.unsafeGetMetadata(
-          BindingAnalysis,
-          "imported module has no binding map info"
-        )
-      case ModuleReference.Abstract(_) =>
-        throw new CompilerError(
-          "Bindings cannot be obtained from an abstract module reference."
-        )
+  private def handleAmbiguity(
+    candidates: List[ResolvedName]
+  ): Either[ResolutionError, ResolvedName] = {
+    candidates.distinct match {
+      case List()   => Left(ResolutionNotFound)
+      case List(it) => Right(it)
+      case items    => Left(ResolutionAmbiguous(items))
     }
   }
 
@@ -673,12 +616,12 @@ object BindingsMap {
 
   /** A representation of a resolved export statement.
     *
-    * @param module the module being exported.
+    * @param target the module being exported.
     * @param exportedAs the name it is exported as.
     * @param symbols any symbol restrictions connected to the export.
     */
   case class ExportedModule(
-    module: ModuleReference,
+    target: ImportTarget,
     exportedAs: Option[String],
     symbols: SymbolRestriction
   ) {
@@ -688,7 +631,7 @@ object BindingsMap {
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ExportedModule = {
-      this.copy(module = module.toAbstract, symbols = symbols.toAbstract)
+      this.copy(target = target.toAbstract, symbols = symbols.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -697,24 +640,35 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ExportedModule] = {
-      module.toConcrete(moduleMap).flatMap { x =>
+      target.toConcrete(moduleMap).flatMap { x =>
         symbols
           .toConcrete(moduleMap)
-          .map(y => this.copy(module = x, symbols = y))
+          .map(y => this.copy(target = x, symbols = y))
       }
     }
+  }
+
+  sealed trait ImportTarget extends ResolvedName {
+    override def toAbstract:                       ImportTarget
+    override def toConcrete(moduleMap: ModuleMap): Option[ImportTarget]
+    def findExportedSymbolsFor(name: String):      List[ResolvedName]
+    def resolveExportedSymbol(
+      name: String
+    ): Either[ResolutionError, ResolvedName] =
+      BindingsMap.handleAmbiguity(findExportedSymbolsFor(name))
+    def exportedSymbols: Map[String, List[ResolvedName]]
   }
 
   /** A representation of a resolved import statement.
     *
     * @param importDef the definition of the import
     * @param exports the exports associated with the import
-    * @param module the module this import resolves to
+    * @param target the module this import resolves to
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,
     exports: Option[IR.Module.Scope.Export.Module],
-    module: ModuleReference
+    target: ImportTarget
   ) {
 
     /** Convert the internal [[ModuleReference]] to an abstract reference.
@@ -722,7 +676,7 @@ object BindingsMap {
       * @return `this` with its module reference made abstract
       */
     def toAbstract: ResolvedImport = {
-      this.copy(module = module.toAbstract)
+      this.copy(target = target.toAbstract)
     }
 
     /** Convert the internal [[ModuleReference]] to a concrete reference.
@@ -731,7 +685,7 @@ object BindingsMap {
       * @return `this` with its module reference made concrete
       */
     def toConcrete(moduleMap: ModuleMap): Option[ResolvedImport] = {
-      module.toConcrete(moduleMap).map(x => this.copy(module = x))
+      target.toConcrete(moduleMap).map(x => this.copy(target = x))
     }
 
     /** Determines if this resolved import statement was generated by the compiler.
@@ -743,6 +697,18 @@ object BindingsMap {
     }
   }
 
+  sealed trait DefinedEntity {
+    def name: String
+    def resolvedIn(module: ModuleReference): ResolvedName = this match {
+      case t: Type           => ResolvedType(module, t)
+      case m: ModuleMethod   => ResolvedMethod(module, m)
+      case p: PolyglotSymbol => ResolvedPolyglotSymbol(module, p)
+    }
+    def resolvedIn(module: Module): ResolvedName = resolvedIn(
+      ModuleReference.Concrete(module)
+    )
+  }
+
   /** A representation of a constructor.
     *
     * @param name the name of the constructor.
@@ -750,30 +716,30 @@ object BindingsMap {
     * @param allFieldsDefaulted whether all fields provide a default value.
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
-  case class Cons(
-    name: String,
-    arity: Int,
-    allFieldsDefaulted: Boolean
-  )
+  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
 
   /** A representation of a sum type
     *
     * @param name the type name
     * @param members the member names
     */
-  case class Type(name: String, members: Seq[String], builtinType: Boolean)
+  case class Type(
+    override val name: String,
+    members: Seq[Cons],
+    builtinType: Boolean
+  ) extends DefinedEntity
 
   /** A representation of an imported polyglot symbol.
     *
     * @param name the name of the symbol.
     */
-  case class PolyglotSymbol(name: String)
+  case class PolyglotSymbol(override val name: String) extends DefinedEntity
 
   /** A representation of a method defined on the current module.
     *
     * @param name the name of the method.
     */
-  case class ModuleMethod(name: String)
+  case class ModuleMethod(override val name: String) extends DefinedEntity
 
   /** A name resolved to a sum type.
     *
@@ -781,14 +747,10 @@ object BindingsMap {
     * @param tp a representation for the type
     */
   case class ResolvedType(override val module: ModuleReference, tp: Type)
-      extends ResolvedName {
+      extends ResolvedName
+      with ImportTarget {
     def getVariants: Seq[ResolvedConstructor] = {
-      val bindingsMap = getBindingsFrom(module)
-      tp.members.flatMap(m =>
-        bindingsMap.constructors
-          .find(_.name == m)
-          .map(ResolvedConstructor(module, _))
-      )
+      tp.members.map(ResolvedConstructor(this, _))
     }
 
     /** @inheritdoc */
@@ -805,6 +767,15 @@ object BindingsMap {
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(tp.name)
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      exportedSymbols.getOrElse(name, List())
+
+    override lazy val exportedSymbols: Map[String, List[ResolvedName]] =
+      tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
+
+    def unsafeToRuntimeType(): org.enso.interpreter.runtime.data.Type =
+      module.unsafeAsModule().getScope.getTypes.get(tp.name)
   }
 
   /** A result of successful name resolution.
@@ -831,33 +802,37 @@ object BindingsMap {
 
   /** A representation of a name being resolved to a constructor.
     *
-    * @param module the module the constructor is defined in.
+    * @param tpe the type the constructor is defined in.
     * @param cons a representation of the constructor.
     */
-  case class ResolvedConstructor(module: ModuleReference, cons: Cons)
+  case class ResolvedConstructor(tpe: ResolvedType, cons: Cons)
       extends ResolvedName {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedConstructor = {
-      this.copy(module = module.toAbstract)
+      this.copy(tpe = tpe.toAbstract)
     }
 
     /** @inheritdoc */
     override def toConcrete(
       moduleMap: ModuleMap
     ): Option[ResolvedConstructor] = {
-      module.toConcrete(moduleMap).map(module => this.copy(module = module))
+      tpe.toConcrete(moduleMap).map(tpe => this.copy(tpe = tpe))
     }
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(cons.name)
+
+    override def module: ModuleReference = tpe.module
   }
 
   /** A representation of a name being resolved to a module.
     *
     * @param module the module the name resolved to.
     */
-  case class ResolvedModule(module: ModuleReference) extends ResolvedName {
+  case class ResolvedModule(module: ModuleReference)
+      extends ResolvedName
+      with ImportTarget {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedModule = {
@@ -872,6 +847,18 @@ object BindingsMap {
     }
 
     override def qualifiedName: QualifiedName = module.getName
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      exportedSymbols.getOrElse(name, List())
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = module
+      .unsafeAsModule("must be a module to run resolution")
+      .getIr
+      .unsafeGetMetadata(
+        BindingAnalysis,
+        "Wrong pass ordering. Running resolution on an unparsed module."
+      )
+      .exportedSymbols
   }
 
   /** A representation of a name being resolved to a method call.
@@ -902,11 +889,10 @@ object BindingsMap {
       moduleIr.flatMap(_.bindings.find {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
-            .map(
+            .forall(
               _.getMetadata(MethodDefinitions)
                 .contains(Resolution(ResolvedModule(module)))
             )
-            .getOrElse(true)
         case _ => false
       })
     }
