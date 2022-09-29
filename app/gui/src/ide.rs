@@ -103,6 +103,6 @@ pub struct FailedIde {
 
 
 /// The Path of the module initially opened after opening project in IDE.
-pub async fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {
-    Ok(project.main_module_model().await?.path().clone_ref())
+pub fn initial_module_path(project: &model::Project) -> model::module::Path {
+    project.main_module_path()
 }

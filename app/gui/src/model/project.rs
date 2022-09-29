@@ -104,13 +104,18 @@ pub trait API: Debug {
         model::module::QualifiedName::new_main(name)
     }
 
+    /// Get the file path of the project's `Main` module.
+    fn main_module_path(&self) -> model::module::Path {
+        let main_name = self.main_module();
+        let content_root_id = self.project_content_root_id();
+        model::module::Path::from_id(content_root_id, &main_name.id)
+    }
+
     /// Get a model of the project's main module.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn main_module_model<'a>(&'a self) -> BoxFuture<'a, FallibleResult<model::Module>> {
         async move {
-            let main_name = self.main_module();
-            let content_root_id = self.project_content_root_id();
-            let main_path = model::module::Path::from_id(content_root_id, &main_name.id);
+            let main_path = self.main_module_path();
             self.module(main_path).await
         }
         .boxed_local()
