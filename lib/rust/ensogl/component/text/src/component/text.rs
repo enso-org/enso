@@ -204,9 +204,9 @@ ensogl_core::define_endpoints_2! {
         /// Set the text cursor at the mouse cursor position.
         set_cursor_at_mouse_position(),
         /// Set the text cursor at the front of text.
-        set_cursor_at_front(),
+        set_cursor_at_text_start(),
         /// Set the text cursor at the end of text.
-        set_cursor_at_end(),
+        set_cursor_at_text_end(),
         /// Add a new text cursor at the front of text.
         add_cursor_at_front(),
         /// Add a new text cursor at the end of text.
@@ -219,6 +219,10 @@ ensogl_core::define_endpoints_2! {
         start_newest_selection_end_follow_mouse(),
         /// Stop changing the shape of the newest selection with the mouse position.
         stop_newest_selection_end_follow_mouse(),
+        /// Move the cursor to the text start.
+        cursor_move_to_text_start(),
+        /// Move the cursor to the text_end.
+        cursor_move_to_text_end(),
         /// Move the cursor to the left by one character.
         cursor_move_left(),
         /// Move the cursor to the right by one character.
@@ -247,6 +251,14 @@ ensogl_core::define_endpoints_2! {
         cursor_select_left_word(),
         /// Extend the cursor selection to the right by one word.
         cursor_select_right_word(),
+        /// Extend the cursor selection to the beginning of the line.
+        cursor_select_left_of_line(),
+        /// Extend the cursor selection to the end of the line.
+        cursor_select_right_of_line(),
+        /// Extend the cursor selection to the start of the text.
+        cursor_select_to_text_start(),
+        /// Extend the cursor selection to the end of the text.
+        cursor_select_to_text_end(),
         /// Select all characters.
         select_all(),
         /// Select the word at cursor position.
@@ -399,8 +411,8 @@ impl Text {
             loc_on_mouse_set <- mouse_on_set.map(f!((p) m.screen_to_text_location(*p)));
             loc_on_mouse_add <- mouse_on_add.map(f!((p) m.screen_to_text_location(*p)));
 
-            loc_on_set_at_front <- input.set_cursor_at_front.map(f_!([] default()));
-            loc_on_set_at_end <- input.set_cursor_at_end.map(f_!(m.last_line_last_location()));
+            loc_on_set_at_front <- input.set_cursor_at_text_start.map(f_!([] default()));
+            loc_on_set_at_end <- input.set_cursor_at_text_end.map(f_!(m.last_line_last_location()));
             loc_on_add_at_front <- input.add_cursor_at_front.map(f_!([] default()));
             loc_on_add_at_end <- input.add_cursor_at_end.map(f_!(m.last_line_last_location()));
 
@@ -436,6 +448,9 @@ impl Text {
             eval_ input.cursor_move_left_of_line (m.buffer.frp.cursors_move(Transform::LeftOfLine));
             eval_ input.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
 
+            eval_ input.cursor_move_to_text_start (m.buffer.frp.cursors_move(Transform::StartOfDocument));
+            eval_ input.cursor_move_to_text_end (m.buffer.frp.cursors_move(Transform::EndOfDocument));
+
             eval_ input.cursor_select_left (m.buffer.frp.cursors_select(Transform::Left));
             eval_ input.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
             eval_ input.cursor_select_up (m.buffer.frp.cursors_select(Transform::Up));
@@ -443,6 +458,12 @@ impl Text {
 
             eval_ input.cursor_select_left_word (m.buffer.frp.cursors_select(Transform::LeftWord));
             eval_ input.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
+
+            eval_ input.cursor_select_left_of_line (m.buffer.frp.cursors_select(Transform::LeftOfLine));
+            eval_ input.cursor_select_right_of_line (m.buffer.frp.cursors_select(Transform::RightOfLine));
+
+            eval_ input.cursor_select_to_text_start (m.buffer.frp.cursors_select(Transform::StartOfDocument));
+            eval_ input.cursor_select_to_text_end (m.buffer.frp.cursors_select(Transform::EndOfDocument));
 
             eval_ input.select_all (m.buffer.frp.cursors_select(Transform::All));
             eval_ input.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
@@ -1963,6 +1984,18 @@ impl application::View for Text {
             (Press, "alt right", "cursor_move_right_of_line"),
             (Press, "home", "cursor_move_left_of_line"),
             (Press, "end", "cursor_move_right_of_line"),
+            (Press, "alt shift left", "cursor_select_left_of_line"),
+            (Press, "alt shift right", "cursor_select_right_of_line"),
+            (Press, "shift home", "cursor_select_left_of_line"),
+            (Press, "shift end", "cursor_select_right_of_line"),
+            (Press, "cmd up", "cursor_move_to_text_start"),
+            (Press, "cmd down", "cursor_move_to_text_end"),
+            (Press, "ctrl home", "cursor_move_to_text_start"),
+            (Press, "ctrl end", "cursor_move_to_text_end"),
+            (Press, "cmd shift up", "cursor_select_to_text_start"),
+            (Press, "cmd shift down", "cursor_select_to_text_end"),
+            (Press, "ctrl shift home", "cursor_select_to_text_start"),
+            (Press, "ctrl shift end", "cursor_select_to_text_end"),
             (PressAndRepeat, "shift left", "cursor_select_left"),
             (PressAndRepeat, "shift right", "cursor_select_right"),
             (PressAndRepeat, "cmd shift left", "cursor_select_left_word"),

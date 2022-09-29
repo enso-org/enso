@@ -133,12 +133,12 @@ ensogl::define_endpoints_2! {
 
 impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
     fn init(
+        network: &frp::Network,
         api: &Self::Private,
         _app: &Application,
         model: &Model<COLUMNS>,
         style: &StyleWatchFrp,
     ) {
-        let network = &api.network;
         let input = &api.input;
         let out = &api.output;
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);

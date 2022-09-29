@@ -64,10 +64,14 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = &api.network;
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        app: &Application,
+        model: &Model,
+        _style: &StyleWatchFrp,
+    ) {
         let background = &model.background.events;
-
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
             eval api.input.set_size((size) model.set_size(*size));

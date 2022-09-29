@@ -230,8 +230,8 @@ impl Selection {
             // === Right side of last glyph computation ===
             // This has to be done after display object positioning.
 
-            on_position_or_glyphs_change <- any_(&frp.set_attached_glyphs, &position.value);
-            changed_glyphs <- frp.set_attached_glyphs.sample(&on_position_or_glyphs_change);
+            right_side_can_change <- any3_(&frp.set_attached_glyphs, &position.value, &width.value);
+            changed_glyphs <- frp.set_attached_glyphs.sample(&right_side_can_change);
             rhs_last_glyph <- changed_glyphs.map(f!([model](glyphs) {
                 if let Some(glyph) = glyphs.last().and_then(|glyph| glyph.upgrade()) {
                     let glyph_right_x = glyph.position().x + glyph.x_advance.get();
@@ -271,8 +271,6 @@ impl Selection {
         self.frp.set_position_target(self.frp.position.value() + Vector2(width, 0.0));
         self.frp.skip_position_animation();
         self.frp.set_position_target(self.frp.position_target.value() + Vector2(width, 0.0));
-
-        // FIXME rename to set_width_target
         self.frp.set_width_target(-self.frp.width.value());
         self.frp.skip_width_animation();
         self.frp.set_width_target(-self.frp.width_target.value());

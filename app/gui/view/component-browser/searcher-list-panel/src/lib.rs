@@ -924,12 +924,12 @@ define_endpoints_2! {
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        let network = &frp_api.network;
         let header_height = style.get_number(component_group_theme::header::height);
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;

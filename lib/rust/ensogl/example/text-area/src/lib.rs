@@ -152,7 +152,7 @@ impl Borders {
 // === Entry Point ===
 // ===================
 
-/// Main example runner.ட்
+/// Main example runner.
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
@@ -169,89 +169,29 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    // area.set_content("abcde\nfghij\nklmno\npqrst\n01234\n56789");
-    // area.set_content("aஓbcde\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("a\nfghij");
-    // area.set_content("abcde🧑🏾1234\nfghij"); //\nfghij\nklmno\npqrst\n01234\n56789");
-    // area.set_content("abcdefghjiklmnoprstuwxyz1234567890\nfghij");
-    // area.set_content("abcde"); //\nklmno\npqrst\n01234\n56789");
-    // area.set_font("default"); // FIXME: non-monospaced fonts do not work !!!
+    // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("abcdefg");
+    // area.set_font("default");
     area.focus();
     area.hover();
 
     let borders = Borders::default();
     borders.show(&app, &area);
 
-    // area.set_view_width(60.0);
-
-
-
-    // TODO: add desription for this demo scene
-    // TODO: shortucts requested by Adam
-    // TODO: check if empty text area sends width info
-    // TODO: Fixmes and TODOS in the code
 
     // TODO: Task na unit testyy do textow
-    // TODO: Remove network from FRP::Private
     // TODO: next PR - > Text area to gui component.
 
 
-    // area.set_cursor_at_end();
-    //
-    // area.set_format_option(
-    //     Range::new(Column(0), Column(3)),
-    //     style::Property::Weight(style::Weight::Bold),
-    // );
-    // area.set_format_option(Range::new(4.byte(), 6.byte()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(7.byte(), 15.byte()), style::SdfWeight(0.04));
-    // area.set_sdf_weight(Range::new(24.byte(), 26.byte()), style::SdfWeight(0.02));
-    // area.set_sdf_weight(Range::new(37.byte(), 41.byte()), style::SdfWeight(0.05));
-    // area.set_sdf_weight(Range::new(55.byte(), 56.byte()), style::SdfWeight(0.03));
-    // let quote_length = Byte::from(quote.len());
-    // let text_length = Byte::from(text.len());
-    // area.set_sdf_weight(Range::new(quote_length, text_length), style::SdfWeight(0.02));
-
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
-
     app.display.default_scene.add_child(&area);
-
-
-    warn!("=========================");
-    // let range_green: buffer::Range<Location> =
-    //     buffer::Range::from(Location(Line(0), Column(1))..Location(Line(0), Column(71)));
-    // area.set_property(range_green, color::Rgba::green());
-    // area.set_property(buffer::Range::from(Byte(1)..Byte(3)), style::Weight::Bold);
-
-    // area.set_color(range_green, color::Rgba::red());
-    // area.format(buffer::Range::from(Byte(1)..Byte(3)), style::SdfWeight(0.02));
-    // area.set_color_all(color::Rgba::red());
-    // area.set_sdf_weight(buffer::Range::from(Byte(1)..Byte(3)), style::SdfWeight(0.02));
-
-
-    // let text = "red green blue";
-    // let colored_area = app.new_view::<Text>();
-    // app.display.default_scene.add_child(&colored_area);
-    // colored_area.set_font("DejaVuSans");
-    // colored_area.set_position_xy(Vector2::new(200.0, 200.0));
-    //
-    // colored_area.set_default_color(color::Rgba::black());
-    // colored_area.set_content(text);
-    // let range_green = buffer::Range::from(Byte(4)..Byte(9));
-    // colored_area.set_color(range_green, color::Rgba::green());
-    // let range_blue = buffer::Range::from(Byte(10)..Byte(14));
-    // colored_area.set_color_bytes(range_blue, color::Rgba::blue());
-    warn!("=========================\n\n\n\n");
-
-    // area.set_property_default(color::Rgba::red());
-    // area.set_property_default(style::Weight::Bold);
 
     let area = Rc::new(RefCell::new(Some(area)));
     init_debug_hotkeys(&area);
 
     mem::forget(navigator);
     mem::forget(app);
-    // mem::forget(colored_area);
 }
 
 fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
@@ -328,14 +268,12 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));
                     } else {
-                        // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
                         area.mod_property(buffer::RangeLike::Selections, formatting::SizeDiff(2.0));
                     }
                 } else if key == "Minus" {
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));
                     } else {
-                        // area.set_property(buffer::RangeLike::Selections, style::Size(16.0));
                         area.mod_property(
                             buffer::RangeLike::Selections,
                             formatting::SizeDiff(-2.0),
@@ -349,12 +287,6 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                     area.set_long_text_truncation_mode(true);
                     area.set_view_width(60.0);
                 }
-                // } else if key == "Digit0" {
-                // } else if key == "Digit1" {
-                // } else if key == "Digit2" {
-                // } else if key == "KeyP" {
-                // } else if key == "KeyQ" {
-                // }
             }
         }
     });

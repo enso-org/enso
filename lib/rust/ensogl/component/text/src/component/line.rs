@@ -287,10 +287,10 @@ impl View {
         Self { frp, display_object, glyphs, divs, centers, truncation, baseline_anim }
     }
 
-    // FIXME: this will fail if column index is too big
     /// Get glyph for the provided column or create a new one if it does not exist.
     pub fn get_or_create(&mut self, column: Column, cons: impl Fn() -> Glyph) -> &Glyph {
-        if column >= Column(self.glyphs.len()) {
+        let missing = column.value as i32 - self.glyphs.len() as i32;
+        for _ in 0..=missing {
             self.push_glyph(cons());
         }
         &self.glyphs[column]
@@ -347,7 +347,8 @@ impl View {
         if column.value < self.divs.len() {
             self.divs[column.value]
         } else {
-            error!("Requested column is bigger then glyph amount.");
+            // Requested column is bigger then glyph amount. This can happen for example when text
+            // is truncated and the cursor is in the truncated area.
             *self.divs.last()
         }
     }

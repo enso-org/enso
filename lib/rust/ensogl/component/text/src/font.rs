@@ -519,23 +519,6 @@ impl Font {
         }
     }
 
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(
-        &self,
-        non_variable_font_variations: NonVariableFaceHeader,
-        variable_font_variations: &VariationAxes,
-        code_point: char,
-    ) -> Option<GlyphId> {
-        match self {
-            Font::NonVariable(font) =>
-                font.glyph_id_of_code_point(&non_variable_font_variations, code_point),
-            Font::Variable(font) =>
-                font.glyph_id_of_code_point(variable_font_variations, code_point),
-        }
-    }
-
     /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {
         match self {
@@ -603,13 +586,10 @@ pub struct FontTemplate<F: Family> {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontTemplateData<F: Family> {
-    pub name:                   Name,
-    pub family:                 F,
-    pub atlas:                  msdf::Texture,
-    pub cache:                  RefCell<HashMap<F::Variations, FontDataCache>>,
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    pub glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
+    pub name:   Name,
+    pub family: F,
+    pub atlas:  msdf::Texture,
+    pub cache:  RefCell<HashMap<F::Variations, FontDataCache>>,
 }
 
 /// A cache for common glyph properties, used to layout glyphs.
@@ -632,27 +612,8 @@ impl<F: Family> FontTemplate<F> {
         let atlas = default();
         let cache = default();
         let family = family.into();
-        let glyph_id_to_code_point = default();
-        let data = FontTemplateData { name, family, atlas, cache, glyph_id_to_code_point };
+        let data = FontTemplateData { name, family, atlas, cache };
         Self { rc: Rc::new(data) }
-    }
-
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(
-        &self,
-        variations: &F::Variations,
-        code_point: char,
-    ) -> Option<GlyphId> {
-        self.family
-            .with_borrowed_face(variations, |face| {
-                face.ttf.as_face_ref().glyph_index(code_point).map(|id| {
-                    self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
-                    id
-                })
-            })
-            .flatten()
     }
 
     /// Get render info for one character, generating one if not found.
