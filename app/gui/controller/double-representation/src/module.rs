@@ -298,12 +298,12 @@ impl QualifiedName {
     /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
     /// module.
     pub fn parent_module(&self) -> Option<Self> {
-        if !self.is_top_module() {
+        if self.is_top_module() {
+            None
+        } else {
             let id = Id::try_new(self.id.parent_segments()).ok()?;
             let project_name = self.project_name.clone();
             Some(Self { project_name, id })
-        } else {
-            None
         }
     }
 
