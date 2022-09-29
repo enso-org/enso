@@ -10,10 +10,12 @@ use crate::definition;
 use crate::definition::DefinitionInfo;
 use crate::graph::GraphInfo;
 use crate::identifier::Identifier;
+use crate::identifier::ReferentName;
 use crate::node;
 use crate::node::MainLine;
 use crate::node::NodeInfo;
 
+use ast::crumbs::Located;
 use ast::BlockLine;
 use parser::Parser;
 use std::collections::BTreeSet;
@@ -39,8 +41,9 @@ pub fn collapse(
     selected_nodes: impl IntoIterator<Item = node::Id>,
     name: Identifier,
     parser: &Parser,
+    module_name: ReferentName,
 ) -> FallibleResult<Collapsed> {
-    Collapser::new(graph.clone(), selected_nodes, parser.clone_ref())?.collapse(name)
+    Collapser::new(graph.clone(), selected_nodes, parser.clone_ref(), module_name)?.collapse(name)
 }
 
 
@@ -295,6 +298,7 @@ pub struct Collapser {
     parser:         Parser,
     /// Identifier of the node to be introduced as a result of collapsing.
     collapsed_node: node::Id,
+    module_name:    ReferentName,
 }
 
 impl Collapser {
@@ -304,13 +308,14 @@ impl Collapser {
         graph: GraphInfo,
         selected_nodes: impl IntoIterator<Item = node::Id>,
         parser: Parser,
+        module_name: ReferentName,
     ) -> FallibleResult<Self> {
         let graph = GraphHelper::new(graph);
         let extracted = Extracted::new(&graph, selected_nodes)?;
         let last_selected = extracted.extracted_nodes.iter().last().ok_or(NoNodesSelected)?.id();
         let replaced_node = extracted.output.as_ref().map(|out| out.node).unwrap_or(last_selected);
         let collapsed_node = node::Id::new_v4();
-        Ok(Collapser { graph, extracted, replaced_node, parser, collapsed_node })
+        Ok(Collapser { graph, extracted, replaced_node, parser, collapsed_node, module_name })
     }
 
     /// Generate the expression that calls the extracted method definition.
@@ -318,7 +323,8 @@ impl Collapser {
     /// Does not include any pattern for assigning the resulting value.
     pub fn call_to_extracted(&self, extracted: &definition::ToAdd) -> FallibleResult<Ast> {
         // TODO actually check that generated name is single-identifier
-        let target = extracted.name.clone();
+        let mut target = extracted.name.clone();
+        target.extended_target.insert(0, Located::new_root(self.module_name.clone().into()));
         let base = target.ast(&self.parser)?;
         let args = extracted.explicit_parameter_names.iter().map(Ast::var);
         let chain = ast::prefix::Chain::new(base, args);
@@ -386,6 +392,7 @@ mod tests {
     use ast::crumbs::Crumb;
 
     struct Case {
+        module_name:         ReferentName,
         refactored_name:     DefinitionName,
         introduced_name:     Identifier,
         initial_method_code: &'static str,
@@ -405,7 +412,8 @@ mod tests {
                 ast::test_utils::assert_unique_ids(ast.as_ref());
                 let selection = selection.iter().copied();
                 let new_name = self.introduced_name.clone();
-                let collapsed = collapse(&graph, selection, new_name, parser).unwrap();
+                let module_name = self.module_name.clone();
+                let collapsed = collapse(&graph, selection, new_name, parser, module_name).unwrap();
                 let new_method = collapsed.new_method.ast(0, parser).unwrap();
                 let placement = module::Placement::Before(self.refactored_name.clone());
                 let new_main = &collapsed.updated_definition.ast;
@@ -438,6 +446,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_collapse() {
         let parser = Parser::new_or_panic();
+        let module_name = ReferentName::new("Main".to_owned()).unwrap();
         let introduced_name = Identifier::try_from("custom_new").unwrap();
         let refactored_name = DefinitionName::new_plain("custom_old");
         let initial_method_code = r"custom_old =
@@ -454,10 +463,11 @@ mod tests {
     c";
         let expected_refactored = r"custom_old =
     a = 1
-    c = here.custom_new a
+    c = Main.custom_new a
     c + 7";
 
         let mut case = Case {
+            module_name,
             refactored_name,
             introduced_name,
             initial_method_code,
@@ -480,7 +490,7 @@ mod tests {
     a = 1
     b = 2
     c = A + B
-    d = here.custom_new a b
+    d = Main.custom_new a b
     c + 7";
         case.run(&parser);
 
@@ -499,7 +509,7 @@ mod tests {
     a = 1
     b = 2
     c = A + B
-    here.custom_new a b
+    Main.custom_new a b
     c + 7";
         case.run(&parser);
 
@@ -515,7 +525,7 @@ mod tests {
     c = 50 + d
     c";
         case.expected_refactored = r"custom_old =
-    c = here.custom_new
+    c = Main.custom_new
     c + c + 10";
         case.run(&parser);
 
@@ -534,7 +544,7 @@ mod tests {
         case.expected_refactored = r"custom_old =
     number1 = 1
     number2 = 2
-    vector = here.custom_new number1 number2";
+    vector = Main.custom_new number1 number2";
         case.run(&parser);
     }
 }

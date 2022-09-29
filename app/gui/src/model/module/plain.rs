@@ -16,6 +16,7 @@ use crate::model::module::TextChange;
 use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
+use double_representation::identifier::ReferentName;
 use double_representation::module::ImportId;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
@@ -134,6 +135,10 @@ impl model::module::API for Module {
 
     fn path(&self) -> &Path {
         &self.path
+    }
+
+    fn name(&self) -> ReferentName {
+        self.path.module_name()
     }
 
     fn serialized_content(&self) -> FallibleResult<SourceFile> {

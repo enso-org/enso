@@ -956,7 +956,9 @@ impl Searcher {
 
         // === Add new node ===
         let args = std::iter::empty();
-        let node_expression = ast::prefix::Chain::new(new_definition_name, args);
+        let this_expression = Ast::var(self.module_qualified_name().name());
+        let node_expression =
+            ast::prefix::Chain::new_with_this(new_definition_name, this_expression, args);
         let node_expression = node_expression.into_ast();
         let node = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
         let added_node_id = node.id();

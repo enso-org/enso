@@ -267,7 +267,7 @@ impl Entry {
             if self.is_regular_module_method() {
                 if is_local_entry {
                     // No additional import for entries defined in this module.
-                    None
+                    Some(self.module.name().into())
                 } else {
                     // If we are inserting an additional `self` argument, the used name must be
                     // visible.
@@ -790,7 +790,7 @@ mod test {
 
         expect(&module_method, None, true, "Project.module_method", &[&main_module]);
         expect(&module_method, None, false, "module_method", &[]);
-        expect(&module_method, Some(&main_module), true, "module_method", &[]);
+        expect(&module_method, Some(&main_module), true, "Main.module_method", &[]);
         expect(&module_method, Some(&main_module), false, "module_method", &[]);
         expect(&module_method, Some(&another_module), true, "Project.module_method", &[
             &main_module,
@@ -809,7 +809,13 @@ mod test {
             &[&another_module],
         );
         expect(&another_module_method, Some(&main_module), false, "module_method", &[]);
-        expect(&another_module_method, Some(&another_module), true, "module_method", &[]);
+        expect(
+            &another_module_method,
+            Some(&another_module),
+            true,
+            "Another_Module.module_method",
+            &[],
+        );
         expect(&another_module_method, Some(&another_module), false, "module_method", &[]);
 
         // TODO [mwu] Extensions on nullary atoms should also be able to generate this.
