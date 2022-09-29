@@ -248,6 +248,18 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testBench() throws Exception {
+    parseTest("""
+    from Standard.Base import all
+    import Standard.Base.System
+
+    measure : Any -> Text -> Integer -> Integer -> Nothing
+    measure = ~act -> label -> iter_size -> num_iters ->
+        42
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
