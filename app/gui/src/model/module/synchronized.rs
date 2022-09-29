@@ -17,8 +17,8 @@ use double_representation::graph::Id;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
+use enso_text::index::*;
 use enso_text::text;
-use enso_text::unit::*;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
@@ -58,9 +58,9 @@ struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary:  ContentSummary,
     source:   text::Rope,
-    code:     Range<Location<enso_text::Byte>>,
-    id_map:   Range<Location<enso_text::Byte>>,
-    metadata: Range<Location<enso_text::Byte>>,
+    code:     Range<Location<Byte>>,
+    id_map:   Range<Location<Byte>>,
+    metadata: Range<Location<Byte>>,
 }
 
 impl ParsedContentSummary {

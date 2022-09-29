@@ -21,6 +21,7 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use enso_text::Byte;
 use enso_text::Location;
+use enso_text::Rope;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -548,7 +549,7 @@ impl Searcher {
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
-        let module_repr: enso_text::Rope = module_ast.repr().into();
+        let module_repr: Rope = module_ast.repr().into();
         let position = module_repr.location_of_byte_offset_snapped(def_span.end);
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
@@ -973,7 +974,7 @@ impl Searcher {
     ) {
         let ls = self.language_server.clone_ref();
         let graph = self.graph.graph();
-        let position = self.position_in_code.deref().into();
+        let position = self.my_utf16_location().span.into();
         let this = self.clone_ref();
         let return_types = return_types.into_iter().collect_vec();
         let return_types_for_engine = if return_types.is_empty() {
@@ -1074,6 +1075,25 @@ impl Searcher {
         builder.build()
     }
 
+    /// Convert a location within a current module (i.e. module being edited) to a location indexed
+    /// by UTF-16 code units. This enables Language Server protocol compatibility.
+    fn location_to_utf16(
+        &self,
+        location: Location<Byte>,
+    ) -> suggestion_database::entry::ModuleSpan {
+        let module: Rope = self.graph.graph().module.ast().repr().into();
+        suggestion_database::entry::ModuleSpan {
+            module: self.module_qualified_name(),
+            span:   module.utf16_code_unit_location_of_location(location),
+        }
+    }
+
+    /// Convert a position of the searcher in the code to an Engine-compatible UTF-16 location.
+    fn my_utf16_location(&self) -> suggestion_database::entry::ModuleSpan {
+        let location = self.position_in_code.deref().into();
+        self.location_to_utf16(location)
+    }
+
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
         let opt_result = || {
             let call_ast = self.data.borrow().input.expression.as_ref()?.func.clone_ref();
@@ -1084,9 +1104,8 @@ impl Searcher {
                 Some(entry.into_iter().map(action::Suggestion::FromDatabase).collect())
             } else {
                 let name = &call.function_name;
-                let module = self.module_qualified_name();
-                let location = *self.position_in_code;
-                let entries = self.database.lookup_by_name_and_location(name, &module, location);
+                let location = self.my_utf16_location();
+                let entries = self.database.lookup_at(name, &location);
                 Some(entries.into_iter().map(action::Suggestion::FromDatabase).collect())
             }
         };
@@ -1096,11 +1115,10 @@ impl Searcher {
     /// For the simple function call checks if the function is called on the module (if it can be
     /// easily determined) and returns the module's qualified name if it is.
     fn module_whose_method_is_called(&self, call: &SimpleFunctionCall) -> Option<QualifiedName> {
-        let position = *self.position_in_code;
+        let location = self.my_utf16_location();
         let this_name = ast::identifier::name(call.this_argument.as_ref()?)?;
-        let module_name = self.module_qualified_name();
-        let matching_locals =
-            self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
+        let matching_locals = self.database.lookup_locals_at(this_name, &location);
+        let module_name = location.module;
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
             if this_name == ast::constants::keywords::HERE

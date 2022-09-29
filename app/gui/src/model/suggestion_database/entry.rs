@@ -12,7 +12,6 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
-use enso_text::Byte;
 use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
@@ -140,6 +139,23 @@ impl<'a> IntoIterator for &'a QualifiedName {
 
 
 
+// ==================
+// === ModuleSpan ===
+// ==================
+
+/// A span in a module identified by qualified name.
+///
+/// Span uses UTF-16 code units as units of measurement, so it is compatible with the format used
+/// internally by the suggestion database entries.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModuleSpan {
+    pub module: module::QualifiedName,
+    pub span:   Location<enso_text::Utf16CodeUnit>,
+}
+
+
+
 // ================
 // === IconName ===
 // ================
@@ -199,8 +215,12 @@ pub enum Scope {
     Everywhere,
     /// Local symbol that is visible only in a particular section of the module where it has been
     /// defined.
+    ///
+    /// We are using UTF-16 codepoints because this is what Language Server speaks.
+    /// To convert to bytes (or other system) one would need to know the whole module code which
+    /// is not available to the suggestions database.
     #[allow(missing_docs)]
-    InModule { range: RangeInclusive<Location<Byte>> },
+    InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
 }
 
 /// Represents code snippet and the imports needed for it to work.
@@ -327,10 +347,11 @@ impl Entry {
     }
 
     /// Checks if entry is visible at given location in a specific module.
-    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location<Byte>) -> bool {
+    pub fn is_visible_at(&self, location: &ModuleSpan) -> bool {
+        let ModuleSpan { module, span } = location;
         match &self.scope {
             Scope::Everywhere => true,
-            Scope::InModule { range } => self.module == *module && range.contains(&location),
+            Scope::InModule { range } => self.module == *module && range.contains(&span),
         }
     }
 

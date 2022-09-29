@@ -1763,7 +1763,7 @@ mod tests {
     #[test]
     fn ast_length() {
         let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
-        assert_eq!(ast.len(), 6.byte());
+        assert_eq!(ast.len(), ByteDiff(6));
         assert_eq!(ast.char_count(), 5);
     }
 

@@ -4,17 +4,18 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
+use crate::model::suggestion_database::entry::ModuleSpan;
 use crate::notification;
 
 use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
-use enso_text::Location;
 use ensogl::data::HashMapTree;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
+
 
 
 // ==============
@@ -292,39 +293,25 @@ impl SuggestionDatabase {
     }
 
     /// Search the database for entries with given name and visible at given location in module.
-    pub fn lookup_by_name_and_location(
-        &self,
-        name: impl Str,
-        module: &QualifiedName,
-        location: Location,
-    ) -> Vec<Rc<Entry>> {
+    pub fn lookup_at(&self, name: impl Str, location: &ModuleSpan) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
             .values()
-            .filter(|entry| {
-                entry.matches_name(name.as_ref()) && entry.is_visible_at(module, location)
-            })
+            .filter(|entry| entry.matches_name(name.as_ref()) && entry.is_visible_at(location))
             .cloned()
             .collect()
     }
 
     /// Search the database for Local or Function entries with given name and visible at given
     /// location in module.
-    pub fn lookup_locals_by_name_and_location(
-        &self,
-        name: impl Str,
-        module: &QualifiedName,
-        location: Location,
-    ) -> Vec<Rc<Entry>> {
+    pub fn lookup_locals_at(&self, name: impl Str, location: &ModuleSpan) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
             .values()
             .cloned()
             .filter(|entry| {
                 let is_local = entry.kind == Kind::Function || entry.kind == Kind::Local;
-                is_local
-                    && entry.matches_name(name.as_ref())
-                    && entry.is_visible_at(module, location)
+                is_local && entry.matches_name(name.as_ref()) && entry.is_visible_at(location)
             })
             .collect()
     }
@@ -445,6 +432,7 @@ mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
+    use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);

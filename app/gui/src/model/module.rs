@@ -69,7 +69,7 @@ pub enum ModulePathViolation {
 // ===============
 
 /// A specialization of text change used in module's text changes across controllers.
-pub type TextChange = enso_text::Change<enso_text::unit::Byte, String>;
+pub type TextChange = enso_text::Change<enso_text::index::Byte, String>;
 
 
 
@@ -458,7 +458,7 @@ impl Add for Position {
     }
 }
 
-impl std::ops::AddAssign for Position {
+impl AddAssign for Position {
     fn add_assign(&mut self, rhs: Self) {
         self.vector += rhs.vector
     }

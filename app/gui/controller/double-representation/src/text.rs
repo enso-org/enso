@@ -1,6 +1,7 @@
 //! A module with functions used to support working with text representation of the language.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 
 use ast::IdMap;

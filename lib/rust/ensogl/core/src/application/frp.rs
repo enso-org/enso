@@ -1381,6 +1381,11 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let network = self.network.upgrade()?;
                     Some(Frp { public, private, network })
                 }
+
+                /// Gets the number of strong (Rc) pointers to this allocation.
+                pub fn strong_count(&self) -> usize {
+                    self.network.strong_count()
+                }
             }
 
             impl $($ctx)*
