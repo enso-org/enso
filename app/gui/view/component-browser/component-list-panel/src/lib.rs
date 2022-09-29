@@ -254,6 +254,7 @@ impl Model {
         display_object.add_child(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
         breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
