@@ -161,6 +161,9 @@ object ContextRegistryProtocol {
       /** An information about computed expression. */
       case object Value extends Payload
 
+      case class Pending(message: Option[String], progress: Option[Double])
+          extends Payload;
+
       /** Indicates that the expression was computed to an error.
         *
         * @param trace the list of expressions leading to the root error.
@@ -186,6 +189,8 @@ object ContextRegistryProtocol {
 
         val Value = "Value"
 
+        val Pending = "Pending"
+
         val DataflowError = "DataflowError"
 
         val Panic = "Panic"
@@ -210,6 +215,13 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Panic.asJson)
               )
+
+          case m: Payload.Pending =>
+            Encoder[Payload.Pending]
+              .apply(m)
+              .deepMerge(
+                Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
+              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -223,6 +235,9 @@ object ContextRegistryProtocol {
 
             case PayloadType.Panic =>
               Decoder[Payload.Panic].tryDecode(cursor)
+
+            case PayloadType.Pending =>
+              Decoder[Payload.Pending].tryDecode(cursor)
           }
         }
     }

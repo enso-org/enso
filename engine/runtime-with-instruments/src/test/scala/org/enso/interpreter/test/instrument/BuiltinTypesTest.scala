@@ -163,7 +163,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
@@ -187,7 +189,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.DECIMAL),
       context.executionComplete(contextId)
@@ -211,7 +215,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.BOOLEAN),
       context.executionComplete(contextId)
@@ -235,7 +241,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.TEXT),
       context.executionComplete(contextId)
@@ -261,7 +269,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idY, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
@@ -290,7 +300,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
       context.executionComplete(contextId)
@@ -318,7 +330,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
       context.executionComplete(contextId)
@@ -342,7 +356,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.ARRAY),
       context.executionComplete(contextId)
@@ -366,7 +382,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
       context.executionComplete(contextId)
@@ -390,7 +408,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.REF),
       context.executionComplete(contextId)
@@ -414,7 +434,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.DATE),
       context.executionComplete(contextId)
@@ -438,7 +460,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.DATE_TIME),
       context.executionComplete(contextId)
@@ -462,7 +486,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.TIME_OF_DAY),
       context.executionComplete(contextId)
@@ -486,7 +512,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.TIME_ZONE),
       context.executionComplete(contextId)
@@ -510,7 +538,9 @@ class BuiltinTypesTest
 
     runCode(contextId, requestId, contents)
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)

@@ -43,7 +43,10 @@ class RecomputeContextCmd(
         val cacheInvalidationCommands = request.expressions.toSeq
           .map(CacheInvalidation.Command(_))
           .map(CacheInvalidation(CacheInvalidation.StackSelector.Top, _))
-        CacheInvalidation.runAll(stack, cacheInvalidationCommands)
+        CacheInvalidation.runAll(
+          stack,
+          cacheInvalidationCommands
+        )
         reply(Api.RecomputeContextResponse(request.contextId))
         true
       }
