@@ -91,6 +91,10 @@ async fn get_data() -> String {
     assert!(response.is_instance_of::<web_sys::Response>());
     let response: web_sys::Response = response.dyn_into().unwrap();
     if !response.ok() {
+        ERROR!(
+            "Error retrieving profile file from {url}: {response.status_text()}. \
+            Falling back to demo data."
+        );
         return enso_profiler_demo_data::create_data().await;
     }
     let data = response.text().unwrap();

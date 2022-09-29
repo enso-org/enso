@@ -244,6 +244,10 @@ async fn get_data_http() -> Option<String> {
     let response = wasm_bindgen_futures::JsFuture::from(response).await.unwrap();
     let response: web_sys::Response = response.dyn_into().unwrap();
     if !response.ok() {
+        ERROR!(
+            "Error retrieving profile file from {url}: {response.status_text()}. \
+            Falling back to demo data."
+        );
         return None;
     }
     let data = response.text().unwrap();
