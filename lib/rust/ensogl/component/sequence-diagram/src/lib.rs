@@ -62,8 +62,13 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = api.network.clone();
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        _app: &Application,
+        model: &Model,
+        _style: &StyleWatchFrp,
+    ) {
         frp::extend! { network
             eval api.input.set_profile ((profile) model.set_profile(profile));
             let model = model.clone_ref();
