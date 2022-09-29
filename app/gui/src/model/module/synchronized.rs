@@ -16,7 +16,6 @@ use crate::model::module::API;
 use ast::IdMap;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
-use double_representation::identifier::ReferentName;
 use double_representation::module::ImportId;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;

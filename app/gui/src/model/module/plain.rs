@@ -16,7 +16,6 @@ use crate::model::module::TextChange;
 use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
-use double_representation::identifier::ReferentName;
 use double_representation::module::ImportId;
 use flo_stream::Subscriber;
 use parser::api::ParsedSourceFile;
