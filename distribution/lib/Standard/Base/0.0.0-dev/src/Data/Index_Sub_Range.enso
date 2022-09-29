@@ -57,7 +57,7 @@ resolve_ranges ranges length =
     ## Ensures that a descriptor fits within the range of the current
        vector, trimming it or reporting an error if it is invalid.
     trim descriptor = case descriptor of
-        Integer ->
+        _ : Integer ->
             actual_index = if descriptor < 0 then length + descriptor else descriptor
             if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error_Data descriptor length) else
                 actual_index
@@ -77,7 +77,7 @@ resolve_ranges ranges length =
    single-element ranges.
 normalize_ranges descriptors =
     normalize descriptor = case descriptor of
-        Integer -> [Range_Data descriptor descriptor+1]
+        _ : Integer -> [Range_Data descriptor descriptor+1]
         Range_Data _ _ _ ->
             if descriptor.step == 1 then [descriptor] else
                 descriptor.to_vector.map ix->

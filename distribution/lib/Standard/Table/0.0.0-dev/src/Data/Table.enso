@@ -262,7 +262,7 @@ type Table
              example_at = Examples.inventory_table.at -1
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
-        Integer ->
+        _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Column_Data (java_columns.at selector)
         _ : Text ->
@@ -725,7 +725,7 @@ type Table
                 selector = selection.column
                 case selector of
                     _ : Text -> column.name == selector
-                    Integer -> if selector >= 0 then index == selector else
+                    _ : Integer -> if selector >= 0 then index == selector else
                         index == columns.length + selector
             if matching_input.length == 0 then Nothing else
                 if matching_input.length == 1 then matching_input.first.datatype else
@@ -742,7 +742,7 @@ type Table
                 column_types.each selection->
                     selector = selection.column
                     case selector of
-                        Integer ->
+                        _ : Integer ->
                             valid = Table_Helpers.is_index_valid columns.length selector
                             if valid.not then
                                 invalid_indices.append selector

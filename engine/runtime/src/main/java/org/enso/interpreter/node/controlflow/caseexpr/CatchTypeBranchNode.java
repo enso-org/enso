@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.meta.TypeOfNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on types. */
 @NodeInfo(shortName = "TypeMatch")
@@ -62,11 +63,28 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   }
 
   @Specialization
-  public void doValue(VirtualFrame frame, Object state, Object target) {
+  public void doValue(
+      VirtualFrame frame,
+      Object state,
+      Object target,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     Object typeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(expectedType, typeOfTarget);
     if (profile.profile(test)) {
       accept(frame, state, new Object[] {target});
+    } else if (TypesGen.isType(typeOfTarget)) {
+      Type tpe = TypesGen.asType(typeOfTarget);
+      Type superTpe = tpe.getSupertype();
+
+      while (tpe != superTpe && superTpe != null) {
+        boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
+        if (testSuperTpe) {
+          accept(frame, state, new Object[] {target});
+          return;
+        }
+        tpe = superTpe;
+        superTpe = superTpe.getSupertype();
+      }
     }
   }
 }

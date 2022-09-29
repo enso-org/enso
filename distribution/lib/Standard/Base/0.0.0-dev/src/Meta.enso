@@ -322,9 +322,9 @@ is_a value typ = if is_same_object value typ then True else
                 _ : Array -> typ.is_same_object_as Base.Array
                 _ : Boolean -> if typ.is_same_object_as Base.Boolean then True else value.is_same_object_as typ
                 _ : Text -> typ.is_same_object_as Base.Text
-                Number -> if typ == Number then True else case value of
-                    Integer -> typ == Integer
-                    Decimal -> typ == Decimal
+                _ : Number -> if typ == Base.Number then True else case value of
+                    _ : Integer -> typ == Base.Integer
+                    _ : Decimal -> typ == Base.Decimal
                 _ : Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
                 _ : Date.Date      -> typ.is_same_object_as Date.Date
                 _ : Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day

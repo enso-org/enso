@@ -306,10 +306,10 @@ into_helper fmt json = case fmt of
     _ : Base.Boolean -> case json of
         Boolean v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base_Number.Number -> case json of
+    _ : Base_Number.Number -> case json of
         Number v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Text -> case json of
+    _ : Base.Text -> case json of
         String v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     _ ->

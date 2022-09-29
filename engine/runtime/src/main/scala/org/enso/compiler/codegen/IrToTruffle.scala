@@ -969,18 +969,8 @@ class IrToTruffle(
                   val tpe =
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
                   val any      = context.getBuiltins.any
-                  val number   = context.getBuiltins.number
                   val polyglot = context.getBuiltins.polyglot
-                  val branch = if (tpe == number.getInteger) {
-                    IntegerBranchNode.build(
-                      number,
-                      branchCodeNode.getCallTarget
-                    )
-                  } else if (tpe == number.getDecimal) {
-                    DecimalBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == number.getNumber) {
-                    NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-                  } else if (tpe == polyglot) {
+                  val branch = if (tpe == polyglot) {
                     PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
                   } else if (tpe == any) {
                     CatchAllBranchNode.build(branchCodeNode.getCallTarget)

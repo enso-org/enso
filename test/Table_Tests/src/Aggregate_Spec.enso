@@ -993,7 +993,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
     expect_null_or_nan value =
         matches = case value of
             Nothing -> True
-            Decimal -> Double.isNaN value
+            _ : Decimal -> Double.isNaN value
             _       -> False
         if matches.not then
             loc = Meta.get_source_location 2
