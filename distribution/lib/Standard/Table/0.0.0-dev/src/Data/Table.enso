@@ -5,9 +5,9 @@ import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
-from Standard.Table.Data.Filter_Condition import all
 
 import Standard.Table.Data.Column
+from Standard.Table.Data.Filter_Condition import make_filter_column
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -794,45 +794,36 @@ type Table
        Arguments:
        - column: The column to use for filtering. Can be a column name, index or
          the `Column` object itself.
-       - filter: The filter to apply to the column.
+       - filter: The filter to apply to the column. It can either be an instance
+         of `Filter_Condition` or a predicate taking a cell value and returning
+         a boolean value indicating whether the corresponding row should be kept
+         or not.
 
        > Example
-         Select only the items where not all the stock has been sold.
+         Get people older than 30.
 
-             import Standard.Examples
+             people.filter "Age" (Greater 30)
 
-             example_filter =
-                 table = Examples.inventory_table
-                 mask = (table.at  > (table.at "total_stock" / 2))
-                 table.filter "sold_stock"
-    filter : (Column | Text | Integer) -> Filter_Condition -> Table
-    filter self column filter = case column of
+       > Example
+         Filter people between 30 and 40.
+
+             people.filter "Age" (Between 30 40)
+
+       > Example
+         Select rows where more than 50% of the stock is sold.
+
+             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter "age" (age -> (age%10 == 0))
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table
+    filter self column filter=(Filter_Condition.Is_True) = case column of
         Text -> self.filter (self.at column) filter
         Integer -> self.filter (self.at column) filter
         Column _ ->
-            filter_column = case filter of
-                Less value -> (column < value)
-                Less_Or_Equal value -> (column <= value)
-                Equal value -> (column == value)
-                Greater_Or_Equal value -> (column >= value)
-                Greater value -> (column > value)
-                Not_Equal value -> (column != value)
-                Between lower upper -> ((column >= lower) && (column <= upper))
-                Like sql_like_pattern ->
-                    is_like_function = is_like sql_like_pattern
-                    (column.map is_like_function)
-                Not_Like sql_like_pattern ->
-                    is_like_function = is_like sql_like_pattern
-                    (column.map t->(is_like_function t).not)
-                Starts_With prefix -> column.starts_with prefix
-                Ends_With suffix -> column.ends_with suffix
-                Contains substring -> column.contains prefix
-                Is_Nothing -> (column == Nothing)
-                Not_Nothing -> (column != Nothing)
-                Is_Empty -> (column == Nothing)
-                Not_Empty -> (column != Nothing)
-                _ -> column.map filter
-
+            filter_column = make_filter_column column filter
             Table_Data (self.java_table.mask filter_column.java_column)
 
     ## Filter rows not containing any values.

@@ -7,6 +7,7 @@ import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL_Query import Raw_SQL
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
+from Standard.Table.Data.Filter_Condition import make_filter_column
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
@@ -341,30 +342,51 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error_Data "Column "+column.name)
 
-    ## UNSTABLE
+    ## ALIAS Filter Rows
 
-       Selects only the rows of this table that correspond to `True` values in
+       Selects only the rows of this table that correspond to `True` values of
        `filter`.
 
        Arguments:
-       - filter: A column of boolean values that will be used to mask the table
-         rows.
-
-       This is useful for filtering the rows by given predicate.
+       - column: The column to use for filtering. Can be a column name, index or
+         the `Column` object itself.
+       - filter: The filter to apply to the column. It can either be an instance
+         of `Filter_Condition` or a predicate taking a cell value and returning
+         a boolean value indicating whether the corresponding row should be kept
+         or not.
 
        > Example
-         Select only the rows of `my_table` where the `"Status"` column has the
-         value `"Valid"`
-             my_table.where (my_table.at "Status" == "Valid")
-    where : Column -> Table
-    where self filter =
-        case Helpers.check_integrity self filter of
-            False ->
-                Error.throw (Integrity_Error_Data "Column "+filter.name)
-            True ->
-                new_filters = self.context.where_filters + [filter.expression]
-                new_ctx = self.context.set_where_filters new_filters
-                self.updated_context new_ctx
+         Get people older than 30.
+
+             people.filter "Age" (Greater 30)
+
+       > Example
+         Filter people between 30 and 40.
+
+             people.filter "Age" (Between 30 40)
+
+       > Example
+         Select rows where more than 50% of the stock is sold.
+
+             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter "age" (age -> (age%10 == 0))
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table
+    filter self column filter=(Filter_Condition.Equal True) = case column of
+        Text -> self.filter (self.at column) filter
+        Integer -> self.filter (self.at column) filter
+        Column _ ->
+            filter_column = make_filter_column column filter
+            case Helpers.check_integrity self filter_column of
+                False ->
+                    Error.throw (Integrity_Error_Data "Column "+filter.name)
+                True ->
+                    new_filters = self.context.where_filters + [filter.expression]
+                    new_ctx = self.context.set_where_filters new_filters
+                    self.updated_context new_ctx
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input

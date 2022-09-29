@@ -39,23 +39,11 @@ type Filter_Condition
     ## Does the value contain the needle (Text only)?
     Contains substring:Text
 
-    ## Is equal to "" or Nothing (Text only)?
-    Is_Empty
-
-    ## Is not equal to "" and Nothing (Text only)?
-    Not_Empty
-
     ## Is equal to Nothing?
     Is_Nothing
 
     ## Is not equal to Nothing?
     Not_Nothing
-
-    ## Is the value contained in `values`?
-    Is_In values:Vector
-
-    ## Is the value not contained in `values`?
-    Not_In values:Vector
 
     ## Is the value equal to True (Boolean only)?
     Is_True
@@ -64,9 +52,23 @@ type Filter_Condition
     Is_False
 
 ## PRIVATE
-   Convert a SQL like
-is_like Text -> (Text -> Boolean)
-is_like sql_like =
-    sql_regex = "^" + (sql_like.replace "\" "\\" . replace "." "\" . replace "_" "." . replace "%" ".*?") + "$"
-    output text = text.matches sql_regex
-    output
+   A helper function gathering the common logic that generates a boolean mask
+   from a given source column and a filter condition. It contains logic common
+   for all backends.
+make_filter_column source_column filter_condition = case filter of
+    # TODO check types
+    Less value -> (source_column < value)
+    Less_Or_Equal value -> (source_column <= value)
+    Equal value -> (source_column == value)
+    Greater_Or_Equal value -> (source_column >= value)
+    Greater value -> (source_column > value)
+    Not_Equal value -> (source_column != value)
+    Between lower upper -> ((source_column >= lower) && (source_column <= upper))
+    Starts_With prefix -> source_column.starts_with prefix
+    Ends_With suffix -> source_column.ends_with suffix
+    Contains substring -> source_column.contains prefix
+    Is_Nothing -> (source_column == Nothing)
+    Not_Nothing -> (source_column != Nothing)
+    Is_True -> (source_column == True)
+    Is_False -> (source_column == False)
+    _ -> column.map filter

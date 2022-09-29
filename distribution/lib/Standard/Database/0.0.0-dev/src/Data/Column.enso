@@ -211,13 +211,15 @@ type Column
 
        Returns the number of missing items in this column.
     count_missing : Integer
-    count_missing self = self.where self.is_missing . length
+    count_missing self =
+        self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## UNSTABLE
 
        Returns the number of non-null items in this column.
     count : Integer
-    count self = self.where self.is_missing.not . length
+    count self =
+        self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
     ## UNSTABLE
 
@@ -396,36 +398,6 @@ type Column
        provided default.
     fill_missing : Any -> Column
     fill_missing self default = self.make_binary_op "FILLNULL" default
-
-    ## UNSTABLE
-
-       Selects only the rows of this column that correspond to `True` values in
-       `filter`.
-
-       Arguments:
-       - filter: A column of booleans to mask `self` by.
-
-       This is useful for filtering the rows by given predicate.
-
-       > Example
-         Select only the rows of `my_column` where the `status_column` column
-         has the value `"Valid"`
-             my_column.where (status_column == "Valid")
-    where : Column -> Column
-    where self filter =
-        case Helpers.check_integrity self filter of
-            False ->
-                Error.throw (Integrity_Error "Column "+filter.name)
-            True ->
-                new_filters = self.context.where_filters + [filter.expression]
-                new_ctx = self.context.set_where_filters new_filters
-                Column_Data self.name self.connection self.sql_type self.expression new_ctx
-
-    ## UNSTABLE
-
-       Returns a new column without rows that had missing values.
-    drop_missing : Any -> Column
-    drop_missing self = self.where self.is_missing.not
 
     ## UNSTABLE
 
