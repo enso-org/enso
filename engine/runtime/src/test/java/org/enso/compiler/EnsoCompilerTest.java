@@ -12,7 +12,6 @@ import org.enso.compiler.core.IR;
 import org.enso.syntax.text.AST.ASTOf;
 import org.enso.syntax.text.Parser;
 import org.enso.syntax.text.Shape;
-import org.enso.syntax2.UnsupportedSyntaxException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -235,7 +234,7 @@ public class EnsoCompilerTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
+  private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
