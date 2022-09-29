@@ -155,6 +155,17 @@ impl List {
                         component_inserted_somewhere = true;
                     }
                 }
+            } else {
+                // Entry has no parent module, so either it belongs to the main module of the
+                // project, or it is a main module itself.
+                if !entry.is_main_module() {
+                    let project_name = entry.module.project_name.clone();
+                    let main_module = module::QualifiedName::new_main(project_name);
+                    if let Some(main_group) = self.lookup_module_group(db, &main_module) {
+                        main_group.content.entries.borrow_mut().push(component.clone_ref());
+                        component_inserted_somewhere = true;
+                    }
+                }
             }
             if component_inserted_somewhere {
                 self.all_components.push(component);
@@ -221,6 +232,16 @@ impl List {
             if let Some(module) = module.parent_module() {
                 if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
+                }
+            } else {
+                // Module has no parent, so it is a top-level module that can be added as a
+                // submodule of the main module of the project.
+                let main_module = module::QualifiedName::new_main(module.project_name.clone());
+                if main_module != *module {
+                    let (module_id, db_entry) = db.lookup_by_qualified_name(&main_module)?;
+                    let module_groups = ModuleGroups::new(module_id, &*db_entry).ok()?;
+                    let main_groups = self.module_groups.entry(module_id).or_insert(module_groups);
+                    main_groups.submodules.push(groups.content.clone_ref());
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))

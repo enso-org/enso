@@ -289,6 +289,15 @@ impl QualifiedName {
         self.id.segments.len() <= 1
     }
 
+    /// Check if the name refers to some project's Main module.
+    pub fn is_main_module(&self) -> bool {
+        match self.id.segments.len() {
+            0 => true,
+            1 if self.id.segments[0] == PROJECTS_MAIN_MODULE => true,
+            _ => false,
+        }
+    }
+
     /// Get the top module containing the module referred by this name. Return self if it is already
     /// a top module.
     pub fn top_module(&self) -> Self {
