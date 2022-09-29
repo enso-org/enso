@@ -793,11 +793,8 @@ pub fn lookup_method(
         let child_name = &child.name.item;
         let name_matches = child_name.name.item == method.name;
         let type_matches = match child_name.extended_target.as_slice() {
-            [] => implicit_extension_allowed,
-            [typename] => {
-                let explicit_type_matching = typename.item == qualified_typename.name;
-                explicit_type_matching || defined_in_this_module
-            }
+            [] => implicit_extension_allowed || defined_in_this_module,
+            [typename] => typename.item == qualified_typename.name,
             _ => child_name.explicitly_extends_type(&method.defined_on_type),
         };
         if name_matches && type_matches {
