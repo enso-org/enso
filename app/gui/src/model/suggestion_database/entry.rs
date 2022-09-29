@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 
-use ast::constants::keywords;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::module;
@@ -261,14 +260,14 @@ impl Entry {
             imports.insert(self.module.clone());
         }
 
-        let this_expr = if generate_this {
+        let this_expr: Option<String> = if generate_this {
             // TODO [mwu] Currently we support `self` generation for module atoms only.
             //            This should be extended to any atom that is known to be nullary.
             //            Tracked by https://github.com/enso-org/ide/issues/1299
             if self.is_regular_module_method() {
                 if is_local_entry {
-                    // No additional import for `here`.
-                    Some(keywords::HERE.to_owned())
+                    // No additional import for entries defined in this module.
+                    Some(self.module.name().into())
                 } else {
                     // If we are inserting an additional `self` argument, the used name must be
                     // visible.
@@ -791,7 +790,7 @@ mod test {
 
         expect(&module_method, None, true, "Project.module_method", &[&main_module]);
         expect(&module_method, None, false, "module_method", &[]);
-        expect(&module_method, Some(&main_module), true, "here.module_method", &[]);
+        expect(&module_method, Some(&main_module), true, "Main.module_method", &[]);
         expect(&module_method, Some(&main_module), false, "module_method", &[]);
         expect(&module_method, Some(&another_module), true, "Project.module_method", &[
             &main_module,
@@ -810,7 +809,13 @@ mod test {
             &[&another_module],
         );
         expect(&another_module_method, Some(&main_module), false, "module_method", &[]);
-        expect(&another_module_method, Some(&another_module), true, "here.module_method", &[]);
+        expect(
+            &another_module_method,
+            Some(&another_module),
+            true,
+            "Another_Module.module_method",
+            &[],
+        );
         expect(&another_module_method, Some(&another_module), false, "module_method", &[]);
 
         // TODO [mwu] Extensions on nullary atoms should also be able to generate this.
