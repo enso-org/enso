@@ -133,6 +133,12 @@ spec_with name create_new_date parse_date =
             date_1>date_2 . should_be_true
             date_1<date_2 . should_be_false
 
+            datetime = Date_Time.new 2021 1 2 12 40
+            date_1.compare_to datetime . should_fail_with Type_Error_Data
+            date_1<datetime . should_fail_with Type_Error_Data
+            date_1>=datetime . should_fail_with Type_Error_Data
+            date_1==datetime . should_be_false
+
         Test.specify "should correctly determine the type of date" <|
             new_date = create_new_date 2020 6 1
             parsed_date = parse_date "2021-01-02"

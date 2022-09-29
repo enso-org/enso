@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref
 
 import Standard.Test.Bench
 
@@ -15,16 +16,16 @@ vector_size = 1000000
 iter_size = 100
 num_iterations = 10
 
-make_sorted_ascending_vec : Integer -> Base.Vector.Vector
+make_sorted_ascending_vec : Integer -> Vector.Vector
 make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 
-make_partially_sorted_vec : Integer -> Base.Vector.Vector
+make_partially_sorted_vec : Integer -> Vector.Vector
 make_partially_sorted_vec n =
     random_gen = Random.new n
     direction = Ref.new Sort_Direction.Ascending
     last_num = Ref.new 0
     run_length = Ref.new 0
-    Base.Vector.fill n <|
+    Vector.fill n <|
         case (run_length.get) == 0 of
             True ->
                 new_direction = if random_gen.nextDouble > 0 then Sort_Direction.Ascending else
