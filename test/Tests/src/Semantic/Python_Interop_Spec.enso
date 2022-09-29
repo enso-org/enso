@@ -95,7 +95,8 @@ spec =
         Test.specify "should make Python strings type pattern-matchable" <|
             str = make_str "x"
             t = case str of
-                Text -> True
+                Text -> False
+                _ : Text -> True
                 _ -> False
             t.should_be_true
 
@@ -122,6 +123,7 @@ spec =
         Test.specify "should make Python lists type pattern-matchable as arrays" <|
             arr = make_array
             r = case arr of
+                Array -> False
                 _ : Array -> True
                 _ -> False
             r.should_be_true

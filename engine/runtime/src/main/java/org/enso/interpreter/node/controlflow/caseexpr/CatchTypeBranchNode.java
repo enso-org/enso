@@ -48,7 +48,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
         "!types.hasType(value)",
         "interop.hasMetaObject(value)"
       })
-  void doPolyglotArray(
+  public void doPolyglotArray(
       VirtualFrame frame,
       Object state,
       Object value,

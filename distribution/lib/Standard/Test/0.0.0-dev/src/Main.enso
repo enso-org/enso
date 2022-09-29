@@ -655,7 +655,7 @@ type Suite_Config
     should_run_group self name =
         regexp = self.only_group_regexp
         case regexp of
-            Text -> name.matches regexp . catch Any (_->True)
+            _ : Text -> name.matches regexp . catch Any (_->True)
             _ -> True
 
     should_output_junit self =

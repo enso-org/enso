@@ -1,5 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Array as ArrayModule
+import Standard.Base.Data.Array as ArrayMod
+import Standard.Base.Data.Text as TextMod
 
 polyglot java import java.util.Random
 polyglot java import java.util.ArrayList
@@ -57,20 +58,34 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected the Decimal constructor to match."
     Test.specify "should be able to match on the Text type" <|
         case "foo" of
-            Text -> Nothing
-            _ -> Test.fail "Expected a text to match."
+            Text -> Test.fail "Expected a text type to match."
+            _ : Text -> Nothing
+            _ -> Test.fail "Expected a text type to match."
         case Text of
-            Text -> Nothing
-            _ -> Test.fail "Expected the Text constructor to match."
+            _ : Text -> Nothing
+            TextMod -> Test.fail "Expected the Text constructor to match4."
+            Text -> Test.fail "Expected the Text constructor to match4."
+            _ -> Test.fail "Expected the Text constructor to matc5h."
+        case TextMod of
+            _ : Text -> Test.fail "Expected the Text module to match4."
+            Text -> Test.fail "Expected the Text module to match4."
+            TextMod -> Nothing
+            _ -> Test.fail "Expected the Text module to matc5h."
     Test.specify "should be able to match on the Array type" <|
         case [].to_array of
             Array -> Test.fail "Expected an array type to match."
             _ : Array -> Nothing
             _ -> Test.fail "Expected an array type  to match."
-        case ArrayModule of
-            _ : Array -> Test.fail "Expected the Array constructor to match."
-            ArrayModule -> Nothing
-            _ -> Test.fail "Expected the Array constructor to match."
+        case Array of
+            ArrayMod -> Test.fail "Expected the Array type to match."
+            _ : Array -> Nothing
+            Array -> Test.fail "Expected the Array type to match."
+            _ -> Test.fail "Expected the Array Type to match."
+        case ArrayMod of
+            _ : Array -> Test.fail "Expected the Array module to match."
+            Array -> Test.fail "Expected the Array module to match."
+            ArrayMod -> Nothing
+            _ -> Test.fail "Expected the Array module to match."
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
         case random_gen of

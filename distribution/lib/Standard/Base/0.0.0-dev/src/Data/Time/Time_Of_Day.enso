@@ -115,7 +115,7 @@ parse text pattern=Nothing locale=Locale.default =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Time_Of_Day.parse_builtin text
-            Text    -> Time_Utils.parse_time text pattern locale.java_locale
+            _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
 ## PRIVATE
 

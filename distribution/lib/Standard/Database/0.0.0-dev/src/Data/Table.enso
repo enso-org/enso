@@ -88,7 +88,7 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         Integer -> self.make_column (self.internal_columns.at selector)
-        Text ->
+        _ : Text ->
             candidates = self.internal_columns + self.context.meta_index
             internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error_Data selector)
             self.make_column internal_column
@@ -322,7 +322,7 @@ type Table
        as it comes from the same context.
     resolve : Text | Column -> Column
     resolve self column = case column of
-        Text -> Panic.rethrow (self.at column)
+        _ : Text -> Panic.rethrow (self.at column)
         _ ->
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error_Data "Column "+column.name)

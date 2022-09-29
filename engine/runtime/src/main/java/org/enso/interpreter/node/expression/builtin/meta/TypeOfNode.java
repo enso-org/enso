@@ -45,17 +45,36 @@ public abstract class TypeOfNode extends Node {
     return Context.get(this).getBuiltins().number().getInteger();
   }
 
+  @Specialization
+  Object doString(String value) {
+    return Context.get(this).getBuiltins().text();
+  }
+
   @Specialization(
       guards = {
         "interop.hasArrayElements(proxy)",
+        "!interop.isString(proxy)", // R string value is an array and a string
         "!types.hasType(proxy)",
         "!interop.hasMetaObject(proxy)"
       })
-  Object doPolyglot(
+  Object doPolyglotArray(
       PolyglotProxy proxy,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
     return Context.get(this).getBuiltins().array();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.isString(proxy)",
+        "!types.hasType(proxy)",
+        "!interop.hasMetaObject(proxy)"
+      })
+  Object doPolyglotString(
+      PolyglotProxy proxy,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return Context.get(this).getBuiltins().text();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})

@@ -42,7 +42,6 @@ public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
   public void doPolyglotValue(VirtualFrame frame, Object state, Object target) {
     Object tpeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(polyglotSymbol, tpeOfTarget);
-    // System.out.println("Polyglot symbol case " + polyglotSymbol + " " + target + " Is " + test);
     if (profile.profile(test)) {
       accept(frame, state, new Object[] {target});
     }

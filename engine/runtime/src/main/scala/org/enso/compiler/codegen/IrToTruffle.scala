@@ -971,10 +971,7 @@ class IrToTruffle(
                   val any      = context.getBuiltins.any
                   val number   = context.getBuiltins.number
                   val polyglot = context.getBuiltins.polyglot
-                  val text     = context.getBuiltins.text
-                  val branch = if (tpe == text) {
-                    TextBranchNode.build(text, branchCodeNode.getCallTarget)
-                  } else if (tpe == number.getInteger) {
+                  val branch = if (tpe == number.getInteger) {
                     IntegerBranchNode.build(
                       number,
                       branchCodeNode.getCallTarget
