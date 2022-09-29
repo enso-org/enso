@@ -195,10 +195,6 @@ impl API for Module {
         self.model.path()
     }
 
-    fn name(&self) -> ReferentName {
-        self.path().module_name()
-    }
-
     fn serialized_content(&self) -> FallibleResult<SourceFile> {
         self.model.serialized_content()
     }

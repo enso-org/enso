@@ -137,10 +137,6 @@ impl model::module::API for Module {
         &self.path
     }
 
-    fn name(&self) -> ReferentName {
-        self.path.module_name()
-    }
-
     fn serialized_content(&self) -> FallibleResult<SourceFile> {
         self.content.borrow().serialize().map_err(|e| e.into())
     }

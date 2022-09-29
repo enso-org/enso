@@ -551,7 +551,9 @@ pub trait API: Debug + model::undo_redo::Aware {
     fn path(&self) -> &Path;
 
     /// Get the module name.
-    fn name(&self) -> ReferentName;
+    fn name(&self) -> ReferentName {
+        self.path().module_name()
+    }
 
     /// Get module sources as a string, which contains both code and metadata.
     fn serialized_content(&self) -> FallibleResult<SourceFile>;
