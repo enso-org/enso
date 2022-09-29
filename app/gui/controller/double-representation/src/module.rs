@@ -1,7 +1,7 @@
 //! Code for module-level double representation processing.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use crate::alias_analysis;
 use crate::definition;

@@ -25,7 +25,6 @@ use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
-use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
 use std::f32::EPSILON;

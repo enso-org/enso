@@ -3,8 +3,6 @@
 
 use crate::prelude::*;
 use enso_text::index::*;
-use enso_text::traits::*;
-use enso_text::unit::*;
 
 use crate::enumerate_non_empty_lines;
 use crate::known;
