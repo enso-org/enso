@@ -1961,7 +1961,6 @@ pub mod test {
 
         // Known functions cases
         searcher.set_input("Test.testMethod1 ".to_string()).unwrap();
-        searcher.set_input("here.testMethod1 ".to_string()).unwrap();
         searcher.set_input(iformat!("{MODULE_NAME}.testMethod1 ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
@@ -2517,7 +2516,7 @@ pub mod test {
             documentation_html: "Lorem ipsum".to_owned(),
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
-            main = \n    2 + 2\n    here.test_example1";
+            main = \n    2 + 2\n    Mock_Module.test_example1";
         searcher.add_example(&Rc::new(example)).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
@@ -2534,7 +2533,7 @@ pub mod test {
         };
         let expected_code = "import std.Base.Network.Http\n\
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
-            main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
+            main = \n    2 + 2\n    Mock_Module.test_example1\n    Mock_Module.test_example2";
         let example = Rc::new(example);
         searcher.add_example(&example).unwrap();
         searcher.add_example(&example).unwrap();
