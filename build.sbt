@@ -239,7 +239,7 @@ lazy val buildNativeImage =
 
 // Bootstrap task
 lazy val bootstrap =
-  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
+  taskKey[Unit]("Dummy task name. Kept for compatibility.")
 bootstrap := {}
 
 // ============================================================================
@@ -1268,6 +1268,7 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
@@ -1314,13 +1315,13 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalacheck"     %% "scalacheck"            % scalacheckVersion % Test,
       "org.scalactic"      %% "scalactic"             % scalacticVersion  % Test,
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
       "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
@@ -1331,7 +1332,6 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
-    bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
       javaVersion
@@ -1405,7 +1405,10 @@ lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      instrumentationSettings
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      ),
     )
     .dependsOn(runtime)
 
