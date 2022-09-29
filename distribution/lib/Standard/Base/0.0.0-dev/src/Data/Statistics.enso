@@ -1,4 +1,4 @@
-from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
 
 from Standard.Base.Data.Vector import Empty_Error
 
@@ -130,10 +130,10 @@ compute_bulk data statistics=[Count, Sum] =
         statistics.map_with_index i->s->case s of
             Count -> count_min_max_values.count
             Minimum ->
-                if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
+                if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
                     count_min_max_values.minimum
             Maximum ->
-                if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
+                if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
                     count_min_max_values.maximum
             Covariance s -> calculate_correlation_statistics data s . covariance
             Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
@@ -248,7 +248,7 @@ rank_data input method=Rank_Method.Average =
 
     report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
     handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
-    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Vector.Incomparable_Values_Error)
+    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
 
     handle_classcast <| handle_nullpointer <|
         java_ranks = Rank.rank input.to_array Comparator.new java_method
