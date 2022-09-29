@@ -260,7 +260,7 @@ pub type DynShapeSystemOf<T> = <T as DynamicShape>::System;
 #[derivative(Debug(bound = "T::Item:Copy+Debug, T:Debug"))]
 #[allow(missing_docs)]
 pub struct DynamicParam<T: HasItem> {
-    cache:      Rc<Cell<T::Item>>,
+    value:      Rc<Cell<T::Item>>,
     attributes: Rc<RefCell<Vec<T>>>,
 }
 
@@ -271,7 +271,7 @@ where
 {
     /// Set the parameter value.
     pub fn set(&self, value: T::Item) {
-        self.cache.set(value);
+        self.value.set(value);
         for attribute in &*self.attributes.borrow() {
             attribute.set(value)
         }
@@ -279,7 +279,7 @@ where
 
     /// Get the parameter value.
     pub fn get(&self) -> T::Item {
-        self.cache.get()
+        self.value.get()
     }
 
     /// Modify the parameter value.
@@ -311,7 +311,7 @@ where
     }
 
     fn add_attribute_binding(&self, attribute: T) {
-        attribute.set(self.cache.get());
+        attribute.set(self.value.get());
         self.attributes.borrow_mut().push(attribute);
     }
 }
