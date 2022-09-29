@@ -115,7 +115,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
-            t2 = t1.where (t1.at "a" == 1)
+            t2 = t1.filter (t1.at "a" == 1)
             df = t2.read
             df.at "a" . to_vector . should_equal [1]
             df.at "b" . to_vector . should_equal [2]
@@ -186,10 +186,6 @@ spec prefix connection pending=Nothing =
             col.length . should_equal 5
             col.count . should_equal 3
             col.count_missing . should_equal 2
-
-        Test.specify "drop_missing should drop missing rows in a Column" <|
-            col = t4.at 'a'
-            col.drop_missing.to_vector . should_equal [0, 1, 42]
 
         Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             d = t4.drop_missing_rows.read

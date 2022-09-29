@@ -2,6 +2,8 @@ from Standard.Base import all
 from Standard.Table.Data.Table import Table
 from Standard.Table.Data.Column import Column
 
+from Standard.Table.Data.Filter_Condition.Filter_Condition import all
+
 type Filter_Condition
     ## Is less than a value (or another column)?
     Less than:(Column|Any)
@@ -55,20 +57,20 @@ type Filter_Condition
    A helper function gathering the common logic that generates a boolean mask
    from a given source column and a filter condition. It contains logic common
    for all backends.
-make_filter_column source_column filter_condition = case filter of
+make_filter_column source_column filter_condition = case filter_condition of
     # TODO check types
     Less value -> (source_column < value)
-    Less_Or_Equal value -> (source_column <= value)
+    Equal_Or_Less value -> (source_column <= value)
     Equal value -> (source_column == value)
-    Greater_Or_Equal value -> (source_column >= value)
+    Equal_Or_Greater value -> (source_column >= value)
     Greater value -> (source_column > value)
     Not_Equal value -> (source_column != value)
     Between lower upper -> ((source_column >= lower) && (source_column <= upper))
     Starts_With prefix -> source_column.starts_with prefix
     Ends_With suffix -> source_column.ends_with suffix
-    Contains substring -> source_column.contains prefix
-    Is_Nothing -> (source_column == Nothing)
-    Not_Nothing -> (source_column != Nothing)
-    Is_True -> (source_column == True)
-    Is_False -> (source_column == False)
-    _ -> column.map filter
+    Contains substring -> source_column.contains substring
+    Is_Nothing -> source_column.is_missing
+    Not_Nothing -> source_column.is_missing.not
+    Is_True -> source_column
+    Is_False -> source_column.not
+    _ -> source_column.map filter_condition

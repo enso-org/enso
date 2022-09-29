@@ -5,6 +5,10 @@ import Standard.Base.Data.Index_Sub_Range
 import Standard.Table.Data.Table
 import Standard.Table.Data.Storage
 
+# TODO Dubious constructor export
+from Standard.Table.Data.Column.Column import all
+from Standard.Table.Data.Column.Column export all
+
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
@@ -23,10 +27,6 @@ polyglot java import org.enso.table.operations.OrderBuilder
              Table.Column.from_vector "My Column" [1, 2, 3, 4, 5]
 from_vector : Text -> Vector -> Column
 from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
-
-# TODO Dubious constructor export
-from project.Data.Column.Column import all
-from project.Data.Column.Column export all
 
 type Column
 

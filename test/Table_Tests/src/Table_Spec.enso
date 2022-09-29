@@ -271,34 +271,22 @@ spec =
     Test.group "Masking Tables" <|
         Test.specify "should allow selecting table rows based on a boolean column" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [True, False, False, True])
+            r = df.filter (Column.from_vector 'x' [True, False, False, True])
             r.at "a" . to_vector . should_equal ["1", "10"]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
         Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [Nothing, True, False])
+            r = df.filter (Column.from_vector 'x' [Nothing, True, False])
             r.at "a" . to_vector . should_equal ["4"]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
         Test.specify "should work correctly if a mask is bigger than the table itself" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [True, False, False, False, True])
+            r = df.filter (Column.from_vector 'x' [True, False, False, False, True])
             r.at "a" . to_vector . should_equal ["1"]
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
-
-    Test.group "Masking Columns" <|
-        Test.specify "should allow selecting column rows based on a boolean column" <|
-            df = (enso_project.data / "simple_empty.csv").read
-            mask = Column.from_vector 'x' [True, False, False, True]
-            df.at "a" . where mask . to_vector . should_equal ["1", "10"]
-            df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
-
-        Test.specify "should work correctly if a mask is bigger than the column itself" <|
-            col = Column.from_vector "col" [1, 2]
-            mask = Column.from_vector 'x' [True, False, False, True]
-            col.where mask . to_vector . should_equal [1]
 
     Test.group "Joining Tables" <|
         a_0 = ['x', [0, 1, 7, 3, 6]]
@@ -401,10 +389,6 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop missing rows in a Column" <|
-            col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            col.drop_missing.to_vector . should_equal [1, 2]
-
         Test.specify "should drop rows that contain at least one missing column in a Table" <|
             t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
             d = t.drop_missing_rows

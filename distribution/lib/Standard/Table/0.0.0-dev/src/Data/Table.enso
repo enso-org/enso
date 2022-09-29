@@ -7,7 +7,7 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
-from Standard.Table.Data.Filter_Condition import make_filter_column
+from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -29,6 +29,10 @@ import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
+
+# TODO Dubious constructor export
+from Standard.Table.Data.Table.Table import all
+from Standard.Table.Data.Table.Table export all
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Visualization
@@ -134,10 +138,6 @@ join tables =
 concat : Vector -> Table
 concat tables =
     Table_Data (Java_Table.concat (tables.map .java_table).to_array)
-
-# TODO Dubious constructor export
-from project.Data.Table.Table import all
-from project.Data.Table.Table export all
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -819,29 +819,12 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table
-    filter self column filter=(Filter_Condition.Is_True) = case column of
+    filter self column filter=(Filter_Condition.Is_True) = case Meta.type_of column of
         Text -> self.filter (self.at column) filter
         Integer -> self.filter (self.at column) filter
-        Column _ ->
+        Column.Column ->
             filter_column = make_filter_column column filter
             Table_Data (self.java_table.mask filter_column.java_column)
-
-    ## Filter rows not containing any values.
-
-       Arguments:
-       - keep_nans: If `True`, then NaN values are considered as valid.
-       - keep_empty: If `True`, then `""` is considered as valid.
-    filter_blank_rows : Boolean -> Boolean -> Table
-    filter_blank_rows self keep_nans=True keep_empty=True = ...
-
-    ## Filter rows containing any missing values.
-
-       Arguments:
-       - keep_nans: If `True`, then NaN values are considered as valid.
-       - keep_empty: If `True`, then `""` is considered as valid.
-    filter_incomplete_rows : Boolean -> Boolean -> Table
-    filter_incomplete_rows self keep_nans=True keep_empty=True = ...
-
 
     ## Creates a new Table with the specified range of rows from the input
        Table.
@@ -884,7 +867,7 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
-    set : Text -> Column.Column | Vector.Vector -> Table
+    set : Text -> Column | Vector.Vector -> Table
     set self name column = case column of
         _ : Vector.Vector ->
             self.set name (Column.from_vector name column)
@@ -930,7 +913,7 @@ type Table
              import Standard.Examples
 
              example_index = Examples.inventory_table.index
-    index : Column.Column ! No_Index_Set_Error
+    index : Column ! No_Index_Set_Error
     index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column_Data i
@@ -966,12 +949,30 @@ type Table
                  Examples.inventory_table.join Examples.popularity_table
 
        Icon: join
-    join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table_Data t ->
                 Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
+
+    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
+    drop_missing_rows : Table
+    drop_missing_rows self =
+        cols = self.columns
+        case cols.not_empty of
+            True ->
+                any_missing_mask = cols.map .is_missing . reduce (||)
+                non_missing_mask = any_missing_mask.not
+                self.filter non_missing_mask
+            False -> self
+
+    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
+    drop_missing_columns : Table
+    drop_missing_columns self =
+        non_missing = self.columns . filter (col -> col.count_missing == 0)
+        index = self.java_table.getIndex
+        Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the number of rows in this table.
 

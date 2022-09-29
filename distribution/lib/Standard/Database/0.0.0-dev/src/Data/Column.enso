@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Database.Internal.Helpers
 import Standard.Database.Internal.IR
 import Standard.Database.Data.Table
+from Standard.Table import Filter_Condition
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
