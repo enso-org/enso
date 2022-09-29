@@ -96,12 +96,12 @@ impl {
         self.get().unwrap_or_else(|| self.register())
     }
 
-    pub fn shape_system<T:display::shape::system::Shape>
+    pub fn shape_system<T:display::shape::system::ShapeDefinition>
     (&mut self, _phantom:PhantomData<T>) -> ShapeSystemOf<T> {
         self.get_or_register::<ShapeSystemOf<T>>()
     }
 
-    pub fn new_instance<T:display::shape::system::Shape>(&mut self) -> T {
+    pub fn new_instance<T:display::shape::system::ShapeDefinition>(&mut self) -> T {
         let system = self.get_or_register::<ShapeSystemOf<T>>();
         system.new_instance()
     }

@@ -153,7 +153,7 @@ pub trait ShapeSystemInstance: 'static + CloneRef {
 /// [`DynShapeSystemInstance`] to learn more.
 pub trait StaticShapeSystemInstance: ShapeSystemInstance {
     /// The shape type of this shape system definition.
-    type Shape: Shape<System = Self>;
+    type Shape: ShapeDefinition<System = Self>;
     /// New shape constructor.
     fn new_instance(&self) -> Self::Shape;
 }
@@ -183,7 +183,7 @@ pub trait KnownShapeSystemId {
 
 /// Type for every shape bound to a specific scene and GPU buffers. The easiest way to define such a
 /// shape is by using the `define_shape_system` macro.
-pub trait Shape: display::Object + CloneRef + Debug + Sized {
+pub trait ShapeDefinition: CloneRef + Debug + Sized {
     /// The shape system instance this shape belongs to.
     type System: StaticShapeSystemInstance<Shape = Self>;
     /// Accessor for the underlying sprite.
@@ -205,7 +205,7 @@ pub trait Shape: display::Object + CloneRef + Debug + Sized {
 pub trait DynamicShape: display::Object + CloneRef + Debug + Default + Sized {
     /// The static version of the shape. Dynamic shapes can be associated with one or more static
     /// shapes after they are placed on the stage and initialized.
-    type StaticShape: Shape;
+    type StaticShape: ShapeDefinition;
     /// The shape system instance this shape belongs to.
     type System: DynShapeSystemInstance<DynamicShape = Self>;
     /// Constructor.
@@ -239,7 +239,7 @@ pub trait DynamicShapeInternals: DynamicShape {
 // === Type Families ===
 
 /// Accessor for the `Shape::System` associated type.
-pub type ShapeSystemOf<T> = <T as Shape>::System;
+pub type ShapeSystemOf<T> = <T as ShapeDefinition>::System;
 
 /// Accessor for the `Shape::System` associated type.
 pub type DynShapeSystemOf<T> = <T as DynamicShape>::System;
@@ -352,6 +352,22 @@ macro_rules! define_shape_system {
     }
 }
 
+#[derive(Clone, CloneRef, Debug, Deref)]
+#[clone_ref(bound = "Attrs: CloneRef")]
+pub struct ShapeInstance<Attrs> {
+    #[deref]
+    pub attrs:  Attrs,
+    pub sprite: Sprite,
+}
+
+impl<Attrs> display::Object for ShapeInstance<Attrs> {
+    fn display_object(&self) -> &display::object::Instance {
+        self.sprite.display_object()
+    }
+}
+
+
+
 /// Internal helper for `define_shape_system`.
 #[macro_export]
 macro_rules! _define_shape_system {
@@ -365,9 +381,9 @@ macro_rules! _define_shape_system {
     ) => {
 
         pub use shape_system_definition::Shape;
-        pub use shape_system_definition::ShapeSystem;
+        pub use shape_system_definition::ShapeSystemX;
         pub use shape_system_definition::DynamicShape;
-        pub use shape_system_definition::DynamicShapeParams;
+        pub use shape_system_definition::DynamicParams;
         pub use shape_system_definition::View;
 
         // FIXME: To be investigated why it's needed. We should not use shorter names, but it's not
@@ -387,6 +403,7 @@ macro_rules! _define_shape_system {
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::Var;
             use $crate::display::shape::PixelDistance;
+            use $crate::display::shape::system::DynamicParam;
 
 
 
@@ -399,43 +416,42 @@ macro_rules! _define_shape_system {
             /// drawn.
             #[derive(Clone,CloneRef,Debug)]
             #[allow(missing_docs)]
-            pub struct Shape {
-                pub sprite : Sprite,
+            pub struct Params {
                 $(pub $gpu_param : Attribute<$gpu_param_type>),*
             }
-
-            impl Deref for Shape {
-                type Target = Sprite;
-                fn deref(&self) -> &Self::Target {
-                    &self.sprite
-                }
-            }
-
-            impl display::shape::system::Shape for Shape {
-                type System = ShapeSystem;
-                fn sprite(&self) -> &Sprite {
-                    &self.sprite
-                }
-            }
-
-            impl display::Object for Shape {
-                fn display_object(&self) -> &display::object::Instance {
-                    self.sprite.display_object()
-                }
-            }
-
-
-
-            // ==========================
-            // === DynamicShapeParams ===
-            // ==========================
 
             /// Parameters of the [`DynamicShape`].
             #[derive(Clone,CloneRef,Debug,Default)]
             #[allow(missing_docs)]
-            pub struct DynamicShapeParams {
-                pub size:display::shape::system::DynamicParam<sprite::Size>,
-                $(pub $gpu_param:display::shape::system::DynamicParam<Attribute<$gpu_param_type>>),*
+            pub struct DynamicParams {
+                pub size: DynamicParam<sprite::Size>,
+                $(pub $gpu_param: DynamicParam<Attribute<$gpu_param_type>>),*
+            }
+
+             #[derive(Clone, CloneRef, Debug)]
+            #[allow(missing_docs)]
+            pub struct GpuParams {
+                $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*
+            }
+
+            impl GpuParams {
+                pub fn new(shape_system: &display::shape::ShapeSystem) -> Self {
+                    $(
+                        let name = stringify!($gpu_param);
+                        let val  = gpu::data::default::gpu_default::<$gpu_param_type>();
+                        let $gpu_param = shape_system.add_input(name,val);
+                    )*
+                    Self {$($gpu_param),*}
+                }
+            }
+
+            pub type Shape = ShapeInstance<Params>;
+
+            impl display::shape::system::ShapeDefinition for Shape {
+                type System = ShapeSystemX;
+                fn sprite(&self) -> &Sprite {
+                    &self.sprite
+                }
             }
 
 
@@ -449,24 +465,18 @@ macro_rules! _define_shape_system {
             /// buffers sections. Otherwise, changing a parameter will not have any visual effect,
             /// however, all the changes will be recorded and applied as soon as the shape will get
             /// initialized.
-            #[derive(Clone, CloneRef, Debug, Default)]
+            #[derive(Clone, CloneRef, Debug, Default, Deref)]
             #[allow(missing_docs)]
             pub struct DynamicShape {
                 display_object : display::object::Instance,
                 shapes         : Rc<RefCell<Vec<Shape>>>,
-                params         : DynamicShapeParams,
-            }
-
-            impl Deref for DynamicShape {
-                type Target = DynamicShapeParams;
-                fn deref(&self) -> &Self::Target {
-                    &self.params
-                }
+                #[deref]
+                params         : DynamicParams,
             }
 
             impl display::shape::system::DynamicShape for DynamicShape {
                 type StaticShape = Shape;
-                type System      = ShapeSystem;
+                type System      = ShapeSystemX;
 
                 #[profile(Debug)]
                 fn new() -> Self {
@@ -522,7 +532,7 @@ macro_rules! _define_shape_system {
 
             impl display::shape::KnownShapeSystemId for DynamicShape {
                 fn shape_system_id() -> display::shape::ShapeSystemId {
-                    ShapeSystem::shape_system_id()
+                    ShapeSystemX::shape_system_id()
                 }
             }
 
@@ -534,15 +544,16 @@ macro_rules! _define_shape_system {
 
             /// Shape system allowing the creation of new [`Shape`]s and instantiation of
             /// [`DynamicShape`]s.
-            #[derive(Clone,CloneRef,Debug)]
+            #[derive(Clone, CloneRef, Debug, Deref)]
             #[allow(missing_docs)]
-            pub struct ShapeSystem {
+            pub struct ShapeSystemX {
+                #[deref]
+                gpu_params       : GpuParams,
                 pub shape_system : display::shape::ShapeSystem,
                 style_watch      : display::shape::StyleWatch,
-                $(pub $gpu_param : gpu::data::Buffer<$gpu_param_type>),*
             }
 
-            impl display::shape::ShapeSystemInstance for ShapeSystem {
+            impl display::shape::ShapeSystemInstance for ShapeSystemX {
                 fn id() -> display::shape::ShapeSystemId {
                     std::any::TypeId::of::<ShapeSystem>().into()
                 }
@@ -554,12 +565,8 @@ macro_rules! _define_shape_system {
                     let _events       = true;
                     $( let _events     = $pointer_events; )?
                     let shape_system = display::shape::ShapeSystem::new(scene,&shape_def,_events);
-                    $(
-                        let name = stringify!($gpu_param);
-                        let val  = gpu::data::default::gpu_default::<$gpu_param_type>();
-                        let $gpu_param = shape_system.add_input(name,val);
-                    )*
-                    Self {shape_system,style_watch,$($gpu_param),*} . init_refresh_on_style_change()
+                    let gpu_params = GpuParams::new(&shape_system);
+                    Self {shape_system, style_watch, gpu_params} . init_refresh_on_style_change()
                 }
 
                 fn shape_system(&self) -> &display::shape::ShapeSystem {
@@ -574,7 +581,7 @@ macro_rules! _define_shape_system {
                 }
             }
 
-            impl display::shape::StaticShapeSystemInstance for ShapeSystem {
+            impl display::shape::StaticShapeSystemInstance for ShapeSystemX {
                 type Shape = Shape;
 
                 #[profile(Debug)]
@@ -582,11 +589,12 @@ macro_rules! _define_shape_system {
                     let sprite = self.shape_system.new_instance();
                     let id     = sprite.instance_id;
                     $(let $gpu_param = self.$gpu_param.at(id);)*
-                    Shape {sprite, $($gpu_param),*}
+                    let attrs = Params {$($gpu_param),*};
+                    Shape {sprite, attrs}
                 }
             }
 
-            impl display::shape::DynShapeSystemInstance for ShapeSystem {
+            impl display::shape::DynShapeSystemInstance for ShapeSystemX {
                 type DynamicShape = DynamicShape;
 
                 #[profile(Debug)]
@@ -595,19 +603,20 @@ macro_rules! _define_shape_system {
                     let instance_id = sprite.instance_id;
                     let global_id = sprite.global_instance_id;
                     $(let $gpu_param = self.$gpu_param.at(instance_id);)*
-                    let shape = Shape {sprite, $($gpu_param),*};
+                    let attrs = Params {$($gpu_param),*};
+                    let shape = Shape {sprite, attrs};
                     dyn_shape.add_instance(shape);
                     global_id
                 }
             }
 
-            impl display::shape::KnownShapeSystemId for ShapeSystem {
+            impl display::shape::KnownShapeSystemId for ShapeSystemX {
                 fn shape_system_id() -> display::shape::ShapeSystemId {
                     std::any::TypeId::of::<ShapeSystem>().into()
                 }
             }
 
-            impl ShapeSystem {
+            impl ShapeSystemX {
                 #[profile(Debug)]
                 fn init_refresh_on_style_change(self) -> Self {
                     let shape_system = self.shape_system.clone_ref();
@@ -641,4 +650,70 @@ macro_rules! _define_shape_system {
             }
         }
     };
+}
+
+
+// ==============
+// === Shapes ===
+// ==============
+
+mod shape {
+    use super::*;
+    use crate::data::color;
+    use crate::display::shape::*;
+
+    crate::define_shape_system! {
+        (style:Style) {
+            let circle1    = Circle(50.px());
+            let circle_bg  = circle1.translate_x(-(50.0.px()));
+            let circle_sub = circle1.translate_y(-(50.0.px()));
+            let rect       = Rect((100.0.px(),100.0.px()));
+            let shape      = circle_bg + rect - circle_sub;
+            let shape      = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
+            shape.into()
+        }
+    }
+}
+
+
+
+// ===================
+// === Entry Point ===
+// ===================
+
+use crate::display::navigation::navigator::Navigator;
+use crate::display::world::World;
+use wasm_bindgen::prelude::*;
+
+/// The example entry point.
+#[entry_point(test)]
+#[allow(dead_code)]
+pub fn main() {
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
+    let camera = scene.camera().clone_ref();
+    let navigator = Navigator::new(scene, &camera);
+
+    let view1 = shape::View::new();
+    view1.size.set(Vector2::new(300.0, 300.0));
+    view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+
+    world.add_child(&view1);
+    world.keep_alive_forever();
+
+    frp::new_network! { network
+        trace view1.events.mouse_over;
+        trace view1.events.mouse_out;
+        trace view1.events.mouse_down;
+    }
+
+    world
+        .on
+        .before_frame
+        .add(move |_time| {
+            let _keep_alive = &network;
+            let _keep_alive = &view1;
+            let _keep_alive = &navigator;
+        })
+        .forget();
 }
