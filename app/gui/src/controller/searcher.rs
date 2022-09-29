@@ -1954,7 +1954,6 @@ pub mod test {
             data.expect_completion(client, None, Some("String"), &[1]);
             data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, Some("Number"), &[]);
-            data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, None, &[1, 2, 3, 4, 9]);
         });
         let Fixture { searcher, .. } = &mut fixture;

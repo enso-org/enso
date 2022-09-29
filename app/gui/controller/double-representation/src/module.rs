@@ -949,9 +949,6 @@ mod tests {
         // Explicit module extension method.
         let id = definition::Id::new_single_crumb(DefinitionName::new_method("Main", "foo"));
         expect_find(&ptr, "Main.foo a b = a + b", &id);
-        // Explicit extensions using "here" keyword.
-        let id = definition::Id::new_single_crumb(DefinitionName::new_method("here", "foo"));
-        expect_find(&ptr, "here.foo a b = a + b", &id);
         // Matching name but extending wrong type.
         expect_not_found(&ptr, "Number.foo a b = a + b");
         // Mismatched name.
@@ -970,7 +967,6 @@ mod tests {
         let id = definition::Id::new_single_crumb(DefinitionName::new_method("Number", "foo"));
         expect_find(&ptr, "Number.foo a b = a + b", &id);
         expect_not_found(&ptr, "Text.foo a b = a + b");
-        expect_not_found(&ptr, "here.foo a b = a + b");
         expect_not_found(&ptr, "bar a b = a + b");
     }
 
@@ -1012,7 +1008,7 @@ last def = inline expression";
         let parser = parser::Parser::new_or_panic();
         let module = r#"Main.method1 arg = body
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
 
         let module = Info::from(parser.parse_module(module, default()).unwrap());
         let method1_id = DefinitionName::new_method("Main", "method1");
@@ -1034,12 +1030,12 @@ main = here.method1 10"#;
 
 Main.method1 arg = body
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
         assert_eq!(repr_after_insertion(Placement::Begin), expected);
 
         let expected = r#"Main.method1 arg = body
 
-main = here.method1 10
+main = Main.method1 10
 
 Main.add arg1 arg2 = arg1 + arg2"#;
         assert_eq!(repr_after_insertion(Placement::End), expected);
@@ -1048,7 +1044,7 @@ Main.add arg1 arg2 = arg1 + arg2"#;
 
 Main.add arg1 arg2 = arg1 + arg2
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
         assert_eq!(repr_after_insertion(Placement::After(method1_id.clone())), expected);
 
         assert_eq!(

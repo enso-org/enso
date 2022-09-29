@@ -1276,7 +1276,7 @@ func3 a =
 
 main =
     a = 10
-    here.func3 a
+    Mock_Module.func3 a
     a + func1";
 
         test.data.code = code.to_owned();
@@ -1304,7 +1304,7 @@ func1 =
     a
 
 main =
-    a = here.func1
+    a = Mock_Module.func1
     a + c";
 
         test.data.code = code.to_owned();
