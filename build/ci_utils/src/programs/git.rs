@@ -43,6 +43,7 @@ impl Git {
     }
 
     /// List of files that are different than the compared commit.
+    #[context("Failed to list files that are different than {}.", compare_against.as_ref())]
     pub async fn diff_against(&self, compare_against: impl AsRef<str>) -> Result<Vec<PathBuf>> {
         let root = self.repo_path.as_path();
         Ok(self

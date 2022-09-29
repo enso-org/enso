@@ -48,7 +48,6 @@ async fn main() -> Result {
     };
 
     trace!("The context is {context:#?}.");
-    // TODO: we should check the absolute path rather than just filename.
     let changelog = enso_build::paths::generated::RepoRootChangelogMd::new(&repo_path).path;
     let repository = context.payload.repository.context("Missing repository information.")?;
     let default_branch =
@@ -56,6 +55,7 @@ async fn main() -> Result {
     let git = Git::new(&repo_path).await?;
     let remote_base = format!("{REMOTE_NAME}/{default_branch}");
     let files_changed = git.diff_against(remote_base).await?;
+    debug!("Files changed: {files_changed:#?}.");
     let changelog_was_changed = files_changed.iter().contains(&changelog);
     if !changelog_was_changed {
         let message = format!(
