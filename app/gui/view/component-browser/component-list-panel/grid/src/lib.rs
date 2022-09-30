@@ -59,7 +59,16 @@ pub mod prelude {
     pub use ensogl_text as text;
 }
 
-pub const COLUMN_COUNT: usize = 3;
+pub mod column {
+    use ensogl_grid_view::Col;
+
+    pub const COUNT: usize = 3;
+    pub const LEFT: Col = 0;
+    pub const CENTER: Col = 1;
+    pub const RIGHT: Col = 2;
+
+    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
+}
 pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
 
 
@@ -80,10 +89,11 @@ ensogl_core::define_endpoints_2! {
         reset(content::Info),
         model_for_header(GroupId, HeaderModel),
         model_for_entry(GroupEntryId, EntryModel),
-        set_active_element()
+        switch_section(SectionId),
     }
     Output {
         active(ElementId),
+        active_section(SectionId),
         model_for_header_needed(GroupId),
         model_for_entry_needed(GroupEntryId),
         suggestion_accepted(GroupEntryId),
@@ -123,8 +133,8 @@ impl Style {
     }
 
     pub fn column_width(&self) -> f32 {
-        let column_gaps = self.column_gap * ((COLUMN_COUNT - 1) as f32);
-        (self.content_size().x - column_gaps) / (COLUMN_COUNT as f32)
+        let column_gaps = self.column_gap * ((column::COUNT - 1) as f32);
+        (self.content_size().x - column_gaps) / (column::COUNT as f32)
     }
 
     pub fn middle_column_width(&self) -> f32 {
@@ -142,7 +152,7 @@ pub struct Model {
     selection_layer:        Layer,
     layout:                 Rc<RefCell<Layout>>,
     colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
-    requested_section_info: Rc<RefCell<[Row; COLUMN_COUNT]>>,
+    requested_section_info: Rc<RefCell<[Row; column::COUNT]>>,
 }
 
 impl Model {
@@ -172,18 +182,17 @@ impl Model {
             .collect()
     }
 
-    fn location_to_section_id(&self, &(row, col): &(Row, Col)) -> Option<SectionId> {
-        let element = self.layout.borrow().element_at_location(row, col)?;
-        Some(element.group.section)
+    fn location_to_element_id(&self, &(row, col): &(Row, Col)) -> Option<ElementId> {
+        self.layout.borrow().element_at_location(row, col)
     }
 
-    fn location_to_headers_group_id(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
-        let element = self.layout.borrow().element_at_location(row, col)?;
+    fn location_to_headers_group_id(&self, location: &(Row, Col)) -> Option<GroupId> {
+        let element = self.location_to_element_id(location)?;
         element.header_group()
     }
 
-    fn location_to_entry_id(&self, &(row, col): &(Row, Col)) -> Option<GroupEntryId> {
-        let element = self.layout.borrow().element_at_location(row, col)?;
+    fn location_to_entry_id(&self, location: &(Row, Col)) -> Option<GroupEntryId> {
+        let element = self.location_to_element_id(location)?;
         element.as_entry_id()
     }
 
@@ -246,6 +255,23 @@ impl Model {
         Some((row, col, entry_model))
     }
 
+    fn entry_to_select_when_switching_to_section(&self, section: SectionId) -> Option<(Row, Col)> {
+        let layout = self.layout.borrow();
+        if section == SectionId::LocalScope {
+            let row = layout.local_scope_rows().start;
+            let col = column::SECTION_SELECTION_PRIORITY[0];
+            Some((row, col))
+        } else {
+            let column_priority = column::SECTION_SELECTION_PRIORITY.iter();
+            let bottommost_per_column = column_priority.filter_map(|&col| {
+                let section_rows = layout.section_rows_at_column(section, col)?;
+                let last_row = section_rows.last()?;
+                Some((last_row, col))
+            });
+            bottommost_per_column.rev().max_by_key(|(row, _)| *row)
+        }
+    }
+
     fn entries_params(
         &self,
         (style, entry_style, color_intensities, group_colors, dimmed_groups): &(
@@ -271,6 +297,19 @@ impl Model {
     ) -> entry::Params {
         entry::Params { color_intensities: (*color_intensities).into(), ..base_params.clone() }
     }
+
+    fn navigation_scroll_margins(
+        &self,
+        active_section: SectionId,
+        style: &Style,
+    ) -> grid_view::Margins {
+        let vertical_margin = style.content_size().y - style.entry_height;
+        if active_section == SectionId::LocalScope {
+            grid_view::Margins { bottom: vertical_margin, ..default() }
+        } else {
+            grid_view::Margins { top: vertical_margin, ..default() }
+        }
+    }
 }
 
 impl display::Object for Model {
@@ -291,11 +330,33 @@ impl component::Frp<Model> for Frp {
         let out = &frp_api.output;
         let grid = &model.grid;
         let grid_scroll_frp = grid.scroll_frp();
+        let grid_extra_scroll_frp = grid.extra_scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
         let grid_header_frp = grid.header_frp();
         let corners_radius = style.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style);
         frp::extend! { network
+            // === Style and Entries Params ===
+
+            entry_style <- source::<entry::Style>();
+            color_intensities <- source::<entry::style::ColorIntensities>();
+            selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
+            group_colors <- source::<GroupColors>();
+            entries_style <- all(style.update, entry_style, color_intensities, group_colors);
+            entries_params <- entries_style.map(f!((input) model.entries_params(input)));
+            selection_entries_style <- all(entries_params, selection_color_intensities);
+            selection_entries_style <- all(entries_params, selection_color_intensities);
+            selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
+            grid_scroll_frp.resize <+ style.update.map(|s| s.content_size());
+            grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
+            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
+            grid.set_column_width <+ style.update.map(|s| (1, s.middle_column_width()));
+            grid.set_entries_params <+ entries_params;
+            grid_selection_frp.set_entries_params <+ selection_entries_params;
+
+
+            // === Header and Entries Models ===
+
             grid.reset_entries <+ input.reset.map(f!((content) model.reset(content)));
             section_info <- input.model_for_header.filter_map(f!((input) model.make_section_info(input)));
             grid.model_for_entry <+ section_info.map(|(rows, col, model)| (rows.start, *col, model.clone()));
@@ -305,24 +366,13 @@ impl component::Frp<Model> for Frp {
             out.model_for_header_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_headers_group_id(loc)));
             out.model_for_entry_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
-            entry_style <- source::<entry::Style>();
-            color_intensities <- source::<entry::style::ColorIntensities>();
-            selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
-            group_colors <- source::<GroupColors>();
-            entry_selected <- grid.entry_selected.filter_map(|loc| *loc);
-            active_section <- entry_selected.filter_map(f!((location) model.location_to_section_id(location)));
-            dimmed_groups <- active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
-            entries_style <- all5(&style.update, &entry_style, &color_intensities, &group_colors, &dimmed_groups);
-            entries_params <- entries_style.map(f!((input) model.entries_params(input)));
-            selection_entries_style <- all(entries_params, selection_color_intensities);
-            selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
 
-            grid_scroll_frp.resize <+ style.update.map(|s| s.content_size());
-            grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
-            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
-            grid.set_column_width <+ style.update.map(|s| (1, s.middle_column_width()));
-            grid.set_entries_params <+ entries_params;
-            grid_selection_frp.set_entries_params <+ selection_entries_params;
+            // === Active Entry ===
+
+            out.active <+ grid.entry_selected.filter_map(f!([model](loc) loc.as_ref().and_then(|l| model.location_to_element_id(l))));
+            out.active_section <+ out.active.map(|e| e.group.section).on_change();
+            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
 
 
             // === Focus propagation ===
@@ -333,7 +383,7 @@ impl component::Frp<Model> for Frp {
         }
 
         // Set the proper number of columns so we can set column widths.
-        grid.resize_grid(0, COLUMN_COUNT);
+        grid.resize_grid(0, column::COUNT);
         style.init.emit(());
         //TODO[ao] fix FromTheme and use it to get those values (without using source nodes).
         entry_style.emit(entry::Style {
@@ -396,42 +446,3 @@ impl component::Model for Model {
 }
 
 pub type View = component::ComponentView<Model, Frp>;
-
-// /// Scroll to the bottom of the [`section`].
-//     fn scroll_to(&self, section: Section, style: &Style) {
-//         let sub_modules_height = self.sub_modules_section.height(style);
-//         let favourites_section_height = self.favourites_section.height(style);
-//         let local_scope_height = self.local_scope_section.height(style);
-//         use crate::navigator::Section::*;
-//         let section_bottom_y = match section {
-//             SubModules => sub_modules_height,
-//             LocalScope => sub_modules_height + local_scope_height,
-//             Favorites => sub_modules_height + local_scope_height + favourites_section_height,
-//         };
-//         let target_y = section_bottom_y - style.size_inner().y;
-//         self.scroll_area.scroll_to_y(target_y);
-//     }
-//
-//     /// Returns the bottom-most visible section inside the scroll area.
-//     fn bottom_most_visible_section(&self) -> Option<Section> {
-//         // We built a viewport that is similar to `scroll_area.viewport` but which uses
-//         // `scroll_position_target_y` instead of `scroll_position_y`. We use it to avoid akward
-//         // jumps of the selection box animation when clicking on section navigator buttons.
-//         let scroll_y = -self.scroll_area.scroll_position_target_y.value();
-//         let viewport = Viewport {
-//             top:    scroll_y,
-//             bottom: scroll_y - self.scroll_area.scroll_area_height.value(),
-//             // We don't care about the left and right edges because the sections are positioned
-//             // vertically.
-//             left:   0.0,
-//             right:  0.0,
-//         };
-//         use Section::*;
-//         let sections: &[(&dyn WithinViewport, Section)] = &[
-//             (&self.favourites_section, Favorites),
-//             (&self.local_scope_section, LocalScope),
-//             (&self.sub_modules_section, SubModules),
-//         ];
-//         let section = sections.iter().find(|(s, _)| s.within_viewport(&viewport));
-//         section.map(|(_, name)| *name)
-//     }

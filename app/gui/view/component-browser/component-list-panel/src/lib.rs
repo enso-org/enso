@@ -49,7 +49,6 @@ use ensogl_core::display::shape::*;
 
 use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator as SectionNavigator;
-use crate::navigator::Section;
 
 use enso_frp as frp;
 use ensogl_core::animation::physics::inertia;
@@ -69,10 +68,12 @@ use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
+use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
+use ide_view_component_list_panel_grid::content::SectionId;
 
 
 
@@ -175,7 +176,7 @@ mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        below = [grid::entry::background];
+        below = [grid::entry::background, list_view::overlay];
         (style:Style,bg_color:Vector4) {
             // let theme_path: style::Path = list_panel_theme::HERE.into();
 
@@ -403,17 +404,9 @@ impl component::Frp<Model> for Frp {
 
             // === Section navigator ===
 
-            eval_ input.show(model.section_navigator.select_section(Section::Favorites));
-
-            chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
-            // TODO[ao] implement this.
-            // scroll_to_section <- all(&chosen_section, &layout_frp.update);
-            // eval scroll_to_section(((section, layout)) model.scroll_to(*section, layout));
-            //
-            // visible_section <- model.scroll_area.viewport.filter_map(
-            //     f_!(model.bottom_most_visible_section())
-            // ).on_change();
-            // eval visible_section((section) model.section_navigator.select_section(*section));
+            model.grid.switch_section <+ input.show.constant(SectionId::Popular);
+            model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
+            model.section_navigator.select_section <+ model.grid.active_section.on_change();
 
 
             // === Navigator icons colors ===

@@ -1,16 +1,20 @@
 use crate::prelude::*;
+
 use ensogl_core::data::color;
+use num_enum::IntoPrimitive;
+use num_enum::TryFromPrimitive;
 
 /// A Component Groups List Section identifier.
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[repr(usize)]
 pub enum SectionId {
     /// The "Popular Tools" section.
     #[default]
-    Popular,
+    Popular    = 1,
     /// The "Local Scope" section.
-    LocalScope,
+    LocalScope = 2,
     /// The "Sub-Modules" section.
-    SubModules,
+    SubModules = 0,
 }
 
 /// A Group identifier. If `section` is [`SectionId::LocalScope`], the `index` should be 0, as that

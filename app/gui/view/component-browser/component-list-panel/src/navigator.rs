@@ -19,9 +19,8 @@ use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
 use ide_view_component_list_panel_grid::entry::icon;
+use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
-use num_enum::IntoPrimitive;
-use num_enum::TryFromPrimitive;
 
 
 
@@ -73,23 +72,6 @@ pub struct Style {
 // === Navigator ===
 // =================
 
-
-// === Section enum ===
-
-/// Three sections of the Searcher List Panel. See the
-/// [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
-#[repr(usize)]
-pub enum Section {
-    SubModules = 0,
-    LocalScope = 1,
-    #[default]
-    Favorites  = 2,
-}
-
-
-// === Navigator ===
-
 /// A section navigator bar. Contains two sets of buttons placed on the left of the Searcher List
 /// Panel.
 ///
@@ -102,11 +84,12 @@ pub struct Navigator {
     network:            frp::Network,
     bottom_buttons:     list_view::ListView<icon::Entry>,
     top_buttons:        list_view::ListView<icon::Entry>,
-    pub chosen_section: frp::Source<Option<Section>>,
+    pub select_section: frp::Any<SectionId>,
+    pub chosen_section: frp::Stream<Option<SectionId>>,
 }
 
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScope, icon::Id::Star];
+const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::Star, icon::Id::LocalScope];
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
@@ -126,22 +109,23 @@ impl Navigator {
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
+        bottom_buttons.select_entry(Some(SectionId::Popular.into()));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         frp::extend! { network
-            chosen_section <- source();
-            eval bottom_buttons.chosen_entry([chosen_section](id) match id {
-                Some(id) => chosen_section.emit(Section::try_from(*id).ok()),
-                None => {},
-            });
+            select_section <- any(...);
+            bottom_buttons.select_entry <+ select_section.map(|&id: &SectionId| Some(id.into()));
+            chosen_section <- bottom_buttons.chosen_entry.filter_map(|&id| Some(SectionId::try_from(id?).ok()));
         }
-        bottom_buttons.select_entry(Some(2));
 
-        Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
-    }
-
-    pub(crate) fn select_section(&self, section: Section) {
-        self.bottom_buttons.select_entry(Some(section.into()));
+        Self {
+            display_object,
+            top_buttons,
+            bottom_buttons,
+            network,
+            select_section,
+            chosen_section,
+        }
     }
 
     pub(crate) fn set_bottom_buttons_entry_params(&self, params: icon::Params) {

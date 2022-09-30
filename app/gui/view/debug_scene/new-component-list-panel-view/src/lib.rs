@@ -90,9 +90,23 @@ const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 9, 5),
     make_group(grid::SectionId::Popular, 10, 4),
     make_group(grid::SectionId::Popular, 11, 8),
-    make_group(grid::SectionId::Popular, 12, 45),
-    make_group(grid::SectionId::Popular, 13, 60),
-    make_group(grid::SectionId::Popular, 14, 51),
+    make_group(grid::SectionId::Popular, 12, 10),
+    make_group(grid::SectionId::Popular, 13, 12),
+    make_group(grid::SectionId::Popular, 14, 3),
+    make_group(grid::SectionId::SubModules, 15, 23),
+    make_group(grid::SectionId::SubModules, 16, 12),
+    make_group(grid::SectionId::SubModules, 17, 21),
+    make_group(grid::SectionId::SubModules, 18, 33),
+    make_group(grid::SectionId::SubModules, 19, 5),
+    make_group(grid::SectionId::SubModules, 20, 14),
+    make_group(grid::SectionId::SubModules, 21, 44),
+    make_group(grid::SectionId::SubModules, 22, 12),
+    make_group(grid::SectionId::SubModules, 23, 14),
+    make_group(grid::SectionId::SubModules, 24, 7),
+    make_group(grid::SectionId::SubModules, 25, 8),
+    make_group(grid::SectionId::SubModules, 26, 13),
+    make_group(grid::SectionId::SubModules, 27, 32),
+    make_group(grid::SectionId::SubModules, 28, 34),
 ];
 
 const LOCAL_SCOPE_GROUP_SIZE: usize = 12;
@@ -182,6 +196,7 @@ pub fn main() {
         // grid.set_column_width((1, entry_size.x + params.style.column_gap * 2.0));
         grid.reset(content_info());
         scene.add_child(&panel);
+        panel.show();
         mem::forget(app);
         mem::forget(panel);
         mem::forget(network);

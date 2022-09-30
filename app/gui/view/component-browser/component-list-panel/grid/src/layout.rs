@@ -2,6 +2,7 @@
 //! List.
 
 use crate::prelude::*;
+use std::collections::hash_map::Entry;
 
 use crate::content::ElementId;
 use crate::content::ElementInGroup;
@@ -71,11 +72,22 @@ impl<'a> LaidGroup<'a> {
 struct Column {
     /// A mapping between group position and the [`Group`] info. The keys in map are the rows with
     /// given group's header.
-    groups:  BTreeMap<Row, Group>,
+    groups:        BTreeMap<Row, Group>,
     /// The top occupied row in this group. If there is no group in column, it contains the first
     /// row of "Local scope" section. If the "Local scope" section is also empty, it's an index
     /// of row after last row in grid.
-    top_row: Row,
+    top_row:       Row,
+    section_range: HashMap<SectionId, Range<Row>>,
+}
+
+impl Column {
+    fn new_empty(local_scope_first_row: Row) -> Self {
+        Self {
+            groups:        default(),
+            top_row:       local_scope_first_row,
+            section_range: default(),
+        }
+    }
 }
 
 /// The Component List Panel Layout information.
@@ -85,11 +97,11 @@ struct Column {
 /// in Grid View, and what group element is at given location (row and column).
 #[derive(Clone, Debug, Default)]
 pub struct Layout {
-    columns:                   Vec<Column>,
-    positions:                 HashMap<GroupId, (Range<Row>, Col)>,
-    local_scope_section_start: Row,
-    local_scope_entry_count:   usize,
-    row_count:                 Row,
+    columns:                 Vec<Column>,
+    positions:               HashMap<GroupId, (Range<Row>, Col)>,
+    local_scope_first_row:   Row,
+    local_scope_entry_count: usize,
+    row_count:               Row,
 }
 
 impl Layout {
@@ -98,13 +110,12 @@ impl Layout {
     /// The layout will be completely empty if `local_scope_entry_count` will be 0.
     pub fn new(row_count: Row, column_count: Col, local_scope_entry_count: usize) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(column_count);
-        let local_scope_section_start = row_count - local_scope_rows;
-        let columns =
-            iter::repeat_with(|| Column { groups: default(), top_row: local_scope_section_start })
-                .take(column_count)
-                .collect_vec();
+        let local_scope_first_row = row_count - local_scope_rows;
+        let columns = iter::repeat_with(|| Column::new_empty(local_scope_first_row))
+            .take(column_count)
+            .collect_vec();
         let positions = default();
-        Self { columns, positions, local_scope_section_start, local_scope_entry_count, row_count }
+        Self { columns, positions, local_scope_first_row, local_scope_entry_count, row_count }
     }
 
     /// Create the layout with given groups arranged in columns.
@@ -158,8 +169,8 @@ impl Layout {
 
     /// Get the information what element is at given location.
     pub fn element_at_location(&self, row: Row, column: Col) -> Option<ElementId> {
-        if row >= self.local_scope_section_start {
-            let index = (row - self.local_scope_section_start) * self.columns.len() + column;
+        if row >= self.local_scope_first_row {
+            let index = (row - self.local_scope_first_row) * self.columns.len() + column;
             (index < self.local_scope_entry_count).as_some_from(|| ElementId {
                 group:   GroupId::local_scope_group(),
                 element: ElementInGroup::Entry(index),
@@ -176,7 +187,7 @@ impl Layout {
             match element.element {
                 ElementInGroup::Header => None,
                 ElementInGroup::Entry(index) => {
-                    let row = self.local_scope_section_start + index / self.columns.len();
+                    let row = self.local_scope_first_row + index / self.columns.len();
                     let col = index % self.columns.len();
                     Some((row, col))
                 }
@@ -196,14 +207,33 @@ impl Layout {
         self.positions.get(&group).cloned()
     }
 
+    pub fn section_rows_at_column(&self, section: SectionId, column: Col) -> Option<Range<Row>> {
+        self.columns.get(column)?.section_range.get(&section).cloned()
+    }
+
+    pub fn local_scope_rows(&self) -> Range<Row> {
+        self.local_scope_first_row..self.row_count
+    }
+
     /// Add group to the top of given column.
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
         let group_column = &mut self.columns[column];
         let prev_header_row = group_column.top_row;
         let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT_IN_ROWS;
+        let group_rows = next_header_row..prev_header_row;
         group_column.groups.insert(next_header_row, group);
         group_column.top_row = next_header_row;
-        self.positions.insert(group.id, (next_header_row..prev_header_row, column));
+        match group_column.section_range.entry(group.id.section) {
+            Entry::Occupied(mut entry) => {
+                let range = entry.get_mut();
+                range.start = range.start.min(group_rows.start);
+                range.end = range.end.max(group_rows.end);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(group_rows.clone());
+            }
+        }
+        self.positions.insert(group.id, (group_rows, column));
         next_header_row
     }
 
@@ -228,9 +258,7 @@ impl Layout {
 mod tests {
     use super::*;
 
-    const LEFT: usize = 0;
-    const CENTER: usize = 1;
-    const RIGHT: usize = 2;
+    use crate::column::*;
 
     #[test]
     fn group_layout() {
@@ -326,5 +354,32 @@ mod tests {
         assert_eq!(layout.element_at_location(3, LEFT), None);
         assert_eq!(layout.element_at_location(3, CENTER), None);
         assert_eq!(layout.element_at_location(3, RIGHT), None);
+    }
+
+    #[test]
+    fn section_ranges_in_layout() {
+        let mut layout = Layout::new(9, 3, 0);
+        let popular_group_ids = (0..6).map(|index| GroupId { section: SectionId::Popular, index });
+        let submodule_group_ids =
+            (6..8).map(|index| GroupId { section: SectionId::SubModules, index });
+        let group_ids = popular_group_ids.chain(submodule_group_ids);
+        let group_sizes = [1, 2, 3].into_iter().cycle();
+        let group_columns = [CENTER, LEFT, RIGHT].into_iter().cycle();
+        let groups = group_ids.zip(group_sizes).map(|(id, size)| Group {
+            id,
+            height: size,
+            original_height: size,
+            color: None,
+        });
+        for (group, col) in groups.zip(group_columns) {
+            layout.push_group(col, group);
+        }
+
+        assert_eq!(layout.section_rows_at_column(SectionId::Popular, LEFT), Some(3..9));
+        assert_eq!(layout.section_rows_at_column(SectionId::Popular, CENTER), Some(5..9));
+        assert_eq!(layout.section_rows_at_column(SectionId::Popular, RIGHT), Some(1..9));
+        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, LEFT), Some(0..3));
+        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, CENTER), Some(3..5));
+        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, RIGHT), None);
     }
 }

@@ -3929,7 +3929,6 @@ dependencies = [
  "ensogl-text",
  "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
- "num_enum",
  "ordered-float",
 ]
 
@@ -3958,6 +3957,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "failure",
+ "num_enum",
 ]
 
 [[package]]
