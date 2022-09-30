@@ -1,6 +1,5 @@
 package org.enso.compiler;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import org.enso.compiler.core.IR;
@@ -18,7 +17,6 @@ import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Function$Lambda;
-import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
@@ -129,10 +127,6 @@ final class TreeToIr {
 //            }
             case Tree.TypeSignature def -> {
               var t = translateModuleSymbol(def);
-              bindings = cons(t, bindings);
-            }
-            case Tree.ArgumentBlockApplication app -> {
-              var t = translateComment(app);
               bindings = cons(t, bindings);
             }
             case null -> {
@@ -1743,7 +1737,7 @@ final class TreeToIr {
     *
     * @param tree the comment to transform
     * @return the [[IR]] representation of `comment`
-    */
+    *
   IR.Comment translateComment(Tree tree) {
     return switch (tree) {
       case Tree.ArgumentBlockApplication comment -> {
@@ -1762,6 +1756,7 @@ final class TreeToIr {
         throw new UnhandledEntity(tree, "processComment");
     };
   }
+  */
 
   private IR$Name$Literal buildName(Tree ident) {
     return switch (ident) {
