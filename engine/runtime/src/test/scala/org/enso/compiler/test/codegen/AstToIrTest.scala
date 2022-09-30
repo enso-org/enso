@@ -270,7 +270,6 @@ class AstToIrTest extends CompilerTest with Inside {
     }
 
     "support type patterns nested in constructor pattern " in {
-      pending
       val ir =
         """
           |case foo of

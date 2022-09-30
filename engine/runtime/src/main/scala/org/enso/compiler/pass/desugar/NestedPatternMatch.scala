@@ -371,7 +371,7 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
-          case _: Pattern.Type        => false
+          case _: Pattern.Type        => true
           case _: Pattern.Literal     => true
           case _: IR.Error.Pattern    => false
           case _: Pattern.Documentation =>
@@ -397,7 +397,7 @@ case object NestedPatternMatch extends IRPass {
   def isNested(pattern: Pattern): Boolean =
     pattern match {
       case _: Pattern.Name        => false
-      case _: Pattern.Type        => false
+      case _: Pattern.Type        => true
       case _: Pattern.Constructor => true
       case _: Pattern.Literal     => true
       case _: IR.Error.Pattern    => false

@@ -857,6 +857,7 @@ object AstView {
         case ConstructorPattern(_, _) => Some(ast)
         case CatchAllPattern(pat)     => Some(pat)
         case LiteralPattern(lit)      => Some(lit)
+        case TypePattern(_, _)        => Some(ast)
         case Parensed(Pattern(p)) =>
           println(p)
           Some(p)
