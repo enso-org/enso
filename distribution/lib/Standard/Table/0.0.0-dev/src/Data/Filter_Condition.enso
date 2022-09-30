@@ -27,12 +27,6 @@ type Filter_Condition
     ## Is between (inclusive) two values (or columns)?'
     Between lower:(Column|Any) upper:(Column|Any)
 
-    ## Does the value match the SQL pattern (Text only)?
-    Like pattern:Text
-
-    ## Does the value not match the SQL pattern (Text only)?
-    Not_Like pattern:Text
-
     ## Does the value start with a prefix (Text only)?
     Starts_With prefix:Text
 
@@ -86,4 +80,3 @@ make_filter_column source_column filter_condition = case filter_condition of
     Is_False -> case source_column.value_type of
         Value_Type.Boolean -> source_column.not
         _ -> Error.throw (Illegal_Argument_Error "`Is_False` expected a Boolean column.")
-    _ -> source_column.map filter_condition

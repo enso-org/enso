@@ -379,7 +379,9 @@ type Table
         Text -> self.filter (self.at column) filter
         Integer -> self.filter (self.at column) filter
         Column ->
-            filter_column = make_filter_column column filter
+            filter_column = case Meta.type_of filter of
+                Filter_Condition -> make_filter_column column filter
+                Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
             case Helpers.check_integrity self filter_column of
                 False ->
                     Error.throw (Integrity_Error_Data "Column "+filter_column.name)

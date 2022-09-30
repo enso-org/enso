@@ -823,7 +823,9 @@ type Table
         Text -> self.filter (self.at column) filter
         Integer -> self.filter (self.at column) filter
         Column.Column ->
-            filter_column = make_filter_column column filter
+            filter_column = case Meta.type_of filter of
+                Filter_Condition -> make_filter_column column filter
+                Function -> column.map filter
             Table_Data (self.java_table.mask filter_column.java_column)
 
     ## Creates a new Table with the specified range of rows from the input

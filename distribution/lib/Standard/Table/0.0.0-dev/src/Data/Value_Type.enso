@@ -60,8 +60,8 @@ type Value_Type
 
     ## Time of day
 
-       ANSI SQL: TIME, TIME WITH TIME ZONE, TIME WITHOUT TIME ZONE
-    Time with_timezone:Boolean=False
+       ANSI SQL: TIME, TIME WITHOUT TIME ZONE
+    Time
 
     ## Binary stream.
 

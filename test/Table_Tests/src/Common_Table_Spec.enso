@@ -6,6 +6,7 @@ from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selecto
 from Standard.Table.Errors import all
 from Standard.Table.Data.Column_Selector import all
 from Standard.Table.Data.Position import all
+from Standard.Table.Data.Filter_Condition import Filter_Condition
 
 import Standard.Test
 import Standard.Test.Problems
@@ -1059,3 +1060,43 @@ spec prefix table_builder test_selection pending=Nothing =
 
             three.drop (While (_ > 10)) . should_equal three
             three.drop (While (_ < 10)) . should_equal empty
+
+    ## Currently these tests rely on filtering preserving the insertion ordering
+       within tables. This is not necessarily guaranteed by RDBMS, so we may
+       adapt this in the future. For now we implicitly assume the ordering is
+       preserved, as that seems to be the case.
+    Test.group prefix+"Table.filter" pending=pending <|
+        Test.specify "by integer comparisons" <|
+            table = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]]]
+            t1 = table.filter "X" (Filter_Condition.Less than=10)
+            t1.at "ix" . to_vector . should_equal [2, 4]
+            t1.at "X" . to_vector . should_equal [3, 4]
+            table.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
+            table.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
+            table.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
+            table.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
+            table.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t2 = table.filter "X" (Filter_Condition.Equal to=100)
+            t2 . at "X" . to_vector . should_equal [100]
+            t2 . at "ix" . to_vector . should_equal [1]
+            table.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
+            table.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector . should_equal []
+
+        Test.specify "by text comparisons" <|
+            table = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]]]
+            t1 = table.filter "X" (Filter_Condition.Less than="c")
+            t1.at "ix" . to_vector . should_equal [1, 2, 3]
+            t1.at "X" . to_vector . should_equal ["abb", "baca", "b"]
+            table.filter "X" (Filter_Condition.Equal_Or_Less than="b") . at "X" . to_vector . should_equal ["abb", "b"]
+            table.filter "X" (Filter_Condition.Greater than="b") . at "X" . to_vector . should_equal ["baca", "c"]
+            table.filter "X" (Filter_Condition.Equal_Or_Greater than="b") . at "X" . to_vector . should_equal ["baca", "b", "c"]
+            table.filter "X" (Filter_Condition.Between "b" "c") . at "X" . to_vector . should_equal ["baca", "b", "c"]
+            table.filter "X" (Filter_Condition.Equal to="baca") . at "X" . to_vector . should_equal ["baca"]
+            table.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector . should_equal []
+
+        Test.specify "by text search (contains, starts_with, ends_with)" <|
+            Nothing
+        Test.specify "by nulls" <|
+            Nothing
+        Test.specify "by a boolean mask" <|
+            Nothing
