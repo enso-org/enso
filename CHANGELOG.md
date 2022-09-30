@@ -66,6 +66,7 @@
 - [Selecting a suggestion from the searcher or component browser now updates the
   visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
+- [Remove here keyword from IDE.][3749]
 
 #### EnsoGL (rendering engine)
 
@@ -326,6 +327,7 @@
 [3726]: https://github.com/enso-org/enso/pull/3726
 [3727]: https://github.com/enso-org/enso/pull/3727
 [3733]: https://github.com/enso-org/enso/pull/3733
+[3749]: https://github.com/enso-org/enso/pull/3749
 
 #### Enso Compiler
 
