@@ -14,7 +14,7 @@ import Standard.Test
 polyglot java import java.util.UUID
 
 type Foo
-    Foo_Data x
+    Value x
 
     to_json : Json
     to_json self = Json.from_pairs [["x", self.x]]
@@ -90,8 +90,8 @@ visualization_spec connection =
             vis . should_equal json.to_text
 
         Test.specify "should handle other datatypes" <|
-            vis = Visualization.prepare_visualization (Foo_Data 42) 2
-            json = Json.from_pairs [["json", (Foo_Data 42)]]
+            vis = Visualization.prepare_visualization (Foo.Value 42) 2
+            json = Json.from_pairs [["json", (Foo.Value 42)]]
             vis . should_equal json.to_text
 
 spec =

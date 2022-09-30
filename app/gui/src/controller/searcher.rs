@@ -16,6 +16,7 @@ use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
+use double_representation::module::ImportInfo;
 use double_representation::module::QualifiedName;
 use double_representation::node::NodeInfo;
 use double_representation::project;
@@ -526,6 +527,11 @@ impl Searcher {
         Self::new_from_graph_controller(parent, ide, project, graph, mode)
     }
 
+    /// Abort editing and perform cleanup.
+    pub fn abort_editing(&self) {
+        self.clear_temporary_imports();
+    }
+
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
@@ -793,6 +799,7 @@ impl Searcher {
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
         tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        self.clear_temporary_imports();
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
@@ -800,6 +807,13 @@ impl Searcher {
         tracing::debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
+        {
+            // This block serves to limit the borrow of `self.data`.
+            let current_fragments = &self.data.borrow().fragments_added_by_picking;
+            let fragments_added_by_picking =
+                current_fragments.iter().chain(iter::once(&picked_completion));
+            self.add_required_imports(fragments_added_by_picking, false)?;
+        }
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let expression = self.get_expression(Some(new_expression_chain));
         let intended_method = self.intended_method();
@@ -911,10 +925,12 @@ impl Searcher {
         if let Some(guard) = self.node_edit_guard.deref().as_ref() {
             guard.prevent_revert()
         }
-
+        self.clear_temporary_imports();
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
-        self.add_required_imports()?;
+        let data_borrowed = self.data.borrow();
+        let fragments = data_borrowed.fragments_added_by_picking.iter();
+        self.add_required_imports(fragments, true)?;
 
         let node_id = self.mode.node_id();
         let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
@@ -963,9 +979,10 @@ impl Searcher {
 
 
         // === Add new node ===
-        let here = Ast::var(ast::constants::keywords::HERE);
         let args = std::iter::empty();
-        let node_expression = ast::prefix::Chain::new_with_this(new_definition_name, here, args);
+        let this_expression = Ast::var(self.module_qualified_name().name());
+        let node_expression =
+            ast::prefix::Chain::new_with_this(new_definition_name, this_expression, args);
         let node_expression = node_expression.into_ast();
         let node = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
         let added_node_id = node.id();
@@ -1001,9 +1018,11 @@ impl Searcher {
     }
 
     #[profile(Debug)]
-    fn add_required_imports(&self) -> FallibleResult {
-        let data_borrowed = self.data.borrow();
-        let fragments = data_borrowed.fragments_added_by_picking.iter();
+    fn add_required_imports<'a>(
+        &self,
+        fragments: impl Iterator<Item = &'a FragmentAddedByPickingSuggestion>,
+        permanent: bool,
+    ) -> FallibleResult {
         let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
         let mut module = self.module();
         let here = self.module_qualified_name();
@@ -1012,10 +1031,50 @@ impl Searcher {
         let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
         for mut import in without_enso_project {
             import.remove_main_module_segment();
+            let import_info = ImportInfo::from_qualified_name(&import);
+
+            let already_exists = module.iter_imports().contains(&import_info);
+            if already_exists {
+                continue;
+            }
+
             module.add_module_import(&here, self.ide.parser(), &import);
+            self.graph.graph().module.with_import_metadata(
+                import_info.id(),
+                Box::new(|import_metadata| {
+                    import_metadata.is_temporary = !permanent;
+                }),
+            )?;
         }
         self.graph.graph().module.update_ast(module.ast)
     }
+
+    fn clear_temporary_imports(&self) {
+        let mut module = self.module();
+        let import_metadata = self.graph.graph().module.all_import_metadata();
+        let metadata_to_remove = import_metadata
+            .into_iter()
+            .filter_map(|(id, import_metadata)| {
+                import_metadata.is_temporary.then(|| {
+                    if let Err(e) = module.remove_import_by_id(id) {
+                        tracing::warn!("Failed to remove import because of: {e:?}");
+                    }
+                    id
+                })
+            })
+            .collect_vec();
+        if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
+            tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
+        }
+        for id in metadata_to_remove {
+            if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
+                tracing::warn!(
+                    "Failed to remove import metadata for import id {id} because of: {e:?}"
+                );
+            }
+        }
+    }
+
 
     /// Reload Action List.
     ///
@@ -1213,9 +1272,7 @@ impl Searcher {
             self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
-            if this_name == ast::constants::keywords::HERE
-                || this_name == module_name.name().deref()
-            {
+            if this_name == module_name.name().deref() {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {
@@ -1921,14 +1978,12 @@ pub mod test {
             data.expect_completion(client, None, Some("String"), &[1]);
             data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, Some("Number"), &[]);
-            data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, None, &[1, 2, 3, 4, 9]);
         });
         let Fixture { searcher, .. } = &mut fixture;
 
         // Known functions cases
         searcher.set_input("Test.testMethod1 ".to_string()).unwrap();
-        searcher.set_input("here.testMethod1 ".to_string()).unwrap();
         searcher.set_input(iformat!("{MODULE_NAME}.testMethod1 ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
@@ -2484,7 +2539,7 @@ pub mod test {
             documentation_html: "Lorem ipsum".to_owned(),
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
-            main = \n    2 + 2\n    here.test_example1";
+            main = \n    2 + 2\n    Mock_Module.test_example1";
         searcher.add_example(&Rc::new(example)).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
@@ -2501,7 +2556,7 @@ pub mod test {
         };
         let expected_code = "import std.Base.Network.Http\n\
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
-            main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
+            main = \n    2 + 2\n    Mock_Module.test_example1\n    Mock_Module.test_example2";
         let example = Rc::new(example);
         searcher.add_example(&example).unwrap();
         searcher.add_example(&example).unwrap();

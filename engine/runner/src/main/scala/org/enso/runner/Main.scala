@@ -18,9 +18,9 @@ import org.graalvm.polyglot.PolyglotException
 import java.io.File
 import java.nio.file.{Path, Paths}
 import java.util.{HashMap, UUID}
-
 import scala.Console.err
 import scala.Console.out
+import scala.collection.compat.immutable.ArraySeq
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
@@ -516,6 +516,7 @@ object Main {
     */
   private def run(
     path: String,
+    additionalArgs: Array[String],
     projectPath: Option[String],
     logLevel: LogLevel,
     logMasking: Boolean,
@@ -574,13 +575,13 @@ object Main {
             exitFail()
           }
           val mainModuleName = pkg.moduleNameForFile(pkg.mainFile).toString
-          runPackage(context, mainModuleName, file)
+          runPackage(context, mainModuleName, file, additionalArgs)
         case Failure(ex) =>
           println(ex.getMessage)
           exitFail()
       }
     } else {
-      runSingleFile(context, file)
+      runSingleFile(context, file, additionalArgs)
     }
     context.context.close()
     exitSuccess()
@@ -684,16 +685,21 @@ object Main {
   private def runPackage(
     context: PolyglotContext,
     mainModuleName: String,
-    projectPath: File
+    projectPath: File,
+    additionalArgs: Array[String]
   ): Unit = {
     val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
-    runMain(mainModule, Some(projectPath))
+    runMain(mainModule, Some(projectPath), additionalArgs)
   }
 
-  private def runSingleFile(context: PolyglotContext, file: File): Unit = {
+  private def runSingleFile(
+    context: PolyglotContext,
+    file: File,
+    additionalArgs: Array[String]
+  ): Unit = {
     val mainModule = context.evalModule(file)
-    runMain(mainModule, Some(file))
+    runMain(mainModule, Some(file), additionalArgs)
   }
 
   private def printPolyglotException(
@@ -751,6 +757,7 @@ object Main {
   private def runMain(
     mainModule: Module,
     rootPkgPath: Option[File],
+    additionalArgs: Array[String],
     mainMethodName: String = "main"
   ): Unit = {
     try {
@@ -760,7 +767,19 @@ object Main {
         case Some(main) if mainMethodName != "main" =>
           main.execute(mainType.newInstance())
         case Some(main) =>
-          val res = main.execute()
+          // Opportunistically parse arguments and convert to ints.
+          // This avoids conversions in main function.
+          val parsedArgs: Seq[AnyRef] = ArraySeq
+            .unsafeWrapArray(additionalArgs)
+            .map(arg =>
+              try {
+                Integer.valueOf(arg)
+              } catch {
+                case _: NumberFormatException =>
+                  arg
+              }
+            )
+          val res = main.execute(parsedArgs: _*)
           if (!res.isNull()) {
             out.println(res);
           }
@@ -812,7 +831,12 @@ object Main {
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
-    runMain(mainModule, None, mainMethodName = mainMethodName)
+    runMain(
+      mainModule,
+      None,
+      new Array[String](0),
+      mainMethodName = mainMethodName
+    )
     exitSuccess()
   }
 
@@ -1029,6 +1053,7 @@ object Main {
     if (line.hasOption(RUN_OPTION)) {
       run(
         line.getOptionValue(RUN_OPTION),
+        line.getArgs,
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,

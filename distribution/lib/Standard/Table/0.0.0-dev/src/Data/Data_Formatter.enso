@@ -24,6 +24,10 @@ polyglot java import org.enso.table.formatting.DateTimeFormatter
 polyglot java import org.enso.table.formatting.TimeFormatter
 polyglot java import org.enso.table.formatting.TextFormatter
 
+# TODO Dubious constructor export
+from project.Data.Data_Formatter.Data_Formatter import all
+from project.Data.Data_Formatter.Data_Formatter export all
+
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
        serializing them back.

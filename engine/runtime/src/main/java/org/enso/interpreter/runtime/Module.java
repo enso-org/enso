@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
@@ -23,7 +24,6 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -473,16 +473,6 @@ public class Module implements TruffleObject {
     return patchedValues != null;
   }
 
-  /**
-   * Builds an IR stub for this module.
-   *
-   * <p>Should only be used for source-less modules (e.g. {@link Builtins}).
-   */
-  public void unsafeBuildIrStub() {
-    ir = StubIrBuilder.build(this);
-    compilationStage = CompilationStage.AFTER_CODEGEN;
-  }
-
   /** @return the cache for this module */
   public ModuleCache getCache() {
     return cache;
@@ -537,12 +527,6 @@ public class Module implements TruffleObject {
             "Failed to get the requested method. Try clearing your IR caches or disabling caching.");
         throw npe;
       }
-    }
-
-    private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      String name = Types.extractArguments(args, String.class);
-      return scope.getConstructors().get(name);
     }
 
     private static Type getType(ModuleScope scope, Object[] args)
@@ -607,11 +591,13 @@ public class Module implements TruffleObject {
       return context.getCompiler().generateDocs(module);
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, Context context) {
       Object[] imports = context.getCompiler().gatherImportStatements(module);
       return new Array(imports);
     }
 
+    @CompilerDirectives.TruffleBoundary
     @Specialization
     static Object doInvoke(
         Module module,
@@ -628,9 +614,6 @@ public class Module implements TruffleObject {
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           return result == null ? context.getBuiltins().nothing() : result;
-        case MethodNames.Module.GET_CONSTRUCTOR:
-          scope = module.compileScope(context);
-          return getConstructor(scope, arguments);
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
           return getType(scope, arguments);
@@ -675,7 +658,6 @@ public class Module implements TruffleObject {
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.Module.GET_METHOD)
-        || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
@@ -693,7 +675,6 @@ public class Module implements TruffleObject {
   Object getMembers(boolean includeInternal) {
     return new Array(
         MethodNames.Module.GET_METHOD,
-        MethodNames.Module.GET_CONSTRUCTOR,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,

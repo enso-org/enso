@@ -9,7 +9,7 @@ polyglot java import java.lang.NumberFormatException
 import Standard.Test
 
 type My_Type
-    My_Type_Data foo
+    Value foo
 
 throw_a_bar = Error.throw "bar"
 throw_a_bar_panicking = Panic.throw "bar"
@@ -22,7 +22,7 @@ spec =
         Test.specify "should be recoverable" <|
             err_1 = Panic.recover Any (123 . foobar "baz") . catch
             err_2 = Panic.recover Any ("foo" . baz 123) . catch
-            err_3 = Panic.recover Any (My_Type_Data False . nope) . catch
+            err_3 = Panic.recover Any (My_Type.Value False . nope) . catch
 
             err_1.target.should_equal 123
             err_1.method_name.should_equal "foobar"
@@ -30,7 +30,7 @@ spec =
             err_2.target.should_equal "foo"
             err_2.method_name.should_equal "baz"
 
-            err_3.target.to_text.should_equal "(My_Type_Data False)"
+            err_3.target.to_text.should_equal "(My_Type.Value False)"
             err_3.method_name.should_equal "nope"
 
     Test.group "Dataflow Errors" <|
@@ -47,19 +47,19 @@ spec =
             (recover_illegal_argument (Error.throw (Illegal_State_Error_Data "bar"))) . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should be able to be shown in the default visualization" <|
-            json = (Error.throw <| My_Type_Data "aaa").to_default_visualization_data
-            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type_Data"]]).to_text
+            json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
+            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "Value"]]).to_text
 
         Test.specify "should be able to be shown in the default vector visualization" <|
-            vec = [My_Type_Data "bar", Error.throw (My_Type_Data 42)]
+            vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
             visualization_text = vec.to_default_visualization_data
             expected_json = Json.parse '''
                 [
                   { "foo":"bar",
-                    "type":"My_Type_Data"
+                    "type":"Value"
                   },
-                  { "content":{ "foo":42, "type":"My_Type_Data" },
-                    "message":"My_Type_Data",
+                  { "content":{ "foo":42, "type":"Value" },
+                    "message":"My_Type.Value",
                     "type":"Error"
                   }
                 ]

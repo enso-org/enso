@@ -5,6 +5,7 @@ import Standard.Base.Runtime.Unsafe
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
+polyglot java import java.lang.ClassCastException
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
@@ -655,15 +656,7 @@ type Vector a
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
-    slice self start end =
-        slice_start = Math.max 0 start
-        slice_end = Math.min self.length end
-        if slice_start >= slice_end then [] else
-            if (slice_start == 0) && (slice_end == self.length) then self else
-                len = slice_end - slice_start
-                arr = Array.new len
-                Array.copy self.to_array slice_start arr 0 len
-                Vector.from_polyglot_array arr
+    slice self start end = @Builtin_Method "Vector.slice"
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -866,7 +859,7 @@ type Vector a
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values_Error
     sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -882,9 +875,9 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        new_vec_arr.sort compare
-
-        Vector.from_polyglot_array new_vec_arr
+        handle_incomparable_value <|
+            new_vec_arr.sort compare
+            Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
@@ -940,8 +933,9 @@ type Vector a
         json = self.take (First 100) . to_json
         json.to_text
 
-## PRIVATE
-type Wrapped_Error error
+# TODO Dubious constructor export
+from project.Data.Vector.Builder import all
+from project.Data.Vector.Builder export all
 
 type Builder
 
@@ -1109,18 +1103,16 @@ type Empty_Error
     to_display_text : Text
     to_display_text self = "The vector is empty."
 
-## UNSTABLE
-
-   An error indicating that the vector contains incomparable types.
-
-type Incomparable_Values_Error
-
 ## ADVANCED
    Catches possible errors from comparing values and throws an
    Incomparable_Values_Error if any occur.
 handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
-    handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <| function
+    handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
+    handle ClassCastException <|
+        handle No_Such_Method_Error_Data <|
+            handle Type_Error_Data <|
+                handle Unsupported_Argument_Types_Data <|
+                    function
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

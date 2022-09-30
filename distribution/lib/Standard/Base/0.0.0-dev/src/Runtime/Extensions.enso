@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Runtime.Extensions.Source_Location import all
+from project.Runtime.Extensions.Source_Location export all
+
 ## ADVANCED
    UNSTABLE
    Represents a source location in Enso code. Contains information about the

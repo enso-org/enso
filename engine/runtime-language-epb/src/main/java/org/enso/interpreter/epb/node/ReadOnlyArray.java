@@ -1,8 +1,10 @@
 package org.enso.interpreter.epb.node;
 
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 
@@ -75,8 +77,8 @@ public class ReadOnlyArray implements TruffleObject {
   }
 
   @ExportMessage
-  void writeArrayElement(long index, Object value) {
-    throw new UnsupportedOperationException("writing unsupoorted in PrimArray");
+  void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage

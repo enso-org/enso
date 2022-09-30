@@ -3,6 +3,10 @@ from Standard.Base import all
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 
+# TODO Dubious constructor export
+from project.Errors.Missing_Input_Columns import all
+from project.Errors.Missing_Input_Columns export all
+
 ## One or more columns not found in the input table.
    Can occur when using By_Name or By_Column.
 type Missing_Input_Columns
@@ -14,6 +18,10 @@ type Missing_Input_Columns
     to_display_text : Text
     to_display_text self =
         "The criteria "+self.criteria.to_text+" did not match any columns."
+
+# TODO Dubious constructor export
+from project.Errors.Column_Indexes_Out_Of_Range import all
+from project.Errors.Column_Indexes_Out_Of_Range export all
 
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
@@ -28,6 +36,10 @@ type Column_Indexes_Out_Of_Range
         True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
         False -> "The indexes "+self.indexes.short_display_text+" are out of range."
 
+# TODO Dubious constructor export
+from project.Errors.Too_Many_Column_Names_Provided import all
+from project.Errors.Too_Many_Column_Names_Provided export all
+
 ## More names than the column count provided to the function.
    Can occur when using By_Position.
 type Too_Many_Column_Names_Provided
@@ -40,6 +52,10 @@ type Too_Many_Column_Names_Provided
     to_display_text self =
         "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
 
+# TODO Dubious constructor export
+from project.Errors.Invalid_Output_Column_Names import all
+from project.Errors.Invalid_Output_Column_Names export all
+
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
     Invalid_Output_Column_Names_Data (column_names : [Text])
@@ -51,6 +67,10 @@ type Invalid_Output_Column_Names
     to_display_text self = case self.column_names.length == 1 of
         True -> "The name " + (self.column_names.at 0).to_text + " is invalid."
         False -> "The names "+self.column_names.short_display_text+" are invalid."
+
+# TODO Dubious constructor export
+from project.Errors.Duplicate_Output_Column_Names import all
+from project.Errors.Duplicate_Output_Column_Names export all
 
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names
@@ -74,6 +94,10 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
+# TODO Dubious constructor export
+from project.Errors.Duplicate_Column_Selectors import all
+from project.Errors.Duplicate_Column_Selectors export all
+
 ## Indicates that the provided Column_Selector has duplicate entries.
 type Duplicate_Column_Selectors
     Duplicate_Column_Selectors_Data (duplicate_selectors : [(Text | Integer)])
@@ -81,6 +105,10 @@ type Duplicate_Column_Selectors
     to_display_text : Text
     to_display_text self =
         "The provided Column_Selector has duplicate entries: "+self.duplicate_selectors.short_display_text+"."
+
+# TODO Dubious constructor export
+from project.Errors.Column_Matched_By_Multiple_Selectors import all
+from project.Errors.Column_Matched_By_Multiple_Selectors export all
 
 ## Indicates that one column has been matched by multiple selectors.
 
@@ -95,6 +123,10 @@ type Column_Matched_By_Multiple_Selectors
     to_display_text : Text
     to_display_text self =
         'The column "' + self.column_name + '" is matched by multiple selectors: ' + self.selectors.short_display_text + "."
+
+# TODO Dubious constructor export
+from project.Errors.Input_Indices_Already_Matched import all
+from project.Errors.Input_Indices_Already_Matched export all
 
 ## Indicates that the provided indices matched columns already matched by
    others, so they do not introduce any new columns to the input.
@@ -117,6 +149,10 @@ type No_Input_Columns_Selected
         "No input columns have been selected for the operation."
 
 
+# TODO Dubious constructor export
+from project.Errors.Invalid_Aggregation import all
+from project.Errors.Invalid_Aggregation export all
+
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation
     Invalid_Aggregation_Data (column:Text) (rows:[Integer]) (message:Text)
@@ -124,6 +160,10 @@ type Invalid_Aggregation
     to_display_text : Text
     to_display_text self =
         "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
+
+# TODO Dubious constructor export
+from project.Errors.Floating_Point_Grouping import all
+from project.Errors.Floating_Point_Grouping export all
 
 ## Indicates that a floating point number was used in a grouping.
 type Floating_Point_Grouping
@@ -133,6 +173,10 @@ type Floating_Point_Grouping
     to_display_text self =
         "Grouping on floating points is not recommended within "+self.column+" at row "+self.row.to_text+"."
 
+# TODO Dubious constructor export
+from project.Errors.Unquoted_Delimiter import all
+from project.Errors.Unquoted_Delimiter export all
+
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
 type Unquoted_Delimiter
     Unquoted_Delimiter_Data (column:Text) (rows:[Integer])
@@ -140,6 +184,10 @@ type Unquoted_Delimiter
     to_display_text : Text
     to_display_text self =
         "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
+
+# TODO Dubious constructor export
+from project.Errors.Additional_Warnings import all
+from project.Errors.Additional_Warnings export all
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings
@@ -149,6 +197,10 @@ type Additional_Warnings
     to_display_text self =
         "There were "+self.count.to_text+" additional issues."
 
+# TODO Dubious constructor export
+from project.Errors.Invalid_Row import all
+from project.Errors.Invalid_Row export all
+
 ## Indicates that when loading a delimited file, a row was encountered which had
    too many or too few columns.
 
@@ -156,6 +208,10 @@ type Additional_Warnings
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Row
     Invalid_Row_Data (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
+
+# TODO Dubious constructor export
+from project.Errors.Additional_Invalid_Rows import all
+from project.Errors.Additional_Invalid_Rows export all
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows
@@ -165,9 +221,17 @@ type Additional_Invalid_Rows
    never closed.
 type Mismatched_Quote
 
+# TODO Dubious constructor export
+from project.Errors.Parser_Error import all
+from project.Errors.Parser_Error export all
+
 ## Indicates an unexpected parser error.
 type Parser_Error
     Parser_Error_Data cause
+
+# TODO Dubious constructor export
+from project.Errors.Invalid_Location import all
+from project.Errors.Invalid_Location export all
 
 ## Indicates that a specified location was not valid.
 type Invalid_Location
@@ -176,6 +240,10 @@ type Invalid_Location
     to_display_text : Text
     to_display_text self =
         "The location '"+self.location+"' is not valid."
+
+# TODO Dubious constructor export
+from project.Errors.Invalid_Format import all
+from project.Errors.Invalid_Format export all
 
 ## Indicates that some values did not match the expected datatype format.
 
@@ -192,6 +260,10 @@ type Invalid_Format
     to_display_text self =
         self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
 
+# TODO Dubious constructor export
+from project.Errors.Leading_Zeros import all
+from project.Errors.Leading_Zeros export all
+
 ## Indicates that some values contained leading zeros even though these were not allowed.
 
    Arguments:
@@ -202,6 +274,10 @@ type Invalid_Format
 type Leading_Zeros
     Leading_Zeros_Data column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
+# TODO Dubious constructor export
+from project.Errors.Duplicate_Type_Selector import all
+from project.Errors.Duplicate_Type_Selector export all
+
 ## Indicates that multiple `Column_Type_Selector` match the same column.
 
    If all matching selectors indicate the same type, the warning is reported but
@@ -209,6 +285,10 @@ type Leading_Zeros
    parsed due to ambiguity.
 type Duplicate_Type_Selector
     Duplicate_Type_Selector_Data column:Text ambiguous:Boolean
+
+# TODO Dubious constructor export
+from project.Errors.Existing_Data import all
+from project.Errors.Existing_Data export all
 
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
@@ -218,12 +298,20 @@ type Existing_Data
     to_display_text : Text
     to_display_text self = self.message
 
+# TODO Dubious constructor export
+from project.Errors.Range_Exceeded import all
+from project.Errors.Range_Exceeded export all
+
 ## Indicates that the specified range is not large enough to fit the data.
 type Range_Exceeded
     Range_Exceeded_Data message
 
     to_display_text : Text
     to_display_text self = self.message
+
+# TODO Dubious constructor export
+from project.Errors.Column_Count_Mismatch import all
+from project.Errors.Column_Count_Mismatch export all
 
 ## Indicates that the existing table has a different number of columns to the
    new table.
@@ -235,11 +323,15 @@ type Column_Count_Mismatch
         "Expected " + self.expected.to_text + " columns, got " + self.actual.to_text + "."
 
     ## PRIVATE
-    handle_java_exception self =
+    handle_java_exception =
         throw_column_count_mismatch caught_panic =
             cause = caught_panic.payload.cause
             Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
         Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
+
+# TODO Dubious constructor export
+from project.Errors.Column_Name_Mismatch import all
+from project.Errors.Column_Name_Mismatch export all
 
 ## Indicates that the existing table has a different set of column names to the
    new table.
@@ -255,6 +347,10 @@ type Column_Name_Mismatch
             cause = caught_panic.payload.cause
             Error.throw (Column_Name_Mismatch_Data (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
         Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
+
+# TODO Dubious constructor export
+from project.Errors.No_Such_Column_Error import all
+from project.Errors.No_Such_Column_Error export all
 
 ## UNSTABLE
 

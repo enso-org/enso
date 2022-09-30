@@ -7,6 +7,10 @@ type File_Format
     read : File -> Problem_Behavior -> Any
     read _ _ = unimplemented "This is an interface only."
 
+# TODO Dubious constructor export
+from project.System.File_Format.Plain_Text_Format import all
+from project.System.File_Format.Plain_Text_Format export all
+
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 

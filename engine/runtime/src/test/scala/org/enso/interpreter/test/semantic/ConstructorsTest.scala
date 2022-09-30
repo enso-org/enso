@@ -15,7 +15,7 @@ class ConstructorsTest extends InterpreterTest {
   ): Unit = {
     "dispatch to the proper match branch" in {
       val patternMatchingCode =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    x = Cons 1 Nil
@@ -28,7 +28,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "work with recursion" in {
       val testCode =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    genList = i -> if i == 0 then Nil else Cons i (genList (i - 1))
@@ -43,7 +43,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "behave correctly in non-tail positions" in {
       val testCode =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    add = x -> y -> x + y
@@ -59,7 +59,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "accept a catch-all fallback clause" in {
       val testCode =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    nil = Nil
@@ -72,7 +72,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "throw an exception when match fails" in {
       val testCode =
-        """from Standard.Base.Data.List import all
+        """from Standard.Base.Data.List.List import all
           |
           |main =
           |    nil = Nil
@@ -86,17 +86,17 @@ class ConstructorsTest extends InterpreterTest {
     "be usable in code, with arbitrary definition order" in {
       val testCode =
         """import Standard.Base.Nothing
-          |from Standard.Base.Data.List import all
+          |from Standard.Base.Data.List.List import all
           |
           |type C2
           |    Cons2 a b
           |
-          |Nothing.genList = i -> if i == 0 then Nil2 else Cons2 i (Nothing.genList (i - 1))
+          |Nothing.genList = i -> if i == 0 then Nil2 else C2.Cons2 i (Nothing.genList (i - 1))
           |
           |type Nil2
           |
           |Nothing.sumList = list -> case list of
-          |  Cons2 h t -> h + Nothing.sumList t
+          |  C2.Cons2 h t -> h + Nothing.sumList t
           |  Nil2 -> 0
           |
           |main = Nothing.sumList (Nothing.genList 10)

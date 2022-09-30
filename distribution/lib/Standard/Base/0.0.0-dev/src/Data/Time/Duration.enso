@@ -41,6 +41,10 @@ time_execution ~function =
     Pair_Data duration result
 
 
+# TODO Dubious constructor export
+from project.Data.Time.Duration.Duration import all
+from project.Data.Time.Duration.Duration export all
+
 type Duration
 
     ## An amount of time in terms of years, months, days, hours, minutes,

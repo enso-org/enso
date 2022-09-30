@@ -1042,6 +1042,7 @@ impl AreaModel {
     #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
+        tracing::debug!("Setting font to {font_name}");
         let app = &self.app;
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<font::Registry>();

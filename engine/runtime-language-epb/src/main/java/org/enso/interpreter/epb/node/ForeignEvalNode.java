@@ -55,27 +55,32 @@ public class ForeignEvalNode extends RootNode {
 
   private void ensureParsed() {
     if (foreign == null && parseError == null) {
-      getLock().lock();
-      try {
-        if (foreign == null) {
-          CompilerDirectives.transferToInterpreterAndInvalidate();
-          switch (code.getLanguage()) {
-            case JS:
-              parseJs();
-              break;
-            case PY:
-              parsePy();
-              break;
-            case R:
-              parseR();
-              break;
-            default:
-              throw new IllegalStateException("Unsupported language resulted from EPB parsing");
-          }
+      lockAndParse();
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void lockAndParse() throws IllegalStateException {
+    getLock().lock();
+    try {
+      if (foreign == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        switch (code.getLanguage()) {
+          case JS:
+            parseJs();
+            break;
+          case PY:
+            parsePy();
+            break;
+          case R:
+            parseR();
+            break;
+          default:
+            throw new IllegalStateException("Unsupported language resulted from EPB parsing");
         }
-      } finally {
-        getLock().unlock();
       }
+    } finally {
+      getLock().unlock();
     }
   }
 

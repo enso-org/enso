@@ -1,5 +1,9 @@
 from Standard.Base import Polyglot, Array
 
+## TODO Dubious constructor export
+from project.Polyglot.Proxy_Polyglot_Array.Proxy_Polyglot_Array import all
+from project.Polyglot.Proxy_Polyglot_Array.Proxy_Polyglot_Array export all
+
 ## Advanced
 
     Wrapper for Polyglot Arrays

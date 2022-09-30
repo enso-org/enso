@@ -284,7 +284,6 @@ mod tests {
             assert_eq!(code, module.ast().repr());
         };
         expect_intact("main = 5");
-        expect_intact("here.main = 5");
         expect_intact(&format!("{}.main = 5", module_name));
     }
 }

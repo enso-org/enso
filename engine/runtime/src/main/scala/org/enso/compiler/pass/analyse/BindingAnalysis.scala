@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -57,21 +57,15 @@ case object BindingAnalysis extends IRPass {
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))
         BindingsMap.Type(
           sumType.name.name,
-          sumType.members.map(_.name.name),
+          sumType.members.map(m =>
+            Cons(
+              m.name.name,
+              m.arguments.length,
+              m.arguments.forall(_.defaultValue.isDefined)
+            )
+          ),
           isBuiltinType
         )
-    }
-
-    val definedConstructors = ir.bindings.flatMap {
-      case tp: IR.Module.Scope.Definition.Type =>
-        tp.members.map { cons =>
-          BindingsMap.Cons(
-            cons.name.name,
-            cons.arguments.length,
-            cons.arguments.forall(_.defaultValue.isDefined)
-          )
-        }
-      case _ => List()
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
@@ -105,10 +99,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
-        definedSumTypes,
-        definedConstructors,
-        importedPolyglot,
-        methodsWithAutogen,
+        definedSumTypes ++ importedPolyglot ++ methodsWithAutogen,
         ModuleReference.Concrete(moduleContext.module)
       )
     )

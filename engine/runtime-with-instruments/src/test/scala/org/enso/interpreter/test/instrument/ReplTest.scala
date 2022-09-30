@@ -98,17 +98,17 @@ class ReplTest
         inside(executor.evaluate("2")) { case Right(result) =>
           result.toString shouldEqual "2"
         }
-        inside(executor.evaluate("Bar 1")) { case Right(result) =>
+        inside(executor.evaluate("B.Bar 1")) { case Right(result) =>
           result.toString shouldEqual "Bar 1"
         }
-        inside(executor.evaluate("Baz 1")) { case Right(result) =>
+        inside(executor.evaluate("C.Baz 1")) { case Right(result) =>
           result.toString shouldEqual "Baz 1"
         }
         inside(executor.evaluate("Pattern.compile 'foo'")) {
           case Right(result) =>
             result.toString shouldEqual "foo"
         }
-        inside(executor.evaluate("Foo 2 'a'")) { case Right(result) =>
+        inside(executor.evaluate("A.Foo 2 'a'")) { case Right(result) =>
           result.toString shouldEqual "{2: a}"
         }
         executor.exit()

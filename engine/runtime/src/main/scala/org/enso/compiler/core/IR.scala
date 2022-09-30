@@ -1444,6 +1444,17 @@ object IR {
 
               s"${methodReference.showCode(indent)} = $exprStr"
             }
+
+            def isStatic: Boolean = body match {
+              case function: Function.Lambda =>
+                function.arguments.headOption.map(_.name) match {
+                  case Some(IR.Name.Self(_, true, _, _)) => true
+                  case _                                 => false
+                }
+              case _ =>
+                true // if it's not a function, it has no arguments, therefore no `self`
+            }
+
           }
 
           /** The definition of a method for a given constructor using sugared
@@ -7072,10 +7083,10 @@ object IR {
                 s"The name ${originalName.name} is ambiguous. Possible candidates are:"
               val lines = candidates.map {
                 case BindingsMap.ResolvedConstructor(
-                      definitionModule,
+                      definitionType,
                       cons
                     ) =>
-                  s"    Constructor ${cons.name} defined in module ${definitionModule.getName};"
+                  s"    Constructor ${cons.name} defined in module ${definitionType.module.getName};"
                 case BindingsMap.ResolvedModule(module) =>
                   s"    The module ${module.getName};"
                 case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
@@ -7207,7 +7218,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      ast: AST,
+      at: AnyRef,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7217,6 +7228,8 @@ object IR {
         with IR.Module.Scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
+
+      def ast: AST = at.asInstanceOf[AST]
 
       /** Creates a copy of `this`.
         *
@@ -7228,7 +7241,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AST                       = ast,
+        ast: AnyRef                    = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
@@ -7259,8 +7272,12 @@ object IR {
         this
 
       /** @inheritdoc */
+      @annotation.nowarn
       override val location: Option[IdentifiedLocation] =
-        ast.location.map(IdentifiedLocation(_, ast.id))
+        at match {
+          case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
+          case _        => None
+        }
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7269,7 +7286,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $ast,
+        |ast = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},

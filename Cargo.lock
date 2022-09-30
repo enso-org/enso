@@ -1642,6 +1642,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-new-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-visualization"
 version = "0.1.0"
 dependencies = [
@@ -1996,6 +2014,7 @@ dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
+ "debug-scene-new-component-list-panel-view",
  "debug-scene-visualization",
 ]
 
@@ -2269,6 +2288,14 @@ dependencies = [
  "futures 0.3.21",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enso-profiler-demo-data"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "futures 0.3.21",
 ]
 
 [[package]]
@@ -2635,8 +2662,8 @@ version = "0.1.0"
 dependencies = [
  "enso-debug-api",
  "enso-frp",
- "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-demo-data",
  "enso-profiler-enso-data",
  "enso-profiler-flame-graph",
  "enso-web",
@@ -2661,8 +2688,8 @@ name = "ensogl-example-render-profile-flamegraph"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-demo-data",
  "enso-profiler-flame-graph",
  "enso-web",
  "ensogl-core",
@@ -3948,6 +3975,7 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "ensogl-core",
+ "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-label",

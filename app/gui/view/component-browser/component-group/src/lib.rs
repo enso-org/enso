@@ -79,6 +79,7 @@ use ensogl_shadow as shadow;
 
 pub mod entry;
 pub mod icon;
+pub mod new_entry;
 pub mod set;
 pub mod wide;
 

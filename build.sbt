@@ -1,10 +1,15 @@
 import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
+import sbt.nio.FileStamper.LastModified
+import sbt.nio.file.FileTreeView
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -253,6 +258,7 @@ lazy val enso = (project in file("."))
     `polyglot-api`,
     `project-manager`,
     `syntax-definition`.jvm,
+    `syntax-rust-definition`,
     `text-buffer`,
     flexer.jvm,
     graph,
@@ -658,6 +664,53 @@ lazy val `text-buffer` = project
       "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
       "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
     )
+  )
+
+val generateRustParserLib = TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
+`syntax-rust-definition` / generateRustParserLib := {
+    import sys.process._
+    val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
+    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+    if (allLibs.isEmpty || (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
+      Seq("cargo", "build", "-p", "enso-parser-jni") !
+    }
+    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
+}
+
+`syntax-rust-definition` / generateRustParserLib / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+
+val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+`syntax-rust-definition` / generateParserJavaSources := {
+  generateRustParser((`syntax-rust-definition` / Compile / sourceManaged).value, (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+}
+`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
+    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+
+def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
+  import scala.jdk.CollectionConverters._
+  import java.nio.file.Paths
+
+  import sys.process._
+  val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
+  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  if (!fullPkg.exists()) {
+    fullPkg.mkdirs()
+  }
+  if (changes.hasChanges) {
+    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+  }
+  FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
+}
+
+lazy val `syntax-rust-definition` = project
+  .in(file("lib/rust/parser"))
+  .configs(Test)
+  .settings(
+    Compile / sourceGenerators += generateParserJavaSources,
+    Compile / resourceGenerators += generateRustParserLib,
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
+    frgaalJavaCompilerSetting,
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -1336,6 +1389,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`syntax-rust-definition`)
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
@@ -1479,6 +1533,59 @@ lazy val `engine-runner` = project
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
+
+// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
+// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
+// image of the runner.
+lazy val `engine-runner-native` = project
+  .in(file("engine/runner-native"))
+  .settings(
+    assembly/assemblyExcludedJars := {
+      val cp = (assembly / fullClasspath).value
+      (assembly/assemblyExcludedJars).value ++
+          cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
+    },
+    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
+    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
+    assembly / assemblyJarName := "runner-native.jar",
+    assembly / assemblyOutputPath := file("runner-native.jar"),
+    assembly := assembly
+        .dependsOn(`engine-runner` / assembly)
+        .value,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "runner",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+          "-H:IncludeResources=.*Main.enso$",
+          "--allow-incomplete-classpath",
+          "--macro:truffle",
+          "--language:js",
+          //          "-g",
+          //          "-H:+DashboardAll",
+          //          "-H:DashboardDump=runner.bgv"
+          "-Dnic=nic"
+        ),
+        mainClass = Option("org.enso.runner.Main"),
+        cp = Option("runtime.jar"),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$",
+          "io.methvin.watchservice.jna.CarbonAPI"
+        )
+      )
+      .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "runner"
+      )
+      .value
+  )
+  .dependsOn(`engine-runner`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))

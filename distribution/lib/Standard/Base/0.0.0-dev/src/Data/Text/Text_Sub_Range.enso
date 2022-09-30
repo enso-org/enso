@@ -10,6 +10,10 @@ from Standard.Base.Data.Index_Sub_Range export First, Last, While, By_Index, Sam
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 
+# TODO Dubious constructor export
+from project.Data.Text.Text_Sub_Range.Text_Sub_Range import all
+from project.Data.Text.Text_Sub_Range.Text_Sub_Range export all
+
 ## Type defining a substring of a Text
 type Text_Sub_Range
     ## Select characters until the first instance of `delimiter`.
@@ -99,6 +103,10 @@ find_codepoint_ranges text subrange =
                     find_codepoint_ranges text (By_Index range)
         Range_Data _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
+
+# TODO Dubious constructor export
+from project.Data.Text.Text_Sub_Range.Codepoint_Ranges import all
+from project.Data.Text.Text_Sub_Range.Codepoint_Ranges export all
 
 type Codepoint_Ranges
     ## PRIVATE

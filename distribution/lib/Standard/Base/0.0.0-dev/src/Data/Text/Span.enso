@@ -16,6 +16,10 @@ from Standard.Base.Error.Common import Index_Out_Of_Bounds_Error
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
 
+# TODO Dubious constructor export
+from project.Data.Text.Span.Span import all
+from project.Data.Text.Span.Span export all
+
 type Span
 
     ## A representation of a span of characters in Enso's `Text` type.
@@ -80,6 +84,10 @@ type Span
     to_utf_16_span : Utf_16_Span
     to_utf_16_span self =
         Utf_16_Span_Data (range_to_char_indices self.text self.range) self.text
+
+# TODO Dubious constructor export
+from project.Data.Text.Span.Utf_16_Span import all
+from project.Data.Text.Span.Utf_16_Span export all
 
 type Utf_16_Span
 
