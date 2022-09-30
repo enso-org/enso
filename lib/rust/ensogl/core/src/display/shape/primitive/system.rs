@@ -379,21 +379,21 @@ where
 // === Macros ===
 // ==============
 
-/// Defines 'Shape' and 'ShapeSystemModel' structures. The generated Shape is a newtype for `Sprite`
-/// and the shader attributes. The generated 'ShapeSystemModel' is a newtype for the
-/// `ShapeSystemModel` and the required buffer handlers.
+
 #[macro_export]
 macro_rules! define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(Data ($data:ident))?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
+            $(Data ($data))?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
@@ -418,6 +418,7 @@ macro_rules! _define_shape_system {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(Data ($data:ident))?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -434,6 +435,7 @@ macro_rules! _define_shape_system {
         #[allow(unused_qualifications)]
         mod shape_system_definition {
             use super::*;
+            use $crate::prelude::*;
             use $crate::display;
             use $crate::display::symbol;
             use $crate::display::symbol::geometry::compound::sprite;
@@ -441,14 +443,15 @@ macro_rules! _define_shape_system {
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::DynamicParamInternals;
-            // use $crate::display::shape::DynamicShapeInternals;
+            use $crate::display::shape::ShapeInstance;
             use $crate::display::shape::ShapeSystemId;
             use $crate::display::shape::ShapeOps;
             use $crate::display::shape::Var;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
             use $crate::system::gpu::data::InstanceIndex;
-
+            use $crate::data::color;
+            use $crate::display::shape::*;
 
 
             // =============
@@ -467,6 +470,7 @@ macro_rules! _define_shape_system {
                     $(let out = $pointer_events;)?
                     out
                 }
+
                 fn always_above() -> &'static [ShapeSystemId] {
                     &[ $($($always_above_1 $(::$always_above_2)* :: ShapeSystemModel :: id()),*)? ]
                 }
@@ -531,9 +535,11 @@ macro_rules! _define_shape_system {
             }
 
             /// Parameters of the [`ShapeProxy`].
-            #[derive(Debug,Default)]
+            #[derive(Debug, Default, Deref)]
             #[allow(missing_docs)]
             pub struct ProxyParams {
+                #[deref]
+                data: ($($data)?),
                 pub size: ProxyParam<sprite::Size>,
                 $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
             }
@@ -565,8 +571,7 @@ macro_rules! _define_shape_system {
 
 mod shape {
     use super::*;
-    use crate::data::color;
-    use crate::display::shape::*;
+
 
     crate::define_shape_system! {
         (style:Style, foo:f32) {

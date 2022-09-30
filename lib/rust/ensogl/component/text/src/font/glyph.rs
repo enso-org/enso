@@ -45,6 +45,27 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
+pub mod glyph {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    pub struct GlyphData {
+        pub frp: Frp,
+    }
+
+    ensogl_core::define_shape_system! {
+        Data(GlyphData)
+        (style:Style) {
+            let shape = Circle(50.px());
+            let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
+            shape.into()
+        }
+    }
+}
+
+fn test() {
+    let g = glyph::View::new();
+}
 
 
 // =============
