@@ -118,19 +118,25 @@ impl Layout {
         Self { columns, positions, local_scope_first_row, local_scope_entry_count, row_count }
     }
 
-    /// Create the layout with given groups arranged in columns.
+    /// Create the layout with given groups arranged in columns. The groups without entries will be
+    /// filtered out.
     pub fn create_from_arranged_groups<const COLUMN_COUNT: usize>(
         groups: [Vec<Group>; COLUMN_COUNT],
         local_scope_entry_count: usize,
     ) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(COLUMN_COUNT);
-        let col_heights: [usize; COLUMN_COUNT] = groups
+        let filtered_groups = groups.map(|mut g| {
+            g.drain_filter(|g| g.height == 0);
+            g
+        });
+        let col_heights: [usize; COLUMN_COUNT] = filtered_groups
             .each_ref()
-            .map(|v| v.iter().map(|g| g.original_height + HEADER_HEIGHT_IN_ROWS).sum());
+            .map(|v| v.iter().map(|g| g.height + HEADER_HEIGHT_IN_ROWS).sum());
         let groups_rows = col_heights.into_iter().max().unwrap_or_default();
         let all_rows = local_scope_rows + groups_rows;
         let mut this = Self::new(all_rows, COLUMN_COUNT, local_scope_entry_count);
-        let with_col_index = groups.into_iter().enumerate().map(Self::column_to_col_group_pairs);
+        let with_col_index =
+            filtered_groups.into_iter().enumerate().map(Self::column_to_col_group_pairs);
         for (column, group) in with_col_index.flatten() {
             this.push_group(column, group);
         }

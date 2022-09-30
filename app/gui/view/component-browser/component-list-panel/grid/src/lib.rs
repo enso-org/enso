@@ -274,20 +274,20 @@ impl Model {
 
     fn entries_params(
         &self,
-        (style, entry_style, color_intensities, group_colors, dimmed_groups): &(
+        (style, entry_style, color_intensities, group_colors): &(
             Style,
             entry::Style,
             entry::style::ColorIntensities,
             GroupColors,
-            entry::DimmedGroups,
         ),
+        dimmed_groups: entry::DimmedGroups,
     ) -> entry::Params {
         entry::Params {
-            style:             entry_style.clone(),
-            grid_style:        *style,
-            group_colors:      *group_colors,
+            style: entry_style.clone(),
+            grid_style: *style,
+            group_colors: *group_colors,
             color_intensities: *color_intensities,
-            dimmed_groups:     *dimmed_groups,
+            dimmed_groups,
         }
     }
 
@@ -336,14 +336,21 @@ impl component::Frp<Model> for Frp {
         let corners_radius = style.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style);
         frp::extend! { network
+            // === Active Entry ===
+
+            out.active <+ grid.entry_selected.filter_map(f!([model](loc) loc.as_ref().and_then(|l| model.location_to_element_id(l))));
+            out.active_section <+ out.active.map(|e| e.group.section).on_change();
+
+
             // === Style and Entries Params ===
 
             entry_style <- source::<entry::Style>();
             color_intensities <- source::<entry::style::ColorIntensities>();
             selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
             group_colors <- source::<GroupColors>();
-            entries_style <- all(style.update, entry_style, color_intensities, group_colors);
-            entries_params <- entries_style.map(f!((input) model.entries_params(input)));
+            dimmed_groups <- out.active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
+            entries_style <- all4(&style.update, &entry_style, &color_intensities, &group_colors);
+            entries_params <- all_with(&entries_style, &dimmed_groups, f!((style, dimmed) model.entries_params(style, *dimmed)));
             selection_entries_style <- all(entries_params, selection_color_intensities);
             selection_entries_style <- all(entries_params, selection_color_intensities);
             selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
@@ -367,10 +374,8 @@ impl component::Frp<Model> for Frp {
             out.model_for_entry_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
 
-            // === Active Entry ===
+            // === Scrolling and Jumping to Section ===
 
-            out.active <+ grid.entry_selected.filter_map(f!([model](loc) loc.as_ref().and_then(|l| model.location_to_element_id(l))));
-            out.active_section <+ out.active.map(|e| e.group.section).on_change();
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
 
