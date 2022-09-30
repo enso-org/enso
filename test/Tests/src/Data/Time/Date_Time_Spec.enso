@@ -315,6 +315,15 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
+            tod = Time_Of_Day.new 4 0 10
+            time_1.compare_to tod . should_fail_with Type_Error_Data
+            time_1<tod . should_fail_with Type_Error_Data
+            time_1==tod . should_be_false
+
+            date = Date.new 2021 1 1
+            time_1.compare_to date . should_fail_with Type_Error_Data
+            time_1==date . should_be_false
+
         Test.specify "should correctly determine the type of datetime" <|
             new_datetime = create_new_datetime 2020 6 1 10 0 0
             parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"

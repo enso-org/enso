@@ -2254,6 +2254,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-profiler-demo-data"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "futures 0.3.21",
+]
+
+[[package]]
 name = "enso-profiler-enso-data"
 version = "0.1.0"
 dependencies = [
@@ -2617,8 +2625,8 @@ version = "0.1.0"
 dependencies = [
  "enso-debug-api",
  "enso-frp",
- "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-demo-data",
  "enso-profiler-enso-data",
  "enso-profiler-flame-graph",
  "enso-web",
@@ -2643,8 +2651,8 @@ name = "ensogl-example-render-profile-flamegraph"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-demo-data",
  "enso-profiler-flame-graph",
  "enso-web",
  "ensogl-core",

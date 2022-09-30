@@ -1,12 +1,12 @@
 package org.enso.compiler;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
+import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
@@ -16,6 +16,8 @@ import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
+import org.enso.compiler.core.IR$Function$Lambda;
+import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
@@ -27,10 +29,12 @@ import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
+import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Type$Ascription;
+import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -390,7 +394,9 @@ final class TreeToIr {
     return translateArgumentsDefinition(params);
   }
   private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params) {
-      List<IR.DefinitionArgument> args = nil();
+      return translateArgumentsDefinition(params, nil());
+  }
+  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params, List<IR.DefinitionArgument> args) {
       for (var p : params) {
         var m = translateArgumentDefinition(p, false);
         args = cons(m, args);
@@ -690,6 +696,38 @@ final class TreeToIr {
       case Tree.Group group -> {
         yield translateExpression(group.getBody(), moreArgs, insideTypeSignature, isMethod);
       }
+      case Tree.TextLiteral txt -> {
+        var fullTxt = txt.codeRepr().trim();
+        var t = fullTxt.substring(1, fullTxt.length() - 1);
+        yield new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
+      }
+      case Tree.Arrow arrow when insideTypeSignature -> {
+        List<IR.Expression> args = nil();
+        Tree treeBody = null;
+        {
+          Tree.Arrow head = arrow;
+          while (head != null) {
+            for (var a : head.getArguments()) {
+              var literal = buildName(a);
+              args = cons(literal, args);
+            }
+            treeBody = head.getBody();
+            head = switch (treeBody) {
+              case Tree.Arrow a -> a;
+              default -> null;
+            };
+          }
+          args = args.reverse();
+        }
+        var body = translateExpression(treeBody, isMethod);
+        yield new IR$Type$Function(args, body, Option.empty(), meta(), diag());
+      }
+
+      case Tree.Arrow arrow -> {
+        var arguments = translateArgumentsDefinition(arrow.getArguments());
+        var body = translateExpression(arrow.getBody(), isMethod);
+        yield new IR$Function$Lambda(arguments, body, getIdentifiedLocation(arrow), true, meta(), diag());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -859,8 +897,8 @@ final class TreeToIr {
     *
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
-
-  def translateLiteral(literal: AST.Literal): Expression =
+    *
+  IR.Expression translateLiteral(Tree.TextLiteral literal) {
     literal match {
       case AST.Literal.Number(base, number) =>
         if (base.isDefined) {
@@ -926,7 +964,6 @@ final class TreeToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
-
   private def parseFmtSegments(
     literal: AST,
     segments: Seq[AST.Literal.Text.Segment[AST]]
@@ -1119,6 +1156,9 @@ final class TreeToIr {
           default -> throw new UnhandledEntity(arg, "translateArgumentDefinition");
         };
       }
+      case Tree.UnaryOprApp opr when "~".equals(opr.getOpr().codeRepr()) -> {
+        yield translateArgumentDefinition(opr.getRhs(), true);
+      }
         /*
       case AstView.AssignedArgument(name, value) =>
         translateIdent(name) match {
@@ -1134,6 +1174,17 @@ final class TreeToIr {
             throw new UnhandledEntity(arg, "translateArgumentDefinition")
         }
       */
+      case Tree.Wildcard wild -> {
+        var loc = getIdentifiedLocation(arg);
+        yield new IR$DefinitionArgument$Specified(
+            new IR$Name$Blank(loc, meta(), diag()),
+            Option.empty(),
+            Option.empty(),
+            isSuspended,
+            loc,
+            meta(), diag()
+          );
+      }
       default -> throw new UnhandledEntity(core, "translateArgumentDefinition");
     };
   }
@@ -1684,21 +1735,29 @@ final class TreeToIr {
     * Currently this only supports documentation comments, and not standarc
     * types of comments as they can't currently be represented.
     *
-    * @param comment the comment to transform
+    * @param tree the comment to transform
     * @return the [[IR]] representation of `comment`
-
-  def translateComment(comment: AST): Comment = {
-    comment match {
-      case AST.Comment(lines) =>
-        Comment.Documentation(
-          lines.mkString("\n"),
-          getIdentifiedLocation(comment)
-        )
-      case _ =>
-        throw new UnhandledEntity(comment, "processComment")
-    }
+    *
+  IR.Comment translateComment(Tree tree) {
+    return switch (tree) {
+      case Tree.ArgumentBlockApplication comment -> {
+        var doc = new StringBuilder();
+        var sep = "";
+        for (var l : comment.getArguments()) {
+          if (l.getExpression() != null) {
+            doc.append(sep);
+            doc.append(l.getExpression().codeRepr());
+            sep = "\n";
+          }
+        }
+        yield new IR$Comment$Documentation(doc.toString(), getIdentifiedLocation(comment), meta(), diag());
+      }
+      default ->
+        throw new UnhandledEntity(tree, "translateComment");
+    };
   }
   */
+
   private IR$Name$Literal buildName(Tree ident) {
     return switch (ident) {
       case Tree.Ident id -> buildName(id, id.getToken());
