@@ -391,6 +391,9 @@ impl component::Frp<Model> for Frp {
                 let pos = scene.screen_to_object_space(&model, pos.xy());
                 model.is_hovered(pos.xy())
             })).gate(&is_visible).on_change();
+            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
+            //   component browser is visible
+            model.grid.set_focus <+ is_visible;
 
             on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();

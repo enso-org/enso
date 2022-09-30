@@ -323,6 +323,13 @@ impl component::Frp<Model> for Frp {
             grid.set_column_width <+ style.update.map(|s| (1, s.middle_column_width()));
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
+
+
+            // === Focus propagation ===
+
+            grid.focus <+ input.focus;
+            grid.defocus <+ input.defocus;
+            grid.set_focus <+ input.set_focus;
         }
 
         // Set the proper number of columns so we can set column widths.
