@@ -109,14 +109,17 @@ spec = Test.group "Pattern Matches" <|
         value_1 = 1.23143
         value_2 = "foo bar"
         case value_1 of
-            Any -> Nothing
-            _ -> Test.fail "Expected any value to match Any."
+            Any -> Test.fail "Expect any constructor to match Any type."
+            _ : Any -> Nothing
+            _ -> Test.fail "Expect any constructor to match Any type."
         case value_2 of
-            Any -> Nothing
-            _ -> Test.fail "Expected any value to match Any."
+            Any -> Test.fail "Expect any constructor to match Any type."
+            _ : Any -> Nothing
+            _ -> Test.fail "Expect any constructor to match Any type."
         case Polyglot of
-            Any -> Nothing
-            _ -> Test.fail "Expect any constructor to match Any."
+            Any -> Test.fail "Expect any constructor to match Any type."
+            _ : Any -> Nothing
+            _ -> Test.fail "Expect any constructor to match Any type."
         case Any of
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."

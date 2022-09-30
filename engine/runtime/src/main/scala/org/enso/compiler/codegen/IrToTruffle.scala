@@ -968,12 +968,9 @@ class IrToTruffle(
                     ) =>
                   val tpe =
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
-                  val any      = context.getBuiltins.any
                   val polyglot = context.getBuiltins.polyglot
                   val branch = if (tpe == polyglot) {
                     PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == any) {
-                    CatchAllBranchNode.build(branchCodeNode.getCallTarget)
                   } else {
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
