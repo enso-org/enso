@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::primitive::system::ShapeDefinition2;
+use crate::display::shape::primitive::system::Shape;
 use crate::gui::component::ShapeView;
 
 use enso_frp as frp;
@@ -50,7 +50,7 @@ impl MouseEvents {
     }
 
     /// Connect the given [`PointerTarget`] to the [`Events`] output.
-    pub fn add_sub_shape<S: ShapeDefinition2>(&self, sub_shape: &ShapeView<S>) {
+    pub fn add_sub_shape<S: Shape>(&self, sub_shape: &ShapeView<S>) {
         // T:DynamicShape
         panic!()
         // frp::extend! { network

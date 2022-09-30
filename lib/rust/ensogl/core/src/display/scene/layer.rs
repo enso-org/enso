@@ -10,11 +10,11 @@ use crate::display::camera::Camera2d;
 use crate::display::scene::Scene;
 // use crate::display::shape::system::DynShapeSystemInstance;
 // use crate::display::shape::system::DynShapeSystemOf;
-use crate::display::shape::system::DynamicShape;
 use crate::display::shape::system::KnownShapeSystemId;
-use crate::display::shape::system::ShapeDefinition2;
+use crate::display::shape::system::Shape;
+use crate::display::shape::system::ShapeProxy;
+use crate::display::shape::system::ShapeSystem;
 use crate::display::shape::system::ShapeSystemId;
-use crate::display::shape::system::ShapeSystemY;
 // use crate::display::shape::ShapeSystemInstance;
 use crate::display::symbol;
 use crate::display::symbol::RenderGroup;
@@ -57,8 +57,8 @@ use std::any::TypeId;
 /// ```
 ///
 ///
-/// # DynamicShape and ShapeSystem Management
-/// You are allowed to define custom [`DynamicShape`]s, which are like [`Shape`]s, but may not be
+/// # ShapeProxy and ShapeSystem Management
+/// You are allowed to define custom [`ShapeProxy`]s, which are like [`Shape`]s, but may not be
 /// bound to a [`Scene`] (and thus to WebGL context) yet. You can use the [`Layer::add_exclusive`]
 /// to add any [`DisplayObject`] to that particular layer. During update, the display object
 /// hierarchy will propagate the layer-assignment information, and all [`ShapeView`]s containing
@@ -101,7 +101,7 @@ use std::any::TypeId;
 ///
 /// Shapes can be ordered by using the same methods as symbols (described above). In fact, the
 /// depth-order dependencies can be seamlessly defined between both [`Symbol`]s and
-/// [`DynamicShape`]s thanks to the [`LayerItem`] abstraction. Moreover, there is a special
+/// [`ShapeProxy`]s thanks to the [`LayerItem`] abstraction. Moreover, there is a special
 /// shapes ordering API allowing describing their dependencies without requiring references to their
 /// instances (unlike the API described above). You can add or remove depth-order dependencies for
 /// shapes based solely on their types by using the [`add_shapes_order_dependency`],and the
@@ -212,14 +212,14 @@ impl Layer {
         object.display_object().add_to_display_layer_exclusive(self);
     }
 
-    /// Instantiate the provided [`DynamicShape`].
+    /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>(
         &self,
         scene: &Scene,
-        shape: &DynamicShape<S>,
+        shape: &ShapeProxy<S>,
     ) -> LayerDynamicShapeInstance
     where
-        S: ShapeDefinition2,
+        S: Shape,
     {
         let (shape_system_info, symbol_id, global_instance_id) =
             self.shape_system_registry.instantiate(scene, shape);
@@ -456,7 +456,7 @@ impl LayerModel {
     }
 
     /// Add depth-order dependency between two shape-like definitions, where a "shape-like"
-    /// definition means a [`Shape`], a [`DynamicShape`], or user-defined shape system.
+    /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system.
     ///
     /// # Future Improvements
     /// This implementation can be simplified to `S1:KnownShapeSystemId` (not using [`Content`] at
@@ -475,7 +475,7 @@ impl LayerModel {
     }
 
     /// Remove depth-order dependency between two shape-like definitions, where a "shape-like"
-    /// definition means a [`Shape`], a [`DynamicShape`], or user-defined shape system. Returns
+    /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system. Returns
     /// `true` if the dependency was found, and `false` otherwise.
     ///
     /// # Future Improvements
@@ -1060,9 +1060,9 @@ shared! { ShapeSystemRegistry
 /// A per [`Scene`] [`Layer`] user defined shape system registry. It is used as a cache for existing
 /// shape system instances. When creating a shape instance, we often want it to share the same shape
 /// system than other instances in order for all of them to be drawn with just a single WebGL draw
-/// call. After adding a [`DynamicShape`] to a layer, it will get instantiated (its shape will be
+/// call. After adding a [`ShapeProxy`] to a layer, it will get instantiated (its shape will be
 /// created), and because of this structure, it will share the same shape system as other shapes of
-/// the same type on the same layer. Read the docs of [`DynamicShape`] to learn more.
+/// the same type on the same layer. Read the docs of [`ShapeProxy`] to learn more.
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
     shape_system_map : HashMap<TypeId,ShapeSystemRegistryEntry>,
@@ -1073,23 +1073,23 @@ impl {
     //       the Scene into few components.
     /// Query the registry for a user defined shape system of a given type. In case the shape system
     /// was not yet used, it will be created.
-    pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystemY<S>
-    where S : ShapeDefinition2 {
+    pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystem<S>
+    where S : Shape {
         self.with_get_or_register_mut::<S,_,_>
             (scene,|entry| {entry.shape_system.clone_ref()})
     }
 
-    /// Instantiate the provided [`DynamicShape`].
+    /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, scene:&Scene, shape:&DynamicShape<S>) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
-    where S : ShapeDefinition2 {
+    (&mut self, scene:&Scene, shape:&ShapeProxy<S>) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
+    where S : Shape {
         self.with_get_or_register_mut::<S,_,_>(scene,|entry| {
             let system = entry.shape_system;
-            let system_id = ShapeSystemY::<S>::id();
+            let system_id = ShapeSystem::<S>::id();
             let global_instance_id = system.instantiate(shape);
-            let symbol_id = system.shape_system().sprite_system.symbol.id;
-            let above = ShapeSystemY::<S>::above();
-            let below = ShapeSystemY::<S>::below();
+            let symbol_id = system.model.sprite_system.symbol.id;
+            let above = S::always_above().to_vec();
+            let below = S::always_below().to_vec();
             let ordering = ShapeSystemStaticDepthOrdering {above,below};
             let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
             *entry.instance_count += 1;
@@ -1101,8 +1101,8 @@ impl {
     /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
     /// perform necessary cleanup.
     pub(crate) fn drop_instance<S>(&mut self) -> (usize,ShapeSystemId,PhantomData<S>)
-    where S : ShapeDefinition2 {
-        let system_id      = ShapeSystemY::<S>::id();
+    where S : Shape {
+        let system_id      = ShapeSystem::<S>::id();
         let instance_count = if let Some(entry) = self.get_mut::<S>() {
             *entry.instance_count -= 1;
             *entry.instance_count
@@ -1112,11 +1112,11 @@ impl {
 }}
 
 impl ShapeSystemRegistryData {
-    fn get_mut<S>(&mut self) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>>
-    where S: ShapeDefinition2 {
+    fn get_mut<S>(&mut self) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>>
+    where S: Shape {
         let id = TypeId::of::<S>();
         self.shape_system_map.get_mut(&id).and_then(|t| {
-            let shape_system = t.shape_system.downcast_mut::<ShapeSystemY<S>>();
+            let shape_system = t.shape_system.downcast_mut::<ShapeSystem<S>>();
             let instance_count = &mut t.instance_count;
             shape_system.map(move |shape_system| ShapeSystemRegistryEntryRefMut {
                 shape_system,
@@ -1126,10 +1126,10 @@ impl ShapeSystemRegistryData {
     }
 
     // T: ShapeSystemInstance
-    fn register<S>(&mut self, scene: &Scene) -> ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>
-    where S: ShapeDefinition2 {
+    fn register<S>(&mut self, scene: &Scene) -> ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>
+    where S: Shape {
         let id = TypeId::of::<S>();
-        let system = ShapeSystemY::<S>::new(scene);
+        let system = ShapeSystem::<S>::new(scene);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
         self.shape_system_map.entry(id).insert_entry(entry);
@@ -1139,8 +1139,8 @@ impl ShapeSystemRegistryData {
 
     fn with_get_or_register_mut<S, F, Out>(&mut self, scene: &Scene, f: F) -> Out
     where
-        F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>) -> Out,
-        S: ShapeDefinition2, {
+        F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
+        S: Shape, {
         match self.get_mut() {
             Some(entry) => f(entry),
             None => f(self.register(scene)),
@@ -1160,7 +1160,7 @@ pub type ShapeSystemInfo = ShapeSystemInfoTemplate<ShapeSystemId>;
 /// [`ShapeSystemInfoTemplate`] specialized for [`SymbolId`].
 pub type ShapeSystemSymbolInfo = ShapeSystemInfoTemplate<SymbolId>;
 
-/// When adding a [`DynamicShape`] to a [`Layer`], it will get instantiated to [`Shape`] by reusing
+/// When adding a [`ShapeProxy`] to a [`Layer`], it will get instantiated to [`Shape`] by reusing
 /// the shape system (read docs of [`ShapeSystemRegistry`] to learn more). This struct contains
 /// information about the compile time depth ordering relations. See the "Compile Time Shapes
 /// Ordering Relations" section in docs of [`Group`] to learn more.

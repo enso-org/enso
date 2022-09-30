@@ -15,7 +15,7 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
-use crate::display::shape::system::ShapeSystemY;
+use crate::display::shape::system::ShapeSystem;
 // use crate::display::shape::system::StaticShapeSystemInstance;
 use crate::display::shape::ShapeInstance;
 use crate::display::style;
@@ -80,30 +80,30 @@ impl {
     }
 
     // // T:ShapeSystemInstance
-    fn get<S:display::shape::system::ShapeDefinition2>(&self) -> Option<ShapeSystemY<S>> {
+    fn get<S:display::shape::system::Shape>(&self) -> Option<ShapeSystem<S>> {
         let id = TypeId::of::<S>();
-        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<ShapeSystemY<S>>()).map(|t| t.clone_ref())
+        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<ShapeSystem<S>>()).map(|t| t.clone_ref())
     }
 
     // // S:ShapeSystemInstance
-    fn register<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeSystemY<S> {
+    fn register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
         let id     = TypeId::of::<S>();
-        let system = ShapeSystemY::<S>::new(self.scene.as_ref().unwrap());
+        let system = ShapeSystem::<S>::new(self.scene.as_ref().unwrap());
         let any    = Box::new(system.clone_ref());
         self.shape_system_map.insert(id,any);
         system
     }
 
-    fn get_or_register<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeSystemY<S> {
+    fn get_or_register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
         self.get().unwrap_or_else(|| self.register())
     }
 
-    pub fn shape_system<S:display::shape::system::ShapeDefinition2>
-    (&mut self, _phantom:PhantomData<S>) -> ShapeSystemY<S> {
+    pub fn shape_system<S:display::shape::system::Shape>
+    (&mut self, _phantom:PhantomData<S>) -> ShapeSystem<S> {
         self.get_or_register::<S>()
     }
 
-    pub fn new_instance<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeInstance<S> {
+    pub fn new_instance<S:display::shape::system::Shape>(&mut self) -> ShapeInstance<S> {
         let system = self.get_or_register::<S>();
         system.new_instance()
     }

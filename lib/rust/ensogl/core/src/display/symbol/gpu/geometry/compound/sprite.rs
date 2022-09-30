@@ -73,11 +73,13 @@ pub struct Size {
 impl HasItem for Size {
     type Item = Vector2;
 }
+
 impl CellGetter for Size {
     fn get(&self) -> Vector2 {
         self.value.get()
     }
 }
+
 impl CellSetter for Size {
     fn set(&self, v: Vector2) {
         self.value.set(v);
