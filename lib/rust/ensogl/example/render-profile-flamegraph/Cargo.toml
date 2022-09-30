@@ -9,8 +9,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../frp" }
-enso-profiler = { path = "../../../profiler" }
 enso-profiler-data = { path = "../../../profiler/data" }
+enso-profiler-demo-data = { path = "../../../profiler/demo-data" }
 enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
 enso-web = { path = "../../../web" }
 ensogl-core = { path = "../../core" }
