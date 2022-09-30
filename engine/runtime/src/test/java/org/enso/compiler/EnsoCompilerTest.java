@@ -249,7 +249,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testBench() throws Exception {
+  public void testMultiParameterFunction() throws Exception {
     parseTest("""
     from Standard.Base import all
     import Standard.Base.System
