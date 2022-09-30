@@ -19,8 +19,6 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_profiler as profiler;
-use enso_profiler::profile;
 use enso_profiler_data::parse_multiprocess_profile;
 use enso_profiler_data::Profile;
 use enso_profiler_enso_data::Metadata;
@@ -66,6 +64,9 @@ const SHOW_BACKEND_MESSAGE_MARKS: bool = true;
 #[entry_point]
 #[allow(dead_code)]
 pub async fn main() {
+    let profiles = get_log_data().await;
+
+    ensogl_text_msdf::initialized().await;
     let app = &Application::new("root");
     let world = &app.display;
     let scene = &world.default_scene;
@@ -74,8 +75,6 @@ pub async fn main() {
     let network = app.frp.network();
 
     init_theme(scene);
-
-    let profiles = get_log_data().await;
 
     let base_profile = &profiles[0];
     let flame_graph = profile_to_graph(base_profile, app);
@@ -243,8 +242,14 @@ async fn get_data_http() -> Option<String> {
     let window = web_sys::window().unwrap();
     let response = window.fetch_with_request(&request);
     let response = wasm_bindgen_futures::JsFuture::from(response).await.unwrap();
-    assert!(response.is_instance_of::<web_sys::Response>());
     let response: web_sys::Response = response.dyn_into().unwrap();
+    if !response.ok() {
+        ERROR!(
+            "Error retrieving profile file from {url}: {response.status_text()}. \
+            Falling back to demo data."
+        );
+        return None;
+    }
     let data = response.text().unwrap();
     let data = wasm_bindgen_futures::JsFuture::from(data).await.unwrap();
     data.as_string()
@@ -269,109 +274,10 @@ async fn get_log_data() -> Vec<Profile<Metadata>> {
     match data {
         Some(data) => data,
         None => {
-            let dummy_data = create_dummy_data().await;
-            vec![dummy_data]
+            let dummy_data = enso_profiler_demo_data::create_data().await;
+            let profile: Result<Profile<Metadata>, _> = dummy_data.parse();
+            let profile = profile.expect("Failed to deserialize profiling event log.");
+            vec![profile]
         }
-    }
-}
-
-
-
-// ==========================
-// === Dummy Computations ===
-// ==========================
-
-async fn create_dummy_data() -> Profile<Metadata> {
-    start_project().await;
-
-    let log = profiler::internal::take_log();
-    let profile: Result<Profile<Metadata>, _> = log.parse();
-    profile.expect("Failed to deserialize profiling event log.")
-}
-
-/// A dummy computation that is intended to take some time based on input (where a higher number
-///takes longer).
-fn work(n: u32) {
-    let mut m = n;
-    for x in 0..n {
-        for y in 0..n {
-            for z in 0..n {
-                m = m.wrapping_add(x * y * z)
-            }
-        }
-    }
-    // Create a side effect to avoid optimising away the computation.
-    println!("{}", m % 7)
-}
-
-#[profile(Objective)]
-async fn start_project() {
-    wake_dragon().await;
-    feed_troll();
-    ride_rainbow();
-}
-#[profile(Objective)]
-fn ride_rainbow() {
-    work(333)
-}
-#[profile(Objective)]
-fn feed_troll() {
-    gather_herbs_and_spices();
-    cook_troll_food();
-    run_away();
-}
-#[profile(Objective)]
-fn run_away() {
-    work(100)
-}
-#[profile(Objective)]
-fn cook_troll_food() {
-    work(100)
-}
-#[profile(Objective)]
-fn gather_herbs_and_spices() {
-    walk_to_woods();
-    search_stuff();
-    find_stuff();
-    gather_stuff();
-}
-#[profile(Objective)]
-fn gather_stuff() {
-    work(100)
-}
-#[profile(Objective)]
-fn find_stuff() {
-    work(100)
-}
-#[profile(Objective)]
-fn search_stuff() {
-    work(100)
-}
-#[profile(Objective)]
-fn walk_to_woods() {
-    work(100)
-}
-#[profile(Objective)]
-async fn wake_dragon() {
-    gather_gold().await;
-    bake_gold_cake().await;
-    start_tea_party().await;
-}
-#[profile(Objective)]
-async fn start_tea_party() {
-    work(100)
-}
-#[profile(Objective)]
-async fn bake_gold_cake() {
-    work(100)
-}
-#[profile(Objective)]
-fn pick_coin() {
-    work(75)
-}
-#[profile(Objective)]
-async fn gather_gold() {
-    for _ in 0..5 {
-        pick_coin()
     }
 }

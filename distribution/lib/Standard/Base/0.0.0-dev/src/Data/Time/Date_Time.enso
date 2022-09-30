@@ -557,16 +557,16 @@ type Date_Time
 
          (Date_Time.new 2000).compare_to (Date_Time.new 2001)
     compare_to : Time -> Ordering
-    compare_to self that =
-        sign = Time_Utils.compare_to_zoneddatetime self that
-        Ordering.from_sign sign
+    compare_to self that = case that of
+        Date_Time ->
+            sign = Time_Utils.compare_to_zoneddatetime self that
+            Ordering.from_sign sign
+        _ -> Error.throw (Type_Error_Data Date_Time that "that")
 
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
-    == self that =
-        case that of
-            Date_Time ->
-                sign = Time_Utils.compare_to_zoneddatetime self that
-                0 == sign
-            _ ->
-                False
+    == self that = case that of
+        Date_Time ->
+            sign = Time_Utils.compare_to_zoneddatetime self that
+            0 == sign
+        _ -> False

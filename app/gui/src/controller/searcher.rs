@@ -955,9 +955,10 @@ impl Searcher {
 
 
         // === Add new node ===
-        let here = Ast::var(ast::constants::keywords::HERE);
         let args = std::iter::empty();
-        let node_expression = ast::prefix::Chain::new_with_this(new_definition_name, here, args);
+        let this_expression = Ast::var(self.module_qualified_name().name());
+        let node_expression =
+            ast::prefix::Chain::new_with_this(new_definition_name, this_expression, args);
         let node_expression = node_expression.into_ast();
         let node = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
         let added_node_id = node.id();
@@ -1247,9 +1248,7 @@ impl Searcher {
             self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
-            if this_name == ast::constants::keywords::HERE
-                || this_name == module_name.name().deref()
-            {
+            if this_name == module_name.name().deref() {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {
@@ -1955,14 +1954,12 @@ pub mod test {
             data.expect_completion(client, None, Some("String"), &[1]);
             data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, Some("Number"), &[]);
-            data.expect_completion(client, None, Some("Number"), &[]);
             data.expect_completion(client, None, None, &[1, 2, 3, 4, 9]);
         });
         let Fixture { searcher, .. } = &mut fixture;
 
         // Known functions cases
         searcher.set_input("Test.testMethod1 ".to_string()).unwrap();
-        searcher.set_input("here.testMethod1 ".to_string()).unwrap();
         searcher.set_input(iformat!("{MODULE_NAME}.testMethod1 ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
@@ -2518,7 +2515,7 @@ pub mod test {
             documentation_html: "Lorem ipsum".to_owned(),
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
-            main = \n    2 + 2\n    here.test_example1";
+            main = \n    2 + 2\n    Mock_Module.test_example1";
         searcher.add_example(&Rc::new(example)).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
@@ -2535,7 +2532,7 @@ pub mod test {
         };
         let expected_code = "import std.Base.Network.Http\n\
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
-            main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
+            main = \n    2 + 2\n    Mock_Module.test_example1\n    Mock_Module.test_example2";
         let example = Rc::new(example);
         searcher.add_example(&example).unwrap();
         searcher.add_example(&example).unwrap();

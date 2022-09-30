@@ -1819,7 +1819,7 @@ final class TreeToIr {
         yield new IR$Comment$Documentation(doc.toString(), getIdentifiedLocation(comment), meta(), diag());
       }
       default ->
-        throw new UnhandledEntity(tree, "processComment");
+        throw new UnhandledEntity(tree, "translateComment");
     };
   }
 

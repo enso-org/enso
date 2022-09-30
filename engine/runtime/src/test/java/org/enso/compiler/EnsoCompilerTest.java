@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.codegen.AstToIr;
@@ -248,7 +247,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testBench() throws Exception {
+  public void testMultiParameterFunction() throws Exception {
     parseTest("""
     from Standard.Base import all
     import Standard.Base.System

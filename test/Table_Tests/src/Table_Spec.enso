@@ -102,18 +102,20 @@ spec =
             times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
             datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
             mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+            mixed_dates = ["mixed_dates", [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40]]
             just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
 
-            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, just_nulls]
+            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
             table.at "strs" . storage_type . should_equal Storage.Text
             table.at "ints" . storage_type . should_equal Storage.Integer
             table.at "doubles" . storage_type . should_equal Storage.Decimal
             table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
             table.at "custom_objects" . storage_type . should_equal Storage.Any
-            table.at "mixed" . storage_type . should_equal Storage.Any
             table.at "dates" . storage_type . should_equal Storage.Date
             table.at "times" . storage_type . should_equal Storage.Time_Of_Day
             table.at "datetimes" . storage_type . should_equal Storage.Date_Time
+            table.at "mixed" . storage_type . should_equal Storage.Any
+            table.at "mixed_dates" . storage_type . should_equal Storage.Any
             table.at "just_nulls" . storage_type . should_equal Storage.Any
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
@@ -478,9 +480,13 @@ spec =
             reals = [1.3, 4.6, 3.2, 5.2, 1.6]
             bools = [False, False, True, True, False]
             texts = ["foo", "foo", "bar", "baz", "spam"]
-            objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
+            dates = [Date.new 2020, Date.new 1999, Date.new 2000 10 3, Date.new 1999 12 31, Date.new 2000 2 7]
+            times = [Time_Of_Day.new 12, Time_Of_Day.new 1 30 40, Time_Of_Day.new 23 59 59, Time_Of_Day.new 12 30 0, Time_Of_Day.new 10 20 30]
+            datetimes = [Date_Time.new 2020 1 1 12, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30]
+            objs = [My_Data 100 2, My_Data 2 3, My_Data 6 7, My_Data 8 9, My_Data 10 30]
+            mixed_dates = [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 2000]
 
-            df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
+            df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes], ['mixed_dates', mixed_dates]]
             r = df.order_by (Sort_Column_Selector.By_Name ['ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
@@ -495,8 +501,37 @@ spec =
             r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
             df.at 'texts' . to_vector . should_equal texts
 
-            r.at 'objs' . to_vector . should_equal [Cons 1 2, Cons 10 30, Cons 6 7, Cons 2 3, Cons 8 9]
+            r.at 'objs' . to_vector . should_equal [My_Data 100 2, My_Data 10 30, My_Data 6 7, My_Data 2 3, My_Data 8 9]
             df.at 'objs' . to_vector . should_equal objs
+
+            r.at 'dates' . to_vector . should_equal [Date.new 2020, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 1999, Date.new 1999 12 31]
+            df.at 'dates' . to_vector . should_equal dates
+
+            r.at 'times' . to_vector . should_equal [Time_Of_Day.new 12, Time_Of_Day.new 10 20 30, Time_Of_Day.new 23 59 59, Time_Of_Day.new 1 30 40, Time_Of_Day.new 12 30 0]
+            df.at 'times' . to_vector . should_equal times
+
+            r.at 'datetimes' . to_vector . should_equal [Date_Time.new 2020 1 1 12, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0]
+            df.at 'datetimes' . to_vector . should_equal datetimes
+
+            # TODO move this test to Common_Table_Spec once we support dates there
+            r2 = df.order_by (Sort_Column_Selector.By_Name ['dates'])
+            r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
+            r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
+
+            r3 = df.order_by (Sort_Column_Selector.By_Name ['times'])
+            r3.at 'times' . to_vector . should_equal [Time_Of_Day.new 1 30 40, Time_Of_Day.new 10 20 30, Time_Of_Day.new 12, Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 59 59]
+            r3.at 'ints' . to_vector . should_equal [2, 5, 1, 4, 3]
+
+            r4 = df.order_by (Sort_Column_Selector.By_Name ['datetimes'])
+            r4.at 'datetimes' . to_vector . should_equal [Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 2020 1 1 12]
+            r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
+
+            r5 = df.order_by (Sort_Column_Selector.By_Name ['objs'])
+            r5.at 'objs' . to_vector . should_equal [My_Data 2 3, My_Data 6 7, My_Data 8 9, My_Data 10 30, My_Data 100 2]
+            r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
+
+            r6 = df.order_by (Sort_Column_Selector.By_Name ['mixed_dates'])
+            r6 . should_fail_with Incomparable_Values_Error
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
