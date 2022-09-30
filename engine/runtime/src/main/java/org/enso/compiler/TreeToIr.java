@@ -129,6 +129,10 @@ final class TreeToIr {
               var t = translateModuleSymbol(def);
               bindings = cons(t, bindings);
             }
+            case Tree.ArgumentBlockApplication app -> {
+              var t = translateComment(app);
+              bindings = cons(t, bindings);
+            }
             case null -> {
             }
             default -> {
@@ -1737,7 +1741,7 @@ final class TreeToIr {
     *
     * @param tree the comment to transform
     * @return the [[IR]] representation of `comment`
-    *
+    */
   IR.Comment translateComment(Tree tree) {
     return switch (tree) {
       case Tree.ArgumentBlockApplication comment -> {
@@ -1756,7 +1760,6 @@ final class TreeToIr {
         throw new UnhandledEntity(tree, "processComment");
     };
   }
-  */
 
   private IR$Name$Literal buildName(Tree ident) {
     return switch (ident) {
