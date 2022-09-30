@@ -274,6 +274,7 @@ public class EnsoCompilerTest {
         go = list -> acc -> case list of
             Cons h t -> go t (Cons h acc)
             Nil -> acc
+            _ -> acc
         res = go list Nil
         res
     """);

@@ -1542,6 +1542,14 @@ final class TreeToIr {
           getIdentifiedLocation(id), meta(), diag()
         );
       }
+      case Tree.Wildcard wild -> {
+        var at = getIdentifiedLocation(wild);
+        var blank = new IR$Name$Blank(
+          at, meta(), diag()
+        );
+        yield new IR$Pattern$Name(blank, at, meta(), diag());
+      }
+
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
 
