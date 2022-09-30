@@ -426,7 +426,7 @@
 [3710]: https://github.com/enso-org/enso/pull/3710
 [3729]: https://github.com/enso-org/enso/pull/3729
 [3740]: https://github.com/enso-org/enso/pull/3740
-[3740]: https://github.com/enso-org/enso/pull/3742
+[3742]: https://github.com/enso-org/enso/pull/3742
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
