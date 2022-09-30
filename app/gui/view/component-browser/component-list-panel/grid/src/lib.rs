@@ -1,6 +1,7 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(array_methods)]
+#![feature(drain_filter)]
 #![feature(option_result_contains)]
 #![feature(derive_default_enum)]
 #![feature(trait_alias)]
