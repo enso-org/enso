@@ -323,16 +323,16 @@ type Time_Of_Day
                  time_2 = Time_Of_Day.new minute=50
                  time_1.compare_to time_2
     compare_to : Time_Of_Day -> Ordering
-    compare_to self that =
-        sign = Time_Utils.compare_to_localtime self that
-        Ordering.from_sign sign
+    compare_to self that = case that of
+        Time_Of_Day ->
+            sign = Time_Utils.compare_to_localtime self that
+            Ordering.from_sign sign
+        _ -> Error.throw (Type_Error_Data Time_Of_Day that "that")
 
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
-    == self that =
-        case that of
-            Time_Of_Day ->
-                sign = Time_Utils.compare_to_localtime self that
-                0 == sign
-            _ ->
-                False
+    == self that = case that of
+        Time_Of_Day ->
+            sign = Time_Utils.compare_to_localtime self that
+            0 == sign
+        _ -> False

@@ -771,3 +771,9 @@ type Unsupported_File_Type
     to_display_text : Text
     to_display_text self =
         "The "+self.filename+" has a type that is not supported."
+
+## UNSTABLE
+
+   An error indicating that some elements are incomparable.
+
+type Incomparable_Values_Error

@@ -117,6 +117,8 @@ specWith name create_new_time parse_time =
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
+            time_2.compare_to (Date_Time.new 1999 1 1 4 0 10) . should_fail_with Type_Error_Data
+
         Test.specify "should correctly determine the type of timeofday" <|
             new_timeofday = create_new_time 15 37 58
             parsed_timeofday =  parse_time "10:00:00"
