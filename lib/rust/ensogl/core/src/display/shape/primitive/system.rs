@@ -150,13 +150,17 @@ pub struct ShapeSystem<S: Shape> {
 pub struct ShapeSystemData<S: Shape> {
     #[deref]
     gpu_params:  S::GpuParams,
-    pub model:   ShapeSystemModel,
+    model:       ShapeSystemModel,
     style_watch: crate::display::shape::StyleWatch,
 }
 
 impl<S: Shape> ShapeSystem<S> {
     pub fn id() -> display::shape::ShapeSystemId {
         std::any::TypeId::of::<S>().into()
+    }
+
+    pub fn sprite_system(&self) -> &SpriteSystem {
+        &self.data.model.sprite_system
     }
 
     #[profile(Debug)]
@@ -209,7 +213,7 @@ impl<S: Shape> ShapeSystem<S> {
 /// Under the hood, it is a specialized version of `SpriteSystem`.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
-struct ShapeSystemModel {
+pub struct ShapeSystemModel {
     pub sprite_system:  SpriteSystem,
     pub shape:          Rc<RefCell<def::AnyShape>>,
     pub material:       Rc<RefCell<Material>>,
@@ -419,7 +423,7 @@ macro_rules! _define_shape_system {
         {$($body:tt)*}
     ) => {
 
-        // pub use shape_system_definition::Shape;
+        pub use shape_system_definition::Shape;
         // pub use shape_system_definition::ShapeSystemX;
         // pub use shape_system_definition::ShapeProxy;
         pub use shape_system_definition::ProxyParams;
@@ -452,9 +456,9 @@ macro_rules! _define_shape_system {
             // =============
 
             #[derive(Clone, Copy, Debug)]
-            pub struct MyShape;
+            pub struct Shape;
 
-            impl $crate::display::shape::system::Shape for MyShape {
+            impl $crate::display::shape::system::Shape for Shape {
                 type InstanceParams = InstanceParams;
                 type ProxyParams = ProxyParams;
                 type GpuParams = GpuParams;
@@ -540,7 +544,7 @@ macro_rules! _define_shape_system {
                 $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*
             }
 
-            pub type Shape = ShapeInstance<MyShape>;
+            // pub type Shape = ShapeInstance<Shape>;
 
 
             // ============
@@ -549,7 +553,7 @@ macro_rules! _define_shape_system {
 
             /// A view of the defined shape. You can place the view in your objects and it will
             /// automatically initialize on-demand.
-            pub type View = $crate::gui::component::ShapeView<MyShape>;
+            pub type View = $crate::gui::component::ShapeView<Shape>;
         }
     };
 }

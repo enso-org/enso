@@ -1087,7 +1087,7 @@ impl {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
             let global_instance_id = system.instantiate(shape);
-            let symbol_id = system.model.sprite_system.symbol.id;
+            let symbol_id = system.sprite_system().symbol.id;
             let above = S::always_above().to_vec();
             let below = S::always_below().to_vec();
             let ordering = ShapeSystemStaticDepthOrdering {above,below};

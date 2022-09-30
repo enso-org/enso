@@ -753,7 +753,7 @@ impl TextModel {
         let shaped_lines = default();
 
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let symbol = &shape_system.shape_system.sprite_system.symbol;
+        let symbol = &shape_system.sprite_system().symbol;
 
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
         // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
@@ -1914,7 +1914,7 @@ impl TextModel {
         let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
         let shapes = &self.app.display.default_scene.shapes;
         let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
+        let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
         SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
