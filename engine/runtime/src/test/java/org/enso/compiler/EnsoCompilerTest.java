@@ -272,6 +272,7 @@ public class EnsoCompilerTest {
     reverse_list list =
         go = list -> acc -> case list of
             Cons h t -> go t (Cons h acc)
+            Cons h _ -> acc
             Nil -> acc
             _ -> acc
         res = go list Nil

@@ -1531,6 +1531,7 @@ final class TreeToIr {
         case Tree.Ident id -> new IR$Pattern$Name(
           buildName(arg), getIdentifiedLocation(arg), meta(), diag()
         );
+        case Tree.Wildcard wild -> translateWildcardPattern(wild);
         default -> throw new UnhandledEntity(arg, "translatePattern");
       };
       fields = cons(argIR, fields);
@@ -1542,14 +1543,7 @@ final class TreeToIr {
           getIdentifiedLocation(id), meta(), diag()
         );
       }
-      case Tree.Wildcard wild -> {
-        var at = getIdentifiedLocation(wild);
-        var blank = new IR$Name$Blank(
-          at, meta(), diag()
-        );
-        yield new IR$Pattern$Name(blank, at, meta(), diag());
-      }
-
+      case Tree.Wildcard wild -> translateWildcardPattern(wild);
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
 
@@ -1572,6 +1566,14 @@ final class TreeToIr {
           getIdentifiedLocation(pattern)
         )
       */
+  }
+
+  private IR$Pattern$Name translateWildcardPattern(Tree.Wildcard wild) {
+      var at = getIdentifiedLocation(wild);
+      var blank = new IR$Name$Blank(
+              at, meta(), diag()
+      );
+      return new IR$Pattern$Name(blank, at, meta(), diag());
   }
 
   /** Translates an arbitrary grouped piece of syntax from its [[AST]]
