@@ -278,7 +278,7 @@ mod test {
         let node = ast::Ast::infix_var("2", "+", "2");
         let infix = ast::Ast::infix(main, "=", node);
         let ast: ast::known::Module = ast::Ast::one_line_module(infix).try_into().unwrap();
-        let repr = ast.repr();
+        let repr = ast.repr().into();
         let metadata = Metadata { foo: 321 };
         let source = ParsedSourceFile { ast, metadata };
         let serialized = source.serialize().unwrap();

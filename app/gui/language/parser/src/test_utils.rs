@@ -10,6 +10,7 @@ use ast::test_utils::validate_spans;
 use ast::Ast;
 use ast::HasRepr;
 use ast::Shape;
+use enso_text::unit::*;
 
 
 
@@ -41,7 +42,7 @@ impl ParserTestExts for Parser {
         let program = program.into();
         DEBUG!("parsing " program);
         let ast = self.parse(program.clone(), default()).unwrap();
-        assert_eq!(ast.shape().len().value, program.len() as i32);
+        assert_eq!(ast.shape().len(), program.len().bytes());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast

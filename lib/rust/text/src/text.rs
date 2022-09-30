@@ -399,6 +399,12 @@ impl Rope {
         }
     }
 
+    /// The location of text end in UTF-16 code units.
+    pub fn location_of_text_end_utf16_code_unit(&self) -> Location<Utf16CodeUnit> {
+        let location = self.location_of_text_end();
+        self.utf16_code_unit_location_of_location(location)
+    }
+
     /// The location of the provided byte offset.
     pub fn location_of_byte_offset(&self, offset: Byte) -> Result<Location<Byte>, BoundsError> {
         let line = self.line_index_of_byte_offset(offset)?;
@@ -407,15 +413,14 @@ impl Rope {
             error!("Internal error, wrong line byte offset.");
             Byte(0)
         });
-        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
-        Ok(Location(line, byte_offset))
+        Ok(Location(line, line_offset))
     }
 
     /// The location of the provided byte offset. Snapped to the closest valid
     /// value.
     pub fn location_of_byte_offset_snapped(&self, offset: Byte) -> Location<Byte> {
         use BoundsError::*;
-        match self.location_of_byte_offset(offset) {
+        match dbg!(self.location_of_byte_offset(offset)) {
             Ok(location) => location,
             Err(TooSmall) => default(),
             Err(TooBig) => self.last_line_end_location(),
@@ -1128,6 +1133,26 @@ where T: FromInContextSnapped<&'t Rope, S>
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_location_from_byte() {
+        let line1 = "line1";
+        let line2 = "line2";
+        let rope = Rope::from(format!("{}\n{}", line1, line2));
+        let expect = |pos, (line, line_offset)| {
+            let byte = Byte::from(pos);
+            let location = rope.location_of_byte_offset(byte).unwrap();
+            assert_eq!(location, Location(Line(line), Byte(line_offset)));
+        };
+
+        for i in 0..=line1.len() {
+            expect(i, (0, i));
+        }
+        expect(line1.len() + 1, (1, 0)); // Right after the newline.
+        for i in 0..line2.len() {
+            expect(line1.len() + 2 + i, (1, i + 1));
+        }
+    }
 
     #[test]
     fn location_of_text_end() {

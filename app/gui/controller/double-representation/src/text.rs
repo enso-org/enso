@@ -196,7 +196,7 @@ mod test {
         /// The initial enso program code.
         pub code:   String,
         /// The edit made to the initial code.
-        pub change: enso_text::Change<Bytes, String>,
+        pub change: enso_text::Change<Byte, String>,
     }
 
     impl Case {
@@ -289,13 +289,13 @@ mod test {
         let case = Case::from_markdown("foo«aa⎀bb»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "bb");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.byte()..5.byte());
         assert_eq!(case.resulting_code(), "foobbc");
 
         let case = Case::from_markdown("foo«aa»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.byte()..5.byte());
         assert_eq!(case.resulting_code(), "fooc");
     }
 

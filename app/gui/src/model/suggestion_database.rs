@@ -432,6 +432,8 @@ mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
+    use enso_text::index::*;
+    use enso_text::unit::*;
     use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -677,8 +679,10 @@ mod test {
         assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
         assert!(db.lookup(3).unwrap().arguments[2].is_suspended);
         assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
-        let range = Location { line: 1.line(), code_point_index: 5.code_point_index() }
-            ..=Location { line: 3.line(), code_point_index: 0.code_point_index() };
+        let range = Location { line: 1.into(), offset: Utf16CodeUnit::from(5) }..=Location {
+            line:   3.into(),
+            offset: Utf16CodeUnit::from(0),
+        };
         assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule { range });
         assert_eq!(db.version.get(), 6);
 

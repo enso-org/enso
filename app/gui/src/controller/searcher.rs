@@ -1480,7 +1480,7 @@ pub mod test {
             let location = code.location_of_text_end();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
-            self.graph.graph.code = code.into();
+            self.graph.graph.code = (&code).into();
             self.code_location = code.utf16_code_unit_location_of_location(location).into();
         }
 
@@ -1526,8 +1526,10 @@ pub mod test {
             let mut client = language_server::MockClient::default();
             client.require_all_calls();
             client_setup(&mut data, &mut client);
-            let end_of_code = enso_text::Rope::from(&data.graph.module.code).location_of_text_end();
-            let code_range = enso_text::Location::default()..=end_of_code;
+            let code = enso_text::Rope::from(&data.graph.module.code);
+            let start_of_code = enso_text::Location::default();
+            let end_of_code = code.location_of_text_end_utf16_code_unit();
+            let code_range = start_of_code..=end_of_code;
             let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
@@ -1564,7 +1566,7 @@ pub mod test {
                 mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
-                position_in_code: Immutable(end_of_code),
+                position_in_code: Immutable(code.location_of_text_end()),
                 project: project.clone_ref(),
                 list_builder_with_favorites: Rc::new(list_builder_with_favs),
                 node_edit_guard: node_metadata_guard,

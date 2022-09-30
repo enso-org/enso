@@ -252,6 +252,7 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
 
+    use enso_text::index::*;
     use enso_text::unit::*;
 
     #[wasm_bindgen_test]
@@ -295,8 +296,8 @@ mod test {
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
         let replaced_location = enso_text::Range {
-            start: enso_text::Location { line: 0.line(), offset: 0.byte() },
-            end:   enso_text::Location { line: 0.line(), offset: 1.byte() },
+            start: enso_text::Location { line: 0.into(), offset: 0.byte() },
+            end:   enso_text::Location { line: 0.into(), offset: 1.byte() },
         };
         expect_notification(NotificationKind::CodeChanged { change, replaced_location });
 

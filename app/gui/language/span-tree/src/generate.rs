@@ -226,7 +226,7 @@ fn generate_node_for_ast<T: Payload>(
                 .unwrap()
                 .generate_node(kind, context),
             _ => {
-                let size = ast.len();
+                let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
                 let children = default();
                 let name = ast::identifier::name(ast);

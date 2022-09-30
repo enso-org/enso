@@ -991,7 +991,7 @@ pub mod tests {
     use double_representation::identifier::NormalizedName;
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
-    use enso_text::traits::*;
+    use enso_text::index::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
