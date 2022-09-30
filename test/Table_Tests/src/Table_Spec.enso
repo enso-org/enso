@@ -882,6 +882,22 @@ spec =
             t.filter "X" (Filter_Condition.Equal to=(My_Data 2 1)) . at "X" . to_vector . should_equal [My_Data 1 2]
             t.filter "X" (Filter_Condition.Equal to=42) . at "X" . to_vector . should_equal []
 
+            c = Column.from_vector "Y" [My_Data 2 1, My_Data 400 300, My_Data 101 202, My_Data 10 10, My_Data 15 0]
+            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 300 400, My_Data 7 8]
+            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My_Data 100 200, My_Data 5 6]
+            t.filter "X" (Filter_Condition.Greater than=c) . at "X" . to_vector . should_equal []
+
+        Test.specify "by a boolean mask of varying length" <|
+            t = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
+
+            t1 = t.filter (Column.from_vector "f" [False, True])
+            t1.at "A" . to_vector . should_equal [2]
+            t1.at "B" . to_vector . should_equal [5]
+
+            t2 = t.filter (Column.from_vector "f" [False, True, True, True, True, True, True, True])
+            t2.at "A" . to_vector . should_equal [2, 3]
+            t2.at "B" . to_vector . should_equal [5, 6]
+
 main = Test.Suite.run_main spec
 
 ## JS indexes months form 0, so we need to subtract 1.
