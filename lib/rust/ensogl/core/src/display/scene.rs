@@ -15,9 +15,9 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
-use crate::display::shape::system::ShapeSystemOf;
-use crate::display::shape::system::StaticShapeSystemInstance;
-use crate::display::shape::ShapeSystemInstance;
+use crate::display::shape::system::ShapeSystemY;
+// use crate::display::shape::system::StaticShapeSystemInstance;
+use crate::display::shape::ShapeInstance;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -79,30 +79,32 @@ impl {
         Self {scene, shape_system_map, mouse_target_map} . init(background)
     }
 
-    fn get<T:ShapeSystemInstance>(&self) -> Option<T> {
-        let id = TypeId::of::<T>();
-        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<T>()).map(|t| t.clone_ref())
+    // // T:ShapeSystemInstance
+    fn get<S:display::shape::system::ShapeDefinition2>(&self) -> Option<ShapeSystemY<S>> {
+        let id = TypeId::of::<S>();
+        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<ShapeSystemY<S>>()).map(|t| t.clone_ref())
     }
 
-    fn register<T:ShapeSystemInstance>(&mut self) -> T {
-        let id     = TypeId::of::<T>();
-        let system = <T as ShapeSystemInstance>::new(self.scene.as_ref().unwrap());
+    // // S:ShapeSystemInstance
+    fn register<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeSystemY<S> {
+        let id     = TypeId::of::<S>();
+        let system = ShapeSystemY::<S>::new(self.scene.as_ref().unwrap());
         let any    = Box::new(system.clone_ref());
         self.shape_system_map.insert(id,any);
         system
     }
 
-    fn get_or_register<T:ShapeSystemInstance>(&mut self) -> T {
+    fn get_or_register<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeSystemY<S> {
         self.get().unwrap_or_else(|| self.register())
     }
 
-    pub fn shape_system<T:display::shape::system::ShapeDefinition>
-    (&mut self, _phantom:PhantomData<T>) -> ShapeSystemOf<T> {
-        self.get_or_register::<ShapeSystemOf<T>>()
+    pub fn shape_system<S:display::shape::system::ShapeDefinition2>
+    (&mut self, _phantom:PhantomData<S>) -> ShapeSystemY<S> {
+        self.get_or_register::<S>()
     }
 
-    pub fn new_instance<T:display::shape::system::ShapeDefinition>(&mut self) -> T {
-        let system = self.get_or_register::<ShapeSystemOf<T>>();
+    pub fn new_instance<S:display::shape::system::ShapeDefinition2>(&mut self) -> ShapeInstance<S> {
+        let system = self.get_or_register::<S>();
         system.new_instance()
     }
 

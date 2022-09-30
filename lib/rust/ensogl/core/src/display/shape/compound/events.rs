@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::primitive::system::DynamicShape;
+use crate::display::shape::primitive::system::ShapeDefinition2;
 use crate::gui::component::ShapeView;
 
 use enso_frp as frp;
@@ -50,10 +50,12 @@ impl MouseEvents {
     }
 
     /// Connect the given [`PointerTarget`] to the [`Events`] output.
-    pub fn add_sub_shape<T: DynamicShape>(&self, sub_shape: &ShapeView<T>) {
-        frp::extend! { network
-            self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
-            self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;
-        }
+    pub fn add_sub_shape<S: ShapeDefinition2>(&self, sub_shape: &ShapeView<S>) {
+        // T:DynamicShape
+        panic!()
+        // frp::extend! { network
+        //     self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
+        //     self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;
+        // }
     }
 }

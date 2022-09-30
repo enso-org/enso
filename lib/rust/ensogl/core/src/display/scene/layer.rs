@@ -8,11 +8,14 @@ use crate::data::OptVec;
 use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::scene::Scene;
-use crate::display::shape::system::DynShapeSystemInstance;
-use crate::display::shape::system::DynShapeSystemOf;
+// use crate::display::shape::system::DynShapeSystemInstance;
+// use crate::display::shape::system::DynShapeSystemOf;
+use crate::display::shape::system::DynamicShape;
 use crate::display::shape::system::KnownShapeSystemId;
+use crate::display::shape::system::ShapeDefinition2;
 use crate::display::shape::system::ShapeSystemId;
-use crate::display::shape::ShapeSystemInstance;
+use crate::display::shape::system::ShapeSystemY;
+// use crate::display::shape::ShapeSystemInstance;
 use crate::display::symbol;
 use crate::display::symbol::RenderGroup;
 use crate::display::symbol::SymbolId;
@@ -210,8 +213,14 @@ impl Layer {
     }
 
     /// Instantiate the provided [`DynamicShape`].
-    pub fn instantiate<T>(&self, scene: &Scene, shape: &T) -> LayerDynamicShapeInstance
-    where T: display::shape::system::DynamicShape {
+    pub fn instantiate<S>(
+        &self,
+        scene: &Scene,
+        shape: &DynamicShape<S>,
+    ) -> LayerDynamicShapeInstance
+    where
+        S: ShapeDefinition2,
+    {
         let (shape_system_info, symbol_id, global_instance_id) =
             self.shape_system_registry.instantiate(scene, shape);
         self.add_shape(shape_system_info, symbol_id);
@@ -1064,23 +1073,23 @@ impl {
     //       the Scene into few components.
     /// Query the registry for a user defined shape system of a given type. In case the shape system
     /// was not yet used, it will be created.
-    pub fn shape_system<T>(&mut self, scene:&Scene, _phantom:PhantomData<T>) -> DynShapeSystemOf<T>
-    where T : display::shape::system::DynamicShape {
-        self.with_get_or_register_mut::<DynShapeSystemOf<T>,_,_>
+    pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystemY<S>
+    where S : ShapeDefinition2 {
+        self.with_get_or_register_mut::<S,_,_>
             (scene,|entry| {entry.shape_system.clone_ref()})
     }
 
     /// Instantiate the provided [`DynamicShape`].
-    pub fn instantiate<T>
-    (&mut self, scene:&Scene, shape:&T) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
-    where T : display::shape::system::DynamicShape {
-        self.with_get_or_register_mut::<DynShapeSystemOf<T>,_,_>(scene,|entry| {
+    pub fn instantiate<S>
+    (&mut self, scene:&Scene, shape:&DynamicShape<S>) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
+    where S : ShapeDefinition2 {
+        self.with_get_or_register_mut::<S,_,_>(scene,|entry| {
             let system = entry.shape_system;
-            let system_id = DynShapeSystemOf::<T>::id();
+            let system_id = ShapeSystemY::<S>::id();
             let global_instance_id = system.instantiate(shape);
             let symbol_id = system.shape_system().sprite_system.symbol.id;
-            let above = DynShapeSystemOf::<T>::above();
-            let below = DynShapeSystemOf::<T>::below();
+            let above = ShapeSystemY::<S>::above();
+            let below = ShapeSystemY::<S>::below();
             let ordering = ShapeSystemStaticDepthOrdering {above,below};
             let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
             *entry.instance_count += 1;
@@ -1091,10 +1100,10 @@ impl {
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
     /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
     /// perform necessary cleanup.
-    pub(crate) fn drop_instance<T>(&mut self) -> (usize,ShapeSystemId,PhantomData<T>)
-    where T : display::shape::system::DynamicShape {
-        let system_id      = DynShapeSystemOf::<T>::id();
-        let instance_count = if let Some(entry) = self.get_mut::<DynShapeSystemOf<T>>() {
+    pub(crate) fn drop_instance<S>(&mut self) -> (usize,ShapeSystemId,PhantomData<S>)
+    where S : ShapeDefinition2 {
+        let system_id      = ShapeSystemY::<S>::id();
+        let instance_count = if let Some(entry) = self.get_mut::<S>() {
             *entry.instance_count -= 1;
             *entry.instance_count
         } else { 0 };
@@ -1103,11 +1112,11 @@ impl {
 }}
 
 impl ShapeSystemRegistryData {
-    fn get_mut<T>(&mut self) -> Option<ShapeSystemRegistryEntryRefMut<T>>
-    where T: ShapeSystemInstance {
-        let id = TypeId::of::<T>();
+    fn get_mut<S>(&mut self) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>>
+    where S: ShapeDefinition2 {
+        let id = TypeId::of::<S>();
         self.shape_system_map.get_mut(&id).and_then(|t| {
-            let shape_system = t.shape_system.downcast_mut::<T>();
+            let shape_system = t.shape_system.downcast_mut::<ShapeSystemY<S>>();
             let instance_count = &mut t.instance_count;
             shape_system.map(move |shape_system| ShapeSystemRegistryEntryRefMut {
                 shape_system,
@@ -1116,10 +1125,11 @@ impl ShapeSystemRegistryData {
         })
     }
 
-    fn register<T>(&mut self, scene: &Scene) -> ShapeSystemRegistryEntryRefMut<T>
-    where T: ShapeSystemInstance {
-        let id = TypeId::of::<T>();
-        let system = <T as ShapeSystemInstance>::new(scene);
+    // T: ShapeSystemInstance
+    fn register<S>(&mut self, scene: &Scene) -> ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>
+    where S: ShapeDefinition2 {
+        let id = TypeId::of::<S>();
+        let system = ShapeSystemY::<S>::new(scene);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
         self.shape_system_map.entry(id).insert_entry(entry);
@@ -1127,10 +1137,10 @@ impl ShapeSystemRegistryData {
         self.get_mut().unwrap()
     }
 
-    fn with_get_or_register_mut<T, F, Out>(&mut self, scene: &Scene, f: F) -> Out
+    fn with_get_or_register_mut<S, F, Out>(&mut self, scene: &Scene, f: F) -> Out
     where
-        F: FnOnce(ShapeSystemRegistryEntryRefMut<T>) -> Out,
-        T: ShapeSystemInstance, {
+        F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystemY<S>>) -> Out,
+        S: ShapeDefinition2, {
         match self.get_mut() {
             Some(entry) => f(entry),
             None => f(self.register(scene)),

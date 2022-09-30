@@ -9,7 +9,8 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
-use crate::display::shape::primitive::system::DynamicShapeInternals;
+use crate::display::shape::primitive::system::ShapeDefinition2;
+// use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
 
 
@@ -28,21 +29,17 @@ pub use crate::display::scene::PointerTarget;
 /// A view for a shape definition. The view manages the lifetime and scene-registration of a shape
 /// instance. In particular, it registers / unregisters callbacks for shape initialization and mouse
 /// events handling.
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "S:CloneRef")]
+#[derive(CloneRef, Deref, Derivative)]
+#[clone_ref(bound = "")]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
 #[allow(missing_docs)]
-pub struct ShapeView<S> {
+pub struct ShapeView<S: ShapeDefinition2> {
     model: Rc<ShapeViewModel<S>>,
 }
 
-impl<S> Deref for ShapeView<S> {
-    type Target = Rc<ShapeViewModel<S>>;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
-}
-
-impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
+// S: DynamicShapeInternals + 'static
+impl<S: ShapeDefinition2> ShapeView<S> {
     /// Constructor.
     pub fn new() -> Self {
         let model = Rc::new(ShapeViewModel::new());
@@ -64,11 +61,12 @@ impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
     }
 }
 
-impl<S> HasContent for ShapeView<S> {
+impl<S: ShapeDefinition2> HasContent for ShapeView<S> {
     type Content = S;
 }
 
-impl<S: DynamicShapeInternals + 'static> Default for ShapeView<S> {
+// S: DynamicShapeInternals + 'static
+impl<S: ShapeDefinition2> Default for ShapeView<S> {
     fn default() -> Self {
         Self::new()
     }
@@ -81,30 +79,27 @@ impl<S: DynamicShapeInternals + 'static> Default for ShapeView<S> {
 // ======================
 
 /// Model of [`ShapeView`].
-#[derive(Debug, Default)]
+#[derive(Deref, Derivative)]
+#[derivative(Debug(bound = ""))]
+#[derivative(Default(bound = ""))]
 #[allow(missing_docs)]
-pub struct ShapeViewModel<S> {
-    shape:               S,
+pub struct ShapeViewModel<S: ShapeDefinition2> {
+    #[deref]
+    shape:               DynamicShape<S>,
     pub events:          PointerTarget,
     pub registry:        RefCell<Option<ShapeRegistry>>,
     pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
 
-impl<S> Deref for ShapeViewModel<S> {
-    type Target = S;
-    fn deref(&self) -> &Self::Target {
-        &self.shape
-    }
-}
-
-impl<S> Drop for ShapeViewModel<S> {
+impl<S: ShapeDefinition2> Drop for ShapeViewModel<S> {
     fn drop(&mut self) {
         self.unregister_existing_mouse_targets();
         self.events.on_drop.emit(());
     }
 }
 
-impl<S: DynamicShapeInternals> ShapeViewModel<S> {
+// S : DynamicShapeInternals
+impl<S: ShapeDefinition2> ShapeViewModel<S> {
     #[profile(Debug)]
     fn on_scene_layers_changed(
         &self,
@@ -135,7 +130,8 @@ impl<S: DynamicShapeInternals> ShapeViewModel<S> {
     }
 }
 
-impl<S: DynamicShape> ShapeViewModel<S> {
+impl<S: ShapeDefinition2> ShapeViewModel<S> {
+    // S: DynamicShape
     /// Constructor.
     pub fn new() -> Self {
         default()
@@ -149,7 +145,7 @@ impl<S: DynamicShape> ShapeViewModel<S> {
     }
 }
 
-impl<S> ShapeViewModel<S> {
+impl<S: ShapeDefinition2> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
         if let Some(registry) = &*self.registry.borrow() {
             for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
@@ -159,13 +155,13 @@ impl<S> ShapeViewModel<S> {
     }
 }
 
-impl<T: display::Object> display::Object for ShapeViewModel<T> {
+impl<S: ShapeDefinition2> display::Object for ShapeViewModel<S> {
     fn display_object(&self) -> &display::object::Instance {
         self.shape.display_object()
     }
 }
 
-impl<T: display::Object> display::Object for ShapeView<T> {
+impl<S: ShapeDefinition2> display::Object for ShapeView<S> {
     fn display_object(&self) -> &display::object::Instance {
         self.shape.display_object()
     }
