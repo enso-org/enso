@@ -66,8 +66,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   public void doValue(
       VirtualFrame frame,
       Object state,
-      Object target,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Object target) {
     Object typeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(expectedType, typeOfTarget);
     if (profile.profile(test)) {

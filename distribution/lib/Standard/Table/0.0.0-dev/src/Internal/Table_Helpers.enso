@@ -253,7 +253,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
    `select_columns_helper`.
 resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
 resolve_column_helper internal_columns selector problem_builder = case selector of
-    Text ->
+    _ : Text ->
         matched_columns = Matching.match_criteria_callback Text_Matcher.Case_Sensitive internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         if matched_columns.length == 1 then matched_columns.first else
             if matched_columns.length == 0 then Nothing else
