@@ -167,6 +167,17 @@ helper tools for that. We recommend:
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
+**For users of MacOS Monterey and later**: building desktop IDE currently
+requires Python 2 installed in the system. It can be installed using the
+following commands:
+
+```sh
+brew install pyenv
+pyenv install 2.7.18
+pyenv global 2.7.18
+export PYTHON_PATH=$(pyenv root)/shims/python
+```
+
 The flatbuffers `flatc` compiler can be installed from the following locations:
 
 - Using the `conda` package manager (`conda install flatbuffers`). This will

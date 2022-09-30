@@ -30,9 +30,20 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
+use ensogl_grid_view::Margins;
 use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const ENTRY_HEIGHT: f32 = 28.0;
+const VIEWPORT_HEIGHT: f32 = 300.0;
+const BASE_SCROLL_MARGIN: f32 = 10.0;
 
 
 
@@ -59,23 +70,11 @@ fn entry_model(row: Row, col: Col) -> grid_view::simple::EntryModel {
     }
 }
 
-fn setup_grid_view(
-    app: &Application,
-) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
-    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
-    let header_frp = view.header_frp();
+fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::Network {
     frp::new_network! { network
         requested_entry <-
             view.model_for_entry_needed.map(|&(row, col)| (row, col, entry_model(row, col)));
-        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
-            let sections_size = 2 + col;
-            let section_start = row - (row % sections_size);
-            let section_end = section_start + sections_size;
-            let model = entry_model(section_start, col);
-            (section_start..section_end, col, model)
-        });
         view.model_for_entry <+ requested_entry;
-        header_frp.section_info <+ requested_section;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
         eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
@@ -91,7 +90,7 @@ fn setup_grid_view(
             }
         );
     }
-    view.set_entries_size(Vector2(130.0, 28.0));
+    view.set_entries_size(Vector2(130.0, ENTRY_HEIGHT));
     let params = grid_view::simple::EntryParams {
         bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
         bg_margin: 1.0,
@@ -100,11 +99,68 @@ fn setup_grid_view(
         ..default()
     };
     view.set_entries_params(params);
-    view.scroll_frp().resize(Vector2(400.0, 300.0));
     view.reset_entries(1000, 1000);
+    view.frp().focus();
+    network
+}
+
+fn configure_scrollable_grid_view<InnerGridView>(
+    view: &grid_view::scrollable::GridViewTemplate<InnerGridView>,
+) {
+    view.scroll_frp().resize(Vector2(400.0, VIEWPORT_HEIGHT));
+}
+
+fn setup_plain_grid_view(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridView {
+    let view = grid_view::simple::SimpleScrollableSelectableGridView::new(app);
+    let network = configure_simple_grid_view(&view);
+    configure_scrollable_grid_view(&view);
     std::mem::forget(network);
     app.display.add_child(&view);
     view
+}
+
+fn setup_grid_view_with_headers(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
+    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
+    app.display.add_child(&view);
+
+
+    // === Configure simple grid view with network ===
+
+    let network = configure_simple_grid_view(&view);
+    let header_frp = view.header_frp();
+    frp::extend! { network
+        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
+            let sections_size = 2 + col;
+            let section_start = row - (row % sections_size);
+            let section_end = section_start + sections_size;
+            let model = entry_model(section_start, col);
+            (section_start..section_end, col, model)
+        });
+        header_frp.section_info <+ requested_section;
+    }
+    std::mem::forget(network);
+
+
+    // === Configure scrollable grid view with scroll margins ===
+
+    configure_scrollable_grid_view(&view);
+    let scroll_margins = Margins {
+        top:    VIEWPORT_HEIGHT - BASE_SCROLL_MARGIN - ENTRY_HEIGHT,
+        bottom: BASE_SCROLL_MARGIN,
+        left:   BASE_SCROLL_MARGIN,
+        right:  BASE_SCROLL_MARGIN,
+    };
+    view.extra_scroll_frp().set_preferred_margins_around_entry(scroll_margins);
+    view
+}
+
+fn pair_to_vec2(pair: (f32, f32)) -> Vector2 {
+    let (x, y) = pair;
+    Vector2(x, y)
 }
 
 
@@ -123,18 +179,21 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
-    let with_hover_mask = [&grid_views[2]];
-    let with_selection_mask = [&grid_views[1], &grid_views[2]];
-    grid_views[2].frp().focus();
-    let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
+    let plain_grid_view = setup_plain_grid_view(app);
+    let grid_views_with_headers =
+        std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
+    let with_hover_mask = [&grid_views_with_headers[2]];
+    let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
+    let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vec2);
 
-    for (view, (x, y)) in grid_views.iter().zip(positions) {
+    grids_layer.add_exclusive(&plain_grid_view);
+    plain_grid_view.set_position_xy(positions.next().unwrap());
+    for (view, position) in grid_views_with_headers.iter().zip(positions) {
         grids_layer.add_exclusive(view);
-        view.set_position_xy(Vector2(x, y));
+        view.set_position_xy(position);
     }
 
-    let view = &grid_views[0];
+    let view = &grid_views_with_headers[0];
     for i in (0..1000).step_by(2) {
         view.set_column_width((i, 60.0));
     }
@@ -169,7 +228,8 @@ fn init(app: &Application) {
     );
     navigator.disable_wheel_panning();
 
-    std::mem::forget(grid_views);
+    std::mem::forget(plain_grid_view);
+    std::mem::forget(grid_views_with_headers);
     std::mem::forget(grids_layer);
     std::mem::forget(hover_layer);
     std::mem::forget(selection_layer);

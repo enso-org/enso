@@ -1,0 +1,40 @@
+from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import Sample
+import Standard.Base.Data.Time.Duration
+
+import Standard.Table
+from Standard.Table import Sort_Column_Selector
+from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test.Bench
+
+type My
+    Data x
+
+    compare_to self other =
+        other.x . compare_to self.x
+
+vector_size = 100000
+iter_size = 20
+num_iterations = 10
+
+# The Benchmarks ==============================================================
+main =
+    ints = (0.up_to vector_size).to_vector.take (Sample vector_size 42)
+    start = Date_Time.new 1990 1 1
+    dates = ints.map x->
+        start + x.seconds
+    objects = ints.map My.Data
+
+    ints_table = Table.new [['ints', ints]]
+    dates_table = Table.new [['dates', dates]]
+    objects_table = Table.new [['objects', objects]]
+
+    Bench.measure (ints_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by ints" iter_size num_iterations
+    Bench.measure (ints.sort) "Vector.sort ints" iter_size num_iterations
+
+    Bench.measure (dates_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by dates" iter_size num_iterations
+    Bench.measure (dates.sort) "Vector.sort dates" iter_size num_iterations
+
+    Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations
+    Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations

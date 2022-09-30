@@ -1,11 +1,14 @@
 package org.enso.base;
 
+import org.graalvm.polyglot.Value;
+
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
@@ -17,7 +20,7 @@ public class ObjectComparator implements Comparator<Object> {
    *     passed to allow calling back from Java.
    * @return Comparator object.
    */
-  public static ObjectComparator getInstance(BiFunction<Object, Object, Long> fallbackComparator) {
+  public static ObjectComparator getInstance(Function<Object, Function<Object, Value>> fallbackComparator) {
     if (INSTANCE == null) {
       INSTANCE = new ObjectComparator(fallbackComparator);
     }
@@ -25,22 +28,22 @@ public class ObjectComparator implements Comparator<Object> {
     return INSTANCE;
   }
 
-  private final BiFunction<Object, Object, Long> fallbackComparator;
-  private final BiFunction<String, String, Long> textComparator;
+  private final Function<Object, Function<Object, Value>> fallbackComparator;
+  private final Function<String, Function<String, Value>> textComparator;
 
 
   public ObjectComparator() {
     this(
-        (a, b) -> {
+        (a) -> (b) -> {
           throw new ClassCastException("Incomparable keys.");
         });
   }
 
-  public ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator) {
-    this(fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized(a, b)));
+  public ObjectComparator(Function<Object, Function<Object, Value>> fallbackComparator) {
+    this(fallbackComparator, (a) -> (b) -> Value.asValue(Text_Utils.compare_normalized(a, b)));
   }
 
-  private ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator, BiFunction<String, String, Long> textComparator) {
+  private ObjectComparator(Function<Object, Function<Object, Value>> fallbackComparator, Function<String, Function<String, Value>> textComparator) {
     this.fallbackComparator = fallbackComparator;
     this.textComparator = textComparator;
   }
@@ -51,7 +54,7 @@ public class ObjectComparator implements Comparator<Object> {
    * @return Comparator object.
    */
   public ObjectComparator withCaseInsensitivity(Locale locale) {
-    return new ObjectComparator(this.fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized_ignoring_case(a, b, locale)));
+    return new ObjectComparator(this.fallbackComparator, (a) -> (b) -> Value.asValue(Text_Utils.compare_normalized_ignoring_case(a, b, locale)));
   }
 
   /**
@@ -59,7 +62,7 @@ public class ObjectComparator implements Comparator<Object> {
    * @param textComparator custom comparator for Text.
    * @return Comparator object.
    */
-  public ObjectComparator withCustomTextComparator(BiFunction<String, String, Long> textComparator) {
+  public ObjectComparator withCustomTextComparator(Function<String, Function<String, Value>> textComparator) {
     return new ObjectComparator(this.fallbackComparator, textComparator);
   }
 
@@ -118,7 +121,7 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
-      return textComparator.apply(thisString, thatString).intValue();
+      return convertComparatorResult(textComparator.apply(thisString).apply(thatString));
     }
 
     // DateTimes
@@ -126,15 +129,10 @@ public class ObjectComparator implements Comparator<Object> {
       if (thatValue instanceof LocalDate thatDate) {
         return thisDate.compareTo(thatDate);
       }
-      if (thatValue instanceof LocalDateTime thatDateTime) {
-        return thisDate.atStartOfDay().compareTo(thatDateTime);
-      }
     }
-    if (thisValue instanceof LocalDateTime thisDateTime) {
-      if (thatValue instanceof LocalDate thatDate) {
-        return thisDateTime.compareTo(thatDate.atStartOfDay());
-      }
-      if (thatValue instanceof LocalDateTime thatDateTime) {
+
+    if (thisValue instanceof ZonedDateTime thisDateTime) {
+      if (thatValue instanceof ZonedDateTime thatDateTime) {
         return thisDateTime.compareTo(thatDateTime);
       }
     }
@@ -147,6 +145,14 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    return fallbackComparator.apply(thisValue, thatValue).intValue();
+    return convertComparatorResult(fallbackComparator.apply(thisValue).apply(thatValue));
+  }
+
+  private static int convertComparatorResult(Value comparatorResult) {
+    if (comparatorResult.isNumber() && comparatorResult.fitsInInt()) {
+      return comparatorResult.asInt();
+    } else {
+      throw new ClassCastException("Comparator returned a non-integer value: " + comparatorResult);
+    }
   }
 }

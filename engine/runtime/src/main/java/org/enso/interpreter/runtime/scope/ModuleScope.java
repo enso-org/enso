@@ -18,7 +18,6 @@ public class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols = new HashMap<>();
-  private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<String, Type> types = new HashMap<>();
   private Map<Type, Map<String, Function>> methods = new HashMap<>();
   private Map<Type, Map<Type, Function>> conversions = new HashMap<>();
@@ -34,20 +33,11 @@ public class ModuleScope implements TruffleObject {
   public ModuleScope(Module module, Context context) {
     this.module = module;
     this.associatedType =
-        new Type(
+        Type.createSingleton(
             module.getName().item(),
             this,
             context == null ? null : context.getBuiltins().any(),
             false);
-  }
-
-  /**
-   * Adds an Atom constructor definition to the module scope.
-   *
-   * @param constructor the constructor to register
-   */
-  public void registerConstructor(AtomConstructor constructor) {
-    constructors.put(constructor.getName(), constructor);
   }
 
   public void registerType(Type type) {
@@ -67,32 +57,6 @@ public class ModuleScope implements TruffleObject {
   /** @return the set of modules imported by this module. */
   public Set<ModuleScope> getImports() {
     return imports;
-  }
-
-  /**
-   * Looks up a constructor in the module scope locally.
-   *
-   * @param name the name of the module binding
-   * @return the atom constructor associated with {@code name}, or {@link Optional#empty()}
-   */
-  public Optional<AtomConstructor> getLocalConstructor(String name) {
-    return Optional.ofNullable(this.constructors.get(name));
-  }
-
-  /**
-   * Looks up a constructor in the module scope.
-   *
-   * @param name the name of the module binding
-   * @return the Atom constructor associated with {@code name}, or {@link Optional#empty()}
-   */
-  public Optional<AtomConstructor> getConstructor(String name) {
-    Optional<AtomConstructor> locallyDefined = getLocalConstructor(name);
-    if (locallyDefined.isPresent()) return locallyDefined;
-    return imports.stream()
-        .map(scope -> scope.getLocalConstructor(name))
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .findFirst();
   }
 
   /**
@@ -174,16 +138,6 @@ public class ModuleScope implements TruffleObject {
    */
   public void registerPolyglotSymbol(String name, Object sym) {
     polyglotSymbols.put(name, sym);
-  }
-
-  /**
-   * Looks up a polyglot symbol by name.
-   *
-   * @param name the name of the symbol being looked up
-   * @return the polyglot value registered for {@code name}, if exists.
-   */
-  public Optional<Object> lookupPolyglotSymbol(String name) {
-    return Optional.ofNullable(polyglotSymbols.get(name));
   }
 
   /**
@@ -275,10 +229,6 @@ public class ModuleScope implements TruffleObject {
     exports.add(scope);
   }
 
-  public Map<String, AtomConstructor> getConstructors() {
-    return constructors;
-  }
-
   public Map<String, Type> getTypes() {
     return types;
   }
@@ -309,7 +259,6 @@ public class ModuleScope implements TruffleObject {
     imports = new HashSet<>();
     exports = new HashSet<>();
     methods = new HashMap<>();
-    constructors = new HashMap<>();
     types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();

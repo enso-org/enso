@@ -20,9 +20,12 @@ import project.Data.Statistics
 import project.Data.Statistics.Rank_Method
 import project.Data.Text
 import project.Data.Text.Case
+import project.Data.Text.Case_Sensitivity
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
+import project.Data.Text.Text_Matcher
+import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Data.Time.Date
@@ -63,8 +66,12 @@ export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
 export project.Data.Statistics
 export project.Data.Statistics.Rank_Method
+export project.Data.Text.Case_Sensitivity
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode
+export project.Data.Text.Text_Ordering
+export project.Data.Text.Text_Matcher
+export project.Data.Text.Regex_Matcher
 export project.Data.Time.Date
 export project.Data.Time.Date_Time
 export project.Data.Time.Time_Of_Day
@@ -99,11 +106,9 @@ from project.Data.Range export all
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location, Matching_Mode
-from project.Data.Text.Matching export Text_Matcher_Data, Regex_Matcher_Data, No_Matches_Found_Data
-from project.Data.Text.Case export Case_Insensitive_Data, Text_Matcher_Data, Regex_Matcher_Data, No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Text_Ordering
+from project.Data.Text.Matching export No_Matches_Found_Data
+from project.Data.Text export all hiding Encoding, Span
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
-from project.Data.Text.Text_Ordering export all
 from project.Data.Text.Span export all
 from project.Error.Common export all
 from project.Function export all

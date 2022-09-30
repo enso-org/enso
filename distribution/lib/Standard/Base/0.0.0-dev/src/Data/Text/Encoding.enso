@@ -16,6 +16,10 @@ all_encodings : Vector Encoding
 all_encodings =
     all_character_sets.map Encoding_Data
 
+# TODO Dubious constructor export
+from project.Data.Text.Encoding.Encoding import all
+from project.Data.Text.Encoding.Encoding export all
+
 ## Represents a character encoding.
 type Encoding
     ## Create a new Encoding object.
@@ -94,6 +98,10 @@ type Encoding
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding_Data "windows-1258"
+
+# TODO Dubious constructor export
+from project.Data.Text.Encoding.Encoding_Error import all
+from project.Data.Text.Encoding.Encoding_Error export all
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error

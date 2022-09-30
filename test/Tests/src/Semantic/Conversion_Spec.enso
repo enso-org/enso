@@ -6,33 +6,33 @@ import project.Semantic.Conversion.Types
 import Standard.Test
 
 type Foo
-    Foo_Data foo
+    Value foo
 type Bar
-    Bar_Data bar
+    Value bar
 type Baz
-    Baz_Data baz
+    Value baz
 type Quux
-    Quux_Data quux
+    Value quux
 type Quaffle
 type My_Error
-    My_Error_Data err
+    Value err
 
 type Not_Foo
-    Not_Foo_Data notfoo
+    Value notfoo
 
-Foo.from (that:Bar) = Foo_Data that.bar
-Foo.from (that:Baz) = Foo_Data that.baz
-Foo.from (that:Text) = Foo_Data that.length
-Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo_Data [that, first_param, second_param, third_param]
-Foo.from (that:Function) = Foo_Data (that 5)
-Foo.from (that:Boolean) = Foo_Data that
-Foo.from (that:Array) = Foo_Data that.length
+Foo.from (that:Bar) = Foo.Value that.bar
+Foo.from (that:Baz) = Foo.Value that.baz
+Foo.from (that:Text) = Foo.Value that.length
+Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo.Value [that, first_param, second_param, third_param]
+Foo.from (that:Function) = Foo.Value (that 5)
+Foo.from (that:Boolean) = Foo.Value that
+Foo.from (that:Array) = Foo.Value that.length
 
-Not_Foo.from (_:Boolean) = Not_Foo_Data True
-Not_Foo.from (_:Any) = Not_Foo_Data "ANY!!!"
+Not_Foo.from (_:Boolean) = Not_Foo.Value True
+Not_Foo.from (_:Any) = Not_Foo.Value "ANY!!!"
 
-Foo.from (_:Quaffle) = Foo_Data "quaffle"
-Foo.from (_:Error) = Foo_Data "oops"
+Foo.from (_:Quaffle) = Foo.Value "quaffle"
+Foo.from (_:Error) = Foo.Value "oops"
 
 foreign js make_str x = """
    return "js string"
@@ -45,18 +45,18 @@ Number.foo = "foo called"
 spec =
     Test.group "Conversion" <|
         Test.specify "should be able to convert atoms" <|
-            ((Foo.from (Baz_Data 10)).foo + (Foo.from (Bar_Data 20)).foo) . should_equal 30
+            ((Foo.from (Baz.Value 10)).foo + (Foo.from (Bar.Value 20)).foo) . should_equal 30
             Foo.from Quaffle . foo . should_equal "quaffle"
         Test.specify "should be able to convert text" <|
             Foo.from "123" . foo . should_equal 3
         Test.specify "should be able to convert foreign text" <|
             Foo.from (make_str 4) . foo . should_equal 9
         Test.specify "should be able to convert numbers" <|
-            Foo.from 4 . should_equal (Foo_Data [4, 0, 0, 0])
-            Foo.from (10^100) . should_equal (Foo_Data [10^100, 0, 0, 0])
-            Foo.from 4.5 . should_equal (Foo_Data [4.5, 0, 0, 0])
+            Foo.from 4 . should_equal (Foo.Value [4, 0, 0, 0])
+            Foo.from (10^100) . should_equal (Foo.Value [10^100, 0, 0, 0])
+            Foo.from 4.5 . should_equal (Foo.Value [4.5, 0, 0, 0])
         Test.specify "should be able to convert dataflow errors" <|
-            Foo.from (Error.throw <| My_Error_Data "i was bad") . should_equal (Foo_Data "oops")
+            Foo.from (Error.throw <| My_Error.Value "i was bad") . should_equal (Foo.Value "oops")
         Test.specify "should be able to convert functions" <|
             Foo.from (e -> e) . foo . should_equal 5
         Test.specify "should be able to convert booleans" <|
@@ -75,17 +75,17 @@ spec =
             Text.from Methods.get_bar . should_equal "'bar'"
 
         Test.specify "should fail graciously when there is no conversion" <|
-            Panic.recover Any (Foo.from (Quux_Data 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux_Data` to `Foo`"
+            Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`"
         Test.specify "should fail graciously when the conversion target is invalid" <|
-            Panic.recover Any (123.from (Quux_Data 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
+            Panic.recover Any (123.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
         Test.specify "should be callable with by-name arguments" <|
-            .from self=Foo that=4 first_param=2 . should_equal (Foo_Data [4, 2, 0, 0])
+            .from self=Foo that=4 first_param=2 . should_equal (Foo.Value [4, 2, 0, 0])
         Test.specify "should support the use of multiple arguments" <|
-            Foo.from that=4 second_param=1 2 . should_equal (Foo_Data [4, 2, 1, 0])
+            Foo.from that=4 second_param=1 2 . should_equal (Foo.Value [4, 2, 1, 0])
 
         Test.specify "should play nicely with polyglot" <|
-            call_function .from Foo . should_equal (Foo_Data 8)
+            call_function .from Foo . should_equal (Foo.Value 8)
 
         Test.specify "should support the meta functions" <|
             meta_from = Meta.meta .from
@@ -99,7 +99,7 @@ spec =
             meta_from.name.should_equal "from"
 
             Meta.meta .foo . rename "from" . should_equal .from
-            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo_Data 5)
+            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo.Value 5)
 
             meta_from.rename "foo" 123 . should_equal "foo called"
             meta_from.rename "foo" . should_equal .foo

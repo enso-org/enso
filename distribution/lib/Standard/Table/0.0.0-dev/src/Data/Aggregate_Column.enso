@@ -4,6 +4,10 @@ from Standard.Table.Data.Column import Column
 from Standard.Table.Data.Column_Selector import Column_Selector
 from Standard.Table.Data.Sort_Column_Selector import Sort_Column_Selector
 
+# TODO Dubious constructor export
+from project.Data.Aggregate_Column.Aggregate_Column import all
+from project.Data.Aggregate_Column.Aggregate_Column export all
+
 ## Defines an Aggregate Column
 type Aggregate_Column
     ## Group By

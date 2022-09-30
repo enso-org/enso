@@ -18,3 +18,7 @@ ide-view-component-group = { path = "../../component-browser/component-group" }
 ide-view-component-list-panel = { path = "../../component-browser/searcher-list-panel" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 js-sys = { version = "0.3" }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

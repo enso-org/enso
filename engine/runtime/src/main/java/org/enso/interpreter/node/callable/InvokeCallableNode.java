@@ -222,6 +222,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       return invokeConversionNode.execute(
           callerFrame, state, conversion, selfArgument, thatArgument, arguments);
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw new RuntimeException(
           "Conversion currying without `this` or `that` argument is not supported.");
     }
@@ -252,6 +253,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
   }

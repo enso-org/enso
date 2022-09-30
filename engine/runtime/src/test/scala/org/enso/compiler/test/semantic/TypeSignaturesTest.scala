@@ -179,11 +179,11 @@ class TypeSignaturesTest
           |    X
           |    D
           |
-          |foo : A -> B -> C -> X -> D
+          |foo : A -> B -> C -> C -> A
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
-        "Unnamed.Test.A" ->: "Unnamed.Test.B" ->: "Unnamed.Test.C" ->: "Unnamed.Test.X" ->: "Unnamed.Test.D"
+        "Unnamed.Test.A" ->: "Unnamed.Test.B" ->: "Unnamed.Test.C" ->: "Unnamed.Test.C" ->: "Unnamed.Test.A"
       )
     }
 

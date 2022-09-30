@@ -88,6 +88,40 @@ spec = Test.group "Pattern Matches" <|
         case Any of
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
+    Test.specify "should be able to match on date/time values" <|
+        new_date = Date.new 2020 6 1
+        new_date_time = Date_Time.new 2020 6 1
+        new_time = Time_Of_Day.new 11 11
+        new_zone = Time_Zone.system
+
+        case new_date of
+            Date_Time.Date_Time -> Test.fail "Expected date value to match Date."
+            Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date."
+            Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date."
+            Date.Date -> Nothing
+            _ -> Test.fail "Expected date value to match Date."
+
+        case new_date_time of
+            Date.Date -> Test.fail "Expected datetime value to match Date_Time."
+            Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time."
+            Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time."
+            Date_Time.Date_Time -> Nothing
+            _ -> Test.fail "Expected datetime value to match Date_Time."
+
+        case new_time of
+            Date.Date -> Test.fail "Expected time value to match Time_Of_Day."
+            Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day."
+            Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day."
+            Time_Of_Day.Time_Of_Day -> Nothing
+            _ -> Test.fail "Expected time value to match Time_Of_Day."
+
+        case new_zone of
+            Date.Date -> Test.fail "Expected timezone value to match Time_Zone."
+            Date_Time.Date_Time -> Test.fail "Expected timezone to match Time_Zone."
+            Time_Of_Day.Time_Of_Day -> Test.fail "Expected timezone to match Time_Zone."
+            Time_Zone.Time_Zone -> Nothing
+            _ -> Test.fail "Expected timezone value to match Time_Zone."
+
     Test.specify "should be able to match on literal values" <|
         value_1 = 42
         value_2 = "foo"
@@ -112,8 +146,6 @@ spec = Test.group "Pattern Matches" <|
             "ę"   -> Test.fail "Expected value to match constant."
             '\u0065\u{301}' -> Nothing
             _     -> Test.fail "Expected value to match constant."
-
-
     Test.specify "should be able to match on literal values nested in constructors" <|
         value_1 = Cons 42 Nil
         value_2 = Cons (Cons 42 Nil) Nil

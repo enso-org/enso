@@ -163,6 +163,16 @@ impl Layout {
         column.into_iter().map(move |group| (index, group))
     }
 
+    /// Number of rows in layout.
+    pub fn row_count(&self) -> Row {
+        self.row_count
+    }
+
+    /// Number of columns in layout.
+    pub fn column_count(&self) -> Col {
+        self.columns.len()
+    }
+
     /// Get the information about group other than "Local Scope" occupying given location.
     ///
     /// If there is no group there, or it's "Local Scope" section, `None` is returned.

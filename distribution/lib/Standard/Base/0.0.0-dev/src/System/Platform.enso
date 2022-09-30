@@ -1,5 +1,9 @@
 import Standard.Base.System
 
+# TODO Dubious constructor export
+from project.System.Platform.Os import all
+from project.System.Platform.Os export all
+
 ## A representation of the various operating systems on which Enso can run.
 type Os
 

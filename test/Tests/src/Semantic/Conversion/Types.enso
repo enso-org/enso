@@ -1,7 +1,13 @@
 from Standard.Base import all
 
+from project.Semantic.Conversion.Types.Foo import all
+from project.Semantic.Conversion.Types.Foo export all
+
 type Foo
     Foo_Data a
+
+from project.Semantic.Conversion.Types.Bar import all
+from project.Semantic.Conversion.Types.Bar export all
 
 type Bar
     Bar_Data a

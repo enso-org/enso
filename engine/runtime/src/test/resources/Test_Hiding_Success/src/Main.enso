@@ -1,3 +1,3 @@
 from local.Test_Hiding_Success.Atom import all hiding Y
 
-main = (Mk_X 1).method
+main = (X.Mk_X 1).method

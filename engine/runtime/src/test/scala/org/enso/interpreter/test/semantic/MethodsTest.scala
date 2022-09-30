@@ -143,13 +143,56 @@ class MethodsTest extends InterpreterTest {
       @unused val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.method = 1
+          |Any.method self = 1
           |
           |main =
           |    2.method
           |""".stripMargin
-      //eval(code) shouldEqual 1
+//      eval(code) shouldEqual 1
       pending
+    }
+
+    "be callable on types when static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    new a = Foo.Mk_Foo a
+          |
+          |main = Foo.new 123
+          |""".stripMargin
+      eval(code).toString shouldEqual "(Mk_Foo 123)"
+    }
+
+    "not be callable on types when non-static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    inc self = Mk_Foo self.a
+          |
+          |main = Foo.inc
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Method `inc` of Foo could not be found."
+    }
+
+    "not be callable on instances when static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    new a = Foo.Mk_Foo a
+          |
+          |main = Foo.Mk_Foo 123 . new 123
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Method `new` of Mk_Foo could not be found."
     }
   }
 }
