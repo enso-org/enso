@@ -46,12 +46,11 @@ public class EnsoCompilerTest {
     type Msg
         Ahoj
         Ciao
-        """
 
-//    c x = case x of
-//        Ahoj -> 0
-//        Ciao -> 1
-//    """);
+    c x = case x of
+        Ahoj -> 0
+        Ciao -> 1
+    """
     );
   }
 
@@ -257,6 +256,26 @@ public class EnsoCompilerTest {
     measure : Any -> Text -> Integer -> Integer -> Nothing
     measure = ~act -> label -> iter_size -> num_iters ->
         42
+    """);
+  }
+
+  @Test
+  public void testReverseListType() throws Exception {
+    parseTest("""
+    reverse_list : List Any -> List
+    reverse_list list = Nil
+    """);
+  }
+
+  @Test
+  public void testReverseList() throws Exception {
+    parseTest("""
+    reverse_list list =
+        go = list -> acc -> case list of
+            Cons h t -> go t (Cons h acc)
+            Nil -> acc
+        res = go list Nil
+        res
     """);
   }
 

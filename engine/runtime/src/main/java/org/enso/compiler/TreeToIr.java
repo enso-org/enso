@@ -6,6 +6,8 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
+import org.enso.compiler.core.IR$Case$Branch;
+import org.enso.compiler.core.IR$Case$Expr;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
@@ -33,6 +35,8 @@ import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
+import org.enso.compiler.core.IR$Pattern$Constructor;
+import org.enso.compiler.core.IR$Pattern$Name;
 import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
@@ -711,9 +715,26 @@ final class TreeToIr {
         {
           Tree.Arrow head = arrow;
           while (head != null) {
-            for (var a : head.getArguments()) {
-              var literal = buildName(a);
+            var literal = buildName(head.getArguments().get(0));
+            if (head.getArguments().size() == 1) {
               args = cons(literal, args);
+            } else {
+              List<IR.CallArgument> typeArguments = nil();
+              for (int i = 1; i < head.getArguments().size(); i++) {
+                final Tree argTree = head.getArguments().get(i);
+                var argLiteral = buildName(argTree);
+                var callLiteral = new IR$CallArgument$Specified(
+                  Option.empty(),
+                  argLiteral,
+                  getIdentifiedLocation(argTree),
+                  meta(), diag()
+                );
+                typeArguments = cons(callLiteral, typeArguments);
+              }
+              var prefix = new IR$Application$Prefix(
+                literal, typeArguments.reverse(), false, getIdentifiedLocation(tree), meta(), diag()
+              );
+              args = cons(prefix, args);
             }
             treeBody = head.getBody();
             head = switch (treeBody) {
@@ -731,6 +752,15 @@ final class TreeToIr {
         var arguments = translateArgumentsDefinition(arrow.getArguments());
         var body = translateExpression(arrow.getBody(), isMethod);
         yield new IR$Function$Lambda(arguments, body, getIdentifiedLocation(arrow), true, meta(), diag());
+      }
+      case Tree.Case cas -> {
+        var expr = translateExpression(cas.getExpression(), insideTypeSignature);
+        List<IR$Case$Branch> branches = nil();
+        for (var line : cas.getBody()) {
+          var br = translateCaseBranch(line.getExpression());
+          branches = cons(br, branches);
+        }
+        yield new IR$Case$Expr(expr, branches.reverse(), getIdentifiedLocation(tree), meta(), diag());
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
@@ -1462,15 +1492,17 @@ final class TreeToIr {
     *
     * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
-
-  def translateCaseBranch(branch: AST): Case.Branch = {
-    branch match {
-      case AstView.CaseBranch(pattern, expression) =>
-        Case.Branch(
-          translatePattern(pattern),
-          translateExpression(expression),
-          getIdentifiedLocation(branch)
-        )
+    */
+  IR$Case$Branch translateCaseBranch(Tree branch) {
+    return switch (branch) {
+      case Tree.Arrow arrow -> {
+        yield new IR$Case$Branch(
+          translatePattern(arrow.getArguments()),
+          translateExpression(arrow.getBody(), false),
+          getIdentifiedLocation(branch), meta(), diag()
+        );
+      }
+      /*
       case c @ AST.Comment(lines) =>
         val doc      = lines.mkString("\n")
         val location = getIdentifiedLocation(c)
@@ -1479,17 +1511,41 @@ final class TreeToIr {
           IR.Empty(None),
           location
         )
-      case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
-    }
+      */
+      default -> throw new UnhandledEntity(branch, "translateCaseBranch");
+    };
   }
 
   /** Translates a pattern in a case expression from its [[AST]] representation
     * into [[IR]].
     *
-    * @param pattern the case pattern to translate
+    * @param block the case pattern to translate
     * @return
+    */
+  IR.Pattern translatePattern(java.util.List<Tree> block) {
+    var pattern = maybeManyParensed(block.get(0));
+    List<IR.Pattern> fields = nil();
+    for (int i = 1; i < block.size(); i++) {
+      var arg = block.get(i);
+      var argIR = switch (arg) {
+        case Tree.Ident id -> new IR$Pattern$Name(
+          buildName(arg), getIdentifiedLocation(arg), meta(), diag()
+        );
+        default -> throw new UnhandledEntity(arg, "translatePattern");
+      };
+      fields = cons(argIR, fields);
+    }
+    return switch (pattern) {
+      case Tree.Ident id -> {
+        yield new IR$Pattern$Constructor(
+          buildName(id), fields.reverse(),
+          getIdentifiedLocation(id), meta(), diag()
+        );
+      }
+      default -> throw new UnhandledEntity(pattern, "translatePattern");
+    };
 
-  def translatePattern(pattern: AST): Pattern = {
+    /*
     AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
       case AstView.ConstructorPattern(conses, fields) =>
         val irConses = conses.map(translateIdent(_).asInstanceOf[IR.Name])
@@ -1507,9 +1563,7 @@ final class TreeToIr {
           translateIdent(name).asInstanceOf[IR.Name],
           getIdentifiedLocation(pattern)
         )
-      case _ =>
-        throw new UnhandledEntity(pattern, "translatePattern")
-    }
+      */
   }
 
   /** Translates an arbitrary grouped piece of syntax from its [[AST]]
