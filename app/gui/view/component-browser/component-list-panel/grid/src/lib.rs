@@ -91,6 +91,7 @@ ensogl_core::define_endpoints_2! {
         model_for_header(GroupId, HeaderModel),
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
+        accept_suggestion(),
     }
     Output {
         active(ElementId),
@@ -343,6 +344,12 @@ impl component::Frp<Model> for Frp {
             out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
 
+            // === Accepting Suggestion and Expression ===
+
+            out.suggestion_accepted <+ out.active.sample(&input.accept_suggestion).filter_map(|e| e.as_entry_id());
+            out.expression_accepted <+ grid.entry_accepted.filter_map(f!((loc) model.location_to_entry_id(loc)));
+
+
             // === Style and Entries Params ===
 
             entry_style <- source::<entry::Style>();
@@ -430,7 +437,11 @@ impl component::Frp<Model> for Frp {
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
-        default()
+        use ensogl_core::application::shortcut::ActionType::*;
+        (&[(Press, "tab", "accept_suggestion")])
+            .iter()
+            .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }
 
