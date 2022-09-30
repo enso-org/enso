@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::buffer::formatting::Formatting;
 use crate::buffer::formatting::FormattingCell;
+
 use enso_text::Rope;
 use enso_text::RopeCell;
 

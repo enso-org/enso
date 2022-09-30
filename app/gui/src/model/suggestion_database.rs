@@ -17,7 +17,6 @@ use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
 
 
-
 // ==============
 // === Export ===
 // ==============

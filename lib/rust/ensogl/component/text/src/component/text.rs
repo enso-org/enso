@@ -21,11 +21,11 @@ use crate::font::glyph::Glyph;
 use crate::font::Font;
 use crate::font::GlyphId;
 use crate::font::GlyphRenderInfo;
-use enso_text::Rope;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use enso_frp::stream::ValueProvider;
+use enso_text::Rope;
 use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
@@ -37,7 +37,6 @@ use ensogl_core::system::web::clipboard;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
 use std::ops::Not;
-
 
 
 // ==============

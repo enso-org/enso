@@ -15,7 +15,6 @@ use enso_text::text::BoundsError;
 use ensogl_text_font_family::NonVariableFaceHeader;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -25,6 +24,7 @@ pub mod index;
 pub mod movement;
 pub mod rope;
 pub mod selection;
+
 
 
 /// Common traits.

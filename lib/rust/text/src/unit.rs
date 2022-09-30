@@ -1,9 +1,9 @@
 //! Definition of strongly typed units, like `LineDiff` or `ByteDiff`. Please note that indexes,
 //! such as `Byte` are defined in a separate module.
 
+use crate::index::*;
 use crate::prelude::*;
 
-use crate::index::*;
 use enso_types::unit;
 
 

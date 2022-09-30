@@ -8,13 +8,14 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
-use crate::prelude::*;
 
+use crate::prelude::*;
 use ast_macros::*;
 use enso_shapely::*;
 use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
+
 use serde::de::Deserializer;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;

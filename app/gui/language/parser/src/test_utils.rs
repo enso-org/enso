@@ -1,6 +1,7 @@
 //! Utilities for writing tests using parser. Should not be used in production parts.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::Parser;
 
@@ -10,7 +11,6 @@ use ast::test_utils::validate_spans;
 use ast::Ast;
 use ast::HasRepr;
 use ast::Shape;
-use enso_text::unit::*;
 
 
 
