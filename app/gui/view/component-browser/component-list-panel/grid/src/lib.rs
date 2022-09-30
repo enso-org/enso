@@ -172,6 +172,11 @@ impl Model {
             .collect()
     }
 
+    fn location_to_section_id(&self, &(row, col): &(Row, Col)) -> Option<SectionId> {
+        let element = self.layout.borrow().element_at_location(row, col)?;
+        Some(element.group.section)
+    }
+
     fn location_to_headers_group_id(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
         let element = self.layout.borrow().element_at_location(row, col)?;
         element.header_group()
@@ -243,11 +248,12 @@ impl Model {
 
     fn entries_params(
         &self,
-        (style, entry_style, color_intensities, group_colors): &(
+        (style, entry_style, color_intensities, group_colors, dimmed_groups): &(
             Style,
             entry::Style,
             entry::style::ColorIntensities,
             GroupColors,
+            entry::DimmedGroups,
         ),
     ) -> entry::Params {
         entry::Params {
@@ -255,7 +261,7 @@ impl Model {
             grid_style:        *style,
             group_colors:      *group_colors,
             color_intensities: *color_intensities,
-            dimmed_groups:     entry::DimmedGroups::None,
+            dimmed_groups:     *dimmed_groups,
         }
     }
 
@@ -303,7 +309,10 @@ impl component::Frp<Model> for Frp {
             color_intensities <- source::<entry::style::ColorIntensities>();
             selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
             group_colors <- source::<GroupColors>();
-            entries_style <- all(style.update, entry_style, color_intensities, group_colors);
+            entry_selected <- grid.entry_selected.filter_map(|loc| *loc);
+            active_section <- entry_selected.filter_map(f!((location) model.location_to_section_id(location)));
+            dimmed_groups <- active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
+            entries_style <- all5(&style.update, &entry_style, &color_intensities, &group_colors, &dimmed_groups);
             entries_params <- entries_style.map(f!((input) model.entries_params(input)));
             selection_entries_style <- all(entries_params, selection_color_intensities);
             selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));

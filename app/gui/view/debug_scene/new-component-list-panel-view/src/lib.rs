@@ -95,12 +95,12 @@ const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 14, 51),
 ];
 
-const LOCAL_SCOLE_GROUP_SIZE: usize = 12;
+const LOCAL_SCOPE_GROUP_SIZE: usize = 12;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
         groups:           GROUPS.into(),
-        local_scope_size: LOCAL_SCOLE_GROUP_SIZE,
+        local_scope_size: LOCAL_SCOPE_GROUP_SIZE,
     }
 }
 
