@@ -35,6 +35,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   /**
    * Creates a node to handle the case by-type.
    *
+   * @param tpe type to match against
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */
@@ -63,10 +64,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   }
 
   @Specialization
-  public void doValue(
-      VirtualFrame frame,
-      Object state,
-      Object target) {
+  public void doValue(VirtualFrame frame, Object state, Object target) {
     Object typeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(expectedType, typeOfTarget);
     if (profile.profile(test)) {

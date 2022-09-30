@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
-/** An implementation of the case expression specialised to working on Date. */
+/** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
 public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
 
@@ -35,6 +35,7 @@ public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
   /**
    * Creates a node to handle the by-type polyglot symbol case.
    *
+   * @param polyglotSymbol polyglotSymbol representing the type to match against
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */

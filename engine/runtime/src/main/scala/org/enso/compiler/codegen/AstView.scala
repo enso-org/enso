@@ -941,7 +941,7 @@ object AstView {
 
     /** Matches on a type patternn.
       *
-      * A catch all pattern takes the form of a name, which may be blank, colon and a type name.
+      * A catch type pattern takes the form of a name, which may be blank, colon and a type name.
       *
       * @param ast the structure to try and match on
       * @return the pattern
