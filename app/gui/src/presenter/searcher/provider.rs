@@ -228,8 +228,8 @@ fn controller_group_to_grid_group_info(
 ) -> component_grid::content::Group {
     component_list_panel::grid::content::Group {
         id,
-        height: group.len(),
-        original_height: group.matched_items.get(),
+        height: group.matched_items.get(),
+        original_height: group.len(),
         color: group.color,
     }
 }
