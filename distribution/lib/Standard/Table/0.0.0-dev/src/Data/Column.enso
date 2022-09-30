@@ -4,6 +4,7 @@ import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Storage
+from Standard.Table.Data.Value_Type import Value_Type
 
 # TODO Dubious constructor export
 from Standard.Table.Data.Column.Column import all
@@ -752,6 +753,18 @@ type Column
         tp = self.java_column.getStorage.getType
         storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
             Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
+
+    ## UNSTABLE TODO this is a prototype that will be revisited later on
+    value_type : Value_Type
+    value_type self = case self.storage_type of
+        Storage.Text -> Value_Type.Char
+        Storage.Integer -> Value_Type.Integer
+        Storage.Decimal -> Value_Type.Float
+        Storage.Boolean -> Value_Type.Boolean
+        Storage.Date -> Value_Type.Date
+        Storage.Time_Of_Day -> Value_Type.Time
+        Storage.Date_Time -> Value_Type.Date_Time
+        Storage.Any -> Value_Type.Mixed
 
     ## UNSTABLE
 

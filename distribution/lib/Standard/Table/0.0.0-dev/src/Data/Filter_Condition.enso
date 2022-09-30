@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Table.Data.Table import Table
 from Standard.Table.Data.Column import Column
+from Standard.Table.Data.Value_Type import Value_Type
 
 from Standard.Table.Data.Filter_Condition.Filter_Condition import all
 
@@ -57,8 +58,10 @@ type Filter_Condition
    A helper function gathering the common logic that generates a boolean mask
    from a given source column and a filter condition. It contains logic common
    for all backends.
+
+   It also performs validation and will throw errors if unexpected column types
+   are encountered.
 make_filter_column source_column filter_condition = case filter_condition of
-    # TODO check types
     Less value -> (source_column < value)
     Equal_Or_Less value -> (source_column <= value)
     Equal value -> (source_column == value)
@@ -66,11 +69,21 @@ make_filter_column source_column filter_condition = case filter_condition of
     Greater value -> (source_column > value)
     Not_Equal value -> (source_column != value)
     Between lower upper -> ((source_column >= lower) && (source_column <= upper))
-    Starts_With prefix -> source_column.starts_with prefix
-    Ends_With suffix -> source_column.ends_with suffix
-    Contains substring -> source_column.contains substring
+    Starts_With prefix -> case source_column.value_type of
+        Value_Type.Char _ _ -> source_column.starts_with prefix
+        _ -> Error.throw (Illegal_Argument_Error "`Starts_With` expected a text column.")
+    Ends_With suffix -> case source_column.value_type of
+        Value_Type.Char _ _ -> source_column.ends_with suffix
+        _ -> Error.throw (Illegal_Argument_Error "`Ends_With` expected a text column.")
+    Contains substring -> case source_column.value_type of
+        Value_Type.Char _ _ -> source_column.contains substring
+        _ -> Error.throw (Illegal_Argument_Error "`Contains` expected a text column.")
     Is_Nothing -> source_column.is_missing
     Not_Nothing -> source_column.is_missing.not
-    Is_True -> source_column
-    Is_False -> source_column.not
+    Is_True -> case source_column.value_type of
+        Value_Type.Boolean -> source_column
+        _ -> Error.throw (Illegal_Argument_Error "`Is_True` expected a Boolean column.")
+    Is_False -> case source_column.value_type of
+        Value_Type.Boolean -> source_column.not
+        _ -> Error.throw (Illegal_Argument_Error "`Is_False` expected a Boolean column.")
     _ -> source_column.map filter_condition
