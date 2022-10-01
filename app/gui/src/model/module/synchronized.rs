@@ -592,8 +592,7 @@ pub mod test {
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
                     let idmap_range = file_so_far.id_map.map(|x| {
-                        let location_bytes =
-                            code_so_far.offset_to_location_snapped(x.try_into().unwrap());
+                        let location_bytes = code_so_far.offset_to_location_snapped(x);
                         code_so_far.utf16_code_unit_location_of_location(location_bytes)
                     });
                     let idmap_range = TextRange::from(idmap_range);

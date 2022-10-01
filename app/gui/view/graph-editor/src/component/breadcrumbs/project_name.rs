@@ -9,7 +9,6 @@ use crate::component::breadcrumbs::TEXT_SIZE;
 use crate::component::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
-use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -371,7 +370,7 @@ impl Deref for ProjectName {
     }
 }
 
-impl application::command::FrpNetworkProvider for ProjectName {
+impl FrpNetworkProvider for ProjectName {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

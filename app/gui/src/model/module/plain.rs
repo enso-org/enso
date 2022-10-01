@@ -253,7 +253,6 @@ mod test {
     use crate::model::module::Position;
 
     use enso_text::index::*;
-    use enso_text::unit::*;
 
     #[wasm_bindgen_test]
     fn applying_code_change() {

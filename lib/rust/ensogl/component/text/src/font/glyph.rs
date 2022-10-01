@@ -2,6 +2,7 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
+#[cfg(target_arch = "wasm32")]
 use ensogl_core::display::world;
 use ensogl_core::display::world::*;
 
@@ -24,6 +25,7 @@ use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
+#[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use font::Font;
@@ -54,7 +56,7 @@ ensogl_core::define_endpoints_2! {
 
 /// Glyph texture. Contains all letters encoded in MSDF format.
 #[cfg(target_arch = "wasm32")]
-pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
 #[cfg(target_arch = "wasm32")]
 fn new_texture(context: &Context, param: (i32, i32)) -> Texture {
@@ -62,18 +64,18 @@ fn new_texture(context: &Context, param: (i32, i32)) -> Texture {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub type Texture = u32;
+type Texture = u32;
 
 #[cfg(not(target_arch = "wasm32"))]
-fn new_texture(context: &Context, param: (i32, i32)) -> Texture {
+fn new_texture(_context: &Context, _param: (i32, i32)) -> Texture {
     0
 }
 
 
 #[cfg(target_arch = "wasm32")]
-pub type Context = world::Context;
+type Context = world::Context;
 #[cfg(not(target_arch = "wasm32"))]
-pub type Context = ();
+type Context = ();
 
 #[cfg(target_arch = "wasm32")]
 fn get_context(scene: &Scene) -> Context {
@@ -84,9 +86,7 @@ fn get_context(scene: &Scene) -> Context {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &Scene) -> Context {
-    ()
-}
+fn get_context(_scene: &Scene) -> Context {}
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -424,7 +424,7 @@ impl System {
         let scene = scene.as_ref();
         let sprite_system = SpriteSystem::new(scene);
         let symbol = sprite_system.symbol();
-        let context = get_context(&scene);
+        let context = get_context(scene);
         let texture = new_texture(&context, (0, 0));
         let mesh = symbol.surface();
 
@@ -449,6 +449,8 @@ impl System {
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
         let frp = Frp::new();
+        #[allow(clippy::clone_on_copy)]
+        #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();

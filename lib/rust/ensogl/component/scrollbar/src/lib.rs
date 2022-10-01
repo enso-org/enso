@@ -342,7 +342,7 @@ impl Deref for Scrollbar {
     }
 }
 
-impl application::command::FrpNetworkProvider for Scrollbar {
+impl FrpNetworkProvider for Scrollbar {
     fn network(&self) -> &frp::Network {
         self.frp.network()
     }

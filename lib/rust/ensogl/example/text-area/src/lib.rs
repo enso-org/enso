@@ -179,6 +179,7 @@ fn init(app: Application) {
     borders.show(&app, &area);
 
     // FIXME: fix forward_panic_hook_to_console
+    // FIXME: fix test in monitor
 
     // TODO: Task na unit testyy do textow
     // TODO: next PR - > Text area to gui component.

@@ -7,7 +7,6 @@ use crate::debug::stats::StatsData;
 use crate::system::web;
 use crate::system::web::JsValue;
 
-use enso_types::unit2::Duration;
 use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;

@@ -230,6 +230,7 @@ macro_rules! mock_fn_gen_print {
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
         #[allow(unused_variables)]
         #[allow(clippy::too_many_arguments)]
+        #[allow(clippy::should_implement_trait)]
         #[allow(missing_docs)]
         $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
             $($body)*
@@ -353,6 +354,7 @@ mock_data! { [NO_AS_REF] Closure<T: ?Sized>
     fn once<F>(_fn_once: F) -> Closure<F>;
 }
 
+#[allow(missing_docs)]
 impl Closure<dyn FnOnce()> {
     pub fn once_into_js<F>(_fn_once: F) -> JsValue {
         default()

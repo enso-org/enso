@@ -45,6 +45,7 @@ impl Bytes {
         Byte(self.value)
     }
 
+    /// Convert bytes to byte diff.
     pub fn to_diff(self) -> ByteDiff {
         ByteDiff(self.value as i32)
     }
@@ -145,6 +146,7 @@ impl Add for LineDiff {
 }
 
 impl LineDiff {
+    /// Convert the line diff to line and report warning if the diff was negative.
     pub fn to_line(self) -> Line {
         if self.value < 0 {
             warn!("Trying to convert negative line diff to line.");

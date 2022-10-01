@@ -351,7 +351,7 @@ impl Entry {
         let ModuleSpan { module, span } = location;
         match &self.scope {
             Scope::Everywhere => true,
-            Scope::InModule { range } => self.module == *module && range.contains(&span),
+            Scope::InModule { range } => self.module == *module && range.contains(span),
         }
     }
 

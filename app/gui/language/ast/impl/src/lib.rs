@@ -424,7 +424,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
         let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
         let id = id.unwrap_or(None); // allow missing `id` field
         let len = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::from_ast_id_len(shape, id, len.into()))
+        Ok(Ast::from_ast_id_len(shape, id, len))
     }
 }
 

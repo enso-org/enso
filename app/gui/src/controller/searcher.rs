@@ -1476,7 +1476,7 @@ pub mod test {
 
     impl MockData {
         fn change_main_body(&mut self, lines: &[&str]) {
-            let code: enso_text::Rope = crate::test::mock::main_from_lines(lines).into();
+            let code: Rope = crate::test::mock::main_from_lines(lines).into();
             let location = code.last_line_end_location();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
