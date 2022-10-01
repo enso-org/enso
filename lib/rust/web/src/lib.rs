@@ -898,10 +898,13 @@ pub fn simulate_sleep(duration: f64) {
 // =============
 
 /// Enables forwarding panic messages to `console.error`.
+#[cfg(target_arch = "wasm32")]
 pub fn forward_panic_hook_to_console() {
-    // FIXME: why it was here? It hides native panic stack traces.
-    // std::panic::set_hook(Box::new(report_panic))
+    std::panic::set_hook(Box::new(report_panic))
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn forward_panic_hook_to_console() {}
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {

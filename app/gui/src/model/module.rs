@@ -8,6 +8,7 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
+use double_representation::module::ImportId;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
@@ -26,7 +27,6 @@ pub mod plain;
 pub mod synchronized;
 
 pub use double_representation::module::Id;
-use double_representation::module::ImportId;
 pub use double_representation::module::QualifiedName;
 pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 

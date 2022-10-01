@@ -2,8 +2,6 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::display::world;
 use ensogl_core::display::world::*;
 
 use crate::buffer::formatting::PropertyDiffApply;
@@ -24,6 +22,8 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::display::world;
 use ensogl_core::frp;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu;

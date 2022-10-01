@@ -33,6 +33,7 @@ macro_rules! define_bindings {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! define_native_binding {
     ( $(#$meta:tt)* pub fn $fn:ident $args:tt; ) => {
         pub fn $fn $args {}
