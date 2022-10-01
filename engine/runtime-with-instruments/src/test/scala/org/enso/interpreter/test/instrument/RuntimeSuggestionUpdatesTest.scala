@@ -137,7 +137,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -199,7 +201,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -276,7 +280,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -373,7 +379,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -479,7 +487,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -614,7 +624,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -738,7 +750,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -866,6 +880,8 @@ class RuntimeSuggestionUpdatesTest
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
+        |import Enso_Test.Test.A.MyType
+        |from Enso_Test.Test.A.MyType export all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -873,7 +889,7 @@ class RuntimeSuggestionUpdatesTest
       """from Standard.Base.Data.Numbers import Integer
         |
         |type MyType
-        |    type MkA a
+        |    MkA a
         |
         |Integer.fortytwo self = 42
         |
@@ -915,7 +931,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -943,7 +961,7 @@ class RuntimeSuggestionUpdatesTest
                       Suggestion
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
-                    "Enso_Test.Test.A.MkA",
+                    "Enso_Test.Test.A.MyType",
                     None,
                     None,
                     None
@@ -962,13 +980,13 @@ class RuntimeSuggestionUpdatesTest
                       Suggestion
                         .Argument(
                           "self",
-                          "Enso_Test.Test.A.MkA",
+                          "Enso_Test.Test.A.MyType",
                           false,
                           false,
                           None
                         )
                     ),
-                    "Enso_Test.Test.A.MkA",
+                    "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
                     None,
                     None,
@@ -1103,7 +1121,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -1112,6 +1132,8 @@ class RuntimeSuggestionUpdatesTest
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
+              |import Enso_Test.Test.A.MyType
+              |from Enso_Test.Test.A.MyType export all
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")
@@ -1140,7 +1162,7 @@ class RuntimeSuggestionUpdatesTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(2, 0), model.Position(5, 0)),
+              model.Range(model.Position(2, 0), model.Position(7, 0)),
               ""
             )
           ),
@@ -1148,7 +1170,9 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveN(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,

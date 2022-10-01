@@ -39,3 +39,11 @@ If connecting to `127.0.0.1` then the test suite will attempt to connect to
 `localhost` with in full verification mode to confirm that it fails. If there is
 an alternative hostname for this test it can be supplied in
 `ENSO_DATABASE_TEST_ALTERNATE_HOST`.
+
+### Testing Redshift connectivity
+
+To enable Redshift testing, set `ENSO_REDSHIFT_URI` to the full URI of the
+cluster including the database name. The username should be set as the
+`ENSO_REDSHIFT_USER` environment variable. The script will use the standard
+`AWS_PROFILE` (or `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`) environment
+variable to access the AWS APIs.

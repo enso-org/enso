@@ -190,3 +190,24 @@ Manager seems to find recursive accesses of some ephemeral-like classes named
 Image and they lead to warnings. For now no clues have been found that ignoring
 these classes would impact the native build, it seems that they can be ignored
 safely.
+
+### Engine runner Configuration
+
+The Native Image generation for the Engine Runner is currently in a preview
+state. Limitations are currently mostly due to
+[Java interop](https://www.pivotaltracker.com/story/show/183260380) and loading
+of stdlib components. To generate the Native Image for runner simply execute
+
+```
+sbt> engine-runner-native/buildNativeImage
+```
+
+and execute the binary on a sample factorial test program
+
+```
+> runner --run engine/runner-native/src/test/resources/Factorial.enso 6
+```
+
+The task that generates the Native Image, along with all the necessary
+configuration, reside in a separate project due to a bug in the currently used
+GraalVM version.

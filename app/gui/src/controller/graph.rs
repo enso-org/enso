@@ -897,7 +897,8 @@ impl Handle {
         let introduced_name = module.generate_name(new_method_name_base)?;
         let node_ids = nodes.iter().map(|node| node.info.id());
         let graph = self.graph_info()?;
-        let collapsed = collapse(&graph, node_ids, introduced_name, &self.parser)?;
+        let module_name = self.module.name();
+        let collapsed = collapse(&graph, node_ids, introduced_name, &self.parser, module_name)?;
         let Collapsed { new_method, updated_definition, collapsed_node } = collapsed;
 
         let graph = self.graph_info()?;
@@ -1275,7 +1276,7 @@ func3 a =
 
 main =
     a = 10
-    here.func3 a
+    Mock_Module.func3 a
     a + func1";
 
         test.data.code = code.to_owned();
@@ -1303,7 +1304,7 @@ func1 =
     a
 
 main =
-    a = here.func1
+    a = Mock_Module.func1
     a + c";
 
         test.data.code = code.to_owned();

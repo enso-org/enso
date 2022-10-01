@@ -86,6 +86,15 @@ labels:
   - name: "CI: Ready to merge"
     color: "#ffffff"
     description: This PR is eligible for automatic merge
+  - name: "CI: Keep up to date"
+    color: "#ffffff"
+    description: Automatically update this PR to the latest develop.
+  - name: "CI: No changelog needed"
+    color: "#ffffff"
+    description: Do not require a changelog entry for this PR.
+  - name: "CI: Clean build required"
+    color: "#ffffff"
+    description: CI runners will be cleaned before and after this PR is built.
 
   - name: "Difficulty: Beginner"
     color: "#d1e9c4"

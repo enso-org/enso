@@ -27,12 +27,41 @@ pub mod visible;
 // === Contour ===
 // ===============
 
-/// A structure describing entry contour.
+/// A structure describing entry contour - a rectangle with rounded corners.
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Contour {
     pub size:           Vector2,
     pub corners_radius: f32,
+}
+
+impl Contour {
+    /// Create a contour without rounded corners.
+    pub fn rectangular(size: Vector2) -> Self {
+        Self { size, corners_radius: 0.0 }
+    }
+}
+
+
+// ===================
+// === MovedHeader ===
+// ===================
+
+/// The information about position of header being pushed down. See
+/// [`header::GridView`](crate::header::GridView) documentation for information about headers.
+#[derive(Clone, Debug)]
+pub struct MovedHeaderPosition {
+    /// The position of header in grid's space.
+    pub position: Vector2,
+    /// The possible y positions of the header. The header cannot be above its base position and
+    /// cannot be over next section.
+    pub y_range:  RangeInclusive<f32>,
+}
+
+impl Default for MovedHeaderPosition {
+    fn default() -> Self {
+        Self { position: default(), y_range: 0.0..=0.0 }
+    }
 }
 
 
@@ -55,15 +84,22 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.
         set_hovered(bool),
+        /// The entry is a header which was pushed down to be visible during scrolling.
+        /// See [`header::GridView`](crate::header::GridView) documentation for more info.
+        moved_as_header(MovedHeaderPosition)
     }
     Output {
         /// Disabled entries does not react for mouse events, and cannot be selected.
         disabled(bool),
         /// Entry's contour. Defines what part of the entry will react for mouse events.
         contour(Contour),
+        /// Offset of the `contour`'s center from the base entry position.
+        contour_offset(Vector2),
         /// In [selectable](crate::selectable) grid views, this defines the shape of the
         /// selection/hover highlight in case when this entry is selected.
         highlight_contour(Contour),
+        /// Offset of the `highlight_contour`'s center from the base entry position.
+        highlight_contour_offset(Vector2),
         /// Override column's width. If multiple entries from the same column emit this event,
         /// only the last one is applied. See [`crate::GridView`] documentation for more details.
         override_column_width(f32),

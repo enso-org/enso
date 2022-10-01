@@ -1,12 +1,13 @@
 package org.enso.table.aggregations;
 
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.InvalidAggregation;
+
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.InvalidAggregation;
 
 /** Aggregate Column computing a percentile value in a group. */
 public class Percentile extends Aggregator {

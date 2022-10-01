@@ -1,9 +1,5 @@
 ## Utilities for working with Java polyglot objects.
 type Java
-
-    ## A type for operations specific to Java polyglot objects.
-    type Java
-
     ## Adds the provided entry to the host class path.
 
        Arguments:

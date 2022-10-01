@@ -2,7 +2,7 @@
   max-width: 1180px;
   margin: 0 auto;
   padding: 50px;
-  font-family: "Causten";
+  font-family: "M PLUS 1";
   font-size: 15px;
   line-height: 1.4;
   color: #434343;
@@ -89,7 +89,7 @@
 .enso-internal-templates-view .enso-internal-card p {
   margin: 0;
   padding: 0;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 

@@ -1,10 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
-
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
@@ -15,6 +10,12 @@ import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends NumericStorage {
@@ -71,7 +72,7 @@ public class LongStorage extends NumericStorage {
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.LONG;
   }
 
@@ -163,14 +164,16 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof Double) {
-      return fillMissingDouble((Double) arg);
-    } else if (arg instanceof Long) {
-      return fillMissingLong((Long) arg);
-    } else {
-      return super.fillMissing(arg);
+  public Storage fillMissing(Value arg) {
+    if (arg.isNumber()) {
+      if (arg.fitsInLong()) {
+        return fillMissingLong(arg.asLong());
+      } else {
+        return fillMissingDouble(arg.asDouble());
+      }
     }
+
+    return super.fillMissing(arg);
   }
 
   @Override

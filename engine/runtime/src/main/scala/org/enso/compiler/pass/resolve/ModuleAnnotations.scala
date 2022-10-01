@@ -48,7 +48,7 @@ case object ModuleAnnotations extends IRPass {
           lastAnnotations :+= ann
           None
         case comment: IR.Comment => Some(comment)
-        case typ: Definition.Type =>
+        case typ: Definition.SugaredType =>
           val res = Some(
             resolveComplexType(typ).updateMetadata(
               this -->> Annotations(lastAnnotations)
@@ -72,7 +72,9 @@ case object ModuleAnnotations extends IRPass {
     * @param typ the type in which to resolve annotations
     * @return `typ` with all top-level annotations resolved
     */
-  def resolveComplexType(typ: Definition.Type): Definition.Type = {
+  def resolveComplexType(
+    typ: Definition.SugaredType
+  ): Definition.SugaredType = {
     var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
     val newBodyElems = typ.body.flatMap {
       case ann: Name.Annotation =>

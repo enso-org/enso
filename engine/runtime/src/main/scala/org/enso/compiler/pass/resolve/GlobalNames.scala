@@ -4,11 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  Resolution,
-  ResolvedConstructor,
-  ResolvedMethod
-}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
@@ -223,16 +219,27 @@ case object GlobalNames extends IRPass {
       app.arguments.map(
         _.mapExpressions(processExpression(_, bindings, freshNameSupply))
       )
-    val newApp: Option[IR.Expression] = for {
+
+    val appData = for {
       thisArgPos <- findThisPosition(processedArgs)
       thisArg = processedArgs(thisArgPos)
       thisArgResolution <- thisArg.value.getMetadata(this)
       funAsVar          <- asGlobalVar(processedFun)
-      cons              <- resolveToCons(thisArgResolution, funAsVar)
-      newFun =
-        buildSymbolFor(cons, freshNameSupply).setLocation(funAsVar.location)
-      newArgs = processedArgs.patch(thisArgPos, Nil, 1)
-    } yield buildConsApplication(app, cons.cons, newFun, newArgs)
+      cons              <- resolveQualName(thisArgResolution, funAsVar)
+    } yield (thisArgPos, funAsVar, cons)
+
+    val newApp = appData.flatMap {
+      case (
+            thisArgPos,
+            funAsVar,
+            cons: BindingsMap.ResolvedConstructor
+          ) =>
+        val newFun =
+          buildSymbolFor(cons, freshNameSupply).setLocation(funAsVar.location)
+        val newArgs = processedArgs.patch(thisArgPos, Nil, 1)
+        Some(buildConsApplication(app, cons.cons, newFun, newArgs))
+      case _ => None
+    }
     newApp.getOrElse(
       app.copy(function = processedFun, arguments = processedArgs)
     )
@@ -262,10 +269,10 @@ case object GlobalNames extends IRPass {
       .updateMetadata(this -->> BindingsMap.Resolution(cons))
   }
 
-  private def resolveToCons(
+  private def resolveQualName(
     thisResolution: BindingsMap.Resolution,
     consName: IR.Name.Literal
-  ): Option[BindingsMap.ResolvedConstructor] =
+  ): Option[BindingsMap.ResolvedName] =
     thisResolution.target match {
       case BindingsMap.ResolvedModule(module) =>
         val resolution = module
@@ -277,8 +284,8 @@ case object GlobalNames extends IRPass {
           )
           .resolveExportedName(consName.name)
         resolution match {
-          case Right(cons @ ResolvedConstructor(_, _)) => Some(cons)
-          case _                                       => None
+          case Right(res) => Some(res)
+          case _          => None
         }
       case _ => None
     }

@@ -22,7 +22,11 @@ polyglot java import org.enso.table.operations.OrderBuilder
          example_from_vector =
              Table.Column.from_vector "My Column" [1, 2, 3, 4, 5]
 from_vector : Text -> Vector -> Column
-from_vector name items = Column (Java_Column.fromItems name items.to_array)
+from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
+
+# TODO Dubious constructor export
+from project.Data.Column.Column import all
+from project.Data.Column.Column export all
 
 type Column
 
@@ -32,7 +36,7 @@ type Column
 
        Arguments:
        - java_column: The internal representation of the column.
-    type Column java_column
+    Column_Data java_column
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -473,13 +477,13 @@ type Column
         index = self.java_column.getIndex
         name = self.java_column.getName
         new_st = case default of
-            Column java_col ->
+            Column_Data java_col ->
                 other_storage = java_col.getStorage
                 storage.fillMissingFrom other_storage
             _ ->
                 storage.fillMissing default
         col = Java_Column.new name index new_st
-        Column col
+        Column_Data col
 
     ## ALIAS Drop Missing
 
@@ -593,7 +597,7 @@ type Column
         index = self.java_column.getIndex
         new_st = storage.map Nothing function
         col = Java_Column.new "Result" index new_st
-        Column col
+        Column_Data col
 
     ## ALIAS Transform Columns
 
@@ -623,7 +627,7 @@ type Column
         ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
 
     ## ALIAS Rename Column
 
@@ -640,7 +644,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column
-    rename self name = Column (self.java_column.rename name)
+    rename self name = Column_Data (self.java_column.rename name)
 
     ## Returns the name of this column.
 
@@ -699,7 +703,7 @@ type Column
     index : Column ! Table.No_Index_Set_Error
     index self = case self.java_column.getIndex.toColumn of
         Nothing -> Error.throw Table.No_Index_Set_Error
-        i -> Column i
+        i -> Column_Data i
 
     ## Sets the index of this column, using the provided column.
 
@@ -714,7 +718,7 @@ type Column
              example_set_index =
                 Examples.decimal_column.set_index Examples.integer_column
     set_index : Column -> Column
-    set_index self index = Column (self.java_column.setIndex index.java_column)
+    set_index self index = Column_Data (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -733,7 +737,7 @@ type Column
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at self index =
         valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index self.length) else
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error_Data index self.length) else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
@@ -757,7 +761,7 @@ type Column
                  Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
     where : Column -> Column
     where self indexes =
-        Column (self.java_column.mask indexes.java_column)
+        Column_Data (self.java_column.mask indexes.java_column)
 
     ## Returns a vector containing all the elements in this column.
 
@@ -781,11 +785,8 @@ type Column
     storage_type : Storage.Type
     storage_type self =
         tp = self.java_column.getStorage.getType
-        if tp == storage_type_string then Storage.Text else
-            if tp == storage_type_long then Storage.Integer else
-                if tp == storage_type_double then Storage.Decimal else
-                    if tp == storage_type_bool then Storage.Boolean else
-                        Storage.Any
+        storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
+            Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE
 
@@ -850,7 +851,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table.Table
-    to_table self = Table.Table self.java_column.toTable
+    to_table self = Table.Table_Data self.java_column.toTable
 
     ## UNSTABLE
        ADVANCED
@@ -1005,7 +1006,7 @@ type Column
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
-        Column new_col
+        Column_Data new_col
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
@@ -1034,7 +1035,7 @@ type Column
         length = self.length
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
-        Column (self.java_column.slice offset limit)
+        Column_Data (self.java_column.slice offset limit)
 
     ## UNSTABLE
 
@@ -1050,7 +1051,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
+    first self = self.at 0 . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1082,7 +1083,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
+    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1098,7 +1099,7 @@ type Column
     reverse : Column
     reverse self =
         mask = OrderBuilder.buildReversedMask self.length
-        Column <| self.java_column.applyMask mask
+        Column_Data <| self.java_column.applyMask mask
 
     ## UNSTABLE
 
@@ -1112,14 +1113,18 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count self = Column self.java_column.duplicateCount
+    duplicate_count self = Column_Data self.java_column.duplicateCount
+
+# TODO Dubious constructor export
+from project.Data.Column.Aggregate_Column import all
+from project.Data.Column.Aggregate_Column export all
 
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
 type Aggregate_Column
 
     ## PRIVATE
-    type Aggregate_Column java_column
+    Aggregate_Column_Data java_column
 
     ## Converts this aggregate column into a column, aggregating groups
        with the provided `function`.
@@ -1144,7 +1149,7 @@ type Aggregate_Column
     reduce self function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.from_polyglot_array arr)
         r = self.java_column.aggregate Nothing name_suffix f skip_missing
-        Column r
+        Column_Data r
 
     ## Sums the values in each group.
 
@@ -1179,7 +1184,7 @@ type Aggregate_Column
     max : Text -> Column
     max self name_suffix='_max' =
         r = self.java_column.aggregate 'max' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.max) True
-        Column r
+        Column_Data r
 
     ## Computes the minimum element of each group.
 
@@ -1196,7 +1201,7 @@ type Aggregate_Column
     min : Text -> Column
     min self name_suffix='_min' =
         r = self.java_column.aggregate 'min' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.min) True
-        Column r
+        Column_Data r
 
     ## Computes the number of non-missing elements in each group.
 
@@ -1214,7 +1219,7 @@ type Aggregate_Column
     count : Text -> Column
     count self name_suffix='_count' =
         r = self.java_column.aggregate 'count' name_suffix (x-> x.length) True
-        Column r
+        Column_Data r
 
     ## Computes the mean of non-missing elements in each group.
 
@@ -1233,7 +1238,7 @@ type Aggregate_Column
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.from_polyglot_array v).reduce (+) / v.length
         r = self.java_column.aggregate 'mean' name_suffix vec_mean True
-        Column r
+        Column_Data r
 
     ## Gathers all elements in a group into a vector and returns a column of
        such vectors.
@@ -1251,7 +1256,7 @@ type Aggregate_Column
     values : Text -> Column
     values self name_suffix='_values' =
         r = self.java_column.aggregate Nothing name_suffix Vector.from_polyglot_array False
-        Column r
+        Column_Data r
 
     ## Prints an ASCII-art column with this data to the standard output.
 
@@ -1268,25 +1273,19 @@ type Aggregate_Column
     print : Nothing
     print self = self.values.print
 
-## UNSTABLE
-
-   Pretty-prints the index out of bounds error.
-Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text self =
-    ix_text = self.index.to_text
-    len_text = self.length.to_text
-    "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."
+# TODO Dubious constructor export
+from project.Data.Column.Empty_Error import all
+from project.Data.Column.Empty_Error export all
 
 ## UNSTABLE
 
    An error for when the column contains no elements.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The column is empty."
+       Pretty prints the empty column error.
+    to_display_text : Text
+    to_display_text self = "The column is empty."
 
 ## PRIVATE
 
@@ -1299,17 +1298,17 @@ Empty_Error.to_display_text self = "The column is empty."
    - operand: The operand to apply to the function after `column`.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_binary_op column name fallback_fn operand = case operand of
-    Column col2 ->
+    Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 True
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
 
@@ -1324,31 +1323,21 @@ run_vectorized_unary_op column name fallback_fn =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn
-    Column (Java_Column.new "Result" ix rs)
+    Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
-storage_type_long : Integer
-storage_type_long = 1
-
-## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.DOUBLE`
-storage_type_double : Integer
-storage_type_double = 2
+   Enumerates storage types in a way that is consistent with
+   `org.enso.table.data.Storage.Type`, i.e.
+   `storage_type.at org.enso.table.data.Storage.Type.LONG` will yield the
+   corresponding `Storage.Integer`.
+storage_types : Vector Storage.Type
+storage_types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
 
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
 storage_type_string : Integer
 storage_type_string = 3
-
-## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Type.BOOL`
-storage_type_bool : Integer
-storage_type_bool = 4
 
 ## PRIVATE
 
@@ -1372,12 +1361,17 @@ storage_to_json storage factory =
    - ix: The index in the column from which to get the item.
 get_item_string : Column -> Integer -> Text
 get_item_string column ix =
-    tp = column.getType
-    if tp == storage_type_string then column.getItem ix else
-        column.getItem ix . to_text
+    item = column.getItem ix
+    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
+       to "'a'" and not just "a". The code can be simplified once the following
+       task is implemented:
+       https://www.pivotaltracker.com/story/show/181499256
+    case item of
+        Text -> item
+        _ -> item.to_text
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = Index_Sub_Range.normalize_ranges ranges
-    Column (column.java_column.slice normalized.to_array)
+    Column_Data (column.java_column.slice normalized.to_array)

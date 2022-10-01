@@ -1,19 +1,23 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Connection.SSL_Mode.SSL_Mode import all
+from project.Connection.SSL_Mode.SSL_Mode export all
+
 type SSL_Mode
     ## Do not use SSL for the connection.
-    type Disable
+    Disable
 
     ## Prefer SSL for the connection, but does not verify the server certificate.
-    type Prefer
+    Prefer
 
     ## Will use SSL but does not verify the server certificate.
-    type Require
+    Require
 
     ## Will use SSL, validating the certificate but not verifying the hostname.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.
-    type Verify_CA ca_file:Nothing|File|Text=Nothing
+    Verify_CA ca_file:Nothing|File|Text=Nothing
 
     ## Will use SSL, validating the certificate and checking the hostname matches.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.
-    type Full_Verification ca_file:Nothing|File|Text=Nothing
+    Full_Verification ca_file:Nothing|File|Text=Nothing

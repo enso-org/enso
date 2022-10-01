@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Date_Period
+import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -53,7 +55,7 @@ now = @Builtin_Method "Date_Time.now"
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
     Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
-        Error.throw (Time_Error java_exception.getMessage)
+        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## ALIAS Time from Text
 
@@ -135,27 +137,26 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
             Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error java_exception.getMessage)) <|
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Date_Time.parse_builtin text
             Text    -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
+
+## PRIVATE
+
+   A date-time with a timezone in the ISO-8601 calendar system, such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Time is a representation of a date-time with a timezone. This class
+   stores all date and time fields, to a precision of nanoseconds, and a
+   timezone, with a zone offset used to handle ambiguous local
+   date-times.
+
+   For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
+   the Europe/Paris timezone" can be stored as `Time`.
+@Builtin_Type
 type Date_Time
-
-    ## PRIVATE
-
-       A date-time with a timezone in the ISO-8601 calendar system, such as
-       "2007-12-03T10:15:30+01:00 Europe/Paris".
-
-       Time is a representation of a date-time with a timezone. This class
-       stores all date and time fields, to a precision of nanoseconds, and a
-       timezone, with a zone offset used to handle ambiguous local
-       date-times.
-
-       For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
-       the Europe/Paris timezone" can be stored as `Time`.
-    @Builtin_Type
-    type Date_Time
 
     ## Get the year portion of the time.
 
@@ -327,6 +328,24 @@ type Date_Time
     day_of_week self =
         Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
+    ## Returns the first date within the `Time_Period` or `Date_Period`
+       containing self.
+    start_of : (Date_Period|Time_Period) -> Date_Time
+    start_of self period=Date_Period.Month =
+        adjusted = period.adjust_start self
+        case period.is_date_period of
+            True -> Time_Period.Day.adjust_start adjusted
+            False -> adjusted
+
+    ## Returns the last date within the `Time_Period` or `Date_Period`
+       containing self.
+    end_of : (Date_Period|Time_Period) -> Date_Time
+    end_of self period=Date_Period.Month =
+        adjusted = period.adjust_end self
+        case period.is_date_period of
+            True -> Time_Period.Day.adjust_end adjusted
+            False -> adjusted
+
     ## ALIAS Time to Date
 
        Convert this point in time to date, discarding the time of day
@@ -373,6 +392,43 @@ type Date_Time
     + self amount =
         Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period amount.internal_duration
 
+    ## Shift the date by the specified amount of business days.
+
+       For the purpose of this method, the business days are defined to be
+       Monday through Friday.
+
+       This method always returns a day which is a business day - if the shift
+       amount is zero, the closest following business day is returned. For the
+       purpose of calculating the shift, the holidays are treated as if we were
+       starting at the next business day after them, for example counting the
+       shift starting on Saturday or Sunday works as if we were counting the
+       shift from Monday (for positive shifts). So shifting Sunday by zero days
+       will return Monday, but shifting it by one day will return a Tuesday
+       (so that there is the full work day - Monday) within the interval. For
+       negative shifts, shifting either Saturday or Sunday one day backwards
+       will return Friday, but shifting Monday one day backwards will return a
+       Friday. The whole logic is made consistent with `work_days_until`, so
+       that the following properties hold:
+           date.work_days_until (date.add_work_days N) == N for any N >= 0
+           (date.add_work_days N).work_days_until date == -N for any N < 0
+
+       The time of day is preserved, only the date is shifted.
+
+       Arguments:
+       - amount: The number of business days to shift the date by. If `amount`
+         is zero, the current date is returned, unless it is a weekend or a
+         holiday, in which case the next business day is returned.
+       - holidays: An optional list of dates of custom holidays that should also
+         be skipped. If it is not provided, only weekends are skipped.
+
+       > Example
+         Shift the date by 5 business days.
+
+             example_shift = Date_Time.new 2020 2 3 11 45 . add_work_days 5
+    add_work_days : Integer -> Vector Date -> Date_Time
+    add_work_days self days=1 holidays=[] =
+        self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
+
     ## Subtract the specified amount of time from this instant to get a new
        instant.
 
@@ -410,7 +466,7 @@ type Date_Time
 
              example_to_json = Date_Time.now.to_json
     to_json : Json.Object
-    to_json self = Json.from_pairs [["type", "Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+    to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 
@@ -501,12 +557,16 @@ type Date_Time
 
          (Date_Time.new 2000).compare_to (Date_Time.new 2001)
     compare_to : Time -> Ordering
-    compare_to self that =
-        sign = Time_Utils.compare_to_zoneddatetime self that
-        Ordering.from_sign sign
+    compare_to self that = case that of
+        Date_Time ->
+            sign = Time_Utils.compare_to_zoneddatetime self that
+            Ordering.from_sign sign
+        _ -> Error.throw (Type_Error_Data Date_Time that "that")
 
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
-    == self that =
-        sign = Time_Utils.compare_to_zoneddatetime self that
-        0 == sign
+    == self that = case that of
+        Date_Time ->
+            sign = Time_Utils.compare_to_zoneddatetime self that
+            0 == sign
+        _ -> False

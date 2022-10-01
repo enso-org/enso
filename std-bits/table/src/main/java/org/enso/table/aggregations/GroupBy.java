@@ -10,7 +10,7 @@ public class GroupBy extends Aggregator {
   private final Storage storage;
 
   public GroupBy(String name, Column column) {
-    super(name, Storage.Type.OBJECT);
+    super(name, column.getStorage().getType());
     storage = column.getStorage();
   }
 

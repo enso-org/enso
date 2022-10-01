@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.System.File_Format
 
 import project.Data.Table
 import project.Data.Column
@@ -8,28 +9,40 @@ import project.Data.Sort_Column_Selector
 import project.Data.Column_Name_Mapping
 import project.Data.Data_Formatter
 import project.Data.Match_Columns
+import project.Data.Aggregate_Column
 
 import project.IO.File_Read
-import project.IO.File_Format
-import project.IO.Excel
-import project.IO.Quote_Style
+import project.IO.Auto_Detect
+
+import project.Delimited.Quote_Style
+import project.Delimited.Delimited_Format
+
+import project.Excel.Section
+import project.Excel.Range
+import project.Excel.Excel_Format
 
 import project.Errors
 
-from project.Data.Table export new, from_rows, join, concat, Table
+from project.Data.Table export new, from_columns, from_rows, join, concat, Table, Table_Data
 export project.Data.Column
 export project.Data.Column_Selector
 export project.Data.Sort_Column
 export project.Data.Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
+export project.Data.Aggregate_Column
 
 export project.IO.File_Read
-export project.IO.File_Format
-export project.IO.Quote_Style
+from project.IO.Auto_Detect export Auto_Detect
 
-from project.IO.Excel export Excel_Section, Excel_Range
-from project.Data.Data_Formatter export Data_Formatter
+export project.Delimited.Quote_Style
+from project.Delimited.Delimited_Format export Delimited_Format, Delimited
+
+from project.Excel.Excel_Format export Excel_Format, Excel
+from project.Excel.Section export Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
+from project.Excel.Range export Excel_Range
+
+from project.Data.Data_Formatter export Data_Formatter, Data_Formatter_Data
 
 import Standard.Geo.Geo_Json
 
@@ -66,8 +79,8 @@ import Standard.Geo.Geo_Json
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
              json.to_table headers
-Json.Array.to_table : Vector -> Table
-Json.Array.to_table self fields = case self of
+Json.Json.to_table : Vector -> Table
+Json.Json.to_table self fields=Nothing = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->
@@ -77,67 +90,41 @@ Json.Array.to_table self fields = case self of
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
         Table.new cols
+    Json.Object _ ->
+        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error_Data self "not being a feature collection") else
+            case self.get "features" of
+                Json.Array items ->
+                    feature_rows = items.map .get_feature_row
+                    column_names = case fields of
+                        Nothing ->
+                            column_names_row = feature_rows.fold Map.empty acc-> row->
+                                row.fold_with_key acc a-> k-> _->
+                                    a.insert k 0
+                            column_names_row.keys
+                        _ -> fields
+                    rows = feature_rows.map row->
+                        column_names.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
+                    cols = column_names.map_with_index i-> n->
+                        [n, rows.map (_.at i)]
+                    Table.new cols
 
-## ALIAS To Table
+                _ -> Error.throw (Invalid_Format_Error_Data self "not having the 'features' key.")
 
-   Converts a JSON object into a dataframe, by looking up the requested keys
-   from each item.
 
-   Arguments:
-   - fields: a vector of texts representing the names of fields to look up.
-
-   The function assumes the elements have one of the following structures:
-   - a GeoJSON object of type FeatureCollection. The format is described in
-     rfc7946.
-
-   ? Implementation Note
-     The GeoJson support is only partial.
-     - Supported geometry objects are Position and Point. Rows containing
-       other geometry objects are not included in the resulting dataframe.
-     - Position arrays are truncated to 3 elements: longitude, latitude
-       and elevation.
-     - Nested properties are not supported and not included in the resulting
-       dataframe.
-
-   > Example
-     Convert a GeoJSON object into a dataframe by looking up the necessary keys
-     in the input item.
-
-         import Standard.Examples
-         import Standard.Table
-
-         example_to_table =
-             json = Examples.geo_json
-             json.to_table
-Json.Object.to_table : Vector -> Table ! Invalid_Format_Error
-Json.Object.to_table self fields=Nothing =
-    if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error self "not being a feature collection") else
-        case self.get "features" of
-            Json.Array items ->
-                feature_rows = items.map .get_feature_row
-                column_names = case fields of
-                    Nothing ->
-                        column_names_row = feature_rows.fold Map.empty acc-> row->
-                            row.fold_with_key acc a-> k-> _->
-                                a.insert k 0
-                        column_names_row.keys
-                    _ -> fields
-                rows = feature_rows.map row->
-                    column_names.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
-                cols = column_names.map_with_index i-> n->
-                    [n, rows.map (_.at i)]
-                Table.new cols
-
-            _ -> Error.throw (Invalid_Format_Error self "not having the 'features' key.")
+# TODO Dubious constructor export
+from project.Main.Invalid_Format_Error import all
+from project.Main.Invalid_Format_Error export all
 
 ## UNSTABLE
 
    An error representing an invalid format for conversion.
-type Invalid_Format_Error input message
+type Invalid_Format_Error
+    Invalid_Format_Error_Data input message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Provides a human-readable representation of the Invalid_Format_Error.
-Invalid_Format_Error.to_display_text : Text
-Invalid_Format_Error.to_display_text self =
-    "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
+       Provides a human-readable representation of the Invalid_Format_Error.
+    to_display_text : Text
+    to_display_text self =
+        "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
+

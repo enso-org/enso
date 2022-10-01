@@ -13,9 +13,10 @@ members = [
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",
   "lib/rust/profiler/data",
+  "lib/rust/profiler/demo-data",
   "integration-test",
   "tools/language-server/logstat",
-  "tools/language-server/wstest"
+  "tools/language-server/wstest",
 ]
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]

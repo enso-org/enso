@@ -1,19 +1,21 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.base.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
-
-import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.Column;
+import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -24,7 +26,7 @@ public abstract class Storage {
   public abstract int countMissing();
 
   /** @return the type tag of this column's storage. Must be one of {@link Type} */
-  public abstract long getType();
+  public abstract int getType();
 
   /**
    * Checks whether the value at {@code idx} is missing.
@@ -45,16 +47,19 @@ public abstract class Storage {
   /**
    * Enumerating possible storage types.
    *
-   * <p>Keep in sync with variables in {@code Table.Table}. These variables are copied between Enso
-   * and Java code, in order to make them trivially constant on the Enso side, without invoking the
-   * polyglot machinery to access them.
+   * <p>Keep in sync with variables in {@code Standard.Table.Data.Column}. These variables are
+   * copied between Enso and Java code, in order to make them trivially constant on the Enso side,
+   * without invoking the polyglot machinery to access them.
    */
   public static final class Type {
+    public static final int OBJECT = 0;
     public static final int LONG = 1;
     public static final int DOUBLE = 2;
     public static final int STRING = 3;
     public static final int BOOL = 4;
-    public static final int OBJECT = 5;
+    public static final int DATE = 5;
+    public static final int TIME_OF_DAY = 6;
+    public static final int DATE_TIME = 7;
   }
 
   /** A container for names of vectorizable operation. */
@@ -112,7 +117,9 @@ public abstract class Storage {
       if (it == null) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it, argument));
+        Object result = function.apply(it, argument);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -137,7 +144,7 @@ public abstract class Storage {
    * @return an aggregator satisfying the above properties.
    */
   public final Aggregator getAggregator(
-      String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {
+      String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
     Aggregator result = null;
     if (name != null) {
       result = getVectorizedAggregator(name, resultSize);
@@ -156,7 +163,7 @@ public abstract class Storage {
    * @param function the function to run.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage map(String name, Function<Object, Object> function) {
+  public final Storage map(String name, Function<Object, Value> function) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
@@ -166,7 +173,9 @@ public abstract class Storage {
       if (it == null) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it));
+        Value result = function.apply(it);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -193,7 +202,9 @@ public abstract class Storage {
       if (skipNa && (it1 == null || it2 == null)) {
         builder.appendNoGrow(null);
       } else {
-        builder.appendNoGrow(function.apply(it1, it2));
+        Object result = function.apply(it1, it2);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        builder.appendNoGrow(converted);
       }
     }
     return builder.seal();
@@ -205,7 +216,7 @@ public abstract class Storage {
    * @param arg the value to use for missing elements
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage fillMissing(Object arg) {
+  public Storage fillMissing(Value arg) {
     return fillMissingHelper(arg, new ObjectBuilder(size()));
   }
 
@@ -227,11 +238,12 @@ public abstract class Storage {
     return builder.seal();
   }
 
-  protected final Storage fillMissingHelper(Object arg, Builder builder) {
+  protected final Storage fillMissingHelper(Value arg, Builder builder) {
+    Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(arg);
+        builder.appendNoGrow(convertedFallback);
       } else {
         builder.appendNoGrow(it);
       }

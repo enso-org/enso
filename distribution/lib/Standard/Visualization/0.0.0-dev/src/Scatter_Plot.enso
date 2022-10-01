@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
+from Standard.Table import Table, Column
+import Standard.Table
+
 import Standard.Visualization.Helpers
 from Standard.Base.Data.Index_Sub_Range import Sample
 
@@ -23,31 +24,32 @@ axis_field = 'axis'
 label_field : Text
 label_field = 'label'
 
+# TODO Dubious constructor export
+from project.Scatter_Plot.Point_Data import all
+from project.Scatter_Plot.Point_Data export all
+
 ## PRIVATE
 
    Represents a recognized point data field for a scatter plot visualization.
 type Point_Data
 
     ## PRIVATE
-    type Point_Data
+    X
 
     ## PRIVATE
-    type X
+    Y
 
     ## PRIVATE
-    type Y
+    Color
 
     ## PRIVATE
-    type Color
+    Shape
 
     ## PRIVATE
-    type Shape
+    Label
 
     ## PRIVATE
-    type Label
-
-    ## PRIVATE
-    type Size
+    Size
 
     ## PRIVATE
 
@@ -57,11 +59,11 @@ type Point_Data
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names self = self.all_fields.map _.name
+    recognized_names = Point_Data.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized self column = self.recognized_names.contains column.name
+    is_recognized self column = Point_Data.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
@@ -70,7 +72,7 @@ type Point_Data
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
-        X -> table.index.catch_ <| self.iota table.row_count
+        X -> table.index.catch_ <| Point_Data.iota table.row_count
         Y ->
             x_column = X.lookup_in table
             candidates = table.all_columns
@@ -96,11 +98,10 @@ type Point_Data
 
 ## PRIVATE
 type No_Fallback_Column
-
-## PRIVATE
-No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text self =
-    "No fallback column found for the scatter plot."
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
@@ -153,7 +154,12 @@ bound_data bounds data = case bounds of
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
-type Extreme min_x max_x min_y max_y
+# TODO Dubious constructor export
+from project.Scatter_Plot.Extreme import all
+from project.Scatter_Plot.Extreme export all
+
+type Extreme
+    Extreme_Data min_x max_x min_y max_y
 
 ## PRIVATE
 limit_data limit data = case limit of
@@ -167,11 +173,11 @@ limit_data limit data = case limit of
             new_min_y = if y current.min_y.second > y point then [idx, point] else current.min_y
             new_max_x = if x current.max_x.second < x point then [idx, point] else current.max_x
             new_max_y = if y current.max_y.second < y point then [idx, point] else current.max_y
-            Extreme new_min_x new_max_x new_min_y new_max_y
+            Extreme_Data new_min_x new_max_x new_min_y new_max_y
 
         first = [0, data.first]
-        bounds = case data.fold_with_index (Extreme first first first first) update_extreme of
-            Extreme min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
+        bounds = case data.fold_with_index (Extreme_Data first first first first) update_extreme of
+            Extreme_Data min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
             _ -> []
         extreme = Map.from_vector bounds . values
 
@@ -200,12 +206,12 @@ json_from_vector vec bounds limit =
 
    Arguments:
    - value: the value to be visualized.
-process_to_json_text : Any -> Text
+process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        Column.Column _ -> json_from_table  value.to_table bounds limit
-        Table.Table _   -> json_from_table  value bounds limit
-        Vector.Vector _ -> json_from_vector value bounds limit
+        Column.Column_Data _ -> json_from_table  value.to_table bounds limit
+        Table.Table_Data _   -> json_from_table  value bounds limit
+        Vector.Vector -> json_from_vector value bounds limit
         _               -> json_from_vector value.to_vector bounds limit
 
     json.to_text

@@ -4,6 +4,10 @@ from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe
 
+# TODO Dubious constructor export
+from project.Data.List.List import all
+from project.Data.List.List export all
+
 ## The basic cons-list type.
 
    A cons-list allows storage of an arbitrary number of elements.
@@ -18,14 +22,14 @@ import Standard.Base.Runtime.Unsafe
 type List
 
     ## The type that indicates the end of a cons list.
-    type Nil
+    Nil
 
     ## A cons cell for a cons list.
 
        Arguments:
        - x: The element at this position in the list.
        - xs: The rest of the list.
-    type Cons x xs
+    Cons x xs
 
     ## Computes the number of elements in the list.
 
@@ -351,12 +355,11 @@ type List
 
    An error representing that the list is empty.
 type Empty_Error
+    ## PRIVATE
 
-## UNSTABLE
-
-   Pretty prints the empty error.
-Empty_Error.to_display_text : Text
-Empty_Error.to_display_text self = "The List is empty."
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = "The List is empty."
 
 ## PRIVATE
    A helper for the `map` function.

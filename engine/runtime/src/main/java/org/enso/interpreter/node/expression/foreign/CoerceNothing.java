@@ -23,7 +23,7 @@ public abstract class CoerceNothing extends Node {
 
   @Specialization(guards = "interop.isNull(value)")
   public Object doNothing(Object value, @CachedLibrary(limit = "1") InteropLibrary interop) {
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Fallback

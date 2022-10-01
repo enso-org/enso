@@ -24,12 +24,10 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   private class BuiltinTypeConstr {
     private String tpeName;
     private String fullName;
-    private String[] paramNames;
 
-    BuiltinTypeConstr(String tpeName, String fullName, String[] params) {
+    BuiltinTypeConstr(String tpeName, String fullName) {
       this.tpeName = tpeName;
       this.fullName = fullName;
-      this.paramNames = params;
     }
 
     public String getFullName() {
@@ -38,10 +36,6 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
 
     public String getTpeName() {
       return tpeName;
-    }
-
-    public String[] getParamNames() {
-      return paramNames;
     }
   }
 
@@ -77,8 +71,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
             processingEnv.getFiler(),
             ensoTypeName,
             pkgName + "." + clazzName,
-            builtinTypeAnnotation.name(),
-            builtinTypeAnnotation.params());
+            builtinTypeAnnotation.name());
       }
     }
     return true;
@@ -105,8 +98,6 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
             entry.getKey()
                 + ":"
                 + constr.getTpeName()
-                + ":"
-                + StringUtils.join(Arrays.asList(constr.getParamNames()), ",")
                 + ":"
                 + constr.getFullName()
                 + "\n");
@@ -154,13 +145,13 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   }
 
   protected void registerBuiltinType(
-      Filer f, String name, String clazzName, String fullName, String[] params) {
+      Filer f, String name, String clazzName, String fullName) {
     Map<String, BuiltinTypeConstr> classes = builtinTypes.get(f);
     if (classes == null) {
       classes = new HashMap<>();
       builtinTypes.put(f, classes);
     }
-    classes.put(name, new BuiltinTypeConstr(clazzName, fullName, params));
+    classes.put(name, new BuiltinTypeConstr(clazzName, fullName));
   }
 
   @Override
@@ -182,11 +173,11 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
     return SourceVersion.latest();
   }
 
-  public record TypeMetadataEntry(String ensoName, String clazzName, String[] paramNames, Optional<String> stdlibName) implements MetadataEntry {
+  public record TypeMetadataEntry(String ensoName, String clazzName, Optional<String> stdlibName) implements MetadataEntry {
 
     @Override
     public String toString() {
-      return ensoName + ":" + clazzName + ":" + StringUtils.join(paramNames, ",") + ":" + stdlibName.orElse("");
+      return ensoName + ":" + clazzName + ":" + stdlibName.orElse("");
     }
 
     @Override
@@ -203,8 +194,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   public static TypeMetadataEntry fromStringToMetadataEntry(String line) {
     String[] elements = line.split(":");
     if (elements.length < 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    String[] params = elements.length >= 3 ? elements[2].split(",") : new String[0];
-    Optional<String> stdLibName = elements.length == 4 ? Optional.of(elements[3]) : Optional.empty();
-    return new TypeMetadataEntry(elements[0], elements[1], params, stdLibName);
+    Optional<String> stdLibName = elements.length == 3 ? Optional.of(elements[2]) : Optional.empty();
+    return new TypeMetadataEntry(elements[0], elements[1], stdLibName);
   }
 }

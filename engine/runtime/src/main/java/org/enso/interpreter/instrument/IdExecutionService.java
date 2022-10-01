@@ -216,7 +216,7 @@ public interface IdExecutionService {
       if (rootNode instanceof MethodRootNode) {
         MethodRootNode methodNode = (MethodRootNode) rootNode;
         moduleName = methodNode.getModuleScope().getModule().getName();
-        typeName = methodNode.getAtomConstructor().getQualifiedName();
+        typeName = methodNode.getType().getQualifiedName();
         functionName = methodNode.getMethodName();
       } else if (rootNode instanceof EnsoRootNode) {
         moduleName = ((EnsoRootNode) rootNode).getModuleScope().getModule().getName();

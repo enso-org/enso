@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
+from Standard.Table import Table, Column
+import Standard.Table
 import Standard.Visualization.Helpers
 
 ## PRIVATE
@@ -18,13 +18,17 @@ Table.Table.value_column self =
     named_col = self.lookup_ignore_case 'value'
     named_col.catch_ self.first_numeric
 
+# TODO Dubious constructor export
+from project.Histogram.Update import all
+from project.Histogram.Update export all
+
 ## PRIVATE
 
    Information that are placed in an update sent to a visualization.
 type Update
 
     ## PRIVATE
-    type Update values label
+    Update_Data values label
 
     ## PRIVATE
 
@@ -44,20 +48,20 @@ from_table table =
     col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
-    Update values label
+    Update_Data values label
 
 ## PRIVATE
 from_vector : Vector -> Update
 from_vector vector =
-    Update vector Nothing
+    Update_Data vector Nothing
 
 ## PRIVATE
 from_value : Any -> Update
 from_value value =
     case value of
-        Table.Table _   -> from_table value
-        Vector.Vector _ -> from_vector value
-        Column.Column _ -> from_table value.to_table
+        Table.Table_Data _   -> from_table value
+        Vector.Vector -> from_vector value
+        Column.Column_Data _ -> from_table value.to_table
         _               -> from_vector value.to_vector
 
 ## PRIVATE

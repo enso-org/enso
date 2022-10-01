@@ -29,7 +29,7 @@ json_from_table table =
 process_to_json_text : Any -> Text
 process_to_json_text value =
     json = case value of
-        Table.Table _ -> json_from_table value
+        Table.Table_Data _ -> json_from_table value
         _ -> value.to_json
 
     json.to_text

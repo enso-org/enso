@@ -22,8 +22,9 @@
     "mime-types": "^2.1.35",
     "@electron/remote": "^2.0.8",
     "electron-is-dev": "^1.2.0",
-    "yargs": "^15.3.0"
+    "yargs": "=15.4.1"
   },
+  "//": "`yargs` dependency is pinned to version 15.4.1 because newer version triggers https://github.com/evanw/esbuild/issues/2441",
   "devDependencies": {
     "electron": "17.1.0",
     "electron-builder": "^22.14.13",
@@ -31,7 +32,8 @@
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
     "enso-copy-plugin": "^1.0.0",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "fast-glob": "^3.2.12"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",

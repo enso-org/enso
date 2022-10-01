@@ -8,7 +8,7 @@
 const textType = 'Builtins.Main.Text'
 
 /** The module prefix added for unknown SQL types. */
-const customSqlTypePrefix = 'Standard.Database.Data.Sql.Sql_Type.'
+const customSqlTypePrefix = 'Standard.Database.Data.SQL.SQL_Type.'
 
 /** Specifies opacity of interpolation background color. */
 const interpolationBacgroundOpacity = 0.3
@@ -87,8 +87,7 @@ class SqlVisualization extends Visualization {
 
     constructor(api) {
         super(api)
-        this.setPreprocessorModule('Standard.Visualization.Sql.Visualization')
-        this.setPreprocessorCode(`x -> prepare_visualization x`)
+        this.setPreprocessor('Standard.Visualization.SQL.Visualization', 'prepare_visualization')
     }
 
     onDataReceived(data) {

@@ -1,0 +1,95 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec =
+    Test.group "JavaScript Objects, Arrays & Functions" <|
+        Test.specify "Missing method" <|
+            Test.expect_panic_with data.missing No_Such_Method_Error_Data
+
+        Test.specify "Found method" <|
+            data.classes
+
+        Test.specify "Array length" <|
+            len = data.classes.length
+            len.should_equal 3
+
+        Test.specify "Array at" <|
+            number = data.classes.at 1
+            number.name.should_equal "java.lang.Number"
+            number.superclass.name.should_equal "java.lang.Object"
+
+        Test.specify "Vector/Array copy & map" <|
+            classes = Vector.from_array data.classes
+            names = classes.map (x -> x.name)
+            names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
+
+        Test.specify "Vector/Array no copy & map" <|
+            classes = Vector.from_polyglot_array data.classes
+            names = classes.map (x -> x.name)
+            names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
+
+        Test.specify "Vector.from_array creates a copy" <|
+            js_arr = create_array [1, 2, 3]
+            enso_vector = Vector.from_array js_arr
+
+            (enso_vector.at 0).should_equal 1
+            (enso_vector.at 1).should_equal 2
+            (enso_vector.at 2).should_equal 3
+            enso_vector.should_equal js_arr
+
+            clear_array js_arr
+
+            (enso_vector.at 0).should_equal 1
+            (enso_vector.at 1).should_equal 2
+            (enso_vector.at 2).should_equal 3
+            enso_vector.should_not_equal js_arr
+
+        Test.specify "Vector.from_polyglot_array doesn't create a copy" <|
+            js_arr = create_array [1, 2, 3]
+            enso_vector = Vector.from_polyglot_array js_arr
+
+            (enso_vector.at 0).should_equal 1
+            (enso_vector.at 1).should_equal 2
+            (enso_vector.at 2).should_equal 3
+            enso_vector.should_equal js_arr
+
+            clear_array js_arr
+
+            (enso_vector.at 0).should_equal Nothing
+            (enso_vector.at 1).should_equal Nothing
+            (enso_vector.at 2).should_equal Nothing
+            enso_vector.should_equal js_arr
+
+main = Test.Suite.run_main spec
+
+foreign js data = """
+    var object = { name : "java.lang.Object", superclass: null };
+    var number = { name : "java.lang.Number", superclass: object };
+    var integer = { name : "java.lang.Integer", superclass: number };
+    return {
+      findClass: function(n) {
+        switch (n.toString()) {
+          case object.name: return object;
+          case number.name: return number;
+          case integer.name: return integer;
+        }
+        throw n;
+      },
+      classes: function() { return [ object, number, integer ] }
+    };
+
+foreign js create_array arr = """
+    let len = arr.length
+    let res = []
+    for (let i = 0; i < len; i++) {
+        res.push(arr[i]);
+    }
+    return res
+
+foreign js clear_array arr = """
+    let len = arr.length
+    for (let i = 0; i < len; i++) {
+        arr[i] = null
+    }
+    return arr

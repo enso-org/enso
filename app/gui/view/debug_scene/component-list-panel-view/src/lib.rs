@@ -87,6 +87,7 @@ impl MockEntries {
                         label:       label.to_owned(),
                         highlighted: default(),
                     },
+                    is_enterable: false,
                 })
                 .collect(),
             count:   Cell::new(count),

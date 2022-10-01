@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -177,7 +178,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     protected void onEnter(VirtualFrame frame) {
       CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = Context.get(this).getNothing().newInstance();
+      Object lastReturn = Context.get(this).getNothing();
       // Note [Safe Access to State in the Debugger Instrument]
       Object lastState = Function.ArgumentsHelper.getState(frame.getArguments());
       nodeState = new ReplExecutionEventNodeState(lastReturn, lastState, lastScope);
@@ -205,6 +206,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return new Stateful(nodeState.getLastState(), nodeState.getLastReturn());
     }
 
+    @CompilerDirectives.TruffleBoundary
     private void startSession() {
       if (handler.hasClient()) {
         handler.startSession(this);

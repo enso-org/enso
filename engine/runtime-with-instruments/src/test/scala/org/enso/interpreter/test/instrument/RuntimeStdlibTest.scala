@@ -1,6 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.compiler.pass.resolve.VectorLiterals
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.docs.generator.DocsGenerator
@@ -257,7 +256,6 @@ class RuntimeStdlibTest
         xs.toVector.map(_.suggestion.module)
     }
     stdlibSuggestions.nonEmpty shouldBe true
-    stdlibSuggestions.flatten should contain(VectorLiterals.vectorModuleName)
 
     // check that builtins are indexed
     val builtinsSuggestions = responses.collect {

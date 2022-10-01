@@ -40,17 +40,4 @@ public class JDBCProxy {
   public static Connection getConnection(String url, Properties properties) throws SQLException {
     return DriverManager.getConnection(url, properties);
   }
-
-  public static String[] getStringColumn(ResultSet resultSet, String column) throws SQLException {
-    if (resultSet.isClosed()) {
-      return new String[0];
-    }
-
-    int colIndex = resultSet.findColumn(column);
-    List<String> values = new ArrayList<>();
-    while (resultSet.next()) {
-      values.add(resultSet.getString(colIndex));
-    }
-    return values.toArray(String[]::new);
-  }
 }

@@ -75,17 +75,20 @@ class ReplTest
           |polyglot java import java.util.regex.Pattern
           |import Standard.Base.Runtime.Debug
           |
-          |type Foo a b
+          |type A
+          |    Foo a b
           |
-          |Foo.to_text self = "{" + self.a.to_text + ": " + self.b + "}"
+          |A.to_text self = "{" + self.a.to_text + ": " + self.b + "}"
           |
-          |type Bar x
+          |type B
+          |    Bar x
           |
-          |Bar.to_text self = 42
+          |B.to_text self = 42
           |
-          |type Baz x
+          |type C
+          |    Baz x
           |
-          |Baz.to_text self a b c = a+b+c
+          |C.to_text self a b c = a+b+c
           |
           |main =
           |    x = Debug.breakpoint
@@ -95,17 +98,17 @@ class ReplTest
         inside(executor.evaluate("2")) { case Right(result) =>
           result.toString shouldEqual "2"
         }
-        inside(executor.evaluate("Bar 1")) { case Right(result) =>
+        inside(executor.evaluate("B.Bar 1")) { case Right(result) =>
           result.toString shouldEqual "Bar 1"
         }
-        inside(executor.evaluate("Baz 1")) { case Right(result) =>
+        inside(executor.evaluate("C.Baz 1")) { case Right(result) =>
           result.toString shouldEqual "Baz 1"
         }
         inside(executor.evaluate("Pattern.compile 'foo'")) {
           case Right(result) =>
             result.toString shouldEqual "foo"
         }
-        inside(executor.evaluate("Foo 2 'a'")) { case Right(result) =>
+        inside(executor.evaluate("A.Foo 2 'a'")) { case Right(result) =>
           result.toString shouldEqual "{2: a}"
         }
         executor.exit()

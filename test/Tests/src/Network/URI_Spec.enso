@@ -29,4 +29,4 @@ spec =
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_fail_with Nothing
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
-            URI.parse "a b c" . should_fail_with Syntax_Error
+            URI.parse "a b c" . should_fail_with Syntax_Error_Data

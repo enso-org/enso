@@ -61,8 +61,8 @@ class Passes(
       ExpressionAnnotations,
       AliasAnalysis,
       GlobalNames,
+      TypeNames,
       MethodCalls,
-      VectorLiterals,
       FullyAppliedFunctionUses,
       AliasAnalysis
     ) ++

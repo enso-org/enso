@@ -1,23 +1,29 @@
 import project.IO
 export project.IO
 
+import project.Error.Common
+from project.Error.Common export all
+
 import project.Data.Any
 from project.Data.Any export Any
 
+import project.Data.Array
+from project.Data.Array export Array
+
+import project.Data.Boolean
+from project.Data.Boolean export Boolean, True, False
+
 import project.Data.List
 from project.Data.List export Nil, Cons, List
+
+import project.Data.Numbers
+from project.Data.Numbers export Number
+
+import project.Data.Vector
+from project.Data.Vector export Vector
 
 import project.Polyglot
 from project.Polyglot export all
 
 export project.Polyglot.Java
 import project.Polyglot.Java
-
-import project.Data.Array
-from project.Data.Array export Array
-
-import project.Error.Common
-from project.Error.Common export all
-
-import project.Data.Numbers
-from project.Data.Numbers export Number

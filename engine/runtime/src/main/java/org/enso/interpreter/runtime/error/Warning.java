@@ -1,11 +1,11 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -13,17 +13,16 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public class Warning implements TruffleObject {
   private final Object value;
   private final Object origin;
@@ -87,6 +86,7 @@ public class Warning implements TruffleObject {
       name = "get_all_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
+  @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value) {
     Warning[] warnings = value.getWarningsArray();
     Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
@@ -107,25 +107,33 @@ public class Warning implements TruffleObject {
       name = "set_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
-  public static Object set(WithWarnings value, Array warnings) {
-    return setGeneric(value.getValue(), warnings);
+  public static Object set(WithWarnings value, Object warnings, InteropLibrary interop) {
+    return setGeneric(value.getValue(), interop, warnings);
   }
 
   @Builtin.Method(
       name = "set_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize(fallback = true)
-  public static Object set(Object value, Array warnings) {
-    return setGeneric(value, warnings);
+  public static Object set(Object value, Object warnings, InteropLibrary interop) {
+    return setGeneric(value, interop, warnings);
   }
 
-  private static Object setGeneric(Object value, Array warnings) {
-    if (warnings.length() == 0) {
-      return value;
+  private static Object setGeneric(Object value, InteropLibrary interop, Object warnings) {
+    try {
+      var size = interop.getArraySize(warnings);
+      if (size == 0) {
+        return value;
+      }
+      Warning[] warningsCast = new Warning[(int) size];
+      for (int i = 0; i < warningsCast.length; i++) {
+        warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
+      }
+      return new WithWarnings(value, warningsCast);
+    } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalStateException(ex);
     }
-    Warning[] warningsCast = new Warning[(int) warnings.length()];
-    System.arraycopy(warnings.getItems(), 0, warningsCast, 0, warningsCast.length);
-    return new WithWarnings(value, warningsCast);
   }
 
   @ExportLibrary(InteropLibrary.class)
@@ -166,6 +174,7 @@ public class Warning implements TruffleObject {
     return creationTime;
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Warning reassign(Node location) {
     RootNode root = location.getRootNode();
     SourceSection section = location.getEncapsulatingSourceSection();
@@ -174,48 +183,12 @@ public class Warning implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(UnresolvedSymbol symbol) {
-      Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().warning(), context.getBuiltins().any());
-    }
-
-    static Context getContext() {
-      return Context.get(null);
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Warning self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(Warning self, UnresolvedSymbol symbol)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().warning();
   }
 }

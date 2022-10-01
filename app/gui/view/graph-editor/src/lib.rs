@@ -1471,6 +1471,7 @@ impl GraphEditorModelWithNetwork {
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
+            node.show_preview();
         }
         let source = self.data_source_for_new_node(way);
         (node.id(), source, should_edit)

@@ -30,6 +30,7 @@ startup performance.
 - [Loading the IR](#loading-the-ir)
   - [Integrity Checking](#integrity-checking)
   - [Error Handling](#error-handling)
+  - [Imports](#imports)
 - [Testing the Serialisation](#testing-the-serialisation)
 - [Future Directions](#future-directions)
 
@@ -200,6 +201,19 @@ working state. This means that:
 
 At no point should this mechanism be exposed to the user in any visible way,
 other than the fact that they may be seeing the actual files on disk.
+
+### Imports
+
+Integrity Checking does not check the situation when the cached module imports a
+module which cache has been invalidated. For example, module `A` uses a method
+`foo` from module `B` and a successful compilation resulted in IR cache for both
+`A` and `B`. Later, someone modifed module `B` by renaming method `foo` to
+`bar`. If we only compared source hashes, `B`'s IR would be re-generated while
+`A`'s would be loaded from cache, thus failing to notice method name change,
+until a complete cache invalidation was forced.
+
+Therefore, the compiler performs an additional check by invalidating module's
+cache if any of its imported modules have been invalidated.
 
 ## Testing the Serialisation
 

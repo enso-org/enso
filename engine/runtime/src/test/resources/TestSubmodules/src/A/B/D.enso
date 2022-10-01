@@ -1,2 +1,2 @@
 type D
-    type D a
+    Mk_D a

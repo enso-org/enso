@@ -97,13 +97,15 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
         entry_size: Vector2,
         viewport: Viewport,
         column_widths: &ColumnWidths,
-    ) -> Vector2 {
+    ) -> entry::MovedHeaderPosition {
         let contour = self.entry.entry.frp().contour.value();
+        let contour_offset = self.entry.entry.frp().contour_offset.value();
         let max_y = entry::visible::position_y(self.section_rows.start, entry_size);
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
-        let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0;
-        let y = (viewport.top - contour.size.y / 2.0).min(max_y).max(min_y);
-        Vector2(entry::visible::position_x(col, entry_size, column_widths), y)
+        let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0 - contour_offset.y;
+        let x = entry::visible::position_x(col, entry_size, column_widths);
+        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).min(max_y).max(min_y);
+        entry::MovedHeaderPosition { position: Vector2(x, y), y_range: min_y..=max_y }
     }
 }
 
@@ -204,7 +206,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let visible_headers = self.visible_headers.borrow();
         let widths = &self.column_widths;
         let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
-        header.map(|h| h.header_position(col, entry_size, viewport, widths))
+        header.map(|h| h.header_position(col, entry_size, viewport, widths).position)
     }
 
     /// The y position of line between the header displayed on the top of the viewport and the rest
@@ -214,8 +216,10 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let widths = &self.column_widths;
         let header = visible_headers.get(&col);
         let separator_if_header_visible = header.map(|h| {
-            h.header_position(col, entry_size, viewport, widths).y
-                - h.entry.entry.frp().contour.value().size.y / 2.0
+            let base_pos = h.header_position(col, entry_size, viewport, widths).position;
+            let contour = h.entry.entry.frp().contour.value();
+            let offset = h.entry.entry.frp().contour_offset.value();
+            base_pos.y + offset.y - contour.size.y / 2.0
         });
         separator_if_header_visible.unwrap_or(viewport.top)
     }
@@ -226,9 +230,10 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let widths = &self.column_widths;
         let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
             let new_position = header.header_position(*col, entries_size, viewport, widths);
-            (header.entry.position().xy() != new_position).as_some_from(|| {
-                header.entry.set_position_xy(new_position);
-                (header.section_rows.start, *col, new_position)
+            (header.entry.position().xy() != new_position.position).as_some_from(|| {
+                header.entry.set_position_xy(new_position.position);
+                header.entry.entry.frp().moved_as_header(&new_position);
+                (header.section_rows.start, *col, new_position.position)
             })
         });
         updated_positions.collect()
@@ -261,33 +266,38 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let widths = &self.column_widths;
         let create_new_entry = || {
             let text_layer = layers.upgrade_text();
-            let entry = self.entry_creation_ctx.create_entry(text_layer.as_ref());
+            let (entry, init) = self.entry_creation_ctx.create_entry(text_layer.as_ref());
             if let Some(layer) = layers.upgrade_header() {
                 layer.add_exclusive(&entry);
             }
-            entry
+            (entry, init)
         };
-        let entry = match visible_headers.entry(col) {
+        let (entry, init) = match visible_headers.entry(col) {
             Occupied(mut entry) => {
                 entry.get_mut().section_rows = rows;
-                entry.into_mut()
+                (entry.into_mut(), None)
             }
             Vacant(lack_of_entry) => {
-                let new_entry = free_headers.pop().unwrap_or_else(create_new_entry);
+                let (new_entry, init) =
+                    free_headers.pop().map(|entry| (entry, None)).unwrap_or_else(create_new_entry);
                 self.grid.add_child(&new_entry);
                 let new_header_entry =
                     VisibleHeader { section_rows: rows, entry: new_entry };
-                lack_of_entry.insert(new_header_entry)
+                (lack_of_entry.insert(new_header_entry), init)
             }
         };
+        if let Some(init) = init {
+            init.emit(());
+        }
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
         let width_offset = self.column_widths.width_diff(col);
         entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
-        entry.entry.set_position_xy(position);
-        (entry.section_rows.start, col, position)
+        entry.entry.set_position_xy(position.position);
+        entry_frp.moved_as_header(&position);
+        (entry.section_rows.start, col, position.position)
     }
 }
 
@@ -348,7 +358,7 @@ impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderPara
 /// **Important**. The [`Frp::section_info_needed`] are emitted once when needed and not repeated
 /// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
 /// connect providing models logic before emitting any of [`crate::Frp::set_entries_size`] or
-/// [`crate::Frp::set_viewport`].  
+/// [`crate::Frp::set_viewport`].
 pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
     Entry,
     crate::GridView<Entry>,
@@ -360,7 +370,7 @@ pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
 impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> {
     /// Create new Grid View with headers.
     pub fn new(app: &Application) -> Self {
-        let grid = crate::GridView::<E>::new(app);
+        let grid = app.new_view::<crate::GridView<E>>();
         Self::new_wrapping(grid)
     }
 }
@@ -481,7 +491,7 @@ where
     HeaderParams: frp::node::Data,
 {
     /// Return the pushed-down header instance at given position, or `None` if the entry at this
-    /// position is not a pushed-down header.  
+    /// position is not a pushed-down header.
     pub fn get_header(&self, row: Row, col: Col) -> Option<HeaderEntry>
     where HeaderEntry: CloneRef {
         let headers = self.model.visible_headers.borrow();

@@ -1,21 +1,19 @@
-from Standard.Base import Any, Boolean
+from Standard.Base import Any, Boolean, False
 import Standard.Base.Meta
 
 polyglot java import org.enso.base.Text_Utils
 
+
 ## Enso's text type.
+
+   Enso's text type is natively unicode aware, and will handle arbitrary
+   textual data.
+
+   ? Concatenation
+     Enso's text type uses a rope-based structure under the hood to provide
+     users with efficient concatenation operations.
+@Builtin_Type
 type Text
-
-    ## Enso's text type.
-
-       Enso's text type is natively unicode aware, and will handle arbitrary
-       textual data.
-
-       ? Concatenation
-         Enso's text type uses a rope-based structure under the hood to provide
-         users with efficient concatenation operations.
-    @Builtin_Type
-    type Text
 
     ## Concatenates the text that to the right side of this.
 
@@ -48,4 +46,6 @@ type Text
              ('é' == 'e\u0301') == True
     == : Any -> Boolean
     == self that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
-        Text_Utils.equals self that
+        case that of
+            Text -> Text_Utils.equals self that
+            _ -> False

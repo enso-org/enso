@@ -1,0 +1,33 @@
+{
+  "resources":{
+    "includes":[
+      {
+        "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinMethods.metadata\\E"
+      },
+      {
+        "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinTypes.metadata\\E"
+      },
+      {
+        "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.TruffleLanguage$Provider\\E"
+      },
+      {
+        "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.TruffleInstrument$Provider\\E"
+      },
+      {
+        "pattern":"\\QMETA-INF/services/java.nio.file.spi.FileSystemProvider\\E"
+      },
+      {
+        "pattern":"\\Qcom/oracle/truffle/nfi/backend/libffi/LibFFILanguage.class\\E"
+      },
+      {
+        "pattern":"\\Qorg/enso/interpreter/Language.class\\E"
+      },
+      {
+        "pattern":"\\Qorg/enso/interpreter/epb/EpbLanguage.class\\E"
+      },
+      {
+        "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
+      }
+    ]},
+  "bundles":[]
+}

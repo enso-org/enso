@@ -33,7 +33,8 @@ fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: Ty
         Data::Struct(ref mut fields) => std::mem::take(fields),
         _ => return,
     };
-    let mut child_field = graph[outer].child_field;
+    let child_field = graph[outer].child_field;
+    let mut child_field_ = child_field;
     let mut flattened = Vec::with_capacity(outer_fields.len());
     for (i, field) in outer_fields.into_iter().enumerate() {
         let inner = field.type_;
@@ -55,10 +56,10 @@ fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: Ty
             flattened.push(field);
         }
         if child_field == Some(i + 1) {
-            child_field = Some(flattened.len());
+            child_field_ = Some(flattened.len());
         }
     }
-    graph[outer].child_field = child_field;
+    graph[outer].child_field = child_field_;
     match &mut graph[outer].data {
         Data::Struct(fields) => *fields = flattened,
         _ => unreachable!(),
