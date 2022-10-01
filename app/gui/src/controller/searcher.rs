@@ -550,7 +550,7 @@ impl Searcher {
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
         let module_repr: Rope = module_ast.repr().into();
-        let position = module_repr.location_of_byte_offset_snapped(def_span.end);
+        let position = module_repr.offset_to_location_snapped(def_span.end);
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
@@ -1477,7 +1477,7 @@ pub mod test {
     impl MockData {
         fn change_main_body(&mut self, lines: &[&str]) {
             let code: enso_text::Rope = crate::test::mock::main_from_lines(lines).into();
-            let location = code.location_of_text_end();
+            let location = code.last_line_end_location();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
             self.graph.graph.code = (&code).into();
@@ -1566,7 +1566,7 @@ pub mod test {
                 mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
-                position_in_code: Immutable(code.location_of_text_end()),
+                position_in_code: Immutable(code.last_line_end_location()),
                 project: project.clone_ref(),
                 list_builder_with_favorites: Rc::new(list_builder_with_favs),
                 node_edit_guard: node_metadata_guard,

@@ -169,8 +169,8 @@ impl model::module::API for Module {
         new_id_map: ast::IdMap,
     ) -> FallibleResult {
         let mut code: enso_text::Rope = self.ast().repr().into();
-        let replaced_start = code.location_of_byte_offset_snapped(change.range.start);
-        let replaced_end = code.location_of_byte_offset_snapped(change.range.end);
+        let replaced_start = code.offset_to_location_snapped(change.range.start);
+        let replaced_end = code.offset_to_location_snapped(change.range.end);
         let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
         code.apply_change(change.as_ref());
         let new_ast = parser.parse(code.into(), new_id_map)?.try_into()?;

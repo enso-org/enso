@@ -581,10 +581,10 @@ impl TextEdit {
         let source_start_byte = 0.byte() + common_lengths.prefix;
         let source_end_byte = 0.byte() + source_len - common_lengths.suffix;
 
-        let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
+        let source_start_position = source.offset_to_location_snapped(source_start_byte);
         let source_start_position =
             source.utf16_code_unit_location_of_location(source_start_position);
-        let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
+        let source_end_position = source.offset_to_location_snapped(source_end_byte);
         let source_end_position = source.utf16_code_unit_location_of_location(source_end_position);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
