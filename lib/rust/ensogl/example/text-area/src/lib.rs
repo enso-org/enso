@@ -178,6 +178,7 @@ fn init(app: Application) {
     let borders = Borders::default();
     borders.show(&app, &area);
 
+    // FIXME: fix forward_panic_hook_to_console
 
     // TODO: Task na unit testyy do textow
     // TODO: next PR - > Text area to gui component.
