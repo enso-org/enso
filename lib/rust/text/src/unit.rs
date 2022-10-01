@@ -137,6 +137,24 @@ pub fn LineDiff(value: i32) -> LineDiff {
     LineDiff { value }
 }
 
+impl Add for LineDiff {
+    type Output = LineDiff;
+    fn add(self, rhs: LineDiff) -> Self::Output {
+        LineDiff(self.value + rhs.value)
+    }
+}
+
+impl LineDiff {
+    pub fn to_line(self) -> Line {
+        if self.value < 0 {
+            warn!("Trying to convert negative line diff to line.");
+            Line(0)
+        } else {
+            Line(self.value as usize)
+        }
+    }
+}
+
 
 
 // ==============

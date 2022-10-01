@@ -1047,7 +1047,7 @@ impl TextModel {
 
     /// Recompute the shape of the provided line index.
     pub fn shape_line(&self, line: Line) -> ShapedLine {
-        let line_range = self.byte_range_of_line_index_snapped(line);
+        let line_range = self.line_range_snapped(line);
         let glyph_sets = self.shape_range(line_range.clone());
         match NonEmptyVec::try_from(glyph_sets) {
             Ok(glyph_sets) => ShapedLine::NonEmpty { glyph_sets },

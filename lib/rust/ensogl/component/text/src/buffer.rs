@@ -309,7 +309,7 @@ impl BufferModel {
     /// The full text range.
     pub fn full_range(&self) -> Range<Byte> {
         let start = Byte::from(0);
-        let end = self.last_line_end_byte_offset();
+        let end = self.last_line_end_offset();
         Range { start, end }
     }
 
@@ -361,12 +361,12 @@ impl BufferModel {
 
     /// Byte offset of the first line of this buffer view.
     pub fn first_view_line_byte_offset(&self) -> Byte {
-        self.byte_offset_of_line_index(self.first_view_line()).unwrap()
+        self.line_offset(self.first_view_line()).unwrap()
     }
 
     /// Byte offset of the last line of this buffer view.
     pub fn last_view_line_byte_offset(&self) -> Byte {
-        self.byte_offset_of_line_index(self.last_view_line()).unwrap()
+        self.line_offset(self.last_view_line()).unwrap()
     }
 
     /// Byte offset range of lines visible in this buffer view.
@@ -376,7 +376,7 @@ impl BufferModel {
 
     /// Byte offset of the end of this buffer view. Snapped to the closest valid value.
     pub fn view_end_byte_offset_snapped(&self) -> Byte {
-        self.end_byte_offset_of_line_index_snapped(self.last_view_line())
+        self.line_end_offset_snapped(self.last_view_line())
     }
 
     /// Return the offset after the last character of a given view line if the line exists.
@@ -392,7 +392,7 @@ impl BufferModel {
     /// The byte offset of the given buffer view line index.
     pub fn byte_offset_of_view_line_index(&self, view_line: Line) -> Result<Byte, BoundsError> {
         let line = self.first_view_line() + view_line;
-        self.byte_offset_of_line_index(line)
+        self.line_offset(line)
     }
 
     /// Byte range of the given view line.
@@ -401,12 +401,12 @@ impl BufferModel {
         view_line: ViewLine,
     ) -> std::ops::Range<Byte> {
         let line = Line::from_in_context_snapped(self, view_line);
-        self.byte_range_of_line_index_snapped(line)
+        self.line_range_snapped(line)
     }
 
     /// End byte offset of the last line.
-    pub fn last_line_end_byte_offset(&self) -> Byte {
-        self.rope.text().last_line_end_byte_offset()
+    pub fn last_line_end_offset(&self) -> Byte {
+        self.rope.text().last_line_end_offset()
     }
 }
 
@@ -518,8 +518,8 @@ impl BufferModel {
     pub fn lines_content(&self, range: RangeInclusive<ViewLine>) -> Vec<String> {
         let start_line = Line::from_in_context_snapped(self, *range.start());
         let end_line = Line::from_in_context_snapped(self, *range.end());
-        let start_byte_offset = self.byte_offset_of_line_index(start_line).unwrap();
-        let end_byte_offset = self.end_byte_offset_of_line_index_snapped(end_line);
+        let start_byte_offset = self.line_offset(start_line).unwrap();
+        let end_byte_offset = self.line_end_offset_snapped(end_line);
         let range = start_byte_offset..end_byte_offset;
         self.lines_vec(range)
     }
@@ -1011,7 +1011,7 @@ impl FromInContextSnapped<&BufferModel, Line> for ViewLine {
 
 impl FromInContextSnapped<&BufferModel, Location<Byte, Line>> for Byte {
     fn from_in_context_snapped(buffer: &BufferModel, location: Location<Byte, Line>) -> Self {
-        buffer.byte_offset_of_line_index(location.line).unwrap() + location.offset
+        buffer.line_offset(location.line).unwrap() + location.offset
     }
 }
 

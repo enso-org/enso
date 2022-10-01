@@ -372,3 +372,9 @@ impl Add<&LineDiff> for &Line {
 }
 
 define_line_unit!(Line);
+
+impl Line {
+    pub fn to_diff(self) -> LineDiff {
+        LineDiff(self.value as i32)
+    }
+}
