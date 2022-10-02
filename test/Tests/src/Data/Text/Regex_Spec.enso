@@ -18,7 +18,7 @@ spec =
     Test.group "Regexes" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex.compile "(?<dots>..)" case_insensitive=True
-            pattern . should_be_a Default_Engine.Pattern
+            pattern . should_be_a Default_Engine.Pattern_Data
             pattern.options . should_equal [Option.Case_Insensitive]
 
         Test.specify "should be able to be escaped" <|

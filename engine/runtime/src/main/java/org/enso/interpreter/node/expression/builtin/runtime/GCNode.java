@@ -19,7 +19,7 @@ public abstract class GCNode extends Node {
   @Specialization
   Object doGc() {
     runGC();
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @CompilerDirectives.TruffleBoundary

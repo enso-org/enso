@@ -1,5 +1,7 @@
 //! [`NotSame`] trait definition.
 
+
+
 /// Defines the [`NotSame`] trait. It can be used to disambiguate conflicting trait implementations.
 /// For example, it is not allowed to implement `impl<U, T> From<MyType<U>> for MyType<T>`, because
 /// Rust standard library defines `impl<T> From<T> for T`. This trait allows to disambiguate such

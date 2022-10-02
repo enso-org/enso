@@ -60,7 +60,7 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Atom]
+      ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
@@ -77,7 +77,7 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Type]
+      ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
@@ -109,7 +109,7 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings(1) shouldBe a[Definition.Atom]
+      ir.bindings(1) shouldBe a[Definition.SugaredType]
       val anns =
         ir.bindings(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 1
@@ -125,14 +125,14 @@ class ModuleAnnotationsTest extends CompilerTest {
         """@My_Annotation
           |type Foo
           |    @My_Annotation
-          |    type Bar
+          |    Bar
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Type]
-      val typ = ir.bindings.head.asInstanceOf[Definition.Type]
+      ir.bindings.head shouldBe a[Definition.SugaredType]
+      val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 1
-      typ.body.head shouldBe a[Definition.Atom]
+      typ.body.head shouldBe a[Definition.Data]
       typ.body.head
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
@@ -144,15 +144,15 @@ class ModuleAnnotationsTest extends CompilerTest {
     "associate annotations with method definitions" in {
       val ir =
         """type Foo
-          |    type Foo
+          |    Foo
           |
           |    @My_Annotation
           |    my_method a = a
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Type]
-      val typ = ir.bindings.head.asInstanceOf[Definition.Type]
+      ir.bindings.head shouldBe a[Definition.SugaredType]
+      val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 2
       typ.body(1) shouldBe an[IR.Function.Binding]
       typ
@@ -170,15 +170,15 @@ class ModuleAnnotationsTest extends CompilerTest {
           |type Foo
           |    @My_Annotation
           |    ## Doc comment
-          |    type Foo
+          |    Foo
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      ir.bindings.head shouldBe a[Definition.Type]
-      val typ = ir.bindings.head.asInstanceOf[Definition.Type]
+      ir.bindings.head shouldBe a[Definition.SugaredType]
+      val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 2
       typ.body.head shouldBe an[IR.Comment]
-      typ.body(1) shouldBe a[Definition.Atom]
+      typ.body(1) shouldBe a[Definition.Data]
       typ
         .body(1)
         .unsafeGetMetadata(ModuleAnnotations, "")

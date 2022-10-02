@@ -1,11 +1,10 @@
 package org.enso.table.data.index;
 
+import java.util.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.Column;
-
-import java.util.*;
 
 public class HashIndex extends Index {
   private final Storage items;

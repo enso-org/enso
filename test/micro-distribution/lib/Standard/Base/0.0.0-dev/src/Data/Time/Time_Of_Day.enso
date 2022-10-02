@@ -1,0 +1,4 @@
+@Builtin_Type
+type Time_Of_Day
+
+now = @Builtin_Method "Time_Of_Day.now"

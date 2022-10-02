@@ -1,8 +1,10 @@
 //! A Wrapper for module which synchronizes opening/closing and all changes with Language Server.
 
 use crate::prelude::*;
+use enso_text::index::*;
 
 use crate::model::module::Content;
+use crate::model::module::ImportMetadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Notification;
 use crate::model::module::NotificationKind;
@@ -14,10 +16,10 @@ use crate::model::module::API;
 use ast::IdMap;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
+use double_representation::module::ImportId;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
-use enso_text::index::*;
 use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
@@ -44,7 +46,7 @@ struct ContentSummary {
 impl ContentSummary {
     fn new(text: &text::Rope) -> Self {
         let parts = text.rope.iter_chunks(..).map(|s| s.as_bytes());
-        let end_location_bytes = text.location_of_text_end();
+        let end_location_bytes = text.last_line_end_location();
         let end_of_file = text.utf16_code_unit_location_of_location(end_location_bytes);
         Self { digest: Sha3_224::from_parts(parts), end_of_file }
     }
@@ -67,7 +69,7 @@ impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source: &SourceFile) -> Self {
         let content = text::Rope::from(&source.content);
-        let to_location = |i: Byte| content.location_of_byte_offset_snapped(i);
+        let to_location = |i: Byte| content.offset_to_location_snapped(i);
         let code = source.code.map(to_location);
         let id_map = source.id_map.map(to_location);
         let metadata = source.metadata.map(to_location);
@@ -96,8 +98,8 @@ impl ParsedContentSummary {
     }
 
     fn slice(&self, range: &Range<Location<Byte>>) -> text::Rope {
-        let start_ix = self.source.byte_offset_of_location_snapped(range.start);
-        let end_ix = self.source.byte_offset_of_location_snapped(range.end);
+        let start_ix = self.source.location_offset_snapped(range.start);
+        let end_ix = self.source.location_offset_snapped(range.end);
         self.source.sub(Range::new(start_ix, end_ix))
     }
 }
@@ -160,7 +162,7 @@ impl Module {
         let opened = language_server.client.open_text_file(&file_path).await?;
         let content: text::Rope = (&opened.content).into();
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
-        let end_of_file_byte = content.location_of_text_end();
+        let end_of_file_byte = content.last_line_end_location();
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
@@ -241,6 +243,22 @@ impl API for Module {
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
     ) -> FallibleResult {
         self.model.with_node_metadata(id, fun)
+    }
+
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult {
+        self.model.with_import_metadata(id, fun)
+    }
+
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+        self.model.all_import_metadata()
+    }
+
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+        self.model.remove_import_metadata(id)
     }
 
     fn boxed_with_project_metadata(&self, fun: Box<dyn FnOnce(&ProjectMetadata) + '_>) {
@@ -592,8 +610,7 @@ pub mod test {
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
                     let idmap_range = file_so_far.id_map.map(|x| {
-                        let location_bytes =
-                            code_so_far.location_of_byte_offset_snapped(x.try_into().unwrap());
+                        let location_bytes = code_so_far.offset_to_location_snapped(x);
                         code_so_far.utf16_code_unit_location_of_location(location_bytes)
                     });
                     let idmap_range = TextRange::from(idmap_range);
@@ -631,7 +648,7 @@ pub mod test {
 
         fn whole_document_range(&self) -> TextRange {
             let code_so_far = self.current_ls_content.get();
-            let end_of_file_bytes = code_so_far.location_of_text_end();
+            let end_of_file_bytes = code_so_far.last_line_end_location();
             let end_of_file = code_so_far.utf16_code_unit_location_of_location(end_of_file_bytes);
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
@@ -640,9 +657,9 @@ pub mod test {
     fn apply_edit(code: impl Into<text::Rope>, edit: &TextEdit) -> text::Rope {
         let mut code = code.into();
         let start = code.location_of_utf16_code_unit_location_snapped(edit.range.start.into());
-        let start_byte = code.byte_offset_of_location_snapped(start);
+        let start_byte = code.location_offset_snapped(start);
         let end = code.location_of_utf16_code_unit_location_snapped(edit.range.end.into());
-        let end_byte = code.byte_offset_of_location_snapped(end);
+        let end_byte = code.location_offset_snapped(end);
         let change = Change { range: Range::new(start_byte, end_byte), text: edit.text.clone() };
         code.apply_change(change);
         code

@@ -13,7 +13,6 @@ use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::Animation;
 
 
-
 // ==============
 // === Export ===
 // ==============

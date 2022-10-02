@@ -5,7 +5,6 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
@@ -129,7 +128,7 @@ impl Deref for FloatLabel {
     }
 }
 
-impl application::command::FrpNetworkProvider for FloatLabel {
+impl FrpNetworkProvider for FloatLabel {
     fn network(&self) -> &frp::Network {
         self.frp.network()
     }

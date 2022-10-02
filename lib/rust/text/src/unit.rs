@@ -1,9 +1,9 @@
 //! Definition of strongly typed units, like `LineDiff` or `ByteDiff`. Please note that indexes,
 //! such as `Byte` are defined in a separate module.
 
+use crate::index::*;
 use crate::prelude::*;
 
-use crate::index::*;
 use enso_types::unit;
 
 
@@ -45,6 +45,7 @@ impl Bytes {
         Byte(self.value)
     }
 
+    /// Convert bytes to byte diff.
     pub fn to_diff(self) -> ByteDiff {
         ByteDiff(self.value as i32)
     }
@@ -135,6 +136,25 @@ pub struct LineDiff {
 #[allow(non_snake_case)]
 pub fn LineDiff(value: i32) -> LineDiff {
     LineDiff { value }
+}
+
+impl Add for LineDiff {
+    type Output = LineDiff;
+    fn add(self, rhs: LineDiff) -> Self::Output {
+        LineDiff(self.value + rhs.value)
+    }
+}
+
+impl LineDiff {
+    /// Convert the line diff to line and report warning if the diff was negative.
+    pub fn to_line(self) -> Line {
+        if self.value < 0 {
+            warn!("Trying to convert negative line diff to line.");
+            Line(0)
+        } else {
+            Line(self.value as usize)
+        }
+    }
 }
 
 

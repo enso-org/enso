@@ -1,0 +1,77 @@
+from Standard.Base import all
+import Standard.Base.System.File.Option
+
+import Standard.Table.Data.Table
+
+from Standard.Table.Excel.Range import Excel_Range_Data
+from Standard.Table.Excel.Section import Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
+
+from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
+
+polyglot java import org.enso.table.excel.ExcelHeaders
+polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.error.InvalidLocationException
+
+polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import org.enso.table.util.problems.DuplicateNames
+polyglot java import org.enso.table.util.problems.InvalidNames
+
+## PRIVATE
+prepare_reader_table : Problem_Behavior -> Any -> Table
+prepare_reader_table on_problems result_with_problems =
+    map_problem java_problem =
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames) else
+                java_problem
+    parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
+    on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
+
+## PRIVATE
+   Convert Boolean|Infer to the correct HeaderBehavior
+make_java_headers : (Boolean|Infer) -> ExcelHeaders.HeaderBehavior
+make_java_headers headers = case headers of
+        True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Infer -> ExcelHeaders.HeaderBehavior.INFER
+        False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+
+## PRIVATE
+   Handle and map the Java errors when reading an Excel file
+handle_reader : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
+handle_reader file reader =
+    bad_format caught_panic = Error.throw (File.IO_Error file caught_panic.payload.cause.getMessage)
+    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
+
+    bad_argument caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
+    handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
+
+    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream reader
+
+## PRIVATE
+   Reads an input Excel file according to the provided section.
+
+   Arguments:
+   - file: The File object to read.
+   - section: The part of the Excel document to read.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - xls_format: If `True` then the file is read in using Excel 95-2003 format
+     otherwise reads in Excel 2007+ format.
+read_file : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_file file section headers on_problems xls_format=False =
+    reader stream = case section of
+        Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
+        Worksheet sheet skip_rows row_limit ->
+            prepare_reader_table on_problems <| case sheet of
+                Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+        Cell_Range address skip_rows row_limit ->
+            prepare_reader_table on_problems <| case address of
+                Excel_Range_Data _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
+
+    handle_reader file reader

@@ -84,6 +84,16 @@ pub enum Data {
     Primitive(Primitive),
 }
 
+impl Data {
+    /// If this is a [`Data::Struct`], return its fields.
+    pub fn as_struct(&self) -> Option<&[Field]> {
+        match self {
+            Data::Struct(fields) => Some(&fields[..]),
+            _ => None,
+        }
+    }
+}
+
 /// Standard types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Primitive {
@@ -406,6 +416,20 @@ impl TypeGraph {
                 self.types.remove(id);
             }
         }
+    }
+}
+
+impl TypeGraph {
+    /// Return the type's hierarchy. The first element of the hierarchy is the type itself; each
+    /// element followed by its parent, if it has one.
+    pub fn hierarchy(&self, id: TypeId) -> Vec<TypeId> {
+        let mut hierarchy = vec![];
+        let mut id_ = Some(id);
+        while let Some(id) = id_ {
+            hierarchy.push(id);
+            id_ = self[id].parent;
+        }
+        hierarchy
     }
 }
 

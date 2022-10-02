@@ -1,69 +1,115 @@
-from Standard.Base import all
+from Standard.Base import all hiding Java
+import Standard.Base
+
+# TODO Dubious constructor export
+from project.Meta.Atom import all
+from project.Meta.Atom export all
 
 ## UNSTABLE
    ADVANCED
 
-   A meta-representation of a runtime value.
+   An Atom meta-representation.
 
-   ! Warning
-     The functionality contained in this module exposes certain implementation
-     details of the language. As such, the API has no stability guarantees and
-     is subject to change as the Enso interpreter evolves.
-type Meta
+   Arguments:
+   - value: The value of the atom in the meta representation.
+type Atom
+    Atom_Data value
 
-    ## UNSTABLE
-       ADVANCED
+# TODO Dubious constructor export
+from project.Meta.Constructor import all
+from project.Meta.Constructor export all
 
-       An Atom meta-representation.
+## UNSTABLE
+   ADVANCED
 
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    type Atom value
+   A constructor meta-representation.
 
-    ## UNSTABLE
-       ADVANCED
+   Arguments:
+   - value: The value of the constructor in the meta representation.
+type Constructor
+    Constructor_Data value
 
-       A constructor meta-representation.
+# TODO Dubious constructor export
+from project.Meta.Primitive import all
+from project.Meta.Primitive export all
 
-       Arguments:
-       - value: The value of the constructor in the meta representation.
-    type Constructor value
+## UNSTABLE
+   ADVANCED
 
-    ## UNSTABLE
-       ADVANCED
+   A primitive value meta-prepresentation.
 
-       A primitive value meta-prepresentation.
+   Arguments:
+   - value: The value of the primitive object in the meta representation.
+type Primitive
+    Primitive_Data value
 
-       Arguments:
-       - value: The value of the primitive object in the meta representation.
-    type Primitive value
+# TODO Dubious constructor export
+from project.Meta.Unresolved_Symbol import all
+from project.Meta.Unresolved_Symbol export all
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An unresolved symbol meta-representation.
+   An unresolved symbol meta-representation.
 
-       Arguments:
-       - value: The value of the unresolved symbol in the meta representation.
-    type Unresolved_Symbol value
-
-    ## UNSTABLE
-       ADVANCED
-
-       An error meta-representation, containing the payload of a dataflow error.
-
-       Arguments:
-       - value: The payload of the error.
-    type Error value
+   Arguments:
+   - value: The value of the unresolved symbol in the meta representation.
+type Unresolved_Symbol
+    Unresolved_Symbol_Data value
 
     ## UNSTABLE
        ADVANCED
 
-       A polyglot value meta-representation.
+       Returns a new unresolved symbol with its name changed to the provided
+       argument.
 
        Arguments:
-       - value: The polyglot value contained in the meta representation.
-    type Polyglot value
+       - new_name: The new name for the unresolved symbol.
+    rename : Text -> Any
+    rename self new_name =
+        create_unresolved_symbol new_name self.scope
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the name of an unresolved symbol.
+    name : Text
+    name self = get_unresolved_symbol_name self.value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the definition scope of an unresolved symbol.
+    scope : Any
+    scope self = get_unresolved_symbol_scope self.value
+
+# TODO Dubious constructor export
+from project.Meta.Error import all
+from project.Meta.Error export all
+
+## UNSTABLE
+   ADVANCED
+
+   An error meta-representation, containing the payload of a dataflow error.
+
+   Arguments:
+   - value: The payload of the error.
+type Error
+    Error_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Polyglot import all
+from project.Meta.Polyglot export all
+
+## UNSTABLE
+   ADVANCED
+
+   A polyglot value meta-representation.
+
+   Arguments:
+   - value: The polyglot value contained in the meta representation.
+type Polyglot
+    Polyglot_Data value
 
 
 ## Atom methods
@@ -90,14 +136,14 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields self = Vector.Vector (get_atom_fields self.value)
+Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns a constructor value of the given atom.
 Atom.constructor : Atom_Constructor
-Atom.constructor self = get_atom_constructor self.value
+Atom.constructor self = get_atom_constructor self.value ...
 
 # Polyglot methods
 ## PRIVATE
@@ -147,33 +193,6 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
 get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
-## UNSTABLE
-   ADVANCED
-
-   Returns a new unresolved symbol with its name changed to the provided
-   argument.
-
-   Arguments:
-   - new_name: The new name for the unresolved symbol.
-Unresolved_Symbol.rename : Text -> Any
-Unresolved_Symbol.rename self new_name =
-    create_unresolved_symbol new_name self.scope
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the name of an unresolved symbol.
-Unresolved_Symbol.name : Text
-Unresolved_Symbol.name self = get_unresolved_symbol_name self.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the definition scope of an unresolved symbol.
-Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope self = get_unresolved_symbol_scope self.value
-
-
 # Constructor methods
 ## PRIVATE
 
@@ -208,7 +227,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
-Constructor.fields self = Vector.Vector (get_constructor_fields self.value)
+Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
 
 ## UNSTABLE
    ADVANCED
@@ -237,12 +256,12 @@ Constructor.new self fields = new_atom self.value fields.to_array
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Meta
-meta value = if is_atom value then Atom value else
-    if is_atom_constructor value then Constructor value else
-        if is_polyglot value then Polyglot value else
-            if is_unresolved_symbol value then Unresolved_Symbol value else
-                if is_error value then Error value.catch else
-                    Primitive value
+meta value = if is_atom value then Atom_Data value else
+    if is_atom_constructor value then Constructor_Data value else
+        if is_polyglot value then Polyglot_Data value else
+            if is_unresolved_symbol value then Unresolved_Symbol_Data value else
+                if is_error value then Error_Data value.catch else
+                    Primitive_Data value
 
 ## UNSTABLE
    ADVANCED
@@ -254,6 +273,17 @@ meta value = if is_atom value then Atom value else
    - value_2: The second value.
 is_same_object : Any -> Any -> Boolean
 is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
+
+## UNSTABLE
+   ADVANCED
+
+   Checks whether `self` represents the same underlying reference as `value`.
+
+   Arguments:
+   - value_1: The first value.
+   - value_2: The second value.
+Any.is_same_object_as : Any -> Boolean
+Any.is_same_object_as self value = is_same_object self value
 
 ## UNSTABLE
    ADVANCED
@@ -272,28 +302,8 @@ Any.is_a self typ = is_a self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Any.is_an : Any -> Boolean
-Any.is_an self typ = is_a self typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
 Base.Error.is_a : Any -> Boolean
-Base.Error.is_a self typ = self.is_an typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
-Base.Error.is_an : Any -> Boolean
-Base.Error.is_an self typ = typ==Any || typ==Base.Error
+Base.Error.is_a self typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED
@@ -304,41 +314,57 @@ Base.Error.is_an self typ = typ==Any || typ==Base.Error
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
 is_a : Any -> Any -> Boolean
-is_a value typ = if typ == Any then True else
-    if is_error value then typ == Base.Error else
-        case value of
-            Array -> typ == Array
-            Boolean -> if typ == Boolean then True else value == typ
-            Text -> typ == Text
-            Number -> if typ == Number then True else case value of
-                Integer -> typ == Integer
-                Decimal -> typ == Decimal
-            Base.Polyglot -> typ == Base.Polyglot
-            _ ->
-                meta_val = meta value
-                case meta_val of
-                    Atom _ -> if is_atom typ then typ == value else
-                        meta_val.constructor == typ
-                    Constructor _ ->
-                        meta_typ = meta typ
-                        case meta_typ of
-                            Atom _ -> meta_val == meta_typ.constructor
-                            Constructor _ -> meta_val == meta_typ
-                            _ -> False
-                    Error _ -> typ == Error
-                    Unresolved_Symbol _ -> typ == Unresolved_Symbol
-                    _ -> False
+is_a value typ = if is_same_object value typ then True else
+    if typ == Any then True else
+        if is_error value then typ == Base.Error else
+            case value of
+                Vector.Vector -> typ.is_same_object_as Vector.Vector
+                Array -> typ.is_same_object_as Array
+                Boolean -> if typ == Boolean then True else value == typ
+                Text -> typ == Text
+                Number -> if typ == Number then True else case value of
+                    Integer -> typ == Integer
+                    Decimal -> typ == Decimal
+                Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
+                Date.Date      -> typ.is_same_object_as Date.Date
+                Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
+                Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
+                Base.Polyglot ->
+                    typ==Base.Polyglot || java_instance_check value typ
+                _ ->
+                    meta_val = meta value
+                    case meta_val of
+                        Atom_Data _ -> if is_atom typ then typ == value else
+                            meta_val.constructor == typ
+                        Constructor_Data _ ->
+                            meta_typ = meta typ
+                            case meta_typ of
+                                Atom_Data _ -> meta_val == meta_typ.constructor
+                                Constructor_Data _ -> meta_val == meta_typ
+                                _ -> False
+                        Error_Data _ -> typ == Error
+                        Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
+                        _ -> False
+
+## PRIVATE
+java_instance_check value typ =
+    val_java = get_polyglot_language value == "java"
+    typ_java = get_polyglot_language typ == "java"
+    val_java && typ_java && Base.Java.is_instance value typ
 
 ## UNSTABLE
    ADVANCED
 
-   Checks if `value` is an instance of `typ`.
+   Returns the type of the given value.
 
    Arguments:
-   - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `self` against.
-is_an : Any -> Any -> Boolean
-is_an value typ = is_a value typ
+   - value: the value to get the type of.
+type_of : Any -> Any
+type_of value = @Builtin_Method "Meta.type_of_builtin"
+
+# TODO Dubious constructor export
+from project.Meta.Language import all
+from project.Meta.Language export all
 
 ## Represents a polyglot language.
 type Language
@@ -346,14 +372,14 @@ type Language
     ## UNSTABLE
        ADVANCED
 
-       The Java laguage.
-    type Java
+       The Java language.
+    Java
 
     ## UNSTABLE
        ADVANCED
 
        An unknown language.
-    type Unknown
+    Unknown
 
 ## PRIVATE
 

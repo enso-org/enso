@@ -86,7 +86,6 @@ use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
-use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
@@ -381,7 +380,7 @@ impl<Shape> Deref for View<Shape> {
     }
 }
 
-impl<Shape> application::command::FrpNetworkProvider for View<Shape> {
+impl<Shape> FrpNetworkProvider for View<Shape> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

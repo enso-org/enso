@@ -6,11 +6,11 @@ import Standard.Visualization
 
 import Standard.Test
 
-from Standard.Visualization.File_Upload import File_Being_Uploaded
+from Standard.Visualization.File_Upload import File_Being_Uploaded_Data
 
 spec = Test.group "File uploads" <|
     Test.specify "should be able to be signalled as uploading" <|
-        Visualization.file_uploading "file" . should_fail_with File_Being_Uploaded
+        Visualization.file_uploading "file" . should_fail_with File_Being_Uploaded_Data
 
     Test.specify "should work whether a textual or file path is provided" <|
         result_file = Visualization.file_uploading Examples.csv . catch

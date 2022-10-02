@@ -8,8 +8,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 
@@ -42,11 +42,14 @@ public class UnresolvedConversion implements TruffleObject {
    * @param constructors the constructors hierarchy for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
-  public Function resolveFor(AtomConstructor into, AtomConstructor... constructors) {
-    for (AtomConstructor constructor : constructors) {
-      Function candidate = scope.lookupConversionDefinition(constructor, into);
+  public Function resolveFor(Type into, Type from) {
+    Type current = from;
+    while (current != null) {
+      Function candidate = scope.lookupConversionDefinition(current, into);
       if (candidate != null) {
         return candidate;
+      } else {
+        current = current.getSupertype();
       }
     }
     return null;
@@ -65,7 +68,6 @@ public class UnresolvedConversion implements TruffleObject {
   /**
    * Creates an instance of this node.
    *
-   * @param name the name that is unresolved
    * @param scope the scope in which the lookup will occur
    * @return a node representing an unresolved symbol {@code name} in {@code scope}
    */

@@ -31,10 +31,10 @@ import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.service.error.{
-  ConstructorNotFoundException,
   MethodNotFoundException,
   ModuleNotFoundForExpressionIdException,
   ServiceException,
+  TypeNotFoundException,
   VisualisationException
 }
 import org.enso.polyglot.LanguageInfo
@@ -95,12 +95,43 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
+    def notifyPendingCacheItems(cache: RuntimeCache): Unit = {
+      val knownKeys   = cache.getWeights.entrySet
+      val cachedKeys  = cache.getKeys
+      val pendingKeys = new collection.mutable.HashSet[UUID]()
+
+      knownKeys.forEach { e =>
+        if (e.getValue > 0) {
+          if (!cachedKeys.contains(e.getKey)) {
+            pendingKeys.add(e.getKey)
+          }
+        }
+      }
+      if (pendingKeys.nonEmpty) {
+        val ids = pendingKeys.map { key =>
+          Api.ExpressionUpdate(
+            key,
+            None,
+            None,
+            Vector.empty,
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+        }
+        val msg = Api.Response(
+          Api.ExpressionUpdates(contextId, ids.toSet)
+        )
+        ctx.endpoint.sendToClient(msg)
+      }
+    }
+
     executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
             syncState
           ) =>
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module.toString,
           cons.item,
@@ -125,6 +156,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module,
           callData,
@@ -243,11 +275,12 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
+    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
         s"Execution of function $itemName interrupted."
       case _ =>
-        s"Execution of function $itemName failed. ${error.getMessage}"
+        s"Execution of function $itemName failed ($reason)."
     }
     ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
@@ -290,7 +323,7 @@ object ProgramExecutionSupport {
   def getFailureOutcome(implicit
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
-    case ex: ConstructorNotFoundException =>
+    case ex: TypeNotFoundException =>
       Api.ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
@@ -387,6 +420,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
+  @com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
   private def sendVisualisationUpdates(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
@@ -433,10 +467,10 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
+            visualisation.cache,
             visualisation.module,
             visualisation.callback,
-            expressionValue,
-            visualisation.cache
+            expressionValue +: visualisation.arguments: _*
           )
         }
         .flatMap {

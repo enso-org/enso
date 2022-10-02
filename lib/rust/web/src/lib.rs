@@ -898,9 +898,14 @@ pub fn simulate_sleep(duration: f64) {
 // =============
 
 /// Enables forwarding panic messages to `console.error`.
+#[cfg(target_arch = "wasm32")]
 pub fn forward_panic_hook_to_console() {
     std::panic::set_hook(Box::new(report_panic))
 }
+
+/// Enables forwarding panic messages to `console.error`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn forward_panic_hook_to_console() {}
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {
@@ -912,10 +917,10 @@ fn report_panic(info: &std::panic::PanicInfo) {
     web_sys::console::error_1(&msg.into());
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn report_panic(info: &std::panic::PanicInfo) {
-    eprintln!("{}", info);
-}
+// #[cfg(not(target_arch = "wasm32"))]
+// fn report_panic(info: &std::panic::PanicInfo) {
+//     eprintln!("{}", info);
+// }
 
 
 

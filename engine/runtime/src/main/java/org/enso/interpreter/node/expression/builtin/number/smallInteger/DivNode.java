@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -38,7 +37,7 @@ public abstract class DivNode extends Node {
   @Fallback
   Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

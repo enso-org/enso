@@ -1,12 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -19,14 +19,15 @@ public abstract class BitNotNode extends Node {
   }
 
   @Specialization
-  EnsoBigInteger doLong(EnsoBigInteger self) {
+  @CompilerDirectives.TruffleBoundary
+  EnsoBigInteger doBigInteger(EnsoBigInteger self) {
     return new EnsoBigInteger(self.getValue().not());
   }
 
   @Fallback
   Object doOther(Object self) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 }

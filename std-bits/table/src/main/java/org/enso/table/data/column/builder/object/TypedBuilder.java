@@ -28,4 +28,7 @@ public abstract class TypedBuilder extends Builder {
 
   /** @return the current storage type of this builder */
   public abstract int getType();
+
+  /** Specifies if the following object will be accepted by this builder's append* methods. */
+  public abstract boolean accepts(Object o);
 }

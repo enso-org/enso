@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Interval.Bound.Bound import all
+from project.Data.Interval.Bound.Bound export all
+
 ## A type representing an interval bound over any orderable type.
 
    An orderable type is one that has a
@@ -16,7 +20,7 @@ type Bound
              import Standard.Base.Data.Interval.Bound
 
              example_bound_inclusive = Bound.Inclusive 2
-    type Inclusive n
+    Inclusive n
 
     ## A bound that excludes the value `n`.
 
@@ -29,4 +33,4 @@ type Bound
              import Standard.Base.Data.Interval.Bound
 
              example_bound_exclusive = Bound.Exclusive 2.
-    type Exclusive n
+    Exclusive n

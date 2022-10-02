@@ -1,5 +1,6 @@
 import Standard.Base.Nothing
 
-type X a
+type X
+    Mk_X a
 
 Nothing.util = x -> x.method

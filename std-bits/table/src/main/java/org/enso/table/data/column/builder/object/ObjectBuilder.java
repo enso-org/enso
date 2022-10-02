@@ -1,8 +1,9 @@
 package org.enso.table.data.column.builder.object;
 
-import java.util.Arrays;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.Arrays;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
@@ -43,6 +44,11 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
+  public boolean accepts(Object o) {
+    return true;
+  }
+
+  @Override
   public void append(Object o) {
     if (currentSize + 1 > data.length) {
       grow();
@@ -58,11 +64,6 @@ public class ObjectBuilder extends TypedBuilder {
   @Override
   public int getCurrentSize() {
     return currentSize;
-  }
-
-  @Override
-  public int getCurrentCapacity() {
-    return data.length;
   }
 
   @Override

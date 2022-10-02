@@ -1,15 +1,19 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.Helpers
-import Standard.Database.Data.Internal.IR
+import Standard.Database.Internal.Helpers
+import Standard.Database.Internal.IR
 import Standard.Database.Data.Table
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
-from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Data.Table import Integrity_Error
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Errors import Unsupported_Database_Operation_Error
+
+# TODO Dubious constructor export
+from project.Data.Column.Column import all
+from project.Data.Column.Column export all
 
 type Column
 
@@ -30,10 +34,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    # type Column (name : Text) (connection : Connection)
-    #             (sql_type : Sql_Type) (expression : IR.Expression)
-    #             (context : IR.Context)
-    type Column name connection sql_type expression context
+    Column_Data name:Text connection:Connection sql_type:SQL_Type expression:IR.Expression context:IR.Context
 
     ## UNSTABLE
 
@@ -68,7 +69,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table self =
-        Table.Table self.name self.connection [self.as_internal] self.context
+        Table.Table_Data self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 
@@ -77,10 +78,9 @@ type Column
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
-    to_dataframe self max_rows=Nothing =
-        df = self.to_table.to_dataframe max_rows
-        df.at self.name
+    read : (Nothing | Integer) -> Materialized_Column.Column
+    read self max_rows=Nothing =
+        self.to_table.read max_rows . at self.name
 
     ## UNSTABLE
 
@@ -90,14 +90,12 @@ type Column
         ## We remove the index to avoid fetching index data that will not be
            used anyway when constructing the raw Vector.
         without_ix = self.to_table.set_index []
-        df = without_ix . to_dataframe
-        raw_column = df.at self.name
-        raw_column.to_vector
+        without_ix . read  . at self.name . to_vector
 
     ## UNSTABLE
 
-       Returns an Sql statement that will be used for materializing this column.
-    to_sql : Sql.Statement
+       Returns an SQL statement that will be used for materializing this column.
+    to_sql : Statement
     to_sql self = self.to_table.to_sql
 
     ## PRIVATE
@@ -114,22 +112,22 @@ type Column
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
-    make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
+    make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> Column
     make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         case operand of
-            Column _ _ _ other_expr _ ->
+            Column_Data _ _ _ other_expr _ ->
                 case Helpers.check_integrity self operand of
                     False ->
                         Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
                         new_expr = IR.Operation op_kind [self.expression, other_expr]
-                        Column self.name self.connection actual_new_type new_expr self.context
+                        Column_Data self.name self.connection actual_new_type new_expr self.context
             _ ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 other = IR.make_constant actual_operand_type operand
                 new_expr = IR.Operation op_kind [self.expression, other]
-                Column self.name self.connection actual_new_type new_expr self.context
+                Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
 
@@ -139,11 +137,11 @@ type Column
        - op_kind: The kind of the unary operator.
        - new_type: The type of the SQL column that results from applying the
          operator.
-    make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
+    make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
     make_unary_op self op_kind new_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         new_expr = IR.Operation op_kind [self.expression]
-        Column self.name self.connection actual_new_type new_expr self.context
+        Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## UNSTABLE
 
@@ -232,7 +230,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     == : Column | Any -> Column
-    == self other = self.make_binary_op "=" other new_type=Sql_Type.boolean
+    == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -245,7 +243,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     != : Column | Any -> Column
-    != self other = self.make_binary_op "!=" other new_type=Sql_Type.boolean
+    != self other = self.make_binary_op "!=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -258,7 +256,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     >= : Column | Any -> Column
-    >= self other = self.make_binary_op ">=" other new_type=Sql_Type.boolean
+    >= self other = self.make_binary_op ">=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -271,7 +269,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     <= : Column | Any -> Column
-    <= self other = self.make_binary_op "<=" other new_type=Sql_Type.boolean
+    <= self other = self.make_binary_op "<=" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -284,7 +282,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     > : Column | Any -> Column
-    > self other = self.make_binary_op ">" other new_type=Sql_Type.boolean
+    > self other = self.make_binary_op ">" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -297,7 +295,7 @@ type Column
        `other`.  If `other` is a column, the comparison is performed pairwise
        between corresponding elements of `self` and `other`.
     < : Column | Any -> Column
-    < self other = self.make_binary_op "<" other new_type=Sql_Type.boolean
+    < self other = self.make_binary_op "<" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -390,7 +388,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing self = self.make_unary_op "ISNULL" new_type=Sql_Type.boolean
+    is_missing self = self.make_unary_op "ISNULL" new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -421,7 +419,7 @@ type Column
             True ->
                 new_filters = self.context.where_filters + [filter.expression]
                 new_ctx = self.context.set_where_filters new_filters
-                Column self.name self.connection self.sql_type self.expression new_ctx
+                Column_Data self.name self.connection self.sql_type self.expression new_ctx
 
     ## UNSTABLE
 
@@ -440,9 +438,9 @@ type Column
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
-                    Column new_name self.connection self.sql_type self.expression self.context
+                    Column_Data new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -502,7 +500,7 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     starts_with : Column | Text -> Column
-    starts_with self other = self.make_binary_op "starts_with" other new_type=Sql_Type.boolean
+    starts_with self other = self.make_binary_op "starts_with" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -516,7 +514,7 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     ends_with : Column | Text -> Column
-    ends_with self other = self.make_binary_op "ends_with" other new_type=Sql_Type.boolean
+    ends_with self other = self.make_binary_op "ends_with" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -530,93 +528,11 @@ type Column
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     contains : Column | Text -> Column
-    contains self other = self.make_binary_op "contains" other new_type=Sql_Type.boolean
+    contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
 
     ## PRIVATE
     as_internal : IR.Internal_Column
-    as_internal self = IR.Internal_Column self.name self.sql_type self.expression
-
-type Aggregate_Column_Builder
-
-    ## UNSTABLE
-
-       Wraps a column grouped by its index.
-
-       Arguments:
-       - name: The name of the column.
-       - connection: The connection with which the column is associated.
-       - sql_type: The SQL type of the aggregate column.
-       - expression: The expressions to apply to the column.
-       - context: The SQl context in which the column exists.
-
-       Allows performing aggregation operations on the contained values.
-    # type Aggregate_Column_Builder (name : Text) (connection : Connection)
-    #                       (sql_type : Sql_Type) (expression : IR.Expression)
-    #                       (context : IR.Context)
-    type Aggregate_Column_Builder name connection sql_type expression context
-
-    ## UNSTABLE
-
-       Sums the values in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    sum : Text -> Column
-    sum self name_suffix='_sum' =
-        make_aggregate self "SUM" name_suffix
-
-    ## UNSTABLE
-
-       Computes the maximum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    max : Text -> Column
-    max self name_suffix='_max' =
-        make_aggregate self "MAX" name_suffix
-
-    ## UNSTABLE
-
-       Computes the minimum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    min : Text -> Column
-    min self name_suffix='_min' =
-        make_aggregate self "MIN" name_suffix
-
-    ## UNSTABLE
-
-       Computes the number of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    count : Text -> Column
-    count self name_suffix='_count' =
-        make_aggregate self "COUNT" name_suffix new_type=Sql_Type.integer
-
-    ## UNSTABLE
-
-       Computes the mean of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-    mean : Text -> Column
-    mean self name_suffix='_mean' =
-        make_aggregate self "AVG" name_suffix
-
-    ## PRIVATE
-
-       A helper that returns the underlying column from before grouping.
-    ungrouped : Column
-    ungrouped self =
-        new_ctx = self.context.set_groups []
-        Column self.name self.connection self.sql_type self.expression new_ctx
+    as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -628,7 +544,7 @@ type Aggregate_Column_Builder
    - operation: The name of the aggregation operation.
    - name_suffix: The suffix to apply to the name of the aggregate column.
    - new_type: The SQL type of the result column.
-make_aggregate : Column -> Text -> Text -> Sql_Type -> Column
+make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = new_type.if_nothing column.sql_type
     expr = IR.Operation operation [column.expression]
@@ -648,18 +564,18 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
    - expected_type: The expected SQL type of the column.
    - expr: The expression for the query.
    - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> Sql_Type -> IR.Expression -> IR.Context -> Column
+lift_aggregate : Text -> Connection -> SQL_Type -> IR.Expression -> IR.Context -> Column
 lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
     ixes = Table.freshen_columns [new_name] context.meta_index
-    col = IR.Internal_Column new_name expected_type expr
+    col = IR.Internal_Column_Data new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first
     cols = setup.second
     new_col = cols.first.first
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
-    Column new_name connection new_col.sql_type new_col.expression new_ctx
+    Column_Data new_name connection new_col.sql_type new_col.expression new_ctx
 

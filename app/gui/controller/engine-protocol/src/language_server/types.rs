@@ -6,6 +6,7 @@ use enso_text::Utf16CodeUnit;
 use strum_macros::IntoStaticStr;
 
 
+
 // =============
 // === Event ===
 // =============
@@ -235,6 +236,11 @@ pub enum ExpressionUpdatePayload {
     Panic {
         message: String,
         trace:   Vec<ExpressionId>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Pending {
+        message:  Option<String>,
+        progress: Option<f64>,
     },
 }
 
@@ -580,10 +586,10 @@ impl TextEdit {
         let source_start_byte = 0.byte() + common_lengths.prefix;
         let source_end_byte = 0.byte() + source_len - common_lengths.suffix;
 
-        let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
+        let source_start_position = source.offset_to_location_snapped(source_start_byte);
         let source_start_position =
             source.utf16_code_unit_location_of_location(source_start_position);
-        let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
+        let source_end_position = source.offset_to_location_snapped(source_end_byte);
         let source_end_position = source.utf16_code_unit_location_of_location(source_end_position);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
@@ -655,12 +661,12 @@ pub type ExpressionId = Uuid;
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct VisualisationConfiguration {
-    #[allow(missing_docs)]
+    /// An execution context of the visualization.
     pub execution_context_id: ContextId,
-    /// A qualified name of the module containing the expression which creates visualisation.
-    pub visualisation_module: String,
-    /// An enso lambda that will transform the data into expected format, i.e. `a -> a.json`.
-    pub expression:           String,
+    /// An enso function that will transform the data into expected format.
+    pub expression: MethodPointer,
+    /// A list of arguments to pass to the visualization expression.
+    pub positional_arguments_expressions: Vec<String>,
 }
 
 /// Used to enter deeper in the execution context stack. In general, all consequent stack items

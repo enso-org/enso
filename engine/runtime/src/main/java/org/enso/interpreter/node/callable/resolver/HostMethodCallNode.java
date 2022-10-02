@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** Discovers and performs method calls on foreign values. */
@@ -31,18 +32,16 @@ public abstract class HostMethodCallNode extends Node {
      * Object...)}.
      */
     INSTANTIATE,
-    /** The method call should be handled through {@link InteropLibrary#getArraySize(Object)}. */
-    GET_ARRAY_LENGTH,
-    /**
-     * The method call should be handled through {@link InteropLibrary#readArrayElement(Object,
-     * long)}.
-     */
-    READ_ARRAY_ELEMENT,
     /**
      * The method call should be handled by converting {@code self} to a {@link
      * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
      */
     CONVERT_TO_TEXT,
+    /**
+     * The method call should be handled by converting {@code self} dispatching natively to methods
+     * of {@link org.enso.interpreter.runtime.data.Array}
+     */
+    CONVERT_TO_ARRAY,
     /**
      * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Date} and dispatching natively.
@@ -80,6 +79,7 @@ public abstract class HostMethodCallNode extends Node {
      */
     public boolean isInteropLibrary() {
       return this != NOT_SUPPORTED
+          && this != CONVERT_TO_ARRAY
           && this != CONVERT_TO_TEXT
           && this != CONVERT_TO_DATE
           && this != CONVERT_TO_DATE_TIME
@@ -89,8 +89,6 @@ public abstract class HostMethodCallNode extends Node {
     }
   }
 
-  private static final String ARRAY_LENGTH_NAME = "length";
-  private static final String ARRAY_READ_NAME = "at";
   private static final String NEW_NAME = "new";
 
   static final int LIB_LIMIT = 3;
@@ -106,6 +104,24 @@ public abstract class HostMethodCallNode extends Node {
    */
   public static PolyglotCallType getPolyglotCallType(
       Object self, String methodName, InteropLibrary library) {
+    return getPolyglotCallType(self, methodName, library, null);
+  }
+
+  /**
+   * Returns a token instructing the caller about what mode of calling the given method should be
+   * used.
+   *
+   * @param self the method call target
+   * @param methodName the method name
+   * @param library an instance of interop library to use for interacting with the target
+   * @param methodResolverNode {@code null} or real instances of the node to resolve methods
+   * @return a {@link PolyglotCallType} to use for this target and method
+   */
+  public static PolyglotCallType getPolyglotCallType(
+      Object self,
+      String methodName,
+      InteropLibrary library,
+      MethodResolverNode methodResolverNode) {
     if (library.isDate(self)) {
       if (library.isTime(self)) {
         if (library.isTimeZone(self)) {
@@ -122,16 +138,26 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.CONVERT_TO_TIME_ZONE;
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
-    } else if (library.isMemberInvocable(self, methodName)) {
+    } else if (library.hasArrayElements(self)) {
+      if (methodResolverNode != null) {
+        var ctx = Context.get(library);
+        var arrayType = ctx.getBuiltins().array();
+        var symbol = UnresolvedSymbol.build(methodName, ctx.getBuiltins().getScope());
+        var fn = methodResolverNode.execute(arrayType, symbol);
+        if (fn != null) {
+          return PolyglotCallType.CONVERT_TO_ARRAY;
+        }
+      } else {
+        return PolyglotCallType.CONVERT_TO_ARRAY;
+      }
+    }
+
+    if (library.isMemberInvocable(self, methodName)) {
       return PolyglotCallType.CALL_METHOD;
     } else if (library.isMemberReadable(self, methodName)) {
       return PolyglotCallType.GET_MEMBER;
     } else if (library.isInstantiable(self) && methodName.equals(NEW_NAME)) {
       return PolyglotCallType.INSTANTIATE;
-    } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_LENGTH_NAME)) {
-      return PolyglotCallType.GET_ARRAY_LENGTH;
-    } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_READ_NAME)) {
-      return PolyglotCallType.READ_ARRAY_ELEMENT;
     }
     return PolyglotCallType.NOT_SUPPORTED;
   }
@@ -227,58 +253,6 @@ public abstract class HostMethodCallNode extends Node {
               .error()
               .makeUnsupportedArgumentsError(e.getSuppliedValues()),
           this);
-    }
-  }
-
-  @Specialization(guards = {"callType == GET_ARRAY_LENGTH"})
-  Object resolveHostArrayLength(
-      PolyglotCallType callType,
-      String symbol,
-      Object self,
-      Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
-      @Cached BranchProfile errorProfile,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
-    if (args.length != 0) {
-      errorProfile.enter();
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
-    }
-    try {
-      return hostValueToEnsoNode.execute(arrays.getArraySize(self));
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
-    }
-  }
-
-  @Specialization(guards = {"callType == READ_ARRAY_ELEMENT"})
-  Object resolveHostArrayRead(
-      PolyglotCallType callType,
-      String symbol,
-      Object self,
-      Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
-      @Cached BranchProfile arityErrorProfile,
-      @Cached BranchProfile typeErrorProfile,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
-    if (args.length != 1) {
-      arityErrorProfile.enter();
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(1, 1, args.length), this);
-    }
-    if (!(args[0] instanceof Long)) {
-      typeErrorProfile.enter();
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, args[0]), this);
-    }
-    long idx = (Long) args[0];
-    try {
-      return hostValueToEnsoNode.execute(arrays.readArrayElement(self, idx));
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
-    } catch (InvalidArrayIndexException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, idx), this);
     }
   }
 }

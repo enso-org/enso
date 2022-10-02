@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.type;
 
 import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.Type;
 
 /**
  * TypesFromProxy provides a single static method `fromTypeSystem` which converts from type-system
@@ -26,36 +26,46 @@ public class TypesFromProxy {
    * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
    *     and {@code null} otherwise
    */
-  public static Atom fromTypeSystem(Builtins builtins, String typeName) {
+  public static Type fromTypeSystem(Builtins builtins, String typeName) {
     switch (typeName) {
       case ConstantsGen.ANY:
-        return builtins.any().newInstance();
+        return builtins.any();
       case ConstantsGen.ARRAY:
-        return builtins.array().newInstance();
+        return builtins.array();
       case ConstantsGen.BOOLEAN:
-        return builtins.bool().getBool().newInstance();
+        return builtins.bool().getType();
+      case ConstantsGen.DATE:
+        return builtins.date();
+      case ConstantsGen.DATE_TIME:
+        return builtins.dateTime();
       case ConstantsGen.DECIMAL:
-        return builtins.number.getDecimal().newInstance();
+        return builtins.number().getDecimal();
       case ConstantsGen.ERROR:
-        return builtins.dataflowError().newInstance();
+        return builtins.dataflowError();
       case ConstantsGen.FUNCTION:
-        return builtins.function().newInstance();
+        return builtins.function();
       case ConstantsGen.FILE:
-        return builtins.file().newInstance();
+        return builtins.file();
       case ConstantsGen.INTEGER:
-        return builtins.number.getInteger().newInstance();
+        return builtins.number().getInteger();
       case ConstantsGen.MANAGED_RESOURCE:
-        return builtins.managedResource().newInstance();
+        return builtins.managedResource();
       case ConstantsGen.NOTHING:
-        return builtins.nothing().newInstance();
+        return builtins.nothing();
       case ConstantsGen.NUMBER:
-        return builtins.number.getNumber().newInstance();
+        return builtins.number().getNumber();
       case ConstantsGen.PANIC:
-        return builtins.panic().newInstance();
+        return builtins.panic();
       case ConstantsGen.REF:
-        return builtins.ref().newInstance();
+        return builtins.ref();
       case ConstantsGen.TEXT:
-        return builtins.text().newInstance();
+        return builtins.text();
+      case ConstantsGen.TIME_OF_DAY:
+        return builtins.timeOfDay();
+      case ConstantsGen.TIME_ZONE:
+        return builtins.timeZone();
+      case ConstantsGen.VECTOR:
+        return builtins.vector();
       default:
         throw new CompilerError("Invalid builtin type " + typeName);
     }

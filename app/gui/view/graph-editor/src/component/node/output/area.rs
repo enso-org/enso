@@ -109,7 +109,7 @@ impl From<node::Expression> for Expression {
             let span = node.span();
             let port = node.payload_mut();
             port.index = span.start.into();
-            port.length = span.size().into();
+            port.length = span.size();
         });
         Expression { code, span_tree, whole_expr_type, whole_expr_id }
     }

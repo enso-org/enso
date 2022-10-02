@@ -176,7 +176,7 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_text::traits::*;
+    use enso_text::index::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 

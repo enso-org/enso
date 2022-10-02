@@ -129,9 +129,15 @@ impl Model {
     fn editing_aborted(&self) {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
-            searcher.abort_editing();
+            let input_node_view = searcher.input_view();
+            if let Some(node) = self.graph.ast_node_of_view(input_node_view) {
+                self.graph.allow_expression_auto_updates(node, true);
+                searcher.abort_editing();
+            } else {
+                tracing::warn!("When porting editing the AST node of the node view {input_node_view} could not be found.");
+            }
         } else {
-            warning!(self.logger, "Editing aborted without searcher controller.");
+            tracing::warn!("Editing aborted without searcher controller.");
         }
     }
 

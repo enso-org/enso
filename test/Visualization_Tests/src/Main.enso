@@ -7,7 +7,7 @@ import project.Helpers_Spec
 import project.Histogram_Spec
 import project.Id_Spec
 import project.Scatter_Plot_Spec
-import project.Sql_Spec
+import project.SQL_Spec
 import project.Table_Spec
 import project.Visualization_Spec
 
@@ -17,6 +17,6 @@ main = Test.Suite.run_main <|
     Histogram_Spec.spec
     Id_Spec.spec
     Scatter_Plot_Spec.spec
-    Sql_Spec.spec
+    SQL_Spec.spec
     Table_Spec.spec
     Visualization_Spec.spec

@@ -26,7 +26,6 @@ class PanicsTest extends InterpreterTest {
           |    Panic.throw Bar
           |    IO.println Baz
           |""".stripMargin
-
       val exception = the[InterpreterException] thrownBy eval(code)
       exception.isGuestException shouldEqual true
       exception.getGuestObject.toString shouldEqual "Bar"
@@ -45,6 +44,7 @@ class PanicsTest extends InterpreterTest {
           |    IO.println caught
           |""".stripMargin
 
+      eval(code)
       noException shouldBe thrownBy(eval(code))
       consumeOut shouldEqual List("(Error: MyError)")
     }
@@ -58,7 +58,7 @@ class PanicsTest extends InterpreterTest {
           |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
-          |        Polyglot_Error err -> err
+          |        Polyglot_Error_Data err -> err
           |        _ -> "fail"
           |    IO.println cause
           |    message = cause.getMessage
@@ -66,7 +66,7 @@ class PanicsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        """(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""",
+        """(Error: (Polyglot_Error_Data java.lang.NumberFormatException: For input string: "oops"))""",
         """java.lang.NumberFormatException: For input string: "oops"""",
         """For input string: "oops""""
       )

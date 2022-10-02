@@ -22,7 +22,10 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::display::world;
 use ensogl_core::frp;
+#[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use font::Font;
@@ -73,7 +76,38 @@ fn test() {
 // =============
 
 /// Glyph texture. Contains all letters encoded in MSDF format.
-pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+#[cfg(target_arch = "wasm32")]
+type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+
+#[cfg(target_arch = "wasm32")]
+fn new_texture(context: &Context, param: (i32, i32)) -> Texture {
+    Texture::new(context, param)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+type Texture = u32;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn new_texture(_context: &Context, _param: (i32, i32)) -> Texture {
+    0
+}
+
+
+#[cfg(target_arch = "wasm32")]
+type Context = world::Context;
+#[cfg(not(target_arch = "wasm32"))]
+type Context = ();
+
+#[cfg(target_arch = "wasm32")]
+fn get_context(scene: &Scene) -> Context {
+    // FIXME: The following line is unsafe. It can fail if the context was lost before
+    // calling this function. Also, the texture will not be restored
+    // after context restoration.
+    scene.context.borrow().as_ref().unwrap().clone_ref()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_context(_scene: &Scene) -> Context {}
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -333,6 +367,9 @@ impl Glyph {
     }
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn update_atlas(&self) {}
+    #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
         let cpu_tex_height = self.font.msdf_texture_rows() as i32;
         let gpu_tex_height = self.atlas.with_content(|texture| texture.storage().height);
@@ -406,12 +443,10 @@ impl System {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();
-        // FIXME: The following line is unsafe. It can fail if the context was lost before calling
-        //        this function. Also, the texture will not be restored after context restoration.
-        let context = scene.context.borrow().as_ref().unwrap().clone_ref();
         let sprite_system = SpriteSystem::new(scene);
         let symbol = sprite_system.symbol();
-        let texture = Texture::new(&context, (0, 0));
+        let context = get_context(scene);
+        let texture = new_texture(&context, (0, 0));
         let mesh = symbol.surface();
 
         sprite_system.set_material(Self::material());
@@ -435,6 +470,8 @@ impl System {
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
         let frp = Frp::new();
+        #[allow(clippy::clone_on_copy)]
+        #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();

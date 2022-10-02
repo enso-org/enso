@@ -108,7 +108,7 @@ impl Deref for NumberPicker {
     }
 }
 
-impl application::command::FrpNetworkProvider for NumberPicker {
+impl FrpNetworkProvider for NumberPicker {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
     }
@@ -178,7 +178,7 @@ impl Deref for NumberRangePicker {
     }
 }
 
-impl application::command::FrpNetworkProvider for NumberRangePicker {
+impl FrpNetworkProvider for NumberRangePicker {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
     }

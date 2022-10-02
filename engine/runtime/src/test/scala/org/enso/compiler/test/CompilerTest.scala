@@ -3,7 +3,10 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
@@ -191,8 +194,8 @@ trait CompilerRunner {
       *
       * @return an atom with one argument `arg` with default value `ir`
       */
-    def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
-      IR.Module.Scope.Definition.Atom(
+    def asAtomDefaultArg: IR.Module.Scope.Definition.Data = {
+      IR.Module.Scope.Definition.Data(
         IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
@@ -207,19 +210,6 @@ trait CompilerRunner {
         ),
         None
       )
-    }
-
-    /** Creates a module containing both an atom and a method that use the
-      * provided expression.
-      *
-      * The expression is used in the default for an atom argument, as in
-      * [[asAtomDefaultArg()]], and in the body of a method, as in
-      * [[asMethod()]].
-      *
-      * @return a module containing an atom def and method def using `expr`
-      */
-    def asModuleDefs: IR.Module = {
-      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
   }
 
@@ -238,7 +228,7 @@ trait CompilerRunner {
     isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName, null),
+      module            = Module.empty(moduleName, null, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -262,8 +252,17 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
-    mod.unsafeBuildIrStub()
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null, null)
+    mod.unsafeSetIr(
+      IR.Module(List(), List(), List(), None)
+        .updateMetadata(
+          BindingAnalysis -->> BindingsMap(
+            List(),
+            ModuleReference.Concrete(mod)
+          )
+        )
+    )
+    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

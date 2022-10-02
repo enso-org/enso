@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Numbers import Parse_Error
+from Standard.Base.Data.Numbers import Parse_Error_Data
 
 import Standard.Test
 
@@ -58,7 +58,7 @@ spec =
 
         Test.specify "should support integer division" <|
             (10.div 3) . should_equal 3
-            (10.div 0).should_fail_with Arithmetic_Error
+            (10.div 0).should_fail_with Arithmetic_Error_Data
 
         Test.specify "should support integral binary literals" <|
             lit = 2_01101101
@@ -116,28 +116,28 @@ spec =
             positive_bits.bit_shift_l 64 . should_equal 16_6d0000000000000000
             positive_bits.bit_shift_l -2 . should_equal 2_011011
             positive_bits.bit_shift_l -64 . should_equal 0
-            (positive_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
+            (positive_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error_Data
             positive_bits.bit_shift_l negative_big_bits . should_equal 0
 
             negative_bits.bit_shift_l 2 . should_equal -436
             negative_bits.bit_shift_l 64 . should_equal -2010695104034341126144
             negative_bits.bit_shift_l -2 . should_equal -28
             negative_bits.bit_shift_l -64 . should_equal -1
-            (negative_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
+            (negative_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error_Data
             negative_bits.bit_shift_l negative_big_bits . should_equal -1
 
             positive_big_bits.bit_shift_l 2 . should_equal 110680464442257309672
             positive_big_bits.bit_shift_l 64 . should_equal 510423550381407695084381446705395007488
             positive_big_bits.bit_shift_l -2 . should_equal 6917529027641081854
             positive_big_bits.bit_shift_l -100 . should_equal 0
-            (positive_big_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
+            (positive_big_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error_Data
             positive_big_bits.bit_shift_l negative_big_bits . should_equal 0
 
             negative_big_bits.bit_shift_l 2 . should_equal -110680464442257309672
             negative_big_bits.bit_shift_l 64 . should_equal -510423550381407695084381446705395007488
             negative_big_bits.bit_shift_l -2 . should_equal -6917529027641081855
             negative_big_bits.bit_shift_l -100 . should_equal -1
-            (negative_big_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error
+            (negative_big_bits.bit_shift_l positive_big_bits).should_fail_with Arithmetic_Error_Data
             negative_big_bits.bit_shift_l negative_big_bits . should_equal -1
         Test.specify "should support right bit shifts, preserving sign" <|
             positive_bits = 2_01101101
@@ -149,28 +149,28 @@ spec =
             positive_bits.bit_shift_r 64 . should_equal (positive_bits.bit_shift_l -64)
             positive_bits.bit_shift_r -2 . should_equal (positive_bits.bit_shift_l 2)
             positive_bits.bit_shift_r -64 . should_equal (positive_bits.bit_shift_l 64)
-            (positive_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
+            (positive_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error_Data
             positive_bits.bit_shift_r positive_big_bits . should_equal 0
 
             negative_bits.bit_shift_r 2 . should_equal (negative_bits.bit_shift_l -2)
             negative_bits.bit_shift_r 64 . should_equal (negative_bits.bit_shift_l -64)
             negative_bits.bit_shift_r -2 . should_equal (negative_bits.bit_shift_l 2)
             negative_bits.bit_shift_r -64 . should_equal (negative_bits.bit_shift_l 64)
-            (negative_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
+            (negative_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error_Data
             negative_bits.bit_shift_r positive_big_bits . should_equal -1
 
             positive_big_bits.bit_shift_r 2 . should_equal (positive_big_bits.bit_shift_l -2)
             positive_big_bits.bit_shift_r 64 . should_equal (positive_big_bits.bit_shift_l -64)
             positive_big_bits.bit_shift_r -2 . should_equal (positive_big_bits.bit_shift_l 2)
             positive_big_bits.bit_shift_r -100 . should_equal (positive_big_bits.bit_shift_l 100)
-            (positive_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
+            (positive_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error_Data
             positive_big_bits.bit_shift_r positive_big_bits . should_equal 0
 
             negative_big_bits.bit_shift_r 2 . should_equal (negative_big_bits.bit_shift_l -2)
             negative_big_bits.bit_shift_r 64 . should_equal (negative_big_bits.bit_shift_l -64)
             negative_big_bits.bit_shift_r -2 . should_equal (negative_big_bits.bit_shift_l 2)
             negative_big_bits.bit_shift_r -100 . should_equal (negative_big_bits.bit_shift_l 100)
-            (negative_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error
+            (negative_big_bits.bit_shift_r negative_big_bits).should_fail_with Arithmetic_Error_Data
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
 
         Test.specify "should be able to parse" <|
@@ -179,28 +179,28 @@ spec =
             Integer.parse "-1234567" . should_equal -1234567
             Integer.parse "00000" . should_equal 0
             Integer.parse "00000123" . should_equal 123
-            Integer.parse "123.45" . should_fail_with Parse_Error
-            Integer.parse "123A" . should_fail_with Parse_Error
-            Integer.parse "aaaa" . should_fail_with Parse_Error
+            Integer.parse "123.45" . should_fail_with Parse_Error_Data
+            Integer.parse "123A" . should_fail_with Parse_Error_Data
+            Integer.parse "aaaa" . should_fail_with Parse_Error_Data
 
         Test.specify "should be able to parse alternate bases" <|
             Integer.parse "1245623" 8 . should_equal 347027
             Integer.parse "-1245623" 8 . should_equal -347027
             Integer.parse "0001245623" 8 . should_equal 347027
             Integer.parse "00000" 8 . should_equal 0
-            Integer.parse "9847" 8 . should_fail_with Parse_Error
-            Integer.parse "8479" 8 . should_fail_with Parse_Error
+            Integer.parse "9847" 8 . should_fail_with Parse_Error_Data
+            Integer.parse "8479" 8 . should_fail_with Parse_Error_Data
             Integer.parse "ABC123" 16 . should_equal 11256099
             Integer.parse "123ABC" 16 . should_equal 1194684
             Integer.parse "123aBc" 16 . should_equal 1194684
             Integer.parse "-ABC123" 16 . should_equal -11256099
             Integer.parse "00000ABC123" 16 . should_equal 11256099
-            Integer.parse "123aBcG" 16 . should_fail_with Parse_Error
+            Integer.parse "123aBcG" 16 . should_fail_with Parse_Error_Data
             Integer.parse "10101010" 2 . should_equal 170
             Integer.parse "00001111" 2 . should_equal 15
             Integer.parse "-10101010" 2 . should_equal -170
-            Integer.parse "-101021010" 2 . should_fail_with Parse_Error
-            Integer.parse "123" 128 . should_fail_with Parse_Error
+            Integer.parse "-101021010" 2 . should_fail_with Parse_Error_Data
+            Integer.parse "123" 128 . should_fail_with Parse_Error_Data
 
     Test.group "Decimals" <|
 
@@ -216,7 +216,7 @@ spec =
             Decimal.parse "-98.5" . should_equal -98.5
             Decimal.parse "000000" . should_equal 0
             Decimal.parse "000000.0001" . should_equal 0.0001
-            Decimal.parse "aaaa" . should_fail_with Parse_Error
+            Decimal.parse "aaaa" . should_fail_with Parse_Error_Data
 
     Test.group "Numbers" <|
 
@@ -248,8 +248,8 @@ spec =
             almost_max_long_times_three%10 . should_equal 8
             1000%almost_max_long_times_three . should_equal 1000
 
-            1%0 . should_fail_with Arithmetic_Error
-            almost_max_long_times_three%0 . should_fail_with Arithmetic_Error
+            1%0 . should_fail_with Arithmetic_Error_Data
+            almost_max_long_times_three%0 . should_fail_with Arithmetic_Error_Data
 
             1.0%0.0 . is_nan . should_be_true
             1%0.0 . is_nan . should_be_true

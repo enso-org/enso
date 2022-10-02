@@ -39,12 +39,14 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
+    * @param fromCache whether or not the value for this expression came
     * @return the expression update response
     */
   def update(
     contextId: UUID,
     expressionId: UUID,
-    expressionType: String
+    expressionType: String,
+    fromCache: Boolean = false
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -55,7 +57,7 @@ object TestMessages {
             Some(expressionType),
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
-            false,
+            fromCache,
             Api.ExpressionUpdate.Payload.Value()
           )
         )
@@ -266,6 +268,36 @@ object TestMessages {
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
             payload
+          )
+        )
+      )
+    )
+
+  /** Create an pending response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param expressionType a type of the expression
+    * @param methodPointer a pointer to the method definition
+    * @param fromCache whether or not the value for this expression came
+    * from the cache
+    * @return the expression update response
+    */
+  def pending(
+    contextId: UUID,
+    expressionId: UUID
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        Set(
+          Api.ExpressionUpdate(
+            expressionId,
+            None,
+            None,
+            Vector(),
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
           )
         )
       )

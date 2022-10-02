@@ -130,7 +130,7 @@ object ExecutionContextJsonMessages {
                 }
               }
               """
-      case VisualisationExpression.ModuleMethod(methodPointer) =>
+      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/executeExpression",
@@ -145,6 +145,26 @@ object ExecutionContextJsonMessages {
                   "definedOnType": ${methodPointer.definedOnType},
                   "name": ${methodPointer.name}
                 }
+              }
+            }
+          }
+          """
+      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/executeExpression",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                },
+                "positionalArgumentsExpressions": $arguments
               }
             }
           }
@@ -174,7 +194,7 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer) =>
+      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/attachVisualisation",
@@ -189,6 +209,26 @@ object ExecutionContextJsonMessages {
                   "definedOnType": ${methodPointer.definedOnType},
                   "name": ${methodPointer.name}
                 }
+              }
+            }
+          }
+          """
+      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/attachVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                },
+                "positionalArgumentsExpressions": $arguments
               }
             }
           }
@@ -280,7 +320,7 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer) =>
+      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/modifyVisualisation",
@@ -294,6 +334,25 @@ object ExecutionContextJsonMessages {
                   "definedOnType": ${methodPointer.definedOnType},
                   "name": ${methodPointer.name}
                 }
+              }
+            }
+          }
+          """
+      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/modifyVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                },
+                "positionalArgumentsExpressions": $arguments
               }
             }
           }

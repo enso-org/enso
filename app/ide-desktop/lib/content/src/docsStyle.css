@@ -39,7 +39,7 @@
     format("truetype");
 }
 .enso.docs {
-  font-family: Causten, DejaVuSansMonoBook, sans-serif;
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
 }
 .enso.docs .root {
   display: flex;

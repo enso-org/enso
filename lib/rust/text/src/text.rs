@@ -8,9 +8,9 @@ use crate::prelude::fmt::Formatter;
 use crate::range::Range;
 use crate::range::RangeBounds;
 use crate::rope;
-use xi_rope::rope::Utf16CodeUnitsMetric;
 
 use enso_types::min;
+use xi_rope::rope::Utf16CodeUnitsMetric;
 
 
 
@@ -60,21 +60,45 @@ impl Rope {
     }
 
     /// Check whether the text is empty.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").is_empty(), true);
+    /// assert_eq!(Rope::from("a").is_empty(), false);
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.rope.is_empty()
     }
 
     /// Length of the text in bytes.
+    /// ```
+    /// # use enso_text::*;
+    /// let str = "🧑🏾";
+    /// assert_eq!(Rope::from(str).len(), Bytes(str.len()));
+    /// ```
     pub fn len(&self) -> Bytes {
         Bytes(self.rope.len())
     }
 
     /// Last byte index in text. There is no glyph after this byte index.
+    /// ```
+    /// # use enso_text::*;
+    /// let str = "🧑🏾";
+    /// assert_eq!(Rope::from(str).last_byte_index(), Byte(str.len()));
+    /// ```
     pub fn last_byte_index(&self) -> Byte {
         Byte(self.rope.len())
     }
 
     /// Return text narrowed to the given range.
+    /// ```
+    /// # use enso_text::*;
+    /// let s1 = "a";
+    /// let s2 = "🧑🏾";
+    /// let s3 = "ட்";
+    /// let str = format!("{s1}{s2}{s3}");
+    /// let range = Byte(s1.len())..Byte(s1.len() + s2.len());
+    /// assert_eq!(&Rope::from(str).sub(range).to_string(), s2);
+    /// ```
     pub fn sub(&self, range: impl RangeBounds) -> Rope {
         let range = self.crop_byte_range(range);
         let rope = self.rope.subseq(range.into_rope_interval());
@@ -82,6 +106,10 @@ impl Rope {
     }
 
     /// The number of grapheme clusters in this text.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("a🧑🏾ட்").grapheme_count(), 3);
+    /// ```
     pub fn grapheme_count(&self) -> usize {
         let mut offset = 0;
         let mut count = 0;
@@ -93,30 +121,108 @@ impl Rope {
     }
 
     /// Range of the text in bytes.
+    /// ```
+    /// # use enso_text::*;
+    /// let str = "a🧑🏾ட்";
+    /// assert_eq!(Rope::from(str).byte_range(), Range::from(Byte(0)..Byte(str.len())));
+    /// ```
     pub fn byte_range(&self) -> Range<Byte> {
         (..self.last_byte_index()).into()
     }
 
-    /// Return the offset to the next codepoint if any. See the [`crate`] documentation to learn
-    /// more about codepoints.
+    /// Return the offset to the next codepoint if any.
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("a🧑🏾ட்");
+    /// assert_eq!(rope.next_codepoint_offset(Byte(0)), Some(Byte(1)));
+    /// assert_eq!(rope.next_codepoint_offset(Byte(1)), Some(Byte(5)));
+    /// assert_eq!(rope.next_codepoint_offset(Byte(5)), Some(Byte(9)));
+    /// assert_eq!(rope.next_codepoint_offset(Byte(9)), Some(Byte(12)));
+    /// assert_eq!(rope.next_codepoint_offset(Byte(12)), Some(Byte(15)));
+    /// assert_eq!(rope.next_codepoint_offset(Byte(15)), None);
+    /// assert!(std::panic::catch_unwind(|| rope.next_codepoint_offset(Byte(2))).is_err());
+    /// assert!(std::panic::catch_unwind(|| rope.next_codepoint_offset(Byte(16))).is_err());
+    /// ```
     pub fn next_codepoint_offset(&self, offset: Byte) -> Option<Byte> {
+        assert!(self.rope.is_codepoint_boundary(offset.value));
         self.rope.next_codepoint_offset(offset.value).map(Byte)
     }
 
-    /// Return the offset to the previous codepoint if any. See the [`crate`] documentation to learn
-    /// more about codepoints.
+    /// Return the offset to the previous codepoint if any.
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("a🧑🏾ட்");
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(0)), None);
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(1)), Some(Byte(0)));
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(5)), Some(Byte(1)));
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(9)), Some(Byte(5)));
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(12)), Some(Byte(9)));
+    /// assert_eq!(rope.prev_codepoint_offset(Byte(15)), Some(Byte(12)));
+    /// assert!(std::panic::catch_unwind(|| rope.prev_codepoint_offset(Byte(2))).is_err());
+    /// assert!(std::panic::catch_unwind(|| rope.prev_codepoint_offset(Byte(16))).is_err());
+    /// ```
     pub fn prev_codepoint_offset(&self, offset: Byte) -> Option<Byte> {
+        assert!(self.rope.is_codepoint_boundary(offset.value));
         self.rope.prev_codepoint_offset(offset.value).map(Byte)
     }
 
     /// Return the offset to the next grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
+    /// ```
+    /// # use enso_text::*;
+    /// let s1 = "a";
+    /// let s2 = "🧑🏾";
+    /// let s3 = "ட்";
+    /// let off1 = Byte(0);
+    /// let off2 = Byte(s1.len());
+    /// let off3 = Byte(s1.len() + s2.len());
+    /// let off4 = Byte(s1.len() + s2.len() + s3.len());
+    /// let off5 = Byte(s1.len() + s2.len() + s3.len() + 1);
+    /// let rope = Rope::from(format!("{s1}{s2}{s3}"));
+    /// for off in off1..off2 {
+    ///     assert_eq!(rope.next_grapheme_offset(off), Some(off2));
+    /// }
+    /// for off in off2..off3 {
+    ///     assert_eq!(rope.next_grapheme_offset(off), Some(off3));
+    /// }
+    /// for off in off3..off4 {
+    ///     assert_eq!(rope.next_grapheme_offset(off), Some(off4));
+    /// }
+    /// assert_eq!(rope.next_grapheme_offset(off4), None);
+    /// assert!(std::panic::catch_unwind(|| rope.next_grapheme_offset(off5)).is_err());
+    /// ```
     pub fn next_grapheme_offset(&self, offset: Byte) -> Option<Byte> {
         self.rope.next_grapheme_offset(offset.value).map(Byte)
     }
 
     /// Return the offset to the previous grapheme if any. See the documentation of the library to
     /// learn more about graphemes.
+    /// ```
+    /// # use enso_text::*;
+    /// let s1 = "a";
+    /// let s2 = "🧑🏾";
+    /// let s3 = "ட்";
+    /// let off1 = Byte(0);
+    /// let off2 = Byte(s1.len());
+    /// let off3 = Byte(s1.len() + s2.len());
+    /// let off4 = Byte(s1.len() + s2.len() + s3.len());
+    /// let off5 = Byte(s1.len() + s2.len() + s3.len() + 1);
+    /// let rope = Rope::from(format!("{s1}{s2}{s3}"));
+    /// for off in off1..off2 {
+    ///     let next = rope.next_grapheme_offset(off).unwrap();
+    ///     assert_eq!(rope.prev_grapheme_offset(next), Some(off1));
+    /// }
+    /// for off in off2..off3 {
+    ///     let next = rope.next_grapheme_offset(off).unwrap();
+    ///     assert_eq!(rope.prev_grapheme_offset(next), Some(off2));
+    /// }
+    /// for off in off3..off4 {
+    ///     let next = rope.next_grapheme_offset(off).unwrap();
+    ///     assert_eq!(rope.prev_grapheme_offset(next), Some(off3));
+    /// }
+    /// assert_eq!(rope.prev_grapheme_offset(off1), None);
+    /// assert!(std::panic::catch_unwind(|| rope.prev_grapheme_offset(off5)).is_err());
+    /// ```
     pub fn prev_grapheme_offset(&self, offset: Byte) -> Option<Byte> {
         self.rope.prev_grapheme_offset(offset.value).map(Byte)
     }
@@ -125,11 +231,48 @@ impl Rope {
     ///
     /// Lines are ended with either Unix (`\n`) or MS-DOS (`\r\n`) style line endings. The line
     /// ending is stripped from the resulting string. The final line ending is optional.
+    /// ```
+    /// # use enso_text::*;
+    /// # use enso_text::prelude::*;
+    /// fn test(str: &str, out: Vec<&str>) {
+    ///     let lines: Vec<String> = Rope::from(str).lines(..).map(|t| t.into()).collect();
+    ///     assert_eq!(lines, out);
+    /// }
+    /// test("", vec![]);
+    /// test("\n", vec![""]);
+    /// test("\n\n", vec!["", ""]);
+    /// test("a🧑🏾ட்", vec!["a🧑🏾ட்"]);
+    /// test("a\n🧑🏾\r\nட்\n", vec!["a", "🧑🏾", "ட்"]); // No newline at end!
+    /// test("a\n🧑🏾\r\nட்\n\n", vec!["a", "🧑🏾", "ட்", ""]); // No newline at end!
+    /// ```
     pub fn lines<T: rope::IntervalBounds>(&self, range: T) -> rope::Lines {
         self.rope.lines(range)
     }
 
     /// Replaces the provided range with the provided text.
+    /// ```
+    /// # use enso_text::*;
+    /// let s1 = "a";
+    /// let s2 = "🧑🏾";
+    /// let s3 = "ட்";
+    /// let off1 = Byte(0);
+    /// let off2 = Byte(s1.len());
+    /// let off3 = Byte(s1.len() + s2.len());
+    /// let off4 = Byte(s1.len() + s2.len() + s3.len());
+    /// let str = format!("{s1}{s2}{s3}");
+    ///
+    /// let mut rope = Rope::from(&str);
+    /// rope.replace(off1..off2, "x");
+    /// assert_eq!(rope.to_string(), "x🧑🏾ட்");
+    ///
+    /// let mut rope = Rope::from(&str);
+    /// rope.replace(off2..off3, "x");
+    /// assert_eq!(rope.to_string(), "axட்");
+    ///
+    /// let mut rope = Rope::from(&str);
+    /// rope.replace(off3..off4, "x");
+    /// assert_eq!(rope.to_string(), "a🧑🏾x");
+    /// ```
     pub fn replace(&mut self, range: impl RangeBounds, text: impl Into<Rope>) {
         let text = text.into();
         let range = self.crop_byte_range(range);
@@ -143,17 +286,35 @@ impl Rope {
 impl Rope {
     /// The last valid line index in this text. If the text ends with the newline character,
     /// it means that there is an empty last line.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").last_line_index(), Line(0));
+    /// assert_eq!(Rope::from("\n").last_line_index(), Line(1));
+    /// ```
     pub fn last_line_index(&self) -> Line {
         (self.rope.measure::<rope::metric::Lines>()).into()
     }
 
     /// The last valid line byte offset in this text. If the text ends with the newline character,
     /// it means that there is an empty last line.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").last_line_byte_offset(), Byte(0));
+    /// assert_eq!(Rope::from("line").last_line_byte_offset(), Byte(0));
+    /// assert_eq!(Rope::from("line\nline2").last_line_byte_offset(), Byte(5));
+    /// ```
     pub fn last_line_byte_offset(&self) -> Byte {
         self.line_offset_unchecked(self.last_line_index())
     }
 
     /// The start location of the last line.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").last_line_location(), Location(Line(0), Byte(0)));
+    /// assert_eq!(Rope::from("line").last_line_location(), Location(Line(0), Byte(0)));
+    /// assert_eq!(Rope::from("line\nline2").last_line_location(), Location(Line(1), Byte(0)));
+    /// assert_eq!(Rope::from("line\nline2\n").last_line_location(), Location(Line(2), Byte(0)));
+    /// ```
     pub fn last_line_location(&self) -> Location<Byte> {
         let line = self.last_line_index();
         let byte_offset = Byte(0);
@@ -161,25 +322,40 @@ impl Rope {
     }
 
     /// The last column number of the last line.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").last_line_end_column(), Column(0));
+    /// assert_eq!(Rope::from("x🧑🏾ட்").last_line_end_column(), Column(3));
+    /// ```
     pub fn last_line_end_column(&self) -> Column {
         self.column_of_byte_offset(self.last_byte_index()).unwrap()
     }
 
-    /// The end location of the last line.
-    pub fn last_line_end_in_line_offset(&self) -> Byte {
-        self.in_line_offset_of_offset(self.last_byte_index()).unwrap()
+    /// The byte offset of last line end counted from the beginning of the line.
+    /// ```
+    /// # use enso_text::*;
+    /// let line = "x🧑🏾ட்";
+    /// let offset = Byte(line.len());
+    /// assert_eq!(Rope::from(line).last_line_len(), offset);
+    /// assert_eq!(Rope::from(format!("\n{}", line)).last_line_len(), offset);
+    /// assert_eq!(Rope::from(format!("\n\n{}", line)).last_line_len(), offset);
+    /// assert_eq!(Rope::from(format!("\n\n\n{}", line)).last_line_len(), offset);
+    /// assert_eq!(Rope::from(format!("\n\n\n{}\n", line)).last_line_len(), Byte(0));
+    /// ```
+    pub fn last_line_len(&self) -> Byte {
+        self.line_len_up_to_offset(self.last_byte_index()).unwrap()
     }
 
     /// The byte offset of the end of the last line. Equal to the byte size of the whole text.
-    pub fn last_line_end_byte_offset(&self) -> Byte {
+    pub fn last_line_end_offset(&self) -> Byte {
         self.last_byte_index()
     }
 
     /// The location of the last character in the text.
-    pub fn last_line_end_location(&self) -> Location<Byte> {
+    pub fn last_line_end_location(&self) -> Location<Byte, Line> {
         let line = self.last_line_index();
-        let byte_offset = self.last_line_end_in_line_offset();
-        Location(line, byte_offset)
+        let offset = self.last_line_len();
+        Location(line, offset)
     }
 }
 
@@ -242,17 +418,25 @@ impl Rope {
 // === Into Byte Offset ===
 
 impl Rope {
-    /// Return the offset after the last character of a given line if the line exists.
+    /// Line end offset counted from the beginning of the text.
+    /// ```
+    /// # use enso_text::*;
+    /// assert_eq!(Rope::from("").line_end_offset_unchecked(Line(0)), Byte(0));
+    /// assert_eq!(Rope::from("foo").line_end_offset_unchecked(Line(0)), Byte(3));
+    /// assert_eq!(Rope::from("foo\nbar").line_end_offset_unchecked(Line(0)), Byte(3));
+    /// assert_eq!(Rope::from("foo\nbar").line_end_offset_unchecked(Line(1)), Byte(7));
+    /// assert_eq!(Rope::from("foo\r\nbar").line_end_offset_unchecked(Line(0)), Byte(3));
+    /// assert_eq!(Rope::from("foo\r\nbar").line_end_offset_unchecked(Line(1)), Byte(8));
+    /// ```
     pub fn line_end_offset_unchecked(&self, line: Line) -> Byte {
         let next_line = line + Line(1);
-        let next_line_off = self.byte_offset_of_line_index(next_line).ok();
-
-        let next_line_prev = next_line_off.and_then(|t| {
-            self.prev_grapheme_offset(t).map(|prev1| {
+        let next_line_off = self.line_offset(next_line).ok();
+        let next_line_prev = next_line_off.and_then(|next_line_off| {
+            self.prev_grapheme_offset(next_line_off).map(|prev1| {
                 self.prev_grapheme_offset(prev1)
                     .map(|prev2| {
-                        let was_rn_seq = self.slice(prev2.value..prev1.value).to_string() == "\r";
-                        let off = if was_rn_seq { prev2 } else { prev1 };
+                        let rn_seq = self.slice_to_cow(prev2.value..prev1.value).starts_with('\r');
+                        let off = if rn_seq { prev2 } else { prev1 };
                         off
                     })
                     .unwrap_or(prev1)
@@ -262,41 +446,59 @@ impl Rope {
         out
     }
 
-    /// Return the offset after the last character of a given line if the line exists.
+    /// Line end offset counted from the beginning of the text.
     pub fn line_end_offset(&self, line: Line) -> Result<Byte, BoundsError> {
         self.validate_line_index(line)?;
         Ok(self.line_end_offset_unchecked(line))
     }
 
     /// Byte length of the given line. Does not include the newline characters.
-    pub fn line_byte_length(&self, line: Line) -> Byte {
-        let line_start = self.byte_offset_of_line_index(line).unwrap();
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("first\r\nsecond\n\nfourth\n");
+    /// assert_eq!(rope.line_len(Line(0)), Byte(5));
+    /// assert_eq!(rope.line_len(Line(1)), Byte(6));
+    /// assert_eq!(rope.line_len(Line(2)), Byte(0));
+    /// assert_eq!(rope.line_len(Line(3)), Byte(6));
+    /// assert_eq!(rope.line_len(Line(4)), Byte(0));
+    /// ```
+    pub fn line_len(&self, line: Line) -> Byte {
+        let line_start = self.line_offset(line).unwrap();
         let line_end = self.line_end_offset(line).unwrap();
         Byte::try_from(line_end - line_start).unwrap()
     }
 
     /// Return the offset after the last character of a given line if the line exists. Snapped to
     /// the closest valid value.
-    pub fn end_byte_offset_of_line_index_snapped(&self, line: Line) -> Byte {
+    pub fn line_end_offset_snapped(&self, line: Line) -> Byte {
         self.snap_bytes_bounds_result(self.line_end_offset(line))
     }
 
     /// The line byte offset. Panics in case the line index was invalid.
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("first\r\nsecond\n\nfourth\n");
+    /// assert_eq!(rope.line_offset_unchecked(Line(0)), Byte(0));
+    /// assert_eq!(rope.line_offset_unchecked(Line(1)), Byte(7));
+    /// assert_eq!(rope.line_offset_unchecked(Line(2)), Byte(14));
+    /// assert_eq!(rope.line_offset_unchecked(Line(3)), Byte(15));
+    /// assert_eq!(rope.line_offset_unchecked(Line(4)), Byte(22));
+    /// ```
     pub fn line_offset_unchecked(&self, line: Line) -> Byte {
         self.rope.offset_of_line(line.value).into()
     }
 
     /// The byte offset of the given line index.
-    pub fn byte_offset_of_line_index(&self, line: Line) -> Result<Byte, BoundsError> {
+    pub fn line_offset(&self, line: Line) -> Result<Byte, BoundsError> {
         self.validate_line_index(line)?;
         Ok(self.line_offset_unchecked(line))
     }
 
     /// The byte offset of the given line. Snapped to the closest valid byte offset in case the
     /// line index was invalid.
-    pub fn byte_offset_of_line_index_snapped(&self, line: Line) -> Byte {
+    pub fn line_offset_snapped(&self, line: Line) -> Byte {
         use BoundsError::*;
-        match self.byte_offset_of_line_index(line) {
+        match self.line_offset(line) {
             Ok(offset) => offset,
             Err(TooSmall) => Byte(0),
             Err(TooBig) => self.last_line_byte_offset(),
@@ -304,34 +506,31 @@ impl Rope {
     }
 
     /// Byte offset of the given location.
-    pub fn byte_offset_of_location(
+    pub fn location_offset(
         &self,
-        location: Location<Byte>,
+        location: Location<Byte, Line>,
     ) -> Result<Byte, LocationError<Byte>> {
-        let line_offset = self.byte_offset_of_line_index(location.line)?;
+        let line_offset = self.line_offset(location.line)?;
         Ok(line_offset + location.offset)
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.
-    pub fn byte_offset_of_location_snapped(&self, location: Location<Byte>) -> Byte {
-        let offset = self.byte_offset_of_location(location);
+    pub fn location_offset_snapped(&self, location: Location<Byte>) -> Byte {
+        let offset = self.location_offset(location);
         self.snap_bytes_location_result(offset)
     }
 
     /// Byte range of the given line.
-    pub fn byte_range_of_line_index(
-        &self,
-        line: Line,
-    ) -> Result<std::ops::Range<Byte>, BoundsError> {
-        let start = self.byte_offset_of_line_index(line)?;
+    pub fn line_range(&self, line: Line) -> Result<std::ops::Range<Byte>, BoundsError> {
+        let start = self.line_offset(line)?;
         let end = self.line_end_offset(line)?;
         Ok(start..end)
     }
 
     /// Byte range of the given line. Snapped to the closest valid value.
-    pub fn byte_range_of_line_index_snapped(&self, line: Line) -> std::ops::Range<Byte> {
-        let start = self.byte_offset_of_line_index_snapped(line);
-        let end = self.end_byte_offset_of_line_index_snapped(line);
+    pub fn line_range_snapped(&self, line: Line) -> std::ops::Range<Byte> {
+        let start = self.line_offset_snapped(line);
+        let end = self.line_end_offset_snapped(line);
         start..end
     }
 }
@@ -340,22 +539,40 @@ impl Rope {
 // === Into Line Index ===
 
 impl Rope {
-    /// The line of a given byte offset. Panics in case the offset was invalid.
-    pub fn line_index_of_byte_offset_unchecked(&self, offset: Byte) -> Line {
+    /// The line of a given byte offset. Panics in case the offset was out of valid range. In case
+    /// the offset was between `\r` and `\n` of a CRLF sequence, the line before the CRLF sequence
+    /// is returned.
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("first\r\nsecond\n\nfourth\n");
+    /// for offset in Byte(0)..=Byte(5) {
+    ///     assert_eq!(rope.line_unchecked(offset), Line(0));
+    /// }
+    /// assert_eq!(rope.line_unchecked(Byte(6)), Line(0)); // Between `\r` and `\n`.
+    /// for offset in Byte(7)..=Byte(13) {
+    ///     assert_eq!(rope.line_unchecked(offset), Line(1));
+    /// }
+    /// assert_eq!(rope.line_unchecked(Byte(14)), Line(2));
+    /// for offset in Byte(15)..=Byte(21) {
+    ///     assert_eq!(rope.line_unchecked(offset), Line(3));
+    /// }
+    /// assert_eq!(rope.line_unchecked(Byte(22)), Line(4));
+    /// ```
+    pub fn line_unchecked(&self, offset: Byte) -> Line {
         self.rope.line_of_offset(offset.value).into()
     }
 
     /// The line index of the given byte offset.
-    pub fn line_index_of_byte_offset(&self, offset: Byte) -> Result<Line, BoundsError> {
+    pub fn line(&self, offset: Byte) -> Result<Line, BoundsError> {
         self.validate_byte_offset(offset)?;
-        Ok(self.line_index_of_byte_offset_unchecked(offset))
+        Ok(self.line_unchecked(offset))
     }
 
     /// The line index of the given byte offset. Snapped to the closest valid line index in case the
     /// byte offset was invalid.
-    pub fn line_index_of_byte_offset_snapped(&self, offset: Byte) -> Line {
+    pub fn line_snapped(&self, offset: Byte) -> Line {
         use BoundsError::*;
-        match self.line_index_of_byte_offset(offset) {
+        match self.line(offset) {
             Ok(index) => index,
             Err(TooSmall) => Line(0),
             Err(TooBig) => self.last_line_index(),
@@ -367,12 +584,11 @@ impl Rope {
 // === Into CodePointIndex ===
 
 impl Rope {
-    /// The byte offset of the beginning of the line containing the provided byte offset.
-    pub fn in_line_offset_of_offset(&self, tgt_offset: Byte) -> Result<Byte, LocationError<Byte>> {
-        let line_index = self.line_index_of_byte_offset(tgt_offset)?;
-        let line_offset = self.byte_offset_of_line_index(line_index)?;
-        let offset = Byte::try_from(tgt_offset - line_offset).unwrap();
-        Ok(offset)
+    /// The byte offset between line start and the provided byte offset. If the offset was between
+    /// `\r` and `\n` of a CRLF sequence, the offset is assumed to belong to the line before the
+    /// CRLF sequence.
+    pub fn line_len_up_to_offset(&self, tgt_offset: Byte) -> Result<Byte, BoundsError> {
+        self.offset_to_location(tgt_offset).map(|location| location.offset)
     }
 }
 
@@ -381,90 +597,41 @@ impl Rope {
 
 
 impl Rope {
-    /// The location of text end.
-    pub fn location_of_text_end(&self) -> Location<Byte> {
-        let lines_count = self.lines(self.byte_range()).count();
-        let last_char_off = self.prev_codepoint_offset(self.last_byte_index());
-        let last_char = last_char_off.map(|off| self.rope.slice_to_cow(off.value..));
-        let ends_with_eol = last_char.map_or(false, |ch| ch.starts_with('\n'));
-        if ends_with_eol {
-            let line: Line = lines_count.into();
-            Location(line, Byte(0))
-        } else if lines_count == 0 {
-            default()
-        } else {
-            let line = Line(lines_count - 1);
-            let byte_offset = self.line_end_offset(line).unwrap();
-            Location(line, byte_offset)
-        }
-    }
-
     /// The location of the provided byte offset.
-    pub fn location_of_byte_offset(&self, offset: Byte) -> Result<Location<Byte>, BoundsError> {
-        let line = self.line_index_of_byte_offset(offset)?;
-        let line_offset = offset - self.byte_offset_of_line_index(line).unwrap(); // fixme unwrap
-        let line_offset = Byte::try_from(line_offset).unwrap_or_else(|_| {
-            error!("Internal error, wrong line byte offset.");
-            Byte(0)
-        });
-        let byte_offset = Byte::try_from(offset - line_offset).unwrap();
-        Ok(Location(line, byte_offset))
+    /// ```
+    /// # use enso_text::*;
+    /// fn test(line: Line, start: usize, end: usize) {
+    ///     let rope = Rope::from("first\r\nsecond\n\nfourth\n");
+    ///     for i in start..=end {
+    ///         let location = Location(line, Byte(i - start));
+    ///         assert_eq!(rope.offset_to_location(Byte(i)).unwrap(), location);
+    ///     }
+    /// }
+    /// test(Line(0), 0, 6);
+    /// test(Line(1), 7, 13);
+    /// test(Line(2), 14, 14);
+    /// test(Line(3), 15, 21);
+    /// test(Line(4), 22, 22);
+    /// ```
+    pub fn offset_to_location(
+        &self,
+        tgt_offset: Byte,
+    ) -> Result<Location<Byte, Line>, BoundsError> {
+        let line = self.line(tgt_offset)?;
+        let line_offset = self.line_offset(line)?;
+        let offset = Byte::try_from(tgt_offset - line_offset).unwrap();
+        Ok(Location(line, offset))
     }
 
     /// The location of the provided byte offset. Snapped to the closest valid
     /// value.
-    pub fn location_of_byte_offset_snapped(&self, offset: Byte) -> Location<Byte> {
+    pub fn offset_to_location_snapped(&self, offset: Byte) -> Location<Byte> {
         use BoundsError::*;
-        match self.location_of_byte_offset(offset) {
+        match dbg!(self.offset_to_location(offset)) {
             Ok(location) => location,
             Err(TooSmall) => default(),
             Err(TooBig) => self.last_line_end_location(),
         }
-    }
-
-
-    /// ```
-    /// # use enso_text::{Location, Rope};
-    /// # use enso_text::unit::*;
-    ///
-    /// let text = "first_line\n🧑🏾second_line";
-    /// let rope = Rope::from(text);
-    /// let from = Location { line: 1.line(), offset: 5.utf16_code_unit() };
-    /// let expected = Location { line: 1.line(), offset: 9.byte() };
-    /// assert_eq!(rope.location_of_utf16_code_unit_location_snapped(from), expected);
-    /// ```
-    pub fn location_of_utf16_code_unit_location_snapped(
-        &self,
-        location: Location<Utf16CodeUnit>,
-    ) -> Location<Byte> {
-        let line_start = self.byte_offset_of_line_index_snapped(location.line);
-        let from_line_start = self.rope.slice(line_start.value..);
-        let line = location.line;
-        let offset =
-            from_line_start.count_base_units::<Utf16CodeUnitsMetric>(location.offset.value).byte();
-        Location { line, offset }
-    }
-
-    /// ```
-    /// # use enso_text::{Location, Rope};
-    /// # use enso_text::unit::*;
-    ///
-    /// let text = "first_line\n🧑🏾second_line";
-    /// let rope = Rope::from(text);
-    /// let from = Location { line: 1.line(), offset: 9.byte() };
-    /// let expected = Location { line: 1.line(), offset: 5.utf16_code_unit() };
-    /// assert_eq!(rope.utf16_code_unit_location_of_location(from), expected);
-    /// ```
-    pub fn utf16_code_unit_location_of_location(
-        &self,
-        location: Location<Byte>,
-    ) -> Location<Utf16CodeUnit> {
-        let line_start = self.byte_offset_of_line_index_snapped(location.line);
-        let position = self.byte_offset_of_location_snapped(location);
-        let line_fragment_before = self.rope.slice(line_start.value..position.value);
-        let line = location.line;
-        let offset = Utf16CodeUnit::from(line_fragment_before.measure::<Utf16CodeUnitsMetric>());
-        Location { line, offset }
     }
 
 
@@ -476,15 +643,15 @@ impl Rope {
         Ok(self.column_of_byte_offset(offset).unwrap())
     }
 
-    /// The column number of the given byte offset.
+    /// The column index of the given byte offset.
     pub fn column_of_byte_offset(&self, tgt_offset: Byte) -> Result<Column, LocationError<Column>> {
         use self::BoundsError::*;
         use LocationError::*;
-        let line_index = self.line_index_of_byte_offset(tgt_offset)?;
-        let mut offset = self.byte_offset_of_line_index(line_index)?;
+        let line_index = self.line(tgt_offset)?;
+        let mut offset = self.line_offset(line_index)?;
         let mut column = Column(0);
         while offset < tgt_offset {
-            match self.next_codepoint_offset(offset) {
+            match self.next_grapheme_offset(offset) {
                 None => return Err(BoundsError(TooBig)),
                 Some(off) => {
                     offset = off;
@@ -505,7 +672,7 @@ impl Rope {
         line: Line,
         in_line_offset: Byte,
     ) -> Result<Column, LocationError<Column>> {
-        let offset = self.byte_offset_of_line_index(line)?;
+        let offset = self.line_offset(line)?;
         let tgt_offset = offset + in_line_offset;
         let column = self.column_of_byte_offset(tgt_offset)?;
         Ok(column)
@@ -539,6 +706,53 @@ impl Rope {
             Ok(column) => column,
             Err(err) => self.snap_column_location_error(err),
         }
+    }
+
+
+    // === UTF16 ===
+
+    /// The location of text end in UTF-16 code units.
+    pub fn location_of_text_end_utf16_code_unit(&self) -> Location<Utf16CodeUnit> {
+        let location = self.last_line_end_location();
+        self.utf16_code_unit_location_of_location(location)
+    }
+
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("first_line\n🧑🏾second_line");
+    /// let from = Location { line: Line(1), offset: Utf16CodeUnit(5) };
+    /// let expected = Location { line: Line(1), offset: Byte(9) };
+    /// assert_eq!(rope.location_of_utf16_code_unit_location_snapped(from), expected);
+    /// ```
+    pub fn location_of_utf16_code_unit_location_snapped(
+        &self,
+        location: Location<Utf16CodeUnit>,
+    ) -> Location<Byte> {
+        let line_start = self.line_offset_snapped(location.line);
+        let from_line_start = self.rope.slice(line_start.value..);
+        let line = location.line;
+        let offset =
+            Byte(from_line_start.count_base_units::<Utf16CodeUnitsMetric>(location.offset.value));
+        Location { line, offset }
+    }
+
+    /// ```
+    /// # use enso_text::*;
+    /// let rope = Rope::from("first_line\n🧑🏾second_line");
+    /// let from = Location { line: Line(1), offset: Byte(9) };
+    /// let expected = Location { line: Line(1), offset: Utf16CodeUnit(5) };
+    /// assert_eq!(rope.utf16_code_unit_location_of_location(from), expected);
+    /// ```
+    pub fn utf16_code_unit_location_of_location(
+        &self,
+        location: Location<Byte>,
+    ) -> Location<Utf16CodeUnit> {
+        let line_start = self.line_offset_snapped(location.line);
+        let position = self.location_offset_snapped(location);
+        let line_fragment_before = self.rope.slice(line_start.value..position.value);
+        let line = location.line;
+        let offset = Utf16CodeUnit::from(line_fragment_before.measure::<Utf16CodeUnitsMetric>());
+        Location { line, offset }
     }
 }
 
@@ -591,7 +805,7 @@ impl Rope {
         use LocationError::*;
         match err {
             BoundsError(TooSmall) => Byte(0),
-            BoundsError(TooBig) => self.last_line_end_byte_offset(),
+            BoundsError(TooBig) => self.last_line_end_offset(),
             LineTooShort(offset) => offset,
             NotClusterBoundary(offset) => offset,
         }
@@ -602,7 +816,7 @@ impl Rope {
         use self::BoundsError::*;
         match err {
             TooSmall => Byte(0),
-            TooBig => self.last_line_end_byte_offset(),
+            TooBig => self.last_line_end_offset(),
         }
     }
 
@@ -837,8 +1051,8 @@ impl RopeCell {
         self.cell.borrow().last_line_location()
     }
 
-    pub fn last_line_end_byte_offset(&self) -> Byte {
-        self.cell.borrow().last_line_end_byte_offset()
+    pub fn last_line_end_offset(&self) -> Byte {
+        self.cell.borrow().last_line_end_offset()
     }
 
     pub fn last_line_end_location(&self) -> Location<Byte> {
@@ -861,66 +1075,60 @@ impl RopeCell {
         self.cell.borrow().line_end_offset(line)
     }
 
-    pub fn line_byte_length(&self, line: Line) -> Byte {
-        self.cell.borrow().line_byte_length(line)
+    pub fn line_len(&self, line: Line) -> Byte {
+        self.cell.borrow().line_len(line)
     }
 
-    pub fn end_byte_offset_of_line_index_snapped(&self, line: Line) -> Byte {
-        self.cell.borrow().end_byte_offset_of_line_index_snapped(line)
+    pub fn line_end_offset_snapped(&self, line: Line) -> Byte {
+        self.cell.borrow().line_end_offset_snapped(line)
     }
 
     pub fn line_offset_unchecked(&self, line: Line) -> Byte {
         self.cell.borrow().line_offset_unchecked(line)
     }
 
-    pub fn byte_offset_of_line_index(&self, line: Line) -> Result<Byte, BoundsError> {
-        self.cell.borrow().byte_offset_of_line_index(line)
+    pub fn line_offset(&self, line: Line) -> Result<Byte, BoundsError> {
+        self.cell.borrow().line_offset(line)
     }
 
-    pub fn byte_offset_of_line_index_snapped(&self, line: Line) -> Byte {
-        self.cell.borrow().byte_offset_of_line_index_snapped(line)
+    pub fn line_offset_snapped(&self, line: Line) -> Byte {
+        self.cell.borrow().line_offset_snapped(line)
     }
 
-    pub fn byte_offset_of_location(
-        &self,
-        location: Location<Byte>,
-    ) -> Result<Byte, LocationError<Byte>> {
-        self.cell.borrow().byte_offset_of_location(location)
+    pub fn location_offset(&self, location: Location<Byte>) -> Result<Byte, LocationError<Byte>> {
+        self.cell.borrow().location_offset(location)
     }
 
-    pub fn byte_offset_of_location_snapped(&self, location: Location<Byte>) -> Byte {
-        self.cell.borrow().byte_offset_of_location_snapped(location)
+    pub fn location_offset_snapped(&self, location: Location<Byte>) -> Byte {
+        self.cell.borrow().location_offset_snapped(location)
     }
 
-    pub fn byte_range_of_line_index(
-        &self,
-        line: Line,
-    ) -> Result<std::ops::Range<Byte>, BoundsError> {
-        self.cell.borrow().byte_range_of_line_index(line)
+    pub fn line_range(&self, line: Line) -> Result<std::ops::Range<Byte>, BoundsError> {
+        self.cell.borrow().line_range(line)
     }
 
-    pub fn byte_range_of_line_index_snapped(&self, line: Line) -> std::ops::Range<Byte> {
-        self.cell.borrow().byte_range_of_line_index_snapped(line)
+    pub fn line_range_snapped(&self, line: Line) -> std::ops::Range<Byte> {
+        self.cell.borrow().line_range_snapped(line)
     }
 
-    pub fn line_index_of_byte_offset_unchecked(&self, offset: Byte) -> Line {
-        self.cell.borrow().line_index_of_byte_offset_unchecked(offset)
+    pub fn line_unchecked(&self, offset: Byte) -> Line {
+        self.cell.borrow().line_unchecked(offset)
     }
 
-    pub fn line_index_of_byte_offset(&self, offset: Byte) -> Result<Line, BoundsError> {
-        self.cell.borrow().line_index_of_byte_offset(offset)
+    pub fn line(&self, offset: Byte) -> Result<Line, BoundsError> {
+        self.cell.borrow().line(offset)
     }
 
-    pub fn line_index_of_byte_offset_snapped(&self, offset: Byte) -> Line {
-        self.cell.borrow().line_index_of_byte_offset_snapped(offset)
+    pub fn line_snapped(&self, offset: Byte) -> Line {
+        self.cell.borrow().line_snapped(offset)
     }
 
-    pub fn location_of_byte_offset(&self, offset: Byte) -> Result<Location<Byte>, BoundsError> {
-        self.cell.borrow().location_of_byte_offset(offset)
+    pub fn offset_to_location(&self, offset: Byte) -> Result<Location<Byte>, BoundsError> {
+        self.cell.borrow().offset_to_location(offset)
     }
 
-    pub fn location_of_byte_offset_snapped(&self, offset: Byte) -> Location<Byte> {
-        self.cell.borrow().location_of_byte_offset_snapped(offset)
+    pub fn offset_to_location_snapped(&self, offset: Byte) -> Location<Byte> {
+        self.cell.borrow().offset_to_location_snapped(offset)
     }
 }
 
@@ -1036,7 +1244,7 @@ impl FromInContextSnapped<&Rope, Byte> for Line {
 
 impl FromInContextSnapped<&Rope, Location<Byte, Line>> for Byte {
     fn from_in_context_snapped(rope: &Rope, location: Location<Byte, Line>) -> Self {
-        rope.byte_offset_of_line_index(location.line).unwrap() + location.offset
+        rope.line_offset(location.line).unwrap() + location.offset
     }
 }
 
@@ -1052,7 +1260,7 @@ impl FromInContextSnapped<&Rope, Location<Column, Line>> for Byte {
 
 impl FromInContextSnapped<&Rope, Location<Byte, Line>> for Location<Column, Line> {
     fn from_in_context_snapped(rope: &Rope, location: Location<Byte, Line>) -> Self {
-        let offset_start = rope.byte_offset_of_line_index_snapped(location.line);
+        let offset_start = rope.line_offset_snapped(location.line);
         let offset_end = offset_start + location.offset;
         let sub_rope = rope.sub(offset_start..offset_end);
         let mut offset = Byte(0);
@@ -1079,8 +1287,8 @@ impl FromInContextSnapped<&Rope, Byte> for Location<Column, Line> {
 
 impl FromInContextSnapped<&Rope, Location<Column, Line>> for Location<Byte, Line> {
     fn from_in_context_snapped(rope: &Rope, location: Location<Column, Line>) -> Self {
-        let offset_start = rope.byte_offset_of_line_index_snapped(location.line);
-        let offset_end = rope.end_byte_offset_of_line_index_snapped(location.line);
+        let offset_start = rope.line_offset_snapped(location.line);
+        let offset_end = rope.line_end_offset_snapped(location.line);
         let sub_rope = rope.sub(offset_start..offset_end);
         let mut offset = Byte(0);
         let mut column = Column(0);
@@ -1099,8 +1307,8 @@ impl FromInContextSnapped<&Rope, Location<Column, Line>> for Location<Byte, Line
 
 impl FromInContextSnapped<&Rope, Byte> for Location<Byte, Line> {
     fn from_in_context_snapped(rope: &Rope, offset: Byte) -> Self {
-        let line = rope.line_index_of_byte_offset_snapped(offset);
-        let line_offset = rope.byte_offset_of_line_index_snapped(line);
+        let line = rope.line_snapped(offset);
+        let line_offset = rope.line_offset_snapped(line);
         let byte_offset = Byte::try_from(offset - line_offset).unwrap();
         Location(line, byte_offset)
     }
@@ -1116,47 +1324,5 @@ where T: FromInContextSnapped<&'t Rope, S>
         let start = T::from_in_context_snapped(rope, range.start);
         let end = T::from_in_context_snapped(rope, range.end);
         Range::new(start, end)
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn location_of_text_end() {
-        struct Case {
-            text:     &'static str,
-            expected: (usize, usize), // Line and column
-        }
-
-        impl Case {
-            fn run(&self) {
-                let text: Rope = self.text.into();
-                let (exp_line, exp_column) = self.expected;
-                let expected =
-                    Location { line: exp_line.into(), offset: Byte(exp_column.into()) };
-                let result = text.location_of_text_end();
-                assert_eq!(result, expected, "Wrong text end location in case \"{}\"", text);
-            }
-        }
-
-        let cases = &[
-            Case { text: "", expected: (0, 0) },
-            Case { text: "single line", expected: (0, 11) },
-            Case { text: "single line with eol\n", expected: (1, 0) },
-            Case { text: "\nMany\nLines", expected: (2, 5) },
-            Case { text: "Many\nLines\nwith eol\n", expected: (3, 0) },
-        ];
-
-        for case in cases {
-            case.run()
-        }
     }
 }

@@ -149,6 +149,23 @@ impl From<&Byte> for ByteDiff {
     }
 }
 
+impl iter::Step for Byte {
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        let diff = end.value - start.value;
+        Some(diff)
+    }
+
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_add(count)?;
+        Some(Byte(new_value))
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        let new_value = start.value.checked_sub(count)?;
+        Some(Byte(new_value))
+    }
+}
+
 
 
 // ============
@@ -355,3 +372,10 @@ impl Add<&LineDiff> for &Line {
 }
 
 define_line_unit!(Line);
+
+impl Line {
+    /// Convert the line to line diff.
+    pub fn to_diff(self) -> LineDiff {
+        LineDiff(self.value as i32)
+    }
+}

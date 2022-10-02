@@ -1,8 +1,9 @@
 package org.enso.table.data.column.storage;
 
-import java.util.stream.DoubleStream;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.NumericAggregator;
+
+import java.util.stream.DoubleStream;
 
 /** A storage containing items representable as a {@code double}. */
 public abstract class NumericStorage extends Storage {

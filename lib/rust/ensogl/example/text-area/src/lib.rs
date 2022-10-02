@@ -23,7 +23,6 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
@@ -37,6 +36,7 @@ use ensogl_text::buffer;
 use ensogl_text::formatting;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 
 
@@ -178,6 +178,8 @@ fn init(app: Application) {
     let borders = Borders::default();
     borders.show(&app, &area);
 
+    // FIXME: fix forward_panic_hook_to_console
+    // FIXME: fix test in monitor
 
     // TODO: Task na unit testyy do textow
     // TODO: next PR - > Text area to gui component.

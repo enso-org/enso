@@ -54,30 +54,6 @@ class BooleanTest extends InterpreterTest {
       eval(code) shouldEqual 3
     }
 
-    "support per-constructor method overloads" in {
-      val code =
-        """from Standard.Base.Data.Boolean import all
-          |
-          |True.to_num = 1
-          |False.to_num = 2
-          |
-          |main = True.to_num + False.to_num
-          |""".stripMargin
-      eval(code) shouldEqual 3
-    }
-
-    "support per-single-constructor method overloads" in {
-      val code =
-        """from Standard.Base.Data.Boolean import all
-          |
-          |Boolean.Boolean.to_num = 2
-          |True.to_num = 1
-          |
-          |main = True.to_num + False.to_num
-          |""".stripMargin
-      eval(code) shouldEqual 3
-    }
-
     "support logical AND and OR operators" in {
       val code =
         """from Standard.Base.Data.Boolean import all

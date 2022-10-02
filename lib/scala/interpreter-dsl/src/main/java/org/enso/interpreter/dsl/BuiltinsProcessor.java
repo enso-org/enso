@@ -142,8 +142,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
-      Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
-
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0)
           throw new RuntimeException(
@@ -170,12 +168,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   try {
                     MethodNodeClassGenerator classGenerator =
                         new NoSpecializationClassGenerator(
-                            method,
-                            builtinMethodNode,
-                            ownerClass,
-                            stdLibOwnerClass,
-                            i,
-                            parameterCounts);
+                            method, builtinMethodNode, ownerClass, stdLibOwnerClass, i);
                     classGenerator.generate(
                         processingEnv,
                         methodName,
@@ -228,7 +221,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
           if (encountered.size() == expected) {
             MethodNodeClassGenerator classGenerator =
                 new SpecializationClassGenerator(
-                    encountered, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+                    encountered, builtinMethodNode, ownerClass, stdLibOwnerClass);
             classGenerator.generate(
                 processingEnv,
                 builtinMethodName,
@@ -241,7 +234,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
           MethodNodeClassGenerator classGenerator =
               new NoSpecializationClassGenerator(
-                  method, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+                  method, builtinMethodNode, ownerClass, stdLibOwnerClass);
           classGenerator.generate(
               processingEnv,
               builtinMethodName,
@@ -279,51 +272,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   return name.equals(builtinMethodName);
                 })
             .count();
-  }
-
-  /**
-   * Returns a map of builtin types and the number of their parameters. The information is used to
-   * generate try/catch clauses and propagate exceptions via dataflow errors, with appropriate
-   * constructor arguments.
-   *
-   * <p>The method takes into account the possibility of separate compilation by reading entries
-   * from metadate, if any.
-   *
-   * @param roundEnv current round environment
-   * @return a map from a builtin type name to the number of its parameters
-   */
-  private Map<String, Integer> builtinTypesParametersCount(RoundEnvironment roundEnv) {
-    // For separate compilation we need  to read that information from BuiltinTypes metadata file
-    Map<String, Integer> pastEntries;
-    try {
-      FileObject existingFile =
-          processingEnv
-              .getFiler()
-              .getResource(StandardLocation.CLASS_OUTPUT, "", TypeProcessor.META_PATH);
-
-      try (InputStream resource = existingFile.openInputStream()) {
-        pastEntries =
-            new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
-                .lines()
-                .map(l -> TypeProcessor.fromStringToMetadataEntry(l))
-                .collect(
-                    Collectors.toMap(e -> e.key().replaceAll("_", ""), e -> e.paramNames().length));
-      }
-    } catch (IOException e) {
-      // Ignore, this is a clean run
-      pastEntries = new HashMap<>();
-    }
-
-    Map<String, Integer> currentRoundEntries =
-        roundEnv.getElementsAnnotatedWith(BuiltinType.class).stream()
-            .collect(
-                Collectors.toMap(
-                    e -> e.getSimpleName().toString(),
-                    e -> e.getAnnotation(BuiltinType.class).params().length));
-
-    pastEntries.forEach((k, v) -> currentRoundEntries.merge(k, v, (v1, v2) -> v1));
-
-    return currentRoundEntries;
   }
 
   private final List<String> typeNecessaryImports =

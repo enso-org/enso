@@ -82,13 +82,13 @@ impl BufferModel {
         let location = self.vertical_motion_selection_to_location(selection, move_up, modify);
         let first_line = Line(0);
         let last_line = self.last_line_index();
-        let desired_line = location.line + line_diff;
-        let tgt_location = if desired_line < first_line {
+        let desired_line = location.line.to_diff() + line_diff;
+        let tgt_location = if desired_line < first_line.to_diff() {
             Location { line: first_line, offset: Column(0) }
-        } else if desired_line > last_line {
+        } else if desired_line > last_line.to_diff() {
             Location { line: last_line, offset: self.last_line_last_column() }
         } else {
-            location.with_line(desired_line)
+            location.with_line(desired_line.to_line())
         };
         selection::Shape(selection.start, tgt_location)
     }
@@ -163,7 +163,7 @@ impl BufferModel {
                 let line = selection.end.line;
                 let text_byte_size = text.last_byte_index();
                 let is_last_line = line == self.last_line_index();
-                let next_line_offset_opt = self.byte_offset_of_line_index(line + Line(1));
+                let next_line_offset_opt = self.line_offset(line + Line(1));
                 let next_line_offset =
                     next_line_offset_opt.unwrap_or_else(|_| text.last_byte_index());
                 let offset = if is_last_line {
@@ -201,8 +201,8 @@ impl BufferModel {
             }
 
             Transform::Line => {
-                let start_offset = self.byte_offset_of_line_index_snapped(selection.start.line);
-                let end_offset = self.end_byte_offset_of_line_index_snapped(selection.end.line);
+                let start_offset = self.line_offset_snapped(selection.start.line);
+                let end_offset = self.line_end_offset_snapped(selection.end.line);
                 let start = Location::from_in_context_snapped(self, start_offset);
                 let end = Location::from_in_context_snapped(self, end_offset);
                 shape(start, end)

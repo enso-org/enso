@@ -704,7 +704,7 @@ impl<E: Entry> display::Object for ListView<E> {
     }
 }
 
-impl<E: Entry> application::command::FrpNetworkProvider for ListView<E> {
+impl<E: Entry> FrpNetworkProvider for ListView<E> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

@@ -618,6 +618,7 @@ pub struct Struct1 {}
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]

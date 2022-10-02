@@ -8,13 +8,14 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
-use crate::prelude::*;
 
+use crate::prelude::*;
 use ast_macros::*;
 use enso_shapely::*;
 use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
+
 use serde::de::Deserializer;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
@@ -80,8 +81,6 @@ pub mod constants {
 
     /// A module with language-specific constants.
     pub mod keywords {
-        /// A keyword indicating current module.
-        pub const HERE: &str = "here";
 
         /// The "void" atom returned by function meant to not return any argument.
         pub const NOTHING: &str = "Nothing";
@@ -423,7 +422,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
         let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
         let id = id.unwrap_or(None); // allow missing `id` field
         let len = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::from_ast_id_len(shape, id, len.into()))
+        Ok(Ast::from_ast_id_len(shape, id, len))
     }
 }
 
@@ -1108,13 +1107,13 @@ pub trait HasRepr {
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
     /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
-    fn len(&self) -> ByteDiff {
-        ByteDiff::from(self.repr().len())
+    fn len(&self) -> Bytes {
+        self.repr().len().bytes()
     }
 
     /// Check if the representation is empty.
     fn is_empty(&self) -> bool {
-        self.len() >= 0.byte_diff()
+        self.len() >= 0.bytes()
     }
 
     /// Get the representation length in chars.
@@ -1144,15 +1143,15 @@ impl TokenConsumer for ReprBuilder {
 
 #[derive(Debug, Clone, Copy, Default)]
 struct LengthBuilder {
-    length: ByteDiff,
+    length: Bytes,
 }
 
 impl TokenConsumer for LengthBuilder {
     fn feed(&mut self, token: Token) {
         match token {
-            Token::Off(val) => self.length += ByteDiff::from(' '.len_utf8() * val),
-            Token::Chr(chr) => self.length += (chr.len_utf8() as i32).byte_diff(),
-            Token::Str(val) => self.length += (val.len() as i32).byte_diff(),
+            Token::Off(val) => self.length += (' '.len_utf8() * val).bytes(),
+            Token::Chr(chr) => self.length += chr.len_utf8().bytes(),
+            Token::Str(val) => self.length += val.len().bytes(),
             Token::Ast(val) => val.shape().feed_to(self),
         }
     }
@@ -1182,7 +1181,7 @@ impl<T: HasTokens> HasRepr for T {
         consumer.repr
     }
 
-    fn len(&self) -> ByteDiff {
+    fn len(&self) -> Bytes {
         let mut consumer = LengthBuilder::default();
         self.feed_to(&mut consumer);
         consumer.length
@@ -1234,7 +1233,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> ByteDiff {
+    fn len(&self) -> Bytes {
         self.deref().len()
     }
 
@@ -1306,7 +1305,7 @@ where T: HasRepr
         self.deref().repr()
     }
 
-    fn len(&self) -> ByteDiff {
+    fn len(&self) -> Bytes {
         self.deref().len()
     }
 
@@ -1763,7 +1762,7 @@ mod tests {
     #[test]
     fn ast_length() {
         let ast = Ast::prefix(Ast::var("XĄ"), Ast::var("YY"));
-        assert_eq!(ast.len(), ByteDiff(6));
+        assert_eq!(ast.len(), 6.bytes());
         assert_eq!(ast.char_count(), 5);
     }
 
@@ -1901,7 +1900,7 @@ mod tests {
     fn utf8_lengths() {
         let var = Ast::var("価");
         assert_eq!(var.char_count(), 1);
-        assert_eq!(var.len(), 3.byte());
+        assert_eq!(var.len(), 3.bytes());
 
         let idmap = var.id_map();
         assert_eq!(idmap.vec[0].0, enso_text::Range::new(0.byte(), 3.byte()));
@@ -1909,6 +1908,6 @@ mod tests {
 
         let builder_with_char = Token::Chr('壱');
         assert_eq!(builder_with_char.char_count(), 1);
-        assert_eq!(builder_with_char.len(), 3.byte());
+        assert_eq!(builder_with_char.len(), 3.bytes());
     }
 }

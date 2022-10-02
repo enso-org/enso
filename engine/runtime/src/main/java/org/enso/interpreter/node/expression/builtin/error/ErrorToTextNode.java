@@ -6,7 +6,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 
@@ -34,7 +34,7 @@ public abstract class ErrorToTextNode extends Node {
   }
 
   @Specialization
-  public Text doAtom(Atom self) {
+  Text doType(Type self) {
     return Text.create("Error");
   }
 }

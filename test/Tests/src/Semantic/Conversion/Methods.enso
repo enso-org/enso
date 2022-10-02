@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import project.Semantic.Conversion.Types
 
-get_foo = Types.Foo "foo"
-get_bar = Types.Bar "bar"
+get_foo = Types.Foo_Data "foo"
+get_bar = Types.Bar_Data "bar"
 
 Text.from (that:Types.Bar) = that.a.to_text

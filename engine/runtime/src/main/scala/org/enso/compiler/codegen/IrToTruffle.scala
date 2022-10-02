@@ -5,7 +5,13 @@ import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
+import org.enso.compiler.core.IR.Name.Special
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
@@ -36,7 +42,10 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
+import org.enso.interpreter.node.expression.atom.{
+  ConstantNode,
+  QualifiedAccessorNode
+}
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
@@ -48,20 +57,20 @@ import org.enso.interpreter.node.{
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.runtime.callable.{
-  UnresolvedConversion,
-  UnresolvedSymbol
-}
 import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.Atom
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
 }
+import org.enso.interpreter.runtime.callable.{
+  UnresolvedConversion,
+  UnresolvedSymbol
+}
+import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{
   FramePointer,
@@ -71,8 +80,6 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
-import org.enso.compiler.core.IR.Name.Special
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
@@ -147,21 +154,31 @@ class IrToTruffle(
   private def processModule(module: IR.Module): Unit = {
     generateMethods()
     generateReExportBindings(module)
-    module
-      .unsafeGetMetadata(
-        BindingAnalysis,
-        "No binding analysis at the point of codegen."
-      )
-      .resolvedExports
+    val bindingsMap =
+      module
+        .unsafeGetMetadata(
+          BindingAnalysis,
+          "No binding analysis at the point of codegen."
+        )
+
+    bindingsMap.resolvedExports
+      .collect { case ExportedModule(ResolvedModule(module), _, _) =>
+        module
+      }
       .foreach { exp =>
-        moduleScope.addExport(exp.module.unsafeAsModule().getScope)
+        moduleScope.addExport(exp.unsafeAsModule().getScope)
       }
     val imports = module.imports
-    val atomDefs = module.bindings.collect {
-      case atom: IR.Module.Scope.Definition.Atom => atom
-    }
     val methodDefs = module.bindings.collect {
       case method: IR.Module.Scope.Definition.Method.Explicit => method
+    }
+
+    bindingsMap.resolvedImports.foreach { imp =>
+      imp.target match {
+        case BindingsMap.ResolvedType(_, _) =>
+        case ResolvedModule(module) =>
+          moduleScope.addImport(module.unsafeAsModule().getScope)
+      }
     }
 
     // Register the imports in scope
@@ -171,75 +188,80 @@ class IrToTruffle(
           poly.getVisibleName,
           context.getEnvironment.lookupHostSymbol(i.getJavaName)
         )
-      case i: Import.Module =>
-        this.moduleScope.addImport(
-          context.getCompiler.processImport(i.name.name, i.location, source)
-        )
-      case _: Error =>
+      case _: Import.Module =>
+      case _: Error         =>
     }
 
-    // Register the atoms and their constructors in scope
-    val atomConstructors =
-      atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
+    val typeDefs = module.bindings.collect {
+      case tp: IR.Module.Scope.Definition.Type => tp
+    }
 
-    atomConstructors
-      .zip(atomDefs)
-      .foreach { case (atomCons, atomDefn) =>
-        val scopeInfo = atomDefn
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "No root scope on an atom definition."
-          )
-          .unsafeAs[AliasAnalysis.Info.Scope.Root]
-
-        val dataflowInfo = atomDefn.unsafeGetMetadata(
-          DataflowAnalysis,
-          "No dataflow information associated with an atom."
-        )
-        val localScope = new LocalScope(
-          None,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
-          dataflowInfo
-        )
-
-        val argFactory =
-          new DefinitionArgumentProcessor(
-            scope = localScope
-          )
-        val argDefs =
-          new Array[ArgumentDefinition](atomDefn.arguments.size)
-        val argumentExpressions =
-          new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
-
-        for (idx <- atomDefn.arguments.indices) {
-          val unprocessedArg = atomDefn.arguments(idx)
-          val arg            = argFactory.run(unprocessedArg, idx)
-          val occInfo = unprocessedArg
+    typeDefs.foreach { tpDef =>
+      // Register the atoms and their constructors in scope
+      val atomDefs    = tpDef.members
+      val runtimeType = moduleScope.getTypes.get(tpDef.name.name)
+      val atomConstructors =
+        atomDefs.map(cons => runtimeType.getConstructors.get(cons.name.name))
+      atomConstructors
+        .zip(atomDefs)
+        .foreach { case (atomCons, atomDefn) =>
+          val scopeInfo = atomDefn
             .unsafeGetMetadata(
               AliasAnalysis,
-              "No occurrence on an argument definition."
+              "No root scope on an atom definition."
             )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
-          val slot = localScope.createVarSlot(occInfo.id)
-          argDefs(idx) = arg
-          val readArg =
-            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignmentArg = AssignmentNode.build(readArg, slot)
-          val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slot))
-          argumentExpressions.append((assignmentArg, argRead))
-        }
+            .unsafeAs[AliasAnalysis.Info.Scope.Root]
 
-        val (assignments, reads) = argumentExpressions.unzip
-        if (!atomCons.isInitialized) {
-          atomCons.initializeFields(
-            localScope,
-            assignments.toArray,
-            reads.toArray,
-            argDefs: _*
+          val dataflowInfo = atomDefn.unsafeGetMetadata(
+            DataflowAnalysis,
+            "No dataflow information associated with an atom."
           )
+          val localScope = new LocalScope(
+            None,
+            scopeInfo.graph,
+            scopeInfo.graph.rootScope,
+            dataflowInfo
+          )
+
+          val argFactory =
+            new DefinitionArgumentProcessor(
+              scope = localScope
+            )
+          val argDefs =
+            new Array[ArgumentDefinition](atomDefn.arguments.size)
+          val argumentExpressions =
+            new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
+
+          for (idx <- atomDefn.arguments.indices) {
+            val unprocessedArg = atomDefn.arguments(idx)
+            val arg            = argFactory.run(unprocessedArg, idx)
+            val occInfo = unprocessedArg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No occurrence on an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
+            val slot = localScope.createVarSlot(occInfo.id)
+            argDefs(idx) = arg
+            val readArg =
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+            val assignmentArg = AssignmentNode.build(readArg, slot)
+            val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slot))
+            argumentExpressions.append((assignmentArg, argRead))
+          }
+
+          val (assignments, reads) = argumentExpressions.unzip
+          if (!atomCons.isInitialized) {
+            atomCons.initializeFields(
+              localScope,
+              assignments.toArray,
+              reads.toArray,
+              argDefs: _*
+            )
+          }
         }
-      }
+      runtimeType.generateGetters(language)
+    }
 
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
@@ -255,7 +277,7 @@ class IrToTruffle(
         "Method definition missing dataflow information."
       )
 
-      val consOpt =
+      val declaredConsOpt =
         methodDef.methodReference.typePointer match {
           case None =>
             Some(moduleScope.getAssociatedType)
@@ -264,15 +286,14 @@ class IrToTruffle(
               .getMetadata(MethodDefinitions)
               .map { res =>
                 res.target match {
+                  case BindingsMap.ResolvedType(module, tp) =>
+                    module.unsafeAsModule().getScope.getTypes.get(tp.name)
                   case BindingsMap.ResolvedModule(module) =>
                     module.unsafeAsModule().getScope.getAssociatedType
-                  case BindingsMap
-                        .ResolvedConstructor(definitionModule, cons) =>
-                    definitionModule
-                      .unsafeAsModule()
-                      .getScope
-                      .getConstructors
-                      .get(cons.name)
+                  case BindingsMap.ResolvedConstructor(_, _) =>
+                    throw new CompilerError(
+                      "Impossible, should be caught by MethodDefinitions pass"
+                    )
                   case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
                     throw new CompilerError(
                       "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
@@ -284,6 +305,12 @@ class IrToTruffle(
                 }
               }
         }
+
+      val consOpt = declaredConsOpt.map { c =>
+        if (methodDef.isStatic) {
+          c.getEigentype
+        } else { c }
+      }
 
       consOpt.foreach { cons =>
         val expressionProcessor = new ExpressionProcessor(
@@ -394,11 +421,11 @@ class IrToTruffle(
       val toOpt =
         methodDef.methodReference.typePointer match {
           case Some(tpePointer) =>
-            getConstructorResolution(tpePointer)
+            getTypeResolution(tpePointer)
           case None =>
             Some(moduleScope.getAssociatedType)
         }
-      val fromOpt = getConstructorResolution(methodDef.sourceTypeName)
+      val fromOpt = getTypeResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
@@ -476,17 +503,21 @@ class IrToTruffle(
       .getOrElse(source.createUnavailableSection())
   }
 
-  private def getConstructorResolution(expr: IR): Option[AtomConstructor] =
+  private def getTypeResolution(expr: IR): Option[Type] =
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
-        case BindingsMap.ResolvedModule(module) =>
-          module.unsafeAsModule().getScope.getAssociatedType
-        case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+        case BindingsMap.ResolvedType(definitionModule, tp) =>
           definitionModule
             .unsafeAsModule()
             .getScope
-            .getConstructors
-            .get(cons.name)
+            .getTypes
+            .get(tp.name)
+        case BindingsMap.ResolvedModule(module) =>
+          module.unsafeAsModule().getScope.getAssociatedType
+        case BindingsMap.ResolvedConstructor(_, _) =>
+          throw new CompilerError(
+            "Impossible here, should be caught by MethodDefinitions pass."
+          )
         case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
           throw new CompilerError(
             "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
@@ -572,18 +603,45 @@ class IrToTruffle(
       )
     }
 
+    def mkTypeGetter(tp: Type): RuntimeFunction = {
+      new RuntimeFunction(
+        Truffle.getRuntime.createCallTarget(
+          new ConstantNode(language, tp)
+        ),
+        null,
+        new FunctionSchema(
+          new ArgumentDefinition(
+            0,
+            Constants.Names.SELF_ARGUMENT,
+            ArgumentDefinition.ExecutionMode.EXECUTE
+          )
+        )
+      )
+    }
+
     val bindingsMap = module.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis at the point of codegen."
     )
     bindingsMap.exportedSymbols.foreach {
       case (name, resolution :: _) =>
-        if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
+        if (
+          resolution.isInstanceOf[ResolvedConstructor] || resolution.module
+            .unsafeAsModule() != moduleScope.getModule
+        ) {
           resolution match {
-            case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-              val runtimeCons = definitionModule
-                .unsafeAsModule()
-                .getScope
+            case BindingsMap.ResolvedType(module, tp) =>
+              val runtimeTp =
+                module.unsafeAsModule().getScope.getTypes.get(tp.name)
+              val fun = mkTypeGetter(runtimeTp)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedConstructor(definitionType, cons) =>
+              val runtimeCons = definitionType
+                .unsafeToRuntimeType()
                 .getConstructors
                 .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
@@ -595,7 +653,7 @@ class IrToTruffle(
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =
                 module.unsafeAsModule().getScope.getAssociatedType
-              val fun = mkConsGetter(runtimeCons)
+              val fun = mkTypeGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
                 name,
@@ -862,7 +920,16 @@ class IrToTruffle(
             )
           }
 
-          val runtimeConsOpt = constructor match {
+          val fieldNames   = cons.unsafeFieldsAsNamed
+          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            fieldsAsArgs,
+            branch.expression,
+            branch.location
+          )
+
+          constructor match {
             case err: IR.Error.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))
             case _ =>
@@ -872,15 +939,88 @@ class IrToTruffle(
                 case Some(
                       BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
                     ) =>
-                  Right(mod.unsafeAsModule().getScope.getAssociatedType)
+                  Right(
+                    ObjectEqualityBranchNode.build(
+                      branchCodeNode.getCallTarget,
+                      mod.unsafeAsModule().getScope.getAssociatedType
+                    )
+                  )
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedConstructor(mod, cons)
+                        BindingsMap.ResolvedConstructor(tp, cons)
                       )
                     ) =>
-                  Right(
-                    mod.unsafeAsModule().getScope.getConstructors.get(cons.name)
-                  )
+                  val atomCons =
+                    tp.unsafeToRuntimeType().getConstructors.get(cons.name)
+                  val r = if (atomCons == context.getBuiltins.bool().getTrue) {
+                    BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
+                  } else if (atomCons == context.getBuiltins.bool().getFalse) {
+                    BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
+                  } else {
+                    ConstructorBranchNode.build(
+                      atomCons,
+                      branchCodeNode.getCallTarget
+                    )
+                  }
+                  Right(r)
+                case Some(
+                      BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tp))
+                    ) =>
+                  val tpe =
+                    mod.unsafeAsModule().getScope.getTypes.get(tp.name)
+                  val any         = context.getBuiltins.any
+                  val array       = context.getBuiltins.array
+                  val vector      = context.getBuiltins.vector
+                  val date        = context.getBuiltins.date
+                  val dateTime    = context.getBuiltins.dateTime
+                  val timeOfDay   = context.getBuiltins.timeOfDay
+                  val timeZone    = context.getBuiltins.timeZone
+                  val file        = context.getBuiltins.file
+                  val builtinBool = context.getBuiltins.bool.getType
+                  val number      = context.getBuiltins.number
+                  val polyglot    = context.getBuiltins.polyglot
+                  val text        = context.getBuiltins.text
+                  val branch = if (tpe == builtinBool) {
+                    BooleanConstructorBranchNode.build(
+                      builtinBool,
+                      branchCodeNode.getCallTarget
+                    )
+                  } else if (tpe == text) {
+                    TextBranchNode.build(text, branchCodeNode.getCallTarget)
+                  } else if (tpe == number.getInteger) {
+                    IntegerBranchNode.build(
+                      number,
+                      branchCodeNode.getCallTarget
+                    )
+                  } else if (tpe == number.getDecimal) {
+                    DecimalBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == number.getNumber) {
+                    NumberBranchNode.build(number, branchCodeNode.getCallTarget)
+                  } else if (tpe == array) {
+                    ArrayBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == vector) {
+                    VectorBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == date) {
+                    DateBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == dateTime) {
+                    DateTimeBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == timeOfDay) {
+                    TimeOfDayBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == timeZone) {
+                    TimeZoneBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == file) {
+                    FileBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == polyglot) {
+                    PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == any) {
+                    CatchAllBranchNode.build(branchCodeNode.getCallTarget)
+                  } else {
+                    ObjectEqualityBranchNode.build(
+                      branchCodeNode.getCallTarget,
+                      tpe
+                    )
+                  }
+                  Right(branch)
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedPolyglotSymbol(_, _)
@@ -898,66 +1038,6 @@ class IrToTruffle(
                     "Impossible method here, should be caught by Patterns resolution pass."
                   )
               }
-          }
-
-          val fieldNames   = cons.unsafeFieldsAsNamed
-          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
-
-          val branchCodeNode = childProcessor.processFunctionBody(
-            fieldsAsArgs,
-            branch.expression,
-            branch.location
-          )
-
-          runtimeConsOpt.map { atomCons =>
-            val any          = context.getBuiltins.any
-            val array        = context.getBuiltins.array
-            val file         = context.getBuiltins.file
-            val builtinBool  = context.getBuiltins.bool().getBool
-            val builtinTrue  = context.getBuiltins.bool().getTrue
-            val builtinFalse = context.getBuiltins.bool().getFalse
-            val number       = context.getBuiltins.number
-            val polyglot     = context.getBuiltins.polyglot
-            val text         = context.getBuiltins.text
-            val branchNode: BranchNode =
-              if (atomCons == builtinTrue) {
-                BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
-              } else if (atomCons == builtinFalse) {
-                BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
-              } else if (atomCons == builtinBool) {
-                BooleanConstructorBranchNode.build(
-                  builtinBool,
-                  builtinTrue,
-                  builtinFalse,
-                  branchCodeNode.getCallTarget
-                )
-              } else if (atomCons == text) {
-                TextBranchNode.build(text, branchCodeNode.getCallTarget)
-              } else if (atomCons == number.getInteger) {
-                IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons == number.getDecimal) {
-                DecimalBranchNode.build(
-                  number.getDecimal,
-                  branchCodeNode.getCallTarget
-                )
-              } else if (atomCons == number.getNumber) {
-                NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons == array) {
-                ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == file) {
-                FileBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == polyglot) {
-                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == any) {
-                CatchAllBranchNode.build(branchCodeNode.getCallTarget)
-              } else {
-                ConstructorBranchNode.build(
-                  atomCons,
-                  branchCodeNode.getCallTarget
-                )
-              }
-
-            branchNode
           }
         case literalPattern: Pattern.Literal =>
           val branchCodeNode = childProcessor.processFunctionBody(
@@ -1128,16 +1208,21 @@ class IrToTruffle(
           } else if (global.isDefined) {
             val resolution = global.get.target
             resolution match {
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                ConstructorNode.build(
-                  definitionModule
-                    .unsafeAsModule()
-                    .getScope
-                    .getConstructors
-                    .get(cons.name)
+              case tp: BindingsMap.ResolvedType =>
+                ConstantObjectNode.build(
+                  tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
                 )
+              case BindingsMap.ResolvedConstructor(definitionType, cons) =>
+                val c = definitionType
+                  .unsafeToRuntimeType()
+                  .getConstructors
+                  .get(cons.name)
+                if (c == null) {
+                  throw new CompilerError(s"Constructor for $cons is null")
+                }
+                ConstructorNode.build(c)
               case BindingsMap.ResolvedModule(module) =>
-                ConstructorNode.build(
+                ConstantObjectNode.build(
                   module.unsafeAsModule().getScope.getAssociatedType
                 )
               case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
@@ -1250,7 +1335,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.Atom =>
+        case err: Error.Redefined.Type =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))

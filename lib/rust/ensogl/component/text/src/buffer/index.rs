@@ -3,6 +3,8 @@
 use crate::prelude::*;
 use enso_text::unit::*;
 
+
+
 enso_text::define_line_unit!(ViewLine);
 
 impl Add<LineDiff> for ViewLine {

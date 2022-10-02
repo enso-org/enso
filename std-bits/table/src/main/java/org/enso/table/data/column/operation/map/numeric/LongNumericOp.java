@@ -51,8 +51,7 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
 
   @Override
   public Storage runZip(LongStorage storage, Storage arg) {
-    if (arg instanceof LongStorage) {
-      LongStorage v = (LongStorage) arg;
+    if (arg instanceof LongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -63,8 +62,7 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
         }
       }
       return new LongStorage(out, storage.size(), newMissing);
-    } else if (arg instanceof DoubleStorage) {
-      DoubleStorage v = (DoubleStorage) arg;
+    } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {

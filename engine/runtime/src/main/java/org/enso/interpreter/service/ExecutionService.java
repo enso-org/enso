@@ -22,12 +22,12 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.ConstructorNotFoundException;
+import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundException;
@@ -90,20 +90,18 @@ public class ExecutionService {
   }
 
   public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
-      Module module, String consName, String methodName)
-      throws ConstructorNotFoundException, MethodNotFoundException {
+      Module module, String typeName, String methodName)
+      throws TypeNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
-    AtomConstructor atomConstructor =
+    Type type =
         scope
-            .getConstructor(consName)
-            .orElseThrow(
-                () -> new ConstructorNotFoundException(module.getName().toString(), consName));
-    Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
+            .getType(typeName)
+            .orElseThrow(() -> new TypeNotFoundException(module.getName().toString(), typeName));
+    Function function = scope.lookupMethodDefinition(type, methodName);
     if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
+      throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
-    Object[] arguments =
-        MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {atomConstructor};
+    Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(function, EmptyMap.create(), arguments);
   }
 
@@ -170,7 +168,7 @@ public class ExecutionService {
       interopLibrary.execute(call);
     } finally {
       context.getThreadManager().leave(p);
-      listener.ifPresent(binding -> binding.dispose());
+      listener.ifPresent(EventBinding::dispose);
     }
   }
 
@@ -192,7 +190,7 @@ public class ExecutionService {
    */
   public void execute(
       String moduleName,
-      String consName,
+      String typeName,
       String methodName,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
@@ -202,12 +200,12 @@ public class ExecutionService {
       Consumer<IdExecutionService.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionService.ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback)
-      throws ArityException, ConstructorNotFoundException, MethodNotFoundException,
+      throws ArityException, TypeNotFoundException, MethodNotFoundException,
           ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
     FunctionCallInstrumentationNode.FunctionCall call =
-        prepareFunctionCall(module, consName, methodName);
+        prepareFunctionCall(module, typeName, methodName);
     execute(
         module,
         call,
@@ -259,28 +257,27 @@ public class ExecutionService {
   /**
    * Calls a function with the given argument and attaching an execution instrument.
    *
+   * @param cache the runtime cache
    * @param module the module providing scope for the function
    * @param function the function object
-   * @param argument the argument applied to the function
-   * @param cache the runtime cache
+   * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
-      Module module, Object function, Object argument, RuntimeCache cache)
+      RuntimeCache cache, Module module, Object function, Object... arguments)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
     MethodCallsCache methodCallsCache = new MethodCallsCache();
     UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<IdExecutionService.ExpressionCall> funCallCallback =
-        (value) -> context.getLogger().finest("ON_CACHED_CALL " + value.getExpressionId());
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback = (value) -> {};
     Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
-        (value) -> context.getLogger().finest("ON_COMPUTED " + value.getExpressionId());
+        (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
-        (value) -> context.getLogger().finest("ON_CACHED_VALUE " + value.getExpressionId());
+        (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<Exception> onExceptionalCallback =
-        (value) -> context.getLogger().finest("ON_ERROR " + value);
+        (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
@@ -298,7 +295,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      return interopLibrary.execute(function, argument);
+      return interopLibrary.execute(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       listener.ifPresent(EventBinding::dispose);

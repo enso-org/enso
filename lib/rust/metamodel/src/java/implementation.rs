@@ -96,6 +96,18 @@ fn class_fields_<'v, 's: 'v, 'c: 'v>(
     out.extend(fields);
 }
 
+pub fn class_fields_split<'v, 's: 'v, 'c: 'v>(
+    graph: &'s TypeGraph,
+    class: &'c Class,
+) -> Option<(Vec<&'v Field>, Vec<&'v Field>)> {
+    let index = Some(class.child_field?);
+    let mut pre = vec![];
+    let mut post = vec![];
+    class_fields_(graph, class, &mut pre, None, index);
+    class_fields_(graph, class, &mut post, index, None);
+    Some((pre, post))
+}
+
 /// Given a [`TypeGraph`] and a definition of a field's contents ([`FieldData`]), produce what is
 /// referred to in the Java AST specification as an an `UnannType`[1]. This value is suitable for
 /// use as the type portion of a field declaration, local variable declaration, formal parameter, or
@@ -162,7 +174,11 @@ fn implement_method(graph: &TypeGraph, method: &Dynamic, class: &Class) -> synta
         Dynamic::HashCode => implement_hash_code(graph, class),
         Dynamic::Equals => implement_equals(graph, class),
         Dynamic::ToString => implement_to_string(graph, class),
-        Dynamic::Getter(field) => implement_getter(graph, class, *field),
+        Dynamic::Getter(id) => {
+            let field = class.fields.iter().find(|field| field.id() == *id).unwrap();
+            getter(graph, field, &field.name)
+        }
+        Dynamic::GetterNamed(field, name) => implement_getter(graph, class, *field, name),
     }
 }
 
@@ -278,6 +294,14 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let ty_name = &class.name;
     writeln!(body, "StringBuilder {string_builder} = new StringBuilder();").unwrap();
     writeln!(body, "{string_builder}.append(\"{ty_name}[\");").unwrap();
+    let mut class = Some(class);
+    while let Some(class_) = class {
+        for expr in &class_.tostring_prefix_fields {
+            writeln!(body, "{string_builder}.append({expr});").unwrap();
+            writeln!(body, "{string_builder}.append(\", \");").unwrap();
+        }
+        class = class_.parent.map(|id| &graph[id]);
+    }
     writeln!(body, "{}", fields.join(&format!("\n{string_builder}.append(\", \");\n"))).unwrap();
     writeln!(body, "{string_builder}.append(\"]\");").unwrap();
     writeln!(body, "return {string_builder}.toString();").unwrap();
@@ -290,23 +314,17 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
 
 /// Produce a representation of Java syntax implementing a method returning the value of a field
 /// (identified by [`FieldId`]) of the specified [`Class`].
-fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Method {
+fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId, name: &str) -> syntax::Method {
     let field = class.fields.iter().find(|field| field.id() == id).unwrap();
-    getter(graph, field)
+    getter(graph, field, name)
 }
 
 /// Produce a representation of Java syntax implementing a method returning the value of the
 /// specified [`Field`]. The method must be attached to the same [`syntax::Class`] in which the
 /// [`Field`] is defined.
-fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
-    let getter_name = |field| {
-        let field = crate::meta::Identifier::from_camel_case(field);
-        let mut name = crate::meta::Identifier::from_camel_case("get");
-        name.append(field);
-        name.to_camel_case()
-    };
+fn getter(graph: &TypeGraph, field: &Field, name: &str) -> syntax::Method {
     let type_ = quote_type(graph, &field.data);
-    let mut method = syntax::Method::new(getter_name(&field.name), type_);
+    let mut method = syntax::Method::new(name, type_);
     method.body = format!("return {};", &field.name);
     method
 }

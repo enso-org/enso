@@ -2,7 +2,11 @@ from Standard.Base import all
 
 import Standard.Table.Data.Sort_Column
 
+# TODO Dubious constructor export
+from project.Data.Sort_Column_Selector.Sort_Column_Selector import all
+from project.Data.Sort_Column_Selector.Sort_Column_Selector export all
+
 type Sort_Column_Selector
-    type By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher)
-    type By_Index (columns : Vector (Sort_Column.Index | Integer))
-    type By_Column (columns : Vector (Sort_Column.Column | Column))
+    By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher.Case_Sensitive)
+    By_Index (columns : Vector (Sort_Column.Index | Integer))
+    By_Column (columns : Vector (Sort_Column.Column | Column))

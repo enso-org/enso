@@ -100,20 +100,6 @@ class MethodsTest extends InterpreterTest {
       eval(code) shouldEqual 19
     }
 
-    "be dispatched to the proper constructor" in {
-      val code =
-        """from Standard.Base.Data.List import all
-          |
-          |Nil.sum self = acc -> acc
-          |Cons.sum self = acc -> case self of
-          |  Cons h t -> t.sum (h + acc)
-          |
-          |main = Cons 1 (Cons 2 Nil) . sum 0
-          |""".stripMargin
-
-      eval(code) shouldEqual 3
-    }
-
     "throw an exception when non-existent" in {
       val code =
         """
@@ -135,10 +121,10 @@ class MethodsTest extends InterpreterTest {
           |type Baz
           |
           |Any.Any.method self = case self of
-          |  Foo -> 1
-          |  Bar -> 2
-          |  Baz -> 3
-          |  _ -> 0
+          |    Foo -> 1
+          |    Bar -> 2
+          |    Baz -> 3
+          |    _ -> 0
           |
           |main =
           |    IO.println Foo.method
@@ -157,29 +143,56 @@ class MethodsTest extends InterpreterTest {
       @unused val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.method = 1
+          |Any.method self = 1
           |
           |main =
           |    2.method
           |""".stripMargin
-      //eval(code) shouldEqual 1
+//      eval(code) shouldEqual 1
       pending
     }
 
-    "work as expected when defined across different constructors" in {
+    "be callable on types when static" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """
+          |type Foo
+          |    Mk_Foo a
           |
-          |Nil.sum self = 0
-          |Cons.sum self = case self of
-          |  Cons h t -> h + t.sum
+          |    new a = Foo.Mk_Foo a
           |
-          |main =
-          |    myList = Cons 1 (Cons 2 (Cons 3 Nil))
-          |    myList.sum
+          |main = Foo.new 123
           |""".stripMargin
+      eval(code).toString shouldEqual "(Mk_Foo 123)"
+    }
 
-      eval(code) shouldEqual 6
+    "not be callable on types when non-static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    inc self = Mk_Foo self.a
+          |
+          |main = Foo.inc
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Method `inc` of Foo could not be found."
+    }
+
+    "not be callable on instances when static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    new a = Foo.Mk_Foo a
+          |
+          |main = Foo.Mk_Foo 123 . new 123
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Method `new` of Mk_Foo could not be found."
     }
   }
 }

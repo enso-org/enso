@@ -23,7 +23,11 @@
     "lib/icons",
     "lib/server"
   ],
+  "devDependencies": {
+    "patch-package": "^6.4.7"
+  },
   "scripts": {
-    "watch": "npm run watch --workspace enso-studio-content"
+    "watch": "npm run watch --workspace enso-studio-content",
+    "postinstall": "patch-package"
   }
 }

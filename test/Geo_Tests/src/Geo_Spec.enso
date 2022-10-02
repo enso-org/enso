@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Table import Table
+from Standard.Table.Data.Table import Table_Data
 
 import Standard.Geo
 
@@ -9,7 +9,7 @@ spec =
     Test.group "Geo Points" <|
         point = Geo.point 51.509865 -0.118092
         Test.specify "should be able to be created as a Table" <|
-            point.is_a Table.Table . should_be_true
+            point.is_a Table_Data . should_be_true
         Test.specify "should contain a latitude and longitude" <|
             point.at "latitude" . at 0 . should_equal 51.509865
             point.at "longitude" . at 0 . should_equal -0.118092

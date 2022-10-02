@@ -60,7 +60,7 @@ spec =
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write contents
             result.should_succeed
-            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at codepoints 1, 3."]
+            Warning.get_all result . map .value . should_equal [Encoding_Error_Data "Encoding issues at codepoints 1, 3."]
             f.read_text encoding . should_equal "S?o?wka!"
 
             f.delete_if_exists
@@ -73,7 +73,7 @@ spec =
                     reporting_stream_encoder.write "bar"
 
             result_2.should_succeed
-            Warning.get_all result_2 . map .value . should_equal [Encoding_Error "Encoding issues at codepoints 3, 9."]
+            Warning.get_all result_2 . map .value . should_equal [Encoding_Error_Data "Encoding issues at codepoints 3, 9."]
             f.read_text encoding . should_equal "ABC?foo -?- bar"
 
         Test.specify "should work correctly if no data is written to it" <|
