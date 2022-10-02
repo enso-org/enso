@@ -903,6 +903,7 @@ pub fn forward_panic_hook_to_console() {
     std::panic::set_hook(Box::new(report_panic))
 }
 
+/// Enables forwarding panic messages to `console.error`.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn forward_panic_hook_to_console() {}
 
