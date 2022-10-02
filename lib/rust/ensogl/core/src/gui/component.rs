@@ -90,7 +90,6 @@ pub struct ShapeViewModel<S: Shape> {
     #[deref]
     shape:               ShapeProxy<S>,
     pub events:          PointerTarget,
-    pub registry:        RefCell<Option<ShapeRegistry>>,
     pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
 
@@ -144,16 +143,13 @@ impl<S: Shape> ShapeViewModel<S> {
         let instance = layer.instantiate(scene, &self.shape);
         scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
-        *self.registry.borrow_mut() = Some(scene.shapes.clone_ref());
     }
 }
 
 impl<S: Shape> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
-        if let Some(registry) = &*self.registry.borrow() {
-            for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-                registry.remove_mouse_target(global_instance_id);
-            }
+        for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
+            scene().shapes.remove_mouse_target(global_instance_id);
         }
     }
 }

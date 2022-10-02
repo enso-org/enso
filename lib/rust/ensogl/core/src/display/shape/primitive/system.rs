@@ -232,7 +232,7 @@ impl ShapeSystemModel {
         S: Into<&'t Scene>,
         Sh: Into<def::AnyShape>, {
         let shape = shape.into();
-        let sprite_system = SpriteSystem::new(scene);
+        let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::surface_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));

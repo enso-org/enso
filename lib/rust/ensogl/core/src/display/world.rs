@@ -198,6 +198,18 @@ pub struct Callbacks {
 }
 
 
+//
+// thread_local! {
+//     static SCENE: Option<Scene> = None;
+// }
+
+static mut SCENE: Option<Scene> = None;
+
+pub fn scene() -> &'static Scene {
+    unsafe { SCENE.as_ref().unwrap() }
+}
+
+
 
 // =================
 // === WorldData ===
@@ -239,6 +251,10 @@ impl WorldData {
             stats_monitor.sample_and_draw(stats);
             log_render_stats(*stats)
         }));
+
+        unsafe {
+            SCENE = Some(default_scene.clone_ref());
+        }
 
         Self {
             frp,

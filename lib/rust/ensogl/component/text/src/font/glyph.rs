@@ -458,7 +458,7 @@ impl System {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();
-        let sprite_system = SpriteSystem::new(scene);
+        let sprite_system = SpriteSystem::new();
         let symbol = sprite_system.symbol();
         let context = get_context(scene);
         let texture = new_texture(&context, (0, 0));

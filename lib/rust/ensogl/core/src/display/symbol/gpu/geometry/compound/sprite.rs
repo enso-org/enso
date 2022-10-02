@@ -11,7 +11,6 @@ use crate::display;
 use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
-use crate::display::scene::Scene;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -225,9 +224,8 @@ pub struct SpriteSystem {
 impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new<'t, S>(scene: S) -> Self
-    where S: Into<&'t Scene> {
-        let scene = scene.into();
+    pub fn new() -> Self {
+        let scene = scene();
         let stats = scene.stats.clone_ref();
         let symbol = scene.new_symbol();
         let mesh = symbol.surface();
