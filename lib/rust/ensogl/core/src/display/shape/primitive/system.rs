@@ -38,6 +38,7 @@ pub trait Shape: 'static + Sized {
     type InstanceParams: Debug;
     type ProxyParams: Debug + Default;
     type GpuParams: Debug;
+    type ProxyData: Debug;
     fn pointer_events() -> bool;
     fn always_above() -> &'static [ShapeSystemId];
     fn always_below() -> &'static [ShapeSystemId];
@@ -386,14 +387,14 @@ macro_rules! define_shape_system {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(Data ($data:ident))?
+        $(ProxyData ($proxy_data:ident))?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
-            $(Data ($data))?
+            $(ProxyData ($proxy_data))?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
@@ -418,7 +419,7 @@ macro_rules! _define_shape_system {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(Data ($data:ident))?
+        $(ProxyData ($proxy_data:ident))?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -465,6 +466,7 @@ macro_rules! _define_shape_system {
                 type InstanceParams = InstanceParams;
                 type ProxyParams = ProxyParams;
                 type GpuParams = GpuParams;
+                type ProxyData = ($($proxy_data)?);
                 fn pointer_events() -> bool {
                     let out = true;
                     $(let out = $pointer_events;)?
@@ -537,12 +539,14 @@ macro_rules! _define_shape_system {
             /// Parameters of the [`ShapeProxy`].
             #[derive(Debug, Default, Deref)]
             #[allow(missing_docs)]
-            pub struct ProxyParams {
+            pub struct ProxyParamsTemplate<D> {
                 #[deref]
-                data: ($($data)?),
+                data: D,
                 pub size: ProxyParam<sprite::Size>,
                 $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
             }
+
+            pub type ProxyParams = ProxyParamsTemplate<($($proxy_data)?)>;
 
              #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
