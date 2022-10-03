@@ -95,6 +95,7 @@ pub mod layouting;
 
 mod navigator;
 
+pub use breadcrumbs::BreadcrumbId;
 pub use column_grid::LabeledAnyModelProvider;
 pub use component_group::set::EnteredModule;
 pub use component_group::set::GroupId;
@@ -460,7 +461,6 @@ impl Model {
         breadcrumbs.set_base_layer(&layers.navigator);
         display_object.add_child(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
-        breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
 
         let selection = selection_box::View::new(&app.logger);
         scroll_area.add_child(&selection);
@@ -507,6 +507,11 @@ impl Model {
         let content = app.new_view::<component_group::wide::View>();
         content.set_no_items_label_text("No Entries.");
         LabeledSection::new(content, app)
+    }
+
+    fn set_initial_breadcrumbs(&self) {
+        self.breadcrumbs.set_entries_from((vec![breadcrumbs::Breadcrumb::new("All")], 0));
+        self.breadcrumbs.show_ellipsis(true);
     }
 
     fn update_style(&self, style: &Style) {
@@ -932,6 +937,10 @@ define_endpoints_2! {
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
+        /// See [`breadcrumbs::Breadcrumb::Frp::set_entries_from`].
+        set_breadcrumbs_from((Vec<breadcrumbs::Breadcrumb>, usize)),
+        /// Show or hide the ellipsis at the end of the breadcrumbs list.
+        show_breadcrumbs_ellipsis(bool),
         /// The component browser is displayed on screen.
         show(),
         /// The component browser is hidden from screen.
@@ -945,6 +954,7 @@ define_endpoints_2! {
         /// The last selected suggestion.
         suggestion_selected(EntryId),
         size(Vector2),
+        selected_breadcrumb(BreadcrumbId),
     }
 }
 
@@ -1066,6 +1076,14 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
+
+
+            // === Breadcrumbs ===
+
+            model.breadcrumbs.set_entries_from <+ input.set_breadcrumbs_from;
+            model.breadcrumbs.show_ellipsis <+ input.show_breadcrumbs_ellipsis;
+            output.selected_breadcrumb <+ model.breadcrumbs.selected;
+            eval_ input.show(model.set_initial_breadcrumbs());
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());

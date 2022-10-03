@@ -355,7 +355,7 @@ async fn binary_visualization_updates_test_hlp() {
     use ensogl::system::web::sleep;
 
     let logger = Logger::new("Test");
-    let module_path = enso_gui::initial_module_path(&project).unwrap();
+    let module_path = enso_gui::initial_module_path(&project);
     let method = module_path.method_pointer(project.qualified_name(), MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();

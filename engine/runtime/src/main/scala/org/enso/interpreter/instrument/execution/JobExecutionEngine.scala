@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.Job
+import org.enso.interpreter.instrument.job.{Job, UniqueJob}
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.text.Sha3_224VersionCalculator
 
@@ -21,7 +21,7 @@ import scala.util.control.NonFatal
   * @param executionState a state of the runtime
   * @param locking locking capability for runtime
   */
-class JobExecutionEngine(
+final class JobExecutionEngine(
   interpreterContext: InterpreterContext,
   executionState: ExecutionState,
   locking: Locking
@@ -70,8 +70,29 @@ class JobExecutionEngine(
     runInternal(job, backgroundJobExecutor, backgroundJobsRef)
 
   /** @inheritdoc */
-  override def run[A](job: Job[A]): Future[A] =
+  override def run[A](job: Job[A]): Future[A] = {
+    cancelDuplicateJobs(job)
     runInternal(job, jobExecutor, runningJobsRef)
+  }
+
+  private def cancelDuplicateJobs[A](job: Job[A]): Unit = {
+    job match {
+      case job: UniqueJob[_] =>
+        val allJobs =
+          runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+        allJobs.foreach { runningJob =>
+          runningJob.job match {
+            case jobRef: UniqueJob[_]
+                if jobRef.getClass == job.getClass && jobRef.key == job.key =>
+              runtimeContext.executionService.getLogger
+                .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
+              runningJob.future.cancel(jobRef.mayInterruptIfRunning)
+            case _ =>
+          }
+        }
+      case _ =>
+    }
+  }
 
   private def runInternal[A](
     job: Job[A],

@@ -616,7 +616,7 @@ impl Searcher {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
     pub fn top_modules(&self) -> group::AlphabeticalList {
         let components = self.components();
-        if let Some(selected) = self.breadcrumbs.currently_selected() {
+        if let Some(selected) = self.breadcrumbs.selected() {
             components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
             components.top_modules().clone_ref()
@@ -637,7 +637,7 @@ impl Searcher {
     /// The list of components displayed in `Local Scope` section of the browser.
     pub fn local_scope(&self) -> group::Group {
         let components = self.components();
-        if let Some(selected) = self.breadcrumbs.currently_selected() {
+        if let Some(selected) = self.breadcrumbs.selected() {
             components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
             components.local_scope
@@ -646,7 +646,31 @@ impl Searcher {
 
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) {
-        self.breadcrumbs.push(*module);
+        let builder = breadcrumbs::Builder::new(&self.database, self.components());
+        let breadcrumbs = builder.build(module);
+        self.breadcrumbs.set_content(breadcrumbs);
+        self.notifier.notify(Notification::NewActionList);
+    }
+
+    /// Whether the last module in the breadcrumbs list contains more descendants or not.
+    pub fn last_module_has_submodules(&self) -> bool {
+        let last_module = self.breadcrumbs.last();
+        let components = self.components();
+        let get_submodules = |module| components.submodules_of(module).map(CloneRef::clone_ref);
+        let submodules = last_module.and_then(get_submodules);
+        submodules.map_or(false, |submodules| !submodules.is_empty())
+    }
+
+    /// A list of breadcrumbs' text labels to be displayed. The list is updated by
+    /// [`Self::enter_module`].
+    pub fn breadcrumbs(&self) -> Vec<ImString> {
+        self.breadcrumbs.names()
+    }
+
+    /// Select the breadcrumb with the index [`id`]. The displayed content of the browser will be
+    /// updated.
+    pub fn select_breadcrumb(&self, id: usize) {
+        self.breadcrumbs.select(id);
         self.notifier.notify(Notification::NewActionList);
     }
 

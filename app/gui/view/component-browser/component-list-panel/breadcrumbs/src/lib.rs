@@ -84,7 +84,8 @@ const SCROLLING_THRESHOLD_FRACTION: f32 = 0.5;
 
 type GridView = grid_view::selectable::GridView<Entry>;
 type Entries = Rc<RefCell<Vec<Breadcrumb>>>;
-type BreadcrumbId = usize;
+/// The index of the breadcrumb in the list.
+pub type BreadcrumbId = usize;
 
 
 
@@ -346,18 +347,35 @@ impl Model {
         self.grid.set_entries_params(params);
     }
 
-    /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
-    /// A newly added breadcrumb will be placed after the currently selected one. All inactive
-    /// (greyed out) breadcrumbs will be removed.
-    pub fn push(&self, breadcrumb: &Breadcrumb, selected: BreadcrumbId) {
-        self.entries.borrow_mut().truncate(selected + 1);
-        self.entries.borrow_mut().push(breadcrumb.clone_ref());
+    /// Set the breadcrumbs starting from the [`starting_from`] index. Existing entries after
+    /// [`starting_from`] will be overwritten. [`self.entries`] will be extended if needed to fit
+    /// all added entries.
+    /// Immediately selects the last breadcrumb. All inactive (greyed out) breadcrumbs will be
+    /// removed.
+    pub fn set_entries(&self, starting_from: usize, new_entries: &[Breadcrumb]) {
+        {
+            let mut borrowed = self.entries.borrow_mut();
+            let end_of_overwritten_entries = starting_from + new_entries.len();
+            borrowed.truncate(end_of_overwritten_entries);
+            let len = borrowed.len();
+            let count_to_overwrite = len.saturating_sub(starting_from);
+            let range_to_overwrite = starting_from..len;
+            borrowed[range_to_overwrite].clone_from_slice(&new_entries[..count_to_overwrite]);
+            borrowed.extend(new_entries.iter().map(CloneRef::clone_ref).skip(count_to_overwrite));
+        }
         let new_col_count = self.grid_columns();
         self.grid.resize_grid(1, new_col_count);
         self.grid.request_model_for_visible_entries();
         if let Some(last_entry) = self.column_of_the_last_entry() {
             self.grid.select_entry(Some((0, last_entry)));
         }
+    }
+
+    /// Push a new breadcrumb to the top of the stack. Immediately selects added breadcrumb.
+    /// A newly added breadcrumb will be placed after the currently selected one. All inactive
+    /// (greyed out) breadcrumbs will be removed.
+    pub fn push(&self, breadcrumb: &Breadcrumb) {
+        self.set_entries(self.entries.borrow().len(), &[breadcrumb.clone_ref()]);
     }
 
     /// Move the selection to the previous breadcrumb. Stops at the first one. There is always at
@@ -412,8 +430,8 @@ ensogl_core::define_endpoints_2! {
         select(BreadcrumbId),
         /// Add a new breadcrumb after the currently selected one.
         push(Breadcrumb),
-        /// Set a list of displayed breadcrumbs, rewriting any previously added breadcrumbs.
-        set_entries(Vec<Breadcrumb>),
+        /// Set the displayed breadcrumbs starting from the specific index.
+        set_entries_from((Vec<Breadcrumb>, usize)),
         /// Enable or disable displaying of the ellipsis icon at the end of the list.
         show_ellipsis(bool),
         /// Remove all breadcrumbs.
@@ -465,10 +483,8 @@ impl Breadcrumbs {
             eval selected_grid_col(((_row, col)) model.grey_out(Some(col + 1)));
             eval_ input.clear(model.clear());
             selected <- selected_grid_col.map(|(_, col)| col / 2);
-            _eval <- input.push.map2(&selected, f!((b, s) model.push(b, *s)));
-            entries <= input.set_entries.map(f!((e) { model.clear(); e.clone() }));
-            _eval <- entries.map2(&selected, f!((entry, s) model.push(entry, *s)));
-            eval selected([](id) tracing::debug!("Selected breadcrumb: {id}"));
+            eval input.push((b) model.push(b));
+            eval input.set_entries_from(((entries, from)) model.set_entries(*from, entries));
             out.selected <+ selected;
 
             scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid

@@ -21,6 +21,7 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
+use ide_view::component_browser::list_panel::BreadcrumbId;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
@@ -199,21 +200,44 @@ impl Model {
         }
     }
 
+    fn breadcrumb_selected(&self, id: BreadcrumbId) {
+        self.controller.select_breadcrumb(id);
+    }
+
+    fn set_breadcrumbs(&self, names: impl Iterator<Item = ImString>) {
+        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
+            // We only update the breadcrumbs starting from the second element because the first
+            // one is reserved as a section name.
+            let from = 1;
+            let breadcrumbs_from = (names.map(Into::into).collect(), from);
+            browser.model().list.set_breadcrumbs_from(breadcrumbs_from);
+        }
+    }
+
+    fn show_breadcrumbs_ellipsis(&self, show: bool) {
+        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
+            browser.model().list.show_breadcrumbs_ellipsis(show);
+        }
+    }
+
     fn module_entered(&self, module: component_grid::ElementId) {
         self.enter_module(module);
     }
 
-    fn enter_module(&self, module: component_grid::ElementId) -> Option<()> {
+    fn enter_module(&self, module: EnteredModule) -> Option<()> {
         let list = self.controller.components();
-        if let Some(entry) = module.as_entry_id() {
+        let id = if let Some(entry) = module.as_entry_id() {
             let component = list.component_by_view_id(entry)?;
-            let id = component.id()?;
-            self.controller.enter_module(&id);
+            component.id()?
         } else {
             let group = list.group_by_view_id(module.group)?;
-            let id = group.component_id?;
-            self.controller.enter_module(&id);
-        }
+            group.component_id?
+        };
+        self.controller.enter_module(&id);
+        let names = self.controller.breadcrumbs();
+        self.set_breadcrumbs(names.into_iter());
+        let show_ellipsis = self.controller.last_module_has_submodules();
+        self.show_breadcrumbs_ellipsis(show_ellipsis);
         Some(())
     }
 
@@ -345,6 +369,7 @@ impl Searcher {
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval entry_selected((entry) model.suggestion_selected(*entry));
                     eval grid.module_entered((id) model.module_entered(*id));
+                    eval grid.selected_breadcrumb((id) model.breadcrumb_selected(*id));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {

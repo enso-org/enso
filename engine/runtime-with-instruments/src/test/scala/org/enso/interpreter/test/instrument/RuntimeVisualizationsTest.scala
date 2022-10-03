@@ -1791,9 +1791,9 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receiveN(n = 5, timeoutSeconds = 60)
+    val responses = context.receiveNIgnoreStdLib(n = 3)
 
-    responses should contain allOf (
+    responses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1802,12 +1802,6 @@ class RuntimeVisualizationsTest
       ),
       context.executionComplete(contextId)
     )
-
-    val loadedLibraries = responses.collect {
-      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
-        (namespace, name)
-    }
-    loadedLibraries should contain(("Standard", "Base"))
 
     // attach visualisation
     context.send(
@@ -1826,7 +1820,7 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receiveN(5)
+    val attachVisualisationResponses = context.receiveN(4, timeoutSeconds = 60)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
