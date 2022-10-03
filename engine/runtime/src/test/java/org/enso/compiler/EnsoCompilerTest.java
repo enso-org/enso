@@ -337,6 +337,21 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Ignore
+  @Test
+  public void testVisualizationCaseOf() throws Exception {
+    parseTest("""
+    prepare_visualization : Any -> Integer -> Json
+    prepare_visualization x max_rows = Helpers.recover_errors <| case x of
+        Array ->
+            prepare_visualization (Vector.from_polyglot_array x) max_rows
+
+        # Anything else will be visualized with the JSON or matrix visualization
+        _ ->
+            Json.from_pairs [["json", x]] . to_text
+        """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

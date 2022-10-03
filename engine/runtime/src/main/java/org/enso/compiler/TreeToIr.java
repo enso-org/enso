@@ -776,6 +776,9 @@ final class TreeToIr {
         var expr = translateExpression(cas.getExpression(), insideTypeSignature);
         List<IR$Case$Branch> branches = nil();
         for (var line : cas.getBody()) {
+          if (line.getExpression() == null) {
+            continue;
+          }
           var br = translateCaseBranch(line.getExpression());
           branches = cons(br, branches);
         }
