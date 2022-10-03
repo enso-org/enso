@@ -337,12 +337,11 @@ public class EnsoCompilerTest {
         """);
   }
 
-  @Ignore
   @Test
   public void testVisualizationCaseOf() throws Exception {
     parseTest("""
     prepare_visualization : Any -> Integer -> Json
-    prepare_visualization x max_rows = Helpers.recover_errors <| case x of
+    prepare_visualization x max_rows=1000 = case x of
         Array ->
             prepare_visualization (Vector.from_polyglot_array x) max_rows
 

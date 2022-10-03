@@ -257,14 +257,14 @@ final class TreeToIr {
             continue;
           }
           var constructorName = buildName(inputAst, cExpr.getConstructor());
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
+          List<IR.DefinitionArgument> args = translateArgumentsTree(cExpr.getArguments(), nil());
           var cAt = getIdentifiedLocation(inputAst);
           var data = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
 
           translatedBody = cons(data, translatedBody);
         }
         // type
-        List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
+        List<IR.DefinitionArgument> args = translateArgumentsTree(def.getParams(), nil());
         yield new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
@@ -314,7 +314,7 @@ final class TreeToIr {
           getIdentifiedLocation(fn),
           meta(), diag()
         );
-        var args = translateArgumentsDefs(fn.getArgs());
+        var args = translateArgumentsDefinition(fn.getArgs(), nil());
         var body = translateExpression(fn.getBody(), false);
 
         yield new IR$Module$Scope$Definition$Method$Binding(
@@ -395,19 +395,17 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.DefinitionArgument> translateArgumentsDefs(java.util.List<ArgumentDefinition> args) {
-    ArrayList<Tree> params = new ArrayList<>();
-    for (var d : args) {
-      params.add(d.getPattern());
-    }
-    return translateArgumentsDefinition(params);
-  }
-  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params) {
-      return translateArgumentsDefinition(params, nil());
-  }
-  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params, List<IR.DefinitionArgument> args) {
+  private List<IR.DefinitionArgument> translateArgumentsTree(java.util.List<Tree> params, List<IR.DefinitionArgument> args) {
       for (var p : params) {
-        var m = translateArgumentDefinition(p, false);
+        var m = translateArgumentDefinition(p, null, false);
+        args = cons(m, args);
+      }
+    return args.reverse();
+  }
+
+  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> params, List<IR.DefinitionArgument> args) {
+      for (var p : params) {
+        var m = translateArgumentDefinition(p.getPattern(), p.getDefault() != null ? p.getDefault().getExpression() : null, false);
         args = cons(m, args);
       }
     return args.reverse();
@@ -768,7 +766,7 @@ final class TreeToIr {
       }
 
       case Tree.Arrow arrow -> {
-        var arguments = translateArgumentsDefinition(arrow.getArguments());
+        var arguments = translateArgumentsTree(arrow.getArguments(), nil());
         var body = translateExpression(arrow.getBody(), isMethod);
         yield new IR$Function$Lambda(arguments, body, getIdentifiedLocation(arrow), true, meta(), diag());
       }
@@ -1123,7 +1121,7 @@ final class TreeToIr {
     * @return the [[IR]] representation of `arg`
     * @tailrec
     */
-  IR.DefinitionArgument translateArgumentDefinition(Tree arg, boolean isSuspended) {
+  IR.DefinitionArgument translateArgumentDefinition(Tree arg, Tree defValue, boolean isSuspended) {
     var core = maybeManyParensed(arg);
     return switch (core) {
       case null -> null;
@@ -1131,9 +1129,10 @@ final class TreeToIr {
         yield switch (translateIdent(app.getLhs(), false)) {
           case IR.Name name -> {
             var type = translateQualifiedNameOrExpression(app.getRhs());
+            var defaultValue = translateExpression(defValue, false);
             yield new IR$DefinitionArgument$Specified(
               name,
-              Option.apply(type), Option.empty(),
+              Option.apply(type), Option.apply(defaultValue),
               false, getIdentifiedLocation(app), meta(), diag()
             );
           }
@@ -1163,7 +1162,7 @@ final class TreeToIr {
         };
       }
       case Tree.OprSectionBoundary bound -> {
-          yield translateArgumentDefinition(bound.getAst(), isSuspended);
+          yield translateArgumentDefinition(bound.getAst(), null, isSuspended);
       }
       case Tree.TypeAnnotated anno -> {
         yield null;
@@ -1200,11 +1199,12 @@ final class TreeToIr {
         */
       case Tree.Ident id -> {
         IR.Expression identifier = translateIdent(id, false);
+        var defaultValue = translateExpression(defValue, false);
         yield switch (identifier) {
           case IR.Name name -> new IR$DefinitionArgument$Specified(
             name,
             Option.empty(),
-            Option.empty(),
+            Option.apply(defaultValue),
             isSuspended,
             getIdentifiedLocation(arg),
             meta(), diag()
@@ -1213,7 +1213,7 @@ final class TreeToIr {
         };
       }
       case Tree.UnaryOprApp opr when "~".equals(opr.getOpr().codeRepr()) -> {
-        yield translateArgumentDefinition(opr.getRhs(), true);
+        yield translateArgumentDefinition(opr.getRhs(), null, true);
       }
         /*
       case AstView.AssignedArgument(name, value) =>
