@@ -289,6 +289,35 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testVectorLiteralEmpty() throws Exception {
+    parseTest("""
+    fn = []
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralOne() throws Exception {
+    parseTest("""
+    fn = [ 1 ]
+    """);
+  }
+
+  @Ignore
+  @Test
+  public void testVectorLiteralMany() throws Exception {
+    parseTest("""
+    fn = [ 1, 2, 3 ]
+    """);
+  }
+
+  @Test
+  public void testInvokeMethod() throws Exception {
+    parseTest("""
+    fn = result_ignoring . should_equal
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

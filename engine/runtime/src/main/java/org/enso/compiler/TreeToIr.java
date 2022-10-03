@@ -3,6 +3,7 @@ package org.enso.compiler;
 import java.util.ArrayList;
 
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.IR$Application$Literal$Sequence;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
@@ -579,7 +580,7 @@ final class TreeToIr {
       case null -> null;
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
-        yield switch (op.codeRepr()) {
+        yield switch (op.codeRepr().trim()) {
           case "." -> {
             var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
             var lhs = translateExpression(app.getLhs(), insideTypeSignature);
@@ -615,10 +616,28 @@ final class TreeToIr {
           }
         };
       }
-
       case Tree.App app -> {
         var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
         yield fn;
+      }
+      case Tree.NamedApp app -> {
+        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
+        yield fn;
+      }
+      case Tree.Array arr -> {
+        List<IR.Expression> items = nil();
+        if (arr.getFirst() != null) {
+          var exp = translateExpression(arr.getFirst(), insideTypeSignature);
+          items = cons(exp, items);
+        }
+        for (var next : arr.getRest()) {
+          var exp = translateExpression(next.getBody(), insideTypeSignature);
+          items = cons(exp, items);
+        }
+        yield new IR$Application$Literal$Sequence(
+          items.reverse(),
+          getIdentifiedLocation(arr), meta(), diag()
+        );
       }
       case Tree.Number n -> translateDecimalLiteral(n, n.getInteger(), n.getFractionalDigits());
       case Tree.Ident id -> {
