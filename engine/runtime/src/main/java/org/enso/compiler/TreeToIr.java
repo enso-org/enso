@@ -1548,6 +1548,9 @@ final class TreeToIr {
         case Tree.Ident id -> new IR$Pattern$Name(
           buildName(arg), getIdentifiedLocation(arg), meta(), diag()
         );
+        case Tree.OprApp id -> new IR$Pattern$Name(
+          buildQualifiedName(arg), getIdentifiedLocation(arg), meta(), diag()
+        );
         case Tree.Wildcard wild -> translateWildcardPattern(wild);
         default -> throw new UnhandledEntity(arg, "translatePattern");
       };
@@ -1557,6 +1560,13 @@ final class TreeToIr {
       case Tree.Ident id -> {
         yield new IR$Pattern$Constructor(
           buildName(id), fields.reverse(),
+          getIdentifiedLocation(id), meta(), diag()
+        );
+      }
+      case Tree.OprApp id -> {
+        var qualifiedName = buildQualifiedName(pattern);
+        yield new IR$Pattern$Constructor(
+          qualifiedName, fields.reverse(),
           getIdentifiedLocation(id), meta(), diag()
         );
       }

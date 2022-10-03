@@ -49,6 +49,7 @@ public class EnsoCompilerTest {
     c x = case x of
         Ahoj -> 0
         Ciao -> 1
+        Msg.Ciao -> 2
     """
     );
   }
@@ -324,6 +325,16 @@ public class EnsoCompilerTest {
     parseTest("""
     fn = result_ignoring . should_equal
     """);
+  }
+
+  @Test
+  public void testTableDataArgumentInCase() throws Exception {
+    parseTest("""
+    process_to_json_text value =
+        json = case value of
+            Table.Table_Data _ -> json_from_table value
+            _ -> value.to_json
+        """);
   }
 
   @SuppressWarnings("unchecked")
