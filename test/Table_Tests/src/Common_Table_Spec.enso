@@ -8,6 +8,8 @@ from Standard.Table.Data.Column_Selector import all
 from Standard.Table.Data.Position import all
 from Standard.Table.Data.Filter_Condition import Filter_Condition
 
+from Standard.Database.Errors import SQL_Error_Data
+
 import Standard.Test
 import Standard.Test.Problems
 
@@ -18,7 +20,7 @@ from project.Common_Table_Spec.Test_Selection import all
 from project.Common_Table_Spec.Test_Selection export all
 
 type Test_Selection
-    Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
+    Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True
 
 ## A common test suite for shared operations on the Table API.
 
@@ -1080,7 +1082,10 @@ spec prefix table_builder test_selection pending=Nothing =
             t2 . at "X" . to_vector . should_equal [100]
             t2 . at "ix" . to_vector . should_equal [1]
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
-            t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector . should_equal []
+            v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v.should_equal []
+                False -> v.should_fail_with SQL_Error_Data
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
@@ -1099,7 +1104,10 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Equal_Or_Greater than="b") . at "X" . to_vector . should_equal ["baca", "b", "c"]
             t.filter "X" (Filter_Condition.Between "b" "c") . at "X" . to_vector . should_equal ["baca", "b", "c"]
             t.filter "X" (Filter_Condition.Equal to="baca") . at "X" . to_vector . should_equal ["baca"]
-            t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector . should_equal []
+            v = t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v.should_equal []
+                False -> v.should_fail_with SQL_Error_Data
 
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca"]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca", "b", "c"]
