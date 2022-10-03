@@ -238,10 +238,9 @@ impl List {
                 // submodule of the main module of the project.
                 let main_module = module::QualifiedName::new_main(module.project_name.clone());
                 if main_module != *module {
-                    let (module_id, db_entry) = db.lookup_by_qualified_name(&main_module)?;
-                    let module_groups = ModuleGroups::new(module_id, &*db_entry).ok()?;
-                    let main_groups = self.module_groups.entry(module_id).or_insert(module_groups);
-                    main_groups.submodules.push(groups.content.clone_ref());
+                    if let Some(main_groups) = self.lookup_module_group(db, &main_module) {
+                        main_groups.submodules.push(groups.content.clone_ref());
+                    }
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))
