@@ -408,7 +408,6 @@ impl component::Frp<Model> for Frp {
 
             // === Section navigator ===
 
-            model.grid.switch_section <+ input.show.constant(SectionId::Popular);
             model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
             model.section_navigator.select_section <+ model.grid.active_section.on_change();
 

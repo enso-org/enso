@@ -146,34 +146,14 @@ fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, gri
 #[allow(dead_code)]
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
-        tracing::warn!("START");
         let app = Application::new("root");
-        tracing::warn!("Eh? ");
         theme::builtin::light::register(&app);
-        tracing::warn!("Hmm...");
         theme::builtin::light::enable(&app);
 
         let world = &app.display;
         let scene = &world.default_scene;
-        // let main_layer = &app.display.default_scene.layers.node_searcher;
-        // let grid_layer = main_layer.create_sublayer();
-        // let selection_layer = main_layer.create_sublayer();
-        // let style = StyleWatch::new(&scene.style_sheet);
-        // let group_color_paths = vec![
-        //     column_grid::entry_color_0,
-        //     column_grid::entry_color_1,
-        //     column_grid::entry_color_2,
-        //     column_grid::entry_color_3,
-        //     column_grid::entry_color_4,
-        //     column_grid::entry_color_5,
-        // ];
-        // let group_colors =
-        //     group_color_paths.into_iter().map(|path| style.get_color(path)).collect();
-        // let entry_size = Vector2(133.0, 30.0);
         let panel = app.new_view::<ide_view_component_list_panel::View>();
-        tracing::warn!("Huh? ");
         panel.show();
-        // panel.set_position_xy(Vector2(-200.0, 200.0));
         let network = frp::Network::new("new_component_list_panel_view");
         //TODO[ao] should be done by panel itself.
         let adjust_pixels = f!([panel](&shape: &scene::Shape) {
@@ -190,10 +170,6 @@ pub fn main() {
             _adjust <- scene.frp.shape.map(adjust_pixels);
         }
 
-        // grid.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
-        // grid.selection_highlight_frp().set_entries_params(selection_params);
-        // grid.reset_entries(provider.layout.row_count(), provider.layout.column_count());
-        // grid.set_column_width((1, entry_size.x + params.style.column_gap * 2.0));
         grid.reset(content_info());
         scene.add_child(&panel);
         panel.show();

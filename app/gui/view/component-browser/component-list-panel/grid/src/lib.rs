@@ -151,6 +151,7 @@ impl Style {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     grid:                   Grid,
+    grid_layer:             Layer,
     selection_layer:        Layer,
     layout:                 Rc<RefCell<Layout>>,
     colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
@@ -274,6 +275,15 @@ impl Model {
         }
     }
 
+    fn entry_to_select_after_reset(&self) -> (Row, Col) {
+        self.entry_to_select_when_switching_to_section(SectionId::Popular).unwrap_or_else(|| {
+            let layout = self.layout.borrow();
+            let row = layout.local_scope_rows().start.saturating_sub(1);
+            let col = column::SECTION_SELECTION_PRIORITY[0];
+            (row, col)
+        })
+    }
+
     fn entries_params(
         &self,
         (style, entry_style, color_intensities, group_colors): &(
@@ -384,6 +394,7 @@ impl component::Frp<Model> for Frp {
 
             // === Scrolling and Jumping to Section ===
 
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.reset.map(f_!(model.entry_to_select_after_reset()));
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
 
@@ -455,10 +466,12 @@ impl component::Model for Model {
         let layout = default();
         let colors = default();
         let requested_section_info = default();
-        let base_layer = &app.display.default_scene.layers.node_searcher;
+        let base_layer = &app.display.default_scene.layers.node_searcher_text;
+        let grid_layer = base_layer.create_sublayer();
         let selection_layer = base_layer.create_sublayer();
+        grid_layer.add_exclusive(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
-        Self { grid, layout, colors, selection_layer, requested_section_info }
+        Self { grid, layout, colors, grid_layer, selection_layer, requested_section_info }
     }
 }
 
