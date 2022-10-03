@@ -203,6 +203,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
   public void testSignature5() throws Exception {
     parseTest("val : List Int -> Int");
   }
