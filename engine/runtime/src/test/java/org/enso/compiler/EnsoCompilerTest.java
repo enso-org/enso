@@ -289,6 +289,14 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Ignore
+  @Test
+  public void testNamedArgument() throws Exception {
+    parseTest("""
+    fn = get_all frames_to_skip=1
+    """);
+  }
+
   @Test
   public void testVectorLiteralEmpty() throws Exception {
     parseTest("""

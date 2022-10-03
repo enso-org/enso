@@ -621,7 +621,7 @@ final class TreeToIr {
         yield fn;
       }
       case Tree.NamedApp app -> {
-        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
+        var fn = translateExpression(app.getFunc(), cons(app, moreArgs), insideTypeSignature, false);
         yield fn;
       }
       case Tree.Array arr -> {
@@ -1263,21 +1263,19 @@ final class TreeToIr {
     Tree arg,
     boolean insideTypeSignature
   ) {
-    /*
-    arg match {
-      case AstView.AssignedArgument(left, right) =>
-        CallArgument
-          .Specified(
-            Some(buildName(left)),
-            translateExpression(right, insideTypeSignature),
-            getIdentifiedLocation(arg)
-          )
-      case _ =>
-    }
-    */
-    var expr = translateExpression(arg, insideTypeSignature);
     var loc = getIdentifiedLocation(arg);
-    return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
+    return switch (arg) {
+      case Tree.NamedApp app -> {
+        var expr = translateExpression(app.getArg(), insideTypeSignature);
+        var id = buildName(app, app.getName());
+        yield new IR$CallArgument$Specified(Option.apply(id), expr, loc, meta(), diag());
+      }
+      case null -> null;
+      default -> {
+        var expr = translateExpression(arg, insideTypeSignature);
+        yield new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
+      }
+    };
   }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
