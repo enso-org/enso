@@ -203,6 +203,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testSignature5() throws Exception {
+    parseTest("val : List Int -> Int");
+  }
+
+  @Test
   public void testExport1() throws Exception {
     parseTest("export prj.Data.Foo");
   }

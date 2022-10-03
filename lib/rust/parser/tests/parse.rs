@@ -747,6 +747,8 @@ fn type_annotations() {
               (Group (TypeAnnotated (Ident x) ":" (Ident Int)))))]),
         ("(x : My_Type _)", block![
             (Group (TypeAnnotated (Ident x) ":" (App (Ident My_Type) (Wildcard -1))))]),
+        ("x : List Int -> Int", block![
+            (TypeSignature x ":" (OprApp (App (Ident List) (Ident Int)) (Ok "->") (Ident Int)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
