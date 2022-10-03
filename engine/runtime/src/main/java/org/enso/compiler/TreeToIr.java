@@ -1245,6 +1245,7 @@ final class TreeToIr {
     };
   }
 
+  @SuppressWarnings("unchecked")
   private List<IR.CallArgument> translateCallArguments(List<Tree> args, List<IR.CallArgument> res, boolean insideTypeSignature) {
     while (args.nonEmpty()) {
       var a = translateCallArgument(args.head(), insideTypeSignature);
@@ -1747,13 +1748,10 @@ final class TreeToIr {
       if (exp.getFrom() != null) {
         var qualifiedName = buildQualifiedName(exp.getFrom().getBody());
         var onlyBodies = exp.getExport().getBody();
-        var isAll = isAll(onlyBodies);
-        final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
-          Option.apply((List<IR$Name$Literal>) (Object)buildNames(onlyBodies, ',', false));
+        Option<List<IR$Name$Literal>> onlyNames = extractOnlyNames(onlyBodies);
 
         var hidingList = exp.getHiding() == null ? nil() : buildNames(exp.getHiding().getBody(), ',', false);
-        final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
-          Option.apply((List<IR$Name$Literal>) (Object)hidingList);
+        Option<List<IR$Name$Literal>> hidingNames = extractHidingList(hidingList);
 
         Option<IR$Name$Literal> rename;
         if (exp.getFromAs() != null) {
@@ -1792,6 +1790,21 @@ final class TreeToIr {
     }
       case _ -> */
     throw new UnhandledEntity(exp, "translateExport");
+  }
+
+  @SuppressWarnings("unchecked")
+  private Option<List<IR$Name$Literal>> extractHidingList(List<? extends Object> hidingList) {
+      final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
+              Option.apply((List<IR$Name$Literal>) (Object)hidingList);
+    return hidingNames;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Option<List<IR$Name$Literal>> extractOnlyNames(Tree onlyBodies) {
+      var isAll = isAll(onlyBodies);
+      final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
+              Option.apply((List<IR$Name$Literal>) (Object)buildNames(onlyBodies, ',', false));
+    return onlyNames;
   }
 
   /** Translates an arbitrary invalid expression from the [[AST]] representation
