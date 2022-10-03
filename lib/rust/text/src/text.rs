@@ -627,7 +627,7 @@ impl Rope {
     /// value.
     pub fn offset_to_location_snapped(&self, offset: Byte) -> Location<Byte> {
         use BoundsError::*;
-        match dbg!(self.offset_to_location(offset)) {
+        match self.offset_to_location(offset) {
             Ok(location) => location,
             Err(TooSmall) => default(),
             Err(TooBig) => self.last_line_end_location(),
