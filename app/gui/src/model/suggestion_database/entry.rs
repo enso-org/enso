@@ -378,6 +378,14 @@ impl Entry {
             _ => Some(self.module.clone()),
         }
     }
+
+    /// Returns true if this entry is a main module of the project.
+    pub fn is_main_module(&self) -> bool {
+        match self.kind {
+            Kind::Module => self.module.is_main_module(),
+            _ => false,
+        }
+    }
 }
 
 

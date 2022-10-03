@@ -8,6 +8,7 @@ use crate::model::suggestion_database;
 
 use convert_case::Case;
 use convert_case::Casing;
+use double_representation::module;
 
 
 // ==============
@@ -201,8 +202,9 @@ impl Display for Component {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub content:    Group,
-    pub submodules: group::AlphabeticalList,
+    pub qualified_name: Rc<module::QualifiedName>,
+    pub content:        Group,
+    pub submodules:     group::AlphabeticalList,
 }
 
 
@@ -255,6 +257,11 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
+    /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
+    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<module::QualifiedName>> {
+        self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }
 
     /// Update matching info in all components according to the new filtering pattern.

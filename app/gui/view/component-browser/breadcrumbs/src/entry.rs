@@ -201,9 +201,14 @@ impl EntryData {
         self.text.set_default_text_size(size);
     }
 
-    fn is_state_switch(&self, model: &Model) -> bool {
+    fn is_state_change(&self, model: &Model) -> bool {
         match model {
-            Model::Text(_) => self.state.get() != State::Text,
+            Model::Text(new_text) => {
+                let previous_state_was_not_text = self.state.get() != State::Text;
+                let previous_text = String::from(self.text.content.value());
+                let text_was_different = previous_text.as_str() != new_text.as_str();
+                previous_state_was_not_text || text_was_different
+            }
             Model::Separator => self.state.get() != State::Separator,
             Model::Ellipsis => self.state.get() != State::Ellipsis,
         }
@@ -284,7 +289,7 @@ impl ensogl_grid_view::Entry for Entry {
             color_anim.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
             target_color <- all_with3(&text_color, &greyed_out_color, &color_anim.value, mix);
             appear_anim.target <+ init.constant(1.0);
-            model_was_set <- input.set_model.map(f!((model) data.is_state_switch(model))).on_true();
+            model_was_set <- input.set_model.map(f!((model) data.is_state_change(model))).on_true();
             should_appear <- any(&init, &model_was_set);
             eval_ should_appear({
                 appear_anim.target.emit(0.0);
