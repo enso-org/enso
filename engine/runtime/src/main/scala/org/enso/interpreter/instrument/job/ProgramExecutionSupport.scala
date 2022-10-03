@@ -1,10 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.UUID
-
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.IdExecutionService.{
@@ -18,28 +13,26 @@ import org.enso.interpreter.instrument.execution.{
   RuntimeContext
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.instrument.{
-  InstrumentFrame,
-  MethodCallsCache,
-  RuntimeCache,
-  UpdatesSynchronizationState,
-  Visualisation
-}
+import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
-import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.service.error.{
-  MethodNotFoundException,
-  ModuleNotFoundForExpressionIdException,
-  ServiceException,
-  TypeNotFoundException,
-  VisualisationException
+import org.enso.interpreter.runtime.data.text.Text
+import org.enso.interpreter.runtime.error.{
+  DataflowError,
+  PanicSentinel,
+  WithWarnings
 }
+import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.util.UUID
+import java.util.function.Consumer
+import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
 
@@ -473,20 +466,7 @@ object ProgramExecutionSupport {
             expressionValue +: visualisation.arguments: _*
           )
         }
-        .flatMap {
-          case text: String =>
-            Right(text.getBytes("UTF-8"))
-          case text: Text =>
-            Right(text.toString.getBytes("UTF-8"))
-          case bytes: Array[Byte] =>
-            Right(bytes)
-          case other =>
-            Left(
-              new VisualisationException(
-                s"Cannot encode ${other.getClass} to byte array"
-              )
-            )
-        }
+        .flatMap(visualizationResultToBytes)
     val result = errorOrVisualisationData match {
       case Left(_: ThreadInterruptedException) =>
         ctx.executionService.getLogger.log(
@@ -538,6 +518,33 @@ object ProgramExecutionSupport {
       syncState.setVisualisationSync(expressionId)
     }
   }
+
+  /** Convert the result of Enso visualization function to a byte array.
+    *
+    * @param value the result of Enso visualization function
+    * @return either a byte array representing the visualization result or an
+    *         error
+    */
+  @scala.annotation.tailrec
+  private def visualizationResultToBytes(
+    value: AnyRef
+  ): Either[VisualisationException, Array[Byte]] =
+    value match {
+      case text: String =>
+        Right(text.getBytes(StandardCharsets.UTF_8))
+      case text: Text =>
+        Right(text.toString.getBytes(StandardCharsets.UTF_8))
+      case bytes: Array[Byte] =>
+        Right(bytes)
+      case withWarnings: WithWarnings =>
+        visualizationResultToBytes(withWarnings.getValue)
+      case other =>
+        Left(
+          new VisualisationException(
+            s"Cannot encode ${other.getClass} to byte array."
+          )
+        )
+    }
 
   /** Extract method pointer information from the expression value.
     *

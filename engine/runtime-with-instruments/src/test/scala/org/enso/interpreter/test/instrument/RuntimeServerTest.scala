@@ -3590,12 +3590,16 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(37, 77)
+    val idX      = metadata.addItem(46, 71)
+    val idY      = metadata.addItem(126, 5)
+    val idRes    = metadata.addItem(136, 12)
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    Warning.attach_with_stacktrace "x" "y" Runtime.primitive_get_stack_trace
+        |    x = Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |    y = x + 1
+        |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -3627,12 +3631,15 @@ class RuntimeServerTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      3
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.TEXT),
+      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idY, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
+    context.consumeOut shouldEqual List("43")
   }
 
   it should "send updates for values in array annotated with warning" in {
