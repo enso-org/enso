@@ -83,6 +83,7 @@ use ide_view_component_list_panel_grid::content::SectionId;
 
 mod navigator;
 
+pub use breadcrumbs::BreadcrumbId;
 pub use ensogl_core::prelude;
 pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
@@ -257,8 +258,6 @@ impl Model {
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
-        breadcrumbs.show_ellipsis(true);
-        breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
 
         Self {
             display_object,
@@ -269,6 +268,11 @@ impl Model {
             navigator,
             breadcrumbs,
         }
+    }
+
+    fn set_initial_breadcrumbs(&self) {
+        self.breadcrumbs.set_entries_from((vec![breadcrumbs::Breadcrumb::new("All")], 0));
+        self.breadcrumbs.show_ellipsis(true);
     }
 
     fn update_style(&self, style: &AllStyles) {
@@ -415,6 +419,11 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(theme::navigator::icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
+
+
+            // === Breadcrumbs ===
+
+            eval_ input.show(model.set_initial_breadcrumbs());
 
 
             // === Style ===

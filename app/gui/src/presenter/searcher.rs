@@ -21,7 +21,7 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
-use ide_view::component_browser::list_panel::BreadcrumbId;
+use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
@@ -210,13 +210,13 @@ impl Model {
             // one is reserved as a section name.
             let from = 1;
             let breadcrumbs_from = (names.map(Into::into).collect(), from);
-            browser.model().list.set_breadcrumbs_from(breadcrumbs_from);
+            browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
         }
     }
 
     fn show_breadcrumbs_ellipsis(&self, show: bool) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            browser.model().list.show_breadcrumbs_ellipsis(show);
+            browser.model().list.model().breadcrumbs.show_ellipsis(show);
         }
     }
 
@@ -224,7 +224,7 @@ impl Model {
         self.enter_module(module);
     }
 
-    fn enter_module(&self, module: EnteredModule) -> Option<()> {
+    fn enter_module(&self, module: component_grid::ElementId) -> Option<()> {
         let list = self.controller.components();
         let id = if let Some(entry) = module.as_entry_id() {
             let component = list.component_by_view_id(entry)?;
@@ -342,6 +342,7 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
                     eval_ action_list_changed ([model, grid] {
@@ -369,7 +370,7 @@ impl Searcher {
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval entry_selected((entry) model.suggestion_selected(*entry));
                     eval grid.module_entered((id) model.module_entered(*id));
-                    eval grid.selected_breadcrumb((id) model.breadcrumb_selected(*id));
+                    eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
