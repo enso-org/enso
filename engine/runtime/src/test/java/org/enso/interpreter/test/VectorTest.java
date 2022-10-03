@@ -133,7 +133,7 @@ public class VectorTest {
     import Standard.Base.Data.Array
 
     how_long array = case array of
-        arr -> arr.length
+        arr : Array.Array -> arr.length
         _ -> -1
     """, "how_long.enso")
             .uri(uri)

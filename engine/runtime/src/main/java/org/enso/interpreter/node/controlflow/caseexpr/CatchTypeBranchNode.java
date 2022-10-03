@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public abstract class CatchTypeBranchNode extends BranchNode {
 
   private final Type expectedType;
-  private final boolean isArrayExepctedType;
+  private final boolean isArrayType;
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
@@ -29,7 +29,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   CatchTypeBranchNode(Type tpe, RootCallTarget functionNode) {
     super(functionNode);
     this.expectedType = tpe;
-    this.isArrayExepctedType = Context.get(this).getBuiltins().array() == tpe;
+    this.isArrayType = Context.get(this).getBuiltins().array() == expectedType;
   }
 
   /**
@@ -45,7 +45,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
 
   @Specialization(
       guards = {
-        "isArrayExepctedType()",
+        "isArrayExpectedType()",
         "interop.hasArrayElements(value)",
         "!types.hasType(value)",
         "interop.hasMetaObject(value)"
@@ -59,8 +59,8 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     accept(frame, state, new Object[] {value});
   }
 
-  boolean isArrayExepctedType() {
-    return isArrayExepctedType;
+  boolean isArrayExpectedType() {
+    return isArrayType;
   }
 
   @Specialization

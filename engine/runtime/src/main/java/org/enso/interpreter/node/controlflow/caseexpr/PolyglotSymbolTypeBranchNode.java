@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
-public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
+public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   private final Object polyglotSymbol;
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
@@ -27,9 +27,9 @@ public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
   private final ConditionProfile subtypeProfile = ConditionProfile.createCountingProfile();
 
-  CatchPolyglotSymbolTypeBranchNode(Object polyglotSymbolName, RootCallTarget functionNode) {
+  PolyglotSymbolTypeBranchNode(Object polyglotSymbol, RootCallTarget functionNode) {
     super(functionNode);
-    this.polyglotSymbol = polyglotSymbolName;
+    this.polyglotSymbol = polyglotSymbol;
   }
 
   /**
@@ -39,9 +39,9 @@ public abstract class CatchPolyglotSymbolTypeBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */
-  public static CatchPolyglotSymbolTypeBranchNode build(
+  public static PolyglotSymbolTypeBranchNode build(
       Object polyglotSymbol, RootCallTarget functionNode) {
-    return CatchPolyglotSymbolTypeBranchNodeGen.create(polyglotSymbol, functionNode);
+    return PolyglotSymbolTypeBranchNodeGen.create(polyglotSymbol, functionNode);
   }
 
   @Specialization

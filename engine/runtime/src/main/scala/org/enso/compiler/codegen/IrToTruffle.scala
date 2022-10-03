@@ -1087,39 +1087,38 @@ class IrToTruffle(
                     BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
                   )
                 ) =>
-              Option(
+              val polySymbol =
                 mod
                   .unsafeAsModule()
                   .getScope
                   .getPolyglotSymbols
                   .get(symbol.name)
-              ) match {
-                case Some(polySymbol) =>
-                  val argOfType = List(
-                    IR.DefinitionArgument.Specified(
-                      varName,
-                      None,
-                      None,
-                      suspended = false,
-                      location,
-                      passData    = varName.passData,
-                      diagnostics = varName.diagnostics
-                    )
+              if (polySymbol != null) {
+                val argOfType = List(
+                  IR.DefinitionArgument.Specified(
+                    varName,
+                    None,
+                    None,
+                    suspended = false,
+                    location,
+                    passData    = varName.passData,
+                    diagnostics = varName.diagnostics
                   )
+                )
 
-                  val branchCodeNode = childProcessor.processFunctionBody(
-                    argOfType,
-                    branch.expression,
-                    branch.location
+                val branchCodeNode = childProcessor.processFunctionBody(
+                  argOfType,
+                  branch.expression,
+                  branch.location
+                )
+                Right(
+                  PolyglotSymbolTypeBranchNode.build(
+                    polySymbol,
+                    branchCodeNode.getCallTarget
                   )
-                  Right(
-                    CatchPolyglotSymbolTypeBranchNode.build(
-                      polySymbol,
-                      branchCodeNode.getCallTarget
-                    )
-                  )
-                case None =>
-                  Left(BadPatternMatch.NonVisiblePolyglotSymbol(tpeName.name))
+                )
+              } else {
+                Left(BadPatternMatch.NonVisiblePolyglotSymbol(tpeName.name))
               }
             case Some(BindingsMap.Resolution(resolved)) =>
               throw new CompilerError(

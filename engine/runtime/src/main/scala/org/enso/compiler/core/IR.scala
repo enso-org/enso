@@ -6186,7 +6186,7 @@ object IR {
       *
       * A type pattern matches on types. Type pattern is composed of two parts:
       * - a single identifier (e.g. `a` or `_`)
-      * - a fully qualified type name
+      * - a (potentially fully qualified) type name
       * E.g., `a : Foo -> ...` or `_ : Bar -> ...``
       *
       * @param name the name of the bound variable, or wildcard
