@@ -738,7 +738,7 @@ case object AliasAnalysis extends IRPass {
           ),
           tpe = analyseName(
             tpe,
-            isInPatternContext                = true,
+            isInPatternContext                = false,
             isConstructorNameInPatternContext = false,
             graph,
             parentScope
