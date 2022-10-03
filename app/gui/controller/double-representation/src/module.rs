@@ -91,8 +91,6 @@ impl Display for Id {
 
 impl Id {
     /// Construct a module's ID value from a name segments sequence.
-    ///
-    /// Fails if the given sequence is empty.
     pub fn new(segments: impl IntoIterator<Item = ReferentName>) -> Id {
         let segments = segments.into_iter().collect_vec();
         Id { segments }
@@ -100,7 +98,7 @@ impl Id {
 
     /// Construct a module's ID value from a name segments sequence.
     ///
-    /// Fails if the sequence is empty or if any of the segments is not a valid referent name.
+    /// Fails if any of the segments is not a valid referent name.
     pub fn try_new(segments: impl IntoIterator<Item: AsRef<str>>) -> FallibleResult<Id> {
         let texts = segments.into_iter();
         let names = texts.map(|text| ReferentName::new(text.as_ref()));
@@ -175,11 +173,8 @@ impl QualifiedName {
     }
 
     /// Create a qualified name for the project's main module.
-    ///
-    /// It is special, as its name consists only from the project name, unlike other modules'
-    /// qualified names.
     pub fn new_main(project_name: project::QualifiedName) -> QualifiedName {
-        Self::new(project_name, Id::new(std::iter::empty()))
+        Self::new(project_name, project::main_module_id())
     }
 
     /// Constructs a qualified name from its text representation.
@@ -295,7 +290,16 @@ impl QualifiedName {
 
     /// Check if the name refers to some library's top module.
     pub fn is_top_module(&self) -> bool {
-        self.id.segments.len() == 1
+        self.id.segments.len() <= 1
+    }
+
+    /// Check if the name refers to some project's Main module.
+    pub fn is_main_module(&self) -> bool {
+        match self.id.segments.len() {
+            0 => true,
+            1 if self.id.segments[0] == PROJECTS_MAIN_MODULE => true,
+            _ => false,
+        }
     }
 
     /// Get the top module containing the module referred by this name. Return self if it is already
@@ -307,9 +311,24 @@ impl QualifiedName {
     /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
     /// module.
     pub fn parent_module(&self) -> Option<Self> {
-        let id = Id::try_new(self.id.parent_segments()).ok()?;
-        let project_name = self.project_name.clone();
-        Some(Self { project_name, id })
+        if self.is_top_module() {
+            None
+        } else {
+            let id = Id::try_new(self.id.parent_segments()).ok()?;
+            let project_name = self.project_name.clone();
+            Some(Self { project_name, id })
+        }
+    }
+
+    /// Returns an iterator over all parent modules. The `self` is not included.
+    pub fn parent_modules(&self) -> impl Iterator<Item = Self> {
+        let mut current = self.clone();
+        iter::from_fn(move || {
+            current.parent_module().map(|parent| {
+                current = parent.clone();
+                parent
+            })
+        })
     }
 }
 
