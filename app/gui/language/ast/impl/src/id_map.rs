@@ -90,7 +90,7 @@ impl JsonIdMap {
     pub fn from_id_map(id_map: &IdMap, code: &enso_text::Rope) -> Self {
         // let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
         let mut cursor = xi_rope::Cursor::new(&code.rope, 0);
-        let char_offsets = cursor.iter::<Utf16CodeUnitsMetric>().collect_vec();
+        let char_offsets = iter::once(0).chain(cursor.iter::<Utf16CodeUnitsMetric>()).collect_vec();
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
             let byte_start = range.start.value as usize;
             let byte_end = range.end.value as usize;
