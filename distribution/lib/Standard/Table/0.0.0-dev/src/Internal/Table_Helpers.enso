@@ -369,6 +369,9 @@ type Column_Transform_Element
 prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
+        Vector.Vector ->
+            unified_name_selectors = column_selectors.map (Sort_Column.Name _)
+            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Name name_selectors matcher ->
             unified_name_selectors = name_selectors.map selector-> case selector of
                 _ : Text -> Sort_Column.Name selector
