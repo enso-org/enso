@@ -715,7 +715,7 @@ final class TreeToIr {
         {
           Tree.Arrow head = arrow;
           while (head != null) {
-            var literal = buildName(head.getArguments().get(0));
+            var literal = translateExpression(head.getArguments().get(0), insideTypeSignature);
             if (head.getArguments().size() == 1) {
               args = cons(literal, args);
             } else {

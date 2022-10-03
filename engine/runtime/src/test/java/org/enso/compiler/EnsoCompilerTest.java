@@ -280,6 +280,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testProblemHandling() throws Exception {
+    parseTest("""
+    test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
+    test_problem_handling action expected_problems result_checker =
+        result_checker result_ignoring
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
