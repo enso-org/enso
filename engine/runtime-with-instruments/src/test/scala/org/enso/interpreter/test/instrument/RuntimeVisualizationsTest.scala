@@ -17,6 +17,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
@@ -2509,5 +2510,272 @@ class RuntimeVisualizationsTest
     }
     data3.sameElements("52".getBytes) shouldBe true
     context.consumeOut shouldEqual List("encoding...")
+  }
+
+  it should "emit visualisation update for values annotated with warnings" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(37, 76)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "42"
+  }
+
+  it should "emit visualisation update for values in array annotated with warnings" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idMain = metadata.addItem(37, 78)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    [Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace]
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "[42]"
+  }
+
+  it should "emit visualisation update for values in atom annotated with warnings" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX   = metadata.addItem(81, 71)
+    val idRes = metadata.addItem(157, 20)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |type Newtype
+        |    Mk_Newtype value
+        |
+        |main =
+        |    x = Warning.attach_with_stacktrace 42 "x" Runtime.primitive_get_stack_trace
+        |    Newtype.Mk_Newtype x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idRes, s"$moduleName.Newtype.Mk_Newtype"),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idRes,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
   }
 }
