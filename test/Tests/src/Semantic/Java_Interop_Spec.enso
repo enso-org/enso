@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Test
+import Standard.Base.Data.Time.Duration
 
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer
@@ -6,12 +8,18 @@ polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
+polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
 
-import Standard.Test
 
 Any.test_me x = x.is_nothing
+
+java_date year month=1 day=1 =
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+
+foreign js js_date year month_index=0 day=1 = """
+    return new Date(year, month_index, day)
 
 spec =
     Test.group "Java FFI" <|
@@ -52,5 +60,20 @@ spec =
             april1st.year.should_equal 2022
             april1st.month.should_equal 4
             april1st.day.should_equal 1
+
+        Test.specify "Difference of Java Date and Enso date should be an Enso Duration" <|
+            Duration.between (java_date 2022 01 01) (Date.new 2022 01 02) . should_equal 24.hours
+            Duration.between (Date.new 2022 01 01) (java_date 2022 01 02) . should_equal 24.hours
+
+        Test.specify "Difference of two Java Dates should be an Enso Duration" <|
+            Duration.between (java_date 2022 01 01) (java_date 2022 01 02) . should_equal 24.hours
+
+        Test.specify "Difference of two JS Dates is an Enso Duration" <|
+            Duration.between (js_date 2022 09 01) (js_date 2022 09 02) . should_equal 24.hours
+
+        Test.specify "Difference of JS Dates and Java Dates should be Enso Duration" <|
+            Duration.between (js_date 2022 08 01) (java_date 2022 09 02) . should_equal 24.hours
+            Duration.between (java_date 2022 09 01) (js_date 2022 08 02) . should_equal 24.hours
+
 
 main = Test.Suite.run_main spec
