@@ -26,8 +26,8 @@ pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result
     let response = web::client::get(&default(), url.clone()).await?;
     let filename = filename_from_response(&response)
         .map(ToOwned::to_owned)
-        .or(filename_from_url(&url))
-        .unwrap_or(Uuid::new_v4().to_string().into());
+        .or_else(|_| filename_from_url(&url))
+        .unwrap_or_else(|_| Uuid::new_v4().to_string().into());
 
     trace!("Filename for {url} download shall be {filename}", filename = filename.display());
     let output = dir.as_ref().join(&filename);

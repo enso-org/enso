@@ -314,7 +314,7 @@ impl Command {
             let status = child
                 .wait()
                 .inspect_ok(|exit_status| {
-                    tracing::Span::current().record("status", &exit_status.code());
+                    tracing::Span::current().record("status", exit_status.code());
                 })
                 .await?;
             status_checker(status).context(format!("Command failed: {}", pretty))
@@ -341,7 +341,7 @@ impl Command {
             let child = child?;
             let output =
                 child.wait_with_output().await.context("Failed while waiting for output.")?;
-            tracing::Span::current().record("status", &output.status.code());
+            tracing::Span::current().record("status", output.status.code());
             status_checker(output.status).with_context(|| {
                 format!(
                     "Stdout:\n{}\n\nStderr:\n{}\n",
@@ -380,7 +380,7 @@ impl Command {
 
         self.inner.spawn().context(format!("Failed to spawn: {}", pretty)).inspect(|child| {
             if let Some(pid) = child.id() {
-                current_span.record("pid", &pid);
+                current_span.record("pid", pid);
             }
         })
     }

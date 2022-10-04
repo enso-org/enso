@@ -17,8 +17,14 @@ impl ContentRange {
         Self { range: 0..=len.saturating_sub(1), total: Some(len) }
     }
 
+    /// Range length in bytes.
     pub fn len(&self) -> usize {
         1 + self.range.end() - self.range.start()
+    }
+
+    /// Check if the range is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

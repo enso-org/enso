@@ -271,7 +271,7 @@ pub mod tests {
     #[test]
     fn deduce_format_from_extension() {
         let expect_ok = |str: &str, expected: Compression| {
-            assert_eq!(Compression::deduce_from_extension(&OsStr::new(str)).unwrap(), expected);
+            assert_eq!(Compression::deduce_from_extension(OsStr::new(str)).unwrap(), expected);
         };
 
         expect_ok("bz2", Compression::Bzip2);
@@ -313,7 +313,7 @@ pub mod tests {
     #[test]
     #[ignore]
     fn pack_command_test() {
-        let cmd = Tar.pack_cmd("output.tar.gz", &["target.bmp"]).unwrap();
+        let cmd = Tar.pack_cmd("output.tar.gz", ["target.bmp"]).unwrap();
         debug!("{:?}", cmd);
         dbg!(cmd);
     }

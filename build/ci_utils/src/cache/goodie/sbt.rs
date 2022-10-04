@@ -8,7 +8,7 @@ crate::define_env_var! {
     SBT_HOME, PathBuf;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub struct Sbt;
 
 impl cache::Goodie for Sbt {

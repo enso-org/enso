@@ -17,11 +17,11 @@ pub async fn get(url: impl IntoUrl) -> Result<Response> {
 pub async fn handle_error_response(response: Response) -> Result<Response> {
     if let Some(e) = response.error_for_status_ref().err() {
         let e = Err(e);
-        return match response.text().await {
+        match response.text().await {
             Ok(body) => e.context(format!("Error message body: {body}")),
             Err(body_error) =>
                 e.context(format!("Failed to get error response body: {body_error}")),
-        };
+        }
     } else {
         Ok(response)
     }
@@ -73,7 +73,7 @@ pub fn filename_from_content_disposition(value: &reqwest::header::HeaderValue) -
         .context("Field 'filename' not present in the header value.")?
         .get(1)
         .context("Missing capture group from regex.")?;
-    Ok(&Path::new(capture.as_str()))
+    Ok(Path::new(capture.as_str()))
 }
 
 pub fn filename_from_response(response: &Response) -> Result<&Path> {
@@ -94,7 +94,7 @@ pub async fn stream_to_file(
         .map_err(anyhow::Error::from)
         // We must use fold (rather than foreach) to properly keep `output` alive long enough.
         .try_fold(output, |mut output, chunk| async move {
-            output.write(&chunk.clone()).await?;
+            output.write_all(&chunk.clone()).await?;
             Ok(output)
         })
         .await?;

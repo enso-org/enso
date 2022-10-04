@@ -12,7 +12,7 @@ impl<P> Resolver<P> {
     pub fn new(names: Vec<&str>, fallback_dirs: Vec<PathBuf>) -> Result<Self> {
         let path = std::env::var_os("PATH").unwrap_or_default();
         let env_path_dirs = std::env::split_paths(&path);
-        let lookup_dirs = std::env::join_paths(env_path_dirs.chain(fallback_dirs.clone()))?;
+        let lookup_dirs = std::env::join_paths(env_path_dirs.chain(fallback_dirs))?;
         let names = names.into_iter().map(OsString::from).collect();
         let cwd = std::env::current_dir()?;
         let phantom_data = default();
@@ -22,11 +22,10 @@ impl<P> Resolver<P> {
         let Self { names, lookup_dirs, cwd, phantom_data: _phantom_data } = self;
         names
             .into_iter()
-            .map(move |name| {
+            .filter_map(move |name| {
                 // We discard this error, as "error finding program" is like "no program available".
                 which::which_in_all(name, Some(lookup_dirs.clone()), cwd.clone()).ok()
             })
-            .flatten()
             .flatten()
     }
 

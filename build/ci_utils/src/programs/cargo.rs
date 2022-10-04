@@ -28,7 +28,7 @@ impl Program for Cargo {
 }
 
 /// Control when colored output is used.
-#[derive(Clone, Copy, PartialEq, Debug, strum::AsRefStr)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Command {
     /// Compile the current package
@@ -68,7 +68,7 @@ impl Manipulator for Command {
 }
 
 /// Control when colored output is used.
-#[derive(Clone, Copy, PartialEq, Debug, strum::AsRefStr)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Color {
     /// Never display colors.
@@ -85,7 +85,7 @@ impl Manipulator for Color {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, strum::AsRefStr)]
+#[derive(Clone, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Options {
     Workspace,
@@ -108,7 +108,7 @@ impl Manipulator for Options {
 }
 
 /// Options for the `cargo run` command.
-#[derive(Clone, PartialEq, Debug, strum::AsRefStr)]
+#[derive(Clone, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum RunOption {
     /// Name of the bin target to run.

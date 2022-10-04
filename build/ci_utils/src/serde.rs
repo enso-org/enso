@@ -6,7 +6,7 @@ use serde::de::Error;
 use serde::Deserializer;
 use serde::Serializer;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Either<T, U> {
     Left(T),
@@ -43,7 +43,7 @@ impl<'a, T: Deserialize<'a>> WithShorthand<'a, T> for Vec<T> {
 }
 
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum SingleOrSequence<T> {
     Single(T),

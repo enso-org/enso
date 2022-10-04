@@ -11,7 +11,7 @@ pub mod tar;
 pub mod zip;
 
 /// Archive formats that we handle.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Format {
     Zip,
     SevenZip,

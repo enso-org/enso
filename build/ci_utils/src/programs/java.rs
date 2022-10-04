@@ -19,8 +19,9 @@ impl Classpath {
 impl Manipulator for Classpath {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
         // Java uses same separator for classpaths entries as native PATH separator.
-        let paths = std::env::join_paths(&self.0)
-            .expect(&format!("Invalid character in paths: {:?}", &self.0));
+        let Ok(paths) = std::env::join_paths(&self.0) else {
+            panic!("Invalid character in paths: {:?}", &self.0)
+        };
         command.arg("--class-path").arg(paths);
     }
 }
@@ -71,7 +72,7 @@ mod tests {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Shrinkwrap)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Shrinkwrap)]
 pub struct LanguageVersion(pub u8);
 
 impl std::str::FromStr for LanguageVersion {

@@ -4,6 +4,7 @@ use anyhow::Error;
 pub trait ResultExt<T, E> {
     fn anyhow_err(self) -> Result<T>;
 
+    #[allow(clippy::type_complexity)]
     fn flatten_fut(
         self,
     ) -> futures::future::Either<

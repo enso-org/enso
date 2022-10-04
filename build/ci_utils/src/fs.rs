@@ -117,8 +117,8 @@ pub fn symlink_auto(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
 pub fn reset_dir(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
     debug!("Will reset directory {}", path.display());
-    remove_dir_if_exists(&path)?;
-    create_dir_if_missing(&path)?;
+    remove_dir_if_exists(path)?;
+    create_dir_if_missing(path)?;
     Ok(())
 }
 
@@ -240,6 +240,7 @@ pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> 
 
 pub fn check_if_identical(source: impl AsRef<Path>, target: impl AsRef<Path>) -> bool {
     (|| -> Result<bool> {
+        #[allow(clippy::if_same_then_else)] // should be different after TODO
         if metadata(&source)?.len() == metadata(&target)?.len() {
             Ok(true)
         } else if read(&source)? == read(&target)? {

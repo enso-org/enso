@@ -311,7 +311,7 @@ impl BuildOptions {
             if let Some(value) = value {
                 ret.push(format!("{name}={value}").into());
             } else {
-                ret.push(format!("{name}").into());
+                ret.push(name.into());
             }
         }
         if let Some(file) = self.file.as_ref() {

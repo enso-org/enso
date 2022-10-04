@@ -42,5 +42,5 @@ impl OutputExt for std::process::Output {
 }
 
 pub fn non_empty_lines(bytes: &[u8]) -> Result<impl Iterator<Item = &str>> {
-    Ok(std::str::from_utf8(&bytes)?.lines().map(str::trim).filter(|line| !line.is_empty()))
+    Ok(std::str::from_utf8(bytes)?.lines().map(str::trim).filter(|line| !line.is_empty()))
 }

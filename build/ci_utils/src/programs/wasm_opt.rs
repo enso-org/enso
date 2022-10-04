@@ -35,7 +35,7 @@ pub struct Output<'a>(pub &'a Path);
 
 impl Manipulator for Output<'_> {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
-        command.arg("-o").arg(&self.0);
+        command.arg("-o").arg(self.0);
     }
 }
 
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn version_parsing() -> Result {
         let sample_version_string = "wasm-opt version 108 (version_108)";
-        assert_eq!(WasmOpt.parse_version(&sample_version_string)?, Version(108));
+        assert_eq!(WasmOpt.parse_version(sample_version_string)?, Version(108));
         Ok(())
     }
 }

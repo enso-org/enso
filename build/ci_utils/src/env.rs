@@ -95,11 +95,13 @@ pub mod new {
 
         fn set(&self, value: impl AsRef<Self::Borrowed>) -> Result {
             let value = self.generate(value.as_ref())?;
-            Ok(self.set_raw(value))
+            self.set_raw(value);
+            Ok(())
         }
 
         fn set_workflow_output(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            Ok(crate::actions::workflow::set_output(self.name(), &self.generate(value.borrow())?))
+            crate::actions::workflow::set_output(self.name(), &self.generate(value.borrow())?);
+            Ok(())
         }
         fn set_workflow_env(&self, value: impl Borrow<Self::Borrowed>) -> Result {
             crate::actions::workflow::set_env(self.name(), &self.generate(value.borrow())?)
@@ -114,7 +116,7 @@ pub mod new {
         for (Variable, Value)
     {
         fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-            let value = self.0.generate(&self.1.as_ref())?;
+            let value = self.0.generate(self.1.as_ref())?;
             command.env(self.0.name(), value);
             Ok(())
         }
@@ -165,9 +167,15 @@ pub mod new {
         }
     }
 
-    impl<Value, Borrowed: ?Sized> Into<String> for &SimpleVariable<Value, Borrowed> {
-        fn into(self) -> String {
-            self.name.to_string()
+    impl<Value, Borrowed: ?Sized> From<&SimpleVariable<Value, Borrowed>> for String {
+        fn from(value: &SimpleVariable<Value, Borrowed>) -> Self {
+            value.name.to_string()
+        }
+    }
+
+    impl<Value, Borrowed: ?Sized> From<SimpleVariable<Value, Borrowed>> for String {
+        fn from(value: SimpleVariable<Value, Borrowed>) -> Self {
+            value.name.to_string()
         }
     }
 
@@ -193,7 +201,7 @@ pub mod new {
         type Value = Value;
         type Borrowed = Borrowed;
         fn parse(&self, value: &str) -> Result<Self::Value> {
-            Value::from_str(&value)
+            Value::from_str(value)
         }
         fn generate(&self, value: &Self::Borrowed) -> Result<String> {
             Ok(Borrowed::to_string(value))
@@ -366,7 +374,7 @@ pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
     let path = path.into();
     trace!("Prepending {} to {PATH_ENVIRONMENT_NAME}.", path.display());
     let old_value = std::env::var_os(PATH_ENVIRONMENT_NAME);
-    let old_pieces = old_value.iter().map(std::env::split_paths).flatten();
+    let old_pieces = old_value.iter().flat_map(std::env::split_paths);
     let new_pieces = once(path).chain(old_pieces);
     let new_value = std::env::join_paths(new_pieces)?;
     std::env::set_var(PATH_ENVIRONMENT_NAME, new_value);
@@ -408,7 +416,7 @@ impl Modification {
             }
             Action::Set(value) => {
                 debug!("Setting {}={}", self.variable_name, value);
-                std::env::set_var(normalized_name, &value);
+                std::env::set_var(normalized_name, value);
             }
             Action::PrependPaths(paths_to_prepend) =>
                 if let Ok(old_value) = std::env::var(normalized_name) {

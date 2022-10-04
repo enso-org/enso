@@ -98,7 +98,7 @@ pub fn digest<S: Storable>(storable: &S) -> Result<String> {
     let key_serialized = bincode::serialize(&key)?;
 
     let mut digest = sha2::Sha224::default();
-    sha2::Digest::update(&mut digest, &[VERSION]);
+    sha2::Digest::update(&mut digest, [VERSION]);
     sha2::Digest::update(&mut digest, &key_serialized);
     std::any::TypeId::of::<S::Key>().hash(&mut HashToDigest(&mut digest));
     std::any::TypeId::of::<S>().hash(&mut HashToDigest(&mut digest));
@@ -133,7 +133,7 @@ impl Cache {
         let this = self.clone();
         async move {
             let digest = digest(&storable)?;
-            tracing::Span::current().record("digest", &digest.as_str());
+            tracing::Span::current().record("digest", digest.as_str());
             let entry_dir = this.root.join(&digest);
             let entry_meta = entry_dir.with_appended_extension("json");
 
@@ -146,7 +146,7 @@ impl Cache {
             match retrieve.await {
                 Ok(out) => {
                     trace!("Found in cache, skipping generation.");
-                    return Ok(out);
+                    Ok(out)
                 }
                 Err(e) => {
                     trace!("Value cannot be retrieved from cache because: {e}");

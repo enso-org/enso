@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 pub trait ResultExt<T, E>: Sized {
+    #[allow(clippy::type_complexity)]
     fn map_async<'a, T2, F, Fut>(
         self,
         f: F,

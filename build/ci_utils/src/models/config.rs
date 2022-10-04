@@ -79,7 +79,7 @@ impl OrganizationPointer for OrganizationContext {
 }
 
 /// Data denoting a specific GitHub repository.
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RepoContext {
     /// Owner - an organization's or user's name.
     pub owner: String,
@@ -121,6 +121,7 @@ impl RepoContext {
 }
 
 /// Description of the runners deployment for a specific GitHub repository.
+#[allow(clippy::large_enum_variant)] // We don't mind.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum RunnerRepr {

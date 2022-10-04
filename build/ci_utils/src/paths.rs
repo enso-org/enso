@@ -57,6 +57,12 @@ impl ParameterRegex {
     }
 }
 
+impl Default for ParameterRegex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Shape {
     File,
@@ -84,8 +90,8 @@ pub fn get<'a>(
     ))
 }
 
-pub fn get_string<'a>(
-    mapping: &'a serde_yaml::Mapping,
+pub fn get_string(
+    mapping: &serde_yaml::Mapping,
     key: &(impl serde_yaml::mapping::Index + Display + ?Sized),
 ) -> Result<String> {
     get(mapping, key)?
@@ -97,6 +103,7 @@ pub fn get_string<'a>(
         ))
         .map(ToString::to_string)
 }
+
 #[derive(Debug)]
 pub struct Generator<'a> {
     all_nodes: &'a [&'a Node],
@@ -110,7 +117,7 @@ impl<'a> Generator<'a> {
 
     pub fn resolve(&self, r#type: &str) -> Result<&Node> {
         self.all_nodes
-            .into_iter()
+            .iter()
             .find(|node| node.matches_ref(r#type))
             .copied()
             .context(format!("Could not find node for type reference: {}", r#type))
@@ -146,7 +153,7 @@ impl<'a> Generator<'a> {
         let ty_name = if let Some(r#type) = last_node.r#type.as_ref() {
             normalize_type_name(r#type)
         } else {
-            struct_ident(full_path.into_iter().cloned())
+            struct_ident(full_path.iter().cloned())
         };
         let path_component = last_node.path_formatter();
 
@@ -158,7 +165,7 @@ impl<'a> Generator<'a> {
         let parameter_vars = last_node.all_parameters_vars();
         let own_parameter_vars = last_node.own_parameter_vars();
         let parent_parameter_vars: BTreeSet<_> =
-            full_path.into_iter().flat_map(|n| n.own_parameter_vars()).collect();
+            full_path.iter().flat_map(|n| n.own_parameter_vars()).collect();
 
 
         let child_parameter_vars: BTreeSet<_> = last_node
@@ -168,18 +175,18 @@ impl<'a> Generator<'a> {
             .map(to_ident)
             .collect();
         let all_parameters = {
-            let mut v = parent_parameter_vars.clone();
+            let mut v = parent_parameter_vars;
             v.extend(child_parameter_vars.clone());
             v
         };
 
-        let mut foo = vec![];
+        let mut segment_names = vec![];
         for i in 0..full_path.len() {
             let nodes = &full_path[0..=i];
             let node = full_path[i];
-            let ty_name = struct_ident(nodes.into_iter().cloned());
+            let ty_name = struct_ident(nodes.iter().cloned());
             let vars = node.own_parameter_vars();
-            foo.push(quote! {
+            segment_names.push(quote! {
                 #ty_name::segment_name(#(#vars),*)
             });
         }
@@ -231,7 +238,7 @@ impl<'a> Generator<'a> {
 
            impl #ty_name {
                pub fn new(#(#all_parameters: impl AsRef<std::path::Path>, )*) -> Self {
-                    let path = std::path::PathBuf::from_iter([#(#foo,)*]);
+                    let path = std::path::PathBuf::from_iter([#(#segment_names,)*]);
                     Self::new_root(path, #(#child_parameter_vars,)*)
                }
 
@@ -355,11 +362,7 @@ impl Node {
     }
 
     pub fn children_parameters(&self) -> BTreeSet<Ident> {
-        self.children()
-            .into_iter()
-            .flat_map(|child| child.parameters.iter())
-            .map(to_ident)
-            .collect()
+        self.children().iter().flat_map(|child| child.parameters.iter()).map(to_ident).collect()
     }
 
     pub fn children(&self) -> &[Node] {
@@ -376,7 +379,7 @@ impl Node {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = &Self> {
         let me = once(self);
         let children = self.children().iter().flat_map(|child| child.iter());
         // Must be boxed because it would leak a recursive lambda type otherwise.
@@ -411,7 +414,7 @@ impl Node {
         if let Some(r#type) = &self.r#type {
             normalize_type_name(r#type)
         } else {
-            struct_ident(init.into_iter().cloned().chain(once(self)))
+            struct_ident(init.iter().cloned().chain(once(self)))
         }
     }
 

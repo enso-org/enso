@@ -21,7 +21,7 @@ pub fn store_static_text(text: impl AsRef<str>) -> &'static str {
     lazy_static! {
         pub static ref STRING_STORAGE: Mutex<HashSet<&'static str>> = default();
     }
-    *STRING_STORAGE.lock().unwrap().get_or_insert_with(text.as_ref(), |text| Box::leak(text.into()))
+    STRING_STORAGE.lock().unwrap().get_or_insert_with(text.as_ref(), |text| Box::leak(text.into()))
 }
 
 const REFRESHES_PER_SECOND: u32 = 100;
@@ -102,7 +102,11 @@ pub fn spawn(name: impl AsRef<str>, f: impl Future<Output = Result> + Send + 'st
 
 pub async fn complete_tasks() -> Result {
     debug!("Waiting for remaining tasks to complete.");
-    while let tasks = std::mem::replace(&mut GLOBAL.lock().unwrap().ongoing_tasks, default()) && !tasks.is_empty() {
+    loop {
+        let tasks = std::mem::replace(&mut GLOBAL.lock().unwrap().ongoing_tasks, default());
+        if tasks.is_empty() {
+            break;
+        }
         info!("Found {} tasks to wait upon.", tasks.len());
         try_join_all(tasks, AsyncPolicy::FutureParallelism).await?;
     }

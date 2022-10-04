@@ -9,7 +9,7 @@ use crate::programs::Cargo;
 /// What kind of Cargo build profile should be used.
 ///
 /// Typically affects optimization, debug symbol generation and so.
-#[derive(Clone, Copy, Debug, PartialEq, Display, strum::AsRefStr)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Display, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Profile {
     Dev,
@@ -46,7 +46,7 @@ impl AsRef<OsStr> for Target {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, strum::AsRefStr)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum TestFlags {
     Chrome,
@@ -110,7 +110,7 @@ pub async fn install_if_missing() -> Result {
     //
     // Note that this will install the tool to the default system-wide location, not temp.
     if WasmPack.lookup().is_err() {
-        Cargo.cmd()?.args(["install", "wasm-pack"]).current_dir(&temp.path()).run_ok().await?;
+        Cargo.cmd()?.args(["install", "wasm-pack"]).current_dir(temp.path()).run_ok().await?;
         // TODO
         //  this kind of function likely could use some generalization, that should also cover how
         //  PATH updates are handled

@@ -115,7 +115,7 @@ pub trait RepoPointer: Display {
             .await
             .context(format!("Failed to list artifacts of run {run_id} in {self}."))?
             .value
-            .context(format!("Failed to find any artifacts."))?;
+            .context("Failed to find any artifacts.")?;
 
         artifacts
             .into_iter()
@@ -223,7 +223,7 @@ pub fn find_asset_by_text<'a>(release: &'a Release, text: &str) -> anyhow::Resul
     release
         .assets
         .iter()
-        .filter(|asset| asset.name.contains(&text))
+        .filter(|asset| asset.name.contains(text))
         .max_by_key(|asset| asset.size)
         .ok_or_else(|| {
             anyhow!("Cannot find release asset by string {} in the release {}.", text, release.url)
