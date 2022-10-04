@@ -44,7 +44,7 @@ public class TypePatternBenchmarks {
       "\n" +
       "avg arr =\n" +
       "    sum acc i = if i == arr.length then acc else\n" +
-      "        sum (acc + arr.at i) i+1\n" +
+      "        @Tail_Call sum (acc + arr.at i) i+1\n" +
       "    (sum 0 0) / arr.length\n" +
       "\n" +
       "avg_pattern self arr pattern =\n" +
