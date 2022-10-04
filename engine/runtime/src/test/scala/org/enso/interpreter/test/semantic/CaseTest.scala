@@ -44,5 +44,21 @@ class CaseTest extends InterpreterTest {
         "Compile error: Cannot match on List.Cons using 1 field (expecting 2)"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
+
+    "result in an error when trying to pattern match on a module in a type position" in {
+      val code =
+        """
+          |import Standard.Base.Data.Vector
+          |
+          |main =
+          |    case [1,2,3] of
+          |        _ : Vector -> 1
+          |        _ -> 2
+          |""".stripMargin
+
+      val msg =
+        "Compile error: Vector is not visible in this scope"
+      the[InterpreterException] thrownBy eval(code) should have message msg
+    }
   }
 }

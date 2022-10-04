@@ -142,5 +142,5 @@ type Time_Zone
     == : Time_Zone -> Boolean
     == self that =
         case that of
-            Time_Zone -> Time_Utils.equals_zone self that
+            _ : Time_Zone -> Time_Utils.equals_zone self that
             _ -> False

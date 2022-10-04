@@ -38,9 +38,9 @@ polyglot java import java.time.ZonedDateTime
 new : (Text | File) -> File
 new path =
   case path of
-    Text -> get_file path
-    File -> path
-    _    -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
+    _ : Text -> get_file path
+    _ : File -> path
+    _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 

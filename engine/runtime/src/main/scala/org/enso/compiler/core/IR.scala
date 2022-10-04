@@ -6028,6 +6028,7 @@ object IR {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
           case _: Pattern.Literal     => true
+          case _: Pattern.Type        => true
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should not be present " +
@@ -6179,6 +6180,109 @@ object IR {
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = literal.showCode(indent)
+    }
+
+    /** A type pattern.
+      *
+      * A type pattern matches on types. Type pattern is composed of two parts:
+      * - a single identifier (e.g. `a` or `_`)
+      * - a (potentially fully qualified) type name
+      * E.g., `a : Foo -> ...` or `_ : Bar -> ...``
+      *
+      * @param name the name of the bound variable, or wildcard
+      * @param tpe the name of the type to match on
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with the node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Type(
+      name: IR.Name,
+      tpe: IR.Name,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name of the bound variable, or wildcard
+        * @param tpe the name of the type to match on
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with the node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        name: IR.Name                        = name,
+        tpe: IR.Name                         = tpe,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Type = {
+        val res = Type(name, tpe, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      /** @inheritdoc */
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): Type =
+        copy(
+          name = name.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          tpe = tpe.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = if (keepIdentifiers) id else randomId
+        )
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Type = {
+        copy(name = name.mapExpressions(fn), tpe = tpe.mapExpressions(fn))
+      }
+
+      /** @inheritdoc */
+      override def toString: String =
+        s"""
+           |IR.Case.Pattern.Type(
+           |name = $name,
+           |tpe = $tpe,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      /** @inheritdoc */
+      override def setLocation(location: Option[IdentifiedLocation]): Type =
+        copy(location = location)
+
+      /** @inheritdoc */
+      override def children: List[IR] = List(name, tpe)
+
+      /** @inheritdoc */
+      override def showCode(indent: Int): String =
+        s"${name.showCode(indent)} : ${tpe.showCode()}"
     }
 
     /** A dummy pattern used for storing documentation comments between branches
@@ -7045,6 +7149,17 @@ object IR {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a method, " +
           s"but methods are not allowed in $context."
+      }
+
+      /** An error coming from an unexpected occurence of a module.
+        *
+        * @param context the description of a context in which the error
+        *                happened.
+        */
+      case class UnexpectedModule(context: String) extends Reason {
+        override def explain(originalName: Name): String =
+          s"The name ${originalName.name} resolved to a module, " +
+          s"but modules are not allowed in $context."
       }
 
       /** An error coming from an unexpected occurence of a type.

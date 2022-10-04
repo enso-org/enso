@@ -114,7 +114,7 @@ type Connection
        - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Database_Table
     query self query alias="" = handle_sql_errors <| case query of
-        Text ->
+        _ : Text ->
             self.query alias=alias <|
                 if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query

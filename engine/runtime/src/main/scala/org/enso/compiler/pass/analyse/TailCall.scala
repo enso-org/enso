@@ -394,6 +394,12 @@ case object TailCall extends IRPass {
       case literal: Pattern.Literal =>
         literal
           .updateMetadata(this -->> TailPosition.NotTail)
+      case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
+        tpePattern
+          .copy(
+            name = analyseName(name, isInTailPosition = false),
+            tpe  = analyseName(tpe, isInTailPosition = false)
+          )
       case err: IR.Error.Pattern =>
         err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>

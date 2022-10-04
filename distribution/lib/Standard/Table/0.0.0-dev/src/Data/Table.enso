@@ -55,7 +55,7 @@ new : Vector (Vector | Column) -> Table
 new columns =
     cols = columns.map c->
         case c of
-            Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
+            _ : Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
             Column.Column_Data java_col -> java_col
     from_columns cols
 
@@ -262,10 +262,10 @@ type Table
              example_at = Examples.inventory_table.at -1
     at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
-        Integer ->
+        _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Column_Data (java_columns.at selector)
-        Text ->
+        _ : Text ->
             case self.java_table.getColumnOrIndexByName selector of
                 Nothing -> Error.throw (No_Such_Column_Error_Data selector)
                 c -> Column.Column_Data c
@@ -514,7 +514,7 @@ type Table
         mapper = col->
             val = col.at 0
             case val of
-                Text -> val
+                _ : Text -> val
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
@@ -724,8 +724,8 @@ type Table
             matching_input = column_types.filter selection->
                 selector = selection.column
                 case selector of
-                    Text -> column.name == selector
-                    Integer -> if selector >= 0 then index == selector else
+                    _ : Text -> column.name == selector
+                    _ : Integer -> if selector >= 0 then index == selector else
                         index == columns.length + selector
             if matching_input.length == 0 then Nothing else
                 if matching_input.length == 1 then matching_input.first.datatype else
@@ -742,11 +742,11 @@ type Table
                 column_types.each selection->
                     selector = selection.column
                     case selector of
-                        Integer ->
+                        _ : Integer ->
                             valid = Table_Helpers.is_index_valid columns.length selector
                             if valid.not then
                                 invalid_indices.append selector
-                        Text ->
+                        _ : Text ->
                             found = columns.exists col-> col.name == selector
                             if found.not then
                                 missing_columns.append selector
@@ -844,7 +844,7 @@ type Table
                  table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
     set self name column = case column of
-        Vector.Vector ->
+        _ : Vector.Vector ->
             self.set name (Column.from_vector name column)
         Column.Column_Data _ ->
             Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
@@ -874,7 +874,7 @@ type Table
              example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text | Column -> Table
     set_index self index = case index of
-        Text -> Table_Data (self.java_table.indexFromColumn index)
+        _ : Text -> Table_Data (self.java_table.indexFromColumn index)
         Column.Column_Data c -> Table_Data (self.java_table.indexFromColumn c)
 
     ## Returns the index of this table, as a column that is indexed by itself.

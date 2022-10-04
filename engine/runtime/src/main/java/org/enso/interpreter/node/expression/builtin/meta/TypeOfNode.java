@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -23,53 +24,81 @@ import org.enso.interpreter.runtime.type.TypesGen;
     description = "Returns the type of a value.")
 public abstract class TypeOfNode extends Node {
 
-  abstract Object execute(@AcceptsError Object value);
+  public abstract Object execute(@AcceptsError Object value);
 
-  static TypeOfNode build() {
+  public static TypeOfNode build() {
     return TypeOfNodeGen.create();
   }
 
   @Specialization
   Object doDouble(double value) {
-    Context ctx = Context.get(this);
-    return ctx.getBuiltins().number().getDecimal();
+    return Context.get(this).getBuiltins().number().getDecimal();
   }
 
   @Specialization
   Object doLong(long value) {
-    Context ctx = Context.get(this);
-    return ctx.getBuiltins().number().getInteger();
+    return Context.get(this).getBuiltins().number().getInteger();
   }
 
   @Specialization
   Object doBigInteger(EnsoBigInteger value) {
-    Context ctx = Context.get(this);
-    return ctx.getBuiltins().number().getInteger();
+    return Context.get(this).getBuiltins().number().getInteger();
+  }
+
+  @Specialization
+  Object doString(String value) {
+    return Context.get(this).getBuiltins().text();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.hasArrayElements(proxy)",
+        "!interop.isString(proxy)", // R string value is an array and a string
+        "!types.hasType(proxy)",
+        "!interop.hasMetaObject(proxy)"
+      })
+  Object doPolyglotArray(
+      PolyglotProxy proxy,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return Context.get(this).getBuiltins().array();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.isString(proxy)",
+        "!types.hasType(proxy)",
+        "!interop.hasMetaObject(proxy)"
+      })
+  Object doPolyglotString(
+      PolyglotProxy proxy,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return Context.get(this).getBuiltins().text();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Context ctx = Context.get(this);
-    return ctx.getBuiltins().dateTime();
+    return Context.get(this).getBuiltins().dateTime();
   }
 
   @Specialization(
       guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return ctx.getBuiltins().timeZone();
+    return Context.get(this).getBuiltins().timeZone();
   }
 
   @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
   Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return ctx.getBuiltins().date();
+    return Context.get(this).getBuiltins().date();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return ctx.getBuiltins().timeOfDay();
+    return Context.get(this).getBuiltins().timeOfDay();
   }
 
   @Specialization(

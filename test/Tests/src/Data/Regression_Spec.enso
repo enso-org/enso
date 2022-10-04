@@ -11,7 +11,7 @@ spec =
     vector_compare values expected =
         values.zip expected v->e->
             case v of
-                Decimal -> v.should_equal e epsilon=double_error
+                _ : Decimal -> v.should_equal e epsilon=double_error
                 _ -> v.should_equal e
 
     Test.group "Regression" <|

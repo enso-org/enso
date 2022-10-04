@@ -1367,7 +1367,7 @@ get_item_string column ix =
        task is implemented:
        https://www.pivotaltracker.com/story/show/181499256
     case item of
-        Text -> item
+        _ : Text -> item
         _ -> item.to_text
 
 ## PRIVATE
