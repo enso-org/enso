@@ -165,19 +165,17 @@ class MethodsTest extends InterpreterTest {
       eval(code).toString shouldEqual "(Mk_Foo 123)"
     }
 
-    "not be callable on types when non-static" in {
+    "be callable on types when non-static, with additional arg" in {
       val code =
         """
           |type Foo
           |    Mk_Foo a
           |
-          |    inc self = Mk_Foo self.a
+          |    inc self = Foo.Mk_Foo self.a+1
           |
-          |main = Foo.inc
+          |main = Foo.inc (Foo.Mk_Foo 12)
           |""".stripMargin
-      the[InterpreterException] thrownBy eval(
-        code
-      ) should have message "Method `inc` of Foo could not be found."
+      eval(code).toString.shouldEqual("(Mk_Foo 13)")
     }
 
     "not be callable on instances when static" in {

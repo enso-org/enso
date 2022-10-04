@@ -80,7 +80,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
-import scala.collection.mutable
+//import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
 
@@ -1407,7 +1407,7 @@ class IrToTruffle(
         Array[ArgumentDefinition],
         ArrayBuffer[RuntimeExpression]
       ) = {
-        val seenArgNames   = mutable.Set[String]()
+//        val seenArgNames   = mutable.Set[String]()
         val argDefinitions = new Array[ArgumentDefinition](arguments.size)
         val argExpressions = new ArrayBuffer[RuntimeExpression]
         // Note [Rewriting Arguments]
@@ -1430,13 +1430,13 @@ class IrToTruffle(
 
             argExpressions.append(assignArg)
 
-            val argName = arg.getName
+//            val argName = arg.getName
 
-            if (seenArgNames contains argName) {
-              throw new IllegalStateException(
-                s"A duplicate argument name, $argName, was found during codegen."
-              )
-            } else seenArgNames.add(argName)
+//            if (seenArgNames contains argName) {
+//              throw new IllegalStateException(
+//                s"A duplicate argument name, $argName, was found during codegen."
+//              )
+//            } else seenArgNames.add(argName)
             slot
         }
         (argSlots, argDefinitions, argExpressions)
