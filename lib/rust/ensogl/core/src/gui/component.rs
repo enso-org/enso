@@ -56,9 +56,9 @@ impl<S: Shape> ShapeView<S> {
 
     fn init_on_scene_layer_changed(&self) {
         let weak_model = Rc::downgrade(&self.model);
-        self.display_object().set_on_scene_layer_changed(move |scene, old_layers, new_layers| {
+        self.display_object().set_on_scene_layer_changed(move |scene, old_layer, new_layer| {
             if let Some(model) = weak_model.upgrade() {
-                model.on_scene_layers_changed(scene, old_layers, new_layers)
+                model.on_scene_layer_changed(scene, old_layer, new_layer)
             }
         });
     }
@@ -103,28 +103,28 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 // S : DynamicShapeInternals
 impl<S: Shape> ShapeViewModel<S> {
     #[profile(Debug)]
-    fn on_scene_layers_changed(
+    fn on_scene_layer_changed(
         &self,
         scene: &Scene,
-        old_layers: &[WeakLayer],
-        new_layers: &[WeakLayer],
+        old_layer: Option<&WeakLayer>,
+        new_layer: Option<&WeakLayer>,
     ) {
-        self.drop_from_all_scene_layers(old_layers);
-        for weak_layer in new_layers {
-            if let Some(layer) = weak_layer.upgrade() {
+        if let Some(old_layer) = old_layer {
+            self.remove_from_scene_layer(old_layer);
+        }
+        if let Some(new_layer) = new_layer {
+            if let Some(layer) = new_layer.upgrade() {
                 self.add_to_scene_layer(scene, &layer)
             }
         }
     }
 
-    fn drop_from_all_scene_layers(&self, old_layers: &[WeakLayer]) {
-        for layer in old_layers {
-            if let Some(layer) = layer.upgrade() {
-                let (instance_count, shape_system_id, _) =
-                    layer.shape_system_registry.drop_instance::<S>();
-                if instance_count == 0 {
-                    layer.remove_shape_system(shape_system_id);
-                }
+    fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
+        if let Some(layer) = old_layer.upgrade() {
+            let (instance_count, shape_system_id, _) =
+                layer.shape_system_registry.drop_instance::<S>();
+            if instance_count == 0 {
+                layer.remove_shape_system(shape_system_id);
             }
         }
         self.shape.drop_all_instances();

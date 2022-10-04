@@ -790,7 +790,7 @@ impl SceneData {
             })
         }));
 
-        layers.main.add_exclusive(&display_object);
+        layers.main.add(&display_object);
         frp::extend! { network
             eval_ frp.shape (dirty.shape.set());
         }
@@ -971,7 +971,7 @@ impl SceneData {
         screen_pos: Vector2,
     ) -> Vector2 {
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
-        let layer = object.display_layers().first().and_then(|t| t.upgrade());
+        let layer = object.display_layer().and_then(|t| t.upgrade());
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();

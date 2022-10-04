@@ -683,7 +683,7 @@ impl Text {
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.layer.set(layer.clone_ref());
         self.data.add_symbols_to_scene_layer();
-        layer.add_exclusive(self);
+        layer.add(self);
     }
 
     /// Remove this component from view.
@@ -757,7 +757,7 @@ impl TextModel {
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
         // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
         scene.layers.main.remove_symbol(symbol);
-        scene.layers.label.add_exclusive(symbol);
+        scene.layers.label.add(symbol);
 
         let frp = frp.downgrade();
         let data = TextModelData {
@@ -1899,7 +1899,7 @@ impl TextModel {
     fn add_symbols_to_scene_layer(&self) {
         let layer = &self.layer.get();
         for symbol in self.symbols() {
-            layer.add_exclusive(&symbol);
+            layer.add(&symbol);
         }
     }
 

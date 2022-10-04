@@ -209,8 +209,8 @@ impl CursorModel {
         display_object.add_child(&port_selection);
         let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
-        tgt_layer.add_exclusive(&view);
-        port_selection_layer.add_exclusive(&port_selection);
+        tgt_layer.add(&view);
+        port_selection_layer.add(&port_selection);
 
         Self { logger, scene, display_object, view, port_selection, style }
     }
