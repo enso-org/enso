@@ -76,7 +76,7 @@ async fn main() -> Result {
     let entry_points: Vec<_> = rs_files.into_iter().try_filter(|p| contains_entry_point(p))?;
     info!("{} of them are entry points.", entry_points.len());
 
-    let cargo_tomls: BTreeSet<_> = entry_points.into_iter().try_map(|p| parent_cargo_toml(p))?;
+    let cargo_tomls: BTreeSet<_> = entry_points.into_iter().try_map(parent_cargo_toml)?;
     info!("They belong to {} crates.", cargo_tomls.len());
 
     for cargo_toml in &cargo_tomls {

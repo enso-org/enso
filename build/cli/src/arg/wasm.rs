@@ -11,7 +11,7 @@ use clap::ArgEnum;
 use clap::Args;
 use clap::Subcommand;
 use enso_build::project::wasm::Wasm;
-use std::lazy::SyncOnceCell;
+use std::sync::OnceLock;
 
 pub use enso_build::project::wasm::Profile;
 
@@ -21,7 +21,7 @@ impl IsWatchableSource for Wasm {
     type WatchInput = WatchInput;
 }
 
-static DEFAULT_WASM_SIZE_LIMIT: SyncOnceCell<String> = SyncOnceCell::new();
+static DEFAULT_WASM_SIZE_LIMIT: OnceLock<String> = OnceLock::new();
 
 pub fn initialize_default_wasm_size_limit(limit: byte_unit::Byte) -> Result {
     DEFAULT_WASM_SIZE_LIMIT
@@ -30,7 +30,7 @@ pub fn initialize_default_wasm_size_limit(limit: byte_unit::Byte) -> Result {
 }
 
 // Follows hierarchy defined in  lib/rust/profiler/src/lib.rs
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProfilingLevel {
     Objective,
     Task,
@@ -49,7 +49,7 @@ impl From<ProfilingLevel> for enso_build::project::wasm::ProfilingLevel {
     }
 }
 
-#[derive(Args, Clone, Debug, PartialEq)]
+#[derive(Args, Clone, Debug, PartialEq, Eq)]
 pub struct BuildInput {
     /// Which crate should be treated as a WASM entry point. Relative path from source root.
     #[clap(default_value = enso_build::project::wasm::DEFAULT_TARGET_CRATE, long, enso_env())]
@@ -82,7 +82,7 @@ pub struct BuildInput {
     pub wasm_size_limit: Option<byte_unit::Byte>,
 }
 
-#[derive(Args, Clone, Debug, PartialEq)]
+#[derive(Args, Clone, Debug, PartialEq, Eq)]
 pub struct WatchInput {
     /// Additional option to be passed to Cargo. Can be used multiple times to pass many arguments.
     #[clap(long, allow_hyphen_values = true, enso_env())]

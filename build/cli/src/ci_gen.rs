@@ -138,7 +138,7 @@ pub fn setup_customized_script_steps(
     command_line: impl AsRef<str>,
     customize: impl FnOnce(Step) -> Step,
 ) -> Vec<Step> {
-    let clean_condition = format!("false"); // TODO
+    let clean_condition = "false".to_string(); // TODO
     let clean_step = clean_step().with_if(&clean_condition);
 
     let mut steps = setup_script_steps();

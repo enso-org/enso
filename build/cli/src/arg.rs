@@ -97,6 +97,7 @@ macro_rules! source_args_hlp {
     };
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
     /// Build/Test the Rust part of the GUI.
@@ -214,7 +215,7 @@ pub struct Source<Target: IsTargetSource> {
 }
 
 /// Discriminator denoting how some target artifact should be obtained.
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq)]
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourceKind {
     /// Target will be built from the target repository's sources.
     Build,

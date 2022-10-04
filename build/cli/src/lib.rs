@@ -1,4 +1,3 @@
-#![feature(explicit_generic_args_with_impl_trait)]
 #![feature(option_result_contains)]
 #![feature(once_cell)]
 #![feature(default_free_fn)]
@@ -161,7 +160,7 @@ impl Processor {
             arg::SourceKind::Build =>
                 T::resolve(self, source.build_args).map_ok(Source::BuildLocally).boxed(),
             arg::SourceKind::Local =>
-                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path.clone()))),
+                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
             arg::SourceKind::CiRun => {
                 let run_id = source.run_id.context(format!(
                     "Missing run ID, please provide {} argument.",
@@ -178,7 +177,7 @@ impl Processor {
             }
             arg::SourceKind::CurrentCiRun =>
                 ok_ready_boxed(Source::External(ExternalSource::OngoingCiRun(OngoingCiRunSource {
-                    artifact_name: resolve_artifact_name(source.artifact_name.clone(), &target),
+                    artifact_name: resolve_artifact_name(source.artifact_name, &target),
                 }))),
             arg::SourceKind::Release => {
                 let designator = source
@@ -629,7 +628,7 @@ impl Resolvable for Wasm {
             wasm_opt_options,
             skip_wasm_opt,
             extra_cargo_options: cargo_options,
-            profile: wasm_profile.into(),
+            profile: wasm_profile,
             profiling_level: profiling_level.map(into),
             wasm_size_limit: wasm_size_limit.filter(|size_limit| size_limit.get_bytes() > 0),
         })
@@ -833,13 +832,13 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
-                enso_build::release::create_release(&*ctx).await?;
+                enso_build::release::create_release(&ctx).await?;
             }
             Action::DeployToEcr(args) => {
-                enso_build::release::deploy_to_ecr(&*ctx, args.ecr_repository).await?;
+                enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::Publish => {
-                enso_build::release::publish_release(&*ctx).await?;
+                enso_build::release::publish_release(&ctx).await?;
             }
         },
         Target::CiGen => ci_gen::generate(

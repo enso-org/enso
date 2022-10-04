@@ -228,7 +228,7 @@ impl<'a> Generator<'a> {
         };
 
         let ret = quote! {
-            #[derive(Clone, Debug, Hash, PartialEq)]
+            #[derive(Clone, Debug, Hash, PartialEq, Eq)]
             pub struct #ty_name {
                 pub path: std::path::PathBuf,
                 #(pub #children_var: #children_struct),*
