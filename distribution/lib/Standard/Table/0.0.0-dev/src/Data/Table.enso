@@ -323,7 +323,7 @@ type Table
              table.select_columns (By_Column [column1, column2])
 
        Icon: select_column
-    select_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
         new new_columns
@@ -373,7 +373,7 @@ type Table
          Remove columns with the same names as the ones provided.
 
              table.remove_columns (By_Column [column1, column2])
-    remove_columns : Vector | Column_Selector -> Problem_Behavior -> Table
+    remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
         new new_columns
@@ -428,7 +428,7 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (By_Column [column1, column2])
-    reorder_columns : Vector | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
         new new_columns
@@ -465,7 +465,8 @@ type Table
        from the old name to the new or a positional list of new names.
 
        Arguments:
-       - column_map: Mapping from old column names to new.
+       - column_map: Mapping from old column names to new or a vector of new
+         column names to apply by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -488,7 +489,12 @@ type Table
          Rename the first column to "FirstColumn"
 
               table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
-    rename_columns : Vector | Column_Name_Mapping -> Problem_Behavior -> Table
+
+       > Example
+         Rename the first column to "FirstColumn" passed as a Vector
+
+              table.rename_columns ["FirstColumn"]
+    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         Vector.Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
@@ -602,7 +608,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
+             table.order_by ['Quantity', 'Rating']
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -656,7 +662,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Vector | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -695,7 +701,7 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
-    distinct : Vector | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
