@@ -345,6 +345,19 @@ impl display::Object for Model {
     }
 }
 
+/// The action after selecting the entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Action {
+    EnterModule(ElementId),
+    Accept(GroupEntryId),
+}
+
+impl Default for Action {
+    fn default() -> Self {
+        Self::EnterModule(default())
+    }
+}
+
 impl component::Frp<Model> for Frp {
     fn init(
         frp_api: &<Self as API>::Private,
@@ -362,16 +375,6 @@ impl component::Frp<Model> for Frp {
         let grid_header_frp = grid.header_frp();
         let corners_radius = style.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style);
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        enum Action {
-            EnterModule(ElementId),
-            Accept(GroupEntryId),
-        }
-        impl Default for Action {
-            fn default() -> Self {
-                Self::EnterModule(default())
-            }
-        }
         frp::extend! { network
             // === Active Entry ===
 
