@@ -99,7 +99,7 @@ impl Navigator {
         bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
-        top_buttons.disable_selecting_entries_with_mouse();
+        // top_buttons.disable_selecting_entries_with_mouse();
         bottom_buttons.disable_selecting_entries_with_mouse();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
@@ -114,6 +114,10 @@ impl Navigator {
             chosen_section <- source();
             eval bottom_buttons.chosen_entry([chosen_section](id) match id {
                 Some(id) => chosen_section.emit(Section::try_from(*id).ok()),
+                None => {},
+            });
+            eval top_buttons.selected_entry([](id) match id {
+                Some(id) => tracing::warn!("MCDBG btn id {id}"),
                 None => {},
             });
         }
