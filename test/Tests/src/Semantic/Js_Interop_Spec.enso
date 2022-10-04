@@ -108,7 +108,8 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "should make JS strings type pattern-matchable" <|
         str = make_str "x"
         t = case str of
-            Text -> True
+            Text -> False
+            _ : Text -> True
             _ -> False
         t.should_be_true
 
@@ -124,18 +125,19 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         f.should_be_true
         c = case bool of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c.should_be_true
         c_2 = case bool_2 of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c_2.should_be_true
 
     Test.specify "should make JS arrays type pattern-matchable as arrays" <|
         arr = make_array
         r = case arr of
-            Array -> True
+            Array -> False
+            _ : Array -> True
             _ -> False
         r.should_be_true
 
@@ -145,16 +147,20 @@ spec = Test.group "Polyglot JS" <|
 
     Test.specify "should make JS numbers type pattern-matchable" <|
         int_match = case make_int of
-            Integer -> True
+            _ : Integer -> True
+            _ -> False
         int_match.should_be_true
         double_match = case make_double of
-            Decimal -> True
+            _ : Decimal -> True
+            _ -> False
         double_match.should_be_true
         num_int_match = case make_int of
-            Number -> True
+            _ : Number -> True
+            _ -> False
         num_int_match.should_be_true
         num_double_match = case make_double of
-            Number -> True
+            _ : Number -> True
+            _ -> False
         num_double_match.should_be_true
 
     Test.specify "should allow Enso to catch JS exceptions" <|

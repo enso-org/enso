@@ -107,12 +107,11 @@ impl Transaction {
     pub fn fill_content(&self, id: model::module::Id, content: model::module::Content) {
         with(self.frame.borrow_mut(), |mut data| {
             debug!(
-                self.logger,
-                "Filling transaction '{data.name}' with snapshot of module '{id}':\
-            \n{content}"
+                "Filling transaction '{}' with snapshot of module '{id}':\n{content}",
+                data.name
             );
             if data.snapshots.try_insert(id, content).is_err() {
-                debug!(self.logger, "Skipping this snapshot, as module's state was already saved.")
+                debug!("Skipping this snapshot, as module's state was already saved.")
             }
         })
     }
@@ -122,7 +121,7 @@ impl Transaction {
     /// Ignored transaction when dropped is discarded, rather than being put on top of "Redo" stack.
     /// It does not affect the actions belonging to transaction in any way.
     pub fn ignore(&self) {
-        debug!(self.logger, "Marking transaction '{self.frame.borrow().name}' as ignored.");
+        debug!("Marking transaction '{}' as ignored.", self.frame.borrow().name);
         self.ignored.set(true)
     }
 }
@@ -131,14 +130,13 @@ impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
             if !self.ignored.get() {
-                info!(self.logger, "Transaction '{self.name()}' will create a new frame.");
+                info!("Transaction '{}' will create a new frame.", self.name());
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
                 info!(
-                    self.logger,
-                    "Dropping the ignored transaction '{self.name()}' without \
-                pushing a frame to repository."
+                    "Dropping the ignored transaction '{}' without pushing a frame to repository.",
+                    self.name()
                 )
             }
         }
@@ -249,7 +247,7 @@ impl Repository {
             Err(ongoing_transaction)
         } else {
             let name = name.into();
-            debug!(self.logger, "Creating a new transaction `{name}`");
+            debug!("Creating a new transaction `{name}`");
             let new_transaction = Rc::new(Transaction::new(self, name));
             self.data.borrow_mut().current_transaction = Some(Rc::downgrade(&new_transaction));
             Ok(new_transaction)
@@ -300,13 +298,13 @@ impl Repository {
 
     /// Push a new frame to the given stack.
     fn push_to(&self, stack: Stack, frame: Frame) {
-        debug!(self.logger, "Pushing to {stack} stack a new frame: {frame}");
+        debug!("Pushing to {stack} stack a new frame: {frame}");
         self.borrow_mut(stack).push(frame);
     }
 
     /// Clear all frames from the given stack.
     fn clear(&self, stack: Stack) {
-        debug!(self.logger, "Clearing {stack} stack.");
+        debug!("Clearing {stack} stack.");
         self.borrow_mut(stack).clear();
     }
 
@@ -328,9 +326,8 @@ impl Repository {
     fn pop(&self, stack: Stack) -> FallibleResult<Frame> {
         let frame = self.borrow_mut(stack).pop().ok_or(NoFrameToPop(stack))?;
         debug!(
-            self.logger,
-            "Popping a frame from {stack}. Remaining length: {self.len(stack)}. \
-        Frame: {frame}"
+            "Popping a frame from {stack}. Remaining length: {}. Frame: {frame}",
+            self.len(stack)
         );
         Ok(frame)
     }
@@ -388,7 +385,7 @@ impl Manager {
 
     /// Undo last operation.
     pub fn undo(&self) -> FallibleResult {
-        debug!(self.logger, "Undo requested, stack size is {self.repository.len(Stack::Undo)}.");
+        debug!("Undo requested, stack size is {}.", self.repository.len(Stack::Undo));
         let frame = self.repository.last(Stack::Undo)?;
 
         // Before applying undo we create a special transaction. The purpose it two-fold:
@@ -411,7 +408,7 @@ impl Manager {
         // supposed to stay on top, as we maintain an open transaction while undoing.
         if !popped.contains(&frame) {
             // No reason to stop the world but should catch our eye in logs.
-            error!(self.logger, "Undone frame mismatch!");
+            error!("Undone frame mismatch!");
             debug_assert!(false, "Undone frame mismatch!");
         }
 
@@ -433,7 +430,7 @@ impl Manager {
 
     /// Restore all modules affected by the [`Frame`] to their stored state.
     fn reset_to(&self, frame: &Frame) -> FallibleResult {
-        info!(self.logger, "Resetting to initial state on frame {frame}");
+        info!("Resetting to initial state on frame {frame}");
 
         // First we must have all modules resolved. Only then we can start applying changes.
         // Otherwise, if one of the modules could not be retrieved, we'd risk ending up with
@@ -454,7 +451,7 @@ impl Manager {
         })?;
 
         for (module, content) in module_and_content {
-            info!(self.logger, "Undoing on module {module.path()}");
+            info!("Undoing on module {}", module.path());
             // The below should never fail, because it can fail only if serialization to code fails.
             // And it cannot fail, as it already underwent this procedure successfully in the past
             // (we are copying an old state, so it must ba a representable state).
@@ -561,14 +558,13 @@ main =
         use model::module::Position;
 
         let mut fixture = crate::test::mock::Unified::new().fixture();
-        let Fixture { executed_graph, graph, project, logger, .. } = &mut fixture;
-        let logger: &Logger = logger;
+        let Fixture { executed_graph, graph, project, .. } = &mut fixture;
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();
         let node = &nodes[0];
 
-        debug!(logger, "{node.position():?}");
+        debug!("{:?}", node.position());
         let pos1 = Position::new(500.0, 250.0);
         let pos2 = Position::new(300.0, 150.0);
 

@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
@@ -89,14 +90,14 @@ pub fn main() {
     // style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
     style_watch.get("base_color");
 
-    let view1 = shape::View::new(&logger);
+    let view1 = shape::View::new();
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
     let mask_layer = scene::layer::Layer::new(logger.sub("MaskLayer"));
     scene.layers.node_searcher.set_mask(&mask_layer);
 
-    let mask = mask::View::new(&logger);
+    let mask = mask::View::new();
     mask.size.set(Vector2::new(300.0, 300.0));
     mask.mod_position(|t| *t = Vector3::new(-50.0, 0.0, 0.0));
 
@@ -104,7 +105,7 @@ pub fn main() {
         scene::layer::ScissorBox::new_with_position_and_size(default(), Vector2(600, 600));
     scene.layers.main.set_scissor_box(Some(&scissor_box));
 
-    let view2 = shape::View::new(&logger);
+    let view2 = shape::View::new();
     view2.size.set(Vector2::new(300.0, 300.0));
     view2.mod_position(|t| *t = Vector3::new(50.0, 0.0, 0.0));
 

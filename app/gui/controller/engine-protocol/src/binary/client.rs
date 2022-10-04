@@ -113,7 +113,6 @@ impl Client {
     /// Function that does early processing of the peer's message and decides how it shall be
     /// handled. Returns a function so that it may be passed to the `Handler`.
     fn processor(
-        logger: Logger,
     ) -> impl FnMut(TransportEvent) -> Disposition<Uuid, FromServerPayloadOwned, Notification> + 'static
     {
         move |event: TransportEvent| {
@@ -125,7 +124,7 @@ impl Client {
                 Ok(message) => message,
                 Err(e) => return Disposition::error(e),
             };
-            debug!(logger, "Deserialized incoming binary message: {message:?}");
+            debug!("Deserialized incoming binary message: {message:?}");
             let correlation_id = message.correlation_id;
             match message.0.payload {
                 FromServerPayloadOwned::VisualizationUpdate { context, data } =>
@@ -149,7 +148,7 @@ impl Client {
     /// * `init` must be called or it needs to be wrapped into `Connection`.
     pub fn new(parent: impl AnyLogger, transport: impl Transport + 'static) -> Client {
         let logger = Logger::new_sub(parent, "binary-protocol-client");
-        let processor = Self::processor(logger.clone_ref());
+        let processor = Self::processor();
         Client { logger: logger.clone_ref(), handler: Handler::new(transport, logger, processor) }
     }
 
@@ -167,10 +166,8 @@ impl Client {
     {
         let message = MessageToServerRef::new(payload);
         let id = message.message_id;
-
-        let logger = self.logger.clone_ref();
         let completer = move |reply| {
-            info!(logger, "Completing request {id} with a reply: {reply:?}");
+            info!("Completing request {id} with a reply: {reply:?}");
             if let FromServerPayloadOwned::Error { code, message, data } = reply {
                 let code = code as i64;
                 let error = json_rpc::messages::Error { code, message, data };
@@ -193,19 +190,19 @@ impl Client {
 
 impl API for Client {
     fn init(&self, client_id: Uuid) -> StaticBoxFuture<FallibleResult> {
-        info!(self.logger, "Initializing binary connection as client with id {client_id}.");
+        info!("Initializing binary connection as client with id {client_id}.");
         let payload = ToServerPayload::InitSession { client_id };
         self.make_request(payload, Self::expect_success)
     }
 
     fn write_file(&self, path: &Path, contents: &[u8]) -> StaticBoxFuture<FallibleResult> {
-        info!(self.logger, "Writing file {path} with {contents.len()} bytes.");
+        info!("Writing file {} with {} bytes.", path, contents.len());
         let payload = ToServerPayload::WriteFile { path, contents };
         self.make_request(payload, Self::expect_success)
     }
 
     fn read_file(&self, path: &Path) -> StaticBoxFuture<FallibleResult<Vec<u8>>> {
-        info!(self.logger, "Reading file {path}.");
+        info!("Reading file {path}.");
         let payload = ToServerPayload::ReadFile { path };
         self.make_request(payload, move |result| {
             if let FromServerPayloadOwned::FileContentsReply { contents } = result {
@@ -223,7 +220,7 @@ impl API for Client {
         overwrite: bool,
         bytes: &[u8],
     ) -> StaticBoxFuture<FallibleResult<Sha3_224>> {
-        info!(self.logger, "Writing {bytes.len()} bytes to {path} at offset {byte_offset}");
+        info!("Writing {} bytes to {path} at offset {byte_offset}", bytes.len());
         let payload = ToServerPayload::WriteBytes { path, byte_offset, overwrite, bytes };
         self.make_request(payload, move |result| {
             if let FromServerPayloadOwned::WriteBytesReply { checksum } = result {

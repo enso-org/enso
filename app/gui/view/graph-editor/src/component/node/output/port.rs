@@ -383,11 +383,11 @@ macro_rules! fn_multi_only {
 
 impl PortShapeView {
     #[profile(Debug)]
-    fn new(number_of_ports: usize, logger: &Logger) -> Self {
+    fn new(number_of_ports: usize) -> Self {
         if number_of_ports <= 1 {
-            Self::Single(SinglePortView::new(&logger))
+            Self::Single(SinglePortView::new())
         } else {
-            Self::Multi(MultiPortView::new(&logger))
+            Self::Multi(MultiPortView::new())
         }
     }
 
@@ -452,10 +452,10 @@ ensogl::define_endpoints! {
 pub struct Model {
     pub frp:            Option<Frp>,
     pub shape:          Option<PortShapeView>,
-    pub type_label:     Option<text::Area>,
+    pub type_label:     Option<text::Text>,
     pub display_object: Option<display::object::Instance>,
-    pub index:          Bytes,
-    pub length:         Bytes,
+    pub index:          ByteDiff,
+    pub length:         ByteDiff,
     port_count:         usize,
     port_index:         usize,
 }
@@ -464,16 +464,13 @@ impl Model {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn init_shape(
         &mut self,
-        logger: impl AnyLogger,
         app: &Application,
         styles: &StyleWatch,
         styles_frp: &StyleWatchFrp,
         port_index: usize,
         port_count: usize,
     ) -> (display::object::Instance, Frp) {
-        let logger_name = format!("port({},{})", self.index, self.length);
-        let logger = Logger::new_sub(logger, logger_name);
-        let shape = PortShapeView::new(port_count, &logger);
+        let shape = PortShapeView::new(port_count);
 
         let is_first = port_index == 0;
         let is_last = port_index == port_count.saturating_sub(1);
@@ -485,13 +482,13 @@ impl Model {
         shape.set_padding_right(padding_right);
         self.shape = Some(shape.clone());
 
-        let type_label = app.new_view::<text::Area>();
+        let type_label = app.new_view::<text::Text>();
         let offset_y =
             styles.get_number(ensogl_hardcoded_theme::graph_editor::node::type_label::offset_y);
         type_label.set_position_y(offset_y);
         self.type_label = Some(type_label.clone());
 
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         display_object.add_child(&shape);
         display_object.add_child(&type_label);
         self.display_object = Some(display_object.clone());
@@ -506,7 +503,7 @@ impl Model {
     fn init_frp(
         &mut self,
         shape: &PortShapeView,
-        type_label: &text::Area,
+        type_label: &text::Text,
         styles: &StyleWatch,
         styles_frp: &StyleWatchFrp,
     ) {
@@ -577,7 +574,7 @@ impl Model {
             showing_full_type     <- bool(&full_type_timer.on_reset,&full_type_timer.on_end);
             type_description      <- all_with(&frp.tp,&showing_full_type,|tp,&show_full_tp| {
                 tp.map_ref(|tp| {
-                    if show_full_tp { tp.to_string() } else { tp.abbreviate().to_string() }
+                    if show_full_tp { tp.to_im_string() } else { tp.abbreviate().to_im_string() }
                 })
             });
         }
@@ -588,16 +585,16 @@ impl Model {
 
                 // === Type Label ===
 
-                type_label_visibility     <- frp.on_hover.and(&frp.set_type_label_visibility);
-                on_type_label_visible     <- type_label_visibility.on_true();
+                type_label_visibility <- frp.on_hover.and(&frp.set_type_label_visibility);
+                on_type_label_visible <- type_label_visibility.on_true();
                 type_label_opacity.target <+ on_type_label_visible.constant(PORT_OPACITY_HOVERED);
                 type_label_opacity.target <+ type_label_visibility.on_false().constant(0.0);
 
-                type_label_color             <- all_with(&color.value,&type_label_opacity.value,
-                    |color,&opacity| color.opaque.with_alpha(opacity).into());
-                type_label.set_color_all     <+ type_label_color;
-                type_label.set_default_color <+ type_label_color;
-                type_label.set_content       <+ type_description.map(|s| s.clone().unwrap_or_default());
+                type_label_color <- all_with(&color.value,&type_label_opacity.value,
+                    |color,&opacity| color.opaque.with_alpha(opacity));
+                type_label.set_property <+ type_label_color.ref_into_some().map(|t| ((..).into(),*t));
+                type_label.set_property_default <+ type_label_color.ref_into_some();
+                type_label.set_content <+ type_description.map(|s| s.clone().unwrap_or_default());
             }
         }
 
@@ -609,7 +606,7 @@ impl Model {
                 frp.source.tooltip <+ all_with(&type_description,&frp.on_hover,|text,&hovering| {
                     if hovering {
                         if let Some(text) = text.clone() {
-                            tooltip::Style::set_label(text).with_placement(TOOLTIP_LOCATION)
+                            tooltip::Style::set_label(text.into()).with_placement(TOOLTIP_LOCATION)
                         } else {
                             tooltip::Style::unset_label()
                         }

@@ -22,6 +22,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -128,7 +129,7 @@ impl EntryModelProvider {
                 }
             };
             let highlighted = if row == 4 {
-                vec![text::Range::new(text::Bytes(2), text::Bytes(4))]
+                vec![text::Range::new(text::Byte(2), text::Byte(4))]
             } else {
                 vec![]
             };

@@ -102,7 +102,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
     row_limit = case format.row_limit of
         Nothing -> -1
-        Integer -> format.row_limit
+        _ : Integer -> format.row_limit
         _ ->
             Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
     warnings_as_errors = on_problems == Report_Error

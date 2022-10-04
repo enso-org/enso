@@ -1,7 +1,7 @@
 //! Implementation of a cursor allowing word-based traversal.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use enso_text::rope;
 
@@ -18,13 +18,13 @@ pub struct WordCursor<'a> {
 
 impl<'a> WordCursor<'a> {
     /// Constructor.
-    pub fn new(text: &'a rope::Rope, pos: Bytes) -> WordCursor<'a> {
-        let cursor = rope::Cursor::new(text, pos.value as usize);
+    pub fn new(text: &'a rope::XiRope, pos: Byte) -> WordCursor<'a> {
+        let cursor = rope::Cursor::new(text, pos.value);
         WordCursor { cursor }
     }
 
     /// Get previous boundary, and set the cursor at the boundary found.
-    pub fn prev_boundary(&mut self) -> Option<Bytes> {
+    pub fn prev_boundary(&mut self) -> Option<Byte> {
         self.prev_codepoint_class().map(|mut cls| {
             let mut candidate = self.cursor.pos();
             while let Some(prev_cls) = self.prev_codepoint_class() {
@@ -40,7 +40,7 @@ impl<'a> WordCursor<'a> {
     }
 
     /// Get next boundary, and set the cursor at the boundary found.
-    pub fn next_boundary(&mut self) -> Option<Bytes> {
+    pub fn next_boundary(&mut self) -> Option<Byte> {
         self.next_codepoint_class().map(|mut cls| {
             let mut candidate = self.cursor.pos();
             while let Some(next_cls) = self.next_codepoint_class() {
@@ -57,10 +57,10 @@ impl<'a> WordCursor<'a> {
 
     /// Return the selection for the word containing the current cursor. The cursor is moved to the
     /// end of that selection.
-    pub fn select_word(&mut self) -> (Bytes, Bytes) {
+    pub fn select_word(&mut self) -> (Byte, Byte) {
         let initial = self.cursor.pos();
         let init_cls_after = self.next_codepoint_class();
-        self.cursor.set(initial); // FIXME ???
+        self.cursor.set(initial);
         let init_cls_before = self.prev_codepoint_class();
         let mut start = initial;
         let init_boundary_opt = init_cls_before.zip_with(init_cls_after, Boundary::new_initial);
@@ -210,8 +210,7 @@ enum CharClass {
 
 fn char_class(codepoint: char) -> CharClass {
     if codepoint <= ' ' {
-        // TODO:deal with \r
-        if codepoint == '\n' {
+        if codepoint == '\n' || codepoint == '\r' {
             return CharClass::Lf;
         }
         return CharClass::Space;

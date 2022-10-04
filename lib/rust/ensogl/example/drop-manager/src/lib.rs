@@ -12,6 +12,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -76,6 +77,8 @@ pub fn main() {
             }
         })
         .forget();
+
+    INFO!("Drag and drop file to the scene to test the drop manager functionality.");
 
     std::mem::forget(world);
     std::mem::forget(network);

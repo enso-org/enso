@@ -84,7 +84,7 @@ impl<E, P: Default> ListData<E, P> {
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
         let entry_params = default();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let provider = default();
         let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
         Self {
@@ -169,7 +169,7 @@ impl<E: Entry> ListData<E, E::Params> {
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
-            debug!(self.logger, "Update entries for {range:?}");
+            debug!("Update entries for {range:?}");
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
@@ -185,7 +185,7 @@ impl<E: Entry> ListData<E, E::Params> {
                     |e: &DisplayedEntry<E>| e.id.get().map_or(true, |i| !range.contains(&i));
                 let outdated = entries.iter().filter(|e| is_outdated(e));
                 for (entry, (id, model)) in outdated.zip(models) {
-                    Self::update_entry(&self.logger, entry, id, &model);
+                    Self::update_entry(entry, id, &model);
                 }
             });
             self.entries_range.set(range);
@@ -205,7 +205,7 @@ impl<E: Entry> ListData<E, E::Params> {
             let new_entry = self.create_new_entry(&style_prefix);
             if let Some(id) = entry.id.get() {
                 let model = provider.get(id);
-                Self::update_entry(&self.logger, &new_entry, id, &model);
+                Self::update_entry(&new_entry, id, &model);
             }
             *entry = new_entry;
         }
@@ -241,7 +241,6 @@ impl<E: Entry> ListData<E, E::Params> {
         let provider = provider.into();
         if provider.entry_count() > MAX_SAFE_ENTRIES_COUNT {
             error!(
-                self.logger,
                 "ListView entry count exceed {MAX_SAFE_ENTRIES_COUNT} - so big \
             number of entries can cause visual glitches, e.g. https://github.com/enso-org/ide/\
             issues/757 or https://github.com/enso-org/ide/issues/758"
@@ -257,7 +256,7 @@ impl<E: Entry> ListData<E, E::Params> {
         };
         entries.resize_with(range.len(), create_new_entry_with_max_width);
         for (entry, (id, model)) in entries.iter().zip(models) {
-            Self::update_entry(&self.logger, entry, id, &model);
+            Self::update_entry(entry, id, &model);
         }
         self.entries_range.set(range);
         self.provider.set(provider);
@@ -267,9 +266,8 @@ impl<E: Entry> ListData<E, E::Params> {
         let layers = &self.app.display.default_scene.layers;
         let layer = self.label_layer.borrow().upgrade().unwrap_or_else(|| {
             error!(
-                self.logger,
-                "Cannot set layer {self.label_layer:?} for labels: the layer does \
-                not exist in the scene"
+                "Cannot set layer {:?} for labels: the layer does not exist in the scene",
+                self.label_layer
             );
             layers.main.clone_ref()
         });
@@ -280,22 +278,13 @@ impl<E: Entry> ListData<E, E::Params> {
         entry
     }
 
-    fn update_entry(
-        logger: &Logger,
-        entry: &DisplayedEntry<E>,
-        id: entry::Id,
-        model: &Option<E::Model>,
-    ) {
-        debug!(
-            logger,
-            "Setting new model {model:?} for entry {id}; \
-            old entry: {entry.id.get():?}."
-        );
+    fn update_entry(entry: &DisplayedEntry<E>, id: entry::Id, model: &Option<E::Model>) {
+        debug!("Setting new model {:?} for entry {}; old entry: {:?}.", model, id, entry.id.get());
         entry.id.set(Some(id));
         match model {
             Some(model) => entry.entry.update(model),
             None => {
-                error!(logger, "Model provider didn't return model for id {id}.");
+                error!("Model provider didn't return model for id {id}.");
                 entry.entry.update(&default());
             }
         };

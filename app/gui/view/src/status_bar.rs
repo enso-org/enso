@@ -151,7 +151,7 @@ struct Model {
     display_object:  display::object::Instance,
     root:            display::object::Instance,
     background:      background::View,
-    label:           text::Area,
+    label:           text::Text,
     events:          Rc<RefCell<Vec<event::Label>>>,
     processes:       Rc<RefCell<HashMap<process::Id, process::Label>>>,
     next_process_id: Rc<RefCell<process::Id>>,
@@ -162,10 +162,10 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new("StatusBar");
-        let display_object = display::object::Instance::new(&logger);
-        let root = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let label = text::Area::new(app);
+        let display_object = display::object::Instance::new();
+        let root = display::object::Instance::new();
+        let background = background::View::new();
+        let label = text::Text::new(app);
         let events = default();
         let processes = default();
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
@@ -178,8 +178,8 @@ impl Model {
         let text_color_path = theme::application::status_bar::text;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = style.get_color(text_color_path);
-        label.frp.set_color_all.emit(text_color);
-        label.frp.set_default_color.emit(text_color);
+        label.frp.set_property(.., text_color);
+        label.frp.set_property_default(text_color);
 
         Self {
             logger,

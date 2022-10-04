@@ -174,7 +174,7 @@ impl View {
         let mut icon = icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
-            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
+            let shape = model.icon.create_shape(Vector2(icon::SIZE, icon::SIZE));
             shape.strong_color.set(strong_color.into());
             shape.weak_color.set(weak_color.into());
             shape.set_position_x(icon::SIZE / 2.0);
@@ -197,7 +197,7 @@ impl list_view::Entry for View {
         Params { colors, selection_layer }: &Params,
     ) -> Self {
         let logger = Logger::new("component_group::Entry");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let icon: Rc<RefCell<CurrentIcon>> = default();
         let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
@@ -209,7 +209,7 @@ impl list_view::Entry for View {
                 selected_label.set_label_layer(&layer);
                 display_object.add_child(&selected_label);
             } else {
-                error!(logger, "Selection layer is dropped.");
+                error!("Selection layer is dropped.");
             }
         }
 
@@ -231,8 +231,8 @@ impl list_view::Entry for View {
                 label.set_max_width(*width);
                 selected_label.set_max_width(*width);
             });
-            label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            selected_label.inner.label.set_default_color <+ all(&colors.selected.entry_text,&init)._0();
+            label.inner.label.set_property_default <+ all(&colors.entry_text, &init)._0().ref_into_some();
+            selected_label.inner.label.set_property_default <+ all(&colors.selected.entry_text,&init)._0().ref_into_some();
             eval colors.icon_strong ((&c) icon.borrow().set_strong_color(c));
             eval colors.selected.icon_strong((&c) selected_icon.borrow().set_strong_color(c));
             eval colors.icon_weak ((&c) icon.borrow().set_weak_color(c));
@@ -275,7 +275,7 @@ impl list_view::Entry for View {
                     self.colors.selected.icon_weak.value(),
                 );
             } else {
-                error!(self.logger, "Cannot add icon shape to a dropped scene layer.");
+                error!("Cannot add icon shape to a dropped scene layer.");
             }
         }
     }

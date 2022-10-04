@@ -93,7 +93,7 @@ mod tests {
         let app = Application::new("root");
         let logger = &app.logger;
         let camera = &app.display.default_scene.layers.main.camera();
-        let display_object = Instance::new(&logger);
+        let display_object = Instance::new();
         let layer = layer::Masked::new(logger, camera);
         let display_object = InstanceWithLayer::new(display_object, layer);
         let content_layer = display_object.layer.masked_layer.downgrade();

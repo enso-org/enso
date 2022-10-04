@@ -4,10 +4,12 @@
 //! source file: the parser gives the id of particular span to the AST node representing that span.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use crate::Id;
 
+use enso_text::rope::xi_rope;
+use enso_text::rope::xi_rope::rope::Utf16CodeUnitsMetric;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
@@ -21,20 +23,20 @@ use uuid::Uuid;
 /// A mapping between text position and immutable ID.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct IdMap {
-    pub vec: Vec<(enso_text::Range<Bytes>, Id)>,
+    pub vec: Vec<(enso_text::Range<Byte>, Id)>,
 }
 
 impl IdMap {
     /// Create a new instance.
-    pub fn new(vec: Vec<(enso_text::Range<Bytes>, Id)>) -> IdMap {
+    pub fn new(vec: Vec<(enso_text::Range<Byte>, Id)>) -> IdMap {
         IdMap { vec }
     }
     /// Assigns Span to given ID.
-    pub fn insert(&mut self, span: impl Into<enso_text::Range<Bytes>>, id: Id) {
+    pub fn insert(&mut self, span: impl Into<enso_text::Range<Byte>>, id: Id) {
         self.vec.push((span.into(), id));
     }
     /// Generate random Uuid for span.
-    pub fn generate(&mut self, span: impl Into<enso_text::Range<Bytes>>) {
+    pub fn generate(&mut self, span: impl Into<enso_text::Range<Byte>>) {
         self.vec.push((span.into(), Uuid::new_v4()));
     }
 }
@@ -85,18 +87,17 @@ impl JsonIdMap {
     /// Create from the [`IdMap`] structure.
     ///
     /// The code is needed for transforming byte offsets to codepoint offsets.
-    pub fn from_id_map(id_map: &IdMap, code: &str) -> Self {
-        let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
+    pub fn from_id_map(id_map: &IdMap, code: &enso_text::Rope) -> Self {
+        // let char_offsets = code.char_indices().map(|(idx, _)| idx).collect_vec();
+        let mut cursor = xi_rope::Cursor::new(&code.rope, 0);
+        let char_offsets = iter::once(0).chain(cursor.iter::<Utf16CodeUnitsMetric>()).collect_vec();
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
-            let byte_start = range.start.as_usize();
-            let byte_end = range.end.as_usize();
-            let start: Chars = char_offsets.binary_search(&byte_start).unwrap_both().into();
-            let end: Chars = char_offsets.binary_search(&byte_end).unwrap_both().into();
+            let byte_start = range.start.value as usize;
+            let byte_end = range.end.value as usize;
+            let start = char_offsets.binary_search(&byte_start).unwrap_both();
+            let end = char_offsets.binary_search(&byte_end).unwrap_both();
             let size = end - start;
-            let span = Span {
-                index: Index { value: start.as_usize() },
-                size:  Size { value: size.as_usize() },
-            };
+            let span = Span { index: Index { value: start }, size: Size { value: size } };
             (span, *id)
         });
         Self { vec: mapped_vec.collect() }

@@ -328,11 +328,9 @@ impl Symbol {
         on_mut: OnMut,
     ) -> Self {
         let logger = Logger::new(format!("symbol_{}", id));
-        let init_logger = logger.clone();
-        debug!(init_logger, "Initializing.", || {
+        debug_span!("Initializing.").in_scope(|| {
             let on_mut2 = on_mut.clone();
-            let shader_dirt_logger = Logger::new_sub(&logger, "shader_dirty");
-            let shader_dirty = ShaderDirty::new(shader_dirt_logger, Box::new(on_mut));
+            let shader_dirty = ShaderDirty::new(Box::new(on_mut));
             let shader_logger = Logger::new_sub(&logger, "shader");
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
             let shader = Shader::new(shader_logger, stats, shader_on_mut);
@@ -357,7 +355,7 @@ impl Symbol {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self, global_variables: &UniformScope) {
         if self.context.borrow().is_some() {
-            debug!(self.logger, "Updating.", || {
+            debug_span!("Updating.").in_scope(|| {
                 if self.surface_dirty.check() {
                     self.surface.update();
                     self.surface_dirty.unset();
@@ -378,7 +376,7 @@ impl Symbol {
     /// Render the symbol. You should never need to call this function directly. Use the rendering
     /// pipeline instead.
     pub fn render(&self) {
-        debug!(self.logger, "Rendering.", || {
+        debug_span!("Rendering.").in_scope(|| {
             if self.is_hidden() {
                 return;
             }
@@ -571,15 +569,14 @@ impl SymbolData {
     ) -> Self {
         let global_id_provider = global_id_provider.clone_ref();
         let surface_logger = Logger::new_sub(&logger, "surface");
-        let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
-        let surface_dirty = GeometryDirty::new(geo_dirt_logger, Box::new(on_mut));
+        let surface_dirty = GeometryDirty::new(Box::new(on_mut));
         let surface_on_mut = Box::new(f!(surface_dirty.set()));
         let surface = Mesh::new(surface_logger, stats, surface_on_mut);
         let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
-        let display_object = display::object::Instance::new(logger.clone());
+        let display_object = display::object::Instance::new();
         let is_hidden = Rc::new(Cell::new(false));
 
         let instance_scope = surface.instance_scope();
@@ -653,7 +650,6 @@ impl SymbolData {
             let max_texture_units = max_texture_units.unwrap_or_else(|num| {
                 let min_texture_units = 2;
                 error!(
-                    self.logger,
                     "Cannot retrieve max texture units: {num:?}. \
                     Assuming minimal texture units possible ({min_texture_units})."
                 );
@@ -696,7 +692,7 @@ impl SymbolData {
         let scope = self.surface.scope_by_type(mesh_scope_type);
         let location = context.get_attrib_location(program, &vtx_name);
         if location < 0 {
-            error!(self.logger, "Attribute '{vtx_name}' not found.");
+            error!("Attribute '{vtx_name}' not found.");
         } else {
             let location = location as u32;
             let buffer = &scope.buffer(&binding.name).unwrap();
@@ -746,7 +742,7 @@ impl SymbolData {
                             self.bindings.borrow_mut().textures.push(binding);
                         }
                         None => {
-                            error!(self.logger, "Texture unit limit exceeded.");
+                            error!("Texture unit limit exceeded.");
                         }
                     }
                 }
@@ -764,7 +760,7 @@ impl SymbolData {
     fn with_borrowed_vao_or_warn<T>(&self, f: impl FnOnce(&VertexArrayObject) -> T) -> Option<T> {
         let out = self.bindings.borrow().vao.as_ref().map(f);
         if out.is_none() {
-            error!(self.logger, "Vertex Array Object not found during rendering.");
+            error!("Vertex Array Object not found during rendering.");
         }
         out
     }

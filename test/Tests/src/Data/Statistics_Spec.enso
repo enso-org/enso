@@ -22,7 +22,7 @@ spec =
     vector_compare values expected =
         values.each_with_index i->v->
             case v of
-                Decimal -> v.should_equal (expected.at i) epsilon=double_error
+                _ : Decimal -> v.should_equal (expected.at i) epsilon=double_error
                 _ -> v.should_equal (expected.at i)
 
     Test.group "Statistics" <|

@@ -194,15 +194,15 @@ impl BreadcrumbsModel {
         let scene = &app.display.default_scene;
         let project_name = app.new_view();
         let logger = Logger::new("Breadcrumbs");
-        let display_object = display::object::Instance::new(&logger);
-        let root = display::object::Instance::new(&logger);
-        let breadcrumbs_container = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let root = display::object::Instance::new();
+        let breadcrumbs_container = display::object::Instance::new();
         let scene = scene.clone_ref();
         let breadcrumbs = default();
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         let gap_width = default();
 
         scene.layers.panel.add_exclusive(&background);
@@ -288,7 +288,7 @@ impl BreadcrumbsModel {
     /// where `popped_count` is the number of breadcrumbs in the right side of `index` that needs to
     /// be popped or a list of `LocalCall`s identifying the breadcrumbs we need to push.
     fn select_breadcrumb(&self, index: usize) -> (usize, Vec<Option<LocalCall>>) {
-        debug!(self.logger, "Selecting breadcrumb #{index}.");
+        debug!("Selecting breadcrumb #{index}.");
         let current_index = self.current_index.get();
         match index.cmp(&current_index) {
             Ordering::Less => (current_index - index, default()),
@@ -310,7 +310,7 @@ impl BreadcrumbsModel {
                     if info.is_some() {
                         local_calls.push(info);
                     } else {
-                        error!(self.logger, "LocalCall info is not present.");
+                        error!("LocalCall info is not present.");
                         self.remove_breadcrumbs_history_beginning_from(index);
                         break;
                     }
@@ -336,9 +336,9 @@ impl BreadcrumbsModel {
                 .contains_if(|breadcrumb| breadcrumb.info.expression_id == *expression_id);
 
             if breadcrumb_exists {
-                debug!(self.logger, "Entering an existing {method_pointer.name} breadcrumb.");
+                debug!("Entering an existing {} breadcrumb.", method_pointer.name);
             } else {
-                debug!(self.logger, "Creating a new {method_pointer.name} breadcrumb.");
+                debug!("Creating a new {} breadcrumb.", method_pointer.name);
                 self.remove_breadcrumbs_history_beginning_from(self.current_index.get());
                 let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
                 let network = &breadcrumb.frp.network;
@@ -351,7 +351,7 @@ impl BreadcrumbsModel {
                     );
                 }
 
-                debug!(self.logger, "Pushing {breadcrumb.info.method_pointer.name} breadcrumb.");
+                debug!("Pushing {} breadcrumb.", breadcrumb.info.method_pointer.name);
                 breadcrumb.set_position_x(self.breadcrumbs_container_width().round());
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
@@ -413,9 +413,9 @@ impl BreadcrumbsModel {
     /// Pops a breadcrumb and returns the index of the previously selected breadcrumb, and the
     /// index of the newly selected one in the form of (old,new).
     fn pop_breadcrumb(&self) -> Option<(usize, usize)> {
-        debug!(self.logger, "Popping {self.current_index.get()}");
+        debug!("Popping {}", self.current_index.get());
         (self.current_index.get() > 0).as_option().map(|_| {
-            debug!(self.logger, "Popping breadcrumb view.");
+            debug!("Popping breadcrumb view.");
             let old_index = self.current_index.get();
             let new_index = old_index - 1;
             self.current_index.set(new_index);
@@ -426,7 +426,7 @@ impl BreadcrumbsModel {
 
     fn remove_breadcrumbs_history_beginning_from(&self, index: usize) {
         for breadcrumb in self.breadcrumbs.borrow_mut().split_off(index) {
-            debug!(self.logger, "Removing {breadcrumb.info.method_pointer.name}.");
+            debug!("Removing {}.", breadcrumb.info.method_pointer.name);
             breadcrumb.unset_parent();
         }
         self.update_layout();

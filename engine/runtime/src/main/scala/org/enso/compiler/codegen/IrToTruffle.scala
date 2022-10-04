@@ -968,52 +968,9 @@ class IrToTruffle(
                     ) =>
                   val tpe =
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
-                  val any         = context.getBuiltins.any
-                  val array       = context.getBuiltins.array
-                  val vector      = context.getBuiltins.vector
-                  val date        = context.getBuiltins.date
-                  val dateTime    = context.getBuiltins.dateTime
-                  val timeOfDay   = context.getBuiltins.timeOfDay
-                  val timeZone    = context.getBuiltins.timeZone
-                  val file        = context.getBuiltins.file
-                  val builtinBool = context.getBuiltins.bool.getType
-                  val number      = context.getBuiltins.number
-                  val polyglot    = context.getBuiltins.polyglot
-                  val text        = context.getBuiltins.text
-                  val branch = if (tpe == builtinBool) {
-                    BooleanConstructorBranchNode.build(
-                      builtinBool,
-                      branchCodeNode.getCallTarget
-                    )
-                  } else if (tpe == text) {
-                    TextBranchNode.build(text, branchCodeNode.getCallTarget)
-                  } else if (tpe == number.getInteger) {
-                    IntegerBranchNode.build(
-                      number,
-                      branchCodeNode.getCallTarget
-                    )
-                  } else if (tpe == number.getDecimal) {
-                    DecimalBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == number.getNumber) {
-                    NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-                  } else if (tpe == array) {
-                    ArrayBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == vector) {
-                    VectorBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == date) {
-                    DateBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == dateTime) {
-                    DateTimeBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == timeOfDay) {
-                    TimeOfDayBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == timeZone) {
-                    TimeZoneBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == file) {
-                    FileBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == polyglot) {
+                  val polyglot = context.getBuiltins.polyglot
+                  val branch = if (tpe == polyglot) {
                     PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
-                  } else if (tpe == any) {
-                    CatchAllBranchNode.build(branchCodeNode.getCallTarget)
                   } else {
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
@@ -1023,11 +980,19 @@ class IrToTruffle(
                   Right(branch)
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedPolyglotSymbol(_, _)
+                        BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
                       )
                     ) =>
-                  throw new CompilerError(
-                    "Impossible polyglot symbol here, should be caught by Patterns resolution pass."
+                  val polyglotSymbol = mod
+                    .unsafeAsModule()
+                    .getScope
+                    .getPolyglotSymbols
+                    .get(symbol.name)
+                  Either.cond(
+                    polyglotSymbol != null,
+                    ObjectEqualityBranchNode
+                      .build(branchCodeNode.getCallTarget, polyglotSymbol),
+                    BadPatternMatch.NonVisiblePolyglotSymbol(symbol.name)
                   )
                 case Some(
                       BindingsMap.Resolution(
@@ -1081,6 +1046,83 @@ class IrToTruffle(
                   text.text,
                   branchCodeNode.getCallTarget
                 )
+              )
+          }
+        case Pattern.Type(varName, tpeName, location, _, _) =>
+          tpeName.getMetadata(Patterns) match {
+            case None =>
+              Left(BadPatternMatch.NonVisibleType(tpeName.name))
+            case Some(
+                  BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tpe))
+                ) =>
+              // Using .getTypes because .getType may return an associated type
+              Option(
+                mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+              ) match {
+                case Some(tpe) =>
+                  val argOfType = List(
+                    IR.DefinitionArgument.Specified(
+                      varName,
+                      None,
+                      None,
+                      suspended = false,
+                      location,
+                      passData    = varName.passData,
+                      diagnostics = varName.diagnostics
+                    )
+                  )
+
+                  val branchCodeNode = childProcessor.processFunctionBody(
+                    argOfType,
+                    branch.expression,
+                    branch.location
+                  )
+                  Right(
+                    CatchTypeBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  )
+                case None => Left(BadPatternMatch.NonVisibleType(tpeName.name))
+              }
+            case Some(
+                  BindingsMap.Resolution(
+                    BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
+                  )
+                ) =>
+              val polySymbol =
+                mod
+                  .unsafeAsModule()
+                  .getScope
+                  .getPolyglotSymbols
+                  .get(symbol.name)
+              if (polySymbol != null) {
+                val argOfType = List(
+                  IR.DefinitionArgument.Specified(
+                    varName,
+                    None,
+                    None,
+                    suspended = false,
+                    location,
+                    passData    = varName.passData,
+                    diagnostics = varName.diagnostics
+                  )
+                )
+
+                val branchCodeNode = childProcessor.processFunctionBody(
+                  argOfType,
+                  branch.expression,
+                  branch.location
+                )
+                Right(
+                  PolyglotSymbolTypeBranchNode.build(
+                    polySymbol,
+                    branchCodeNode.getCallTarget
+                  )
+                )
+              } else {
+                Left(BadPatternMatch.NonVisiblePolyglotSymbol(tpeName.name))
+              }
+            case Some(BindingsMap.Resolution(resolved)) =>
+              throw new CompilerError(
+                s"Impossible ${resolved} here, should be caught by Patterns resolution pass."
               )
           }
         case _: Pattern.Documentation =>

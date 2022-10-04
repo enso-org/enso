@@ -373,8 +373,9 @@
 - [main = "Hello World!" is valid Enso sample][3696]
 - [Invalidate module's IR cache if imported module changed][3703]
 - [Don't rename imported Main module that only imports names][3710]
-- [Distinguish static and instance methods][3740]
 - [Notify node status to the IDE][3729]
+- [Distinguish static and instance methods][3740]
+- [By-type pattern matching][3742]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -425,6 +426,7 @@
 [3710]: https://github.com/enso-org/enso/pull/3710
 [3729]: https://github.com/enso-org/enso/pull/3729
 [3740]: https://github.com/enso-org/enso/pull/3740
+[3742]: https://github.com/enso-org/enso/pull/3742
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -829,6 +829,17 @@ object AstView {
             case Pattern(pat) => Some((pat, right))
             case _            => None
           }
+        case AST.App.Infix(
+              left,
+              AST.Ident.Opr(":"),
+              AST.App.Infix(tpe, AST.Ident.Opr("->"), right)
+            ) =>
+          (left, tpe) match {
+            case (CatchAllPattern(_), QualifiedName(_)) =>
+              Some((AST.App.Infix(left, AST.Ident.Opr(":"), tpe), right))
+            case _ =>
+              None
+          }
         case _ => None
       }
     }
@@ -846,6 +857,7 @@ object AstView {
         case ConstructorPattern(_, _) => Some(ast)
         case CatchAllPattern(pat)     => Some(pat)
         case LiteralPattern(lit)      => Some(lit)
+        case TypePattern(_, _)        => Some(ast)
         case Parensed(Pattern(p)) =>
           println(p)
           Some(p)
@@ -922,6 +934,28 @@ object AstView {
       MaybeManyParensed.unapply(ast).getOrElse(ast) match {
         case AST.Ident.any(ident) => Some(ident)
         case _                    => None
+      }
+    }
+  }
+
+  object TypePattern {
+
+    /** Matches on a type patternn.
+      *
+      * A catch type pattern takes the form of a name, which may be blank, colon and a type name.
+      *
+      * @param ast the structure to try and match on
+      * @return the pattern
+      */
+    def unapply(ast: AST): Option[(AST.Ident, List[AST.Ident])] = {
+      MaybeManyParensed.unapply(ast).getOrElse(ast) match {
+        case AST.App.Infix(
+              CatchAllPattern(left),
+              AST.Ident.Opr(":"),
+              QualifiedName(right)
+            ) =>
+          Some((left, right))
+        case _ => None
       }
     }
   }
