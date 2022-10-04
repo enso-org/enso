@@ -512,16 +512,18 @@ macro_rules! define_endpoints_emit_alias {
 /// Trait that describes the structure of the FRP API in terms of its public and private parts. This
 /// trait allows the `Component` (`lib/rust/ensogl/component/gui/src/component.rs`) to distinguish
 /// between public and private APIs for any API generated through the `define_endpoints_2` macro.
-pub trait API {
+pub trait API: crate::application::command::FrpNetworkProvider {
     /// Public part of this API. To be used when sending events into the API and receiving
     /// events from the API.
     type Public: crate::application::command::CommandApi;
+
     /// Private part of this API. To be used when receiving events sent into the public API and
     /// creating events to the public API outputs.
     type Private;
 
     /// Getter for `Self::Private`.
     fn private(&self) -> &Self::Private;
+
     /// Getter for `Self::Public`
     fn public(&self) -> &Self::Public;
 }
@@ -573,6 +575,7 @@ pub trait API {
 /// pub struct Frp {
 ///     public: api::Public,
 ///     private: Rc<api::Private>,
+///     network: frp::Network,
 /// }
 ///
 /// pub mod api {
@@ -632,7 +635,6 @@ pub trait API {
 ///
 ///     #[derive(Debug)]
 ///     pub struct Private {
-///         pub network: frp::Network,
 ///         pub input: private::Input,
 ///         pub output: private::Output,
 ///     }
@@ -1184,21 +1186,18 @@ macro_rules! define_endpoints_2_normalized_private {
             ),*
         }
     }) => {
-        // No Clone. We do not want `network` to be cloned easily in the future.
-        #[derive(Debug)]
+        #[derive(Debug, Clone, CloneRef)]
         pub struct Private $($ctx)* {
-            pub network: $crate::frp::Network,
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
         }
 
         impl $($ctx)* Private $($param)* {
             pub fn new(
-                network: $crate::frp::Network,
                 input: private::Input $($param)*,
-                output: private::Output $($param)*
+                output: private::Output $($param)*,
             ) -> Self {
-                Self {network, input, output}
+                Self {input, output}
             }
         }
 
@@ -1279,10 +1278,8 @@ macro_rules! define_endpoints_2_normalized_glue {
             #[allow(missing_docs)]
             pub struct Frp $($ctx)* {
                 public: api::Public $($param)*,
-                // `api::Private` is not cloneable, but the Frp still needs to be `CloneRef`able for
-                // API compatibility. In the future we want to make the `FRP` not cloneable, and we will
-                // be able to hold the `api::Private` directly..
-                private: Rc<api::Private $($param)*>,
+                private: api::Private $($param)*,
+                network: $crate::frp::Network,
             }
 
              impl $($ctx)* Frp $($param)* {
@@ -1295,8 +1292,8 @@ macro_rules! define_endpoints_2_normalized_glue {
                     let pub_output = api::public::Output::new(&network, &priv_output, &pub_input);
                     let combined = api::public::Combined::new(&pub_input,&pub_output);
                     let public = api::Public::new(pub_input, pub_output, combined);
-                    let private = Rc::new(api::Private::new(network, priv_input, priv_output));
-                    Self {public,private}
+                    let private = api::Private::new(priv_input, priv_output);
+                    Self { public, private, network }
                 }
             }
 
@@ -1312,7 +1309,8 @@ macro_rules! define_endpoints_2_normalized_glue {
                 fn clone(&self) -> Self {
                     let public = self.public.clone();
                     let private = self.private.clone();
-                    Self {public,private}
+                    let network = self.network.clone();
+                    Self { public, private, network }
                 }
             }
 
@@ -1326,7 +1324,7 @@ macro_rules! define_endpoints_2_normalized_glue {
             impl $($ctx)*
             $crate::application::command::FrpNetworkProvider for Frp $($param)*  {
                 fn network(&self) -> &$crate::frp::Network {
-                    &self.private.network
+                    &self.network
                 }
             }
 
@@ -1340,6 +1338,69 @@ macro_rules! define_endpoints_2_normalized_glue {
                 }
 
                 fn public(&self) -> &Self::Public {
+                    &self.public
+                }
+            }
+
+            impl $($ctx)* $crate::application::command::CommandApi for Frp $($param)*  {
+                fn command_api(&self)
+                    -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
+                    self.public.command_api()
+                }
+
+                fn status_api(&self) -> Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>> {
+                    self.public.status_api()
+                }
+            }
+
+            /// Weak version of FRP.
+            #[derive(Debug)]
+            #[derive(CloneRef)]
+            #[allow(missing_docs)]
+            pub struct WeakFrp $($ctx)* {
+                public: api::Public $($param)*,
+                private: api::Private $($param)*,
+                pub network: $crate::frp::WeakNetwork,
+            }
+
+            impl $($ctx)* Frp $($param)* {
+                /// Create a weak version of FRP.
+                pub fn downgrade(&self) -> WeakFrp $($param)* {
+                    let public = self.public.clone_ref();
+                    let private = self.private.clone_ref();
+                    let network = self.network.downgrade();
+                    WeakFrp { public, private, network }
+                }
+            }
+
+            impl $($ctx)* WeakFrp $($param)* {
+                /// Upgrade the weak version of FRP.
+                pub fn upgrade(&self) -> Option<Frp $($param)*> {
+                    let public = self.public.clone_ref();
+                    let private = self.private.clone_ref();
+                    let network = self.network.upgrade()?;
+                    Some(Frp { public, private, network })
+                }
+
+                /// Gets the number of strong (Rc) pointers to this allocation.
+                pub fn strong_count(&self) -> usize {
+                    self.network.strong_count()
+                }
+            }
+
+            impl $($ctx)*
+            Clone for WeakFrp $($param)* {
+                fn clone(&self) -> Self {
+                    let public = self.public.clone();
+                    let private = self.private.clone();
+                    let network = self.network.clone();
+                    Self { public, private, network }
+                }
+            }
+
+            impl $($ctx)* Deref for WeakFrp $($param)* {
+                type Target = api::Public  $($param)*;
+                fn deref(&self) -> &Self::Target {
                     &self.public
                 }
             }

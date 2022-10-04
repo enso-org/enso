@@ -392,7 +392,7 @@ Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self
 Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
-        Number -> self.equals that epsilon
+        _ : Number -> self.equals that epsilon
         _ -> False
     case matches of
         True -> Success
@@ -655,7 +655,7 @@ type Suite_Config
     should_run_group self name =
         regexp = self.only_group_regexp
         case regexp of
-            Text -> name.matches regexp . catch Any (_->True)
+            _ : Text -> name.matches regexp . catch Any (_->True)
             _ -> True
 
     should_output_junit self =

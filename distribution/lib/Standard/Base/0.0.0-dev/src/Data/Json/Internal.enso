@@ -300,16 +300,16 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    Base.Vector.Vector -> case json of
+    _ : Base.Vector.Vector -> case json of
         Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Boolean -> case json of
+    _ : Base.Boolean -> case json of
         Boolean v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base_Number.Number -> case json of
+    _ : Base_Number.Number -> case json of
         Number v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Text -> case json of
+    _ : Base.Text -> case json of
         String v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     _ ->

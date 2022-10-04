@@ -141,7 +141,7 @@ impl Model {
     }
 
     fn create_providers(&self) -> provider::Any {
-        provider::create_providers_from_controller(&self.logger, &self.controller)
+        provider::create_providers_from_controller(&self.controller)
     }
 
     fn suggestion_for_entry_id(

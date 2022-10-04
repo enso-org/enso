@@ -169,11 +169,10 @@ pub struct View {
 
 impl View {
     /// Constructor.
-    pub fn new(logger: &Logger, scene: Scene) -> Self {
-        let logger = Logger::new_sub(logger, "view");
-        let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let overlay = overlay::View::new(&logger);
+    pub fn new(scene: Scene) -> Self {
+        let display_object = display::object::Instance::new();
+        let background = background::View::new();
+        let overlay = overlay::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
 
@@ -265,11 +264,11 @@ impl ContainerModel {
     pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "visualization_container");
-        let display_object = display::object::Instance::new(&logger);
-        let drag_root = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let drag_root = display::object::Instance::new();
         let visualization = default();
         let vis_frp_connection = default();
-        let view = View::new(&logger, scene.clone_ref());
+        let view = View::new(scene.clone_ref());
         let fullscreen_view = fullscreen::Panel::new(&logger, scene);
         let scene = scene.clone_ref();
         let is_fullscreen = default();

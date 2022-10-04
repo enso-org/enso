@@ -27,6 +27,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -157,8 +158,8 @@ pub struct Model {
 impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new(&app.logger);
-        let mask = mask::View::new(&app.logger);
+        let display_object = display::object::Instance::new();
+        let mask = mask::View::new();
         display_object.add_child(&mask);
         let grid = GridView::new(app);
         grid.reset_entries(1, 0);
@@ -213,7 +214,7 @@ impl Model {
                         text_padding_left: *text_padding,
                         text_size: text::Size::from(*text_size),
                         hover_color:*hover_color,
-                        font_name: ImString::new(font),
+                        font_name: font.clone(),
                         selected_color: *selected_color,
                         highlight_corners_radius,
                         greyed_out_color: *greyed_out_color,

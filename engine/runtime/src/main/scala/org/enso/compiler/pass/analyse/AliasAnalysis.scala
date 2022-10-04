@@ -727,6 +727,23 @@ case object AliasAnalysis extends IRPass {
         )
       case literalPattern: Pattern.Literal =>
         literalPattern
+      case typePattern @ Pattern.Type(name, tpe, _, _, _) =>
+        typePattern.copy(
+          name = analyseName(
+            name,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          ),
+          tpe = analyseName(
+            tpe,
+            isInPatternContext                = false,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          )
+        )
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

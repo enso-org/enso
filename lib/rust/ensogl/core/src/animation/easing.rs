@@ -168,7 +168,7 @@ pub type DynAnimator<T, F> = Animator<T, F, Box<dyn Fn(f32)>, Box<dyn Fn(EndStat
 #[derivative(Clone(bound = ""))]
 pub struct Animator<T, F, OnStep = (), OnEnd = ()> {
     data:           Rc<AnimatorData<T, F, OnStep, OnEnd>>,
-    animation_loop: AnimationLoop<T, F, OnStep, OnEnd>,
+    animation_loop: AnimationLoop,
 }
 
 impl<T, F, OnStep, OnEnd> Deref for Animator<T, F, OnStep, OnEnd> {
@@ -366,23 +366,22 @@ where
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
-#[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
-pub struct AnimationLoop<T, F, OnStep, OnEnd> {
-    animation_loop: Rc<CloneCell<Option<AnimationStep<T, F, OnStep, OnEnd>>>>,
+pub struct AnimationLoop {
+    animation_loop: Rc<CloneCell<Option<AnimationStep>>>,
 }
 
 #[allow(clippy::type_complexity)]
-impl<T, F, OnStep, OnEnd> Deref for AnimationLoop<T, F, OnStep, OnEnd> {
-    type Target = Rc<CloneCell<Option<AnimationStep<T, F, OnStep, OnEnd>>>>;
+impl Deref for AnimationLoop {
+    type Target = Rc<CloneCell<Option<AnimationStep>>>;
     fn deref(&self) -> &Self::Target {
         &self.animation_loop
     }
 }
 
-impl<T, F, OnStep, OnEnd> AnimationLoop<T, F, OnStep, OnEnd> {
+impl AnimationLoop {
     /// Downgrade to a week reference.
-    pub fn downgrade(&self) -> WeakAnimationLoop<T, F, OnStep, OnEnd> {
+    pub fn downgrade(&self) -> WeakAnimationLoop {
         let animation_loop = Rc::downgrade(&self.animation_loop);
         WeakAnimationLoop { animation_loop }
     }
@@ -392,13 +391,13 @@ impl<T, F, OnStep, OnEnd> AnimationLoop<T, F, OnStep, OnEnd> {
 /// inferencer happy (not infer infinite, recursive types).
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
-pub struct WeakAnimationLoop<T, F, OnStep, OnEnd> {
-    animation_loop: Weak<CloneCell<Option<AnimationStep<T, F, OnStep, OnEnd>>>>,
+pub struct WeakAnimationLoop {
+    animation_loop: Weak<CloneCell<Option<AnimationStep>>>,
 }
 
-impl<T, F, OnStep, OnEnd> WeakAnimationLoop<T, F, OnStep, OnEnd> {
+impl WeakAnimationLoop {
     /// Upgrade the weak reference.
-    pub fn upgrade(&self) -> Option<AnimationLoop<T, F, OnStep, OnEnd>> {
+    pub fn upgrade(&self) -> Option<AnimationLoop> {
         self.animation_loop.upgrade().map(|animation_loop| AnimationLoop { animation_loop })
     }
 }
@@ -407,7 +406,7 @@ impl<T, F, OnStep, OnEnd> WeakAnimationLoop<T, F, OnStep, OnEnd> {
 // === Animation Step ===
 
 /// Alias for `FixedFrameRateLoop` with specified step callback.
-pub type AnimationStep<T, F, OnStep, OnEnd> = animation::Loop<Step<T, F, OnStep, OnEnd>>;
+pub type AnimationStep = animation::Loop;
 
 /// Callback for an animation step.
 pub type Step<T, F, OnStep, OnEnd> = impl Fn(animation::TimeInfo);

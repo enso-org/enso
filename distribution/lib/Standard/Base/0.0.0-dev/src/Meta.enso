@@ -318,17 +318,17 @@ is_a value typ = if is_same_object value typ then True else
     if typ == Any then True else
         if is_error value then typ == Base.Error else
             case value of
-                Vector.Vector -> typ.is_same_object_as Vector.Vector
-                Array -> typ.is_same_object_as Array
-                Boolean -> if typ == Boolean then True else value == typ
-                Text -> typ == Text
-                Number -> if typ == Number then True else case value of
-                    Integer -> typ == Integer
-                    Decimal -> typ == Decimal
-                Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
-                Date.Date      -> typ.is_same_object_as Date.Date
-                Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
-                Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
+                _ : Vector.Vector -> typ.is_same_object_as Vector.Vector
+                _ : Array -> typ == Array
+                _ : Boolean -> if typ == Boolean then True else value == typ
+                _ : Text -> typ == Text
+                _ : Number -> if typ == Number then True else case value of
+                    _ : Integer -> typ == Integer
+                    _ : Decimal -> typ == Decimal
+                _ : Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
+                _ : Date.Date      -> typ.is_same_object_as Date.Date
+                _ : Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
+                _ : Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
                 Base.Polyglot ->
                     typ==Base.Polyglot || java_instance_check value typ
                 _ ->

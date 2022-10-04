@@ -77,7 +77,7 @@ type Vector_Builder
         case other of
             Leaf _ -> Append self other len
             Append _ _ _ -> Append self other len
-            Vector.Vector -> Append self (Leaf other) len
+            _ : Vector.Vector -> Append self (Leaf other) len
 
 ## PRIVATE
 

@@ -8,6 +8,7 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
+use double_representation::module::ImportId;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
@@ -26,7 +27,6 @@ pub mod plain;
 pub mod synchronized;
 
 pub use double_representation::module::Id;
-use double_representation::module::ImportId;
 pub use double_representation::module::QualifiedName;
 pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
@@ -75,7 +75,7 @@ pub enum ModulePathViolation {
 // ===============
 
 /// A specialization of text change used in module's text changes across controllers.
-pub type TextChange = enso_text::Change<enso_text::unit::Bytes, String>;
+pub type TextChange = enso_text::Change<enso_text::index::Byte, String>;
 
 
 
@@ -289,7 +289,7 @@ pub enum NotificationKind {
         /// The code change description.
         change:            TextChange,
         /// Information about line:col position of replaced fragment.
-        replaced_location: enso_text::Range<enso_text::Location>,
+        replaced_location: enso_text::Range<enso_text::Location<enso_text::Byte>>,
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
@@ -469,7 +469,7 @@ impl Add for Position {
     }
 }
 
-impl std::ops::AddAssign for Position {
+impl AddAssign for Position {
     fn add_assign(&mut self, rhs: Self) {
         self.vector += rhs.vector
     }
@@ -739,9 +739,7 @@ pub mod test {
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
             let ast = parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
-            let logger = Logger::new("MockModule");
-            let module =
-                Plain::new(logger, self.path.clone(), ast, self.metadata.clone(), repository);
+            let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
             Rc::new(module)
         }
     }

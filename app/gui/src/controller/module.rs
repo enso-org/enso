@@ -90,7 +90,6 @@ impl Handle {
         let my_code = self.code();
         if code != my_code {
             error!(
-                self.logger,
                 "The module controller ast was not synchronized with text editor \
                 content!\n >>> Module: {my_code}\n >>> Editor: {code}"
             );
@@ -186,7 +185,7 @@ impl Handle {
         let logger = Logger::new("Mocked Module Controller");
         let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
         let metadata = default();
-        let model = Rc::new(model::module::Plain::new(&logger, path, ast, metadata, repository));
+        let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
         Ok(Handle { model, language_server, parser, logger })
     }
 
@@ -212,7 +211,7 @@ mod test {
     use ast;
     use ast::Ast;
     use ast::BlockLine;
-    use enso_text::traits::*;
+    use enso_text::index::*;
     use parser::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -229,16 +228,16 @@ mod test {
             let uuid3 = Uuid::new_v4();
             let uuid4 = Uuid::new_v4();
             let id_map = ast::IdMap::new(vec![
-                ((0.bytes()..1.bytes()).into(), uuid1),
-                ((1.bytes()..2.bytes()).into(), uuid2),
-                ((2.bytes()..3.bytes()).into(), uuid3),
-                ((0.bytes()..3.bytes()).into(), uuid4),
+                ((0.byte()..1.byte()).into(), uuid1),
+                ((1.byte()..2.byte()).into(), uuid2),
+                ((2.byte()..3.byte()).into(), uuid3),
+                ((0.byte()..3.byte()).into(), uuid4),
             ]);
             let controller =
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
             // Change code from "2+2" to "22+2"
-            let change = enso_text::Change::inserted(0.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(0.byte(), "2".to_string());
             controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {

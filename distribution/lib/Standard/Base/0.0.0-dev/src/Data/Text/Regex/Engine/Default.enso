@@ -268,7 +268,7 @@ type Pattern
 
                 if internal_matcher . find start . not then Nothing else
                     Match_Data internal_matcher start end input
-            Integer ->
+            _ : Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error_Data "Cannot match a negative number of times."
 
@@ -346,7 +346,7 @@ type Pattern
     matches : Text -> Boolean
     matches self input = case self.match input mode=Regex_Mode.Full of
         Match_Data _ _ _ _ -> True
-        Vector.Vector -> True
+        _ : Vector.Vector -> True
         _ -> False
 
     ## ADVANCED
@@ -415,7 +415,7 @@ type Pattern
         matches = self.match input mode
         case matches of
             Match_Data _ _ _ _ -> matches.group 0
-            Vector.Vector -> matches.map (_.group 0)
+            _ : Vector.Vector -> matches.map (_.group 0)
             _ -> matches
 
     ## ADVANCED
@@ -467,7 +467,7 @@ type Pattern
         # add 1.
         limit = case mode of
             Matching_Mode.First -> 2
-            Integer ->
+            _ : Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error_Data "Cannot match a negative number of times."
 
@@ -537,7 +537,7 @@ type Pattern
             Matching_Mode.First ->
                 internal_matcher = self.build_matcher input start end
                 internal_matcher.replaceFirst replacement
-            Integer ->
+            _ : Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error_Data "Cannot replace a negative number of times."
 

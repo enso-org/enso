@@ -253,12 +253,12 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
    `select_columns_helper`.
 resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
 resolve_column_helper internal_columns selector problem_builder = case selector of
-    Text ->
+    _ : Text ->
         matched_columns = Matching.match_criteria_callback Text_Matcher.Case_Sensitive internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         if matched_columns.length == 1 then matched_columns.first else
             if matched_columns.length == 0 then Nothing else
                 Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
-    Integer -> case is_index_valid internal_columns.length selector of
+    _ : Integer -> case is_index_valid internal_columns.length selector of
         True -> internal_columns.at selector
         False ->
             problem_builder.report_oob_indices [selector]
@@ -369,12 +369,12 @@ prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         Sort_Column_Selector.By_Name name_selectors matcher ->
             unified_name_selectors = name_selectors.map selector-> case selector of
-                Text -> Sort_Column.Name selector
+                _ : Text -> Sort_Column.Name selector
                 Sort_Column.Name _ _ -> selector
             select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
             unified_index_selectors = index_selectors.map selector-> case selector of
-                Integer -> Sort_Column.Index selector
+                _ : Integer -> Sort_Column.Index selector
                 Sort_Column.Index _ _ -> selector
             select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->

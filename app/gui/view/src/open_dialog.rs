@@ -49,7 +49,7 @@ impl OpenDialog {
         // Once FileBrowser will be implemented as component, it should be instantiated this way:
         //let file_browser   = app.new_view::<FileBrowser>();
 
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         display_object.add_child(&project_list);
         display_object.add_child(&file_browser);

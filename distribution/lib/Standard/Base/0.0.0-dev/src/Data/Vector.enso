@@ -575,10 +575,10 @@ type Vector a
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
     == self that = case that of
-        Vector ->
+        _ : Vector ->
             eq_at i = self.unsafe_at i == that.unsafe_at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
-        Array ->
+        _ : Array ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ -> False
@@ -1124,7 +1124,7 @@ slice_ranges vector ranges =
     if ranges.length == 0 then [] else
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
-                Integer -> [vector.unsafe_at ranges.first]
+                _ : Integer -> [vector.unsafe_at ranges.first]
                 Range_Data start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
@@ -1133,11 +1133,11 @@ slice_ranges vector ranges =
    See `slice_ranges`.
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
-        Integer -> acc+1
+        _ : Integer -> acc+1
         Range_Data _ _ _ -> acc+descriptor.length
     builder = new_builder new_length
     ranges.each descriptor-> case descriptor of
-        Integer ->
+        _ : Integer ->
             builder.append (vector.unsafe_at descriptor)
         Range_Data start end step -> case step == 1 of
             True ->

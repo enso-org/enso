@@ -60,7 +60,7 @@ from_value : Any -> Update
 from_value value =
     case value of
         Table.Table_Data _   -> from_table value
-        Vector.Vector -> from_vector value
+        _ : Vector.Vector -> from_vector value
         Column.Column_Data _ -> from_table value.to_table
         _               -> from_vector value.to_vector
 

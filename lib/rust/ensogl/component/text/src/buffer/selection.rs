@@ -11,8 +11,21 @@ use enso_text::Range;
 // === Boundary ===
 // ================
 
-/// Selection boundary data type. In most cases it's either `Location` or `Bytes`.
+/// Selection boundary data type. In most cases it's either `Location` or `Byte`.
 pub trait Boundary = Copy + Ord + Eq;
+
+
+
+// ==========
+// === Id ===
+// ==========
+
+/// Selection ID.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Display, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Id {
+    pub value: usize,
+}
 
 
 
@@ -21,7 +34,7 @@ pub trait Boundary = Copy + Ord + Eq;
 // =============
 
 /// Text selection shape. In case the `start` and `end` offsets are equal, the selection is
-/// interpreted as a cursor. Please note that the start of the selection is not always smaller then
+/// interpreted as a cursor. Please note that the start of the selection is not always smaller than
 /// its end. If the selection was dragged from right to left, the start byte offset will be bigger
 /// than the end. Use the `min` and `max` methods to discover the edges.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -33,16 +46,18 @@ pub struct Shape<T = Location> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Shape<T: Boundary>(start: T, end: T) -> Shape<T> {
+pub fn Shape<T>(start: T, end: T) -> Shape<T> {
     Shape::new(start, end)
 }
 
-impl<T: Boundary> Shape<T> {
+impl<T> Shape<T> {
     /// Constructor.
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
+}
 
+impl<T: Boundary> Shape<T> {
     /// Cursor constructor.
     pub fn new_cursor(start: T) -> Self {
         let end = start;
@@ -52,6 +67,22 @@ impl<T: Boundary> Shape<T> {
     /// Range of this selection.
     pub fn range(&self) -> Range<T> {
         (self.min()..self.max()).into()
+    }
+
+    /// Normalized version of selection where the start is always smaller than the end.
+    pub fn normalized(self) -> Self {
+        if self.start <= self.end {
+            self
+        } else {
+            self.reversed()
+        }
+    }
+
+    /// Reversed version of selection.
+    pub fn reversed(self) -> Self {
+        let start = self.end;
+        let end = self.start;
+        Self { start, end }
     }
 
     /// Gets the earliest offset within the selection, ie the minimum of both edges.
@@ -85,8 +116,10 @@ impl<T: Boundary> Shape<T> {
     }
 
     /// Map both start and end values.
-    pub fn map(&self, f: impl Fn(T) -> T) -> Self {
-        self.with_start(f(self.start)).with_end(f(self.end))
+    pub fn map<S>(self, f: impl Fn(T) -> S) -> Shape<S> {
+        let start = f(self.start);
+        let end = f(self.end);
+        Shape { start, end }
     }
 
     /// Produce cursor by snapping the end edge to the start one.
@@ -115,55 +148,53 @@ impl<T: Boundary> Shape<T> {
 // === Selection ===
 // =================
 
-/// Text selection. It is a text selection `Shape` bundled with an `id` information, which is used
-/// by graphical interface to track and animate the movement of the selections.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+/// Text selection. It is a text selection [`Shape`] bundled with an [`Id`] information, which is
+/// used by graphical interface to track and animate the movement of the selections.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Deref, DerefMut)]
 #[allow(missing_docs)]
 pub struct Selection<T = Location> {
+    #[deref]
+    #[deref_mut]
     pub shape: Shape<T>,
-    pub id:    usize,
-}
-
-impl<T> Deref for Selection<T> {
-    type Target = Shape<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.shape
-    }
-}
-
-impl<T> DerefMut for Selection<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.shape
-    }
+    pub id:    Id,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Selection<T: Boundary>(start: T, end: T, id: usize) -> Selection<T> {
+pub fn Selection<T>(start: T, end: T, id: Id) -> Selection<T> {
     Selection::new(start, end, id)
 }
 
-impl<T: Boundary> Selection<T> {
+impl<T> Selection<T> {
     /// Constructor.
-    pub fn new(start: T, end: T, id: usize) -> Self {
+    pub fn new(start: T, end: T, id: Id) -> Self {
         let shape = Shape::new(start, end);
         Self { shape, id }
     }
+}
 
+impl<T: Boundary> Selection<T> {
     /// Cursor constructor.
-    pub fn new_cursor(offset: T, id: usize) -> Self {
+    pub fn new_cursor(offset: T, id: Id) -> Self {
         let shape = Shape::new_cursor(offset);
         Self { shape, id }
     }
 
     /// Replace the shape value.
-    pub fn with_shape(&self, shape: Shape<T>) -> Self {
-        Self { shape, ..*self }
+    pub fn with_shape<S>(self, shape: Shape<S>) -> Selection<S> {
+        let id = self.id;
+        Selection { shape, id }
     }
 
     /// Map the shape value.
-    pub fn map_shape(&self, f: impl FnOnce(Shape<T>) -> Shape<T>) -> Self {
+    pub fn map_shape<S>(self, f: impl FnOnce(Shape<T>) -> Shape<S>) -> Selection<S> {
         self.with_shape(f(self.shape))
+    }
+
+    /// Map the id value.
+    pub fn map_id(self, f: impl FnOnce(Id) -> Id) -> Self {
+        let id = f(self.id);
+        Self { id, ..self }
     }
 
     /// Replace the start value.
@@ -174,6 +205,11 @@ impl<T: Boundary> Selection<T> {
     /// Replace the end value.
     pub fn with_end(&self, end: T) -> Self {
         self.map_shape(|s| s.with_end(end))
+    }
+
+    /// Replace the location value.
+    pub fn with_location(self, location: T) -> Self {
+        self.with_start(location).with_end(location)
     }
 
     /// Map the start value.
@@ -187,7 +223,7 @@ impl<T: Boundary> Selection<T> {
     }
 
     /// Map both start and end values.
-    pub fn map(&self, f: impl Fn(T) -> T) -> Self {
+    pub fn map<S>(&self, f: impl Fn(T) -> S) -> Selection<S> {
         self.map_shape(|s| s.map(f))
     }
 
@@ -228,8 +264,8 @@ impl<T: Boundary> Selection<T> {
 
 /// A set of zero or more selections.
 ///
-/// The selections are kept in sorted order in order to maintain a good performance in algorithms.
-/// It is used in many places, including selection merging process.
+/// The selections are kept in sorted order to maintain a good performance in algorithms. It is used
+/// in many places, including selection merging process.
 #[derive(Clone, Debug, Default)]
 pub struct Group {
     sorted_selections: Vec<Selection>,

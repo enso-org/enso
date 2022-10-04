@@ -99,7 +99,6 @@ pub use traits::*;
 #[derivative(Debug(bound = "T:Debug"))]
 pub struct DirtyFlag<T, OnMut> {
     pub data: T,
-    logger:   Logger,
     #[derivative(Debug = "ignore")]
     on_set:   OnMut,
 }
@@ -108,9 +107,9 @@ pub struct DirtyFlag<T, OnMut> {
 // === Basics ===
 
 impl<OnMut, T: Default> DirtyFlag<T, OnMut> {
-    pub fn new(logger: Logger, on_set: OnMut) -> Self {
+    pub fn new(on_set: OnMut) -> Self {
         let data = default();
-        Self { data, logger, on_set }
+        Self { data, on_set }
     }
 
     pub fn take(&mut self) -> T {
@@ -163,7 +162,7 @@ impl<T: DirtyFlagOps0, OnMut: FnMut0> HasSet0 for DirtyFlag<T, OnMut> {
         let is_set = self.data.check_all();
         if !is_set {
             self.data.set();
-            debug!(self.logger, "Setting.", || {
+            debug_span!("Setting.").in_scope(|| {
                 self.on_set.call();
             })
         }
@@ -176,7 +175,7 @@ impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
         let is_set = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            debug!(self.logger, "Setting to {self.data:?}.", || {
+            debug_span!("Setting to {self.data:?}.").in_scope(|| {
                 if first_set {
                     self.on_set.call();
                 }
@@ -190,7 +189,7 @@ impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
 
 impl<T: HasUnset0, OnMut> HasUnset0 for DirtyFlag<T, OnMut> {
     fn unset(&mut self) {
-        info!(self.logger, "Unsetting.");
+        trace!("Unsetting.");
         self.data.unset()
     }
 }
@@ -199,7 +198,7 @@ impl<T: HasUnset1, OnMut> HasUnset1 for DirtyFlag<T, OnMut>
 where Arg<T>: Display
 {
     fn unset(&mut self, arg: &Self::Arg) {
-        info!(self.logger, "Unsetting {arg}.");
+        trace!("Unsetting {arg}.");
         self.data.unset(arg)
     }
 }
@@ -225,8 +224,8 @@ pub struct SharedDirtyFlag<T, OnMut> {
 // === API ===
 
 impl<T: Default, OnMut> SharedDirtyFlag<T, OnMut> {
-    pub fn new(logger: Logger, on_set: OnMut) -> Self {
-        Self { rc: Rc::new(RefCell::new(DirtyFlag::new(logger, on_set))) }
+    pub fn new(on_set: OnMut) -> Self {
+        Self { rc: Rc::new(RefCell::new(DirtyFlag::new(on_set))) }
     }
 
     pub fn take(&self) -> T {

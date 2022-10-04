@@ -279,9 +279,30 @@ case object UnusedBindings extends IRPass {
         cons.copy(
           fields = fields.map(lintPattern)
         )
-      case err: IR.Error.Pattern => err
+      case typed @ Pattern.Type(name, _, _, _, _) =>
+        val isIgnored = name
+          .unsafeGetMetadata(
+            IgnoredBindings,
+            "Free variable ignore information is required for linting."
+          )
+          .isIgnored
+
+        val aliasInfo = name
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "Aliasing information missing from pattern but is " +
+            "required for linting."
+          )
+          .unsafeAs[AliasAnalysis.Info.Occurrence]
+        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+
+        if (!isIgnored && !isUsed) {
+          typed.addDiagnostic(IR.Warning.Unused.PatternBinding(name))
+        } else pattern
       case literal: Pattern.Literal =>
         literal
+      case err: IR.Error.Pattern => err
+
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

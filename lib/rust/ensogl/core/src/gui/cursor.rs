@@ -91,7 +91,7 @@ impl Style {
         Self { press, ..default() }
     }
 
-    pub fn new_text_cursor() -> Self {
+    pub fn cursor() -> Self {
         let size = Vector2::new(3.0, DEFAULT_SIZE().y);
         let size = Some(StyleValue::new(size));
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
@@ -200,9 +200,9 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let logger = Logger::new("cursor");
-        let display_object = display::object::Instance::new(&logger);
-        let view = shape::View::new(&logger);
-        let port_selection = shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let view = shape::View::new();
+        let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);

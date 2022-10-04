@@ -349,7 +349,26 @@ case object IgnoredBindings extends IRPass {
           fields = fields.map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
-      case err: IR.Error.Pattern    => err
+      case typed @ Pattern.Type(name, _, _, _, _) =>
+        if (isIgnore(name)) {
+          val newName = supply
+            .newName()
+            .copy(
+              location    = name.location,
+              passData    = name.passData,
+              diagnostics = name.diagnostics
+            )
+            .updateMetadata(this -->> State.Ignored)
+
+          typed.copy(
+            name = newName
+          )
+        } else {
+          typed.copy(
+            name = setNotIgnored(name)
+          )
+        }
+      case err: IR.Error.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

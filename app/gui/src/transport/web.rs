@@ -235,7 +235,7 @@ impl Model {
         }
 
         let url = self.socket.url();
-        info!(self.logger, "Reconnecting WS to {url}.");
+        info!("Reconnecting WS to {url}.");
 
         let new_ws = web_sys::WebSocket::new(&url)?;
 
@@ -252,12 +252,9 @@ impl Model {
 
 impl Drop for Model {
     fn drop(&mut self) {
-        info!(self.logger, "Dropping WS model.");
+        info!("Dropping WS model.");
         if let Err(e) = self.close("Rust Value has been dropped.") {
-            error!(
-                self.logger,
-                "Error when closing socket due to being dropped: {e.print_to_string()}"
-            )
+            error!("Error when closing socket due to being dropped: {}", e.print_to_string())
         }
     }
 }
@@ -299,11 +296,10 @@ impl WebSocket {
     /// Generate a callback to be invoked when socket needs reconnecting.
     fn reconnect_trigger(&self) -> impl FnMut(web_sys::CloseEvent) {
         let model = Rc::downgrade(&self.model);
-        let logger = self.logger.clone();
         move |_| {
             if let Some(model) = model.upgrade() {
                 if let Err(e) = model.borrow_mut().reconnect() {
-                    error!(logger, "Failed to reconnect: {e.print_to_string()}");
+                    error!("Failed to reconnect: {}", e.print_to_string());
                 }
             }
         }
@@ -331,7 +327,7 @@ impl WebSocket {
             Some(Ok(())) => {
                 self.model.borrow_mut().clear_callbacks();
                 self.model.borrow_mut().on_close_internal.set_callback(self.reconnect_trigger());
-                info!(self.logger, "Connection opened.");
+                info!("Connection opened.");
                 Ok(())
             }
             _ => Err(ConnectingError::FailedToConnect),
@@ -398,14 +394,14 @@ impl WebSocket {
 
 impl Transport for WebSocket {
     fn send_text(&mut self, message: &str) -> Result<(), Error> {
-        info!(self.logger, "Sending text message of length {message.len()}.");
-        debug!(self.logger, "Message contents: {message}");
+        info!("Sending text message of length {}.", message.len());
+        debug!("Message contents: {message}");
         self.send_with_open_socket(|ws| ws.send_with_str(message))
     }
 
     fn send_binary(&mut self, message: &[u8]) -> Result<(), Error> {
-        info!(self.logger, "Sending binary message of length {message.len()}.");
-        debug!(self.logger, || format!("Message contents: {:x?}", message));
+        info!("Sending binary message of length {}.", message.len());
+        debug!("Message contents: {:x?}", message);
         // TODO [mwu]
         //   Here we workaround issue from wasm-bindgen 0.2.58:
         //   https://github.com/rustwasm/wasm-bindgen/issues/2014
@@ -418,35 +414,32 @@ impl Transport for WebSocket {
     }
 
     fn set_event_transmitter(&mut self, transmitter: mpsc::UnboundedSender<TransportEvent>) {
-        info!(self.logger, "Setting event transmitter.");
+        info!("Setting event transmitter.");
         let transmitter_copy = transmitter.clone();
-        let logger_copy = self.logger.clone_ref();
         self.set_on_message(move |e| {
             let data = e.data();
             if let Some(text) = data.as_string() {
-                debug!(logger_copy, "Received a text message: {text}");
+                debug!("Received a text message: {text}");
                 channel::emit(&transmitter_copy, TransportEvent::TextMessage(text));
             } else if let Ok(array_buffer) = data.dyn_into::<js_sys::ArrayBuffer>() {
                 let array = js_sys::Uint8Array::new(&array_buffer);
                 let binary_data = array.to_vec();
-                debug!(logger_copy, || format!("Received a binary message: {:x?}", binary_data));
+                debug!("Received a binary message: {:x?}", binary_data);
                 let event = TransportEvent::BinaryMessage(binary_data);
                 channel::emit(&transmitter_copy, event);
             } else {
-                info!(logger_copy, "Received other kind of message: {e.data().print_to_string()}.");
+                info!("Received other kind of message: {}.", e.data().print_to_string());
             }
         });
 
         let transmitter_copy = transmitter.clone();
-        let logger_copy = self.logger.clone_ref();
         self.set_on_close(move |_e| {
-            info!(logger_copy, "Connection has been closed.");
+            info!("Connection has been closed.");
             channel::emit(&transmitter_copy, TransportEvent::Closed);
         });
 
-        let logger_copy = self.logger.clone_ref();
         self.set_on_open(move |_e| {
-            info!(logger_copy, "Connection has been opened.");
+            info!("Connection has been opened.");
             channel::emit(&transmitter, TransportEvent::Opened);
         });
     }
@@ -469,16 +462,16 @@ mod tests {
     async fn websocket_tests() {
         executor::web::test::setup_and_forget();
         let logger = DefaultTraceLogger::new("Test");
-        info!(logger, "Started");
+        info!("Started");
 
         // Create WebSocket
         let ws = WebSocket::new_opened(&logger, "ws://localhost:30445").await;
         let mut ws = ws.expect("Couldn't connect to WebSocket server.");
-        info!(logger, "WebSocket opened: {ws:?}");
+        info!("WebSocket opened: {ws:?}");
 
         // Log events
-        let handler = ws.establish_event_stream().for_each(f!([logger](event) {
-            info!(logger,"Socket emitted event: {event:?}");
+        let handler = ws.establish_event_stream().for_each(f!([](event) {
+            info!("Socket emitted event: {event:?}");
             futures::future::ready(())
         }));
 
@@ -487,6 +480,6 @@ mod tests {
 
         // Close socket after some delay.
         web::sleep(Duration::from_secs(20)).await;
-        info!(logger, "Finished");
+        info!("Finished");
     }
 }

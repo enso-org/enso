@@ -9,6 +9,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -122,6 +123,8 @@ pub fn on_frame(
     let screen = camera.screen();
     let half_width = screen.width / 2.0;
     let half_height = screen.height / 2.0;
+    let x_offset = -600.0;
+    let y_offset = -150.0;
 
     if !frozen {
         let t = time.since_animation_loop_started.unchecked_raw() / 1000.0;
@@ -140,8 +143,8 @@ pub fn on_frame(
             z += (x * 1.25 + t * 3.25).cos() * 0.5;
 
             let position = Vector3::new(
-                x * 150.0 + half_width - 75.0,
-                y * 150.0 + half_height - 75.0,
+                x * 150.0 + half_width - 75.0 + x_offset,
+                y * 150.0 + half_height - 75.0 + y_offset,
                 z * 150.0,
             );
             sprite.set_position(position);

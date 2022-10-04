@@ -12,6 +12,7 @@ chrono = { version = "0.4", features = ["serde"] }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-logger = { path = "../../../../lib/rust/logger" }
 enso-prelude = { path = "../../../../lib/rust/prelude", features = [
+  "serde",
   "serde_json"
 ] }
 enso-shapely = { path = "../../../../lib/rust/shapely" }

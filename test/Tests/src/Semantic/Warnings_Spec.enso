@@ -48,7 +48,7 @@ attach_four_warnings value =
     v4
 
 odd_warning_mapper payload = case payload of
-    Integer -> if payload % 2 == 0 then Nothing else Maybe.Some (payload + 10)
+    _ : Integer -> if payload % 2 == 0 then Nothing else Maybe.Some (payload + 10)
     _ -> Nothing
 
 map_odd_warnings value =

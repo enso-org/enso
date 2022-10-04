@@ -115,7 +115,7 @@ parse text pattern=Nothing locale=Locale.default =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Time_Of_Day.parse_builtin text
-            Text    -> Time_Utils.parse_time text pattern locale.java_locale
+            _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
 ## PRIVATE
 
@@ -324,7 +324,7 @@ type Time_Of_Day
                  time_1.compare_to time_2
     compare_to : Time_Of_Day -> Ordering
     compare_to self that = case that of
-        Time_Of_Day ->
+        _ : Time_Of_Day ->
             sign = Time_Utils.compare_to_localtime self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error_Data Time_Of_Day that "that")
@@ -332,7 +332,7 @@ type Time_Of_Day
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
     == self that = case that of
-        Time_Of_Day ->
+        _ : Time_Of_Day ->
             sign = Time_Utils.compare_to_localtime self that
             0 == sign
         _ -> False

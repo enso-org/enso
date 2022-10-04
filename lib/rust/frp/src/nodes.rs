@@ -174,6 +174,38 @@ impl Network {
         self.gate(label, t, &changed)
     }
 
+    pub fn ref_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        S: Data,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| v.into())
+    }
+
+    pub fn cloned_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Data, {
+        self.map(label, t, |v| v.clone().into())
+    }
+
+    pub fn ref_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        S: Clone + Debug + 'static,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| Some(v.into()))
+    }
+
+    pub fn cloned_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Clone + Debug + 'static, {
+        self.map(label, t, |v| Some(v.clone().into()))
+    }
+
 
     // === Bool Utils ===
 
@@ -1510,35 +1542,68 @@ impl<Out: Data> Source<Out> {
     }
 }
 
-/// The parameter of FRP system. It allows passing wide range of values to the `emit` function for
-/// easy of use.
+define_not_same_trait!();
+impl<T> !NotSame for (T, &T) {}
+impl<T> !NotSame for (Option<T>, T) {}
+impl<T> !NotSame for (Option<T>, &T) {}
+
 #[allow(missing_docs)]
 pub trait IntoParam<T> {
     fn into_param(self) -> T;
 }
+
 impl<T> IntoParam<T> for T {
     fn into_param(self) -> T {
         self
     }
 }
+
 impl<T: Clone> IntoParam<T> for &T {
     fn into_param(self) -> T {
         self.clone()
     }
 }
+
 impl<T> IntoParam<Option<T>> for T {
     fn into_param(self) -> Option<T> {
         Some(self)
     }
 }
+
 impl<T: Clone> IntoParam<Option<T>> for &T {
     fn into_param(self) -> Option<T> {
         Some(self.clone())
     }
 }
-impl IntoParam<String> for &str {
-    fn into_param(self) -> String {
+
+impl<T: Clone, S> IntoParam<Option<T>> for S
+where
+    S: Into<T>,
+    (Option<T>, S): NotSame,
+{
+    fn into_param(self) -> Option<T> {
+        Some(self.into())
+    }
+}
+
+impl<T, S> IntoParam<T> for S
+where
+    (T, S): NotSame,
+    S: Into<T>,
+{
+    default fn into_param(self) -> T {
         self.into()
+    }
+}
+
+impl<T1, T2, S1, S2> IntoParam<(T1, T2)> for (S1, S2)
+where
+    ((T1, T2), (S1, S2)): NotSame,
+    S1: Into<T1>,
+    S2: Into<T2>,
+{
+    default fn into_param(self) -> (T1, T2) {
+        (self.0.into(), self.1.into())
     }
 }
 
@@ -1634,8 +1699,8 @@ impl<T: EventOutput> OwnedTrace<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        event!(DEBUG, "[FRP] {}: {:?}", self.label(), event);
-        event!(DEBUG, "[FRP] {}", stack);
+        debug!("[FRP] {}: {:?}", self.label(), event);
+        debug!("[FRP] {}", stack);
         self.emit_event(stack, event);
     }
 }

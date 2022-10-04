@@ -1,6 +1,7 @@
 //! A module with functions used to support working with text representation of the language.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 
 use ast::IdMap;
@@ -14,7 +15,7 @@ use ast::IdMap;
 /// Update IdMap to reflect the recent code change.
 pub fn apply_code_change_to_id_map(
     id_map: &mut IdMap,
-    change: &enso_text::text::Change<Bytes, String>,
+    change: &enso_text::text::Change<Byte, String>,
     code: &str,
 ) {
     // TODO [mwu]
@@ -29,27 +30,26 @@ pub fn apply_code_change_to_id_map(
     let inserted = change.text.as_str();
     let new_code = change.applied(code).unwrap_or_else(|_| code.to_owned());
     let non_white = |c: char| !c.is_whitespace();
-    let logger = enso_logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector = &mut id_map.vec;
-    let inserted_size: Bytes = inserted.len().into();
+    let inserted_size: ByteDiff = inserted.len().into();
 
-    info!(logger, "Old code:\n```\n{code}\n```");
-    info!(logger, "New code:\n```\n{new_code}\n```");
-    info!(logger, "Updating the ID map with the following text edit: {change:?}.");
+    info!("Old code:\n```\n{code}\n```");
+    info!("New code:\n```\n{new_code}\n```");
+    info!("Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
     vector.drain_filter(|(range, _)| removed.contains_range(range));
 
     // If the edited section ends up being the trailing part of AST node, how many bytes should be
     // trimmed from the id. Precalculated, as is constant in the loop below.
-    let to_trim_back: Bytes = {
+    let to_trim_back: ByteDiff = {
         let last_non_white = inserted.rfind(non_white);
         let inserted_len = || inserted.len();
         let length_to_last_non_white = |index| inserted.len() - index - 1;
         last_non_white.map_or_else(inserted_len, length_to_last_non_white).into()
     };
     // As above but for the front side.
-    let to_trim_front: Bytes = {
+    let to_trim_front: ByteDiff = {
         let first_non_white = inserted.find(non_white);
         first_non_white.unwrap_or(inserted.len()).into()
     };
@@ -62,31 +62,31 @@ pub fn apply_code_change_to_id_map(
     // This is needed for edits like: `foo f` => `foo` — the earlier `foo` in `foo f` also has a
     // id map entry, however we want it to be consistently shadowed by the id from the whole App
     // expression.
-    let mut preferred: HashMap<enso_text::Range<Bytes>, ast::Id> = default();
+    let mut preferred: HashMap<enso_text::Range<Byte>, ast::Id> = default();
 
     for (range, id) in vector.iter_mut() {
         let mut trim_front = false;
         let mut trim_back = false;
         let initial_range = *range;
-        info!(logger, "Processing @{range}: `{&code[*range]}`.");
+        info!("Processing @{range}: `{}`.", &code[*range]);
         if range.start > removed.end {
-            debug!(logger, "Node after the edited region.");
+            debug!("Node after the edited region.");
             // AST node starts after edited region — it will be simply shifted.
-            let between_range: enso_text::Range<_> = (removed.end..range.start).into();
+            let between_range: enso_text::Range<Byte> = (removed.end..range.start).into();
             let code_between = &code[between_range];
             *range = range.moved_left(removed.size()).moved_right(inserted_size);
 
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            debug!(logger, "Between: `{code_between}`.");
+            debug!("Between: `{code_between}`.");
             if all_spaces(code_between) && inserted_non_white {
-                debug!(logger, "Will extend the node leftwards.");
+                debug!("Will extend the node leftwards.");
                 range.start -= inserted_size + between_range.size();
                 trim_front = true;
             }
         } else if range.start >= removed.start {
             // AST node starts inside the edited region. It does not have to end inside it.
-            debug!(logger, "Node overlapping with the end of the edited region.");
+            debug!("Node overlapping with the end of the edited region.");
             let removed_before = range.start - removed.start;
             *range = range.moved_left(removed_before);
             range.end -= removed.size() - removed_before;
@@ -94,7 +94,7 @@ pub fn apply_code_change_to_id_map(
             trim_front = true;
         } else if range.end >= removed.start {
             // AST node starts before the edited region and reaches (or possibly goes past) its end.
-            debug!(logger, "Node overlapping with the beginning of the edited region.");
+            debug!("Node overlapping with the beginning of the edited region.");
             if range.end <= removed.end {
                 trim_back = true;
             }
@@ -102,35 +102,35 @@ pub fn apply_code_change_to_id_map(
             range.end -= removed_chars;
             range.end += inserted_size;
         } else {
-            debug!(logger, "Node before the edited region.");
+            debug!("Node before the edited region.");
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
             // This is for cases like line with `foo ` being changed into `foo j`.
-            let between_range: enso_text::Range<_> = (range.end..removed.start).into();
+            let between_range: enso_text::Range<Byte> = (range.end..removed.start).into();
             let between = &code[between_range];
             if all_spaces(between) && inserted_non_white {
-                debug!(logger, "Will extend ");
+                debug!("Will extend ");
                 range.end += between_range.size() + inserted_size;
                 trim_back = true;
             }
         }
 
-        if trim_front && to_trim_front > 0.bytes() {
+        if trim_front && to_trim_front > 0.byte_diff() {
             range.start += to_trim_front;
-            debug!(logger, "Trimming front {to_trim_front.as_usize()} chars.");
+            debug!("Trimming front {} chars.", to_trim_front.as_usize());
         }
 
         if trim_back {
-            if to_trim_back > 0.bytes() {
+            if to_trim_back > 0.byte_diff() {
                 range.end += -to_trim_back;
-                debug!(logger, "Trimming back {to_trim_back.as_usize()} chars.");
+                debug!("Trimming back {} chars.", to_trim_back.as_usize());
             }
             let new_repr = &new_code[*range];
             // Trim trailing spaces
             let space_count = spaces_size(new_repr.chars().rev());
-            let spaces_len: Bytes = (space_count.as_usize() * ' '.len_utf8()).into();
-            if spaces_len > 0.bytes() {
-                debug!(logger, "Additionally trimming {space_count.as_usize()} trailing spaces.");
-                debug!(logger, "The would-be code: `{new_repr}`.");
+            let spaces_len: ByteDiff = (space_count.value * ' '.len_utf8()).into();
+            if spaces_len > 0.byte_diff() {
+                debug!("Additionally trimming {} trailing spaces.", space_count);
+                debug!("The would-be code: `{new_repr}`.");
                 range.end -= spaces_len;
             }
         }
@@ -141,14 +141,12 @@ pub fn apply_code_change_to_id_map(
             preferred.insert(*range, *id);
         }
 
-        info!(logger, || {
-            let old_fragment = &code[initial_range];
-            let new_fragment = &new_code[*range];
-            iformat!(
-                "Processing for id {id}: {initial_range} ->\t{range}.\n
+        let old_fragment = &code[initial_range];
+        let new_fragment = &new_code[*range];
+        info!(
+            "Processing for id {id}: {initial_range} ->\t{range}.\n
                 Code: `{old_fragment}` => `{new_fragment}`"
-            )
-        });
+        );
     }
 
     // If non-preferred entry collides with the preferred one, remove the former.
@@ -164,7 +162,7 @@ pub fn apply_code_change_to_id_map(
 // ===============
 
 /// Returns the chars count of leading space characters sequence.
-fn spaces_size(itr: impl Iterator<Item = char>) -> Chars {
+fn spaces_size(itr: impl Iterator<Item = char>) -> Utf16CodeUnit {
     itr.take_while(|c| *c == ' ').fold(0, |acc, _| acc + 1).into()
 }
 
@@ -198,7 +196,7 @@ mod test {
         /// The initial enso program code.
         pub code:   String,
         /// The edit made to the initial code.
-        pub change: enso_text::Change<Bytes, String>,
+        pub change: enso_text::Change<Byte, String>,
     }
 
     impl Case {
@@ -291,13 +289,13 @@ mod test {
         let case = Case::from_markdown("foo«aa⎀bb»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "bb");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.byte()..5.byte());
         assert_eq!(case.resulting_code(), "foobbc");
 
         let case = Case::from_markdown("foo«aa»c");
         assert_eq!(case.code, "fooaac");
         assert_eq!(case.change.text, "");
-        assert_eq!(case.change.range, 3.bytes()..5.bytes());
+        assert_eq!(case.change.range, 3.byte()..5.byte());
         assert_eq!(case.resulting_code(), "fooc");
     }
 

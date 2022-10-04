@@ -67,11 +67,11 @@ read_file file section headers on_problems xls_format=False =
         Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
         Worksheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
-                Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+                _ : Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+                _ : Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
             prepare_reader_table on_problems <| case address of
                 Excel_Range_Data _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
+                _ : Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
     handle_reader file reader

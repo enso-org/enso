@@ -1,7 +1,7 @@
 //! Code for module-level double representation processing.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -828,7 +828,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<enso_text::Range<Bytes>> {
+) -> FallibleResult<enso_text::Range<Byte>> {
     let location = locate(ast, id)?;
     ast.range_of_descendant_at(&location.crumbs)
 }

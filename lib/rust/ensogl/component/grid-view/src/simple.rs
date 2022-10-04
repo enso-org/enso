@@ -93,16 +93,16 @@ impl<T: Into<ImString>> From<T> for EntryModel {
 #[derive(Clone, Debug)]
 pub struct EntryData {
     display_object: display::object::Instance,
-    pub label:      text::Area,
+    pub label:      text::Text,
     pub background: entry::shape::View,
 }
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
-        let logger = Logger::new("list_view::entry::Label");
-        let display_object = display::object::Instance::new(&logger);
-        let label = app.new_view::<ensogl_text::Area>();
-        let background = entry::shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let label = app.new_view::<ensogl_text::Text>();
+        label.set_long_text_truncation_mode(true);
+        let background = entry::shape::View::new();
         display_object.add_child(&label);
         display_object.add_child(&background);
         if let Some(layer) = text_layer {
@@ -114,7 +114,7 @@ impl EntryData {
     fn update_layout(&self, contour: entry::Contour, text_size: text::Size, text_offset: f32) {
         self.background.set_contour(contour);
         let size = contour.size;
-        self.label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.raw / 2.0));
+        self.label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
     }
 }
 
@@ -159,17 +159,18 @@ impl crate::Entry for Entry {
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             eval bg_color ((color) data.background.color.set(color.into()));
             disabled <- input.set_model.map(|m| *m.disabled);
-            data.label.set_default_color <+ all_with3(
+            data.label.set_property_default <+ all_with3(
                 &text_color,
                 &dis_text_color,
                 &disabled,
                 |c, dc, d| if *d { *dc } else { *c }
-            );
-            data.label.set_font <+ font.map(ToString::to_string);
-            data.label.set_default_text_size <+ text_size;
-            content <- input.set_model.map(|m| m.text.to_string());
+            ).ref_into_some();
+            data.label.set_font <+ font;
+            data.label.set_property_default <+ text_size.ref_into_some();
+            content <- input.set_model.map(|m| m.text.clone_ref());
             max_width_px <- input.set_size.map(|size| size.x);
-            data.label.set_content_truncated <+ all(&content, &max_width_px);
+            data.label.set_content <+ content;
+            data.label.set_view_width <+ max_width_px.some();
 
             out.override_column_width <+ input.set_model.filter_map(|m| *m.override_width);
             out.contour <+ contour;
