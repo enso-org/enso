@@ -7,8 +7,16 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -210,9 +218,26 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ywarn-unused:privates"              // Warn if a private member is unused.
 )
 
-ThisBuild / Test / testOptions += Tests.Argument(
-  "-oI"
-)
+ThisBuild / Test / testOptions ++=
+  Seq(Tests.Argument("-oI")) ++
+  sys.env
+    .get("CI_JUNIT_OUTPUT_DIR")
+    .map { junitXmlOutputDir =>
+      Tests.Argument(TestFrameworks.ScalaTest, "-u", junitXmlOutputDir)
+    }
+    // TODO[DB] cleanup
+    .orElse {
+      sys.props.get("user.dir").map { cwd =>
+        Tests.Argument(
+          TestFrameworks.ScalaTest,
+          "-u",
+          java.nio.file.Paths
+            .get(cwd, "target", "test-results")
+            .toAbsolutePath
+            .toString
+        )
+      }
+    }
 
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
@@ -660,30 +685,35 @@ lazy val `text-buffer` = project
     )
   )
 
-val generateRustParserLib = TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
+val generateRustParserLib =
+  TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
-    import sys.process._
-    val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
-    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
-    if (sys.env.get("CI").isDefined ||
-        allLibs.isEmpty ||
-        (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
-      Seq("cargo", "build", "-p", "enso-parser-jni") !
-    }
-    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
+  import sys.process._
+  val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
+  val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+  if (
+    allLibs.isEmpty || (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
+  ) {
+    Seq("cargo", "build", "-p", "enso-parser-jni") !
+  }
+  FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
 
-val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+val generateParserJavaSources = TaskKey[Seq[File]](
+  "generateParserJavaSources",
+  "Generates Java sources for Rust parser"
+)
 `syntax-rust-definition` / generateParserJavaSources := {
   generateRustParser(
     (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges
+  )
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
 
 def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
   import scala.jdk.CollectionConverters._
@@ -691,12 +721,20 @@ def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
 
   import sys.process._
   val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
-  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
   if (changes.hasChanges) {
-    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+    Seq(
+      "cargo",
+      "run",
+      "-p",
+      "enso-parser-generate-java",
+      "--bin",
+      "enso-parser-generate-java",
+      fullPkg.toString
+    ) !
   }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
@@ -708,7 +746,7 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    frgaalJavaCompilerSetting,
+    frgaalJavaCompilerSetting
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -1538,18 +1576,18 @@ lazy val `engine-runner` = project
 lazy val `engine-runner-native` = project
   .in(file("engine/runner-native"))
   .settings(
-    assembly/assemblyExcludedJars := {
+    assembly / assemblyExcludedJars := {
       val cp = (assembly / fullClasspath).value
-      (assembly/assemblyExcludedJars).value ++
-          cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
+      (assembly / assemblyExcludedJars).value ++
+      cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
     },
     assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
     assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
     assembly / assemblyJarName := "runner-native.jar",
     assembly / assemblyOutputPath := file("runner-native.jar"),
     assembly := assembly
-        .dependsOn(`engine-runner` / assembly)
-        .value,
+      .dependsOn(`engine-runner` / assembly)
+      .value,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
@@ -1566,7 +1604,7 @@ lazy val `engine-runner-native` = project
           "-Dnic=nic"
         ),
         mainClass = Option("org.enso.runner.Main"),
-        cp = Option("runtime.jar"),
+        cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
