@@ -12,6 +12,10 @@ import Standard.Image
 import Standard.Image.Codecs
 import Standard.Image.Data.Matrix
 
+# TODO Dubious constructor export
+from project.Main.Example_Error_Type import all
+from project.Main.Example_Error_Type export all
+
 ## An example error type used in a number of examples.
 
    Arguments:
@@ -121,6 +125,10 @@ type No_Methods
 ## Returns a no_such_method_error as a value.
 no_such_method : No_Such_Method_Error
 no_such_method = Panic.recover Any No_Methods.frobnicate . catch
+
+# TODO Dubious constructor export
+from project.Main.My_Error import all
+from project.Main.My_Error export all
 
 ## A simple error type for example purposes.
 type My_Error

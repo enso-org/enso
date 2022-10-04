@@ -7,8 +7,16 @@ from Standard.Table.Errors import all
 import Standard.Test
 import Standard.Test.Problems
 
+# TODO Dubious constructor export
+from project.Data_Formatter_Spec.Custom_Type import all
+from project.Data_Formatter_Spec.Custom_Type export all
+
 type Custom_Type
     Custom_Type_Data field
+
+# TODO Dubious constructor export
+from project.Data_Formatter_Spec.Custom_Type_With_To_Text import all
+from project.Data_Formatter_Spec.Custom_Type_With_To_Text export all
 
 type Custom_Type_With_To_Text
     Custom_Type_With_To_Text_Data field
@@ -16,10 +24,18 @@ type Custom_Type_With_To_Text
     to_text : Text
     to_text self = "[CUSTOM = " + self.field.to_text + "]"
 
+# TODO Dubious constructor export
+from project.Data_Formatter_Spec.Custom_Type_With_Error import all
+from project.Data_Formatter_Spec.Custom_Type_With_Error export all
+
 type Custom_Type_With_Error
 
     to_text : Text
     to_text self = Error.throw (Illegal_State_Error_Data "foo_error")
+
+# TODO Dubious constructor export
+from project.Data_Formatter_Spec.Custom_Type_With_Panic import all
+from project.Data_Formatter_Spec.Custom_Type_With_Panic export all
 
 type Custom_Type_With_Panic
     Custom_Type_With_Panic_Data

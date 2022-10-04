@@ -72,6 +72,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -85,7 +86,6 @@ use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
-use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
@@ -212,8 +212,8 @@ impl<Shape: ButtonShape> Model<Shape> {
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new(Shape::debug_name());
-        let display_object = display::object::Instance::new(&logger);
-        let shape = ShapeView::new(&logger);
+        let display_object = display::object::Instance::new();
+        let shape = ShapeView::new();
         display_object.add_child(&shape);
         Self { app, logger, display_object, shape }
     }
@@ -380,7 +380,7 @@ impl<Shape> Deref for View<Shape> {
     }
 }
 
-impl<Shape> application::command::FrpNetworkProvider for View<Shape> {
+impl<Shape> FrpNetworkProvider for View<Shape> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

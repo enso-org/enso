@@ -134,7 +134,8 @@ class NestedPatternMatchTest extends CompilerTest {
       """
         |case x of
         |    Cons (Cons MyAtom b) Nil -> a + b
-        |    Cons (Cons 1) Nil -> 1
+        |    Cons (Cons 1 Nil) Nil -> num
+        |    Cons (Cons (num : Integer) _) Nil -> num
         |    Cons a Nil -> a
         |    _ -> case y of
         |        Cons a Nil -> a
@@ -144,10 +145,11 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-    val consConsNilBranch    = ir.branches(0)
-    val consConsOneNilBranch = ir.branches(1)
-    val consANilBranch       = ir.branches(2)
-    val catchAllBranch       = ir.branches(3)
+    val consConsNilBranch        = ir.branches(0)
+    val consConsOneNilBranch     = ir.branches(1)
+    val consConsIntegerNilBranch = ir.branches(2)
+    val consANilBranch           = ir.branches(3)
+    val catchAllBranch           = ir.branches(4)
 
     "desugar nested constructors to simple patterns" in {
       consANilBranch.expression shouldBe an[IR.Expression.Block]
@@ -228,7 +230,7 @@ class NestedPatternMatchTest extends CompilerTest {
         consBranchBody.branches.head.pattern
       ) shouldEqual false
 
-      fallbackBranch1Body.branches.length shouldEqual 3
+      fallbackBranch1Body.branches.length shouldEqual 4
       fallbackBranch1Body.branches.head.pattern shouldBe a[Pattern.Constructor]
       fallbackBranch1Body.branches.head.pattern
         .asInstanceOf[Pattern.Constructor]
@@ -279,6 +281,79 @@ class NestedPatternMatchTest extends CompilerTest {
       NestedPatternMatch.containsNestedPatterns(
         consBranchBody.branches.head.pattern
       ) shouldEqual false
+
+      fallbackBranch1Body.branches.length shouldEqual 3
+      fallbackBranch1Body.branches.head.pattern shouldBe a[Pattern.Constructor]
+      fallbackBranch1Body.branches.head.pattern
+        .asInstanceOf[Pattern.Constructor]
+        .constructor
+        .name shouldEqual "Cons"
+      NestedPatternMatch.containsNestedPatterns(
+        fallbackBranch1Body.branches.head.pattern
+      ) shouldEqual false
+    }
+
+    "desugar deeply nested patterns with type pattern to simple patterns" in {
+      consConsIntegerNilBranch.expression shouldBe an[IR.Expression.Block]
+      consConsIntegerNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      NestedPatternMatch
+        .containsNestedPatterns(
+          consConsIntegerNilBranch.pattern
+        ) shouldEqual false
+
+      val nestedCase = consConsIntegerNilBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.branches.length shouldEqual 2
+
+      val consBranch      = nestedCase.branches(0)
+      val fallbackBranch1 = nestedCase.branches(1)
+
+      consBranch.expression shouldBe an[IR.Expression.Block]
+      fallbackBranch1.expression shouldBe an[IR.Expression.Block]
+
+      val consBranchBody = consBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+      val fallbackBranch1Body =
+        fallbackBranch1.expression
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .asInstanceOf[IR.Case.Expr]
+
+      consBranchBody.branches.length shouldEqual 2
+      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
+      val tpePattern = consBranchBody.branches.head.pattern
+        .asInstanceOf[Pattern.Type]
+
+      tpePattern.name
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "num"
+      tpePattern.tpe.name shouldEqual "Integer"
+
+      NestedPatternMatch.containsNestedPatterns(
+        consBranchBody.branches.head.pattern
+      ) shouldEqual false
+
+      consBranchBody.branches(1).pattern shouldBe an[Pattern.Name]
+      consBranchBody
+        .branches(1)
+        .pattern
+        .asInstanceOf[Pattern.Name]
+        .name shouldBe an[IR.Name.Blank]
+
+      val consTpeBranchBody = consBranchBody.branches.head.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+      consTpeBranchBody.branches.length shouldEqual 2
+
+      consTpeBranchBody.branches.head.pattern shouldBe an[Pattern.Constructor]
+      consTpeBranchBody.branches(1).pattern shouldBe an[Pattern.Name]
 
       fallbackBranch1Body.branches.length shouldEqual 2
       fallbackBranch1Body.branches.head.pattern shouldBe a[Pattern.Constructor]

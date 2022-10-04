@@ -2,6 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.sql.SQLException
 
+# TODO Dubious constructor export
+from project.Errors.Unsupported_Database_Operation_Error import all
+from project.Errors.Unsupported_Database_Operation_Error export all
+
 ## Indicates that a requested operation is not supported, for example because a
    particular database backend does not support it.
 type Unsupported_Database_Operation_Error
@@ -20,6 +24,10 @@ type Unsupported_Database_Operation_Error
     to_display_text : Text
     to_display_text self =
         "Unsupported database operation: " + self.message
+
+# TODO Dubious constructor export
+from project.Errors.SQL_Error import all
+from project.Errors.SQL_Error export all
 
 type SQL_Error
     ## UNSTABLE
@@ -53,6 +61,10 @@ type SQL_Error
     throw_sql_error : Text -> SQL_Error
     throw_sql_error message =
         Error.throw (SQL_Error_Data (SQLException.new message))
+
+# TODO Dubious constructor export
+from project.Errors.SQL_Timeout_Error import all
+from project.Errors.SQL_Timeout_Error export all
 
 type SQL_Timeout_Error
     ## UNSTABLE

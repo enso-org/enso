@@ -89,7 +89,7 @@ impl<T: Payload> SpanTreeGenerator<T> for String {
 /// An utility to generate children with increasing offsets.
 #[derive(Debug, Default)]
 struct ChildGenerator<T> {
-    current_offset: Bytes,
+    current_offset: ByteDiff,
     children:       Vec<node::Child<T>>,
 }
 
@@ -97,7 +97,7 @@ impl<T: Payload> ChildGenerator<T> {
     /// Add spacing to current generator state. It will be taken into account for the next generated
     /// children's offsets
     fn spacing(&mut self, size: usize) {
-        self.current_offset += Bytes::from(size);
+        self.current_offset += (size as i32).byte_diff();
     }
 
     fn generate_ast_node(
@@ -226,7 +226,7 @@ fn generate_node_for_ast<T: Payload>(
                 .unwrap()
                 .generate_node(kind, context),
             _ => {
-                let size = ast.len();
+                let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
                 let children = default();
                 let name = ast::identifier::name(ast);

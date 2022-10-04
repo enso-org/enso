@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -37,6 +38,9 @@ use ensogl_flame_graph as flame_graph;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub async fn entry_point_render_profile_flamegraph() {
+    let data = get_data().await;
+    let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
+    ensogl_text_msdf::initialized().await;
     use ensogl_core::display::object::ObjectOps;
     let app = &application::Application::new("root");
     let world = &app.display;
@@ -44,8 +48,6 @@ pub async fn entry_point_render_profile_flamegraph() {
     let network = app.frp.network();
     let navigator = navigator::Navigator::new(scene, &scene.camera());
     init_theme(scene);
-    let data = get_data().await;
-    let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
     let mut builder = profiler_flame_graph::FlamegraphBuilder::default();
     builder.add_profile(&profile);
     let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), app);
@@ -89,6 +91,13 @@ async fn get_data() -> String {
     let response = wasm_bindgen_futures::JsFuture::from(response).await.unwrap();
     assert!(response.is_instance_of::<web_sys::Response>());
     let response: web_sys::Response = response.dyn_into().unwrap();
+    if !response.ok() {
+        ERROR!(
+            "Error retrieving profile file from {url}: {response.status_text()}. \
+            Falling back to demo data."
+        );
+        return enso_profiler_demo_data::create_data().await;
+    }
     let data = response.text().unwrap();
     let data = wasm_bindgen_futures::JsFuture::from(data).await.unwrap();
     data.as_string().unwrap()

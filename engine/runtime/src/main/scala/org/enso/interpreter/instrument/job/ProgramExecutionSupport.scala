@@ -95,12 +95,43 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
+    def notifyPendingCacheItems(cache: RuntimeCache): Unit = {
+      val knownKeys   = cache.getWeights.entrySet
+      val cachedKeys  = cache.getKeys
+      val pendingKeys = new collection.mutable.HashSet[UUID]()
+
+      knownKeys.forEach { e =>
+        if (e.getValue > 0) {
+          if (!cachedKeys.contains(e.getKey)) {
+            pendingKeys.add(e.getKey)
+          }
+        }
+      }
+      if (pendingKeys.nonEmpty) {
+        val ids = pendingKeys.map { key =>
+          Api.ExpressionUpdate(
+            key,
+            None,
+            None,
+            Vector.empty,
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+        }
+        val msg = Api.Response(
+          Api.ExpressionUpdates(contextId, ids.toSet)
+        )
+        ctx.endpoint.sendToClient(msg)
+      }
+    }
+
     executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
             syncState
           ) =>
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module.toString,
           cons.item,
@@ -125,6 +156,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module,
           callData,

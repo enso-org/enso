@@ -142,7 +142,7 @@ public final class AtomConstructor implements TruffleObject {
             definitionScope,
             instantiateBlock,
             instantiateNode.getSourceSection(),
-            definitionScope.getModule().getName().item() + "." + name,
+            type.getName() + "." + name,
             null,
             false);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
@@ -158,7 +158,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             new FunctionSchema(
                 new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
+    definitionScope.registerMethod(type.getEigentype(), this.name, function);
   }
 
   /**
@@ -256,7 +256,7 @@ public final class AtomConstructor implements TruffleObject {
   /** @return the fully qualified name of this constructor. */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedName() {
-    return definitionScope.getModule().getName().createChild(getName());
+    return type.getQualifiedName().createChild(getName());
   }
 
   /** @return the fields defined by this constructor. */

@@ -13,6 +13,7 @@ members = [
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",
   "lib/rust/profiler/data",
+  "lib/rust/profiler/demo-data",
   "integration-test",
   "tools/language-server/logstat",
   "tools/language-server/wstest",

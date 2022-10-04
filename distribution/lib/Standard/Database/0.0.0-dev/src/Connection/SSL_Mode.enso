@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Connection.SSL_Mode.SSL_Mode import all
+from project.Connection.SSL_Mode.SSL_Mode export all
+
 type SSL_Mode
     ## Do not use SSL for the connection.
     Disable

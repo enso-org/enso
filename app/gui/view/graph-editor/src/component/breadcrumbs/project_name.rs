@@ -9,7 +9,6 @@ use crate::component::breadcrumbs::TEXT_SIZE;
 use crate::component::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
-use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -18,9 +17,8 @@ use ensogl::display::object::ObjectOps;
 use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
-use ensogl_component::text::style::Size as TextSize;
+use ensogl_component::text::formatting::Size as TextSize;
 use ensogl_hardcoded_theme as theme;
-use logger::DefaultWarningLogger as Logger;
 
 
 
@@ -122,11 +120,10 @@ impl Animations {
 #[allow(missing_docs)]
 struct ProjectNameModel {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     view:           background::View,
     style:          StyleWatch,
-    text_field:     text::Area,
+    text_field:     text::Text,
     project_name:   Rc<RefCell<String>>,
 }
 
@@ -135,29 +132,27 @@ impl ProjectNameModel {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let logger = Logger::new("ProjectName");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
         let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
         let text_size: TextSize = TEXT_SIZE.into();
-        let text_field = app.new_view::<text::Area>();
-        text_field.set_default_color.emit(base_color);
-        text_field.set_default_text_size(text_size);
-        text_field.single_line(true);
+        let text_field = app.new_view::<text::Text>();
+        text_field.set_property_default(base_color);
+        text_field.set_property_default(text_size);
+        text_field.set_single_line_mode(true);
 
         text_field.remove_from_scene_layer(&scene.layers.main);
         text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 
-        let view_logger = Logger::new_sub(&logger, "view_logger");
-        let view = background::View::new(&view_logger);
+        let view = background::View::new();
 
         scene.layers.panel.add_exclusive(&view);
 
         let project_name = default();
-        Self { app, logger, display_object, view, style, text_field, project_name }.init()
+        Self { app, display_object, view, style, text_field, project_name }.init()
     }
 
     /// Compute the width of the ProjectName view.
@@ -190,7 +185,7 @@ impl ProjectNameModel {
 
     /// Revert the text field content to the last committed project name.
     fn reset_name(&self) {
-        debug!(self.logger, "Resetting project name.");
+        debug!("Resetting project name.");
         self.update_text_field_content(self.project_name.borrow().as_str());
     }
 
@@ -201,7 +196,7 @@ impl ProjectNameModel {
     }
 
     fn set_color(&self, value: color::Rgba) {
-        self.text_field.set_default_color(value);
+        self.text_field.set_property_default(value);
     }
 
     fn set_position(&self, value: Vector3<f32>) {
@@ -211,7 +206,7 @@ impl ProjectNameModel {
     /// Change the text field content and commit the given name.
     fn rename(&self, name: impl Str) {
         let name = name.into();
-        debug!(self.logger, "Renaming: '{name}'.");
+        debug!("Renaming: '{name}'.");
         self.update_text_field_content(&name);
         self.commit(name);
     }
@@ -219,7 +214,7 @@ impl ProjectNameModel {
     /// Confirm the given name as the current project name.
     fn commit<T: Into<String>>(&self, name: T) {
         let name = name.into();
-        debug!(self.logger, "Committing name: '{name}'.");
+        debug!("Committing name: '{name}'.");
         *self.project_name.borrow_mut() = name;
     }
 }
@@ -341,14 +336,14 @@ impl ProjectName {
              on_mouse_over_and_editable <- all(frp.output.is_hovered,editable).map(|(a,b)| *a && *b);
              mouse_over_while_editing <- on_mouse_over_and_editable.gate(&on_mouse_over_and_editable);
              frp.output.source.pointer_style <+ mouse_over_while_editing.map(|_|
-                cursor::Style::new_text_cursor()
+                cursor::Style::cursor()
              );
              no_mouse_or_edit <- on_mouse_over_and_editable.gate_not(&on_mouse_over_and_editable);
              frp.output.source.pointer_style <+ no_mouse_or_edit.map(|_|
                 cursor::Style::default()
              );
              frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
-                cursor::Style::new_text_cursor()
+                cursor::Style::cursor()
              );
         }
 
@@ -372,7 +367,7 @@ impl Deref for ProjectName {
     }
 }
 
-impl application::command::FrpNetworkProvider for ProjectName {
+impl FrpNetworkProvider for ProjectName {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

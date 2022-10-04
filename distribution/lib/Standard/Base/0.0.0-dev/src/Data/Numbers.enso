@@ -347,7 +347,7 @@ type Number
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
     is_nan self = case self of
-        Decimal -> Double.isNaN self
+        _ : Decimal -> Double.isNaN self
         _ -> False
 
     ## Returns the sign of the number.
@@ -976,6 +976,10 @@ type Integer
     parse text (radix=10) =
         Panic.catch NumberFormatException (Long.parseLong text radix) _->
              Error.throw (Parse_Error_Data text)
+
+# TODO Dubious constructor export
+from project.Data.Numbers.Parse_Error import all
+from project.Data.Numbers.Parse_Error export all
 
 ## UNSTABLE
 

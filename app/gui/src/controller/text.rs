@@ -176,8 +176,8 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_text::traits::*;
-    use parser_scala::Parser;
+    use enso_text::index::*;
+    use parser_scala::Parsesr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
@@ -206,7 +206,7 @@ mod test {
             };
             let mut sub = controller.subscribe();
 
-            let change = enso_text::Change::inserted(8.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(8.byte(), "2".to_string());
             module.apply_code_change(change).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })

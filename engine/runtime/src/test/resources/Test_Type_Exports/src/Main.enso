@@ -1,0 +1,3 @@
+from project.Type_Exp import all
+
+main = Some 10

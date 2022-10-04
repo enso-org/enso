@@ -28,6 +28,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -219,8 +220,7 @@ pub struct Model<Entry, EntryParams> {
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {
     fn new(entry_creation_ctx: entry::visible::CreationCtx<EntryParams>) -> Self {
-        let logger = Logger::new("GridView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let visible_entries = default();
         let free_entries = default();
         let column_widths = ColumnWidths::new(0);
@@ -692,7 +692,7 @@ pub(crate) mod tests {
             let network = frp.network();
             let param_set = Rc::new(Cell::new(0));
             let model_set = Rc::new(Cell::new(0));
-            let display_object = display::object::Instance::new(Logger::new("TestEntry"));
+            let display_object = display::object::Instance::new();
             frp::extend! { network
                 eval frp.input.set_model ((model) model_set.set(**model));
                 eval frp.input.set_params ((param) param_set.set(*param.param));

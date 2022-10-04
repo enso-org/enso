@@ -341,7 +341,7 @@ interface ExpressionUpdate {
 An information about the computed value.
 
 ```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | Panic;
+type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 
 /**
  * An empty payload. Indicates that the expression was computed to a value.
@@ -371,6 +371,22 @@ interface Panic {
    * The stack trace.
    */
   trace: ExpressionId[];
+}
+
+/**
+ * Indicates the expression is currently being computed. Optionally it
+ * provides description and percentage (`0.0-1.0`) of completeness.
+ */
+interface Pending {
+  /**
+   * Optional message describing current operation.
+   */
+  message?: String;
+
+  /**
+   * Optional amount of already done work as a number between `0.0` to `1.0`.
+   */
+  progress?: Number;
 }
 ```
 

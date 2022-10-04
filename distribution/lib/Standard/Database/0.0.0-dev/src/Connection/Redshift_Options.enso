@@ -14,6 +14,10 @@ polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
+# TODO Dubious constructor export
+from project.Connection.Redshift_Options.Redshift_Options import all
+from project.Connection.Redshift_Options.Redshift_Options export all
+
 type Redshift_Options
     ## Connect to a AWS Redshift database.
 
@@ -70,6 +74,10 @@ type Redshift_Options
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
+
+# TODO Dubious constructor export
+from project.Connection.Redshift_Options.AWS_Credential import all
+from project.Connection.Redshift_Options.AWS_Credential export all
 
 type AWS_Credential
     ## Access Redshift using IAM via an AWS profile.

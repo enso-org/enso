@@ -2,4 +2,4 @@ type Meh
     Foo a
     Bar b
 
-    create a = Bar a
+    create a = Meh.Bar a

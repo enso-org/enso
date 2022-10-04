@@ -49,7 +49,7 @@ public class VectorTest {
 
     choose x = case x of
         Vector -> "is vector module"
-        Vector.Vector -> "is vector type"
+        _ : Vector.Vector -> "is vector type"
         _ -> "nothing"
 
     check = choose [1, 2, 3]
@@ -133,7 +133,7 @@ public class VectorTest {
     import Standard.Base.Data.Array
 
     how_long array = case array of
-        Array.Array -> array.length
+        arr : Array.Array -> arr.length
         _ -> -1
     """, "how_long.enso")
             .uri(uri)

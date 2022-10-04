@@ -3,18 +3,23 @@ import Standard.Base
 
 import Standard.Base.System.Platform
 
+polyglot java import java.lang.Object as JObject
+polyglot java import java.lang.Long as JLong
+polyglot java import java.lang.Exception as JException
+polyglot java import java.io.IOException
+polyglot java import java.util.ArrayList
 polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
 import Standard.Test
 
 type My_Type
-    My_Type_Data foo bar baz
+    Value foo bar baz
 
 My_Type.my_method self = self.foo + self.bar + self.baz
 
 type Test_Type
-    Test_Type_Data x
+    Value x
 
 spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should allow manipulating unresolved symbols" <|
@@ -22,12 +27,12 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_sym = Meta.meta sym
         meta_sym.name.should_equal "does_not_exist"
         new_sym = meta_sym . rename "my_method"
-        object = My_Type_Data 1 2 3
+        object = My_Type.Value 1 2 3
         new_sym object . should_equal 6
     Test.specify "should allow manipulating atoms" <|
-        atom = My_Type_Data 1 "foo" Nothing
+        atom = My_Type.Value 1 "foo" Nothing
         meta_atom = Meta.meta atom
-        meta_atom.constructor.should_equal My_Type_Data
+        meta_atom.constructor.should_equal My_Type.Value
         meta_atom.fields.should_equal [1, "foo", Nothing]
         Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
     Test.specify "should correctly return representations of different classes of objects" <|
@@ -39,60 +44,118 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_err.is_a Meta.Error_Data . should_be_true
         meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
-        1.is_an Any . should_be_true
-        1.2.is_an Any . should_be_true
-        (My_Type_Data 1 "foo" Nothing).is_an Any . should_be_true
-
-        Array.is_an Array . should_be_true
-        [].to_array.is_an Array . should_be_true
+        1.is_a Any . should_be_true
+        1.2.is_a Any . should_be_true
+        (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
+        
+        Array.is_a Array . should_be_true
+        [].to_array.is_a Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
+        [1,2,3].is_a Vector.Vector . should_be_true
+        [1,2,3].is_a Array . should_be_false
 
         Boolean.is_a Boolean . should_be_true
         True.is_a Boolean . should_be_true
         False.is_a Boolean . should_be_true
-        True.is_an Integer . should_be_false
+        True.is_a Integer . should_be_false
 
         "".is_a Text . should_be_true
         "".is_a Decimal . should_be_false
 
-        1.is_an Array . should_be_false
-        1.is_an Integer . should_be_true
+        1.is_a Array . should_be_false
+        1.is_a Integer . should_be_true
         1.is_a Number . should_be_true
         1.is_a Decimal . should_be_false
+        1.is_a Date . should_be_false
 
         1.0.is_a Number . should_be_true
         1.0.is_a Decimal . should_be_true
-        1.0.is_an Integer . should_be_false
+        1.0.is_a Integer . should_be_false
         1.0.is_a Text . should_be_false
 
         random_gen = Random.new
         Meta.is_a random_gen Polyglot . should_be_true
-        Meta.is_an random_gen Integer . should_be_false
+        Meta.is_a random_gen Integer . should_be_false
 
-        (My_Type_Data 1 "foo" Nothing).is_a My_Type_Data . should_be_true
-        (My_Type_Data 1 "foo" Nothing).is_a Test_Type_Data . should_be_false
-        (My_Type_Data 1 "foo" Nothing).is_a Number . should_be_false
+        (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
+        (My_Type.Value 1 "foo" Nothing).is_a Test_Type.Value . should_be_false
+        (My_Type.Value 1 "foo" Nothing).is_a Number . should_be_false
 
         err = Error.throw "Error Value"
-        1.is_an Error . should_be_false
-        err.is_an Error . should_be_true
+        1.is_a Error . should_be_false
+        err.is_a Error . should_be_true
         err.is_a Text . should_be_false
-        Meta.is_an err Error . should_be_true
+        Meta.is_a err Error . should_be_true
         Meta.is_a err Text . should_be_false
+
+        Meta.is_a Date.now Date.Date . should_be_true
+        Meta.is_a Date_Time.now Date_Time.Date_Time . should_be_true
+        Meta.is_a Date_Time.now Date.Date . should_be_false
+        Meta.is_a Time_Of_Day.now Time_Of_Day.Time_Of_Day . should_be_true
+        Meta.is_a Time_Of_Day.now Date.Date . should_be_false
+        Meta.is_a Date_Time.now.zone Time_Zone.Time_Zone . should_be_true
+        Meta.is_a Date_Time.now.zone Date.Date . should_be_false
+
+    Test.specify "should allow for returning the type of a value" <|
+        n_1 = Meta.type_of 42
+        n_1 . should_equal_type Integer
+        n_1 . should_not_equal_type Decimal
+
+        n_2 = Meta.type_of 2.81
+        n_2 . should_equal_type Decimal
+        n_2 . should_not_equal_type Integer
+
+        n_3 = Meta.type_of (Long.MAX_VALUE * 2)
+        n_3 . should_equal_type Integer
+        n_3 . should_not_equal_type Decimal
+
+        v_tpe = Meta.type_of [1,2,3]
+        v_tpe . should_equal_type Vector.Vector
+        v_tpe . should_not_equal_type Array
+        Meta.type_of [1,2,3].to_array . should_equal_type Array
+
+        Meta.type_of "foo" . should_equal_type Text
+        Meta.type_of "0" . should_not_equal_type Integer
+
+        Meta.type_of True . should_equal_type Boolean
+        Meta.type_of False . should_not_equal_type Any
+
+        (Meta.type_of Date.now) . should_equal_type Date.Date
+        (Meta.type_of Date.now) . should_not_equal_type Date_Time.Date_Time
+        (Meta.type_of Date_Time.now) . should_equal_type Date_Time.Date_Time
+        (Meta.type_of Date_Time.now) . should_not_equal_type Date.Date
+        (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day.Time_Of_Day
+        (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date.Date
+        (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone.Time_Zone
+        (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date.Date
+        (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone.Time_Zone
+        (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone.Time_Zone
+
+        list = ArrayList.new
+        list.add 123
+        list_tpe = Meta.type_of list
+        list_tpe . should_not_equal_type JObject
+        list_tpe . should_equal_type ArrayList
+
+        e = IOException.new "meh"
+        e_tpe = Meta.type_of e
+        e_tpe . should_equal_type IOException
+        e_tpe . should_not_equal_type JException
 
     location_pending = case Platform.os of
         Platform.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
+
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:87:15-40"
+        loc = "Meta_Spec.enso:150:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|
         x = 42
-        y = My_Type_Data 1 2 3
+        y = My_Type.Value 1 2 3
         Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Numbers.Integer"
-        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type_Data"
+        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type.Value"
 
     Test.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Tests'
@@ -112,8 +175,8 @@ spec = Test.group "Meta-Value Manipulation" <|
         a==b . should_be_true
         a==c . should_be_false
 
-        (Test_Type_Data a)==(Test_Type_Data a) . should_be_true
-        (Test_Type_Data a)==(Test_Type_Data b) . should_be_true
-        (Test_Type_Data a)==(Test_Type_Data c) . should_be_false
+        (Test_Type.Value a)==(Test_Type.Value a) . should_be_true
+        (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
+        (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
 main = Test.Suite.run_main spec

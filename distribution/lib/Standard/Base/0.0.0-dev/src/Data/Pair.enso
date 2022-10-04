@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Pair.Pair import all
+from project.Data.Pair.Pair export all
+
 ## A pair of elements.
 type Pair
 

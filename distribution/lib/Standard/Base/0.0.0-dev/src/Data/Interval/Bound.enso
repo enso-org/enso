@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Interval.Bound.Bound import all
+from project.Data.Interval.Bound.Bound export all
+
 ## A type representing an interval bound over any orderable type.
 
    An orderable type is one that has a

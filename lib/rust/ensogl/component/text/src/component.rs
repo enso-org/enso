@@ -5,12 +5,13 @@
 // === Export ===
 // ==============
 
-pub mod area;
+pub mod line;
+pub mod text;
 
 
 
 #[warn(missing_docs)]
 mod selection;
 
-pub use area::Area;
 use selection::Selection;
+pub use text::Text;

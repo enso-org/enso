@@ -16,9 +16,9 @@ class MixfixFunctionsTest extends InterpreterTest {
           |    Mk_Foo a
           |
           |Foo.if_then self = x -> case self of
-          |    Mk_Foo a -> a + x
+          |    Foo.Mk_Foo a -> a + x
           |
-          |main = if Mk_Foo 2 then 8
+          |main = if Foo.Mk_Foo 2 then 8
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -31,9 +31,9 @@ class MixfixFunctionsTest extends InterpreterTest {
           |    Mk_Foo a b
           |
           |Foo.if_then_else self = a -> b -> case self of
-          |    Mk_Foo x y -> x + y + a + b
+          |    Foo.Mk_Foo x y -> x + y + a + b
           |
-          |main = if (Mk_Foo 1 2) then 3 else 4
+          |main = if (Foo.Mk_Foo 1 2) then 3 else 4
           |""".stripMargin
 
       eval(code) shouldEqual 10

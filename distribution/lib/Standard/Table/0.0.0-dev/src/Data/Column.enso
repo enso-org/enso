@@ -24,6 +24,10 @@ polyglot java import org.enso.table.operations.OrderBuilder
 from_vector : Text -> Vector -> Column
 from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
 
+# TODO Dubious constructor export
+from project.Data.Column.Column import all
+from project.Data.Column.Column export all
+
 type Column
 
     ## PRIVATE
@@ -1111,6 +1115,10 @@ type Column
     duplicate_count : Column
     duplicate_count self = Column_Data self.java_column.duplicateCount
 
+# TODO Dubious constructor export
+from project.Data.Column.Aggregate_Column import all
+from project.Data.Column.Aggregate_Column export all
+
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
 type Aggregate_Column
@@ -1265,6 +1273,10 @@ type Aggregate_Column
     print : Nothing
     print self = self.values.print
 
+# TODO Dubious constructor export
+from project.Data.Column.Empty_Error import all
+from project.Data.Column.Empty_Error export all
+
 ## UNSTABLE
 
    An error for when the column contains no elements.
@@ -1355,7 +1367,7 @@ get_item_string column ix =
        task is implemented:
        https://www.pivotaltracker.com/story/show/181499256
     case item of
-        Text -> item
+        _ : Text -> item
         _ -> item.to_text
 
 ## PRIVATE

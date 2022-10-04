@@ -266,7 +266,7 @@ impl Project {
     ) -> FallibleResult<Self> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
         let logger = Logger::new_sub(parent, "Project Controller");
-        info!(logger, "Creating a model of project {properties.name}");
+        info!("Creating a model of project {}", properties.name);
         let binary_protocol_events = language_server_bin.event_stream();
         let json_rpc_events = language_server_rpc.events();
         let embedded_visualizations = default();
@@ -375,36 +375,30 @@ impl Project {
     pub fn binary_event_handler(
         &self,
     ) -> impl Fn(engine_protocol::binary::Event) -> futures::future::Ready<()> {
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         move |event| {
-            debug!(logger, "Received an event from the binary protocol: {event:?}");
+            debug!("Received an event from the binary protocol: {event:?}");
             use engine_protocol::binary::client::Event;
             use engine_protocol::binary::Notification;
             match event {
                 Event::Notification(Notification::VisualizationUpdate { context, data }) => {
-                    debug!(
-                        logger,
-                        "Visualization binary data: {String::from_utf8_lossy(data.as_ref())}"
-                    );
+                    debug!("Visualization binary data: {}", String::from_utf8_lossy(data.as_ref()));
                     let data = VisualizationUpdateData::new(data);
                     if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
                         let result =
                             execution_contexts.dispatch_visualization_update(context, data);
                         if let Err(error) = result {
-                            error!(logger, "Failed to handle the visualization update: {error}.");
+                            error!("Failed to handle the visualization update: {error}.");
                         }
                     } else {
                         error!(
-                            logger,
-                            "Received a visualization update despite project being \
-                        already dropped."
+                            "Received a visualization update despite project being already dropped."
                         );
                     }
                 }
                 Event::Closed => {
-                    error!(logger, "Lost binary connection with the Language Server!");
+                    error!("Lost binary connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerBinary;
                     let notification = model::project::Notification::ConnectionLost(which);
                     publisher.notify(notification);
@@ -413,7 +407,7 @@ impl Project {
                     //   https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger, "Error emitted by the binary data connection: {error}.");
+                    error!("Error emitted by the binary data connection: {error}.");
                 }
             }
             futures::future::ready(())
@@ -427,16 +421,14 @@ impl Project {
     pub fn execution_update_handler(
         &self,
     ) -> impl Fn(execution_context::Id, ExecutionUpdate) + Clone {
-        let logger = self.logger.clone_ref();
         let registry = Rc::downgrade(&self.execution_contexts);
         move |id, update| {
             if let Some(registry) = registry.upgrade() {
                 if let Err(error) = registry.handle_update(id, update) {
-                    error!(logger, "Failed to handle the execution context update: {error}");
+                    error!("Failed to handle the execution context update: {error}");
                 }
             } else {
-                warning!(
-                    logger,
+                warn!(
                     "Received an execution context notification despite execution \
                             context being already dropped."
                 );
@@ -456,13 +448,12 @@ impl Project {
         // generalize them, as the  underlying RPC handlers and their types are separate.
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let execution_update_handler = self.execution_update_handler();
         move |event| {
-            debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
+            debug!("Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
             use engine_protocol::language_server::Notification;
 
@@ -489,9 +480,8 @@ impl Project {
                 }
                 Event::Notification(Notification::ExecutionFailed(update)) => {
                     error!(
-                        logger,
-                        "Execution failed in context {update.context_id}. Error: \
-                        {update.message}."
+                        "Execution failed in context {}. Error: {}.",
+                        update.context_id, update.message
                     );
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) =>
@@ -510,14 +500,16 @@ impl Project {
                 }
                 Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
                     error!(
-                        logger,
-                        "Visualisation evaluation failed in context {update.context_id} \
-                        for visualisation {update.visualisation_id} of expression \
-                        {update.expression_id}. Error: {update.message}"
+                        "Visualisation evaluation failed in context {} for visualisation {} of \
+                        expression {}. Error: {}",
+                        update.context_id,
+                        update.visualisation_id,
+                        update.expression_id,
+                        update.message
                     );
                 }
                 Event::Closed => {
-                    error!(logger, "Lost JSON-RPC connection with the Language Server!");
+                    error!("Lost JSON-RPC connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerJson;
                     let notification = model::project::Notification::ConnectionLost(which);
                     publisher.notify(notification);
@@ -526,7 +518,7 @@ impl Project {
                     //  see https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger, "Error emitted by the JSON-RPC data connection: {error}.");
+                    error!("Error emitted by the JSON-RPC data connection: {error}.");
                 }
             }
             futures::future::ready(())
@@ -603,7 +595,7 @@ impl model::project::API for Project {
     #[profile(Detail)]
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
         async move {
-            info!(self.logger, "Obtaining module for {path}");
+            info!("Obtaining module for {path}");
             let model_loader = self.load_module(path.clone());
             let model: model::Module = self.module_registry.get_or_load(path, model_loader).await?;
             Ok(model)

@@ -22,12 +22,6 @@ use parser_scala::Parser;
 /// The label of compiling stdlib message process.
 pub const COMPILING_STDLIB_LABEL: &str = "Compiling standard library. It can take up to 1 minute.";
 
-/// The name of the module initially opened in the project view.
-///
-/// Currently, this name is hardcoded in the engine services and is populated for each project
-/// created using engine's Project Picker service.
-pub const INITIAL_MODULE_NAME: &str = "Main";
-
 /// Name of the main definition.
 ///
 /// This is the definition whose graph will be opened on IDE start.
@@ -50,12 +44,6 @@ pub fn main_method_ptr(
     module_path: &model::module::Path,
 ) -> MethodPointer {
     module_path.method_pointer(project_name, MAIN_DEFINITION_NAME)
-}
-
-/// The identifier of the project's main module.
-pub fn main_module_id() -> model::module::Id {
-    // We can just assume that `INITIAL_MODULE_NAME` is valid. This is verified by a test.
-    model::module::Id::try_new([INITIAL_MODULE_NAME]).unwrap()
 }
 
 
@@ -124,7 +112,7 @@ impl Project {
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
         let project = self.model.clone_ref();
         let parser = self.model.parser();
-        let module_path = self.initial_module_path()?;
+        let module_path = self.initial_module_path();
         let file_path = module_path.file_path().clone();
 
         // TODO [mwu] This solution to recreate missing main file should be considered provisional
@@ -161,7 +149,7 @@ impl Project {
 
 impl Project {
     /// Returns the path to the initially opened module in the given project.
-    fn initial_module_path(&self) -> FallibleResult<model::module::Path> {
+    fn initial_module_path(&self) -> model::module::Path {
         crate::ide::initial_module_path(&self.model)
     }
 
@@ -263,12 +251,6 @@ mod tests {
     }
 
     #[test]
-    fn main_module_id_test() {
-        // Should not panic.
-        main_module_id();
-    }
-
-    #[test]
     fn new_project_engine_version_fills_requirements() {
         let requirements = enso_config::engine_version_requirement();
         let version = semver::Version::parse(enso_config::engine_version_supported).unwrap();
@@ -302,7 +284,6 @@ mod tests {
             assert_eq!(code, module.ast().repr());
         };
         expect_intact("main = 5");
-        expect_intact("here.main = 5");
         expect_intact(&format!("{}.main = 5", module_name));
     }
 }

@@ -1,3 +1,6 @@
+from project.Semantic.Names.Definitions.Foo import all
+from project.Semantic.Names.Definitions.Foo export all
+
 type Foo
     Foo_Data a b c
 
@@ -12,6 +15,9 @@ method_with_local_vars a =
   bar = another_constant
   another_constant = f -> f + a + 1
   bar + (another_constant a)
+
+from project.Semantic.Names.Definitions.Bar import all
+from project.Semantic.Names.Definitions.Bar export all
 
 type Bar
     Bar_Data a

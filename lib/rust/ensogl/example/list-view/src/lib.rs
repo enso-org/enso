@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -23,13 +24,12 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_text::unit::Bytes;
+use enso_text::index::Byte;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf::run_once_initialized;
-use logger::TraceLogger as Logger;
 
 
 
@@ -75,7 +75,7 @@ impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> fo
             None
         } else {
             let label = iformat!("Entry {id}");
-            let highlighted = if id == 10 { vec![(Bytes(1)..Bytes(3)).into()] } else { vec![] };
+            let highlighted = if id == 10 { vec![(Byte(1)..Byte(3)).into()] } else { vec![] };
             Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
         }
     }
@@ -101,11 +101,10 @@ fn init(app: &Application) {
     // FIXME[WD]: This should not be needed after text gets proper depth-handling.
     app.display.default_scene.layers.below_main.add_exclusive(&list_view);
 
-    let logger: Logger = Logger::new("SelectDebugScene");
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
-        eval list_view.chosen_entry([logger](entry) {
-            info!(logger, "Chosen entry {entry:?}")
+        eval list_view.chosen_entry([](entry) {
+            info!("Chosen entry {entry:?}")
         });
     }
 

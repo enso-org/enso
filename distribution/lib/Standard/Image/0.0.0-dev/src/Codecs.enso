@@ -30,10 +30,10 @@ polyglot java import org.enso.image.Codecs as Java_Codecs
 read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.IO_Error
 read location flags=[] =
     path = case location of
-        File.File -> location.path
+        _ : File.File -> location.path
         _ -> location
     read_flags = case flags of
-        Vector.Vector ->
+        _ : Vector.Vector ->
             if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                 flags.map .to_integer . reduce (_.bit_or _)
         _ -> flags.to_integer
@@ -62,14 +62,18 @@ read location flags=[] =
 Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
 Image.Image.write self location flags=[] =
     path = case location of
-        File.File -> location.path
+        _ : File.File -> location.path
         _ -> location
     write_flags = case flags of
-        Vector.Vector -> flags
+        _ : Vector.Vector -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
     Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
         Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
+
+# TODO Dubious constructor export
+from project.Codecs.Read_Flag import all
+from project.Codecs.Read_Flag export all
 
 ## UNSTABLE
 type Read_Flag
@@ -89,6 +93,10 @@ type Read_Flag
        Use Geographic Data Abstraction Library (GDAL) driver to load images in
        geospatial raster data formats.
     Read_Gdal
+
+# TODO Dubious constructor export
+from project.Codecs.Write_Flag import all
+from project.Codecs.Write_Flag export all
 
 ## UNSTABLE
 type Write_Flag

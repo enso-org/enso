@@ -59,7 +59,7 @@ impl Initializer {
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
     #[profile(Task)]
     pub async fn start(self) -> Result<Ide, FailedIde> {
-        info!(self.logger, "Starting IDE with the following config: {self.config:?}");
+        info!("Starting IDE with the following config: {:?}", self.config);
 
         ensogl_text_msdf::initialized().await;
         let ensogl_app = ensogl::application::Application::new(self.config.dom_parent_id());
@@ -83,12 +83,12 @@ impl Initializer {
         match self.initialize_ide_controller().await {
             Ok(controller) => {
                 let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                info!(self.logger, "Setup done.");
+                info!("Setup done.");
                 Ok(ide)
             }
             Err(error) => {
                 let message = format!("Failed to initialize application: {error}");
-                error!(self.logger, "{message}");
+                error!("{message}");
                 status_bar.add_event(ide_view::status_bar::event::Label::new(message));
                 Err(FailedIde { view })
             }
@@ -186,7 +186,7 @@ impl WithProjectManager {
     /// Creates a new project and returns its id, so the newly connected project can be opened.
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
-        info!(self.logger, "Creating a new project named '{self.project_name}'.");
+        info!("Creating a new project named '{}'.", self.project_name);
         let version = enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
@@ -209,7 +209,7 @@ impl WithProjectManager {
         if let Ok(project_id) = project {
             Ok(project_id)
         } else {
-            info!(self.logger, "Attempting to create {self.project_name}");
+            info!("Attempting to create {}", self.project_name);
             self.create_project().await
         }
     }
@@ -243,7 +243,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ide_view::component_browser::breadcrumbs::Breadcrumbs>();
     app.views.register::<ide_view::component_browser::component_group::View>();
     app.views.register::<ide_view::component_browser::component_group::wide::View>();
-    app.views.register::<ensogl_component::text::Area>();
+    app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
 

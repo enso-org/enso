@@ -3,7 +3,10 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
@@ -250,7 +253,16 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null, null)
-    mod.unsafeBuildIrStub()
+    mod.unsafeSetIr(
+      IR.Module(List(), List(), List(), None)
+        .updateMetadata(
+          BindingAnalysis -->> BindingsMap(
+            List(),
+            ModuleReference.Concrete(mod)
+          )
+        )
+    )
+    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

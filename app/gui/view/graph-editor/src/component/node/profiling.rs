@@ -180,7 +180,7 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProfilingLabel {
     root:   display::object::Instance,
-    label:  text::Area,
+    label:  text::Text,
     frp:    Frp,
     styles: StyleWatchFrp,
 }
@@ -197,9 +197,9 @@ impl ProfilingLabel {
     /// Constructs a `ProfilingLabel` for the given application.
     pub fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let root = display::object::Instance::new(Logger::new("ProfilingIndicator"));
+        let root = display::object::Instance::new();
 
-        let label = text::Area::new(app);
+        let label = text::Text::new(app);
         root.add_child(&label);
         label.set_position_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
         label.remove_from_scene_layer(&scene.layers.main);
@@ -230,7 +230,7 @@ impl ProfilingLabel {
                 (&frp.set_status,&frp.set_min_global_duration,&frp.set_max_global_duration,&theme,
                     |&status,&min,&max,&theme| status.display_color(min,max,theme)
                 );
-            label.set_default_color <+ color.value.map(|c| c.into());
+            label.set_property_default <+ color.value.ref_into_some();
 
 
             // === Position ===
@@ -241,7 +241,7 @@ impl ProfilingLabel {
 
             // === Content ===
 
-            label.set_content <+ frp.set_status.map(|status| status.to_string());
+            label.set_content <+ frp.set_status.map(|status| status.to_im_string());
         }
 
         ProfilingLabel { root, label, frp, styles }

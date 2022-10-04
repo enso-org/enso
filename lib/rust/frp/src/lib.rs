@@ -146,6 +146,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -156,6 +157,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![feature(associated_type_defaults)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(unboxed_closures)]

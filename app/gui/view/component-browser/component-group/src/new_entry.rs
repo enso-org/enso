@@ -113,7 +113,7 @@ pub struct Model {
     pub kind:        Kind,
     pub color:       color::Rgba,
     pub caption:     ImString,
-    pub highlighted: Rc<Vec<text::Range<text::Bytes>>>,
+    pub highlighted: Rc<Vec<text::Range<text::Byte>>>,
     pub icon:        Option<icon::Id>,
     pub group_id:    GroupId,
 }
@@ -179,9 +179,7 @@ struct CurrentIcon {
 impl Default for CurrentIcon {
     fn default() -> Self {
         Self {
-            display_object: display::object::Instance::new(Logger::new(
-                "component_browser_entry_icon",
-            )),
+            display_object: display::object::Instance::new(),
             strong_color:   default(),
             weak_color:     default(),
             shape:          default(),
@@ -195,10 +193,7 @@ impl CurrentIcon {
         if self.id != new_icon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
-                let shape = icon_id.create_shape(
-                    Logger::new("ComponentBrowserEntry"),
-                    Vector2(icon::SIZE, icon::SIZE),
-                );
+                let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
                 tracing::debug!("Creating new icon {icon_id:?}.");
                 shape.strong_color.set(self.strong_color.into());
                 shape.weak_color.set(self.weak_color.into());
@@ -238,7 +233,7 @@ impl display::Object for CurrentIcon {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Data {
     display_object: display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     background:     background::View,
     icon:           Rc<RefCell<CurrentIcon>>,
     style:          StyleWatchFrp,
@@ -246,14 +241,15 @@ pub struct Data {
 
 impl Data {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
-        let display_object = display::object::Instance::new(Logger::new("ComponentGroupEntry"));
-        let label = app.new_view::<text::Area>();
-        let background = background::View::new(Logger::new("ComponentGroupEntry"));
+        let display_object = display::object::Instance::new();
+        let label = app.new_view::<text::Text>();
+        let background = background::View::new();
         let icon = CurrentIcon::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&background);
         display_object.add_child(&icon);
         display_object.add_child(&label);
+        label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
             label.add_to_scene_layer(layer);
         }
@@ -280,7 +276,7 @@ impl Data {
         let left = -entry_size.x / 2.0 + style.padding;
         self.icon.borrow().set_position_x(left + style.icon_size / 2.0);
         let text_x = Self::text_x_position(kind, style);
-        self.label.set_position_xy(Vector2(text_x, style.text_size.raw / 2.0));
+        self.label.set_position_xy(Vector2(text_x, style.text_size.value / 2.0));
     }
 
     fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
@@ -401,7 +397,7 @@ impl grid_view::Entry for View {
             });
             let colors = Colors::from_main_color(network, &data.style, &color, &style, &is_dimmed);
             eval colors.background ((c) data.background.color.set(c.into()));
-            data.label.set_default_color <+ colors.text;
+            data.label.set_property_default <+ colors.text.ref_into_some();
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
             eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
@@ -416,9 +412,10 @@ impl grid_view::Entry for View {
             // === Icon and Text ===
 
             max_text_width <- kind_and_style.map(|(kind, style)| Data::max_text_width(*kind, style));
-            caption <- input.set_model.map(|m| m.caption.to_string());
+            caption <- input.set_model.map(|m| m.caption.clone_ref());
             icon <- input.set_model.map(|m| m.icon);
-            data.label.set_content_truncated <+ all(caption, max_text_width);
+            data.label.set_content <+ caption;
+            data.label.set_view_width <+ max_text_width.some();
             content_changed <- data.label.content.constant(());
             style_changed <- style.constant(());
             highlight_range <= all_with3(
@@ -427,12 +424,12 @@ impl grid_view::Entry for View {
                 &style_changed,
                 |m, (), ()| m.highlighted.deref().clone()
             );
-            data.label.set_sdf_bold <+ highlight_range.map2(&style, |range, s| {
-                (*range, text::style::SdfBold::new(s.highlight_bold))
+            data.label.set_property <+ highlight_range.map2(&style, |range, s| {
+                (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
-            data.label.set_default_text_size <+ style.map(|s| s.text_size);
+            data.label.set_property_default <+ style.map(|s| s.text_size).ref_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
-            data.label.set_font <+ style.map(|s| s.font.to_string()).on_change();
+            data.label.set_font <+ style.map(|s| s.font.clone_ref()).on_change();
         }
         Self { frp, data }
     }

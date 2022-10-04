@@ -260,7 +260,7 @@ struct Model {
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
-    prompt:                 ensogl_text::Area,
+    prompt:                 ensogl_text::Text,
     open_dialog:            Rc<OpenDialog>,
     debug_mode_popup:       debug_mode_popup::View,
 }
@@ -269,14 +269,14 @@ impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
         searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let prompt_background = prompt_background::View::new(&logger);
-        let prompt = ensogl_text::Area::new(app);
+        let prompt_background = prompt_background::View::new();
+        let prompt = ensogl_text::Text::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -344,7 +344,7 @@ impl Model {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             node.position().xy()
         } else {
-            error!(self.logger, "Trying to show searcher under nonexisting node");
+            error!("Trying to show searcher under nonexisting node");
             default()
         }
     }
@@ -730,8 +730,8 @@ impl View {
                     let mut color    = *color;
                     color.alpha     *= weight;
                     model.prompt_background.color_rgba.set(bg_color.into());
-                    model.prompt.set_color_all(color);
-                    model.prompt.set_default_text_size(ensogl_text::Size(*size));
+                    model.prompt.set_property(.., color);
+                    model.prompt.set_property_default(ensogl_text::Size(*size));
                 })
             );
             _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
@@ -800,7 +800,7 @@ impl display::Object for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

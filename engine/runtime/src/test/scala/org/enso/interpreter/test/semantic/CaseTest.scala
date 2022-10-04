@@ -15,10 +15,10 @@ class CaseTest extends InterpreterTest {
     "result in an error if the matched constructor isn't visible" in {
       val code =
         """
-          |from Standard.Base.Data.List import all
+          |from Standard.Base.Data.List import List
           |
           |main =
-          |    x = Cons 0 Nil
+          |    x = List.Cons 0 List.Nil
           |    case x of
           |        Cons2 a b -> a + b
           |        Nil2 -> 0
@@ -32,16 +32,32 @@ class CaseTest extends InterpreterTest {
     "result in an error if the wrong number of fields are provided" in {
       val code =
         """
-          |from Standard.Base.Data.List import all
+          |from Standard.Base.Data.List import List
           |
           |main =
-          |    x = Cons 0 Nil
+          |    x = List.Cons 0 List.Nil
           |    case x of
-          |        Cons a -> a
+          |        List.Cons a -> a
           |""".stripMargin
 
       val msg =
-        "Compile error: Cannot match on Cons using 1 field (expecting 2)"
+        "Compile error: Cannot match on List.Cons using 1 field (expecting 2)"
+      the[InterpreterException] thrownBy eval(code) should have message msg
+    }
+
+    "result in an error when trying to pattern match on a module in a type position" in {
+      val code =
+        """
+          |import Standard.Base.Data.Vector
+          |
+          |main =
+          |    case [1,2,3] of
+          |        _ : Vector -> 1
+          |        _ -> 2
+          |""".stripMargin
+
+      val msg =
+        "Compile error: Vector is not visible in this scope"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
   }

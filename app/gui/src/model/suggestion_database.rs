@@ -4,13 +4,13 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
+use crate::model::suggestion_database::entry::ModuleSpan;
 use crate::notification;
 
 use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
-use enso_text::Location;
 use ensogl::data::HashMapTree;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
@@ -58,7 +58,7 @@ impl QualifiedNameToIdMap {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
-            event!(WARN, "An existing suggestion entry id at {path} was overwritten with {id}.");
+            warn!("An existing suggestion entry id at {path} was overwritten with {id}.");
         }
     }
 
@@ -70,7 +70,7 @@ impl QualifiedNameToIdMap {
             let msg = format!(
                 "Could not remove a suggestion entry id at {path} because it does not exist."
             );
-            event!(WARN, "{msg}");
+            warn!("{msg}");
         }
     }
 
@@ -137,7 +137,6 @@ pub enum Notification {
 /// argument names and types.
 #[derive(Clone, Debug)]
 pub struct SuggestionDatabase {
-    logger:                   Logger,
     entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
     examples:                 RefCell<Vec<Rc<Example>>>,
@@ -147,22 +146,20 @@ pub struct SuggestionDatabase {
 
 impl SuggestionDatabase {
     /// Create a database with no entries.
-    pub fn new_empty(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "SuggestionDatabase");
+    pub fn new_empty() -> Self {
         let entries = default();
         let qualified_name_to_id_map = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, qualified_name_to_id_map, examples, version, notifications }
+        Self { entries, qualified_name_to_id_map, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
     pub fn new_from_entries<'a>(
-        logger: impl AnyLogger,
         entries: impl IntoIterator<Item = (&'a SuggestionId, &'a Entry)>,
     ) -> Self {
-        let ret = Self::new_empty(logger);
+        let ret = Self::new_empty();
         let entries = entries.into_iter().map(|(id, entry)| (*id, Rc::new(entry.clone())));
         ret.entries.borrow_mut().extend(entries);
         ret
@@ -178,7 +175,6 @@ impl SuggestionDatabase {
 
     /// Create a new database model from response received from the Language Server.
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
-        let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
         for ls_entry in response.entries {
@@ -189,7 +185,7 @@ impl SuggestionDatabase {
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
-                    error!(logger, "Discarded invalid entry {id}: {err}");
+                    error!("Discarded invalid entry {id}: {err}");
                 }
             }
         }
@@ -197,12 +193,11 @@ impl SuggestionDatabase {
         //          available modules documentation. (https://github.com/enso-org/ide/issues/1011)
         let examples = example::EXAMPLES.iter().cloned().map(Rc::new).collect_vec();
         Self {
-            logger,
-            entries: RefCell::new(entries),
+            entries:                  RefCell::new(entries),
             qualified_name_to_id_map: RefCell::new(qualified_name_to_id_map),
-            examples: RefCell::new(examples),
-            version: Cell::new(response.current_version),
-            notifications: default(),
+            examples:                 RefCell::new(examples),
+            version:                  Cell::new(response.current_version),
+            notifications:            default(),
         }
     }
 
@@ -228,7 +223,7 @@ impl SuggestionDatabase {
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
-                        error!(self.logger, "Discarding update for {id}: {err}")
+                        error!("Discarding update for {id}: {err}")
                     }
                 },
                 entry::Update::Remove { id } => {
@@ -241,7 +236,7 @@ impl SuggestionDatabase {
                                 "Received a suggestion database 'Remove' event for a nonexistent \
                                 entry id: {id}."
                             );
-                            error!(self.logger, "{msg}");
+                            error!("{msg}");
                         }
                     }
                 }
@@ -252,13 +247,10 @@ impl SuggestionDatabase {
                         let errors = entry.apply_modifications(*modification);
                         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
                         for error in errors {
-                            error!(
-                                self.logger,
-                                "Error when applying update for entry {id}: {error:?}"
-                            );
+                            error!("Error when applying update for entry {id}: {error:?}");
                         }
                     } else {
-                        error!(self.logger, "Received Modify event for nonexistent id: {id}");
+                        error!("Received Modify event for nonexistent id: {id}");
                     }
                 }
             };
@@ -300,39 +292,25 @@ impl SuggestionDatabase {
     }
 
     /// Search the database for entries with given name and visible at given location in module.
-    pub fn lookup_by_name_and_location(
-        &self,
-        name: impl Str,
-        module: &QualifiedName,
-        location: Location,
-    ) -> Vec<Rc<Entry>> {
+    pub fn lookup_at(&self, name: impl Str, location: &ModuleSpan) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
             .values()
-            .filter(|entry| {
-                entry.matches_name(name.as_ref()) && entry.is_visible_at(module, location)
-            })
+            .filter(|entry| entry.matches_name(name.as_ref()) && entry.is_visible_at(location))
             .cloned()
             .collect()
     }
 
     /// Search the database for Local or Function entries with given name and visible at given
     /// location in module.
-    pub fn lookup_locals_by_name_and_location(
-        &self,
-        name: impl Str,
-        module: &QualifiedName,
-        location: Location,
-    ) -> Vec<Rc<Entry>> {
+    pub fn lookup_locals_at(&self, name: impl Str, location: &ModuleSpan) -> Vec<Rc<Entry>> {
         self.entries
             .borrow()
             .values()
             .cloned()
             .filter(|entry| {
                 let is_local = entry.kind == Kind::Function || entry.kind == Kind::Local;
-                is_local
-                    && entry.matches_name(name.as_ref())
-                    && entry.is_visible_at(module, location)
+                is_local && entry.matches_name(name.as_ref()) && entry.is_visible_at(location)
             })
             .collect()
     }
@@ -453,7 +431,8 @@ mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
-    use enso_text::traits::*;
+    use enso_text::unit::*;
+    use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -698,9 +677,9 @@ mod test {
         assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
         assert!(db.lookup(3).unwrap().arguments[2].is_suspended);
         assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
-        let range = Location { line: 1.line(), column: 5.column() }..=Location {
-            line:   3.line(),
-            column: 0.column(),
+        let range = Location { line: 1.into(), offset: Utf16CodeUnit::from(5) }..=Location {
+            line:   3.into(),
+            offset: Utf16CodeUnit::from(0),
         };
         assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule { range });
         assert_eq!(db.version.get(), 6);
@@ -866,7 +845,7 @@ mod test {
     // Check that the suggestion database doesn't panic when quering invalid qualified names.
     #[test]
     fn lookup_by_fully_qualified_name_with_invalid_names() {
-        let db = SuggestionDatabase::new_empty(Logger::new("SuggestionDatabase"));
+        let db = SuggestionDatabase::new_empty();
         let _ = db.lookup_by_qualified_name_str("");
         let _ = db.lookup_by_qualified_name_str(".");
         let _ = db.lookup_by_qualified_name_str("..");

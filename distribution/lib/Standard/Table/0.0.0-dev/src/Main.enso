@@ -111,6 +111,10 @@ Json.Json.to_table self fields=Nothing = case self of
                 _ -> Error.throw (Invalid_Format_Error_Data self "not having the 'features' key.")
 
 
+# TODO Dubious constructor export
+from project.Main.Invalid_Format_Error import all
+from project.Main.Invalid_Format_Error export all
+
 ## UNSTABLE
 
    An error representing an invalid format for conversion.

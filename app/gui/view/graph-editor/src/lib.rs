@@ -15,6 +15,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -1693,7 +1694,7 @@ impl GraphEditorModel {
         let network = frp.network();
         let scene = &app.display.default_scene;
         let logger = Logger::new("GraphEditor");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let nodes = Nodes::new(&logger);
         let edges = Edges::new(&logger);
         let vis_registry = visualization::Registry::with_default_visualizations();

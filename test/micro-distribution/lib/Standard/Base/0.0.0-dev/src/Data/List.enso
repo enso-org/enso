@@ -1,3 +1,6 @@
+from project.Data.List.List import all
+from project.Data.List.List export all
+
 type List
     Nil
     Cons x xs
