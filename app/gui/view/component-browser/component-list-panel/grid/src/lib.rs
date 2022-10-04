@@ -94,6 +94,8 @@ ensogl_core::define_endpoints_2! {
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
         accept_suggestion(),
+        jump_group_up(),
+        jump_group_down(),
     }
     Output {
         active(ElementId),
@@ -337,6 +339,32 @@ impl Model {
             grid_view::Margins { top: vertical_margin, ..default() }
         }
     }
+
+    fn selection_after_jump_group_up(
+        &self,
+        &(current_row, col): &(Row, Col),
+    ) -> Option<(Row, Col)> {
+        let layout = self.layout.borrow();
+        if let Some(group_above) = layout.group_above_location(current_row, col) {
+            Some((group_above.rows().last()?, col))
+        } else {
+            let current_group = layout.group_at_location(current_row, col)?;
+            Some((current_group.rows().next()?, col))
+        }
+    }
+
+    fn selection_after_jump_group_down(
+        &self,
+        &(current_row, col): &(Row, Col),
+    ) -> Option<(Row, Col)> {
+        let layout = self.layout.borrow();
+        if let Some(group_below) = layout.group_below_location(current_row, col) {
+            Some((group_below.rows().last()?, col))
+        } else {
+            let current_group = layout.group_at_location(current_row, col)?;
+            Some((current_group.rows().last()?, col))
+        }
+    }
 }
 
 impl display::Object for Model {
@@ -436,6 +464,11 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
 
 
+            // === Jumping by Groups ===
+
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_up).filter_map(f!((loc) model.selection_after_jump_group_up(loc.as_ref()?)));
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_down).filter_map(f!((loc) model.selection_after_jump_group_down(loc.as_ref()?)));
+
             // === Focus propagation ===
 
             grid.focus <+ input.focus;
@@ -486,7 +519,11 @@ impl component::Frp<Model> for Frp {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
-        (&[(Press, "tab", "accept_suggestion")])
+        (&[
+            (Press, "tab", "accept_suggestion"),
+            (Press, "cmd up", "jump_group_up"),
+            (Press, "cmd down", "jump_group_down"),
+        ])
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
             .collect()

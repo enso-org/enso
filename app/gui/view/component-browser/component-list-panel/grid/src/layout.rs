@@ -43,6 +43,11 @@ pub struct LaidGroup<'a> {
 }
 
 impl<'a> LaidGroup<'a> {
+    fn from_map_entry(column: Col, entry: (&Row, &'a Group)) -> Self {
+        let (&header_row, group) = entry;
+        Self { header_row, column, group }
+    }
+
     /// The range of rows where the group spans, _including_ the header.
     pub fn rows(&self) -> Range<Row> {
         self.header_row..(self.header_row + self.group.height + HEADER_HEIGHT_IN_ROWS)
@@ -164,13 +169,27 @@ impl Layout {
     /// If there is no group there, or it's "Local Scope" section, `None` is returned.
     pub fn group_at_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
-        let (group_before_row, group_before) = groups_in_col.range(..=row).last()?;
-        let group_end = group_before_row + group_before.height + HEADER_HEIGHT_IN_ROWS;
-        (group_end > row).as_some_from(|| LaidGroup {
-            header_row: *group_before_row,
-            column,
-            group: group_before,
-        })
+        let group_before_entry = groups_in_col.range(..=row).last()?;
+        let group_before = LaidGroup::from_map_entry(column, group_before_entry);
+        group_before.rows().contains(&row).as_some(group_before)
+    }
+
+    pub fn group_above_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
+        let groups_in_col = &self.columns.get(column)?.groups;
+        let mut groups_before = groups_in_col.range(..row).rev();
+        let first_before = LaidGroup::from_map_entry(column, groups_before.next()?);
+        if first_before.rows().contains(&row) {
+            let second_before = LaidGroup::from_map_entry(column, groups_before.next()?);
+            Some(second_before)
+        } else {
+            Some(first_before)
+        }
+    }
+
+    pub fn group_below_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
+        let groups_in_col = &self.columns.get(column)?.groups;
+        let group_after = groups_in_col.range((row + 1)..).next()?;
+        Some(LaidGroup::from_map_entry(column, group_after))
     }
 
     /// Get the information what element is at given location.
@@ -387,5 +406,95 @@ mod tests {
         assert_eq!(layout.section_rows_at_column(SectionId::SubModules, LEFT), Some(0..3));
         assert_eq!(layout.section_rows_at_column(SectionId::SubModules, CENTER), Some(3..5));
         assert_eq!(layout.section_rows_at_column(SectionId::SubModules, RIGHT), None);
+    }
+
+    #[test]
+    fn groups_above_and_below() {
+        // Layout constructed:
+        // ```
+        // Rows
+        // -       +-----+
+        // 0       |  6  |
+        // -       |     |
+        // 1       |     |
+        // - +-----+-----+-----+
+        // 2 |  4  |  3  |  5  |
+        // - |     |     |     |
+        // 3 |     |     |     |
+        // - +-----+     +-----+
+        // 4 |  1  |     |  2  |
+        // - |     +-----+     |
+        // 5 |     |  0  |     |
+        // - |     |     |     |
+        // 6 |     |     |     |
+        // - +-----+-----+-----+
+        // ```
+        let mut layout = Layout::new(7, 3, 0);
+        let group_ids = (0..7).map(|index| GroupId { section: SectionId::Popular, index });
+        let group_sizes = [1, 2].into_iter().cycle();
+        let group_columns = [CENTER, LEFT, RIGHT].into_iter().cycle();
+        let groups = group_ids.zip(group_sizes).map(|(id, size)| Group {
+            id,
+            height: size,
+            original_height: size,
+            color: None,
+        });
+        for (group, col) in groups.zip(group_columns) {
+            layout.push_group(col, group);
+        }
+        fn id_and_rows_from_group(group: Option<LaidGroup<'_>>) -> Option<(usize, Range<Row>)> {
+            group.map(|g| (g.group.id.index, g.rows()))
+        };
+
+        let group_at =
+            |row: Row, col: Col| id_and_rows_from_group(layout.group_at_location(row, col));
+        assert_eq!(group_at(0, LEFT), None);
+        assert_eq!(group_at(1, LEFT), None);
+        assert_eq!(group_at(2, LEFT), Some((4, 2..4)));
+        assert_eq!(group_at(3, LEFT), Some((4, 2..4)));
+        assert_eq!(group_at(4, LEFT), Some((1, 4..7)));
+        assert_eq!(group_at(5, LEFT), Some((1, 4..7)));
+        assert_eq!(group_at(6, LEFT), Some((1, 4..7)));
+        assert_eq!(group_at(0, CENTER), Some((6, 0..2)));
+        assert_eq!(group_at(1, CENTER), Some((6, 0..2)));
+        assert_eq!(group_at(2, CENTER), Some((3, 2..5)));
+        assert_eq!(group_at(3, CENTER), Some((3, 2..5)));
+        assert_eq!(group_at(4, CENTER), Some((3, 2..5)));
+        assert_eq!(group_at(5, CENTER), Some((0, 5..7)));
+        assert_eq!(group_at(6, CENTER), Some((0, 5..7)));
+
+        let group_above =
+            |row: Row, col: Col| id_and_rows_from_group(layout.group_above_location(row, col));
+        assert_eq!(group_above(0, LEFT), None);
+        assert_eq!(group_above(1, LEFT), None);
+        assert_eq!(group_above(2, LEFT), None);
+        assert_eq!(group_above(3, LEFT), None);
+        assert_eq!(group_above(4, LEFT), Some((4, 2..4)));
+        assert_eq!(group_above(5, LEFT), Some((4, 2..4)));
+        assert_eq!(group_above(6, LEFT), Some((4, 2..4)));
+        assert_eq!(group_above(0, CENTER), None);
+        assert_eq!(group_above(1, CENTER), None);
+        assert_eq!(group_above(2, CENTER), Some((6, 0..2)));
+        assert_eq!(group_above(3, CENTER), Some((6, 0..2)));
+        assert_eq!(group_above(4, CENTER), Some((6, 0..2)));
+        assert_eq!(group_above(5, CENTER), Some((3, 2..5)));
+        assert_eq!(group_above(6, CENTER), Some((3, 2..5)));
+
+        let group_below =
+            |row: Row, col: Col| id_and_rows_from_group(layout.group_below_location(row, col));
+        assert_eq!(group_below(0, LEFT), Some((4, 2..4)));
+        assert_eq!(group_below(1, LEFT), Some((4, 2..4)));
+        assert_eq!(group_below(2, LEFT), Some((1, 4..7)));
+        assert_eq!(group_below(3, LEFT), Some((1, 4..7)));
+        assert_eq!(group_below(4, LEFT), None);
+        assert_eq!(group_below(5, LEFT), None);
+        assert_eq!(group_below(6, LEFT), None);
+        assert_eq!(group_below(0, CENTER), Some((3, 2..5)));
+        assert_eq!(group_below(1, CENTER), Some((3, 2..5)));
+        assert_eq!(group_below(2, CENTER), Some((0, 5..7)));
+        assert_eq!(group_below(3, CENTER), Some((0, 5..7)));
+        assert_eq!(group_below(4, CENTER), Some((0, 5..7)));
+        assert_eq!(group_below(5, CENTER), None);
+        assert_eq!(group_below(6, CENTER), None);
     }
 }

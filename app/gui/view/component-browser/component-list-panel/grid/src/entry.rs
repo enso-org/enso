@@ -6,7 +6,8 @@ use crate::content::GroupId;
 use crate::content::SectionId;
 use crate::entry::style::ColorIntensities;
 use crate::entry::style::Colors;
-use crate::{GroupColors, Style as GridStyle};
+use crate::GroupColors;
+use crate::Style as GridStyle;
 
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -111,19 +112,22 @@ pub enum Kind {
 
 #[derive(Clone, Copy, Debug)]
 pub enum MainColor {
-    Predefined {variant: usize}, Custom(color::Rgba), LocalScope
+    Predefined { variant: usize },
+    Custom(color::Rgba),
+    LocalScope,
 }
 
 impl Default for MainColor {
     fn default() -> Self {
-        Self::Predefined {variant: 0}
+        Self::Predefined { variant: 0 }
     }
 }
 
 impl MainColor {
     fn obtain(self, group_colors: &GroupColors) -> color::Rgba {
         match self {
-            Self::Predefined { variant } => group_colors.variants[variant % group_colors.variants.len()],
+            Self::Predefined { variant } =>
+                group_colors.variants[variant % group_colors.variants.len()],
             Self::Custom(color) => color,
             Self::LocalScope => group_colors.local_scope_group,
         }
@@ -443,6 +447,10 @@ impl grid_view::Entry for View {
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
             eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
+            // We want to animate only when params changed (the different section is highlighted).
+            // Other case, where entry receives new model with new section means it is reused
+            // at another location, so it should not animate anything.
+            colors.skip_animations <+ input.set_model.constant(());
 
 
             // === Header Shadow ===

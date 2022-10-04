@@ -4,11 +4,12 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
+use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::{Animation, display};
+use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
-use ensogl_text as text;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
+use ensogl_text as text;
 
 
 
@@ -93,6 +94,7 @@ pub struct Colors {
     pub text:            frp::Sampler<color::Rgba>,
     pub icon_strong:     frp::Sampler<color::Rgba>,
     pub icon_weak:       frp::Sampler<color::Rgba>,
+    pub skip_animations: frp::Any,
 }
 
 impl Colors {
@@ -137,8 +139,11 @@ impl Colors {
             text <- app_bg_and_main.all_with(&text_intensity, mix).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
             icon_strong <- app_bg_and_main.all_with(&icon_strong_intensity, mix).sampler();
+
+            skip_animations <- any(...);
+            intensity.skip <+ skip_animations;
         }
         init.emit(());
-        Self { icon_weak, icon_strong, text, background, hover_highlight }
+        Self { icon_weak, icon_strong, text, background, hover_highlight, skip_animations }
     }
 }
