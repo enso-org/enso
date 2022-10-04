@@ -1145,3 +1145,19 @@ spec prefix table_builder test_selection pending=Nothing =
         Test.specify "by a custom expression built from table's columns" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10, 20, 13, 4, 5]], ["Y", [0, -100, 8, 2, 5]]]
             t.filter (t.at "X" + t.at "Y" > 9) . at "ix" . to_vector . should_equal [1, 3, 5]
+
+        Test.specify "should handle selection errors: unknown column name" <|
+            t = table_builder [["X", [10, 20, 13, 4, 5]]]
+            action = t.filter "unknown column" on_problems=_
+            tester table =
+                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
+            problems = [No_Such_Column_Error_Data "unknown column"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should handle selection errors: out of bounds index" <|
+            t = table_builder [["X", [10, 20, 13, 4, 5]]]
+            action = t.filter 4 on_problems=_
+            tester table =
+                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
+            problems = [Index_Out_Of_Bounds_Error_Data 4 1]
+            Problems.test_problem_handling action problems tester
