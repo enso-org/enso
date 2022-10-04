@@ -594,13 +594,11 @@ final class TreeToIr {
             } else {
               // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
               var arg = app.getLhs();
-              var isSuspended = switch (arg) {
-                case Tree.UnaryOprApp susApp when "~".equals(susApp.getOpr().codeRepr()) -> {
+              var isSuspended = false;
+              if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
                   arg = susApp.getRhs();
-                  yield true;
-                }
-                default -> false;
-              };
+                  isSuspended = true;
+              }
               IR.Name name = switch (arg) {
                 case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
                 case Tree.Ident id -> {
