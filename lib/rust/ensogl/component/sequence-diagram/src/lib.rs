@@ -150,7 +150,7 @@ impl Model {
                     line.set_cap(cap);
 
                     let height_rows =
-                        (message.recipient.id as i32 - message.sender.id as i32).abs() as u32;
+                        (message.recipient.id as i32 - message.sender.id as i32).unsigned_abs();
                     let height_px = ROW_HEIGHT * height_rows as f32;
                     let start = message.recipient.id.min(message.sender.id) as u32;
                     line.set_size(Vector2::new(LINE_WIDTH, height_px));

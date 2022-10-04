@@ -113,7 +113,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
 
 impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
     /// Translate an interval, and its children.
-    fn visit_interval(&mut self, active: data::IntervalId, row: u32) {
+    fn visit_interval(&mut self, active: data::IntervalId, _row: u32) {
         let active = &self.profile[active];
         let measurement = &self.profile[active.measurement];
         let start = active.interval.start.into_ms();
@@ -133,7 +133,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
             self.events.push(event);
         }
         for child in &active.children {
-            self.visit_interval(*child, row + 1);
+            self.visit_interval(*child, _row + 1);
         }
     }
 }

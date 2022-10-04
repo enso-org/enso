@@ -54,7 +54,7 @@ impl IdentifierUsage {
 
 /// Says whether the identifier occurrence introduces it into scope or uses it from scope.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Display, PartialEq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 pub enum OccurrenceKind {
     Used,
     Introduced,
@@ -63,7 +63,7 @@ pub enum OccurrenceKind {
 /// If the current context in the AST processor is a pattern context.
 // TODO [mwu] Refer to the specification once it is merged.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Display, PartialEq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq)]
 pub enum Context {
     NonPattern,
     Pattern,

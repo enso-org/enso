@@ -3,7 +3,6 @@
 //! necessary for the generated code to compile.
 
 // === Features ===
-#![feature(bool_to_option)]
 #![feature(exact_size_is_empty)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

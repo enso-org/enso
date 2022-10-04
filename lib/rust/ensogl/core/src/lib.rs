@@ -7,7 +7,6 @@
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
 #![feature(associated_type_defaults)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
@@ -55,7 +54,6 @@ pub mod system;
 
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
-pub use animation::DEPRECATED_Tween;
 pub use animation::Easing;
 pub use enso_frp as frp;
 pub use enso_types as types;

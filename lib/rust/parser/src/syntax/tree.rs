@@ -469,9 +469,9 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for VisibleOffset {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
+impl<'a, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
 impl<'s> span::Builder<'s> for VisibleOffset {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
@@ -1002,14 +1002,14 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
+impl<'a, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         let code_length = self.code.length();
         visitor.visit(span::Ref { left_offset: &self.left_offset, code_length });
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
+impl<'a, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
         let code_length = self.code.length();
         visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });
@@ -1040,9 +1040,9 @@ where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for String {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for String {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for String {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for String {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for String {}
+impl<'a, 's> SpanVisitable<'s, 'a> for String {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for String {}
+impl<'a, 's> ItemVisitable<'s, 'a> for String {}
 impl<'s> span::Builder<'s> for String {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
@@ -1051,9 +1051,9 @@ impl<'s> span::Builder<'s> for String {
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for Cow<'static, str> {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
+impl<'a, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
 impl<'s> span::Builder<'s> for Cow<'static, str> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span

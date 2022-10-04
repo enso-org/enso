@@ -71,13 +71,15 @@ impl Dfa {
 
     /// Convert the automata to GraphViz Dot code for the deubgging purposes.
     pub fn as_graphviz_code(&self) -> String {
+        use std::fmt::Write;
+
         let mut out = String::new();
         for row in 0..self.links.rows {
-            out += &format!("node_{}[label=\"{}\"]\n", row, row);
+            writeln!(out, "node_{}[label=\"{}\"]", row, row).unwrap();
             for column in 0..self.links.columns {
                 let state = self.links[(row, column)];
                 if !state.is_invalid() {
-                    out += &format!("node_{} -> node_{}\n", row, state.id());
+                    writeln!(out, "node_{} -> node_{}", row, state.id()).unwrap();
                 }
             }
         }

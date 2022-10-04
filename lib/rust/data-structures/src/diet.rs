@@ -143,12 +143,9 @@ pub struct $name {
 
 impl $name {
 
-    /// Create an empty data array. This function is safe because the intervals are build out of
-    /// [`uint`]s, which can be initialized from raw memory. Follow the link to learn more:
-    /// https://doc.rust-lang.org/std/mem/union.MaybeUninit.html.
-    #[allow(unsafe_code)]
+    /// Create an empty data array.
     pub (crate) fn empty_data_array() -> DataArray {
-        unsafe { MaybeUninit::uninit().assume_init() }
+        [default();$num]
     }
 
     /// Create an empty data array. This function uses unsafe Rust to initialize big arrays element
