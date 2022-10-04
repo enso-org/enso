@@ -485,8 +485,9 @@ impl Data {
 /// A helper wrapper for the state needed to provide the list of visible components.
 #[derive(Clone, Debug, CloneRef)]
 pub struct ComponentsProvider {
-    breadcrumbs: Breadcrumbs,
-    list:        component::List,
+    breadcrumbs:  Breadcrumbs,
+    list:         component::List,
+    has_this_arg: Rc<bool>,
 }
 
 impl ComponentsProvider {
@@ -496,7 +497,11 @@ impl ComponentsProvider {
         if let Some(selected) = self.breadcrumbs.selected() {
             components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
-            components.top_modules().clone_ref()
+            if *self.has_this_arg {
+                components.top_modules_flattened().clone_ref()
+            } else {
+                components.top_modules().clone_ref()
+            }
         }
     }
 
@@ -662,8 +667,9 @@ impl Searcher {
     /// Build a provider for this searcher.
     pub fn provider(&self) -> ComponentsProvider {
         ComponentsProvider {
-            breadcrumbs: self.breadcrumbs.clone_ref(),
-            list:        self.components(),
+            breadcrumbs:  self.breadcrumbs.clone_ref(),
+            list:         self.components(),
+            has_this_arg: Rc::new(self.this_arg.is_some()),
         }
     }
 

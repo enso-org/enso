@@ -37,6 +37,7 @@ pub mod navigator_shadow {
 
     ensogl_core::define_shape_system! {
         above = [crate::background];
+        pointer_events = false;
         (style:Style) {
             let grid_height = style.get_number(list_panel_theme::grid::height);
             let menu_height = style.get_number(list_panel_theme::menu_height);
