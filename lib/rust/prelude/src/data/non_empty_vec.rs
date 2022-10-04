@@ -63,6 +63,12 @@ impl<T, I> NonEmptyVec<T, I> {
         self.elems.len()
     }
 
+    /// Return the last valid index.
+    pub fn last_valid_index(&self) -> I
+    where I: From<usize> {
+        (self.len() - 1).into()
+    }
+
     /// Construct a `NonEmptyVec` containing a single element.
     ///
     /// # Examples

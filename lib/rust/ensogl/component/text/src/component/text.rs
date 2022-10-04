@@ -1675,19 +1675,30 @@ impl TextModel {
             if range.single_line() {
                 let view_line = ViewLine::from_in_context_snapped(self, range.start.line);
                 let line = &mut lines[view_line];
-                for glyph in &mut line.glyphs[range.start.offset..range.end.offset] {
-                    glyph.set_property(property);
+                if let Some(last_index) = line.glyphs.last_valid_index() {
+                    let start = std::cmp::min(last_index, range.start.offset);
+                    let end = std::cmp::min(last_index + Column(1), range.end.offset);
+                    for glyph in &mut line.glyphs[start..end] {
+                        glyph.set_property(property);
+                    }
                 }
             } else {
                 let view_line = ViewLine::from_in_context_snapped(self, range.start.line);
                 let first_line = &mut lines[view_line];
-                for glyph in &mut first_line.glyphs[range.start.offset..] {
-                    glyph.set_property(property);
+                if let Some(last_index) = first_line.glyphs.last_valid_index() {
+                    let start = std::cmp::min(last_index, range.start.offset);
+                    for glyph in &mut first_line.glyphs[start..] {
+                        glyph.set_property(property);
+                    }
                 }
+
                 let view_line = ViewLine::from_in_context_snapped(self, range.end.line);
                 let last_line = &mut lines[view_line];
-                for glyph in &mut last_line.glyphs[..range.end.offset] {
-                    glyph.set_property(property);
+                if let Some(last_index) = last_line.glyphs.last_valid_index() {
+                    let end = std::cmp::min(last_index + Column(1), range.end.offset);
+                    for glyph in &mut last_line.glyphs[..end] {
+                        glyph.set_property(property);
+                    }
                 }
                 for line_index in range.start.line.value + 1..range.end.line.value {
                     let view_line = ViewLine::from_in_context_snapped(self, Line(line_index));
