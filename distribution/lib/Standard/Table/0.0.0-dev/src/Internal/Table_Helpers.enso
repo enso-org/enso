@@ -26,7 +26,7 @@ polyglot java import java.util.HashSet
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria.
+   - selector: Column selection criteria or vector of column names.
    - reorder: Specifies whether to reorder the matched columns according to the
      order of the selection criteria.
      If `False`, the matched entries are returned in the same order as in the
@@ -40,7 +40,7 @@ polyglot java import java.util.HashSet
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
+select_columns : Vector -> Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
 select_columns internal_columns selector reorder on_problems =
     problem_builder = Problem_Builder.new
     result = select_columns_helper internal_columns selector reorder problem_builder
@@ -59,12 +59,12 @@ select_columns internal_columns selector reorder on_problems =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria.
+   - selector: Column selection criteria or vector of column names.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Vector
+remove_columns : Vector -> Vector | Column_Selector -> Problem_Behavior -> Vector
 remove_columns internal_columns selector on_problems =
     problem_builder = Problem_Builder.new
     selection = select_columns_helper internal_columns selector reorder=False problem_builder
@@ -95,7 +95,7 @@ remove_columns internal_columns selector on_problems =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Vector
+reorder_columns : Vector -> Vector | Column_Selector -> Position.Position -> Problem_Behavior -> Vector
 reorder_columns internal_columns selector position on_problems =
     problem_builder = Problem_Builder.new
     selection = select_columns_helper internal_columns selector reorder=True problem_builder
@@ -220,7 +220,7 @@ sort_columns internal_columns direction text_ordering =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria.
+   - selector: Column selection criteria or vector of column names.
    - reorder: Specifies whether to reorder the matched columns according to the
      order of the selection criteria.
      If `False`, the matched entries are returned in the same order as in the
@@ -231,8 +231,10 @@ sort_columns internal_columns direction text_ordering =
      list. If a single criterion's group has more than one element, their
      relative order is the same as in the input.
    - problem_builder: Encapsulates the aggregation of encountered problems.
-select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Builder -> Vector
+select_columns_helper : Vector -> Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
 select_columns_helper internal_columns selector reorder problem_builder = case selector of
+    _ : Vector.Vector ->
+        select_columns_helper internal_columns (By_Name selector) reorder problem_builder
     By_Name names matcher ->
         valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
         Matching.match_criteria_callback matcher internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
@@ -367,6 +369,9 @@ type Column_Transform_Element
 prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
+        _ : Vector.Vector ->
+            unified_name_selectors = column_selectors.map (Sort_Column.Name _)
+            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Name name_selectors matcher ->
             unified_name_selectors = name_selectors.map selector-> case selector of
                 _ : Text -> Sort_Column.Name selector
