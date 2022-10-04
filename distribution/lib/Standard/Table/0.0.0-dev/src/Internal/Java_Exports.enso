@@ -1,6 +1,8 @@
 from Standard.Base import all
 
-polyglot java import org.enso.table.data.table.Column
+from Standard.Table.Data.Column import Column
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
 polyglot java import org.enso.table.data.table.Table
 polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.builder.object.InferredBuilder
@@ -25,7 +27,7 @@ make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE
 make_column : Text -> Storage -> Column
-make_column name storage = Column.new name storage
+make_column name storage = Column.Column_Data (Java_Column.new name storage)
 
 ## PRIVATE
 make_table_without_columns : Integer -> Table

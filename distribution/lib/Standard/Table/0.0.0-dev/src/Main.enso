@@ -24,11 +24,11 @@ import project.Excel.Excel_Format
 
 import project.Errors
 
-from project.Data.Table export new, from_columns, from_rows, join, concat, Table, Table_Data
-export project.Data.Column
+from project.Data.Table export Table
+from project.Data.Column export Column
 export project.Data.Column_Selector
 export project.Data.Sort_Column
-export project.Data.Sort_Column_Selector
+from project.Data.Sort_Column_Selector export Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
 export project.Data.Aggregate_Column
@@ -74,8 +74,8 @@ import Standard.Geo.Geo_Json
    > Example Converts a JSON array containing key-value pairs into a table for the
      provided headers.
 
+         from Standard.Table import Table
          import Standard.Examples
-         import Standard.Table
 
          example_to_table =
              json = Examples.simple_table_json
@@ -91,9 +91,9 @@ Json.Json.to_table self fields=Nothing = case self of
             _ -> Vector.fill fields.length Nothing
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
-        Table.new cols
+        Table.Table.new cols
     Json.Object _ ->
-        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error_Data self "not being a feature collection") else
+        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not being a feature collection") else
             case self.get "features" of
                 Json.Array items ->
                     feature_rows = items.map .get_feature_row
@@ -108,14 +108,9 @@ Json.Json.to_table self fields=Nothing = case self of
                         column_names.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
                     cols = column_names.map_with_index i-> n->
                         [n, rows.map (_.at i)]
-                    Table.new cols
+                    Table.Table.new cols
 
-                _ -> Error.throw (Invalid_Format_Error_Data self "not having the 'features' key.")
-
-
-# TODO Dubious constructor export
-from project.Main.Invalid_Format_Error import all
-from project.Main.Invalid_Format_Error export all
+                _ -> Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not having the 'features' key.")
 
 ## UNSTABLE
 

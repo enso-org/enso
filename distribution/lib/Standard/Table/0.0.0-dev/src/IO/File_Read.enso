@@ -46,7 +46,7 @@ File.read path (format=Auto_Detect) (on_problems=Report_Warning) =
    > Example
      Read the first sheet of an XLSX from disk and convert it into a table.
 
-         import Standard.Table
+         from Standard.Table import all
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -54,7 +54,7 @@ File.read path (format=Auto_Detect) (on_problems=Report_Warning) =
    > Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
-         import Standard.Table
+         from Standard.Table import all
          from Standard.Table import Excel, Worksheet
          import Standard.Examples
 

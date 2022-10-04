@@ -7,7 +7,7 @@ import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
-import Standard.Table.Data.Sort_Column_Selector
+from Standard.Table.Data.Sort_Column_Selector import Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
 import Standard.Base.Data.Ordering.Comparator

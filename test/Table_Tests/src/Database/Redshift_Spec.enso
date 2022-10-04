@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref
 
-import Standard.Table as Materialized_Table
+from Standard.Table import Table
 
 import Standard.Database
 from Standard.Database import all
@@ -42,7 +42,7 @@ run_tests connection pending=Nothing =
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
-        in_mem_table = Materialized_Table.new columns
+        in_mem_table = Table.new columns
         case connection.upload_table name in_mem_table of
             table ->
                 tables.append name

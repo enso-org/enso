@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table
-from Standard.Table import Column, Delimited
+from Standard.Table import Table, Column, Delimited
 from Standard.Table.Data.Column_Selector import By_Index
 
 import Standard.Test
@@ -17,7 +16,7 @@ spec =
     Test.group "Table.from Text" <|
         Test.specify "should create a table from a textual CSV" <|
             file_contents = (enso_project.data / "simple_empty.csv") . read_text
-            table = Table.Table.from file_contents (format = Delimited ",")
+            table = Table.from file_contents (format = Delimited ",")
             table.should_equal expected_table
 
     Test.group "File.read (Delimited)" <|
@@ -43,7 +42,7 @@ spec =
             csv = """
                 name,x,y,x,y
                 foo,10,20,30,20
-            t = Table.Table.from csv (format = Delimited ",")
+            t = Table.from csv (format = Delimited ",")
             t.columns.map .name . should_equal ['name', 'x', 'y', 'x_1', 'y_1']
 
     Test.group 'Writing' <|

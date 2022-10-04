@@ -1,7 +1,6 @@
 from Standard.Base import all hiding First, Last
 
-import Standard.Table
-from Standard.Table import Sort_Column, Sort_Column_Selector
+from Standard.Table import Table, Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data

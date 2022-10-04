@@ -2,8 +2,7 @@ from Standard.Base import all
 import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior import all
 
-import Standard.Table
-from Standard.Table import Column, Data_Formatter, Data_Formatter_Data, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
+from Standard.Table import Table, Column, Data_Formatter, Data_Formatter_Data, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
 from Standard.Table.Errors import all
 from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Errors import Column_Count_Mismatch_Data, Column_Name_Mismatch_Data

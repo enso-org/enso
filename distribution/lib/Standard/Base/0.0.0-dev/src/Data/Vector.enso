@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
-import Standard.Base.Runtime.Unsafe
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder

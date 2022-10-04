@@ -8,7 +8,7 @@
    > Example
      Read the active sheet of an XLSX from disk and convert it into a table.
 
-         import Standard.Table
+         from Standard.Table import all
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -27,12 +27,11 @@
      to make sure the indices are correct.
 
          import Standard.Examples
-         import Standard.Table
 
          example_join =
              table_1 = Examples.inventory_table
              table_2 = Examples.popularity_table
-             Table.join [table_1, table_2]
+             table_1.join table_2
 
    > Example
      Select only the items where more than half the stock has been sold.
@@ -60,7 +59,6 @@
      well as the number of each item sold across those transactions.
 
          import Standard.Examples
-         import Standard.Table
 
          example_group =
              transactions = Examples.transactions_table
@@ -68,5 +66,5 @@
              aggregated = transactions.group by="item_id"
              num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
              num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
-             Table.join [item_names, num_transactions, num_sold]
+             item_names.join [num_transactions, num_sold]
 
