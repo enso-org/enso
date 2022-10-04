@@ -798,6 +798,17 @@ type Table
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
          or not.
+       - on_problems: is the behavior to take when the filter cannot be applied.
+         The following happens in warning mode:
+         If a column name cannot be found, a `No_Such_Column_Error` warning is
+         raised and the original table is returned.
+         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         raised and the original table is returned.
+         If the column is an invalid type for the filter, an
+         `Invalid_Value_Type` warning is raised and an empty table is returned.
+         In error mode, the first warning is returned as a dataflow error. In
+         ignore mode the same values are returned but without the warnings
+         attached.
 
        > Example
          Get people older than 30.
@@ -818,15 +829,16 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
-    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Table
-    filter self column filter=(Filter_Condition.Is_True) = case Meta.type_of column of
-        Text -> self.filter (self.at column) filter
-        Integer -> self.filter (self.at column) filter
-        Column.Column ->
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
+    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
+        _ : Column.Column ->
             filter_column = case Meta.type_of filter of
                 Filter_Condition -> make_filter_column column filter
                 Function -> column.map filter
             Table_Data (self.java_table.mask filter_column.java_column)
+        _ ->
+            resolved_column = on_problems.handle_errors (self.at column) fallback=self
+            self.filter resolved_column filter on_problems
 
     ## Creates a new Table with the specified range of rows from the input
        Table.

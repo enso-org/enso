@@ -377,3 +377,13 @@ type No_Index_Set_Error
        Create a human-readable version of the no index set error.
     to_display_text : Text
     to_display_text self = "The table does not have an index set."
+
+type Invalid_Value_Type
+    Invalid_Value_Type_Data expected actual
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "Expected " + self.expected.to_text + " type, but got " + self.actual.to_text + "."
