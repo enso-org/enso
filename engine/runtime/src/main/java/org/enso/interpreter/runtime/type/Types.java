@@ -155,7 +155,7 @@ public class Types {
     } else if (TypesGen.isPanicSentinel(value)) {
       return ConstantsGen.PANIC;
     } else if (TypesGen.isWarning(value)) {
-      return getName(TypesGen.asWarning(value).getValue());
+      return ConstantsGen.WARNING;
     } else if (value instanceof WithWarnings) {
       return getName(((WithWarnings) value).getValue());
     } else {
