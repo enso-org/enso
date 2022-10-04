@@ -38,12 +38,14 @@ pub trait Shape: 'static + Sized {
     type InstanceParams: Debug;
     type ProxyParams: Debug + Default;
     type GpuParams: Debug;
-    type ProxyData: Debug;
     fn pointer_events() -> bool;
     fn always_above() -> &'static [ShapeSystemId];
     fn always_below() -> &'static [ShapeSystemId];
-    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex)
-        -> Self::InstanceParams;
+    fn new_instance_params(
+        sprite: &Sprite,
+        gpu_params: &Self::GpuParams,
+        id: InstanceIndex,
+    ) -> Self::InstanceParams;
     fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams;
     fn bind_proxy_params(proxy_params: &Self::ProxyParams, shape: &ShapeInstance<Self>);
     fn drop_proxy_params_bindings(proxy_params: &Self::ProxyParams);
@@ -179,19 +181,30 @@ impl<S: Shape> ShapeSystem<S> {
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
         let id = sprite.instance_id;
-        let params = S::new_instance_params(&self.gpu_params, id);
+        let params = S::new_instance_params(&sprite, &self.gpu_params, id);
         ShapeInstance { sprite, params }
     }
 
+    // #[profile(Debug)]
+    // pub fn instantiate(&self, dyn_shape: &ShapeProxy<S>) -> symbol::GlobalInstanceId {
+    //     panic!();
+    //     // let sprite = self.model.sprite_system.new_instance();
+    //     // let instance_id = sprite.instance_id;
+    //     // let global_id = sprite.global_instance_id;
+    //     // let params = S::new_instance_params(&self.gpu_params, instance_id);
+    //     // let shape = ShapeInstance { sprite, params };
+    //     // dyn_shape.add_instance(shape);
+    //     // global_id
+    // }
+
     #[profile(Debug)]
-    pub fn instantiate(&self, dyn_shape: &ShapeProxy<S>) -> symbol::GlobalInstanceId {
+    pub fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
-        let params = S::new_instance_params(&self.gpu_params, instance_id);
+        let params = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
         let shape = ShapeInstance { sprite, params };
-        dyn_shape.add_instance(shape);
-        global_id
+        (shape, global_id)
     }
 }
 
@@ -387,14 +400,12 @@ macro_rules! define_shape_system {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(ProxyData ($proxy_data:ident))?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
-            $(ProxyData ($proxy_data))?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
@@ -419,7 +430,6 @@ macro_rules! _define_shape_system {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        $(ProxyData ($proxy_data:ident))?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -466,7 +476,6 @@ macro_rules! _define_shape_system {
                 type InstanceParams = InstanceParams;
                 type ProxyParams = ProxyParams;
                 type GpuParams = GpuParams;
-                type ProxyData = ($($proxy_data)?);
                 fn pointer_events() -> bool {
                     let out = true;
                     $(let out = $pointer_events;)?
@@ -481,9 +490,10 @@ macro_rules! _define_shape_system {
                     &[ $($($always_below_1 $(::$always_below_2)* :: ShapeSystemModel :: id()),*)? ]
                 }
 
-                fn new_instance_params(gpu_params:&Self::GpuParams, id: InstanceIndex) -> Self::InstanceParams {
+                fn new_instance_params(sprite: &Sprite, gpu_params:&Self::GpuParams, id: InstanceIndex) -> Self::InstanceParams {
+                    let size = sprite.size.clone_ref();
                     $(let $gpu_param = gpu_params.$gpu_param.at(id);)*
-                    Self::InstanceParams {$($gpu_param),*}
+                    Self::InstanceParams { size, $($gpu_param),* }
                 }
 
                 fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams {
@@ -533,22 +543,19 @@ macro_rules! _define_shape_system {
             #[derive(Clone,CloneRef,Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
+                pub size: sprite::Size,
                 $(pub $gpu_param : Attribute<$gpu_param_type>),*
             }
 
             /// Parameters of the [`ShapeProxy`].
-            #[derive(Debug, Default, Deref)]
+            #[derive(Debug, Default)]
             #[allow(missing_docs)]
-            pub struct ProxyParamsTemplate<D> {
-                #[deref]
-                data: D,
+            pub struct ProxyParams {
                 pub size: ProxyParam<sprite::Size>,
                 $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
             }
 
-            pub type ProxyParams = ProxyParamsTemplate<($($proxy_data)?)>;
-
-             #[derive(Clone, CloneRef, Debug)]
+            #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
             pub struct GpuParams {
                 $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*

@@ -12,6 +12,7 @@ use crate::display::scene::Scene;
 // use crate::display::shape::system::DynShapeSystemOf;
 use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::Shape;
+use crate::display::shape::system::ShapeInstance;
 use crate::display::shape::system::ShapeProxy;
 use crate::display::shape::system::ShapeSystem;
 use crate::display::shape::system::ShapeSystemId;
@@ -182,16 +183,16 @@ impl Debug for Layer {
 
 impl Layer {
     /// Constructor.
-    pub fn new(logger: Logger) -> Self {
-        let model = LayerModel::new(logger);
+    pub fn new(name: impl Into<String>, logger: Logger) -> Self {
+        let model = LayerModel::new(name, logger);
         let model = Rc::new(model);
         Self { model }
     }
 
     /// Constructor.
     #[profile(Detail)]
-    pub fn new_with_cam(logger: Logger, camera: &Camera2d) -> Self {
-        let this = Self::new(logger);
+    pub fn new_with_cam(name: impl Into<String>, logger: Logger, camera: &Camera2d) -> Self {
+        let this = Self::new(name, logger);
         this.set_camera(camera);
         this
     }
@@ -213,18 +214,12 @@ impl Layer {
     // }
 
     /// Instantiate the provided [`ShapeProxy`].
-    pub fn instantiate<S>(
-        &self,
-        scene: &Scene,
-        shape: &ShapeProxy<S>,
-    ) -> LayerDynamicShapeInstance
-    where
-        S: Shape,
-    {
-        let (shape_system_info, symbol_id, global_instance_id) =
-            self.shape_system_registry.instantiate(scene, shape);
+    pub fn instantiate<S>(&self, scene: &Scene) -> (ShapeInstance<S>, LayerDynamicShapeInstance)
+    where S: Shape {
+        let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
+            self.shape_system_registry.instantiate(scene);
         self.add_shape(shape_system_info, symbol_id);
-        LayerDynamicShapeInstance::new(self, global_instance_id)
+        (shape_instance, LayerDynamicShapeInstance::new(self, global_instance_id))
     }
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
@@ -328,6 +323,7 @@ impl PartialEq for WeakLayer {
 #[derive(Clone)]
 #[allow(missing_docs)]
 pub struct LayerModel {
+    pub name: String,
     logger: Logger,
     pub camera: RefCell<Camera2d>,
     pub shape_system_registry: ShapeSystemRegistry,
@@ -348,6 +344,7 @@ pub struct LayerModel {
 impl Debug for LayerModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Layer")
+            .field("name", &self.name)
             .field("id", &self.id().raw)
             .field("registry", &self.shape_system_registry)
             .field("elements", &self.elements.borrow().iter().collect_vec())
@@ -367,7 +364,8 @@ impl Drop for LayerModel {
 }
 
 impl LayerModel {
-    fn new(logger: Logger) -> Self {
+    fn new(name: impl Into<String>, logger: Logger) -> Self {
+        let name = name.into();
         let camera = RefCell::new(Camera2d::new());
         let shape_system_registry = default();
         let shape_system_to_symbol_info_map = default();
@@ -384,6 +382,7 @@ impl LayerModel {
         let scissor_box = default();
         let mem_mark = default();
         Self {
+            name,
             logger,
             camera,
             shape_system_registry,
@@ -723,9 +722,9 @@ impl LayerModel {
     }
 
     /// Create a new sublayer to this layer, with the same camera.
-    pub fn create_sublayer(&self) -> Layer {
+    pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
         let logger = self.logger.sub("Sublayer");
-        let layer = Layer::new_with_cam(logger, &self.camera.borrow());
+        let layer = Layer::new_with_cam(name, logger, &self.camera.borrow());
         self.add_sublayer(&layer);
         layer
     }
@@ -990,8 +989,8 @@ impl AsRef<Layer> for Masked {
 impl Masked {
     /// Constructor. The passed [`camera`] is used to render created layers.
     pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
-        let masked_layer = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
-        let mask_layer = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
+        let masked_layer = Layer::new_with_cam("MaskedLayer", logger.sub("MaskedLayer"), camera);
+        let mask_layer = Layer::new_with_cam("MaskLayer", logger.sub("MaskLayer"), camera);
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }
@@ -1081,19 +1080,19 @@ impl {
 
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, scene:&Scene, shape:&ShapeProxy<S>) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
+    (&mut self, scene:&Scene) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
         self.with_get_or_register_mut::<S,_,_>(scene,|entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
-            let global_instance_id = system.instantiate(shape);
+            let (shape_instance, global_instance_id) = system.instantiate();
             let symbol_id = system.sprite_system().symbol.id;
             let above = S::always_above().to_vec();
             let below = S::always_below().to_vec();
             let ordering = ShapeSystemStaticDepthOrdering {above,below};
             let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
             *entry.instance_count += 1;
-            (shape_system_info, symbol_id, global_instance_id)
+            (shape_system_info, symbol_id, shape_instance, global_instance_id)
         })
     }
 

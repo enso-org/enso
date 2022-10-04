@@ -574,30 +574,34 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new(logger: impl AnyLogger) -> Self {
-        let root = Layer::new(logger.sub("root"));
-        let main = Layer::new(logger.sub("main"));
+        let root = Layer::new("root", logger.sub("root"));
+        let main = Layer::new("main", logger.sub("main"));
         let main_cam = &main.camera();
-        let viz = Layer::new_with_cam(logger.sub("viz"), main_cam);
-        let below_main = Layer::new_with_cam(logger.sub("below_main"), main_cam);
-        let port_selection = Layer::new(logger.sub("port_selection"));
-        let label = Layer::new_with_cam(logger.sub("label"), main_cam);
-        let above_nodes = Layer::new_with_cam(logger.sub("above_nodes"), main_cam);
-        let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"), main_cam);
-        let panel = Layer::new(logger.sub("panel"));
-        let panel_text = Layer::new(logger.sub("panel_text"));
-        let node_searcher = Layer::new(logger.sub("node_searcher"));
+        let viz = Layer::new_with_cam("viz", logger.sub("viz"), main_cam);
+        let below_main = Layer::new_with_cam("below_main", logger.sub("below_main"), main_cam);
+        let port_selection = Layer::new("port_selection", logger.sub("port_selection"));
+        let label = Layer::new_with_cam("label", logger.sub("label"), main_cam);
+        let above_nodes = Layer::new_with_cam("above_nodes", logger.sub("above_nodes"), main_cam);
+        let above_nodes_text =
+            Layer::new_with_cam("above_nodes_text", logger.sub("above_nodes_text"), main_cam);
+        let panel = Layer::new("panel", logger.sub("panel"));
+        let panel_text = Layer::new("panel_text", logger.sub("panel_text"));
+        let node_searcher = Layer::new("node_searcher", logger.sub("node_searcher"));
         let node_searcher_cam = node_searcher.camera();
         let searcher_text_logger = logger.sub("node_searcher_text");
-        let node_searcher_text = Layer::new_with_cam(searcher_text_logger, &node_searcher_cam);
-        let edited_node = Layer::new(logger.sub("edited_node"));
+        let node_searcher_text =
+            Layer::new_with_cam("node_searcher_text", searcher_text_logger, &node_searcher_cam);
+        let edited_node = Layer::new("edited_node", logger.sub("edited_node"));
         let edited_node_cam = edited_node.camera();
         let edited_node_text_logger = logger.sub("edited_node_text");
-        let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
-        let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
-        let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
-        let cursor = Layer::new(logger.sub("cursor"));
+        let edited_node_text =
+            Layer::new_with_cam("edited_node_text", edited_node_text_logger, &edited_node_cam);
+        let tooltip = Layer::new_with_cam("tooltip", logger.sub("tooltip"), main_cam);
+        let tooltip_text =
+            Layer::new_with_cam("tooltip_text", logger.sub("tooltip_text"), main_cam);
+        let cursor = Layer::new("cursor", logger.sub("cursor"));
 
-        let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
+        let mask = Layer::new_with_cam("mask", logger.sub("mask"), main_cam);
         root.set_sublayers(&[
             &viz,
             &below_main,

@@ -11,7 +11,8 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::Shape;
-use crate::display::shape::primitive::system::ShapeProxy;
+use crate::display::shape::primitive::system::ShapeInstance;
+use crate::display::world;
 // use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
 use crate::frp;
@@ -84,11 +85,10 @@ impl<S: Shape> Default for ShapeView<S> {
 /// Model of [`ShapeView`].
 #[derive(Deref, Derivative)]
 #[derivative(Debug(bound = ""))]
-#[derivative(Default(bound = ""))]
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
-    shape:               ShapeProxy<S>,
+    shape:               ShapeInstance<S>,
     pub events:          PointerTarget,
     pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
@@ -102,6 +102,15 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 
 // S : DynamicShapeInternals
 impl<S: Shape> ShapeViewModel<S> {
+    pub fn new() -> Self {
+        let scene = world::scene();
+        let (shape, something) = scene.layers.root.instantiate(scene);
+        let events = PointerTarget::new();
+        let pointer_targets = RefCell::new(vec![something.global_instance_id]);
+        scene.shapes.insert_mouse_target(something.global_instance_id, events.clone_ref());
+        ShapeViewModel { shape, events, pointer_targets }
+    }
+
     #[profile(Debug)]
     fn on_scene_layer_changed(
         &self,
@@ -127,22 +136,17 @@ impl<S: Shape> ShapeViewModel<S> {
                 layer.remove_shape_system(shape_system_id);
             }
         }
-        self.shape.drop_all_instances();
+        // self.shape.drop_all_instances();
         self.unregister_existing_mouse_targets();
     }
 }
 
 impl<S: Shape> ShapeViewModel<S> {
-    // S: ShapeProxy
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
-        let instance = layer.instantiate(scene, &self.shape);
-        scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
-        self.pointer_targets.borrow_mut().push(instance.global_instance_id);
+        // let (shape, instance) = layer.instantiate(scene);
+        // scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
+        // self.pointer_targets.borrow_mut().push(instance.global_instance_id);
+        // let old_shape = mem::replace(&mut self.shape, shape);
     }
 }
 

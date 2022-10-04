@@ -48,42 +48,42 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-pub mod glyph {
-    use super::*;
-
-    #[derive(Debug, Default)]
-    pub struct GlyphData {
-        pub frp:                Frp,
-        pub glyph_id:           Cell<GlyphId>,
-        pub line_byte_offset:   Cell<Byte>,
-        // pub display_object:     display::object::Instance,
-        // pub sprite:             Sprite,
-        // pub context:            Context,
-        // pub font:               Font, // TODO: uncomment
-        pub properties:         Cell<font::family::NonVariableFaceHeader>,
-        pub variations:         RefCell<VariationAxes>,
-        // pub atlas:              Uniform<Texture>, // TODO: move to instance data
-        // pub color_animation:    color::Animation, // TODO: uncomment
-        pub x_advance:          Rc<Cell<f32>>,
-        /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
-        /// Attached glyphs should not be considered part of the line during animation because they
-        /// will be moved around, so they need to be ignored when computing the line width.
-        pub attached_to_cursor: Rc<Cell<bool>>,
-    }
-
-    ensogl_core::define_shape_system! {
-        ProxyData(GlyphData)
-        (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
-            let shape = Circle(50.px());
-            let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
-            shape.into()
-        }
-    }
-}
-
-fn test() {
-    let g = glyph::View::new();
-}
+// pub mod glyph {
+//     use super::*;
+//
+//     #[derive(Debug, Default)]
+//     pub struct GlyphData {
+//         pub frp:                Frp,
+//         pub glyph_id:           Cell<GlyphId>,
+//         pub line_byte_offset:   Cell<Byte>,
+//         // pub display_object:     display::object::Instance,
+//         // pub sprite:             Sprite,
+//         // pub context:            Context,
+//         // pub font:               Font, // TODO: uncomment
+//         pub properties:         Cell<font::family::NonVariableFaceHeader>,
+//         pub variations:         RefCell<VariationAxes>,
+//         // pub atlas:              Uniform<Texture>, // TODO: move to instance data
+//         // pub color_animation:    color::Animation, // TODO: uncomment
+//         pub x_advance:          Rc<Cell<f32>>,
+//         /// Indicates whether this glyph is attached to cursor. Needed for text width
+// computation.         /// Attached glyphs should not be considered part of the line during
+// animation because they         /// will be moved around, so they need to be ignored when
+// computing the line width.         pub attached_to_cursor: Rc<Cell<bool>>,
+//     }
+//
+//     ensogl_core::define_shape_system! {
+//         ProxyData(GlyphData)
+//         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
+//             let shape = Circle(50.px());
+//             let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
+//             shape.into()
+//         }
+//     }
+// }
+//
+// fn test() {
+//     let g = glyph::View::new();
+// }
 
 
 // =============
