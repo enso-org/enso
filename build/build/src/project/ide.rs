@@ -139,7 +139,7 @@ impl Ide {
 //     fn artifact_name(&self) -> &str {
 //         // Version is not part of the name intentionally. We want to refer to PM bundles as
 //         // artifacts without knowing their version.
-//         static NAME: SyncLazy<String> = SyncLazy::new(|| format!("gui-{}", TARGET_OS));
+//         static NAME: LazyLock<String> = LazyLock::new(|| format!("gui-{}", TARGET_OS));
 //         &*NAME
 //     }
 //

@@ -1,4 +1,3 @@
-cargo-features = ["workspace-inheritance"]
 [package]
 name = "ide-ci"
 version = "0.1.0"

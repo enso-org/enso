@@ -5,7 +5,7 @@ use crate::future::AsyncPolicy;
 use indicatif::MultiProgress;
 use indicatif::ProgressBar;
 use indicatif::WeakProgressBar;
-use std::lazy::SyncLazy;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::time::Duration;
 use tokio::task::JoinHandle;
@@ -67,7 +67,7 @@ impl Default for GlobalState {
     }
 }
 
-static GLOBAL: SyncLazy<Mutex<GlobalState>> = SyncLazy::new(default);
+static GLOBAL: LazyLock<Mutex<GlobalState>> = LazyLock::new(default);
 
 pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
     let ret = f();
