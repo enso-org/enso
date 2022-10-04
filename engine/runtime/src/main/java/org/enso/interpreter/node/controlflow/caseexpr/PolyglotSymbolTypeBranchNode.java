@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -62,14 +63,17 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
           accept(frame, state, new Object[] {target});
         }
       } catch (UnsupportedMessageException e) {
-        Builtins builtins = Context.get(this).getBuiltins();
-        Atom err =
-            builtins
-                .error()
-                .makeCompileError(
-                    "unable to check if " + target + " is an instance of " + polyglotSymbol);
+        Atom err = reportError(polyglotSymbol, target);
         throw new PanicException(err, this);
       }
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Atom reportError(Object expected, Object target) {
+    Builtins builtins = Context.get(this).getBuiltins();
+    return builtins
+        .error()
+        .makeCompileError("unable to check if " + target + " is an instance of " + polyglotSymbol);
   }
 }
