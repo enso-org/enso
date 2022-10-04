@@ -239,14 +239,13 @@ pub struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("ComponentBrowserPanel");
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let navigator = default();
 
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
-        let navigator_shadow = navigator_shadow::View::new(&logger);
+        let navigator_shadow = navigator_shadow::View::new();
         display_object.add_child(&navigator_shadow);
 
         let grid = app.new_view::<grid::View>();
@@ -350,7 +349,7 @@ impl component::Model for Model {
         "ComponentBrowserPanel"
     }
 
-    fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
+    fn new(app: &Application) -> Self {
         Self::new(app)
     }
 }
@@ -375,13 +374,13 @@ define_endpoints_2! {
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
         let scene = &app.display.default_scene;
-        let network = &frp_api.network;
         let input = &frp_api.input;
         let output = &frp_api.output;
 

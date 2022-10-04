@@ -82,7 +82,7 @@ pub struct HeaderModel {
 #[derive(Clone, Debug, Default)]
 pub struct EntryModel {
     pub caption:        ImString,
-    pub highlighted:    Rc<Vec<text::Range<text::Bytes>>>,
+    pub highlighted:    Rc<Vec<text::Range<text::Byte>>>,
     pub icon:           icon::Id,
     pub can_be_entered: bool,
 }
@@ -388,12 +388,12 @@ impl Default for Action {
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         _app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        let network = &frp_api.network;
         let input = &frp_api.input;
         let out = &frp_api.output;
         let grid = &model.grid;
@@ -535,7 +535,7 @@ impl component::Model for Model {
         "ComponentListPanelGrid"
     }
 
-    fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
+    fn new(app: &Application) -> Self {
         let grid = Grid::new(app);
         let layout = default();
         let enterable_elements = default();

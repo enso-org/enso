@@ -81,10 +81,10 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, logger: impl AnyLogger, size: Vector2) -> $crate::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::icon::Any {
                 match self {$(
                     Self::$variant => {
-                        let view = $name::View::new(logger);
+                        let view = $name::View::new();
                         view.size.set(size);
                         let strong_color = view.strong_color.clone_ref();
                         let weak_color = view.weak_color.clone_ref();

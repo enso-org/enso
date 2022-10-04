@@ -130,7 +130,7 @@ fn get_header_model(group: grid::GroupId) -> Option<(grid::GroupId, grid::Header
 fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, grid::EntryModel)> {
     let (caption, icon) = PREPARED_ITEMS[entry.entry % PREPARED_ITEMS.len()];
     let highlighted = if entry.entry == 4 {
-        vec![text::Range::new(text::Bytes(2), text::Bytes(4))]
+        vec![text::Range::new(text::Byte(2), text::Byte(4))]
     } else {
         vec![]
     };
