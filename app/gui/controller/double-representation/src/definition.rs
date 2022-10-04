@@ -756,12 +756,12 @@ main =
         };
         let check_not_found = |id| assert!(module::get_definition(&module, &id).is_err());
 
-        check_def(Id::new_plain_names(&["main", "add"]), "a + b");
-        check_def(Id::new_plain_names(&["main", "baz"]), "\n        subbaz arg = 4");
-        check_def(Id::new_plain_names(&["main", "baz", "subbaz"]), "4");
+        check_def(Id::new_plain_names(["main", "add"]), "a + b");
+        check_def(Id::new_plain_names(["main", "baz"]), "\n        subbaz arg = 4");
+        check_def(Id::new_plain_names(["main", "baz", "subbaz"]), "4");
 
         // Node are not definitions
-        check_not_found(Id::new_plain_names(&["main", "foo"]));
-        check_not_found(Id::new_plain_names(&["main", "baz2", "subbaz2"]));
+        check_not_found(Id::new_plain_names(["main", "foo"]));
+        check_not_found(Id::new_plain_names(["main", "baz2", "subbaz2"]));
     }
 }

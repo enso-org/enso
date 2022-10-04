@@ -65,7 +65,7 @@ impl<T: AsRef<str> + Display> GithubRelease<T> {
 
 /// Remove the old file if it exists.
 fn remove_old_file(file: &path::Path) {
-    let result = std::fs::remove_file(&file);
+    let result = std::fs::remove_file(file);
     let error = result.err();
     let fatal_error = error.filter(|err| err.kind() != ErrorKind::NotFound);
     assert!(fatal_error.is_none());

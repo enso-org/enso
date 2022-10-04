@@ -77,6 +77,7 @@
 
 #![recursion_limit = "256"]
 // === Features ===
+#![feature(let_chains)]
 #![allow(incomplete_features)]
 #![feature(allocator_api)]
 #![feature(exact_size_is_empty)]

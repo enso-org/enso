@@ -1014,7 +1014,7 @@ last def = inline expression";
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("inline expression"));
 
-        let id = definition::Id::new_plain_names(&["other", "nested"]);
+        let id = definition::Id::new_plain_names(["other", "nested"]);
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("nested body"));
     }
