@@ -221,22 +221,9 @@ ThisBuild / scalacOptions ++= Seq(
 ThisBuild / Test / testOptions ++=
   Seq(Tests.Argument("-oI")) ++
   sys.env
-    .get("CI_JUNIT_OUTPUT_DIR")
+    .get("ENSO_TEST_JUNIT_DIR")
     .map { junitXmlOutputDir =>
       Tests.Argument(TestFrameworks.ScalaTest, "-u", junitXmlOutputDir)
-    }
-    // TODO[DB] cleanup
-    .orElse {
-      sys.props.get("user.dir").map { cwd =>
-        Tests.Argument(
-          TestFrameworks.ScalaTest,
-          "-u",
-          java.nio.file.Paths
-            .get(cwd, "target", "test-results")
-            .toAbsolutePath
-            .toString
-        )
-      }
     }
 
 val jsSettings = Seq(
