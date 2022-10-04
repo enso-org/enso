@@ -140,6 +140,7 @@ ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
         accept_entry(Row, Col),
+        accept_selected_entry(),
         hover_entry(Option<(Row, Col)>),
         /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
         /// event for given row and column. After that the entry will be visible.
@@ -545,6 +546,7 @@ impl<E: Entry> GridView<E> {
             out.entry_hovered <+ input.hover_entry;
             out.entry_selected <+ input.select_entry;
             out.entry_accepted <+ input.accept_entry;
+            out.entry_accepted <+ out.entry_selected.filter_map(|e| *e).sample(&input.accept_selected_entry);
 
             // The ordering here is important: we want to first call [`update_entry`] and only then
             // inform everyone that the entry is visible. They may want to immediately get the entry
@@ -652,7 +654,7 @@ impl<E: Entry> application::View for GridView<E> {
             (PressAndRepeat, "down", "move_selection_down"),
             (PressAndRepeat, "left", "move_selection_left"),
             (PressAndRepeat, "right", "move_selection_right"),
-            (Press, "enter", "accept_entry"),
+            (Press, "enter", "accept_selected_entry"),
         ])
             .iter()
             .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
