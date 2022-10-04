@@ -2,6 +2,8 @@ pub mod web;
 
 use crate::prelude::*;
 
+use crate::io::web::filename_from_response;
+use crate::io::web::stream_response_to_file;
 use reqwest::IntoUrl;
 use tokio::io::AsyncRead;
 use web::client;
@@ -17,6 +19,20 @@ pub async fn read_length(mut read: impl AsyncRead + Unpin) -> Result<u64> {
 /// Get the the response body as a byte stream.
 pub async fn download(url: impl IntoUrl) -> Result<impl Stream<Item = reqwest::Result<Bytes>>> {
     client::download(&default(), url).await
+}
+
+pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result<PathBuf> {
+    let url = url.into_url()?;
+    let response = web::client::get(&default(), url.clone()).await?;
+    let filename = filename_from_response(&response)
+        .map(ToOwned::to_owned)
+        .or(filename_from_url(&url))
+        .unwrap_or(Uuid::new_v4().to_string().into());
+
+    trace!("Filename for {url} download shall be {filename}", filename = filename.display());
+    let output = dir.as_ref().join(&filename);
+    stream_response_to_file(response, &output).await?;
+    Ok(output)
 }
 
 /// Get the full response body from URL as bytes.

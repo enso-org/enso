@@ -555,7 +555,7 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &parser::Parser, to_add: ImportInfo) -> usize {
+    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: ImportInfo) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
             self.enumerate_imports().take_while(|(_, import)| to_add.target > import.target).last();
@@ -570,7 +570,7 @@ impl Info {
     pub fn add_module_import(
         &mut self,
         here: &QualifiedName,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
         to_add: &QualifiedName,
     ) {
         let is_here = to_add == here;
@@ -630,7 +630,7 @@ impl Info {
         &mut self,
         method: definition::ToAdd,
         location: Placement,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
     ) -> FallibleResult {
         let no_indent = 0;
         let definition_ast = method.ast(no_indent, parser)?;

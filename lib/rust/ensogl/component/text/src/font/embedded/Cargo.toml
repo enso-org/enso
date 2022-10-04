@@ -13,6 +13,7 @@ enso-prelude = { path = "../../../../../../prelude" }
 ensogl-text-font-family = { path = "../../font/family" }
 
 [build-dependencies]
+ide-ci = { path = "../../../../../../../../build/ci_utils" }
 enso-build = { path = "../../../../../../../../build/build" }
 enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }

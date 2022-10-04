@@ -11,7 +11,7 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
 use ast::opr;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 

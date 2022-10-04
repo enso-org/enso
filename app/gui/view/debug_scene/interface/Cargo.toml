@@ -14,7 +14,7 @@ ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view = { path = "../.." }
-parser = { path = "../../../language/parser" }
+parser-scala = { path = "../../../language/parser" }
 span-tree = { path = "../../../language/span-tree" }
 uuid = { version = "0.8", features = ["v4", "wasm-bindgen"] }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

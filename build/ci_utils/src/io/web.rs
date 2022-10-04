@@ -10,6 +10,10 @@ use tokio::io::AsyncBufRead;
 
 pub mod client;
 
+pub async fn get(url: impl IntoUrl) -> Result<Response> {
+    client::get(&Client::default(), url).await
+}
+
 pub async fn handle_error_response(response: Response) -> Result<Response> {
     if let Some(e) = response.error_for_status_ref().err() {
         let e = Err(e);
@@ -21,10 +25,6 @@ pub async fn handle_error_response(response: Response) -> Result<Response> {
     } else {
         Ok(response)
     }
-}
-
-pub async fn get(client: &Client, url: impl IntoUrl) -> Result<Response> {
-    execute(client.get(url)).await
 }
 
 pub async fn execute(request_builder: RequestBuilder) -> Result<Response> {
@@ -40,7 +40,7 @@ pub async fn download_stream(
 
 /// Get the the response body as a byte stream.
 pub async fn download_reader(url: impl IntoUrl) -> Result<impl AsyncBufRead + Unpin> {
-    let response = reqwest::get(url).await?.error_for_status()?;
+    let response = get(url).await?;
     Ok(async_reader(response))
 }
 

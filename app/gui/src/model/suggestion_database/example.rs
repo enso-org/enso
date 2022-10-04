@@ -5,7 +5,7 @@ use crate::prelude::*;
 use double_representation::definition;
 use double_representation::definition::DefinitionName;
 use double_representation::module;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 

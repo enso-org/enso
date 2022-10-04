@@ -5,6 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+ide-ci = { path = "../../ci_utils" }
 path-clean = "0.1.0"
 serde = { version = "1.0", features = ["derive"] }
 

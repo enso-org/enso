@@ -204,7 +204,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use parser::Parser;
+    use parser_scala::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.

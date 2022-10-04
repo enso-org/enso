@@ -24,7 +24,7 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use enso_text::Location;
 use flo_stream::Subscriber;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 // ==============

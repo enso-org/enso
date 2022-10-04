@@ -23,7 +23,7 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use parser::Parser;
+use parser_scala::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
@@ -992,7 +992,7 @@ pub mod tests {
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::traits::*;
-    use parser::Parser;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 

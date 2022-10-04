@@ -159,7 +159,7 @@ mod tests {
 
     use ast::crumbs;
     use ast::crumbs::InfixCrumb;
-    use parser::Parser;
+    use parser_scala::Parser;
 
     struct TestRun {
         graph:       GraphInfo,

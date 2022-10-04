@@ -24,8 +24,8 @@ use enso_text::Location;
 use enso_text::Range;
 use enso_text::Text;
 use flo_stream::Subscriber;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 
 
 

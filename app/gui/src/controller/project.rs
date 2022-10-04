@@ -11,7 +11,7 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 

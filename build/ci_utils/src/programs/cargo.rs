@@ -3,6 +3,7 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
+pub mod build_env;
 pub mod clippy;
 
 /// Extra flags that Cargo invokes rustc with.

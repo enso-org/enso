@@ -67,6 +67,13 @@ pub trait PathExt: AsRef<Path> {
     fn normalize(&self) -> PathBuf {
         self.as_ref().components().collect()
     }
+
+    /// Like `parent` but provides a sensible error message if the path has no parent.
+    fn try_parent(&self) -> Result<&Path> {
+        self.as_ref()
+            .parent()
+            .with_context(|| format!("Failed to get parent of path `{}`.", self.as_ref().display()))
+    }
 }
 
 impl<T: AsRef<Path>> PathExt for T {}

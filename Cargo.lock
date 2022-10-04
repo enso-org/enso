@@ -1652,7 +1652,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "ide-view",
- "parser",
+ "parser-scala",
  "span-tree",
  "uuid 0.8.2",
  "wasm-bindgen",
@@ -1781,7 +1781,7 @@ dependencies = [
  "enso-text",
  "failure",
  "itertools 0.10.5",
- "parser",
+ "parser-scala",
  "regex",
  "serde",
  "uuid 0.8.2",
@@ -1965,6 +1965,7 @@ dependencies = [
 name = "enso-build-utilities"
 version = "0.1.0"
 dependencies = [
+ "ide-ci",
  "path-clean",
  "reqwest",
  "serde",
@@ -2100,7 +2101,7 @@ dependencies = [
  "json-rpc",
  "mockall",
  "nalgebra 0.26.2",
- "parser",
+ "parser-scala",
  "regex",
  "semver 1.0.14",
  "serde",
@@ -2953,6 +2954,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-font-family",
+ "ide-ci",
  "owned_ttf_parser",
  "tokio",
  "zip 0.5.13",
@@ -2977,10 +2979,12 @@ dependencies = [
  "ensogl-text-font-family",
  "failure",
  "futures 0.3.24",
+ "ide-ci",
  "js-sys",
  "nalgebra 0.26.2",
  "owned_ttf_parser",
  "serde",
+ "tokio",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -3907,7 +3911,7 @@ dependencies = [
  "multi-map",
  "nalgebra 0.26.2",
  "ordered-float",
- "parser",
+ "parser-scala",
  "serde",
  "serde_json",
  "span-tree",
@@ -5080,19 +5084,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "parser"
+name = "parser-scala"
 version = "0.1.0"
 dependencies = [
  "ast",
  "bytes 1.1.0",
  "console_error_panic_hook",
- "enso-build-utilities",
  "enso-data-structures",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
  "failure",
  "futures 0.3.24",
+ "ide-ci",
  "js-sys",
  "matches",
  "reqwest",
@@ -6368,7 +6372,7 @@ dependencies = [
  "enso-profiler",
  "enso-text",
  "failure",
- "parser",
+ "parser-scala",
  "wasm-bindgen-test",
 ]
 

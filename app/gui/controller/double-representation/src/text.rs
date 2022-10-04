@@ -187,7 +187,7 @@ mod test {
 
     use ast::HasIdMap;
     use enso_prelude::default;
-    use parser::Parser;
+    use parser_scala::Parser;
     use uuid::Uuid;
 
     /// A sample text edit used to test "text api" properties.

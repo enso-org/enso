@@ -13,12 +13,12 @@ pub trait IteratorExt: Iterator {
         })
     }
 
-    fn try_map<R, U>(mut self, mut f: impl FnMut(&Self::Item) -> Result<U>) -> Result<R>
+    fn try_map<R, U>(mut self, mut f: impl FnMut(Self::Item) -> Result<U>) -> Result<R>
     where
         Self: Sized,
         R: Default + Extend<U> + Sized, {
         self.try_fold(default(), |mut acc: R, item| {
-            acc.extend_one(f(&item)?);
+            acc.extend_one(f(item)?);
             Ok(acc)
         })
     }

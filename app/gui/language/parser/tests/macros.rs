@@ -4,7 +4,7 @@
 
 use parser::prelude::*;
 
-use parser::Parser;
+use parser_scala::Parser;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

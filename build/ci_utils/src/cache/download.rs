@@ -62,6 +62,7 @@ impl Storable for DownloadFile {
         _cache: Cache,
         store: PathBuf,
     ) -> BoxFuture<'static, Result<Self::Metadata>> {
+        // FIXME use `download_to_dir`
         let response = self.send_request();
         let filename = filename_from_url(&self.key.url);
         async move {

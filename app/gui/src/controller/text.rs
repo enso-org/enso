@@ -177,7 +177,7 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use enso_text::traits::*;
-    use parser::Parser;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {

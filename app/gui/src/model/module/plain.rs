@@ -18,9 +18,9 @@ use crate::notification;
 use double_representation::definition::DefinitionInfo;
 use double_representation::module::ImportId;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 
 
 

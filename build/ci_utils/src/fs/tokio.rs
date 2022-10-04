@@ -71,3 +71,19 @@ pub async fn reset_dir(path: impl AsRef<Path>) -> Result {
     create_dir_if_missing(&path).await?;
     Ok(())
 }
+
+pub async fn write_iter(
+    path: impl AsRef<Path>,
+    iter: impl IntoIterator<Item = impl AsRef<[u8]>>,
+) -> Result {
+    let mut file = create(&path).await?;
+    for line in iter {
+        file.write_all(line.as_ref())
+            .await
+            .with_context(|| format!("Failed to write to file {}.", path.as_ref().display()))?;
+    }
+    file.flush().await.with_context(|| {
+        format!("Failed to flush file {} after writing.", path.as_ref().display())
+    })?;
+    Ok(())
+}

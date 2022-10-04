@@ -11,9 +11,9 @@ use double_representation::identifier::ReferentName;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -342,7 +342,7 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
-impl parser::api::Metadata for Metadata {}
+impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
