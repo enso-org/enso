@@ -247,6 +247,11 @@ impl List {
         }
     }
 
+    /// Return the list of filtered top modules and their contents.
+    pub fn top_modules_flattened(&self) -> &group::AlphabeticalList {
+        &self.top_modules_flattened
+    }
+
     /// Get the list of given component submodules. Returns [`None`] if given component is not
     /// a module.
     pub fn submodules_of(&self, component: Id) -> Option<&group::AlphabeticalList> {
