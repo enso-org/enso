@@ -4,6 +4,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -179,19 +180,16 @@ fn align_mark(mut mark: profiler_flame_graph::Mark, origin_x: f64) -> profiler_f
 impl FlameGraph {
     /// Create an empty graph,
     pub fn empty(app: &Application) -> Self {
-        let logger = Logger::new("FlameGraph");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let blocks = default();
         let marks = default();
         let origin_x = default();
         let app = app.clone_ref();
-
         Self { display_object, blocks, marks, origin_x, app }
     }
     /// Create a `FlameGraph` EnsoGL component from the given graph data from the profiler.
     pub fn from_data(data: profiler_flame_graph::Graph, app: &Application) -> Self {
-        let logger = Logger::new("FlameGraph");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         let activity_blocks =
             data.activity_blocks.into_iter().filter(|block| block.width() > MIN_INTERVAL_TIME_MS);

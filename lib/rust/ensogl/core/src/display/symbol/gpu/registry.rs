@@ -73,9 +73,8 @@ impl SymbolRegistry {
         on_mut: OnMut,
     ) -> Self {
         let logger = Logger::new_sub(logger, "symbol_registry");
-        debug!(logger, "Initializing.");
-        let symbol_logger = Logger::new_sub(&logger, "symbol_dirty");
-        let symbol_dirty = SymbolDirty::new(symbol_logger, Box::new(on_mut));
+        debug!("Initializing.");
+        let symbol_dirty = SymbolDirty::new(Box::new(on_mut));
         let symbols = default();
         let variables = variables.clone();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
@@ -124,7 +123,7 @@ impl SymbolRegistry {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             let symbols = self.symbols.borrow();
             for id in self.symbol_dirty.take().iter() {
                 if let Some(symbol) = symbols.get(id) {

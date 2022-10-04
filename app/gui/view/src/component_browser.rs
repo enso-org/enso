@@ -29,7 +29,6 @@ pub use ide_view_component_browser::*;
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    logger:            Logger,
     display_object:    display::object::Instance,
     pub list:          list_panel::ComponentBrowserPanel,
     pub documentation: documentation::View,
@@ -40,15 +39,14 @@ impl component::Model for Model {
         "ComponentBrowser"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
-        let logger = logger.sub("ComponentBrowser");
-        let display_object = display::object::Instance::new(&logger);
+    fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
         let list = app.new_view::<list_panel::ComponentBrowserPanel>();
         let documentation = documentation::View::new(&app.display.default_scene);
         app.display.default_scene.layers.node_searcher.add_exclusive(&display_object);
         display_object.add_child(&list);
         display_object.add_child(&documentation);
-        Self { logger, display_object, list, documentation }
+        Self { display_object, list, documentation }
     }
 }
 
@@ -88,12 +86,12 @@ ensogl::define_endpoints_2! {
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         _app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        let network = &frp_api.network;
         let input = &frp_api.input;
         let out = &frp_api.output;
         let list_panel = &model.list.output;

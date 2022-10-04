@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -20,14 +21,15 @@ use crate::prelude::*;
 use binding::*;
 
 use emscripten_data::ArrayMemoryView;
+use enso_web as web;
+use enso_web::Closure;
+use enso_web::JsValue;
 use js_sys::Uint8Array;
 use owned_ttf_parser::Tag;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsValue;
 
 
 
@@ -114,6 +116,7 @@ pub struct OwnedFace {
     pub handle: JsValue,
 }
 
+#[cfg(target_arch = "wasm32")]
 impl Drop for OwnedFace {
     fn drop(&mut self) {
         msdfgen_free_font(self.handle.clone())
@@ -126,6 +129,14 @@ impl OwnedFace {
     /// Loads font from any format which freetype library can handle. See
     /// [https://www.freetype.org/freetype2/docs/index.html] for reference.
     pub fn load_from_memory(data: &[u8]) -> Self {
+        if cfg!(target_arch = "wasm32") {
+            Self::load_from_memory_wasm(data)
+        } else {
+            Self::mock_font()
+        }
+    }
+
+    fn load_from_memory_wasm(data: &[u8]) -> Self {
         let array_type_js = JsValue::from_str(ccall_types::ARRAY);
         let number_type_js = JsValue::from_str(ccall_types::NUMBER);
         let data_js_array = Uint8Array::from(data);
@@ -134,8 +145,8 @@ impl OwnedFace {
 
         let function_name = "msdfgen_loadFontMemory";
         let return_type = ccall_types::NUMBER;
-        let param_types = js_sys::Array::of2(&array_type_js, &number_type_js);
-        let params = js_sys::Array::of2(&data_js, &data_size_js);
+        let param_types = web::Array::of2(&array_type_js, &number_type_js);
+        let params = web::Array::of2(&data_js, &data_size_js);
 
         let handle = emscripten_call_function(function_name, return_type, param_types, params);
         OwnedFace { handle }

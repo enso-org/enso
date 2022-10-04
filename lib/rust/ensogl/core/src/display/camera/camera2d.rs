@@ -114,9 +114,9 @@ pub struct Dirty {
 }
 
 impl Dirty {
-    fn new(logger: &Logger) -> Self {
-        let projection = ProjectionDirty::new(Logger::new_sub(&logger, "projection"), ());
-        let transform = TransformDirty::new(Logger::new_sub(&logger, "transform"), ());
+    fn new() -> Self {
+        let projection = ProjectionDirty::new(());
+        let transform = TransformDirty::new(());
         Self { projection, transform }
     }
 }
@@ -197,14 +197,14 @@ type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    fn new(logger: Logger, display_object: &display::object::Instance) -> Self {
+    fn new(display_object: &display::object::Instance) -> Self {
         let screen = Screen::new();
         let projection = default();
         let clipping = default();
         let zoom = 1.0;
         let z_zoom_1 = 1.0;
         let matrix = default();
-        let dirty = Dirty::new(&Logger::new_sub(&logger, "dirty"));
+        let dirty = Dirty::new();
         let display_object = display_object.clone_ref();
         let zoom_update_registry = default();
         let screen_update_registry = default();
@@ -401,12 +401,17 @@ pub struct Camera2d {
 impl Camera2d {
     /// Creates new [`Camera2d`] instance. Please note that the camera will be of zero-size and in
     /// order for it to work properly, you have to initialize it by using the `set_screen` method.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "camera");
-        let display_object = display::object::Instance::new(&logger);
-        let data = Camera2dData::new(logger, &display_object);
+    pub fn new() -> Self {
+        let display_object = display::object::Instance::new();
+        let data = Camera2dData::new(&display_object);
         let data = Rc::new(RefCell::new(data));
         Self { display_object, data }
+    }
+}
+
+impl Default for Camera2d {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -19,11 +19,11 @@ use ttf::AsFaceRef;
 
 pub mod glyph;
 pub mod glyph_render_info;
-pub mod pen;
 
 pub use ensogl_text_font_family as family;
 pub use family::Name;
 pub use family::NonVariableFaceHeader;
+pub use family::NonVariableFaceHeaderMatch;
 pub use glyph_render_info::GlyphRenderInfo;
 pub use ttf::GlyphId;
 pub use ttf::Style;
@@ -231,7 +231,7 @@ impl Face {
                     let msdf = msdf::OwnedFace::load_from_memory(data);
                     Face { msdf, ttf }
                 });
-            result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
+            result.map_err(|err| error!("Error parsing font: {}", err)).ok()
         })
     }
 }
@@ -259,6 +259,21 @@ pub trait Family {
     /// variable fonts, the function always succeeds.
     fn with_borrowed_face<F, T>(&self, variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T;
+
+    /// Get the closest font face header for the given font face header. Not all font face headers
+    /// can be defined in a font family. For example, a font family may not contain a face with both
+    /// bold and italic glyphs. In such a case, this function will return the bold glyphs face.
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeaderMatch>;
+
+    /// Just like [`closest_non_variable_variations`], but panics if the face does not contain any
+    /// styles.
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeaderMatch;
 }
 
 /// A non-variable font family.
@@ -295,6 +310,35 @@ impl NonVariableFamily {
             }
         }
     }
+
+    fn closest_variations(
+        &self,
+        variation: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeaderMatch> {
+        let faces = self.faces.borrow();
+        if faces.contains_key(&variation) {
+            Some(NonVariableFaceHeaderMatch::exact(variation))
+        } else {
+            let mut closest = None;
+            let mut closest_distance = usize::MAX;
+            for known_header in faces.keys() {
+                let distance = known_header.similarity_distance(variation);
+                if distance < closest_distance {
+                    closest_distance = distance;
+                    closest = Some(NonVariableFaceHeaderMatch::closest(*known_header));
+                }
+            }
+            closest
+        }
+    }
+
+    fn closest_variations_or_panic(
+        &self,
+        variation: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeaderMatch {
+        self.closest_variations(variation)
+            .unwrap_or_else(|| panic!("Trying to use a font with no faces registered."))
+    }
 }
 
 impl VariableFamily {
@@ -320,6 +364,20 @@ impl Family for NonVariableFamily {
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.faces.borrow().get(variations).map(f)
     }
+
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeaderMatch> {
+        self.closest_variations(variations)
+    }
+
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeaderMatch {
+        self.closest_variations_or_panic(variations)
+    }
 }
 
 impl Family for VariableFamily {
@@ -333,7 +391,7 @@ impl Family for VariableFamily {
                     face.msdf
                         .set_variation_axis(axis.tag, value)
                         .map_err(|err| {
-                            event!(WARN, "Error setting font variation axis: {}", err);
+                            warn!("Error setting font variation axis: {}", err);
                         })
                         .ok();
                 });
@@ -344,6 +402,22 @@ impl Family for VariableFamily {
     fn with_borrowed_face<F, T>(&self, _variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.face.borrow().as_ref().map(f)
+    }
+
+    fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeaderMatch> {
+        // Variable fonts do not depend on non-variable variations.
+        Some(NonVariableFaceHeaderMatch::exact(variations))
+    }
+
+    fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeaderMatch {
+        // Variable fonts do not depend on non-variable variations.
+        NonVariableFaceHeaderMatch::exact(variations)
     }
 }
 
@@ -390,7 +464,7 @@ impl Font {
         }
     }
 
-    /// Get render info for one character, generating one if not found.
+    /// Get render info for the provided glyph, generating one if not found.
     pub fn glyph_info(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -403,20 +477,44 @@ impl Font {
         }
     }
 
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(
+    /// Get render info for the provided glyph, generating one if not found.
+    pub fn glyph_info_of_known_face(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
-        code_point: char,
-    ) -> Option<GlyphId> {
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
         match self {
             Font::NonVariable(font) =>
-                font.glyph_id_of_code_point(&non_variable_font_variations, code_point),
+                font.glyph_info_of_known_face(&non_variable_font_variations, glyph_id, face),
             Font::Variable(font) =>
-                font.glyph_id_of_code_point(variable_font_variations, code_point),
+                font.glyph_info_of_known_face(variable_font_variations, glyph_id, face),
+        }
+    }
+
+    /// Get the closest font-face header to the provided one.
+    pub fn closest_non_variable_variations(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> Option<NonVariableFaceHeaderMatch> {
+        match self {
+            Font::NonVariable(font) => font.family.closest_non_variable_variations(variations),
+            Font::Variable(font) => font.family.closest_non_variable_variations(variations),
+        }
+    }
+
+    /// Get the closest font-face header to the provided one. Panics if the face does not define
+    /// any styles.
+    pub fn closest_non_variable_variations_or_panic(
+        &self,
+        variations: NonVariableFaceHeader,
+    ) -> NonVariableFaceHeaderMatch {
+        match self {
+            Font::NonVariable(font) =>
+                font.family.closest_non_variable_variations_or_panic(variations),
+            Font::Variable(font) =>
+                font.family.closest_non_variable_variations_or_panic(variations),
         }
     }
 
@@ -436,6 +534,7 @@ impl Font {
         }
     }
 
+    // FIXME: remove?
     /// Get kerning between two characters.
     pub fn kerning(
         &self,
@@ -447,6 +546,22 @@ impl Font {
         match self {
             Font::NonVariable(font) => font.kerning(&non_variable_font_variations, left, right),
             Font::Variable(font) => font.kerning(variable_font_variations, left, right),
+        }
+    }
+
+    /// Perform the provided closure with a borrowed font face.
+    pub fn with_borrowed_face<F, T>(
+        &self,
+        non_variable_font_variations: NonVariableFaceHeader,
+        f: F,
+    ) -> Option<T>
+    where
+        F: for<'a> FnOnce(&'a Face) -> T,
+    {
+        match self {
+            Font::NonVariable(font) =>
+                font.family.with_borrowed_face(&non_variable_font_variations, f),
+            Font::Variable(font) => font.family.with_borrowed_face(&default(), f),
         }
     }
 }
@@ -470,13 +585,10 @@ pub struct FontTemplate<F: Family> {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontTemplateData<F: Family> {
-    pub name:                   Name,
-    pub family:                 F,
-    pub atlas:                  msdf::Texture,
-    pub cache:                  RefCell<HashMap<F::Variations, FontDataCache>>,
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    pub glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
+    pub name:   Name,
+    pub family: F,
+    pub atlas:  msdf::Texture,
+    pub cache:  RefCell<HashMap<F::Variations, FontDataCache>>,
 }
 
 /// A cache for common glyph properties, used to layout glyphs.
@@ -499,27 +611,8 @@ impl<F: Family> FontTemplate<F> {
         let atlas = default();
         let cache = default();
         let family = family.into();
-        let glyph_id_to_code_point = default();
-        let data = FontTemplateData { name, family, atlas, cache, glyph_id_to_code_point };
+        let data = FontTemplateData { name, family, atlas, cache };
         Self { rc: Rc::new(data) }
-    }
-
-    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
-    //   https://www.pivotaltracker.com/story/show/182746060
-    /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(
-        &self,
-        variations: &F::Variations,
-        code_point: char,
-    ) -> Option<GlyphId> {
-        self.family
-            .with_borrowed_face(variations, |face| {
-                face.ttf.as_face_ref().glyph_index(code_point).map(|id| {
-                    self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
-                    id
-                })
-            })
-            .flatten()
     }
 
     /// Get render info for one character, generating one if not found.
@@ -533,18 +626,43 @@ impl<F: Family> FontTemplate<F> {
         if opt_render_info.is_some() {
             opt_render_info
         } else {
-            self.family.update_msdfgen_variations(variations);
             self.family.with_borrowed_face(variations, |face| {
-                let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
-                if !self.cache.borrow().contains_key(variations) {
-                    self.cache.borrow_mut().insert(variations.clone(), default());
-                }
-                let mut borrowed_cache = self.cache.borrow_mut();
-                let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
-                font_data_cache.glyphs.insert(glyph_id, render_info);
-                render_info
+                self.non_cached_glyph_info_of_known_face(variations, glyph_id, face)
             })
         }
+    }
+
+    /// Get render info for one character, generating one if not found.
+    pub fn glyph_info_of_known_face(
+        &self,
+        variations: &F::Variations,
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
+        let opt_render_info =
+            self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
+        if let Some(render_info) = opt_render_info {
+            render_info
+        } else {
+            self.non_cached_glyph_info_of_known_face(variations, glyph_id, face)
+        }
+    }
+
+    fn non_cached_glyph_info_of_known_face(
+        &self,
+        variations: &F::Variations,
+        glyph_id: GlyphId,
+        face: &Face,
+    ) -> GlyphRenderInfo {
+        self.family.update_msdfgen_variations(variations);
+        let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
+        if !self.cache.borrow().contains_key(variations) {
+            self.cache.borrow_mut().insert(variations.clone(), default());
+        }
+        let mut borrowed_cache = self.cache.borrow_mut();
+        let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
+        font_data_cache.glyphs.insert(glyph_id, render_info);
+        render_info
     }
 
     /// Get kerning between two characters.
@@ -604,7 +722,7 @@ impl {
     pub fn load(&mut self, name:impl Into<Name>) -> Font {
         let name = name.into();
         self.try_load(&name).unwrap_or_else(|| {
-            event!(WARN, "Font '{name}' not found. Loading the default font.");
+            warn!("Font '{name}' not found. Loading the default font.");
             self.try_load(DEFAULT_FONT).expect("Default font not found.")
         })
     }
@@ -614,7 +732,7 @@ impl {
     /// embedded font list.
     pub fn try_load(&mut self, name:impl Into<Name>) -> Option<Font> {
         let name = name.into();
-        event!(DEBUG, "Loading font: {:?}", name);
+        debug!("Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => Some(entry.get().clone_ref()),
             Entry::Vacant   (entry) => {

@@ -91,7 +91,7 @@ impl std::borrow::Borrow<str> for Code<'_> {
     }
 }
 
-impl<'s> std::ops::AddAssign<Code<'s>> for Code<'s> {
+impl<'s> AddAssign<Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: Code<'s>) {
         self.repr.add_assign(other.repr);
@@ -99,7 +99,7 @@ impl<'s> std::ops::AddAssign<Code<'s>> for Code<'s> {
     }
 }
 
-impl<'s> std::ops::AddAssign<&Code<'s>> for Code<'s> {
+impl<'s> AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
         self.repr.add_assign(other.repr.clone());
@@ -135,7 +135,7 @@ impl Add for Length {
     }
 }
 
-impl std::ops::AddAssign for Length {
+impl AddAssign for Length {
     #[inline(always)]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;

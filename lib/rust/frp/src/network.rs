@@ -158,6 +158,11 @@ impl WeakNetwork {
     pub fn id(&self) -> NetworkId {
         NetworkId(self.data.as_ptr() as *const () as usize)
     }
+
+    /// Gets the number of strong (Rc) pointers to this allocation.
+    pub fn strong_count(&self) -> usize {
+        self.data.strong_count()
+    }
 }
 
 

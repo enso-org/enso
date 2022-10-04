@@ -762,8 +762,8 @@ macro_rules! define_components {
             /// Constructor.
             #[allow(clippy::vec_init_then_push)]
             pub fn new(logger:Logger) -> Self {
-                let display_object = display::object::Instance::new(&logger);
-                $(let $field = <$field_type>::new(Logger::new_sub(&logger,stringify!($field)));)*
+                let display_object = display::object::Instance::new();
+                $(let $field = <$field_type>::new();)*
                 $(display_object.add_child(&$field);)*
                 let mut shape_view_events:Vec<PointerTarget> = Vec::default();
                 $(shape_view_events.push($field.events.clone_ref());)*
@@ -1283,10 +1283,10 @@ impl EdgeModelData {
     #[profile(Debug)]
     pub fn new(scene: &Scene, network: &frp::Network) -> Self {
         let logger = Logger::new("edge");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let front = Front::new(Logger::new_sub(&logger, "front"));
         let back = Back::new(Logger::new_sub(&logger, "back"));
-        let joint = joint::View::new(Logger::new_sub(&logger, "joint"));
+        let joint = joint::View::new();
 
         display_object.add_child(&front);
         display_object.add_child(&back);

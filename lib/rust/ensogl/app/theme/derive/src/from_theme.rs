@@ -37,7 +37,7 @@ impl ThemeTypes {
     fn from_ty(ty: &Type) -> Self {
         match ty {
             Type::Path(type_path)
-                if type_path.clone().into_token_stream().to_string() == "String" =>
+                if type_path.clone().into_token_stream().to_string().contains("ImString") =>
                 Self::String,
             Type::Path(type_path) if type_path.clone().into_token_stream().to_string() == "f32" =>
                 Self::Number,

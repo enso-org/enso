@@ -71,9 +71,9 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// Resize the entry's view to fit a new width.
     fn set_max_width(&self, max_width_px: f32);
 
-    /// Set the layer of all [`text::Area`] components inside. The [`text::Area`] component is
+    /// Set the layer of all [`text::Text`] components inside. The [`text::Text`] component is
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
-    /// in [`text::Area::add_to_scene_layer`] method.
+    /// in [`text::Text::add_to_scene_layer`] method.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
 }
 
@@ -89,8 +89,8 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
     display_object:  display::object::Instance,
-    pub label:       text::Area,
-    text:            frp::Source<String>,
+    pub label:       text::Text,
+    text:            frp::Source<ImString>,
     max_width_px:    frp::Source<f32>,
     /// The `network` is public to allow extending it in components based on a [`Label`]. This
     /// should only be done for components that are small extensions of a Label, where creating a
@@ -103,31 +103,32 @@ pub struct Label {
 impl Label {
     /// Constructor.
     pub fn new(app: &Application, style_prefix: &Path) -> Self {
-        let logger = Logger::new("list_view::entry::Label");
-        let display_object = display::object::Instance::new(logger);
-        let label = app.new_view::<ensogl_text::Area>();
+        let display_object = display::object::Instance::new();
+        let label = app.new_view::<ensogl_text::Text>();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let text_style = style_prefix.sub("text");
         let font = style_watch.get_text(text_style.sub("font"));
         let size = style_watch.get_number(text_style.sub("size"));
         let color = style_watch.get_color(text_style);
+        label.set_long_text_truncation_mode(true);
 
         display_object.add_child(&label);
         frp::extend! { network
             init <- source::<()>();
-            text <- source::<String>();
+            text <- source::<ImString>();
             max_width_px <- source::<f32>();
             color <- all(&color,&init)._0();
             font <- all(&font,&init)._0();
             size <- all(&size,&init)._0();
 
-            label.set_default_color <+ color;
+            label.set_property_default <+ color.ref_into_some();
             label.set_font <+ font;
-            label.set_default_text_size <+ size.map(|v| text::Size(*v));
+            label.set_property_default <+ size.map(|v| text::Size(*v)).ref_into_some();
             eval size ((size) label.set_position_y(size/2.0));
 
-            label.set_content_truncated <+ all(&text, &max_width_px);
+            label.set_content <+ text;
+            label.set_view_width <+ max_width_px.some();
         }
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
@@ -171,7 +172,7 @@ pub struct GlyphHighlightedLabelModel {
     /// Displayed text.
     pub label:       String,
     /// A list of ranges of highlighted bytes.
-    pub highlighted: Vec<text::Range<text::Bytes>>,
+    pub highlighted: Vec<text::Range<text::Byte>>,
 }
 
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
@@ -179,7 +180,7 @@ pub struct GlyphHighlightedLabelModel {
 #[derive(Clone, CloneRef, Debug)]
 pub struct GlyphHighlightedLabel {
     pub inner: Label,
-    highlight: frp::Source<Vec<text::Range<text::Bytes>>>,
+    highlight: frp::Source<Vec<text::Range<text::Byte>>>,
 }
 
 impl Entry for GlyphHighlightedLabel {
@@ -194,12 +195,12 @@ impl Entry for GlyphHighlightedLabel {
         let label = &inner.label;
 
         frp::extend! { network
-            highlight <- source::<Vec<text::Range<text::Bytes>>>();
+            highlight <- source::<Vec<text::Range<text::Byte>>>();
             content_changed <- label.content.constant(());
             set_highlight <- all(highlight, highlight_bold, content_changed);
             eval set_highlight ([label]((highlight, bold, ())) {
                 for range in highlight {
-                   label.set_sdf_bold(range, text::style::SdfBold::new(*bold));
+                   label.set_property(range, text::formatting::SdfWeight::new(*bold));
                 }
             });
         }

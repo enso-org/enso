@@ -8,7 +8,6 @@
 #![recursion_limit = "512"]
 // === Features ===
 #![allow(incomplete_features)]
-#![feature(negative_impls)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
@@ -31,6 +30,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -184,7 +184,7 @@ struct Style {
     section_heading_size:        f32,
     section_heading_offset:      f32,
     section_heading_text_offset: f32,
-    section_heading_font:        String,
+    section_heading_font:        ImString,
     section_heading_color:       color::Rgba,
     section_divider_color:       color::Rgba,
 
@@ -431,13 +431,13 @@ impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("ComponentBrowserPanel");
         let app = app.clone_ref();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let navigator = default();
         let groups_wrapper = component_group::set::Wrapper::new();
 
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
-        let navigator_shadow = navigator_shadow::View::new(&logger);
+        let navigator_shadow = navigator_shadow::View::new();
         display_object.add_child(&navigator_shadow);
 
         let favourites_section = Self::init_column_section(&app);
@@ -465,7 +465,7 @@ impl Model {
         display_object.add_child(&breadcrumbs);
         breadcrumbs.show_ellipsis(true);
 
-        let selection = selection_box::View::new(&app.logger);
+        let selection = selection_box::View::new();
         scroll_area.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
 
@@ -702,7 +702,7 @@ impl component::Model for Model {
         "ComponentBrowserPanel"
     }
 
-    fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
+    fn new(app: &Application) -> Self {
         Self::new(app)
     }
 }
@@ -717,7 +717,7 @@ impl component::Model for Model {
 /// provides some utility functions for shape and layout handling.
 #[derive(Clone, Debug)]
 struct LabeledSection<T> {
-    pub label:   text::Area,
+    pub label:   text::Text,
     pub divider: hline::View,
     pub content: T,
 }
@@ -737,16 +737,15 @@ type ColumnSection = LabeledSection<column_grid::ColumnGrid>;
 
 impl<T: CloneRef> LabeledSection<T> {
     pub fn new(content: T, app: &Application) -> Self {
-        let logger = Logger::new("LabeledSection");
-        let label = text::Area::new(app);
-        let divider = hline::View::new(logger);
+        let label = text::Text::new(app);
+        let divider = hline::View::new();
         Self { label, divider, content }
     }
 
     fn set_style(&self, style: &Style) {
         self.divider.size.set(Vector2(INFINITE, style.section_divider_height));
-        self.label.set_default_color(style.section_heading_color);
-        self.label.set_default_text_size(text::Size(style.section_heading_size));
+        self.label.set_property_default(style.section_heading_color);
+        self.label.set_property_default(text::Size(style.section_heading_size));
         self.label.set_font(style.section_heading_font.clone());
         self.label.set_position_x(style.content_padding);
     }
@@ -963,12 +962,12 @@ define_endpoints_2! {
 
 impl component::Frp<Model> for Frp {
     fn init(
+        network: &frp::Network,
         frp_api: &<Self as API>::Private,
         app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        let network = &frp_api.network;
         let header_height = style.get_number(component_group_theme::header::height);
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;

@@ -230,6 +230,7 @@ macro_rules! mock_fn_gen_print {
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
         #[allow(unused_variables)]
         #[allow(clippy::too_many_arguments)]
+        #[allow(clippy::should_implement_trait)]
         #[allow(missing_docs)]
         $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
             $($body)*
@@ -317,6 +318,9 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
     fn is_null(&self) -> bool;
+    fn from_str(s: &str) -> JsValue;
+    fn from_f64(n: f64) -> JsValue;
+    fn as_f64(&self) -> Option<f64>;
 }
 
 impl JsValue {
@@ -348,6 +352,13 @@ impl AsRef<JsValue> for wasm_bindgen::JsValue {
 mock_data! { [NO_AS_REF] Closure<T: ?Sized>
     fn wrap(_data: Box<T>) -> Closure<T>;
     fn once<F>(_fn_once: F) -> Closure<F>;
+}
+
+#[allow(missing_docs)]
+impl Closure<dyn FnOnce()> {
+    pub fn once_into_js<F>(_fn_once: F) -> JsValue {
+        default()
+    }
 }
 
 #[allow(missing_docs)]
@@ -395,6 +406,10 @@ impl From<&JsString> for String {
 // === Array ===
 mock_data! { Array => Object
     fn length(&self) -> u32;
+    fn of2(a: &JsValue, b: &JsValue) -> Array;
+    fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
+    fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
+    fn of5(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue, e: &JsValue) -> Array;
 }
 
 
@@ -496,6 +511,7 @@ mock_data! { KeyboardEvent => Event
     fn code(&self) -> String;
     fn alt_key(&self) -> bool;
     fn ctrl_key(&self) -> bool;
+    fn shift_key(&self) -> bool;
 }
 
 

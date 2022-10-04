@@ -20,6 +20,7 @@ crate::define_endpoints! {
         target       (Lcha),
         target_alpha (f32),
         target_color (Lch),
+        skip         (),
     }
     Output {
         value (Lcha),
@@ -59,6 +60,8 @@ impl Animation {
             alpha_of_target        <- self.frp.target.map(|t|t.alpha);
             target_color           <- any(&self.frp.target_color,&color_of_target);
             target_alpha           <- any(&self.frp.target_alpha,&alpha_of_target);
+            self.color_anim.skip   <+ self.frp.skip;
+            self.alpha_anim.skip   <+ self.frp.skip;
             self.color_anim.target <+ target_color;
             self.alpha_anim.target <+ target_alpha;
             self.frp.source.value  <+ all(&self.color_anim.value,&self.alpha_anim.value).map(

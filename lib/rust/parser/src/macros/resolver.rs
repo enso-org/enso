@@ -271,18 +271,18 @@ impl<'s> Resolver<'s> {
         tokens: Vec<syntax::Item<'s>>,
     ) -> syntax::Tree<'s> {
         let mut tokens = tokens.into_iter();
-        event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
+        trace!("Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
         let mut opt_item: Option<syntax::Item<'s>>;
         macro_rules! next_token {
             () => {{
                 opt_item = tokens.next();
-                event!(TRACE, "Next token {:#?}", &opt_item);
+                trace!("Next token {:#?}", &opt_item);
             }};
         }
         macro_rules! trace_state {
             () => {
-                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
-                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
+                trace!("Current macro:\n{:#?}", self.current_macro);
+                trace!("Parent macros:\n{:#?}", self.macro_stack);
             };
         }
         next_token!();
@@ -397,11 +397,11 @@ impl<'s> Resolver<'s> {
     fn unwind_stack(&mut self) -> syntax::Tree<'s> {
         macro_rules! trace_state {
             () => {
-                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
-                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
+                trace!("Current macro:\n{:#?}", self.current_macro);
+                trace!("Parent macros:\n{:#?}", self.macro_stack);
             };
         }
-        event!(TRACE, "Finishing resolution. Popping the macro stack.");
+        trace!("Finishing resolution. Popping the macro stack.");
         let macros = self.macro_stack.drain(self.macro_scope_start()..).rev();
         for parent_macro in macros {
             let child_macro = mem::replace(&mut self.current_macro, parent_macro);
@@ -422,7 +422,7 @@ impl<'s> Resolver<'s> {
     fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
         let repr = &**token.code;
         if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
-            event!(TRACE, "Entering next segment of the current macro.");
+            trace!("Entering next segment of the current macro.");
             let mut new_match_tree =
                 Self::move_to_next_segment(&mut self.current_macro.matched_macro_def, subsegments);
             let mut current_segment = MatchedSegment::new(token);
@@ -431,11 +431,11 @@ impl<'s> Resolver<'s> {
             self.current_macro.resolved_segments.push(current_segment);
             Step::NewSegmentStarted
         } else if let Some(parent_macro) = self.pop_macro_stack_if_reserved(repr) {
-            event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
+            trace!("Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
         } else if let Some(segments) = root_macro_map.get(repr) && token.variant.can_start_macro() {
-            event!(TRACE, "Starting a new nested macro resolution.");
+            trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let mut current_macro = PartiallyMatchedMacro {
                 current_segment: MatchedSegment { header: token, body: default() },
@@ -450,7 +450,7 @@ impl<'s> Resolver<'s> {
             self.macro_stack.push(current_macro);
             Step::NewSegmentStarted
         } else {
-            event!(TRACE, "Consuming token as current segment body.");
+            trace!("Consuming token as current segment body.");
             Step::NormalToken(token.into())
         }
     }
@@ -459,7 +459,10 @@ impl<'s> Resolver<'s> {
     /// the resolution of the `(a)` macro in the `(a) x (b)` expression will return the `(a)` AST
     /// and the `x` and `(b)` items (already resolved).
     fn resolve(m: PartiallyMatchedMacro<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
-        let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
+        let segments = NonEmptyVec::<MatchedSegment, usize>::new_with_last(
+            m.resolved_segments,
+            m.current_segment,
+        );
         let resolved_segments = segments.mapped(|segment| {
             let mut items: VecDeque<syntax::Item<'s>> = default();
             for item in segment.body {

@@ -94,6 +94,23 @@ pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
         }
         None
     }
+
+    /// Index the vector. If it is too short, extend it with default value.
+    fn index_or_resize_mut(&mut self, index: usize) -> &mut T
+    where T: Clone + Default {
+        self.index_or_resize_with_mut(index, || Default::default())
+    }
+
+    /// Index the vector. If it is too short, extend it with the provided default value.
+    #[allow(unsafe_code)]
+    fn index_or_resize_with_mut(&mut self, index: usize, cons: impl Fn() -> T) -> &mut T
+    where T: Clone {
+        let vec = self.as_mut();
+        if index >= vec.len() {
+            vec.resize(index + 1, cons());
+        }
+        unsafe { vec.get_mut(index).unwrap_or_else(|| unreachable_unchecked()) }
+    }
 }
 
 impl<T> VecOps<T> for Vec<T> {}

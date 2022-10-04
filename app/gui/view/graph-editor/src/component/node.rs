@@ -25,7 +25,6 @@ use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
-use ensogl_component::text::Text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
 use std::f32::EPSILON;
@@ -95,7 +94,7 @@ const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 ///
 /// This is just a plain string, as this is what text area expects and node just redirects this
 /// value,
-pub type Comment = String;
+pub type Comment = ImString;
 
 
 
@@ -324,7 +323,7 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
-        expression               (Text),
+        expression               (enso_text::Rope),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -447,7 +446,7 @@ pub struct NodeModel {
     pub action_bar:          action_bar::ActionBar,
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
-    pub comment:             text::Area,
+    pub comment:             text::Text,
 }
 
 impl NodeModel {
@@ -481,17 +480,13 @@ impl NodeModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("node");
 
-        let main_logger = Logger::new_sub(&logger, "main_area");
-        let drag_logger = Logger::new_sub(&logger, "drag_area");
-        let error_indicator_logger = Logger::new_sub(&logger, "error_indicator");
-
-        let error_indicator = error_shape::View::new(&error_indicator_logger);
+        let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
-        let backdrop = backdrop::View::new(&main_logger);
-        let background = background::View::new(&main_logger);
-        let drag_area = drag_area::View::new(&drag_logger);
+        let backdrop = backdrop::View::new();
+        let background = background::View::new();
+        let drag_area = drag_area::View::new();
         let vcs_indicator = vcs::StatusIndicator::new(app);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
@@ -499,7 +494,7 @@ impl NodeModel {
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
-        let input = input::Area::new(&logger, app);
+        let input = input::Area::new(app);
         let visualization = visualization::Container::new(&logger, app, registry);
 
         display_object.add_child(&visualization);
@@ -509,16 +504,16 @@ impl NodeModel {
         let (x, y) = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x, y));
 
-        let action_bar = action_bar::ActionBar::new(&logger, app);
+        let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
         scene.layers.above_nodes.add_exclusive(&action_bar);
 
-        let output = output::Area::new(&logger, app);
+        let output = output::Area::new(app);
         display_object.add_child(&output);
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-        let comment = text::Area::new(app);
+        let comment = text::Text::new(app);
         display_object.add_child(&comment);
 
         let app = app.clone_ref();
@@ -688,7 +683,7 @@ impl Node {
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
-        let network = &frp.private.network;
+        let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
         let model = Rc::new(NodeModel::new(app, registry));
@@ -712,11 +707,11 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area           = &model.drag_area.events;
-            drag_area_hover        <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
+            let drag_area = &model.drag_area.events;
+            drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
-            out.hover       <+ model.output.body_hover;
+            out.hover <+ model.output.body_hover;
 
 
             // === Background Press ===
@@ -750,7 +745,6 @@ impl Node {
             // === Comment ===
 
             let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
-            // comment_color.target <+ all_with(
             comment_color <- all_with(
                 &comment_base_color, &model.output.expression_label_visibility,
                 |&base_color,&expression_visible| {
@@ -761,14 +755,14 @@ impl Node {
                     });
                     color
             });
-            eval comment_color ((value) model.comment.set_color_all(color::Rgba::from(value)));
+            eval comment_color ((value) model.comment.set_property(.., color::Rgba::from(value)));
 
             eval model.comment.width ([model](width)
                 model.comment.set_position_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
                 model.comment.set_position_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
-            out.comment        <+ model.comment.content.map(|text| text.to_string());
+            out.comment <+ model.comment.content.map(|text| text.to_im_string());
 
 
             // === Size ===
@@ -782,15 +776,15 @@ impl Node {
             let visualization_button_state = action_bar.action_visibility.clone_ref();
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
-            show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
+            show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
 
 
             // === View Mode ===
 
-            model.input.set_view_mode           <+ input.set_view_mode;
-            model.output.set_view_mode          <+ input.set_view_mode;
+            model.input.set_view_mode <+ input.set_view_mode;
+            model.output.set_view_mode <+ input.set_view_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})

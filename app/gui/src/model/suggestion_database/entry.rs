@@ -138,6 +138,23 @@ impl<'a> IntoIterator for &'a QualifiedName {
 
 
 
+// ==================
+// === ModuleSpan ===
+// ==================
+
+/// A span in a module identified by qualified name.
+///
+/// Span uses UTF-16 code units as units of measurement, so it is compatible with the format used
+/// internally by the suggestion database entries.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModuleSpan {
+    pub module: module::QualifiedName,
+    pub span:   Location<enso_text::Utf16CodeUnit>,
+}
+
+
+
 // ================
 // === IconName ===
 // ================
@@ -197,8 +214,12 @@ pub enum Scope {
     Everywhere,
     /// Local symbol that is visible only in a particular section of the module where it has been
     /// defined.
+    ///
+    /// We are using UTF-16 codepoints because this is what Language Server speaks.
+    /// To convert to bytes (or other system) one would need to know the whole module code which
+    /// is not available to the suggestions database.
     #[allow(missing_docs)]
-    InModule { range: RangeInclusive<Location> },
+    InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
 }
 
 /// Represents code snippet and the imports needed for it to work.
@@ -325,10 +346,11 @@ impl Entry {
     }
 
     /// Checks if entry is visible at given location in a specific module.
-    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location) -> bool {
+    pub fn is_visible_at(&self, location: &ModuleSpan) -> bool {
+        let ModuleSpan { module, span } = location;
         match &self.scope {
             Scope::Everywhere => true,
-            Scope::InModule { range } => self.module == *module && range.contains(&location),
+            Scope::InModule { range } => self.module == *module && range.contains(span),
         }
     }
 
@@ -361,7 +383,7 @@ impl Entry {
                         entry {self:?}. Every entry with the 'Method' kind should have a self \
                         type set, but this entry is missing the self type."
                     );
-                    event!(ERROR, "{msg}");
+                    error!("{msg}");
                     default()
                 }
             },
@@ -704,7 +726,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
                     documentation of a component is not a valid, losslessly-convertible snake_case \
                     identifier. The component may be displayed with a different icon than expected."
                 );
-                event!(WARN, "{msg}");
+                warn!("{msg}");
             }
             Some(icon_name)
         }

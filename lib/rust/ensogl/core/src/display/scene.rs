@@ -427,11 +427,9 @@ pub struct Dirty {
 }
 
 impl Dirty {
-    pub fn new<OnMut: Fn() + Clone + 'static>(logger: &Logger, on_mut: OnMut) -> Self {
-        let sub_logger = Logger::new_sub(logger, "shape_dirty");
-        let shape = ShapeDirty::new(sub_logger, Box::new(on_mut.clone()));
-        let sub_logger = Logger::new_sub(logger, "symbols_dirty");
-        let symbols = SymbolRegistryDirty::new(sub_logger, Box::new(on_mut));
+    pub fn new<OnMut: Fn() + Clone + 'static>(on_mut: OnMut) -> Self {
+        let shape = ShapeDirty::new(Box::new(on_mut.clone()));
+        let symbols = SymbolRegistryDirty::new(Box::new(on_mut));
         Self { symbols, shape }
     }
 }
@@ -525,7 +523,7 @@ impl Renderer {
     /// Run the renderer.
     pub fn run(&self, update_status: UpdateStatus) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
-            debug!(self.logger, "Running.", || {
+            debug_span!("Running.").in_scope(|| {
                 composer.run(update_status);
             })
         }
@@ -758,14 +756,13 @@ impl SceneData {
         stats: &Stats,
         on_mut: OnMut,
     ) -> Self {
-        debug!(logger, "Initializing.");
-
+        debug!("Initializing.");
         let dom = Dom::new(&logger);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         display_object.force_set_visibility(true);
         let var_logger = Logger::new_sub(&logger, "global_variables");
         let variables = UniformScope::new(var_logger);
-        let dirty = Dirty::new(&logger, on_mut);
+        let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
@@ -936,7 +933,7 @@ impl SceneData {
         // due to rounding errors. We round to the nearest integer to compensate for those errors.
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
-        debug!(self.logger, "Resized to {screen.width}px x {screen.height}px.", || {
+        debug_span!("Resized to {screen.width}px x {screen.height}px.").in_scope(|| {
             self.dom.layers.canvas.set_attribute_or_warn("width", &width.to_string());
             self.dom.layers.canvas.set_attribute_or_warn("height", &height.to_string());
             if let Some(context) = &*self.context.borrow() {
@@ -1023,7 +1020,7 @@ impl SceneData {
     fn handle_mouse_over_and_out_events(&self) {
         let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
         let new_target = opt_new_target.unwrap_or_else(|err| {
-            error!(self.logger, "{err}");
+            error!("{err}");
             default()
         });
         let current_target = self.mouse.target.get();
@@ -1071,7 +1068,7 @@ impl Scene {
 
     pub fn display_in(&self, parent_dom: impl DomPath) {
         match parent_dom.try_into_dom_element() {
-            None => error!(&self.logger, "The scene host element could not be found."),
+            None => error!("The scene host element could not be found."),
             Some(parent_dom) => {
                 parent_dom.append_or_warn(&self.dom.root);
                 self.dom.recompute_shape_with_reflow();
@@ -1084,7 +1081,7 @@ impl Scene {
     fn init(&self) {
         let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
         match context_loss_handler {
-            Err(err) => error!(self.logger, "{err}"),
+            Err(err) => error!("{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
         }
     }
@@ -1125,9 +1122,11 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
+    // FIXME:
+    #[allow(unused_assignments)]
     pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
         if let Some(context) = &*self.context.borrow() {
-            debug!(self.logger, "Updating.", || {
+            debug_span!("Updating.").in_scope(|| {
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
@@ -1142,6 +1141,11 @@ impl Scene {
 
                 let pointer_position_changed = self.pointer_position_changed.get();
                 self.pointer_position_changed.set(false);
+
+                // FIXME: setting it to true for now in order to make cursor blinking work.
+                //   Text cursor animation is in GLSL. To be handled properly in this PR:
+                //   #183406745
+                let scene_was_dirty = true;
                 UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
         } else {

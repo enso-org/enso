@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -85,8 +86,6 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let logger: Logger = app.logger.sub("ScrollAreaDemo");
-
     let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));
 
@@ -107,7 +106,7 @@ fn init(app: &Application) {
 
     // === Background ===
 
-    let background = background::View::new(&logger);
+    let background = background::View::new();
     scroll_area.add_child(&background);
     scene.layers.below_main.add_exclusive(&background);
     background.size.set(Vector2::new(200.0, 200.0));
@@ -118,7 +117,7 @@ fn init(app: &Application) {
 
     // === Content ===
 
-    let content = content::View::new(&logger);
+    let content = content::View::new();
     scroll_area.content().add_child(&content);
     content.size.set(Vector2::new(100.0, 100.0));
     content.set_position_x(100.0);

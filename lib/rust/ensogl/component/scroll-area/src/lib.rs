@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -244,22 +245,22 @@ impl ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
         let camera = scene.layers.node_searcher.camera();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content_layer = display_object.layer.masked_layer.create_sublayer();
         let ui_layer = display_object.layer.masked_layer.create_sublayer();
 
-        let content = display::object::Instance::new(&logger);
+        let content = display::object::Instance::new();
         display_object.add_child(&content);
         content_layer.add_exclusive(&content);
 
-        let scrollbars = display::object::Instance::new(&logger);
+        let scrollbars = display::object::Instance::new();
         display_object.add_child(&scrollbars);
         ui_layer.add_exclusive(&scrollbars);
 
-        let mask = mask::View::new(&logger);
+        let mask = mask::View::new();
         display_object.add_child(&mask);
         display_object.layer.mask_layer.add_exclusive(&mask);
 

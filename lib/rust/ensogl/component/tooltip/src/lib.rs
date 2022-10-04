@@ -4,6 +4,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use ensogl::prelude::*;
 
@@ -57,9 +58,8 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("TooltipModel");
         let tooltip = Label::new(app);
-        let root = display::object::Instance::new(&logger);
+        let root = display::object::Instance::new();
         root.add_child(&tooltip);
         let placement = default();
         Self { tooltip, root, placement }

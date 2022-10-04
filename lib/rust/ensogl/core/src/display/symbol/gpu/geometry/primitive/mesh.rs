@@ -122,9 +122,8 @@ impl {
     (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
-        let scopes_logger = Logger::new_sub(&logger,"scopes_dirty");
-        let scopes_dirty  = ScopesDirty::new(scopes_logger,Box::new(on_mut));
-        let scopes        = debug!(logger, "Initializing.", || {
+        let scopes_dirty  = ScopesDirty::new(Box::new(on_mut));
+        let scopes        = debug_span!("Initializing.").in_scope(|| {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
                 let sub_logger = Logger::new_sub(&logger,stringify!($name));
                 let status_mod = ScopeType::$uname;
@@ -160,7 +159,7 @@ impl {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if self.scopes_dirty.check_all() {
                 update_scopes!{
                     self.{point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance}

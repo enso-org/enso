@@ -118,13 +118,11 @@ impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
     (logger:Logger, stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
-        info!(logger,"Creating new {T::type_display()} buffer.", || {
+        debug_span!("Creating new {T::type_display()} buffer.").in_scope(|| {
             stats.inc_buffer_count();
             let logger        = logger.clone();
-            let sublogger     = Logger::new_sub(&logger,"mut_dirty");
-            let mut_dirty     = MutDirty::new(sublogger,Box::new(on_mut));
-            let sublogger     = Logger::new_sub(&logger,"resize_dirty");
-            let resize_dirty  = ResizeDirty::new(sublogger, Box::new(on_resize));
+            let mut_dirty     = MutDirty::new(Box::new(on_mut));
+            let resize_dirty  = ResizeDirty::new(Box::new(on_resize));
             resize_dirty.set();
             let on_resize_fn  = on_resize_fn(resize_dirty.clone_ref());
             let on_mut_fn     = on_mut_fn(mut_dirty.clone_ref());
@@ -185,7 +183,7 @@ impl<T:Storable> {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        info!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if let Some(gl) = &self.gl {
                 gl.context.bind_buffer(*Context::ARRAY_BUFFER,Some(&gl.buffer));
                 if self.resize_dirty.check() {
@@ -284,7 +282,7 @@ impl<T: Storable> BufferData<T> {
     /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range: &Option<RangeInclusive<usize>>) {
-        info!(self.logger, "Uploading buffer data.", || {
+        info_span!("Uploading buffer data.").in_scope(|| {
             self.stats.inc_data_upload_count();
             match opt_range {
                 None => self.replace_gpu_buffer(),

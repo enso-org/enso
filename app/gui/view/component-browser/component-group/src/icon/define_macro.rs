@@ -44,11 +44,10 @@
 ///
 /// fn main () {
 ///     let app = ensogl::application::Application::new("root");
-///     let logger = Logger::new("icon");
-///     let icon1 = Id::Icon1.create_shape(&logger, Vector2(10.0, 10.0));
+///     let icon1 = Id::Icon1.create_shape(Vector2(10.0, 10.0));
 ///     let icon2_id: Id = "Icon2".parse().unwrap();
 ///     assert_eq!(icon2_id, Id::Icon2);
-///     let icon2 = icon2_id.create_shape(&logger, Vector2(11.0, 11.0));
+///     let icon2 = icon2_id.create_shape(Vector2(11.0, 11.0));
 ///     app.display.default_scene.add_child(&icon1);
 ///     app.display.default_scene.add_child(&icon2);
 ///
@@ -81,10 +80,10 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, logger: impl AnyLogger, size: Vector2) -> $crate::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::icon::Any {
                 match self {$(
                     Self::$variant => {
-                        let view = $name::View::new(logger);
+                        let view = $name::View::new();
                         view.size.set(size);
                         let strong_color = view.strong_color.clone_ref();
                         let weak_color = view.weak_color.clone_ref();
