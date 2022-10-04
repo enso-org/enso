@@ -795,6 +795,16 @@ spec =
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
 
+            r3 = t.distinct ["A"] on_problems=Report_Error
+            r3.at "A" . to_vector . should_equal ["a"]
+            r3.at "B" . to_vector . should_equal [1]
+            r3.at "C" . to_vector . should_equal [0.1]
+
+            r4 = t.distinct ["A", "B"] on_problems=Report_Error
+            r4.at "A" . to_vector . should_equal ["a", "a"]
+            r4.at "B" . to_vector . should_equal [1, 2]
+            r4.at "C" . to_vector . should_equal [0.1, 0.3]
+
         Test.specify "should handle nulls correctly" <|
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]

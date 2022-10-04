@@ -76,6 +76,16 @@ where A: Allocator
         self.vec.len()
     }
 
+    /// Return the last valid index, if any.
+    pub fn last_valid_index(&self) -> Option<I>
+    where I: From<usize> {
+        if self.vec.is_empty() {
+            None
+        } else {
+            Some((self.len() - 1).into())
+        }
+    }
+
     /// Check if the vector is empty.
     pub fn is_empty(&self) -> bool {
         self.vec.is_empty()

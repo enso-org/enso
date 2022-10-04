@@ -279,7 +279,7 @@ type Table
        dropped from the output.
 
        Arguments:
-       - columns: Column selection criteria.
+       - columns: Column selection criteria or vector of column names.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
          output table will match the order in the columns list.
@@ -302,9 +302,10 @@ type Table
 
              table.select_columns (By_Name ["bar", "foo"])
 
-       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `By_Name`.
-          See: https://github.com/enso-org/enso/issues/1600
+       > Example
+         Select columns using names passed as a Vector.
+
+             table.select_columns ["bar", "foo"]
 
        > Example
          Select columns matching a regular expression.
@@ -322,7 +323,7 @@ type Table
              table.select_columns (By_Column [column1, column2])
 
        Icon: select_column
-    select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
         new new_columns
@@ -333,7 +334,7 @@ type Table
        input.
 
        Arguments:
-       - columns: Criteria specifying which columns should be removed.
+       - columns: Column selection criteria or vector of column names to remove.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -353,9 +354,10 @@ type Table
 
              table.remove_columns (By_Name ["bar", "foo"])
 
-       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `By_Name`.
-          See: https://github.com/enso-org/enso/issues/1600
+       > Example
+         Remove columns using names passed as a Vector.
+
+             table.remove_columns ["bar", "foo"]
 
        > Example
          Remove columns matching a regular expression.
@@ -371,7 +373,7 @@ type Table
          Remove columns with the same names as the ones provided.
 
              table.remove_columns (By_Column [column1, column2])
-    remove_columns : Column_Selector -> Problem_Behavior -> Table
+    remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
         new new_columns
@@ -380,8 +382,8 @@ type Table
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Criteria specifying which columns should be reordered and
-         specifying their order.
+       - columns: Column selection criteria or vector of column names which
+         should be reordered and specifying their order.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
        - on_problems: Specifies how to handle problems if they occur, reporting
@@ -402,9 +404,10 @@ type Table
 
              table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
 
-       ## TODO [RW] default arguments do not work on atoms, once this is fixed,
-          the above should be replaced with just `By_Name`.
-          See: https://github.com/enso-org/enso/issues/1600
+       > Example
+         Move columns using names passed as a Vector.
+
+             table.reorder_columns ["bar", "foo"] position=After_Other_Columns
 
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
@@ -425,7 +428,7 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (By_Column [column1, column2])
-    reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
         new new_columns
@@ -462,7 +465,8 @@ type Table
        from the old name to the new or a positional list of new names.
 
        Arguments:
-       - column_map: Mapping from old column names to new.
+       - column_map: Mapping from old column names to new or a vector of new
+         column names to apply by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -485,12 +489,20 @@ type Table
          Rename the first column to "FirstColumn"
 
               table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
-    rename_columns : Column_Name_Mapping -> Problem_Behavior -> Table
-    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
-        new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
-        if new_names.is_error then new_names else
-            new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
-            new new_columns
+
+       > Example
+         Rename the first column to "FirstColumn" passed as a Vector
+
+              table.rename_columns ["FirstColumn"]
+    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
+        _ : Vector.Vector ->
+            self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
+            if new_names.is_error then new_names else
+                new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
+                new new_columns
 
     ## Returns a new table with the columns renamed based on entries in the
        first row.
@@ -596,7 +608,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
+             table.order_by ['Quantity', 'Rating']
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -650,7 +662,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -689,7 +701,7 @@ type Table
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
-    distinct : Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
+    distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
