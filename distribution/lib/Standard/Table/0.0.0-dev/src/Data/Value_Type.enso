@@ -1,8 +1,10 @@
-from Standard.Base import all
-
 ## TODO This is a prototype based on the current pending design, used to proceed
    with handling of types in the `filter` component and others. It will be
    revisited when proper type support is implemented.
+
+from Standard.Base import all
+
+from Standard.Table.Errors import Invalid_Value_Type
 
 ## Type to represent the different sizes of integer or float possible within a database.
 type Bits
@@ -77,3 +79,21 @@ type Value_Type
 
        In-Memory and SQLite tables support this.
     Mixed
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a textual type (with any settings)
+       and runs the following action or reports a type error.
+    expect_text : Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_text value_type ~action = case value_type of
+        Value_Type.Char _ _ -> action
+        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char value_type)
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a boolean type and runs the
+       following action or reports a type error.
+    expect_boolean : Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_boolean value_type ~action = case value_type of
+        Value_Type.Boolean -> action
+        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Boolean value_type)

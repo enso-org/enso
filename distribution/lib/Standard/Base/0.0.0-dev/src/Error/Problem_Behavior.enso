@@ -132,8 +132,11 @@ type Problem_Behavior
        `Report_Warning`, the error is turned into a warning, and the fallback
        value is returned with that error attached to it as a warning. If it is
        `Ignore`, the fallback value is returned and the error is discarded.
-    handle_errors : Any -> Any -> Any
-    handle_errors self result ~fallback = result.catch Any error-> case self of
+
+       The `error_type` parameter can be overridden to catch only some types of
+       errors. By default `Any` error is caught.
+    handle_errors : Any -> Any -> Any -> Any
+    handle_errors self result ~fallback error_type=Any = result.catch error_type error-> case self of
         Ignore -> fallback
         Report_Warning -> Warning.attach error fallback
         Report_Error -> result

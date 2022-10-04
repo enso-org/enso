@@ -388,19 +388,28 @@ type Table
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
        _ : Column ->
-           filter_column = case Meta.type_of filter of
-               Filter_Condition -> make_filter_column column filter
-               Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
-           case Helpers.check_integrity self filter_column of
+           mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
                    Error.throw (Integrity_Error_Data "Column "+filter_column.name)
                True ->
                    new_filters = self.context.where_filters + [filter_column.expression]
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
+           case Meta.type_of filter of
+               Filter_Condition ->
+                    on_problems.handle_errors fallback=self.with_no_rows <|
+                        mask (make_filter_column column filter)
+               Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
+
+    ## PRIVATE
+    with_no_rows self =
+        false_expression = IR.Operation "=" [IR.Constant SQL_Type.integer 1, IR.Constant SQL_Type.integer 2]
+        new_filters = self.context.where_filters + [false_expression]
+        new_ctx = self.context.set_where_filters new_filters
+        self.updated_context new_ctx
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
