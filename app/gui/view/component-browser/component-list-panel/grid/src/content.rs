@@ -36,7 +36,7 @@ impl GroupId {
 pub type EntryInGroup = usize;
 
 /// An identifier of element inside a concrete group: entry (by entry index) or header.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub enum ElementInGroup {
     /// A group's header.
     #[default]
@@ -47,7 +47,7 @@ pub enum ElementInGroup {
 
 /// An identifier of some group's element in Component Browser.
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct ElementId {
     pub group:   GroupId,
     pub element: ElementInGroup,
@@ -65,6 +65,18 @@ impl ElementId {
 
     pub fn header_group(self) -> Option<GroupId> {
         matches!(self.element, ElementInGroup::Header).as_some(self.group)
+    }
+}
+
+impl From<GroupEntryId> for ElementId {
+    fn from(GroupEntryId { group, entry }: GroupEntryId) -> Self {
+        Self { group, element: ElementInGroup::Entry(entry) }
+    }
+}
+
+impl From<GroupId> for ElementId {
+    fn from(group: GroupId) -> Self {
+        Self { group, element: ElementInGroup::Header }
     }
 }
 

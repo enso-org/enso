@@ -119,7 +119,10 @@ fn content_info() -> grid::content::Info {
 }
 
 fn get_header_model(group: grid::GroupId) -> Option<(grid::GroupId, grid::HeaderModel)> {
-    let model = grid::HeaderModel { caption: format!("Group {}", group.index).into() };
+    let model = grid::HeaderModel {
+        caption:        format!("Group {}", group.index).into(),
+        can_be_entered: false,
+    };
     Some((group, model))
 }
 
@@ -130,8 +133,12 @@ fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, gri
     } else {
         vec![]
     };
-    let model =
-        grid::EntryModel { caption: caption.into(), highlighted: Rc::new(highlighted), icon };
+    let model = grid::EntryModel {
+        caption: caption.into(),
+        highlighted: Rc::new(highlighted),
+        icon,
+        can_be_entered: false,
+    };
     Some((entry, model))
 }
 

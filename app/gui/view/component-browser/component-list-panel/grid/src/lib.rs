@@ -75,14 +75,16 @@ pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
 
 #[derive(Clone, Debug, Default)]
 pub struct HeaderModel {
-    pub caption: ImString,
+    pub caption:        ImString,
+    pub can_be_entered: bool,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct EntryModel {
-    pub caption:     ImString,
-    pub highlighted: Rc<Vec<text::Range<text::Bytes>>>,
-    pub icon:        icon::Id,
+    pub caption:        ImString,
+    pub highlighted:    Rc<Vec<text::Range<text::Bytes>>>,
+    pub icon:           icon::Id,
+    pub can_be_entered: bool,
 }
 
 ensogl_core::define_endpoints_2! {
@@ -154,6 +156,7 @@ pub struct Model {
     grid_layer:             Layer,
     selection_layer:        Layer,
     layout:                 Rc<RefCell<Layout>>,
+    enterable_elements:     Rc<RefCell<HashSet<ElementId>>>,
     colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
     requested_section_info: Rc<RefCell<[Row; column::COUNT]>>,
 }
@@ -165,6 +168,7 @@ impl Model {
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
         *self.colors.borrow_mut() = Self::collect_colors(content);
+        self.enterable_elements.borrow_mut().clear();
         rows_and_cols
     }
 
@@ -183,6 +187,10 @@ impl Model {
                 (group.id, color)
             })
             .collect()
+    }
+
+    fn can_be_entered(&self, element_id: ElementId) -> bool {
+        self.enterable_elements.borrow().contains(&element_id)
     }
 
     fn location_to_element_id(&self, &(row, col): &(Row, Col)) -> Option<ElementId> {
@@ -225,6 +233,9 @@ impl Model {
         &self,
         (group, model): &(GroupId, HeaderModel),
     ) -> Option<(Range<Row>, Col, entry::Model)> {
+        if model.can_be_entered {
+            self.enterable_elements.borrow_mut().insert(ElementId::from(*group));
+        }
         let (rows, col) = self.layout.borrow().location_of_group(*group)?;
         let entry_model = entry::Model {
             kind:        entry::Kind::Header,
@@ -241,6 +252,10 @@ impl Model {
         &self,
         (entry, model): &(GroupEntryId, EntryModel),
     ) -> Option<(Row, Col, entry::Model)> {
+        if model.can_be_entered {
+            let element_id = ElementId::from(*entry);
+            self.enterable_elements.borrow_mut().insert(element_id);
+        }
         let (row, col) = self.entry_id_to_location(*entry)?;
         let kind = if entry.group.section == SectionId::LocalScope {
             entry::Kind::LocalScopeEntry
@@ -347,6 +362,16 @@ impl component::Frp<Model> for Frp {
         let grid_header_frp = grid.header_frp();
         let corners_radius = style.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style);
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        enum Action {
+            EnterModule(ElementId),
+            Accept(GroupEntryId),
+        }
+        impl Default for Action {
+            fn default() -> Self {
+                Self::EnterModule(default())
+            }
+        }
         frp::extend! { network
             // === Active Entry ===
 
@@ -356,8 +381,17 @@ impl component::Frp<Model> for Frp {
 
             // === Accepting Suggestion and Expression ===
 
+            action <- grid.entry_accepted.map(f!([model](loc) {
+                let element_id = model.location_to_element_id(loc)?;
+                if model.can_be_entered(element_id) {
+                    Some(Action::EnterModule(element_id))
+                } else {
+                    Some(Action::Accept(model.location_to_entry_id(loc)?))
+                }
+            })).filter_map(|a| *a);
+            out.module_entered <+ action.filter_map(|m| if let Action::EnterModule(m) = m {Some(*m)} else {None});
+            out.expression_accepted <+ action.filter_map(|e| if let Action::Accept(e) = e {Some(*e)} else {None});
             out.suggestion_accepted <+ out.active.sample(&input.accept_suggestion).filter_map(|e| e.as_entry_id());
-            out.expression_accepted <+ grid.entry_accepted.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
 
             // === Style and Entries Params ===
@@ -464,6 +498,7 @@ impl component::Model for Model {
     fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
         let grid = Grid::new(app);
         let layout = default();
+        let enterable_elements = default();
         let colors = default();
         let requested_section_info = default();
         let base_layer = &app.display.default_scene.layers.node_searcher_text;
@@ -471,7 +506,15 @@ impl component::Model for Model {
         let selection_layer = base_layer.create_sublayer();
         grid_layer.add_exclusive(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
-        Self { grid, layout, colors, grid_layer, selection_layer, requested_section_info }
+        Self {
+            grid,
+            layout,
+            enterable_elements,
+            colors,
+            grid_layer,
+            selection_layer,
+            requested_section_info,
+        }
     }
 }
 

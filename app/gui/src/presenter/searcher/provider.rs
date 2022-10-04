@@ -16,7 +16,6 @@ use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 
 
-
 // ============================
 // === Any Provider Helpers ===
 // ============================
@@ -152,7 +151,7 @@ impl ide_view::searcher::DocumentationProvider for Action {
 // === provider::Component ===
 // ===========================
 
-pub trait ControllerListExt {
+pub trait ComponentsProviderExt {
     fn component_by_view_id(
         &self,
         id: component_grid::GroupEntryId,
@@ -173,7 +172,7 @@ pub trait ControllerListExt {
     ) -> Option<component_grid::HeaderModel>;
 }
 
-impl ControllerListExt for component::List {
+impl ComponentsProviderExt for controller::searcher::ComponentsProvider {
     fn component_by_view_id(
         &self,
         id: component_grid::GroupEntryId,
@@ -184,24 +183,26 @@ impl ControllerListExt for component::List {
 
     fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group> {
         let opt_group = match id.section {
-            component_grid::SectionId::Popular => self.favorites.get(id.index).cloned(),
+            component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
-                (id.index == 0).as_some_from(|| self.local_scope.clone_ref()),
+                (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
             component_grid::SectionId::SubModules => self.top_modules().get(id.index).cloned(),
         };
         opt_group
     }
 
     fn create_grid_content_info(&self) -> component_grid::content::Info {
+        let favorites = self.favorites();
         let popular_section =
-            group_list_to_grid_group_infos(component_grid::SectionId::Popular, &self.favorites);
+            group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
+        let top_modules = self.top_modules();
         let submodules_section = group_list_to_grid_group_infos(
             component_grid::SectionId::SubModules,
-            &**self.top_modules(),
+            top_modules.deref(),
         );
         component_list_panel::grid::content::Info {
             groups:           popular_section.chain(submodules_section).collect(),
-            local_scope_size: self.local_scope.matched_items.get(),
+            local_scope_size: self.local_scope().matched_items.get(),
         }
     }
 
@@ -218,7 +219,12 @@ impl ControllerListExt for component::List {
         group_id: component_grid::GroupId,
     ) -> Option<component_grid::HeaderModel> {
         let group = self.group_by_view_id(group_id)?;
-        Some(group_to_header_model(&group))
+        let can_be_entered = match group_id.section {
+            component_grid::SectionId::Popular => false,
+            component_grid::SectionId::LocalScope => true,
+            component_grid::SectionId::SubModules => true,
+        };
+        Some(group_to_header_model(&group, can_be_entered))
     }
 }
 
@@ -226,7 +232,7 @@ fn controller_group_to_grid_group_info(
     id: component_grid::GroupId,
     group: &component::Group,
 ) -> component_grid::content::Group {
-    component_list_panel::grid::content::Group {
+    component_grid::content::Group {
         id,
         height: group.matched_items.get(),
         original_height: group.len(),
@@ -244,8 +250,11 @@ fn group_list_to_grid_group_infos<'a>(
     })
 }
 
-fn group_to_header_model(group: &component::Group) -> component_grid::HeaderModel {
-    component_grid::HeaderModel { caption: group.name.clone_ref() }
+fn group_to_header_model(
+    group: &component::Group,
+    can_be_entered: bool,
+) -> component_grid::HeaderModel {
+    component_grid::HeaderModel { caption: group.name.clone_ref(), can_be_entered }
 }
 
 macro_rules! kind_to_icon {
@@ -261,7 +270,7 @@ macro_rules! kind_to_icon {
 }
 
 fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
-    let is_enterable = component.can_be_entered();
+    let can_be_entered = component.can_be_entered();
     let match_info = component.match_info.borrow();
     let caption = component.label();
     let highlighted = bytes_of_matched_letters(&*match_info, &caption);
@@ -274,18 +283,23 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
         }
         component::Data::Virtual { snippet } => snippet.icon,
     };
-    component_grid::EntryModel { caption: caption.into(), highlighted: Rc::new(highlighted), icon }
+    component_grid::EntryModel {
+        caption: caption.into(),
+        highlighted: Rc::new(highlighted),
+        icon,
+        can_be_entered,
+    }
 }
 
 #[derive(Debug)]
 pub struct Component {
-    network: frp::Network,
-    list:    component::List,
+    network:  frp::Network,
+    provider: controller::searcher::ComponentsProvider,
 }
 
 impl Component {
     pub fn provide_new_list(
-        list: component::List,
+        provider: controller::searcher::ComponentsProvider,
         grid: &component_list_panel::grid::View,
     ) -> Self {
         let network = frp::Network::new("presenter::searcher::provider::Component");
@@ -295,18 +309,18 @@ impl Component {
             // the connections alone does not belong to network - thus when provider's network would
             // be dropped, the connections would remain. Therefore we create intermediate nodes
             // `entry_model` and `header_model`.
-            entry_model <- grid.model_for_entry_needed.filter_map(f!([list](&id) {
-                Some((id, list.get_entry_model(id)?))
+            entry_model <- grid.model_for_entry_needed.filter_map(f!([provider](&id) {
+                Some((id, provider.get_entry_model(id)?))
             }));
-            header_model <- grid.model_for_header_needed.filter_map(f!([list](&id) {
-                Some((id, list.get_header_model(id)?))
+            header_model <- grid.model_for_header_needed.filter_map(f!([provider](&id) {
+                Some((id, provider.get_header_model(id)?))
             }));
             grid.model_for_entry <+ entry_model;
             grid.model_for_header <+ header_model;
         }
-        let content = list.create_grid_content_info();
+        let content = provider.create_grid_content_info();
         grid.reset(content);
-        Self { network, list }
+        Self { network, provider }
     }
 }
 

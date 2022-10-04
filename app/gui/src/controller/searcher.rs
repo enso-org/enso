@@ -480,6 +480,50 @@ impl Data {
     }
 }
 
+/// A helper wrapper for the state needed to provide the list of visible components.
+#[derive(Clone, Debug, CloneRef)]
+pub struct ComponentsProvider {
+    breadcrumbs: Breadcrumbs,
+    list:        component::List,
+}
+
+impl ComponentsProvider {
+    /// The list of modules and their content displayed in `Submodules` section of the browser.
+    pub fn top_modules(&self) -> group::AlphabeticalList {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.selected() {
+            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.top_modules().clone_ref()
+        }
+    }
+
+    /// The list of components displayed in `Favorites` section of the browser.
+    ///
+    /// The favorites section is not empty only if the root module is selected.
+    pub fn favorites(&self) -> group::List {
+        if self.breadcrumbs.is_top_module() {
+            self.components().favorites
+        } else {
+            default()
+        }
+    }
+
+    /// The list of components displayed in `Local Scope` section of the browser.
+    pub fn local_scope(&self) -> group::Group {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.selected() {
+            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.local_scope
+        }
+    }
+
+    fn components(&self) -> component::List {
+        self.list.clone_ref()
+    }
+}
+
 /// Searcher Controller.
 ///
 /// This is an object providing all required functionalities for Searcher View: mainly it is the
@@ -613,34 +657,11 @@ impl Searcher {
         self.data.borrow().components.clone_ref()
     }
 
-    /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> group::AlphabeticalList {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
-        } else {
-            components.top_modules().clone_ref()
-        }
-    }
-
-    /// The list of components displayed in `Favorites` section of the browser.
-    ///
-    /// The favorites section is not empty only if the root module is selected.
-    pub fn favorites(&self) -> group::List {
-        if self.breadcrumbs.is_top_module() {
-            self.components().favorites
-        } else {
-            default()
-        }
-    }
-
-    /// The list of components displayed in `Local Scope` section of the browser.
-    pub fn local_scope(&self) -> group::Group {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
-        } else {
-            components.local_scope
+    /// Build a provider for this searcher.
+    pub fn provider(&self) -> ComponentsProvider {
+        ComponentsProvider {
+            breadcrumbs: self.breadcrumbs.clone_ref(),
+            list:        self.components(),
         }
     }
 

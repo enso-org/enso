@@ -16,7 +16,7 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
-use crate::presenter::searcher::provider::ControllerListExt;
+use crate::presenter::searcher::provider::ComponentsProviderExt;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel;
@@ -150,7 +150,7 @@ impl Model {
     ) -> FallibleResult<Suggestion> {
         let component: FallibleResult<_> = self
             .controller
-            .components()
+            .provider()
             .component_by_view_id(id)
             .ok_or_else(|| NoSuchComponent(id).into());
         Ok(match component?.data {
@@ -177,9 +177,9 @@ impl Model {
         &self,
         id: component_grid::GroupEntryId,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
-        let list = self.controller.components();
+        let provider = self.controller.provider();
         let component: FallibleResult<_> =
-            list.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
+            provider.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
             let suggestion = match component.data {
                 component::Data::FromDatabase { entry, .. } =>
@@ -225,12 +225,12 @@ impl Model {
     }
 
     fn enter_module(&self, module: component_grid::ElementId) -> Option<()> {
-        let list = self.controller.components();
+        let provider = self.controller.provider();
         let id = if let Some(entry) = module.as_entry_id() {
-            let component = list.component_by_view_id(entry)?;
+            let component = provider.component_by_view_id(entry)?;
             component.id()?
         } else {
-            let group = list.group_by_view_id(module.group)?;
+            let group = provider.group_by_view_id(module.group)?;
             group.component_id?
         };
         self.controller.enter_module(&id);
@@ -258,7 +258,7 @@ impl Model {
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
     ) -> String {
-        let component = self.controller.components().component_by_view_id(id);
+        let component = self.controller.provider().component_by_view_id(id);
         if let Some(component) = component {
             match component.data {
                 component::Data::FromDatabase { entry, .. } => {
@@ -285,7 +285,7 @@ impl Model {
     }
 
     fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
-        let group = self.controller.components().group_by_view_id(id);
+        let group = self.controller.provider().group_by_view_id(id);
         if let Some(group) = group {
             iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
         } else {
@@ -347,8 +347,8 @@ impl Searcher {
                 frp::extend! { network
                     eval_ action_list_changed ([model, grid] {
                         model.provider.take();
-                        let list = model.controller.components();
-                        let provider = provider::Component::provide_new_list(list, &grid);
+                        let controller_provider = model.controller.provider();
+                        let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });
                     new_input <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
