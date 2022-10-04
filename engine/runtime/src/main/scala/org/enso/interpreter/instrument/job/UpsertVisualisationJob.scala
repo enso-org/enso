@@ -37,9 +37,9 @@ class UpsertVisualisationJob(
   visualisationId: VisualisationId,
   expressionId: ExpressionId,
   config: Api.VisualisationConfiguration
-) extends Job[Option[Executable]](
+) extends UniqueJob[Option[Executable]](
+      expressionId,
       List(config.executionContextId),
-      false,
       false
     ) {
 

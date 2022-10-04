@@ -812,6 +812,7 @@ stats_sampler!(
     1.0
 );
 
+// FIXME[WD]: To be fixed in #183406745
 // #[cfg(test)]
 // mod tests {
 //     use super::*;

@@ -40,6 +40,7 @@ use double_representation::project;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
+    pub qualified_name:    module::QualifiedName,
     pub content:           component::Group,
     /// The flattened content contains the content of a module and all its submodules. Is set to
     /// `Some` only when such flattened content is needed (decided during construction).
@@ -55,20 +56,33 @@ impl ModuleGroups {
     /// Construct the builder without content nor submodules.
     ///
     /// The existence of flattened content is decided during construction.
-    pub fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
+    ///
+    /// Returns [`FallibleResult::Err`] if entry's qualified name can't be converted into a module
+    /// name.
+    pub fn new(
+        component_id: component::Id,
+        entry: &suggestion_database::Entry,
+    ) -> FallibleResult<Self> {
         let is_top_module = entry.module.is_top_module();
+        let qualified_name = entry.qualified_name();
+        let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
-        Self {
+        Ok(Self {
+            qualified_name,
             content: mk_group(),
             flattened_content: is_top_module.as_some_from(mk_group),
             submodules: default(),
             is_top_module,
-        }
+        })
     }
 
     /// Build [`component::ModuleGroups`] structure with appropriately sorted submodules.
     pub fn build(self) -> component::ModuleGroups {
-        component::ModuleGroups { content: self.content, submodules: self.submodules.build() }
+        component::ModuleGroups {
+            qualified_name: Rc::new(self.qualified_name),
+            content:        self.content,
+            submodules:     self.submodules.build(),
+        }
     }
 }
 
@@ -141,6 +155,17 @@ impl List {
                         component_inserted_somewhere = true;
                     }
                 }
+            } else {
+                // Entry has no parent module, so either it belongs to the main module of the
+                // project, or it is a main module itself.
+                if !entry.is_main_module() {
+                    let project_name = entry.module.project_name.clone();
+                    let main_module = module::QualifiedName::new_main(project_name);
+                    if let Some(main_group) = self.lookup_module_group(db, &main_module) {
+                        main_group.content.entries.borrow_mut().push(component.clone_ref());
+                        component_inserted_somewhere = true;
+                    }
+                }
             }
             if component_inserted_somewhere {
                 self.all_components.push(component);
@@ -203,10 +228,19 @@ impl List {
         if self.module_groups.contains_key(&module_id) {
             self.module_groups.get_mut(&module_id)
         } else {
-            let groups = ModuleGroups::new(module_id, &*db_entry);
+            let groups = ModuleGroups::new(module_id, &*db_entry).ok()?;
             if let Some(module) = module.parent_module() {
                 if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
+                }
+            } else {
+                // Module has no parent, so it is a top-level module that can be added as a
+                // submodule of the main module of the project.
+                let main_module = module::QualifiedName::new_main(module.project_name.clone());
+                if main_module != *module {
+                    if let Some(main_groups) = self.lookup_module_group(db, &main_module) {
+                        main_groups.submodules.push(groups.content.clone_ref());
+                    }
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))

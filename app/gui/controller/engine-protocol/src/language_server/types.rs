@@ -543,12 +543,14 @@ impl TextEdit {
     /// Example:
     /// ```
     /// # use engine_protocol::language_server::{TextEdit, Position, TextRange};
+    /// // Note that 🌊 has two UTF-16 code units.
     /// let source = "\n333<->🌊12345\n";
     /// let target = "\n333x🔥12345\n";
+    /// let expected_removed_len = "<->🌊".encode_utf16().count();
     /// let diff = TextEdit::from_prefix_postfix_differences(source, target);
     /// let edit_range = TextRange {
     ///     start: Position { line: 1, character: 3 },
-    ///     end:   Position { line: 1, character: 7 },
+    ///     end:   Position { line: 1, character: 3 + expected_removed_len },
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "x🔥".to_string() });
     ///

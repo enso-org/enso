@@ -144,7 +144,7 @@ impl Rope {
     /// assert!(std::panic::catch_unwind(|| rope.next_codepoint_offset(Byte(16))).is_err());
     /// ```
     pub fn next_codepoint_offset(&self, offset: Byte) -> Option<Byte> {
-        assert!(self.rope.is_codepoint_boundary(offset.value));
+        debug_assert!(self.rope.is_codepoint_boundary(offset.value));
         self.rope.next_codepoint_offset(offset.value).map(Byte)
     }
 
@@ -162,7 +162,7 @@ impl Rope {
     /// assert!(std::panic::catch_unwind(|| rope.prev_codepoint_offset(Byte(16))).is_err());
     /// ```
     pub fn prev_codepoint_offset(&self, offset: Byte) -> Option<Byte> {
-        assert!(self.rope.is_codepoint_boundary(offset.value));
+        debug_assert!(self.rope.is_codepoint_boundary(offset.value));
         self.rope.prev_codepoint_offset(offset.value).map(Byte)
     }
 
@@ -627,7 +627,7 @@ impl Rope {
     /// value.
     pub fn offset_to_location_snapped(&self, offset: Byte) -> Location<Byte> {
         use BoundsError::*;
-        match dbg!(self.offset_to_location(offset)) {
+        match self.offset_to_location(offset) {
             Ok(location) => location,
             Err(TooSmall) => default(),
             Err(TooBig) => self.last_line_end_location(),

@@ -20,7 +20,7 @@
 //!
 //! First of all, logging macros (like [`info!`]) accept [`AnyLogger`] type as the first argument:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -35,7 +35,7 @@
 //!
 //! The second argument of the logging macros might be any type implementing [`Message`] trait:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -54,7 +54,7 @@
 //! Also, a third argument may be provided. It groups log messages in the DevTools console under a
 //! group with the provided name. For example:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -74,7 +74,7 @@
 //! The crate provides a set of predefined loggers that can be used together with reexport
 //! mechanism to easily control log level filtering with zero run-time overhead.
 //!
-//! ```no_run
+//! ```text
 //! mod prelude {
 //!     // Reexport needed loggers in the crate prelude.
 //!     pub use enso_logger::DefaultInfoLogger as Logger;

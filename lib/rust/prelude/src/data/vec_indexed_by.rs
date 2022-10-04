@@ -81,6 +81,11 @@ where A: Allocator
         self.vec.is_empty()
     }
 
+    /// Returns the number of elements the vector can hold without reallocating.
+    pub fn capacity(&self) -> usize {
+        self.vec.capacity()
+    }
+
     /// Push a new element to the vector.
     pub fn push(&mut self, value: T) {
         self.vec.push(value)
@@ -144,6 +149,11 @@ where A: Allocator
     /// Shortens the vector, keeping the first len elements and dropping the rest.
     pub fn truncate(&mut self, len: usize) {
         self.vec.truncate(len)
+    }
+
+    /// Extracts a slice containing the entire vector.
+    pub fn as_slice(&self) -> &[T] {
+        self.vec.as_slice()
     }
 }
 

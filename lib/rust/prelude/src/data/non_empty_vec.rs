@@ -95,7 +95,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::with_capacity(0, 10);
+    /// let mut vec = NonEmptyVec::<_, usize>::with_capacity(0, 10);
     ///
     /// // The vector contains one item, even though it has capacity for more
     /// assert_eq!(vec.len(), 1);
@@ -109,7 +109,7 @@ impl<T, I> NonEmptyVec<T, I> {
     /// vec.push(11);
     /// ```
     pub fn with_capacity(first: T, capacity: usize) -> NonEmptyVec<T, I> {
-        assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
+        debug_assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
         let mut elems = VecIndexedBy::with_capacity(capacity);
         elems.push(first);
         NonEmptyVec { elems }
@@ -130,7 +130,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![]);
     /// vec.reserve(10);
     /// assert!(vec.capacity() >= 11);
     /// ```
@@ -147,7 +147,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::with_capacity(0, 10);
+    /// let mut vec = NonEmptyVec::<_, usize>::with_capacity(0, 10);
     /// assert_eq!(vec.capacity(), 10);
     /// vec.shrink_to_fit();
     /// assert!(vec.capacity() < 10);
@@ -166,7 +166,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
     /// vec.push(3);
     /// assert_eq!(vec.len(), 4);
     /// ```
@@ -180,7 +180,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1]);
     /// assert!(vec.pop_if_has_more_than_1_elem().is_some());
     /// assert!(vec.pop_if_has_more_than_1_elem().is_none());
     /// assert_eq!(vec.len(), 1);
@@ -202,7 +202,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// let vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first(), 0);
     /// ```
     pub fn first(&self) -> &T {
@@ -215,7 +215,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first_mut(), 0);
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
@@ -228,7 +228,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// let vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.last(), 2)
     /// ```
     pub fn last(&self) -> &T {
@@ -241,7 +241,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.last_mut(), 2)
     /// ```
     pub fn last_mut(&mut self) -> &mut T {
@@ -263,7 +263,7 @@ impl<T, I> NonEmptyVec<T, I> {
 impl<T, I> NonEmptyVec<T, I>
 where I: vec_indexed_by::Index
 {
-    /// Obtain a mutable reference to teh element in the vector at the specified `index`.
+    /// Obtain a mutable reference to the element in the vector at the specified `index`.
     ///
     /// # Examples
     ///
@@ -280,14 +280,14 @@ where I: vec_indexed_by::Index
 
     /// Get the tail reference.
     pub fn tail(&mut self) -> &[T]
-    where I: From<usize> {
-        &self.elems[I::from(1_usize)..]
+    where I: From<u8> {
+        &self.elems[I::from(1_u8)..]
     }
 
     /// Get the mutable tail reference.
     pub fn tail_mut(&mut self) -> &mut [T]
-    where I: From<usize> {
-        &mut self.elems[I::from(1_usize)..]
+    where I: From<u8> {
+        &mut self.elems[I::from(1_u8)..]
     }
 
     /// Create a draining iterator that removes the specified range in the vector and yields the
@@ -343,7 +343,7 @@ where I: vec_indexed_by::Index
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1, 2, 3, 4, 5]);
+    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2, 3, 4, 5]);
     /// let replacements = [10, 20, 30, 40];
     /// let yielded: Vec<_> = vec.splice(..2, replacements.iter().cloned()).collect();
     /// assert_eq!(vec.as_slice(), &[10, 20, 30, 40, 2, 3, 4, 5]);

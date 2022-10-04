@@ -19,7 +19,6 @@ use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
 use ensogl_hardcoded_theme as theme;
-use logger::DefaultWarningLogger as Logger;
 
 
 
@@ -121,7 +120,6 @@ impl Animations {
 #[allow(missing_docs)]
 struct ProjectNameModel {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     view:           background::View,
     style:          StyleWatch,
@@ -134,7 +132,6 @@ impl ProjectNameModel {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let logger = Logger::new("ProjectName");
         let display_object = display::object::Instance::new();
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -155,7 +152,7 @@ impl ProjectNameModel {
         scene.layers.panel.add_exclusive(&view);
 
         let project_name = default();
-        Self { app, logger, display_object, view, style, text_field, project_name }.init()
+        Self { app, display_object, view, style, text_field, project_name }.init()
     }
 
     /// Compute the width of the ProjectName view.
