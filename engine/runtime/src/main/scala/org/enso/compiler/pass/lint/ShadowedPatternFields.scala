@@ -143,10 +143,10 @@ case object ShadowedPatternFields extends IRPass {
 
     def go(pattern: Pattern, seenNames: mutable.Set[String]): Pattern = {
       pattern match {
-        case named @ Pattern.Name(name, _, _, _) =>
+        case named @ Pattern.Name(name, location, _, _) =>
           if (seenNames.contains(name.name)) {
             val warning = IR.Warning.Shadowed
-              .PatternBinding(name.name, lastSeen(name.name), named.location)
+              .PatternBinding(name.name, lastSeen(name.name), location)
 
             lastSeen(name.name) = named
             named
@@ -169,6 +169,24 @@ case object ShadowedPatternFields extends IRPass {
           )
         case literal: Pattern.Literal =>
           literal
+        case typed @ Pattern.Type(name, _, location, _, _) =>
+          if (seenNames.contains(name.name)) {
+            val warning = IR.Warning.Shadowed
+              .PatternBinding(name.name, lastSeen(name.name), location)
+
+            lastSeen(name.name) = typed
+            typed
+              .copy(
+                name = IR.Name.Blank(location = name.location)
+              )
+              .addDiagnostic(warning)
+          } else if (!name.isInstanceOf[IR.Name.Blank]) {
+            lastSeen(name.name) = typed
+            seenNames += name.name
+            typed
+          } else {
+            typed
+          }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."

@@ -116,7 +116,7 @@ spec =
         connect_via_aws_environment db_host_port
 
     case connection_details of
-        Text ->
+        _ : Text ->
             connection = Error.throw connection_details
             run_tests connection pending=connection_details
         _ ->

@@ -33,7 +33,7 @@ check_integrity entity1 entity2 =
    as-is, otherwise it is wrapped in a singleton vector.
 unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
 unify_vector_singleton x = case x of
-    Vector.Vector -> x
+    _ : Vector.Vector -> x
     _ -> [x]
 
 # TODO Dubious constructor export

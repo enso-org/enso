@@ -1248,7 +1248,7 @@ Text.pad self length=0 with_pad=' ' at=Location.End =
 Text.trim : (Location.Start | Location.End | Location.Both) -> (Text | (Text -> Boolean)) -> Text
 Text.trim self where=Location.Both what=_.is_whitespace =
     predicate = case what of
-        Text -> what.contains _
+        _ : Text -> what.contains _
         _ -> what
     break_iterator = BreakIterator.getCharacterInstance
     break_iterator.setText self

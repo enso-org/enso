@@ -54,7 +54,7 @@ type Unique_Name_Strategy
     make_valid_name : Any -> Text
     make_valid_name self input =
         case input of
-            Text -> self.deduplicator.makeValid input
+            _ : Text -> self.deduplicator.makeValid input
             Nothing -> self.make_valid_name ""
             _ -> self.make_valid_name input.to_text
 

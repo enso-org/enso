@@ -50,8 +50,8 @@ type Pgpass_Entry
         host_match = self.host==wildcard || self.host==host
         port_match = self.port==wildcard ||
             normalized_port = case port of
-                Integer -> port.to_text
-                Text -> port
+                _ : Integer -> port.to_text
+                _ : Text -> port
             self.port==normalized_port
         database_match = self.database==wildcard || self.database==database
         username_match = username==Nothing || self.username==wildcard || self.username==username

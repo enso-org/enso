@@ -10,8 +10,8 @@ from Standard.Base import all
 file_uploading : (File.File | Text) -> File.File ! File_Being_Uploaded
 file_uploading path =
     err = File_Being_Uploaded_Data <| case path of
-        Text -> path
-        File.File -> path.path
+        _ : Text -> path
+        _ : File.File -> path.path
         _ -> ""
     Error.throw err
 
