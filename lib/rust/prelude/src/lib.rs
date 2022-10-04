@@ -197,7 +197,7 @@ pub fn init_tracing(level: tracing::Level) {
 }
 
 pub fn init_wasm() {
-    init_tracing(DEBUG);
+    init_tracing(WARN);
     enso_web::forward_panic_hook_to_console();
     enso_web::set_stack_trace_limit();
 }
