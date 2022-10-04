@@ -496,7 +496,7 @@ type Table
               table.rename_columns ["FirstColumn"]
     rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        Vector.Vector ->
+        _ : Vector.Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
