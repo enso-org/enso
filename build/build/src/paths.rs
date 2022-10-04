@@ -4,6 +4,7 @@ use std::fmt::Formatter;
 
 use crate::version::Versions;
 
+#[allow(clippy::new_without_default)] // [mwu] Little reason to bother in the generated code.
 pub mod generated {
     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 }
@@ -28,7 +29,7 @@ pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> ge
     generated::RepoRoot::new_root(repo_root, triple.to_string(), triple.versions.edition_name())
 }
 
-#[derive(Clone, PartialEq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ComponentPaths {
     // e.g. `enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64`
     pub name:             PathBuf,
@@ -80,7 +81,7 @@ pub fn pretty_print_arch(arch: Arch) -> &'static str {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TargetTriple {
     pub os:       OS,
     pub arch:     Arch,
@@ -271,7 +272,7 @@ pub fn default_data_directory() -> PathBuf {
 
 /// Get the `ENSO_DATA_DIRECTORY` path.
 pub fn data_directory() -> PathBuf {
-    std::env::var_os("ENSO_DATA_DIRECTORY").map_or_else(|| default_data_directory(), PathBuf::from)
+    std::env::var_os("ENSO_DATA_DIRECTORY").map_or_else(default_data_directory, PathBuf::from)
 }
 
 /// Get the place where global IR caches are stored.

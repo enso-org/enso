@@ -9,7 +9,6 @@
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(option_zip)]
-#![feature(derive_default_enum)]
 #![feature(generators)]
 #![feature(btree_drain_filter)]
 #![feature(allocator_api)]

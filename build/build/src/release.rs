@@ -90,7 +90,7 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     let temp_for_archive = tempdir()?;
     let downloaded_asset = context
         .remote_repo
-        .download_asset_to(octocrab, &asset, temp_for_archive.path().to_owned())
+        .download_asset_to(octocrab, asset, temp_for_archive.path().to_owned())
         .await?;
 
     let temp_for_extraction = tempdir()?;

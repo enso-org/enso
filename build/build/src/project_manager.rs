@@ -4,6 +4,7 @@ use crate::paths::TargetTriple;
 use crate::paths::ARCHIVE_EXTENSION;
 
 pub fn url(target: &TargetTriple) -> Result<Url> {
+    #[allow(clippy::format_in_format_args)] // [mwu] I find this more readable.
     let url_text = format!(
         "https://github.com/enso-org/{repo}/releases/download/{tag}/{asset}.{ext}",
         repo = "ci-build",

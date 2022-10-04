@@ -19,7 +19,7 @@ pub struct BuildInput {
     pub versions: Versions,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Runtime;
 
 #[async_trait]
@@ -63,7 +63,7 @@ impl IsTarget for Runtime {
     }
 }
 
-#[derive(Clone, Debug, Display, PartialEq)]
+#[derive(Clone, Debug, Display, PartialEq, Eq)]
 pub struct Artifact(EnginePackage);
 
 impl Artifact {

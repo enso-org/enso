@@ -43,7 +43,6 @@
 #![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
-#![feature(derive_default_enum)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

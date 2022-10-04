@@ -138,7 +138,7 @@ pub async fn update_manifest(repo_context: &RepoContext, edition_file: &Path) ->
             .as_str()
             .to_string(),
     );
-    ide_ci::fs::expect_file(&edition_file)?;
+    ide_ci::fs::expect_file(edition_file)?;
 
     let manifest = bucket_context.get_yaml::<Manifest>(MANIFEST_FILENAME).await?;
     debug!("Got manifest index from S3: {:#?}", manifest);

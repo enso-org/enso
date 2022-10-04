@@ -204,7 +204,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         &self,
         output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
     ) -> BoxFuture<'static, Result> {
-        let name = self.artifact_name().to_string();
+        let name = self.artifact_name();
         async move { artifacts::upload_compressed_directory(output.await?, name).await }.boxed()
     }
 
@@ -278,7 +278,7 @@ impl<T: IsWatchable> AsRef<T::Artifact> for PerhapsWatched<T> {
     fn as_ref(&self) -> &T::Artifact {
         match self {
             PerhapsWatched::Watched(watcher) => watcher.as_ref(),
-            PerhapsWatched::Static(static_artifact) => &static_artifact,
+            PerhapsWatched::Static(static_artifact) => static_artifact,
         }
     }
 }

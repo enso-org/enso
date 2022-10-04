@@ -103,7 +103,7 @@ pub async fn test_all(repo_root: PathBuf) -> Result {
                 .arg("--chrome")
                 .env("WASM_BINDGEN_TEST_TIMEOUT", "300")
                 // .args(&wasm_pack_args)
-                .arg(&member.strip_prefix(&repo_root).unwrap())
+                .arg(member.strip_prefix(&repo_root).unwrap())
                 .apply(&cargo::Color::Always)
                 .run_ok()
                 .await?;

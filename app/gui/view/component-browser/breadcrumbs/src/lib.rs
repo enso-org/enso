@@ -20,10 +20,8 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(option_result_contains)]
-#![feature(derive_default_enum)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
-#![feature(bool_to_option)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

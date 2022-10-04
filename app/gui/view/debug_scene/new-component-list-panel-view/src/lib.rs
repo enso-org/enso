@@ -5,7 +5,6 @@
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
 #![feature(associated_type_defaults)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]

@@ -39,7 +39,7 @@ pub struct BuildInput {
     pub build_info: BoxFuture<'static, Result<BuildInfo>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gui;
 
 #[async_trait]

@@ -24,7 +24,6 @@
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
 #![feature(type_alias_impl_trait)]
-#![feature(bool_to_option)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -1,13 +1,9 @@
-#![feature(let_else)]
-#![feature(derive_default_enum)]
 #![feature(hash_set_entry)]
 #![feature(type_alias_impl_trait)]
 #![feature(trait_alias)]
 #![feature(let_chains)]
-#![feature(bool_to_option)]
 #![feature(exit_status_error)]
 #![feature(async_closure)]
-#![feature(generic_associated_types)]
 #![feature(associated_type_bounds)]
 #![feature(option_result_contains)]
 #![feature(result_flattening)]
@@ -66,7 +62,7 @@ pub mod version;
 pub fn get_enso_version(build_sbt_contents: &str) -> Result<Version> {
     let version_regex = Regex::new(r#"(?m)^val *ensoVersion *= *"([^"]*)".*$"#)?;
     let version_string = version_regex
-        .captures(&build_sbt_contents)
+        .captures(build_sbt_contents)
         .context("Failed to find line with version string.")?
         .get(1)
         // The `expect` below will not fail due to the regex definition, as is ensured by unit test.
@@ -82,7 +78,7 @@ pub fn get_string_assignment_value(
     let regex_text = format!(r#"(?m)^val *{variable_name} *= *"([^"]*)".*$"#);
     let regex = Regex::new(&regex_text)?;
     Ok(regex
-        .captures(&build_sbt_contents)
+        .captures(build_sbt_contents)
         .context(format!(
                 "Failed to find line with assignment to `{variable_name}`. Does it match the following regex?   {regex_text}  "
             )

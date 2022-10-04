@@ -120,7 +120,7 @@ pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
     let archived_asset_prefix = PathBuf::from(ARCHIVED_ASSET_FILE);
     let archive = download_all(IDE_ASSETS_URL).await?;
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(archive))?;
-    ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, &output)?;
+    ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, output)?;
     Ok(())
 }
 
@@ -169,7 +169,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let fonts_download = download_google_font(&ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
-        ide.write_build_info(&build_info)?;
+        ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
 }
@@ -295,7 +295,7 @@ impl IdeDesktop {
         // let wasm = wasm.inspect()
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        Span::current().record("wasm", &watch_environment.wasm.as_str());
+        Span::current().record("wasm", watch_environment.wasm.as_str());
         let child_process = if shell {
             ide_ci::os::default_shell()
                 .cmd()?

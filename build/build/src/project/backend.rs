@@ -82,7 +82,7 @@ pub async fn bundled_engine_versions(
     Ok(ret)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Backend {
     pub target_os: OS,
 }
@@ -127,7 +127,7 @@ impl IsTarget for Backend {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         let target_os = self.target_os;
-        let this = self.clone();
+        let this = *self;
         async move {
             ensure!(
                 target_os == TARGET_OS,

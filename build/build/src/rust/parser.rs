@@ -29,7 +29,7 @@ pub async fn generate_java_to(repo_root: &Path, output_path: &Path) -> Result {
     // Generator requires that output directory exists.
     // Also, we remove its previous content so the old artifacts don't pollute the output.
     ide_ci::fs::tokio::reset_dir(&output_path).await?;
-    cargo_run_generator_cmd(&repo_root, GENERATOR_BIN_NAME)?
+    cargo_run_generator_cmd(repo_root, GENERATOR_BIN_NAME)?
         .arg("--")
         .arg(output_path)
         .run_ok()
@@ -40,7 +40,7 @@ pub async fn generate_java_to(repo_root: &Path, output_path: &Path) -> Result {
 
 pub async fn generate_java(repo_root: &RepoRoot) -> Result {
     let output_path = repo_root.target.generated_java.join_iter(GENERATED_CODE_NAMESPACE);
-    generate_java_to(&repo_root, &output_path).await
+    generate_java_to(repo_root, &output_path).await
 }
 
 fn cargo_build_parser_jni(repo_root: &Path) -> Result<Command> {

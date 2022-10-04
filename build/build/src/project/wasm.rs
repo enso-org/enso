@@ -44,7 +44,7 @@ pub const WASM_ARTIFACT_NAME: &str = "gui_wasm";
 
 pub const DEFAULT_TARGET_CRATE: &str = "app/gui";
 
-#[derive(Clone, Copy, Debug, Default, strum::Display, strum::EnumString, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, strum::Display, strum::EnumString, PartialEq, Eq)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ProfilingLevel {
     #[default]
@@ -54,7 +54,7 @@ pub enum ProfilingLevel {
     Debug,
 }
 
-#[derive(clap::ArgEnum, Clone, Copy, Debug, PartialEq, strum::Display, strum::AsRefStr)]
+#[derive(clap::ArgEnum, Clone, Copy, Debug, PartialEq, Eq, strum::Display, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Profile {
     Dev,
@@ -146,7 +146,7 @@ impl BuildInput {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Wasm;
 
 #[async_trait]
@@ -203,11 +203,11 @@ impl IsTarget for Wasm {
                 .env_remove(ide_ci::programs::rustup::env::Toolchain::NAME)
                 .set_env(env::ENSO_ENABLE_PROC_MACRO_SPAN, &true)?
                 .build()
-                .arg(&wasm_pack::Profile::from(*profile))
+                .arg(wasm_pack::Profile::from(*profile))
                 .target(wasm_pack::Target::Web)
                 .output_directory(&temp_dist)
-                .output_name(&OUTPUT_NAME)
-                .arg(&crate_path)
+                .output_name(OUTPUT_NAME)
+                .arg(crate_path)
                 .arg("--")
                 .apply(&cargo::Color::Always)
                 .args(extra_cargo_options);
@@ -347,7 +347,7 @@ impl IsWatchable for Wasm {
 
 
 
-#[derive(Clone, Debug, Display, PartialEq)]
+#[derive(Clone, Debug, Display, PartialEq, Eq)]
 pub struct Artifact(RepoRootDistWasm);
 
 impl Artifact {

@@ -32,7 +32,6 @@
 #![feature(arc_unwrap_or_clone)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(drain_filter)]
 #![feature(exact_size_is_empty)]
