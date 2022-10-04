@@ -1143,7 +1143,8 @@ impl Scene {
                 self.pointer_position_changed.set(false);
 
                 // FIXME: setting it to true for now in order to make cursor blinking work.
-                //   Text cursor animation is in GLSL. To be handled properly in this PR.
+                //   Text cursor animation is in GLSL. To be handled properly in this PR:
+                //   #183406745
                 let scene_was_dirty = true;
                 UpdateStatus { scene_was_dirty, pointer_position_changed }
             })

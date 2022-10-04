@@ -366,7 +366,6 @@ where
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
-#[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
 pub struct AnimationLoop {
     animation_loop: Rc<CloneCell<Option<AnimationStep>>>,

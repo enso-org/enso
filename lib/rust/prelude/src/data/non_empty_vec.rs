@@ -109,7 +109,7 @@ impl<T, I> NonEmptyVec<T, I> {
     /// vec.push(11);
     /// ```
     pub fn with_capacity(first: T, capacity: usize) -> NonEmptyVec<T, I> {
-        assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
+        debug_assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
         let mut elems = VecIndexedBy::with_capacity(capacity);
         elems.push(first);
         NonEmptyVec { elems }
@@ -263,7 +263,7 @@ impl<T, I> NonEmptyVec<T, I> {
 impl<T, I> NonEmptyVec<T, I>
 where I: vec_indexed_by::Index
 {
-    /// Obtain a mutable reference to teh element in the vector at the specified `index`.
+    /// Obtain a mutable reference to the element in the vector at the specified `index`.
     ///
     /// # Examples
     ///
@@ -280,14 +280,14 @@ where I: vec_indexed_by::Index
 
     /// Get the tail reference.
     pub fn tail(&mut self) -> &[T]
-    where I: From<usize> {
-        &self.elems[I::from(1_usize)..]
+    where I: From<u8> {
+        &self.elems[I::from(1_u8)..]
     }
 
     /// Get the mutable tail reference.
     pub fn tail_mut(&mut self) -> &mut [T]
-    where I: From<usize> {
-        &mut self.elems[I::from(1_usize)..]
+    where I: From<u8> {
+        &mut self.elems[I::from(1_u8)..]
     }
 
     /// Create a draining iterator that removes the specified range in the vector and yields the

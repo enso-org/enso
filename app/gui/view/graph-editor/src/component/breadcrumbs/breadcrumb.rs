@@ -259,7 +259,6 @@ pub struct BreadcrumbInfo {
 /// Breadcrumbs model.
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbModel {
-    logger:            Logger,
     display_object:    display::object::Instance,
     view:              background::View,
     separator:         separator::View,
@@ -283,7 +282,6 @@ impl BreadcrumbModel {
         expression_id: &ast::Id,
     ) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new();
         let view = background::View::new();
         let icon = icon::View::new();
@@ -322,7 +320,6 @@ impl BreadcrumbModel {
         //         system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
         Self {
-            logger,
             display_object,
             view,
             separator,

@@ -917,11 +917,6 @@ fn report_panic(info: &std::panic::PanicInfo) {
     web_sys::console::error_1(&msg.into());
 }
 
-// #[cfg(not(target_arch = "wasm32"))]
-// fn report_panic(info: &std::panic::PanicInfo) {
-//     eprintln!("{}", info);
-// }
-
 
 
 // =============

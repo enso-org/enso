@@ -61,36 +61,6 @@ impl<T: Clone> RangeOps for std::ops::RangeInclusive<T> {
 
 
 
-// // ================
-// // === RangeLen ===
-// // ================
-//
-// pub trait RangeLen: RangeOps {
-//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-//     where Self::Item: std::ops::Sub<Self::Item>;
-// }
-//
-// impl<T: Clone> RangeLen for std::ops::Range<T> {
-//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-//     where Self::Item: std::ops::Sub<Self::Item> {
-//         self.end.clone() - self.start.clone()
-//     }
-// }
-//
-// impl<T: Clone + std::ops::Sub> RangeLen for std::ops::RangeInclusive<T>
-// where <T as std::ops::Sub>::Output: std::iter::Step
-// {
-//     fn len(&self) -> <Self::Item as std::ops::Sub<Self::Item>>::Output
-//     where Self::Item: std::ops::Sub<Self::Item> {
-//         <<T as std::ops::Sub>::Output as std::iter::Step>::forward(
-//             self.end().clone() - self.start().clone(),
-//             1,
-//         )
-//     }
-// }
-
-
-
 // ====================
 // === RangeOverlap ===
 // ====================
@@ -157,7 +127,7 @@ where
     <R as RangeOps>::Item: Clone + PartialOrd, {
     let mut ranges = ranges.to_vec();
     crate::gen_iter!({
-        ranges.sort_by(|a, b| a.start().partial_cmp(b.start()).unwrap());
+        ranges.sort_unstable_by(|a, b| a.start().partial_cmp(b.start()).unwrap());
         let mut iter = ranges.into_iter();
         let opt_current = iter.next();
         if let Some(mut current) = opt_current {

@@ -187,7 +187,7 @@ impl Deref for WorldDataWithLoop {
 // === Callbacks ===
 // =================
 
-// FIXME: move these callbacks to the FRP interface.
+// FIXME[WD]: move these callbacks to the FRP interface one day.
 /// Callbacks that are run during rendering of the frame.
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
