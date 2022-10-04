@@ -277,28 +277,25 @@ impl Model {
 
     fn entry_to_select_when_switching_to_section(&self, section: SectionId) -> Option<(Row, Col)> {
         let layout = self.layout.borrow();
+        let pick = |row, col| layout.element_at_location(row, col).map(|_| (row, col));
         if section == SectionId::LocalScope {
             let row = layout.local_scope_rows().start;
-            let col = column::SECTION_SELECTION_PRIORITY[0];
-            Some((row, col))
+            column::SECTION_SELECTION_PRIORITY.iter().filter_map(|col| pick(row, *col)).next()
         } else {
             let column_priority = column::SECTION_SELECTION_PRIORITY.iter();
             let bottommost_per_column = column_priority.filter_map(|&col| {
                 let section_rows = layout.section_rows_at_column(section, col)?;
                 let last_row = section_rows.last()?;
-                Some((last_row, col))
+                pick(last_row, col)
             });
             bottommost_per_column.rev().max_by_key(|(row, _)| *row)
         }
     }
 
-    fn entry_to_select_after_reset(&self) -> (Row, Col) {
-        self.entry_to_select_when_switching_to_section(SectionId::Popular).unwrap_or_else(|| {
-            let layout = self.layout.borrow();
-            let row = layout.local_scope_rows().start.saturating_sub(1);
-            let col = column::SECTION_SELECTION_PRIORITY[0];
-            (row, col)
-        })
+    fn entry_to_select_after_reset(&self) -> Option<(Row, Col)> {
+        let sections = [SectionId::Popular, SectionId::SubModules, SectionId::LocalScope].iter();
+        let pick_location = |s: &SectionId| self.entry_to_select_when_switching_to_section(*s);
+        sections.filter_map(pick_location).next()
     }
 
     fn entries_params(
@@ -459,7 +456,7 @@ impl component::Frp<Model> for Frp {
 
             // === Scrolling and Jumping to Section ===
 
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.reset.map(f_!(model.entry_to_select_after_reset()));
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
 
