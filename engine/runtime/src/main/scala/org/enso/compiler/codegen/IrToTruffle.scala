@@ -1696,7 +1696,7 @@ class IrToTruffle(
             argumentExpression.setTailStatus(getTailStatus(value))
 
             val displayName =
-              s"argument<${name.map(_.name).getOrElse(String.valueOf(position))}>"
+              s"${scopeName}<arg-${name.map(_.name).getOrElse(String.valueOf(position))}>"
 
             val section = value.location
               .map(loc => source.createSection(loc.start, loc.length))
