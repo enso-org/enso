@@ -822,14 +822,19 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    diagnostics.find { case (mod, diags) =>
-      if (diags.nonEmpty) {
-        context.getOut.println(s"In module ${mod.getName}:")
-        reportDiagnostics(diags, mod.getSource)
-      } else {
-        false
+    diagnostics
+      .map { case (mod, diags) =>
+        if (diags.nonEmpty) {
+          context.getOut.println(s"In module ${mod.getName}:")
+          reportDiagnostics(diags, mod.getSource)
+        } else {
+          false
+        }
       }
-    }.nonEmpty
+      // It may be tempting to replace `.map(..).exists(identity)` with
+      // `.find(...). Don't. We want to report diagnostics for all modules
+      // not just the first one.
+      .exists(identity)
   }
 
   /** Reports compilation diagnostics to the standard output and throws an
