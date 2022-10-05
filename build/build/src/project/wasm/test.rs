@@ -4,6 +4,8 @@ use anyhow::Context;
 use ide_ci::programs::cargo;
 use ide_ci::programs::WasmPack;
 
+
+
 /// List of crates that should not be tested by wasm-pack test.
 const PACKAGE_BLACKLIST: [&str; 1] = ["integration-test"];
 

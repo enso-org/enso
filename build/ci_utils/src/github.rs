@@ -1,19 +1,21 @@
 use crate::prelude::*;
+
+use crate::cache::download::DownloadFile;
+
 use anyhow::Context;
 use headers::HeaderMap;
 use headers::HeaderValue;
+use octocrab::models::repos::Asset;
+use octocrab::models::repos::Release;
+use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::models::ArtifactId;
 use octocrab::models::AssetId;
 use octocrab::models::ReleaseId;
 use octocrab::models::RunId;
-
-// use crate::global::new_spinner;
-use crate::cache::download::DownloadFile;
-use octocrab::models::repos::Asset;
-use octocrab::models::repos::Release;
-use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::params::actions::ArchiveFormat;
 use reqwest::Response;
+
+
 
 const MAX_PER_PAGE: u8 = 100;
 

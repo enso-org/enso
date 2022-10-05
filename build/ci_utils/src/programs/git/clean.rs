@@ -3,7 +3,10 @@ use crate::prelude::*;
 use crate::path::trie::Trie;
 use crate::program::command::Manipulator;
 use crate::programs::Git;
+
 use std::path::Component;
+
+
 
 #[derive(Clone, Debug)]
 pub struct DirectoryToClear<'a> {

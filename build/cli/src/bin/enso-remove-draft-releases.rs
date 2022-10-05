@@ -1,8 +1,17 @@
-use enso_build::setup_octocrab;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
+
 use enso_build_cli::prelude::*;
+
+use enso_build::setup_octocrab;
 use ide_ci::io::web::handle_error_response;
 use ide_ci::log::setup_logging;
 use ide_ci::models::config::RepoContext;
+
+
 
 #[tokio::main]
 async fn main() -> Result {

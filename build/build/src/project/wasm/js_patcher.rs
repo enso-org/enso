@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 use regex::Regex;
 
+
+
 lazy_static! {
     pub static ref REPLACEMENTS: Vec<Replacement> = [
         Replacement::new(r"(?s)if \(typeof input === 'string'.*return wasm;", "return imports"),

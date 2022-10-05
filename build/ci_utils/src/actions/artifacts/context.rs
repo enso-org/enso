@@ -1,4 +1,9 @@
 use crate::prelude::*;
+
+use crate::actions::artifacts::API_VERSION;
+use crate::env::expect_var;
+use crate::extensions::reqwest::ClientBuilderExt;
+
 use mime::Mime;
 use reqwest::header::HeaderMap;
 use reqwest::header::HeaderValue;
@@ -6,9 +11,7 @@ use reqwest::header::ACCEPT_ENCODING;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 
-use crate::actions::artifacts::API_VERSION;
-use crate::env::expect_var;
-use crate::extensions::reqwest::ClientBuilderExt;
+
 
 #[derive(Clone, Debug)]
 pub struct Context {

@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use derivative::Derivative;
-use headers::HeaderMap;
 
 use crate::cache::Cache;
 use crate::cache::Storable;
@@ -9,9 +7,13 @@ use crate::io::web::filename_from_response;
 use crate::io::web::handle_error_response;
 use crate::io::web::stream_response_to_file;
 
+use derivative::Derivative;
+use headers::HeaderMap;
 use reqwest::Client;
 use reqwest::IntoUrl;
 use reqwest::Response;
+
+
 
 #[derive(Clone, Derivative, Serialize, Deserialize)]
 #[derivative(Debug)]

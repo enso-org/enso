@@ -1,7 +1,7 @@
 use crate::prelude::*;
-use std::sync::Once;
 use tracing_subscriber::prelude::*;
 
+use std::sync::Once;
 use tracing::span::Attributes;
 use tracing::subscriber::Interest;
 use tracing::Event;
@@ -12,6 +12,8 @@ use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Registry;
+
+
 
 pub fn is_our_module_path(path: impl AsRef<str>) -> bool {
     ["ide_ci::", "enso"].into_iter().any(|prefix| path.as_ref().starts_with(prefix))

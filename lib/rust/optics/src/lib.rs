@@ -2,6 +2,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
 // === Non-Standard Linter Configuration ===
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]

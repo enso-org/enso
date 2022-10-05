@@ -6,6 +6,8 @@ use crate::program::version::IsVersionPredicate;
 use crate::programs::wasm_opt;
 use crate::programs::wasm_opt::WasmOpt;
 
+
+
 #[derive(Clone, Copy, Debug, Display)]
 pub struct Binaryen {
     pub version: u32,

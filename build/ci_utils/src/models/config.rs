@@ -1,13 +1,15 @@
 //! Model for the configuration file describing desired CI deployment.
 
 use crate::prelude::*;
-use std::collections::HashMap;
 
 use crate::github::OrganizationPointer;
 use crate::github::RepoPointer;
 use crate::serde::regex_vec;
 use crate::serde::single_or_sequence;
+
 use regex::Regex;
+use std::collections::HashMap;
+
 
 
 pub type Config = BTreeMap<String, MachineConfig>;

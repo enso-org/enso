@@ -1,11 +1,14 @@
+// === Features ===
 #![feature(default_free_fn)]
 
 use enso_build::prelude::*;
-use tempfile::TempDir;
 
 use ide_ci::actions::artifacts;
 use ide_ci::actions::artifacts::download::ArtifactDownloader;
 use ide_ci::actions::artifacts::run_session::SessionClient;
+use tempfile::TempDir;
+
+
 
 #[tokio::main]
 async fn main() -> Result {

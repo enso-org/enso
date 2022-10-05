@@ -1,7 +1,11 @@
+// === Features ===
 #![feature(exit_status_error)]
 
-use ide_ci::env::expect_var;
 use ide_ci::prelude::*;
+
+use ide_ci::env::expect_var;
+
+
 
 fn main() -> Result {
     println!("cargo:rerun-if-changed=paths.yaml");

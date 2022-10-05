@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-use ide_ci::actions::workflow::is_in_env;
-use ide_ci::env::Variable;
-use sysinfo::SystemExt;
-
 use crate::engine;
+use crate::engine::bundle::Bundle;
 use crate::engine::download_project_templates;
 use crate::engine::env;
+use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::ComponentPathExt;
@@ -15,23 +13,25 @@ use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
 use crate::engine::FLATC_VERSION;
 use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::enso::BuiltEnso;
+use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::project::ProcessWrapper;
 use crate::retrieve_github_access_token;
 
-use crate::engine::bundle::Bundle;
-use crate::enso::BuiltEnso;
-use crate::enso::IrCaches;
-
-use crate::engine::sbt::SbtCommandProvider;
+use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
+use ide_ci::env::Variable;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
+use sysinfo::SystemExt;
+
+
 
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
 

@@ -1,12 +1,14 @@
-use crate::actions::artifacts::models::PatchArtifactSizeResponse;
 use crate::prelude::*;
+
+use crate::actions::artifacts::models::PatchArtifactSizeResponse;
+use crate::actions::artifacts::raw;
+use crate::actions::artifacts::run_session::SessionClient;
+use crate::global;
+
 use anyhow::Context;
 use reqwest::Client;
 use std::sync::atomic::Ordering;
 
-use crate::actions::artifacts::raw;
-use crate::actions::artifacts::run_session::SessionClient;
-use crate::global;
 
 
 #[derive(Clone, Copy, Debug)]

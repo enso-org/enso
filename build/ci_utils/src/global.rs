@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::future::try_join_all;
 use crate::future::AsyncPolicy;
+
 use indicatif::MultiProgress;
 use indicatif::ProgressBar;
 use indicatif::WeakProgressBar;
@@ -9,6 +10,8 @@ use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::time::Duration;
 use tokio::task::JoinHandle;
+
+
 
 /// Turns given text into a static string.
 ///

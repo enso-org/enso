@@ -1,12 +1,20 @@
-pub mod web;
-
 use crate::prelude::*;
 
 use crate::io::web::filename_from_response;
 use crate::io::web::stream_response_to_file;
+
 use reqwest::IntoUrl;
 use tokio::io::AsyncRead;
 use web::client;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod web;
+
+
 
 /// Read the whole input and return its length.
 ///

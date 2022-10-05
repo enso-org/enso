@@ -6,6 +6,8 @@ use aws_sdk_s3::Client;
 use enso_build::aws::BucketContext;
 use enso_build::aws::EDITIONS_BUCKET_NAME;
 
+
+
 #[tokio::main]
 async fn main() -> Result {
     let config = dbg!(aws_config::load_from_env().await);

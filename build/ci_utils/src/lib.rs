@@ -1,3 +1,4 @@
+// === Features ===
 #![feature(result_flattening)]
 #![feature(const_fmt_arguments_new)]
 #![feature(hash_set_entry)]
@@ -21,15 +22,22 @@
 #![feature(pin_macro)]
 #![feature(result_option_inspect)]
 #![feature(extend_one)]
+// === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]
-// #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod actions;
 pub mod anyhow;
@@ -58,6 +66,8 @@ pub mod program;
 pub mod programs;
 pub mod reqwest;
 pub mod serde;
+
+
 
 pub mod prelude {
 

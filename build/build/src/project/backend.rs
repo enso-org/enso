@@ -1,19 +1,21 @@
 use crate::prelude::*;
 
 use crate::engine::BuildConfigurationFlags;
+use crate::paths::pretty_print_arch;
+use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
-use crate::version::Versions;
-
-use crate::paths::pretty_print_arch;
-use crate::paths::TargetTriple;
 use crate::source::BuildTargetJob;
 use crate::source::WithDestination;
+use crate::version::Versions;
+
 use derivative::Derivative;
 use ide_ci::archive::is_archive_name;
 use ide_ci::extensions::os::OsExt;
 use octocrab::models::repos::Asset;
+
+
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]

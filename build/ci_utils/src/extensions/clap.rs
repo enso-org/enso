@@ -4,6 +4,8 @@ use crate::global::store_static_text;
 
 use clap::Arg;
 
+
+
 /// Extensions to the `clap::Arg`, intended to be used as argument attributes.
 pub trait ArgExt<'h>: Sized + 'h {
     /// If the given value is `Some`, set it as a default.

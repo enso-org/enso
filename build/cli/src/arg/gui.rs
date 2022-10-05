@@ -5,11 +5,13 @@ use crate::arg::Source;
 use crate::arg::WatchJob;
 use crate::source_args_hlp;
 use crate::IsWatchableSource;
-use enso_build::project::gui::Gui;
-use enso_build::project::wasm::Wasm;
 
 use clap::Args;
 use clap::Subcommand;
+use enso_build::project::gui::Gui;
+use enso_build::project::wasm::Wasm;
+
+
 
 source_args_hlp!(Gui, "gui", BuildInput);
 

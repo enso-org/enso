@@ -3,10 +3,13 @@ use crate::prelude::*;
 use crate::archive::Format;
 use crate::global::progress_bar;
 use crate::io::web;
+
 use reqwest::Client;
 use reqwest::IntoUrl;
 use reqwest::Response;
 use std::time::Duration;
+
+
 
 pub async fn get(client: &Client, url: impl IntoUrl) -> Result<Response> {
     let url = url.into_url()?;

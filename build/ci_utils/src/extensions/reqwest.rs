@@ -8,6 +8,7 @@ use reqwest::header::CONNECTION;
 use reqwest::header::CONTENT_TYPE;
 
 
+
 pub trait ClientBuilderExt: Sized {
     fn default_content_type(self, mime_type: Mime) -> Self;
     fn keep_alive(self, seconds: usize) -> Self;

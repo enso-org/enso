@@ -1,18 +1,28 @@
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(once_cell)]
 #![feature(default_free_fn)]
+// === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]
-// #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod arg;
 pub mod ci_gen;
+
+
 
 pub mod prelude {
     pub use crate::arg::ArgExt as _;

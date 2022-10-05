@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 use std::collections::HashMap;
 
+
+
 // trait Foo<'a, K, V> = FnOnce(&'a K) -> Future<Output = Result<V>>;
 
 pub async fn get_or_insert<K, V, F, R>(map: &mut HashMap<K, V>, key: K, f: F) -> Result<&V>

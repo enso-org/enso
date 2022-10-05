@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
+use crate::ide::web::env::CSC_KEY_PASSWORD;
+use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
-use crate::ide::web::env::CSC_KEY_PASSWORD;
-use crate::paths::generated;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
@@ -20,6 +20,8 @@ use std::process::Stdio;
 use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
+
+
 
 lazy_static! {
     /// Path to the file with build information that is consumed by the JS part of the IDE.

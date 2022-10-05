@@ -6,6 +6,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
 
 use enso_profiler as profiler;
 use enso_profiler_data as data;

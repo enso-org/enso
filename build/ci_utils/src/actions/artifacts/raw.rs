@@ -1,5 +1,14 @@
 use crate::prelude::*;
 
+use crate::actions::artifacts::models::ArtifactResponse;
+use crate::actions::artifacts::models::CreateArtifactRequest;
+use crate::actions::artifacts::models::CreateArtifactResponse;
+use crate::actions::artifacts::models::ListArtifactsResponse;
+use crate::actions::artifacts::models::PatchArtifactSize;
+use crate::actions::artifacts::models::PatchArtifactSizeResponse;
+use crate::actions::artifacts::models::QueryArtifactResponse;
+use crate::reqwest::ContentRange;
+
 use anyhow::Context;
 use bytes::BytesMut;
 use reqwest::header::HeaderMap;
@@ -9,14 +18,7 @@ use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use tokio::io::AsyncReadExt;
 
-use crate::actions::artifacts::models::ArtifactResponse;
-use crate::actions::artifacts::models::CreateArtifactRequest;
-use crate::actions::artifacts::models::CreateArtifactResponse;
-use crate::actions::artifacts::models::ListArtifactsResponse;
-use crate::actions::artifacts::models::PatchArtifactSize;
-use crate::actions::artifacts::models::PatchArtifactSizeResponse;
-use crate::actions::artifacts::models::QueryArtifactResponse;
-use crate::reqwest::ContentRange;
+
 
 pub mod endpoints {
     use super::*;

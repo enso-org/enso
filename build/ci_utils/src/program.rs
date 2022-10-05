@@ -1,5 +1,14 @@
 use crate::prelude::*;
 
+use crate::program::command::MyCommand;
+
+use location::Location;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod command;
 pub mod location;
 pub mod resolver;
@@ -8,12 +17,10 @@ pub mod version;
 pub mod with_cwd;
 
 pub use command::Command;
-use location::Location;
-
-
-use crate::program::command::MyCommand;
 pub use resolver::Resolver;
 pub use shell::Shell;
+
+
 
 // TODO: consider project manger wrapper:
 // TODO: separate locating (which might be stateful, e.g. with additional directories)

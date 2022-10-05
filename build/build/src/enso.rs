@@ -1,13 +1,15 @@
 use crate::prelude::*;
 
-use ide_ci::env::Variable;
-use ide_ci::future::AsyncPolicy;
-use ide_ci::programs::docker::ContainerId;
-
 use crate::paths::Paths;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
+
+use ide_ci::env::Variable;
+use ide_ci::future::AsyncPolicy;
+use ide_ci::programs::docker::ContainerId;
+
+
 
 ide_ci::define_env_var! {
     ENSO_JVM_OPTS, String;

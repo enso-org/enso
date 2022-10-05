@@ -2,6 +2,8 @@
 
 use crate::project::wasm::ProfilingLevel;
 
+
+
 ide_ci::define_env_var! {
     /// Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file
     /// and line number information to include in generated profile files.

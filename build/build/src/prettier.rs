@@ -5,6 +5,7 @@ use crate::paths::generated::RepoRoot;
 use ide_ci::programs::Npm;
 
 
+
 pub fn install_and_run_prettier(repo_root: &RepoRoot, script: &str) -> BoxFuture<'static, Result> {
     let prettier_dir = repo_root.build.prettier.to_path_buf();
     let script = script.to_string();

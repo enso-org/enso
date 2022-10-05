@@ -15,6 +15,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
+#![allow(clippy::bool_to_int_with_if)]
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -110,6 +111,8 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // }
     // ```
     "allow(clippy::let_and_return)",
+    // The code triggering this lint is usually more readable than the suggested alternative.
+    "allow(clippy::bool_to_int_with_if)",
 ];
 
 

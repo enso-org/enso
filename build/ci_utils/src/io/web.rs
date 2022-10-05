@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::fs::tokio::copy_to_file;
+
 use anyhow::Context;
 use reqwest::Client;
 use reqwest::IntoUrl;
@@ -8,7 +9,14 @@ use reqwest::RequestBuilder;
 use reqwest::Response;
 use tokio::io::AsyncBufRead;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod client;
+
+
 
 pub async fn get(url: impl IntoUrl) -> Result<Response> {
     client::get(&Client::default(), url).await

@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
+
+
 crate::define_env_var! {
     /// Java installation directory.
     JAVA_HOME, PathBuf;

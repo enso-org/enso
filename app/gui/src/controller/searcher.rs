@@ -1125,8 +1125,8 @@ impl Searcher {
         suggestions
             .into_iter()
             .filter_map(|suggestion| {
-                let arg_index = arg_index + (self.this_arg.is_some() as usize);
-                let arg_index = arg_index + (self.has_this_argument() as usize);
+                let arg_index = arg_index + if self.this_arg.is_some() { 1 } else { 0 };
+                let arg_index = arg_index + if self.has_this_argument() { 1 } else { 0 };
                 let parameter = suggestion.argument_types().into_iter().nth(arg_index)?;
                 Some(parameter)
             })

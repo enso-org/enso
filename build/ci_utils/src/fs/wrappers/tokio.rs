@@ -4,6 +4,7 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
 
+
 #[context("Failed to obtain metadata for file: {}", path.as_ref().display())]
 pub async fn metadata<P: AsRef<Path>>(path: P) -> Result<std::fs::Metadata> {
     tokio::fs::metadata(&path).await.anyhow_err()

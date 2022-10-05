@@ -2,9 +2,11 @@ use crate::prelude::*;
 
 use crate::new_command_type;
 use crate::program::command::Manipulator;
+use crate::programs::Cargo;
+
 use tempfile::TempDir;
 
-use crate::programs::Cargo;
+
 
 /// What kind of Cargo build profile should be used.
 ///

@@ -1,10 +1,11 @@
 //! Downloader and patch for msdfgen library.
 
-
 use ide_ci::prelude::*;
 
 use enso_build_utilities::GithubRelease;
 use ide_ci::log::setup_logging;
+
+
 
 pub const PACKAGE: GithubRelease<&str> = GithubRelease {
     project_url: "https://github.com/enso-org/msdfgen-wasm",
