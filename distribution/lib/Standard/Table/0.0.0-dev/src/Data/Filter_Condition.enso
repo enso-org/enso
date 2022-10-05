@@ -1,0 +1,101 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Column import Column
+from Standard.Table.Data.Table import Table
+from Standard.Table.Data.Value_Type import Value_Type
+
+from Standard.Table.Data.Filter_Condition.Filter_Condition import all
+
+type Filter_Condition
+    ## Is less than a value (or another column)?
+    Less than:(Column|Any)
+
+    ## Is less than or equal to a value (or another column)?
+    Equal_Or_Less than:(Column|Any)
+
+    ## Is equal to a value (or another column)?
+    Equal to:(Column|Any)
+
+    ## Is greater than or equal to a value (or another column)?
+    Equal_Or_Greater than:(Column|Any)
+
+    ## Is greater than a value (or another column)?
+    Greater than:(Column|Any)
+
+    ## Is not equal to a value (or another column)?
+    Not_Equal to:(Column|Any)
+
+    ## Is between (inclusive) two values (or columns)?'
+    Between lower:(Column|Any) upper:(Column|Any)
+
+    ## Does the value start with a prefix (Text only)?
+    Starts_With (prefix:Text|Column)
+
+    ## Does the value end with a suffix (Text only)?
+    Ends_With (suffix:Text|Column)
+
+    ## Does the value contain the needle (Text only)?
+    Contains (substring:Text|Column)
+
+    ## Is equal to Nothing?
+    Is_Nothing
+
+    ## Is not equal to Nothing?
+    Not_Nothing
+
+    ## Is the value equal to True (Boolean only)?
+    Is_True
+
+    ## Is the value equal to False (Boolean only)?
+    Is_False
+
+## PRIVATE
+   A helper function gathering the common logic that generates a boolean mask
+   from a given source column and a filter condition. It contains logic common
+   for all backends.
+
+   It also performs validation and will throw errors if unexpected column types
+   are encountered.
+make_filter_column source_column filter_condition = case filter_condition of
+    Less value -> (source_column < value)
+    Equal_Or_Less value -> (source_column <= value)
+    Equal value -> (source_column == value)
+    Equal_Or_Greater value -> (source_column >= value)
+    Greater value -> (source_column > value)
+    Not_Equal value -> (source_column != value)
+    Between lower upper -> ((source_column >= lower) && (source_column <= upper))
+    Starts_With prefix ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "prefix" prefix <|
+                source_column.starts_with prefix
+    Ends_With suffix ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "suffix" suffix <|
+                source_column.ends_with suffix
+    Contains substring ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "substring" substring <|
+                source_column.contains substring
+    Is_Nothing -> source_column.is_missing
+    Not_Nothing -> source_column.is_missing.not
+    Is_True ->
+        Value_Type.expect_boolean source_column.value_type <| source_column
+    Is_False ->
+        Value_Type.expect_boolean source_column.value_type <| source_column.not
+
+## PRIVATE
+expect_column_or_value_as_text field_name column_or_value ~action = case column_or_value of
+    _ : Text -> action
+    ## A bit of a hack, because due to lack of interfaces we cannot check if the
+       thing is a Column (as there are various column implementations based on
+       the backend). So we assume it is a column and if it doesn't quack like a
+       column, we fall back to a type error.
+    maybe_column ->
+        result = Panic.catch No_Such_Method_Error_Data (Value_Type.expect_text maybe_column.value_type True) _->
+            Error.throw (Type_Error_Data Text (Meta.type_of maybe_column) field_name)
+        ## We don't run the action above, to avoid catching spurious
+           `No_Such_Method_Error` from the action itself. Instead we just return
+           True there and if it went through successfully we can then execute
+           the action. If it fails, we forward the dataflow error instead.
+        case result of
+            True -> action

@@ -42,7 +42,7 @@
          example_where =
              table = Examples.inventory_table
              mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
-             table.where mask
+             table.filter mask
 
    > Example
      Sort the shop inventory based on the total stock, using the number sold to

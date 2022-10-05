@@ -12,7 +12,7 @@ visualization_spec connection =
     t = connection.query (Table_Name "T")
     Test.group "SQL Visualization" <|
         Test.specify "should provide type metadata for interpolations" <|
-            q = t.where ((t.at "B" == 2) && (t.at "A" == True)) . at "C"
+            q = t.filter ((t.at "B" == 2) && (t.at "A" == True)) . at "C"
             vis = Visualization.prepare_visualization q
             int_param = Json.from_pairs [["value", 2], ["actual_type", "Standard.Base.Data.Numbers.Integer"], ["expected_sql_type", "INTEGER"], ["expected_enso_type", "Standard.Base.Data.Numbers.Integer"]]
             str_param = Json.from_pairs [["value", True], ["actual_type", "Standard.Base.Data.Boolean.Boolean"], ["expected_sql_type", "VARCHAR"], ["expected_enso_type", "Standard.Base.Data.Text.Text"]]
