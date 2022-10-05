@@ -10,6 +10,7 @@ import project.Data.Column_Name_Mapping
 import project.Data.Data_Formatter
 import project.Data.Match_Columns
 import project.Data.Aggregate_Column
+import project.Data.Filter_Condition
 
 import project.IO.File_Read
 import project.IO.Auto_Detect
@@ -31,6 +32,7 @@ export project.Data.Sort_Column_Selector
 export project.Data.Column_Name_Mapping
 export project.Data.Match_Columns
 export project.Data.Aggregate_Column
+from project.Data.Filter_Condition export Filter_Condition
 
 export project.IO.File_Read
 from project.IO.Auto_Detect export Auto_Detect

@@ -29,7 +29,7 @@ spec =
     t1 = test_connection.query (Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
-            q1 = t1.where (t1.at "A" == 42) . to_json
+            q1 = t1.filter (t1.at "A" == 42) . to_json
             part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
             interp = Json.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
             part2 = Json.from_pairs [["sql_interpolation", interp]]
@@ -92,11 +92,11 @@ spec =
 
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
-            t2 = t1.where (t1.at "A" == 42)
+            t2 = t1.filter (t1.at "A" == 42)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
 
         Test.specify "should allow selecting column rows based on a boolean expression" <|
-            c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
+            c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
     Test.group "[Codegen] Joining Tables" <|
@@ -140,10 +140,6 @@ spec =
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
-
-        Test.specify "drop_missing should drop missing rows in a Column" <|
-            col = t1.at "A" . drop_missing
-            col.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL))', []]
 
         Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.drop_missing_rows
