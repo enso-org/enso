@@ -14,7 +14,7 @@
          example_where =
              table = Examples.inventory_table
              mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
-             table.where mask
+             table.filter mask
 
    > Example
      Multiply each element of the column by itself.

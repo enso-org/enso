@@ -7,6 +7,7 @@ import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL_Query import Raw_SQL
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
+from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
@@ -341,30 +342,74 @@ type Table
             if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error_Data "Column "+column.name)
 
-    ## UNSTABLE
+    ## ALIAS Filter Rows
 
-       Selects only the rows of this table that correspond to `True` values in
+       Selects only the rows of this table that correspond to `True` values of
        `filter`.
 
        Arguments:
-       - filter: A column of boolean values that will be used to mask the table
-         rows.
-
-       This is useful for filtering the rows by given predicate.
+       - column: The column to use for filtering. Can be a column name, index or
+         the `Column` object itself.
+       - filter: The filter to apply to the column. It can either be an instance
+         of `Filter_Condition` or a predicate taking a cell value and returning
+         a boolean value indicating whether the corresponding row should be kept
+         or not.
+       - on_problems: is the behavior to take when the filter cannot be applied.
+         The following happens in warning mode:
+         If a column name cannot be found, a `No_Such_Column` warning is raised
+         and the original table is returned.
+         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         raised and the original table is returned.
+         If the column is an invalid type for the filter, an
+         `Invalid_Value_Type` warning is raised and an empty table is returned.
+         In error mode, the first warning is returned as a dataflow error. In
+         ignore mode the same values are returned but without the warnings
+         attached.
 
        > Example
-         Select only the rows of `my_table` where the `"Status"` column has the
-         value `"Valid"`
-             my_table.where (my_table.at "Status" == "Valid")
-    where : Column -> Table
-    where self filter =
-        case Helpers.check_integrity self filter of
-            False ->
-                Error.throw (Integrity_Error_Data "Column "+filter.name)
-            True ->
-                new_filters = self.context.where_filters + [filter.expression]
-                new_ctx = self.context.set_where_filters new_filters
-                self.updated_context new_ctx
+         Get people older than 30.
+
+             people.filter "Age" (Greater 30)
+
+       > Example
+         Filter people between 30 and 40.
+
+             people.filter "Age" (Between 30 40)
+
+       > Example
+         Select rows where more than 50% of the stock is sold.
+
+             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter "age" (age -> (age%10 == 0))
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
+    filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
+       _ : Column ->
+           mask filter_column = case Helpers.check_integrity self filter_column of
+               False ->
+                   Error.throw (Integrity_Error_Data "Column "+filter_column.name)
+               True ->
+                   new_filters = self.context.where_filters + [filter_column.expression]
+                   new_ctx = self.context.set_where_filters new_filters
+                   self.updated_context new_ctx
+           case Meta.type_of filter of
+               Filter_Condition ->
+                    on_problems.handle_errors fallback=self.with_no_rows <|
+                        mask (make_filter_column column filter)
+               Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
+       _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
+            Nothing -> self
+            resolved_column -> self.filter resolved_column filter on_problems
+
+    ## PRIVATE
+    with_no_rows self =
+        false_expression = IR.Operation "=" [IR.Constant SQL_Type.integer 1, IR.Constant SQL_Type.integer 2]
+        new_filters = self.context.where_filters + [false_expression]
+        new_ctx = self.context.set_where_filters new_filters
+        self.updated_context new_ctx
 
     ## UNSTABLE
        Creates a new Table with the specified range of rows from the input
@@ -419,7 +464,7 @@ type Table
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
              t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
-             t2 = t1.where (t1.at 'A' > 5)
+             t2 = t1.filter 'A' (Greater than=5)
              t2.read
     limit : Integer -> Table
     limit self max_rows =
@@ -743,20 +788,14 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
-    ## UNSTABLE
-
-       Returns a new Table without rows that contained missing values in any of
-       the columns.
+    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
     drop_missing_rows : Table
     drop_missing_rows self =
         filters = self.columns.map (c -> c.is_missing.not.expression)
         new_ctx = self.context.set_where_filters (self.context.where_filters + filters)
         self.updated_context new_ctx
 
-    ## Returns a new Table without columns that contained any missing values.
-
-       This operation needs to actually materialize the underlying query in
-       order to know which columns to drop.
+    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table
     drop_missing_columns self =
         rows_expr = IR.Operation "COUNT_ROWS" []
