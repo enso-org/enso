@@ -132,7 +132,7 @@ impl Navigator {
                 Some(id) if id == 1 => 
                     // FIXME[mc]: const TOOLTIP_LOCATION
                     // tooltip::Style::set_label(text.into()), // .with_placement(TOOLTIP_LOCATION)
-                    tooltip::Style::set_label("Marketplace will be available soon".into()), // .with_placement(TOOLTIP_LOCATION)
+                    tooltip::Style::set_label("Marketplace will be available soon".into()).with_placement(tooltip::Placement::Bottom),
                 _ => tooltip::Style::unset_label(),
             });
             eval top_buttons.selected_entry([](id) match id {
