@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import While
-from Standard.Base.Runtime import Stack_Trace_Element_Data
+from Standard.Base.Runtime import Stack_Trace_Element
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -40,7 +40,7 @@ type Warning
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
                 True -> Source_Location_Data (Polyglot.get_source_location r)
-            Stack_Trace_Element_Data (Polyglot.get_executable_name r) loc
+            Stack_Trace_Element.Stack_Trace_Element_Data (Polyglot.get_executable_name r) loc
 
     ## PRIVATE
 

@@ -6,6 +6,9 @@
     "name":"java.lang.Number"
   },
   {
+    "name":"java.lang.String"
+  },
+  {
     "name":"java.util.UUID"
   },
   {
@@ -330,10 +333,19 @@
     "name":"scala.collection.immutable.HashMap$"
   },
   {
+    "name":"scala.collection.immutable.HashMap"
+  },
+  {
     "name":"scala.collection.immutable.HashSet$"
   },
   {
+    "name":"scala.collection.immutable.HashSet"
+  },
+  {
     "name":"scala.collection.immutable.List$"
+  },
+  {
+    "name":"scala.collection.immutable.List"
   },
   {
     "name":"scala.collection.immutable.Map$EmptyMap$"
@@ -349,6 +361,9 @@
   },
   {
     "name":"scala.collection.immutable.Map$Map4"
+  },
+  {
+    "name":"scala.collection.immutable.Map"
   },
   {
     "name":"scala.collection.immutable.Set$EmptySet$"
