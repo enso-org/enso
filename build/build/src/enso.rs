@@ -118,7 +118,7 @@ impl BuiltEnso {
         if errors.is_empty() {
             Ok(())
         } else {
-            error!("A {} test suit(s) failed.", errors.len());
+            error!("{} test suit(s) failed.", errors.len());
             for error in &errors {
                 error!("{}", error);
             }
