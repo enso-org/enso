@@ -10,6 +10,7 @@ use crate::component_group::icon;
 use crate::Style;
 
 use enso_frp as frp;
+use ensogl_component::tooltip::Tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::style;
@@ -84,6 +85,7 @@ pub struct Navigator {
     network:            frp::Network,
     bottom_buttons:     list_view::ListView<icon::Entry>,
     top_buttons:        list_view::ListView<icon::Entry>,
+    tooltip:            Tooltip,
     pub chosen_section: frp::Source<Option<Section>>,
 }
 
@@ -95,6 +97,7 @@ impl Navigator {
         let display_object = display::object::Instance::new();
         let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
+        let tooltip = Tooltip::new(&app);
         top_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
@@ -123,7 +126,7 @@ impl Navigator {
         }
         bottom_buttons.select_entry(Some(2));
 
-        Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
+        Self { display_object, top_buttons, bottom_buttons, tooltip, network, chosen_section }
     }
 
     pub(crate) fn select_section(&self, section: Section) {
