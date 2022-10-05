@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
+from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -28,6 +29,10 @@ import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
+
+# TODO Dubious constructor export
+from Standard.Table.Data.Table.Table import all
+from Standard.Table.Data.Table.Table export all
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Visualization
@@ -133,10 +138,6 @@ join tables =
 concat : Vector -> Table
 concat tables =
     Table_Data (Java_Table.concat (tables.map .java_table).to_array)
-
-# TODO Dubious constructor export
-from project.Data.Table.Table import all
-from project.Data.Table.Table export all
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -786,33 +787,65 @@ type Table
         on_problems.attach_problems_after result problem_builder.to_vector
 
     ## ALIAS Filter Rows
-       ALIAS Mask Columns
 
-       Selects only the rows of this table that correspond to `True` values in
-       `indexes`.
+       Selects only the rows of this table that correspond to `True` values of
+       `filter`.
 
        Arguments:
-       - indexes: The column to mask the table by. This column should contain
-         boolean values (`True` or `False`) that determine whether or not the
-         corresponding row is kept.
-
-       This is useful for filtering the rows by given predicate.
+       - column: The column to use for filtering. Can be a column name, index or
+         the `Column` object itself.
+       - filter: The filter to apply to the column. It can either be an instance
+         of `Filter_Condition` or a predicate taking a cell value and returning
+         a boolean value indicating whether the corresponding row should be kept
+         or not.
+       - on_problems: is the behavior to take when the filter cannot be applied.
+         The following happens in warning mode:
+         If a column name cannot be found, a `No_Such_Column_Error` warning is
+         raised and the original table is returned.
+         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         raised and the original table is returned.
+         If the column is an invalid type for the filter, an
+         `Invalid_Value_Type` warning is raised and an empty table is returned.
+         In error mode, the first warning is returned as a dataflow error. In
+         ignore mode the same values are returned but without the warnings
+         attached.
 
        > Example
-         Select only the items where more than half the stock has been sold.
+         Get people older than 30.
 
-             import Standard.Examples
+             people.filter "Age" (Greater 30)
 
-             example_where =
-                 table = Examples.inventory_table
-                 mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
-                 table.where mask
-    where : Column -> Table
-    where self indexes =
-        Table_Data (self.java_table.mask indexes.java_column)
+       > Example
+         Filter people between 30 and 40.
 
-    ## UNSTABLE
-       Creates a new Table with the specified range of rows from the input
+             people.filter "Age" (Between 30 40)
+
+       > Example
+         Select rows where more than 50% of the stock is sold.
+
+             table.filter "sold_stock" (Greater (table.at "total_stock" / 2))
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter "age" (age -> (age%10 == 0))
+    filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
+    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
+        _ : Column.Column ->
+            mask filter_column = Table_Data (self.java_table.mask filter_column.java_column)
+            case Meta.type_of filter of
+                Filter_Condition ->
+                    on_problems.handle_errors fallback=self.with_no_rows <|
+                        mask (make_filter_column column filter)
+                Function -> mask (column.map filter)
+        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
+            Nothing -> self
+            resolved_column -> self.filter resolved_column filter on_problems
+
+    ## PRIVATE
+    with_no_rows self = self.take (First 0)
+
+    ## Creates a new Table with the specified range of rows from the input
        Table.
 
        Arguments:
@@ -822,8 +855,7 @@ type Table
         at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
         Index_Sub_Range.take_helper self.row_count at self.slice (slice_ranges self) range
 
-    ## UNSTABLE
-       Creates a new Table from the input with the specified range of rows
+    ## Creates a new Table from the input with the specified range of rows
        removed.
 
        Arguments:
@@ -854,7 +886,7 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
-    set : Text -> Column.Column | Vector.Vector -> Table
+    set : Text -> Column | Vector.Vector -> Table
     set self name column = case column of
         _ : Vector.Vector ->
             self.set name (Column.from_vector name column)
@@ -900,7 +932,7 @@ type Table
              import Standard.Examples
 
              example_index = Examples.inventory_table.index
-    index : Column.Column ! No_Index_Set_Error
+    index : Column ! No_Index_Set_Error
     index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column_Data i
@@ -936,25 +968,14 @@ type Table
                  Examples.inventory_table.join Examples.popularity_table
 
        Icon: join
-    join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table_Data t ->
                 Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
 
-    ## ALIAS Clean Rows
-
-       Returns a new Table without rows that contained missing values in any of
-       the columns.
-
-       > Example
-         Remove any rows that contain missing values from the table.
-
-             import Standard.Examples
-
-             example_drop_missing_rows =
-                 Examples.inventory_table.drop_missing_rows
+    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
     drop_missing_rows : Table
     drop_missing_rows self =
         cols = self.columns
@@ -962,20 +983,10 @@ type Table
             True ->
                 any_missing_mask = cols.map .is_missing . reduce (||)
                 non_missing_mask = any_missing_mask.not
-                self.where non_missing_mask
+                self.filter non_missing_mask
             False -> self
 
-    ## ALIAS Clean Columns
-
-       Returns a new Table without columns that contained any missing values.
-
-       > Example
-         Remove any columns that contain missing values from the table.
-
-             import Standard.Examples
-
-             example_drop_missing_cols =
-                 Examples.inventory_table.drop_missing_columns
+    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table
     drop_missing_columns self =
         non_missing = self.columns . filter (col -> col.count_missing == 0)
