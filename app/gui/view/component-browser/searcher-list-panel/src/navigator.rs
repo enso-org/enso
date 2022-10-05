@@ -128,7 +128,7 @@ impl Navigator {
             // === Tooltip when hovering the Marketplace button
 
             // TODO: tooltip.frp.set_style <+ app.frp.tooltip;
-            tooltip.frp.set_style <+ top_buttons.select_entry.map(|id| match *id {
+            tooltip.frp.set_style <+ top_buttons.selected_entry.map(|id| match *id {
                 Some(id) if id == 1 => 
                     // FIXME[mc]: const TOOLTIP_LOCATION
                     // tooltip::Style::set_label(text.into()), // .with_placement(TOOLTIP_LOCATION)
