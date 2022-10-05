@@ -71,9 +71,9 @@ fn make_range_picker(app: &Application) -> Leak<selector::NumberRangePicker> {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(&app);
-    theme::builtin::light::register(&app);
-    theme::builtin::light::enable(&app);
+    theme::builtin::dark::register(app);
+    theme::builtin::light::register(app);
+    theme::builtin::light::enable(app);
 
     let slider1 = make_number_picker(app);
     slider1.inner().frp.allow_click_selection(true);

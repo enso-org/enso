@@ -242,9 +242,9 @@ mod transparent_circle {
 }
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(&app);
-    theme::builtin::light::register(&app);
-    theme::builtin::light::enable(&app);
+    theme::builtin::dark::register(app);
+    theme::builtin::light::register(app);
+    theme::builtin::light::enable(app);
 
 
     // === Layers setup ===

@@ -235,7 +235,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &*self.model.display_object
+        &self.model.display_object
     }
 }
 

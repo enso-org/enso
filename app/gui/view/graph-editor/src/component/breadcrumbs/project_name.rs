@@ -386,11 +386,11 @@ impl View for ProjectName {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (Press, "", "enter", "commit"),
             (Release, "", "escape", "cancel_editing"),
             (DoublePress, "is_hovered", "left-mouse-button", "start_editing"),
-        ])
+        ]
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
             .collect()

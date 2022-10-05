@@ -567,7 +567,7 @@ impl component::Frp<Model> for Frp {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl::application::shortcut::ActionType::*;
-        (&[(Press, "tab", "accept_suggestion")])
+        [(Press, "tab", "accept_suggestion")]
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
             .collect()

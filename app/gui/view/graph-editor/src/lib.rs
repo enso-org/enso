@@ -1650,7 +1650,7 @@ impl GraphEditorModelWithNetwork {
             preprocessor: node_model.visualization.frp.preprocessor.value(),
         };
         metadata.emit(initial_metadata);
-        init.emit(&());
+        init.emit(());
         self.nodes.insert(node_id, node.clone_ref());
         node
     }
@@ -2511,7 +2511,7 @@ impl application::View for GraphEditor {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (Press, "!node_editing", "tab", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
@@ -2565,7 +2565,7 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-        ])
+        ]
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
             .collect()
