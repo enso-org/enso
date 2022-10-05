@@ -229,7 +229,7 @@ impl Branches {
 }
 
 /// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PullRequestActivityType {
     Assigned,
