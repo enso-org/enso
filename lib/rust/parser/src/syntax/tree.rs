@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
+use crate::expression_to_pattern;
 use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -85,11 +86,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub error: Error,
             pub ast: Tree<'s>,
         },
-        /// Indicates a subtree in which an unimplemented case was reached.
-        Unsupported {
-            pub error: String,
-            pub ast: Tree<'s>,
-        },
         /// A sequence of lines introduced by a line ending in an operator.
         BodyBlock {
             /// The lines of the block.
@@ -126,6 +122,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// The wildcard marker, `_`.
         Wildcard {
             pub token: token::Wildcard<'s>,
+            #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
+            #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
+            #[reflect(as = "i32")]
+            pub de_bruijn_index: Option<u32>,
         },
         /// The auto-scoping marker, `...`.
         AutoScope {
@@ -135,6 +135,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub open:     Option<token::TextStart<'s>>,
             pub elements: Vec<TextElement<'s>>,
             pub close:    Option<token::TextEnd<'s>>,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub trim:     VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
@@ -145,11 +147,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// An application using an argument name, like `summarize_transaction (price = 100)`.
         NamedApp {
             pub func:   Tree<'s>,
-            pub open:   Option<token::Symbol<'s>>,
+            pub open:   Option<token::OpenSymbol<'s>>,
             pub name:   token::Ident<'s>,
             pub equals: token::Operator<'s>,
             pub arg:    Tree<'s>,
-            pub close:  Option<token::Symbol<'s>>,
+            pub close:  Option<token::CloseSymbol<'s>>,
         },
         /// Application using the `default` keyword.
         DefaultApp {
@@ -176,7 +178,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub ast: Tree<'s>,
+            pub arguments: u32,
+            pub ast:       Tree<'s>,
+        },
+        TemplateFunction {
+            pub arguments: u32,
+            pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
@@ -194,11 +201,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// - First zero or more type constructors, and their subordinate blocks.
         /// - Then a block of statements, which may define methods or type methods.
         TypeDef {
-            pub keyword: Token<'s>,
-            pub name: Tree<'s>,
-            pub params: Vec<Tree<'s>>,
+            pub keyword:      token::Ident<'s>,
+            pub name:         token::Ident<'s>,
+            pub params:       Vec<ArgumentDefinition<'s>>,
             pub constructors: Vec<TypeConstructorLine<'s>>,
-            pub block: Vec<block::Line<'s>>,
+            pub block:        Vec<block::Line<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -223,26 +230,28 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An import statement.
         Import {
-            pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
-            pub from:      Option<MultiSegmentAppSegment<'s>>,
-            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
-            pub import:    MultiSegmentAppSegment<'s>,
-            pub import_as: Option<MultiSegmentAppSegment<'s>>,
-            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+            pub polyglot: Option<MultiSegmentAppSegment<'s>>,
+            pub from:     Option<MultiSegmentAppSegment<'s>>,
+            pub import:   MultiSegmentAppSegment<'s>,
+            pub all:      Option<token::Ident<'s>>,
+            #[reflect(rename = "as")]
+            pub as_:      Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:   Option<MultiSegmentAppSegment<'s>>,
         },
         /// An export statement.
         Export {
-            pub from:      Option<MultiSegmentAppSegment<'s>>,
-            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
-            pub export:    MultiSegmentAppSegment<'s>,
-            pub export_as: Option<MultiSegmentAppSegment<'s>>,
-            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+            pub from:   Option<MultiSegmentAppSegment<'s>>,
+            pub export: MultiSegmentAppSegment<'s>,
+            pub all:    Option<token::Ident<'s>>,
+            #[reflect(rename = "as")]
+            pub as_:    Option<MultiSegmentAppSegment<'s>>,
+            pub hiding: Option<MultiSegmentAppSegment<'s>>,
         },
         /// An expression grouped by matched parentheses.
         Group {
-            pub open:  token::Symbol<'s>,
+            pub open:  Option<token::OpenSymbol<'s>>,
             pub body:  Option<Tree<'s>>,
-            pub close: token::Symbol<'s>,
+            pub close: Option<token::CloseSymbol<'s>>,
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
@@ -264,19 +273,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[reflect(rename = "type")]
             pub type_: Tree<'s>,
         },
-        /// A `case` pattern-matching expression.
-        Case {
+        /// A `case _ of` pattern-matching expression.
+        CaseOf {
             pub case:       token::Ident<'s>,
             pub expression: Option<Tree<'s>>,
             pub of:         token::Ident<'s>,
-            pub initial:    Option<Tree<'s>>,
-            pub body:       Vec<block::Line<'s>>,
-        },
-        /// An expression mapping arguments to an expression with the `->` operator.
-        Arrow {
-            pub arguments: Vec<Tree<'s>>,
-            pub arrow: token::Operator<'s>,
-            pub body: Option<Tree<'s>>,
+            pub cases:      Vec<CaseLine<'s>>,
         },
         /// A lambda expression.
         Lambda {
@@ -285,17 +287,17 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An array literal.
         Array {
-            pub left:  token::Symbol<'s>,
+            pub left:  token::OpenSymbol<'s>,
             pub first: Option<Tree<'s>>,
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
-            pub right: token::Symbol<'s>,
+            pub right: token::CloseSymbol<'s>,
         },
         /// A tuple literal.
         Tuple {
-            pub left:  token::Symbol<'s>,
+            pub left:  token::OpenSymbol<'s>,
             pub first: Option<Tree<'s>>,
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
-            pub right: token::Symbol<'s>,
+            pub right: token::CloseSymbol<'s>,
         },
     }
 }};}
@@ -358,12 +360,6 @@ impl<'s> Tree<'s> {
     pub fn with_error(self, message: impl Into<Cow<'static, str>>) -> Self {
         Tree::invalid(Error::new(message), self)
     }
-
-    /// Constructor.
-    pub fn with_unsupported(self, message: String) -> Self {
-        eprintln!("Unsupported syntax: {}", &message);
-        Tree::unsupported(message, self)
-    }
 }
 
 impl<'s> span::Builder<'s> for Error {
@@ -402,14 +398,29 @@ pub struct TypeConstructorDef<'s> {
     /// The identifier naming the type constructor.
     pub constructor: token::Ident<'s>,
     /// The arguments the type constructor accepts, specified inline.
-    pub arguments:   Vec<Tree<'s>>,
+    pub arguments:   Vec<ArgumentDefinition<'s>>,
     /// The arguments the type constructor accepts, specified on their own lines.
-    pub block:       Vec<block::Line<'s>>,
+    pub block:       Vec<ArgumentDefinitionLine<'s>>,
 }
 
 impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.constructor).add(&mut self.arguments).add(&mut self.block)
+    }
+}
+
+/// An argument specification on its own line.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentDefinitionLine<'s> {
+    /// The token beginning the line.
+    pub newline:  token::Newline<'s>,
+    /// The argument definition, unless this is an empty line.
+    pub argument: Option<ArgumentDefinition<'s>>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentDefinitionLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.argument)
     }
 }
 
@@ -426,31 +437,18 @@ pub enum TextElement<'s> {
         text: token::TextSection<'s>,
     },
     /// An escaped character.
-    EscapeChar {
-        /// The \ character.
-        backslash: Option<token::TextEscapeSymbol<'s>>,
-        /// The escaped character.
-        char:      Option<token::TextEscapeChar<'s>>,
-    },
-    /// A unicode escape sequence.
-    EscapeSequence {
-        /// The backslash and format characters.
-        leader: Option<token::TextEscapeLeader<'s>>,
-        /// The opening delimiter, if present.
-        open:   Option<token::TextEscapeSequenceStart<'s>>,
-        /// The hex digits.
-        digits: Option<token::TextEscapeHexDigits<'s>>,
-        /// The closing delimiter, if present.
-        close:  Option<token::TextEscapeSequenceEnd<'s>>,
+    Escape {
+        /// The escape sequence.
+        token: token::TextEscape<'s>,
     },
     /// An interpolated section within a text literal.
     Splice {
         /// The opening ` character.
-        open:       token::Symbol<'s>,
+        open:       token::OpenSymbol<'s>,
         /// The interpolated expression.
         expression: Option<Tree<'s>>,
         /// The closing ` character.
-        close:      token::Symbol<'s>,
+        close:      token::CloseSymbol<'s>,
     },
 }
 
@@ -458,9 +456,7 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         match self {
             TextElement::Section { text } => text.add_to_span(span),
-            TextElement::EscapeChar { backslash, char } => span.add(backslash).add(char),
-            TextElement::EscapeSequence { leader, open, digits, close } =>
-                span.add(leader).add(open).add(digits).add(close),
+            TextElement::Escape { token } => span.add(token),
             TextElement::Splice { open, expression, close } =>
                 span.add(open).add(expression).add(close),
         }
@@ -501,19 +497,35 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 /// A function argument definition.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinition<'s> {
-    /// Closing parenthesis (only present when a default is provided).
-    pub open:    Option<token::Symbol<'s>>,
+    /// Opening parenthesis (outer).
+    pub open:       Option<token::OpenSymbol<'s>>,
+    /// Opening parenthesis (inner).
+    pub open2:      Option<token::OpenSymbol<'s>>,
+    /// An optional execution-suspension unary operator (~).
+    pub suspension: Option<token::Operator<'s>>,
     /// The pattern being bound to an argument.
-    pub pattern: Tree<'s>,
+    pub pattern:    Tree<'s>,
+    /// An optional type ascribed to an argument.
+    #[reflect(rename = "type")]
+    pub type_:      Option<ArgumentType<'s>>,
+    /// Closing parenthesis (inner).
+    pub close2:     Option<token::CloseSymbol<'s>>,
     /// An optional default value for an argument.
-    pub default: Option<ArgumentDefault<'s>>,
-    /// Closing parenthesis (only present when a default is provided).
-    pub close:   Option<token::Symbol<'s>>,
+    pub default:    Option<ArgumentDefault<'s>>,
+    /// Closing parenthesis (outer).
+    pub close:      Option<token::CloseSymbol<'s>>,
 }
 
 impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.pattern).add(&mut self.default)
+        span.add(&mut self.open)
+            .add(&mut self.open2)
+            .add(&mut self.suspension)
+            .add(&mut self.pattern)
+            .add(&mut self.type_)
+            .add(&mut self.close2)
+            .add(&mut self.default)
+            .add(&mut self.close)
     }
 }
 
@@ -529,6 +541,95 @@ pub struct ArgumentDefault<'s> {
 impl<'s> span::Builder<'s> for ArgumentDefault<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.equals).add(&mut self.expression)
+    }
+}
+
+/// A type ascribed to an argument definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct ArgumentType<'s> {
+    /// The `:` token.
+    pub operator: token::Operator<'s>,
+    /// The type.
+    #[reflect(rename = "type")]
+    pub type_:    Tree<'s>,
+}
+
+impl<'s> span::Builder<'s> for ArgumentType<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.operator).add(&mut self.type_)
+    }
+}
+
+
+// === CaseOf ===
+
+/// A that may contain a case-expression in a case-of expression.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct CaseLine<'s> {
+    /// The token beginning the line. This will always be present, unless the first case-expression
+    /// is on the same line as the initial case-of.
+    pub newline: Option<token::Newline<'s>>,
+    /// The case-expression, if present.
+    pub case:    Option<Case<'s>>,
+}
+
+impl<'s> CaseLine<'s> {
+    /// Return a mutable reference to the `left_offset` of this object (which will actually belong
+    /// to one of the object's children, if it has any).
+    pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
+        self.newline
+            .as_mut()
+            .map(|t| &mut t.left_offset)
+            .or_else(|| self.case.as_mut().and_then(Case::left_offset_mut))
+    }
+}
+
+impl<'s> span::Builder<'s> for CaseLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.case)
+    }
+}
+
+/// A case-expression in a case-of expression.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct Case<'s> {
+    /// The pattern being matched. It is an error for this to be absent.
+    pub pattern:    Option<Tree<'s>>,
+    /// Token.
+    pub arrow:      Option<token::Operator<'s>>,
+    /// The expression associated with the pattern. It is an error for this to be empty.
+    pub expression: Option<Tree<'s>>,
+}
+
+impl<'s> Case<'s> {
+    /// Return a mutable reference to the `left_offset` of this object (which will actually belong
+    /// to one of the object's children, if it has any).
+    pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
+        self.pattern
+            .as_mut()
+            .map(|p| &mut p.span.left_offset)
+            .or_else(|| self.arrow.as_mut().map(|t| &mut t.left_offset))
+            .or_else(|| self.expression.as_mut().map(|e| &mut e.span.left_offset))
+    }
+}
+
+impl<'s> span::Builder<'s> for Case<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
+    }
+}
+
+impl<'s> From<Tree<'s>> for Case<'s> {
+    fn from(tree: Tree<'s>) -> Self {
+        match tree.variant {
+            box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
+                let pattern = lhs.map(expression_to_pattern);
+                let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
+                *case.left_offset_mut().unwrap() += tree.span.left_offset;
+                case
+            }
+            _ => Case { expression: tree.into(), ..default() },
+        }
     }
 }
 
@@ -621,46 +722,9 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match &mut *func.variant {
-        Variant::OprApp(app)
-        if let Ok(opr) = &app.opr && !opr.properties.can_form_section() && app.rhs.is_none() => {
-            app.rhs = Some(arg);
-            return func;
-        }
-        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
-                && lhs.close.is_none() && rhs.open.is_none() => {
-            if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
-                lhs.trim = rhs.trim;
-            }
-            match rhs.elements.first_mut() {
-                Some(TextElement::Section { text }) => text.left_offset = arg.span.left_offset,
-                Some(TextElement::EscapeChar { char: char_, .. }) => {
-                    if let Some(char__) = char_ {
-                        char__.left_offset = arg.span.left_offset;
-                        if let Some(TextElement::EscapeChar { char, .. }) = lhs.elements.last_mut()
-                            && char.is_none() {
-                            *char = mem::take(char_);
-                            return func;
-                        }
-                    }
-                }
-                Some(TextElement::EscapeSequence { open: open_, digits: digits_, close: close_, .. }) => {
-                    if let Some(TextElement::EscapeSequence { open, digits, close, .. })
-                            = lhs.elements.last_mut() {
-                        if open.is_none() {
-                            *open = open_.clone();
-                        }
-                        if digits.is_none() {
-                            *digits = digits_.clone();
-                        }
-                        *close = close_.clone();
-                        return func;
-                    }
-                }
-                Some(TextElement::Splice { open, .. }) => open.left_offset = arg.span.left_offset,
-                None => (),
-            }
-            lhs.elements.append(&mut rhs.elements);
-            lhs.close = rhs.close.take();
+        Variant::TextLiteral(lhs) if lhs.close.is_none()
+                && let Tree { variant: box Variant::TextLiteral(rhs), span } = arg => {
+            join_text_literals(lhs, rhs, span);
             return func;
         }
         Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None })
@@ -675,10 +739,20 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     match &mut *arg.variant {
         Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
+            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
+            if let Some(first) = block.arguments.first_mut() {
+                first.newline.left_offset += arg_left_offset;
+            }
             block.lhs = Some(func);
             arg
         }
         Variant::OperatorBlockApplication(block) if block.lhs.is_none() => {
+            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
+            if let Some(first) = block.expressions.first_mut() {
+                first.newline.left_offset += arg_left_offset;
+            }
             block.lhs = Some(func);
             arg
         }
@@ -688,7 +762,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             lhs.left_offset += arg.span.left_offset.clone();
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
-        Variant::Group(Group { open, body: Some(body), close }) if let box
+        Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }) if let box
         Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &body.variant
                 && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut open = open.clone();
@@ -706,6 +780,44 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
 }
 
+fn join_text_literals<'s>(
+    lhs: &'_ mut TextLiteral<'s>,
+    mut rhs: TextLiteral<'s>,
+    rhs_span: Span<'s>,
+) {
+    if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
+        lhs.trim = rhs.trim;
+    }
+    match rhs.elements.first_mut() {
+        Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
+        Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
+        Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
+        None => (),
+    }
+    lhs.elements.append(&mut rhs.elements);
+    lhs.close = rhs.close.take();
+    if lhs.open.is_some() {
+        let trim = lhs.trim;
+        let mut remaining = lhs.elements.len();
+        let mut carried_offset = Offset::default();
+        lhs.elements.retain_mut(|e| {
+            remaining -= 1;
+            let (offset, code) = match e {
+                TextElement::Section { text } => (&mut text.left_offset, &mut text.code),
+                TextElement::Escape { token } => (&mut token.left_offset, &mut token.code),
+                TextElement::Splice { open, .. } => (&mut open.left_offset, &mut open.code),
+            };
+            *offset += mem::take(&mut carried_offset);
+            crate::lexer::untrim(trim, offset, code);
+            if remaining != 0 && code.is_empty() {
+                carried_offset = mem::take(offset);
+                return false;
+            }
+            true
+        });
+    }
+}
+
 /// Join two nodes with an operator, in a way appropriate for their types.
 ///
 /// For most operands this will simply construct an `OprApp`; however, a non-operator block (i.e. an
@@ -715,6 +827,7 @@ pub fn apply_operator<'s>(
     mut lhs: Option<Tree<'s>>,
     opr: Vec<token::Operator<'s>>,
     mut rhs: Option<Tree<'s>>,
+    nospace: bool,
 ) -> Tree<'s> {
     let opr = match opr.len() {
         0 => return apply(lhs.unwrap(), rhs.unwrap()),
@@ -722,46 +835,37 @@ pub fn apply_operator<'s>(
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
-        let (lhs, rhs) = match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => (lhs, rhs),
+        return match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => {
+                let rhs = crate::expression_to_type(rhs);
+                Tree::type_annotated(lhs, opr.unwrap(), rhs)
+            },
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
                 let err = Error::new("`:` operator must be applied to two operands.");
-                return Tree::invalid(err, invalid);
+                Tree::invalid(err, invalid)
             }
         };
-        return Tree::type_annotated(lhs, opr.unwrap(), rhs);
     }
-    if let Ok(opr) = &opr && opr.properties.is_arrow() {
-        let mut args = vec![];
-        if let Some(mut lhs) = lhs {
-            while let Tree { variant: box Variant::App(App { func, arg }), span } = lhs {
-                lhs = func;
-                let mut left_offset = span.left_offset;
-                left_offset += mem::take(&mut lhs.span.left_offset);
-                lhs.span.left_offset = left_offset;
-                args.push(arg);
-            }
-            args.push(lhs);
-            args.reverse();
-        }
-        return Tree::arrow(args, opr.clone(), rhs);
-    }
-    if let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
+    if nospace
+        && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
         && let Some(lhs) = lhs.as_mut()
-        && let box Variant::Number(lhs) = &mut lhs.variant
-        && lhs.fractional_digits.is_none()
+        && let box Variant::Number(lhs_) = &mut lhs.variant
+        && lhs_.fractional_digits.is_none()
         && let Some(rhs) = rhs.as_mut()
         && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
     {
-        let integer = mem::take(&mut lhs.integer);
         let dot = opr.clone();
         let digits = digits.clone();
-        return Tree::number(None, integer, Some(FractionalDigits { dot, digits }));
+        lhs_.fractional_digits = Some(FractionalDigits { dot, digits });
+        return lhs.clone();
     }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
+                if let Some(first) = block.arguments.first_mut() {
+                    first.newline.left_offset += mem::take(&mut rhs_.span.left_offset);
+                }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
                 let rhs_ = block::body_from_lines(arguments);
@@ -770,6 +874,109 @@ pub fn apply_operator<'s>(
         }
     }
     Tree::opr_app(lhs, opr, rhs)
+}
+
+impl<'s> From<Token<'s>> for Tree<'s> {
+    fn from(token: Token<'s>) -> Self {
+        match token.variant {
+            token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+            token::Variant::Digits(number) =>
+                Tree::number(None, Some(token.with_variant(number)), None),
+            token::Variant::NumberBase(base) =>
+                Tree::number(Some(token.with_variant(base)), None, None),
+            token::Variant::TextStart(open) =>
+                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default()),
+            token::Variant::TextSection(section) => {
+                let trim = token.left_offset.visible;
+                let section = TextElement::Section { text: token.with_variant(section) };
+                Tree::text_literal(default(), vec![section], default(), trim)
+            }
+            token::Variant::TextEscape(escape) => {
+                let trim = token.left_offset.visible;
+                let token = token.with_variant(escape);
+                let section = TextElement::Escape { token };
+                Tree::text_literal(default(), vec![section], default(), trim)
+            }
+            token::Variant::TextEnd(close) =>
+                Tree::text_literal(default(), default(), Some(token.with_variant(close)), default()),
+            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
+            token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+            token::Variant::OpenSymbol(s) =>
+                Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+            token::Variant::CloseSymbol(s) =>
+                Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+            // These should be unreachable: They are handled when assembling items into blocks,
+            // before parsing proper.
+            token::Variant::Newline(_)
+            | token::Variant::BlockStart(_)
+            | token::Variant::BlockEnd(_)
+            // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
+            // operators.
+            | token::Variant::Operator(_)
+            // Map an error case in the lexer to an error in the AST.
+            | token::Variant::Invalid(_) => {
+                let message = format!("Unexpected token: {token:?}");
+                let ident = token::variant::Ident(false, 0, false, false);
+                let value = Tree::ident(token.with_variant(ident));
+                Tree::with_error(value, message)
+            }
+        }
+    }
+}
+
+
+
+// =============================
+// === Traversing operations ===
+// =============================
+
+/// Recurse into the lexical LHS of the tree, applying a function to each node reached, until the
+/// function returns `false`.
+pub fn recurse_left_mut_while<'s>(
+    mut tree: &'_ mut Tree<'s>,
+    mut f: impl FnMut(&'_ mut Tree<'s>) -> bool,
+) {
+    while f(tree) {
+        tree = match &mut *tree.variant {
+            // No LHS.
+            Variant::Invalid(_)
+            | Variant::BodyBlock(_)
+            | Variant::Ident(_)
+            | Variant::Number(_)
+            | Variant::Wildcard(_)
+            | Variant::AutoScope(_)
+            | Variant::TextLiteral(_)
+            | Variant::UnaryOprApp(_)
+            | Variant::MultiSegmentApp(_)
+            | Variant::TypeDef(_)
+            | Variant::Function(_)
+            | Variant::Import(_)
+            | Variant::Export(_)
+            | Variant::Group(_)
+            | Variant::CaseOf(_)
+            | Variant::TypeSignature(_)
+            | Variant::Lambda(_)
+            | Variant::Array(_)
+            | Variant::Tuple(_) => break,
+            // Optional LHS.
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
+            | Variant::OperatorBlockApplication(OperatorBlockApplication { lhs, .. })
+            | Variant::OprApp(OprApp { lhs, .. }) =>
+                if let Some(lhs) = lhs {
+                    lhs
+                } else {
+                    break;
+                },
+            // Unconditional LHS.
+            Variant::App(App { func: lhs, .. })
+            | Variant::NamedApp(NamedApp { func: lhs, .. })
+            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
+            | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
+            | Variant::DefaultApp(DefaultApp { func: lhs, .. })
+            | Variant::Assignment(Assignment { pattern: lhs, .. })
+            | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
+        }
+    }
 }
 
 
@@ -954,6 +1161,20 @@ define_visitor!(Span, visit_span);
 define_visitor_no_mut!(Item, visit_item);
 
 crate::with_token_definition!(define_visitor_for_tokens());
+
+
+// === Primitives ===
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for u32 {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for u32 {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for u32 {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for u32 {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for u32 {}
+impl<'s> span::Builder<'s> for u32 {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
 
 
 // === TreeVisitable special cases ===

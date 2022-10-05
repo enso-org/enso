@@ -421,6 +421,9 @@ impl<'s> Resolver<'s> {
 
     fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
         let repr = &**token.code;
+        if !token.variant.can_start_macro_segment() {
+            return Step::NormalToken(token.into());
+        }
         if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
             trace!("Entering next segment of the current macro.");
             let mut new_match_tree =
@@ -434,7 +437,7 @@ impl<'s> Resolver<'s> {
             trace!("Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
-        } else if let Some(segments) = root_macro_map.get(repr) && token.variant.can_start_macro() {
+        } else if let Some(segments) = root_macro_map.get(repr) {
             trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let mut current_macro = PartiallyMatchedMacro {
@@ -507,9 +510,24 @@ impl<'s> Resolver<'s> {
             let out = (macro_def.body)(pattern_matched_segments);
             (out, not_used_items_of_last_segment)
         } else {
-            let message = format!("Macro was not matched with any known macro definition.\nResolved segments: {resolved_segments:?}");
-            let error = syntax::tree::Error::new(message);
-            (syntax::tree::Tree::invalid(error, default()), default())
+            let mut segments = resolved_segments.into_iter();
+            let (header0, mut segment) = segments.next().unwrap();
+            let mut items = VecDeque::new();
+            items.append(&mut segment);
+            for (header, mut segment) in segments {
+                items.push_back(syntax::Item::Token(header));
+                items.append(&mut segment);
+            }
+            let mut body = String::new();
+            for item in &items {
+                match item {
+                    syntax::Item::Token(token) => body.push_str(&token.code.repr),
+                    syntax::Item::Block(_block) => body.push_str("<block>"),
+                    syntax::Item::Tree(tree) => body.push_str(&tree.code()),
+                }
+            }
+            let header0 = syntax::Tree::from(header0).with_error("Invalid macro invocation.");
+            (header0, items)
         }
     }
 

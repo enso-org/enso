@@ -23,7 +23,7 @@ import scala.sys.process.Process
 
 object FrgaalJavaCompiler {
 
-  val frgaal = "org.frgaal" % "compiler" % "19.0.0-RC1" % "provided"
+  val frgaal = "org.frgaal" % "compiler" % "19.0.0" % "provided"
 
   def compilers(classpath: sbt.Keys.Classpath, sbtCompilers: xsbti.compile.Compilers, javaVersion: String) = {
     // Enable Java 11+ features by invoking Frgaal instead of regular javac
