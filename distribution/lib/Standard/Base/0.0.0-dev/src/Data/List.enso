@@ -6,6 +6,7 @@ import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Function.Function
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe
+import Standard.Base.Data.Vector.Builder as Vector_Builder
 
 # TODO Dubious constructor export
 from project.Data.List.List import all
@@ -358,6 +359,14 @@ type List
              example_rest = Examples.list.rest
     rest : List ! Empty_Error
     rest self = self.tail
+
+    ## UNSTABLE
+       Convert this list to a vector with the same elements.
+    to_vector : Vector
+    to_vector self =
+        builder = self.fold (Vector_Builder.new self.length) builder-> elem->
+            builder.append elem
+        builder.to_vector
 
 ## UNSTABLE
 

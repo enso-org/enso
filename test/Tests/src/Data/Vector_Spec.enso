@@ -149,6 +149,12 @@ spec = Test.group "Vectors" <|
         vec.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
         vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
 
+        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        vec.filter Filter_Condition.Is_True . should_equal []
+        vec.filter Filter_Condition.Is_False . should_equal []
+        vec.filter Filter_Condition.Is_Nothing . should_equal []
+        vec.filter Filter_Condition.Not_Nothing . should_equal vec
+
         txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
@@ -157,6 +163,7 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
         txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
 
         mixed = [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
@@ -238,6 +245,11 @@ spec = Test.group "Vectors" <|
     Test.specify "should define concatenation" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
+
+    Test.specify "should be convertible to a list" <|
+        [].to_list . should_equal Nil
+        ["A"].to_list . should_equal (Cons "A" Nil)
+        [1, 2, "B", 3].to_list . should_equal (Cons 1 (Cons 2 (Cons "B" (Cons 3 Nil))))
 
     Test.specify "Vector slice should return a Vector" <|
         vec = [1, 2, 3, 4, 5, 6]
