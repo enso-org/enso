@@ -2,7 +2,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use parser::prelude::*;
+use parser_scala::prelude::*;
 
 use ast::HasIdMap;
 use parser_scala::Parser;

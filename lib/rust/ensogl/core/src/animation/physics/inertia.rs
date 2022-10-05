@@ -828,7 +828,8 @@ impl WeakAnimationLoopSlot {
 // ==========================
 
 /// Callback for an animation step.
-pub type Step<T, OnStep, OnStart, OnEnd> = impl Fn(animation::TimeInfo);
+pub type Step<T: Value, OnStep: Callback1<T>, OnStart: Callback0, OnEnd: Callback1<EndStatus>> =
+    impl Fn(animation::TimeInfo);
 
 fn step<T, OnStep, OnStart, OnEnd>(
     simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
@@ -850,7 +851,12 @@ where
 }
 
 /// Callback for an animation step.
-pub type OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd> = impl Fn();
+pub type OnTooManyFramesSkipped<
+    T: Value,
+    OnStep: Callback1<T>,
+    OnStart: Callback0,
+    OnEnd: Callback1<EndStatus>,
+> = impl Fn();
 
 fn on_too_many_frames_skipped<T, OnStep, OnStart, OnEnd>(
     simulator: &Simulator<T, OnStep, OnStart, OnEnd>,

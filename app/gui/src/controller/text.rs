@@ -233,7 +233,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let code = "2 + 2".to_string();
             let undo = default();

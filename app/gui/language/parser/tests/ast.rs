@@ -10,7 +10,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use parser::prelude::*;
+use parser_scala::prelude::*;
 
 use ast::opr;
 use ast::opr::GeneralizedInfix;
@@ -25,7 +25,7 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 pub fn to_assignment_test() {
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     let is_assignment = |code: &str| {
         let ast = parser.parse(code.to_string(), default()).unwrap();
         let line = expect_single_line(&ast);
@@ -45,7 +45,7 @@ pub fn to_assignment_test() {
 
 #[wasm_bindgen_test]
 pub fn generalized_infix_test() {
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     let make_gen_infix = |code: &str| {
         let ast = parser.parse(code.to_string(), default()).unwrap();
         let line = expect_single_line(&ast);
@@ -83,7 +83,7 @@ pub fn flatten_prefix_test() {
         })
     }
 
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     let case = |code: &str, expected_pieces: Vec<&str>| {
         let ast = parser.parse(code.into(), default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
@@ -110,7 +110,7 @@ pub fn flatten_infix_test() {
         })
     }
 
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     let case = |code: &str, target: &str, expected_pieces: Vec<&str>| {
         let ast = parser.parse(code.into(), default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);

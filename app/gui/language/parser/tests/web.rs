@@ -5,7 +5,7 @@
 use enso_prelude::*;
 
 use ast::Ast;
-use parser::api::ParsedSourceFile;
+use parser_scala::api::ParsedSourceFile;
 use parser_scala::Parser;
 use uuid::Uuid;
 use wasm_bindgen_test::wasm_bindgen_test;

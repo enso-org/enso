@@ -38,12 +38,11 @@
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-#![feature(result_into_ok_or_err)]
 #![feature(result_option_inspect)]
 #![feature(map_try_insert)]
 #![feature(assert_matches)]
-#![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
+#![feature(unwrap_infallible)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
