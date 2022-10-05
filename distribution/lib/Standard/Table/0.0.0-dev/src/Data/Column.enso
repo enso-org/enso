@@ -863,7 +863,7 @@ type Column
         size = ['length', self.length]
         name = ['name', self.name]
         max_data = 100
-        data = ['data', self.to_vector.take (First max_data)])
+        data = ['data', self.to_vector.take (First max_data)]
         Json.from_pairs [size, name, data] . to_text
 
     ## ALIAS Sum Columns
