@@ -12,6 +12,7 @@ use crate::Style;
 use enso_frp as frp;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_core::application::Application;
+use ensogl_core::application::tooltip;
 use ensogl_core::display;
 use ensogl_core::display::style;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
@@ -106,6 +107,9 @@ impl Navigator {
         bottom_buttons.disable_selecting_entries_with_mouse();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
+        // TODO[mc]: do we need it this way or can just add to display_object? is done like this in
+        // GraphEditorModel.init()
+        app.display.default_scene.add_child(&tooltip);
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
         // top_buttons.hide_selection();
 
@@ -118,6 +122,18 @@ impl Navigator {
             eval bottom_buttons.chosen_entry([chosen_section](id) match id {
                 Some(id) => chosen_section.emit(Section::try_from(*id).ok()),
                 None => {},
+            });
+
+
+            // === Tooltip when hovering the Marketplace button
+
+            // TODO: tooltip.frp.set_style <+ app.frp.tooltip;
+            tooltip.frp.set_style <+ top_buttons.select_entry.map(|id| match *id {
+                Some(id) if id == 1 => 
+                    // FIXME[mc]: const TOOLTIP_LOCATION
+                    // tooltip::Style::set_label(text.into()), // .with_placement(TOOLTIP_LOCATION)
+                    tooltip::Style::set_label("Marketplace will be available soon".into()), // .with_placement(TOOLTIP_LOCATION)
+                _ => tooltip::Style::unset_label(),
             });
             eval top_buttons.selected_entry([](id) match id {
                 Some(id) => tracing::warn!("MCDBG btn id {id}"),
