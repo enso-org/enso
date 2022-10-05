@@ -139,6 +139,9 @@ impl Navigator {
                     tooltip::Style::unset_label()
                 }
             );
+            eval marketplace_button_hovered([](hovered) {
+                tracing::warn!("MCDBG marketplace_button_hovered {hovered}")
+            });
             // tooltip.frp.set_style <+ top_buttons.selected_entry.map(|id| match *id {
             //     Some(id) if id == 1 => 
             //         // FIXME[mc]: const TOOLTIP_LOCATION
@@ -146,10 +149,10 @@ impl Navigator {
             //         tooltip::Style::set_label("Marketplace will be available soon".into()).with_placement(tooltip::Placement::Bottom),
             //     _ => tooltip::Style::unset_label(),
             // });
-            eval top_buttons.selected_entry([](id) match id {
-                Some(id) => tracing::warn!("MCDBG btn id {id}"),
-                None => {},
-            });
+            // eval top_buttons.selected_entry([](id) match id {
+            //     Some(id) => tracing::warn!("MCDBG btn id {id}"),
+            //     None => {},
+            // });
         }
         bottom_buttons.select_entry(Some(2));
 
