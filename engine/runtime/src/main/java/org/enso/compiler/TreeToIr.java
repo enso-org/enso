@@ -585,26 +585,15 @@ final class TreeToIr {
           }
           case "->" -> {
             if (insideTypeSignature) {
-              List<IR.Expression> args = nil();
-              Tree treeBody = null;
-              Tree.OprApp head = app;
-              while (head != null) {
-                // FIXME: Handle parameterized types here.
-                var literal = buildName(head.getLhs());
-                args = cons(literal, args);
-                treeBody = head.getRhs();
-                head = switch (treeBody) {
-                   case Tree.OprApp a -> {
-                     var opr = a.getOpr().getRight();
-                     if (opr != null && "->".equals(opr.codeRepr()))
-                       yield a;
-                     yield null;
-                  }
-                  default -> null;
-                };
-              }
-              args = args.reverse();
-              var body = translateExpression(treeBody, false);
+              var literal = translateExpression(app.getLhs(), insideTypeSignature);
+              var body = translateExpression(app.getRhs(), insideTypeSignature);
+              var args = switch (body) {
+                case IR$Type$Function fn -> {
+                  body = fn.result();
+                  yield cons(literal, fn.args());
+                }
+                default -> cons(literal, nil());
+              };
               yield new IR$Type$Function(args, body, Option.empty(), meta(), diag());
             } else {
               // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
