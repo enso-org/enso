@@ -108,12 +108,20 @@ impl BuiltEnso {
             async move { command?.run_ok().await }
         });
 
-        let _result = ide_ci::future::try_join_all(futures, async_policy).await?;
-
         // We need to join all the test tasks here, as they require postgres and httpbin alive.
         // Could share them with Arc but then scenario of multiple test runs being run in parallel
         // should be handled, e.g. avoiding port collisions.
-        Ok(())
+        let results = ide_ci::future::join_all(futures, async_policy).await;
+        let errors = results.into_iter().filter_map(Result::err).collect::<Vec<_>>();
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            error!("A {} test suit(s) failed.", errors.len());
+            for error in &errors {
+                error!("{}", error);
+            }
+            bail!("Standard library tests failed. Details: {:?}.", errors);
+        }
     }
 }
 

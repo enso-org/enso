@@ -382,13 +382,6 @@ impl RunContext {
 
         let enso = BuiltEnso { paths: self.paths.clone() };
         if self.config.test_standard_library {
-            // Prepare Engine Test Environment
-            if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
-                let google_api_test_data_dir =
-                    self.paths.repo_root.join("test").join("Google_Api_Test").join("data");
-                ide_ci::fs::create_dir_if_missing(&google_api_test_data_dir)?;
-                ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), &gdoc_key)?;
-            }
             enso.run_tests(IrCaches::No, PARALLEL_ENSO_TESTS).await?;
         }
 

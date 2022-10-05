@@ -9,6 +9,35 @@ pub enum AsyncPolicy {
     TaskParallelism,
 }
 
+pub async fn join_all<I, F: Future<Output = std::result::Result<T, E>>, T, E>(
+    futures: I,
+    parallel: AsyncPolicy,
+) -> Vec<Result<T>>
+where
+    I: IntoIterator<Item = F>,
+    F: Send + 'static,
+    T: Send + 'static,
+    E: Into<anyhow::Error> + Send + 'static,
+{
+    match parallel {
+        AsyncPolicy::Sequential => {
+            let mut ret = Vec::new();
+            for future in futures {
+                ret.push(future.await.anyhow_err());
+            }
+            ret
+        }
+        AsyncPolicy::FutureParallelism =>
+            futures::future::join_all(futures).await.into_iter().map(|r| r.anyhow_err()).collect(),
+        AsyncPolicy::TaskParallelism => {
+            let tasks = futures
+                .into_iter()
+                .map(|future| async move { tokio::task::spawn(future).await?.anyhow_err() });
+            futures::future::join_all(tasks).await
+        }
+    }
+}
+
 pub async fn try_join_all<I, F: Future<Output = std::result::Result<T, E>>, T, E>(
     futures: I,
     parallel: AsyncPolicy,
