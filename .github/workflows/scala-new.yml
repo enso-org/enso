@@ -91,6 +91,12 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/engine/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
+      - name: Test summary
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          report_paths: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          annotate_only: true
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
     runs-on:
@@ -165,6 +171,12 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/engine/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
+      - name: Test summary
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          report_paths: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          annotate_only: true
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
     runs-on:
@@ -241,5 +253,11 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/engine/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
+      - name: Test summary
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          report_paths: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          annotate_only: true
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
