@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Filter_Condition.Filter_Condition import all
+
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
     Less than:Any
@@ -54,3 +56,28 @@ type Filter_Condition
 
     ## Is the value equal to False (Boolean only)?
     Is_False
+
+## PRIVATE
+   Converts a `Filter_Condition` condition into a predicate taking an element
+   and returning a value indicating whether the element should be accepted by
+   the filter.
+to_predicate filter_condition = case filter_condition of
+    Less value -> <value
+    Equal_Or_Less value -> <=value
+    Equal value -> ==value
+    Equal_Or_Greater value -> >=value
+    Greater value -> >value
+    Not_Equal value -> !=value
+    Between lower upper -> elem ->
+        (lower <= elem) && (elem <= upper)
+    Starts_With prefix -> _.starts_with prefix
+    Ends_With suffix -> _.ends_with suffix
+    Contains substring -> _.contains substring
+    Is_Nothing -> elem -> case elem of
+        Nothing -> True
+        _ -> False
+    Not_Nothing -> elem -> case elem of
+        Nothing -> False
+        _ -> True
+    Is_True -> ==True
+    Is_False -> ==False

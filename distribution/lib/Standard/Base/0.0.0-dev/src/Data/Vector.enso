@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -330,22 +331,26 @@ type Vector a
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Selects all elements of this vector which satisfy a predicate.
+    ## Selects all elements of this vector which satisfy a condition.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - filter: The filter to apply to the vector. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
 
        > Example
          Selecting all elements that are greater than 3.
 
              [1, 2, 3, 4, 5].filter (> 3)
-    filter : (Any -> Boolean) -> Vector Any
-    filter self predicate =
-        builder = self.fold new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+             [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter (Filter_Condition_Module.to_predicate filter)
+        predicate : Function ->
+            builder = self.fold new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
 
     ## Selects all elements of this vector which satisfy a predicate.
 
