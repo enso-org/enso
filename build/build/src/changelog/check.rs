@@ -38,7 +38,7 @@ pub fn is_check_needed(context: &ide_ci::actions::context::Context) -> bool {
     }
 }
 
-#[instrument("Checking if the changelog has been updated.", fields(%repo_path), skip(context))]
+#[instrument("Checking if the changelog has been updated.", fields(%repo_path), skip(context), err)]
 pub async fn check(repo_path: RepoRoot, context: ide_ci::actions::Context) -> Result {
     trace!("The context is {context:#?}.");
     if !is_check_needed(&context) {
