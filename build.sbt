@@ -222,12 +222,8 @@ ThisBuild / Test / testOptions ++=
   Seq(Tests.Argument("-oI")) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
-    .map { junitDir =>
-      Tests.Argument(
-        TestFrameworks.ScalaTest,
-        "-u",
-        (file(junitDir) / "engine").toString
-      )
+    .map { junitXmlOutputDir =>
+      Tests.Argument(TestFrameworks.ScalaTest, "-u", junitXmlOutputDir)
     }
 
 val jsSettings = Seq(
