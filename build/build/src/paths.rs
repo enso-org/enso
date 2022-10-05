@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 
 use crate::version::Versions;
 
-#[allow(clippy::new_without_default)] // [mwu] Little reason to bother in the generated code.
+#[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
 pub mod generated {
     include!(concat!(env!("OUT_DIR"), "/paths.rs"));
 }

@@ -175,7 +175,7 @@ impl ComputedValueInfoRegistry {
 /// Binary data can be accessed through `Deref` or `AsRef` implementations.
 ///
 /// The inner storage is private and users should not make any assumptions about it.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VisualizationUpdateData(Vec<u8>);
 
 impl VisualizationUpdateData {
@@ -302,7 +302,7 @@ impl From<&QualifiedMethodPointer> for MethodPointer {
 pub type VisualizationId = Uuid;
 
 /// Description of the visualization setup.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Visualization {
     /// Unique identifier of this visualization.
     pub id:             VisualizationId,

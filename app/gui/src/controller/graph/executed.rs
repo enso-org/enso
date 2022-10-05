@@ -52,7 +52,7 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 /// Notification about change in the executed graph.
 ///
 /// It may pertain either the state of the graph itself or the notifications from the execution.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// The notification passed from the graph controller.
     Graph(controller::graph::Notification),

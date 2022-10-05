@@ -279,7 +279,7 @@ impl Project {
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
-        let content_roots = ContentRoots::new_from_connection(&logger, &*language_server);
+        let content_roots = ContentRoots::new_from_connection(&logger, language_server);
         let content_roots = Rc::new(content_roots);
         let notifications = notification::Publisher::default();
         let urm = Rc::new(model::undo_redo::Manager::new(&logger));

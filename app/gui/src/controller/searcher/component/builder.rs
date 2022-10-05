@@ -228,7 +228,7 @@ impl List {
         if self.module_groups.contains_key(&module_id) {
             self.module_groups.get_mut(&module_id)
         } else {
-            let groups = ModuleGroups::new(module_id, &*db_entry).ok()?;
+            let groups = ModuleGroups::new(module_id, &db_entry).ok()?;
             if let Some(module) = module.parent_module() {
                 if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())

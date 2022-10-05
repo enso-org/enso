@@ -182,7 +182,7 @@ impl Path {
 
     /// Get the file path.
     pub fn file_path(&self) -> &FilePath {
-        &*self.file_path
+        &self.file_path
     }
 
     /// Gives the file name for the given module name.
@@ -356,7 +356,7 @@ impl Default for Metadata {
 }
 
 /// Project-level metadata. It is stored as part of the project's main module's metadata.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProjectMetadata {
     /// The execution context of the displayed graph editor.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
