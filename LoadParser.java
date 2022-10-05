@@ -83,7 +83,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                     irFailed.put(file, ex);
                 }
             }
-        } catch (UnsupportedSyntaxException ex) {
+        } catch (Exception ex) {
             failed.add(file);
         }
 
