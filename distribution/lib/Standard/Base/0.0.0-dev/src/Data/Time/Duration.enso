@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.System
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
@@ -125,6 +126,13 @@ type Duration
              example_millis = Examples.duration.milliseconds
     milliseconds : Integer
     milliseconds self = self.internal_duration . toMillisPart
+
+    ## UNSTABLE
+       Convert the duration to total milliseconds.
+    total_milliseconds : Integer ! Illegal_Argument_Error
+    total_milliseconds self =
+        Panic.catch ArithmeticException (self.internal_duration . toMillis) _->
+            Error.throw (Illegal_Argument_Error_Data "The duration is too large to convert it to milliseconds.")
 
     ## Get the portion of the duration expressed in seconds.
 
