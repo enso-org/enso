@@ -531,15 +531,12 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
             // === Highlight Shape Clipping ===
 
             highlight_column <- became_highlighted._1();
-            header_moved_in_highlight_column <- headers_frp.header_position_changed.map2(
-                &frp.entry_highlighted,
-                |&(_, col, _), h| h.map_or(false, |(_, h_col)| col == h_col)
-            ).filter(|v| *v).constant(());
             header_hidden_in_highlight_column <- headers_frp.header_hidden.map2(
                 &frp.entry_highlighted,
                 |&(_, col), h| h.map_or(false, |(_, h_col)| col == h_col)
             ).filter(|v| *v).constant(());
-            header_sep_changed <- any(header_moved_in_highlight_column, header_hidden_in_highlight_column);
+            viewport_changed <- grid_frp.viewport.constant(());
+            header_sep_changed <- any(viewport_changed, header_hidden_in_highlight_column);
             out.header_separator <+ all_with(&highlight_column, &header_sep_changed, f!((col, ()) model.grid.header_separator(*col)));
             new_top_clip <- all_with3(&out.header_separator, header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
             out.top_clip <+ new_top_clip.on_change();

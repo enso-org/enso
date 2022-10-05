@@ -110,7 +110,7 @@ const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::SubModules, 28, 34),
 ];
 
-const LOCAL_SCOPE_GROUP_SIZE: usize = 12;
+const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {

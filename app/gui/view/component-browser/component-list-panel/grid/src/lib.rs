@@ -332,7 +332,11 @@ impl Model {
     ) -> grid_view::Margins {
         let vertical_margin = style.content_size().y - style.entry_height;
         if active_section == SectionId::LocalScope {
-            grid_view::Margins { bottom: vertical_margin + style.column_gap, ..default() }
+            grid_view::Margins {
+                bottom: vertical_margin + style.column_gap,
+                top: -style.column_gap,
+                ..default()
+            }
         } else {
             grid_view::Margins { top: vertical_margin, ..default() }
         }
