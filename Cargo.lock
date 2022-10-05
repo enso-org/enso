@@ -1589,6 +1589,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 
 [[package]]
+name = "debug-scene-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "ide-view-component-list-panel",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -1611,23 +1628,6 @@ dependencies = [
  "parser",
  "span-tree",
  "uuid 0.8.2",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-new-component-list-panel-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-selector",
- "ensogl-text",
- "ensogl-text-msdf",
- "ide-view-component-list-panel",
- "js-sys",
  "wasm-bindgen",
 ]
 
@@ -1982,9 +1982,9 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
+ "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
- "debug-scene-new-component-list-panel-view",
  "debug-scene-visualization",
 ]
 

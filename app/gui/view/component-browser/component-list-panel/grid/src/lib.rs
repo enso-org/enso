@@ -21,6 +21,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -52,14 +53,21 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
 use ensogl_text as text;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod content;
 pub mod entry;
 pub mod layout;
 pub mod layouting;
+
 pub use content::ElementId;
 pub use content::GroupEntryId;
 pub use content::GroupId;
 pub use content::SectionId;
+
 
 
 /// A module containing common imports.

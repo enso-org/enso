@@ -15,8 +15,8 @@ use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-
 use crate::presenter::searcher::provider::ComponentsProviderExt;
+
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
@@ -25,7 +25,6 @@ use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherVariant;
-
 
 
 // ==============

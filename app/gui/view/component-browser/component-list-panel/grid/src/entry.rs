@@ -1,6 +1,7 @@
 //! A module containing definition for Component Browser Entry [`View`] and related structures.
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use crate::content::GroupId;
 use crate::content::SectionId;
@@ -17,7 +18,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::Scene;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;

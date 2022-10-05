@@ -22,8 +22,8 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_core::display::Attribute;
 use ensogl_grid_view as grid_view;
-use ensogl_list_view as list_view;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
+use ensogl_list_view as list_view;
 use std::f32::consts::PI;
 
 

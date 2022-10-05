@@ -1,5 +1,5 @@
 [package]
-name = "debug-scene-new-component-list-panel-view"
+name = "debug-scene-component-list-panel-view"
 version = "0.1.0"
 edition = "2021"
 

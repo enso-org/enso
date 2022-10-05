@@ -2,15 +2,16 @@
 //! List.
 
 use crate::prelude::*;
-use std::collections::hash_map::Entry;
 
 use crate::content::ElementId;
 use crate::content::ElementInGroup;
 use crate::content::Group;
 use crate::content::GroupId;
 use crate::content::SectionId;
+
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
+use std::collections::hash_map::Entry;
 
 
 
