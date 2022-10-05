@@ -38,7 +38,7 @@ impl list_view::Entry for Entry {
     type Model = icon::Id;
     type Params = Params;
 
-    fn new(app: &Application, _style_prefix: &Path, params: &Self::Params) -> Self {
+    fn new(_app: &Application, _style_prefix: &Path, params: &Self::Params) -> Self {
         let display_object = display::object::Instance::new();
         let icon: Rc<RefCell<Option<icon::Any>>> = default();
         let icon_id = default();

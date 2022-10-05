@@ -1,6 +1,5 @@
-//! This module defines the [`ComponentBrowserPanel`], sub-content of the Component Browser, that
-//! shows the available components grouped by categories. It also defines the shape that the
-//! Component Browser Menu will be placed on, as this will appear as a single continuous shape.
+//! This module defines the [Component Browser Panel](View), sub-content of the Component Browser,
+//! that shows the available components grouped by categories, with navigator and breadcrumbs.
 //!
 //! To learn more about the Component Browser and its components, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
@@ -51,7 +50,6 @@ use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator as SectionNavigator;
 
 use enso_frp as frp;
-use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::bounding_box::BoundingBox;
@@ -60,20 +58,12 @@ use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::style;
-use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
-use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
 use ensogl_list_view as list_view;
-use ensogl_scroll_area::ScrollArea;
-use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
-use ensogl_text as text;
-use ide_view_component_list_panel_grid::content::SectionId;
 
 
 
@@ -88,7 +78,7 @@ pub use ensogl_core::prelude;
 pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
 pub use ide_view_component_list_panel_grid::entry::icon;
-use ide_view_component_list_panel_grid::Grid;
+
 
 
 // =================
@@ -113,6 +103,8 @@ const INFINITE: f32 = 999999.0;
 
 // === Style ===
 
+/// The style values for the Component List Panel.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
@@ -127,6 +119,8 @@ pub struct Style {
     pub menu_divider_height:    f32,
 }
 
+/// The combined style values for Component List Panel and its content.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AllStyles {
     pub panel:     Style,
@@ -226,6 +220,7 @@ mod background {
 // =============
 
 /// The Model of Select Component.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object:        display::object::Instance,

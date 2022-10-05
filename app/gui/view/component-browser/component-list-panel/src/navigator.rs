@@ -12,7 +12,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::style;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_list_view as list_view;

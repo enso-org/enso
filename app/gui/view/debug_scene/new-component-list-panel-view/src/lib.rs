@@ -40,14 +40,8 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene;
-use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::frp;
-use ensogl_grid_view as grid_view;
-use ensogl_grid_view::Col;
-use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ide_view_component_list_panel::grid;

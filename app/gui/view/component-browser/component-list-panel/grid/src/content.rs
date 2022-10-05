@@ -1,8 +1,19 @@
+//! A module with useful structures related to the content of
+//! [grid inside the Component List Panel](crate::View).
+
 use crate::prelude::*;
 
 use ensogl_core::data::color;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+
+
+
+// ===========================
+// === Content Identifiers ===
+// ===========================
+
+// === SectionId ===
 
 /// A Component Groups List Section identifier.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, IntoPrimitive, PartialEq, TryFromPrimitive)]
@@ -16,6 +27,9 @@ pub enum SectionId {
     /// The "Sub-Modules" section.
     SubModules = 0,
 }
+
+
+// === GroupId ===
 
 /// A Group identifier. If `section` is [`SectionId::LocalScope`], the `index` should be 0, as that
 /// section has always only one group.
@@ -33,7 +47,14 @@ impl GroupId {
     }
 }
 
+
+// === EntryInGroup ===
+
+/// An index of entry in some specific group.
 pub type EntryInGroup = usize;
+
+
+// === ElementInGroup ===
 
 /// An identifier of element inside a concrete group: entry (by entry index) or header.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -44,6 +65,9 @@ pub enum ElementInGroup {
     /// A group's normal entry with index.
     Entry(EntryInGroup),
 }
+
+
+// === ElementId ===
 
 /// An identifier of some group's element in Component Browser.
 #[allow(missing_docs)]
@@ -63,7 +87,8 @@ impl ElementId {
         }
     }
 
-    pub fn header_group(self) -> Option<GroupId> {
+    /// Convert to GroupId if the element is a header.
+    pub fn as_header(self) -> Option<GroupId> {
         matches!(self.element, ElementInGroup::Header).as_some(self.group)
     }
 }
@@ -80,6 +105,9 @@ impl From<GroupId> for ElementId {
     }
 }
 
+
+// === GroupEntryId ===
+
 /// An identifier of Component Entry in Component List.
 ///
 /// The component is identified by its group id and its number on the component list.
@@ -91,7 +119,15 @@ pub struct GroupEntryId {
 }
 
 
-/// A information about group needed to compute the Component Panel List layout.
+
+// ============
+// === Info ===
+// ============
+
+
+// === Group ===
+
+/// A information about group in column (not Local Scope group).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Group {
     /// The group identifier.
@@ -100,12 +136,18 @@ pub struct Group {
     pub height:          usize,
     /// Height of group in rows if no entry is filtered out, not counting the header.
     pub original_height: usize,
+    /// The group color defined by library's author.
     pub color:           Option<color::Rgb>,
 }
 
 
+// === Info ===
+
+/// A information about Grid content allowing to compute groups' layout.
 #[derive(Clone, Debug, Default)]
 pub struct Info {
+    /// List of groups arranged in columns.
     pub groups:           Vec<Group>,
+    /// A number of entries in Local Scope section.
     pub local_scope_size: usize,
 }

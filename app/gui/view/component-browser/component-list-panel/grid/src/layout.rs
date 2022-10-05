@@ -174,6 +174,7 @@ impl Layout {
         group_before.rows().contains(&row).as_some(group_before)
     }
 
+    /// Return the group which is in the same column and entirely above given location.
     pub fn group_above_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let mut groups_before = groups_in_col.range(..row).rev();
@@ -186,6 +187,8 @@ impl Layout {
         }
     }
 
+    /// Return the group which is in the same column and entirely below given location. The
+    /// Local Scope group is ignored.
     pub fn group_below_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let group_after = groups_in_col.range((row + 1)..).next()?;
@@ -228,14 +231,22 @@ impl Layout {
         }
     }
 
+    /// Return the location of given group. Returns [`None`] if there's no such group in the layout
+    /// or it's the Local Scope group.
     pub fn location_of_group(&self, group: GroupId) -> Option<(Range<Row>, Col)> {
         self.positions.get(&group).cloned()
     }
 
+    /// Return the minimum row range containing all entries from given section in a column.
     pub fn section_rows_at_column(&self, section: SectionId, column: Col) -> Option<Range<Row>> {
-        self.columns.get(column)?.section_range.get(&section).cloned()
+        if section == SectionId::LocalScope {
+            Some(self.local_scope_rows())
+        } else {
+            self.columns.get(column)?.section_range.get(&section).cloned()
+        }
     }
 
+    /// Return the range of rows taken by Local Scope group.
     pub fn local_scope_rows(&self) -> Range<Row> {
         self.local_scope_first_row..self.row_count
     }

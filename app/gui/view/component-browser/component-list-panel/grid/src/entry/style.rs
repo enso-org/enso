@@ -4,12 +4,10 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
-use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
-use ensogl_text as text;
 use entry_theme::highlight::selection as selection_theme;
 use grid_theme::entry as entry_theme;
 
@@ -42,6 +40,10 @@ pub struct ColorIntensities {
     pub icon_weak:       f32,
 }
 
+/// The intensities of various parts of selected Component Entry view. A subset of
+/// [`ColorIntensities`], but `FromTheme` derive takes different style's paths, plus unrelated
+/// entries are omitted.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionColorIntensities {
     #[theme_path = "selection_theme::text::color_intensity"]
@@ -56,12 +58,12 @@ pub struct SelectionColorIntensities {
     pub icon_weak:   f32,
 }
 
-impl Into<ColorIntensities> for SelectionColorIntensities {
-    fn into(self) -> ColorIntensities {
-        let Self { text, background, icon_strong, icon_weak } = self;
+impl From<SelectionColorIntensities> for ColorIntensities {
+    fn from(selection: SelectionColorIntensities) -> Self {
+        let SelectionColorIntensities { text, background, icon_strong, icon_weak } = selection;
         let dimmed = default();
         let hover_highlight = default();
-        ColorIntensities { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
+        Self { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
     }
 }
 

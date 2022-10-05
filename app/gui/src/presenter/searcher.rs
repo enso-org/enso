@@ -19,7 +19,6 @@ use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ComponentsProviderExt;
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::graph_editor::component::node as node_view;

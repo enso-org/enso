@@ -151,21 +151,28 @@ impl ide_view::searcher::DocumentationProvider for Action {
 // === provider::Component ===
 // ===========================
 
+/// An extension for controller's component provider adding useful functions for conversions between
+/// controller and view structures.
 pub trait ComponentsProviderExt {
+    /// Return the component from controllers by view's id.
     fn component_by_view_id(
         &self,
         id: component_grid::GroupEntryId,
     ) -> Option<component::Component>;
 
+    /// Return the group from controllers by view's id.
     fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group>;
 
+    /// Create information about content for the view.
     fn create_grid_content_info(&self) -> component_grid::content::Info;
 
+    /// Create a view's model for given entry.
     fn get_entry_model(
         &self,
         entry_id: component_grid::GroupEntryId,
     ) -> Option<component_grid::EntryModel>;
 
+    /// Create a view's model for header of given group.
     fn get_header_model(
         &self,
         group_id: component_grid::GroupId,
@@ -240,10 +247,10 @@ fn controller_group_to_grid_group_info(
     }
 }
 
-fn group_list_to_grid_group_infos<'a>(
+fn group_list_to_grid_group_infos(
     section: component_grid::SectionId,
-    list: &'a component::group::List,
-) -> impl Iterator<Item = component_grid::content::Group> + 'a {
+    list: &component::group::List,
+) -> impl Iterator<Item = component_grid::content::Group> + '_ {
     list.iter().enumerate().map(move |(index, group)| {
         let id = component_grid::GroupId { section, index };
         controller_group_to_grid_group_info(id, group)
@@ -291,13 +298,20 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
     }
 }
 
+/// An object providing element models for view's [grid](component_list_panel::grid::View) derived
+/// from [controller's provider](ontroller::searcher::ComponentsProvider).
+///
+/// During construction an FRP network is set up to answer the `model_for_header_needed` and
+/// `model_for_entry_needed` events received from the view. These connections are removed once this
+/// structure is dropped.
 #[derive(Debug)]
 pub struct Component {
-    network:  frp::Network,
-    provider: controller::searcher::ComponentsProvider,
+    _network: frp::Network,
 }
 
 impl Component {
+    /// Initialize the [`Component`] provider, setting up proper connections to feed
+    /// [grid](component_list_panel::grid::View) with entries and headers models.
     pub fn provide_new_list(
         provider: controller::searcher::ComponentsProvider,
         grid: &component_list_panel::grid::View,
@@ -320,7 +334,7 @@ impl Component {
         }
         let content = provider.create_grid_content_info();
         grid.reset(content);
-        Self { network, provider }
+        Self { _network: network }
     }
 }
 

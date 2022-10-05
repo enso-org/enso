@@ -103,17 +103,31 @@ pub enum Kind {
     /// A group header; there is no icon, the text id stronger and there is a gap above header
     /// being a group separator.
     Header,
-    /// The entry in LocalScope section which leave no gap to the left or right.
-    LocalScopeEntry { first_line: bool },
+    /// The entry in LocalScope section which leave no gap to the left or right, and is pushed down
+    /// a little to create a gap between Local Scope section and other groups.
+    LocalScopeEntry {
+        /// Entries in the first line will not add an (overlap)[ENTRIES_OVERLAP_PX].
+        first_line: bool,
+    },
 }
 
 
-// === Model ===
+// === MainColor ===
 
+/// The structure describing how entry is colored.
+///
+/// Each group has devined "main color" for entries, from which are derived colros of various
+/// entries' elements: text, icon, background, etc. (see [`style::Colors`] documentation).
 #[derive(Clone, Copy, Debug)]
 pub enum MainColor {
-    Predefined { variant: usize },
+    /// The entry should use one variant of predefined color taken from the style sheet.
+    Predefined {
+        /// The index of the variant.
+        variant: usize,
+    },
+    /// The entry's color is defined by library's author.
     Custom(color::Rgba),
+    /// The entry should have color defined for the Local Scope section.
     LocalScope,
 }
 
@@ -133,6 +147,9 @@ impl MainColor {
         }
     }
 }
+
+
+// === Model ===
 
 /// The [model](grid_view::entry::Entry) for Component Browser Entry.
 #[allow(missing_docs)]

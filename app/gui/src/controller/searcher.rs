@@ -496,12 +496,10 @@ impl ComponentsProvider {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.selected() {
             components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else if *self.has_this_arg {
+            components.top_modules_flattened().clone_ref()
         } else {
-            if *self.has_this_arg {
-                components.top_modules_flattened().clone_ref()
-            } else {
-                components.top_modules().clone_ref()
-            }
+            components.top_modules().clone_ref()
         }
     }
 
