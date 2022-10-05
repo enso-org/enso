@@ -865,20 +865,20 @@ spec =
             t3.at "X" . to_vector . should_equal [5, 5, 1]
 
         Test.specify "by custom object comparisons" <|
-            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My_Data 1 2, My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]]]
-            t1 = t.filter "X" (Filter_Condition.Between (My_Data 10 20) (My_Data 300 400))
+            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My.Data 1 2, My.Data 300 400, My.Data 100 200, My.Data 5 6, My.Data 7 8]]]
+            t1 = t.filter "X" (Filter_Condition.Between (My.Data 10 20) (My.Data 300 400))
             t1.at "ix" . to_vector . should_equal [2, 3]
-            t1.at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200]
-            t.filter "X" (Filter_Condition.Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2]
-            t.filter "X" (Filter_Condition.Equal_Or_Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 5 6]
-            t.filter "X" (Filter_Condition.Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Equal to=(My_Data 2 1)) . at "X" . to_vector . should_equal [My_Data 1 2]
+            t1.at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200]
+            t.filter "X" (Filter_Condition.Less than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 1 2]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 5 6]
+            t.filter "X" (Filter_Condition.Greater than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200, My.Data 5 6, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Equal to=(My.Data 2 1)) . at "X" . to_vector . should_equal [My.Data 1 2]
             t.filter "X" (Filter_Condition.Equal to=42) . at "X" . to_vector . should_equal []
 
-            c = Column.from_vector "Y" [My_Data 2 1, My_Data 400 300, My_Data 101 202, My_Data 10 10, My_Data 15 0]
-            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 300 400, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My_Data 100 200, My_Data 5 6]
+            c = Column.from_vector "Y" [My.Data 2 1, My.Data 400 300, My.Data 101 202, My.Data 10 10, My.Data 15 0]
+            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 300 400, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My.Data 100 200, My.Data 5 6]
             t.filter "X" (Filter_Condition.Greater than=c) . at "X" . to_vector . should_equal []
 
         Test.specify "by a boolean mask of varying length" <|
