@@ -1,12 +1,11 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
-from Standard.Table import Table, Column, Sort_Column, Sort_Column_Selector, Aggregate_Column
-from Standard.Table.Data.Aggregate_Column import all hiding First, Last
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
-import Standard.Table.Data.Storage
-from Standard.Table.Data.Column_Selector import By_Name
+from Standard.Table.Data.Storage import Storage
 from Standard.Table.Errors import Floating_Point_Grouping_Data
 from Standard.Table.Data.Filter_Condition import Filter_Condition
 
@@ -676,7 +675,7 @@ spec =
             t_3 = Table.new [c_3_1, c_3_2, c_3_3]
             t_3.default_visualization.should_equal Visualization.Id.table
 
-    selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
+    selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
     Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
@@ -769,12 +768,12 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r1 = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r1 = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
             r1.at "A" . to_vector . should_equal ["a"]
             r1.at "B" . to_vector . should_equal [1]
             r1.at "C" . to_vector . should_equal [0.1]
 
-            r2 = t.distinct (By_Name ["A", "B"]) on_problems=Report_Error
+            r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -793,7 +792,7 @@ spec =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -805,11 +804,11 @@ spec =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct (By_Name ["X"]) on_problems=Report_Error
+            d1 = t1.distinct (Column_Selector.By_Name ["X"]) on_problems=Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct (By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct (Column_Selector.By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
@@ -835,11 +834,11 @@ spec =
             t = Table.new [["A", [1, 2, 1, 1]]]
             test table = table.should_equal t
 
-            action1 = t.distinct (By_Name []) on_problems=_
+            action1 = t.distinct (Column_Selector.By_Name []) on_problems=_
             problems1 = [No_Input_Columns_Selected]
             Problems.test_problem_handling action1 problems1 test
 
-            action2 = t.distinct (By_Name ["mismatched"]) on_problems=_
+            action2 = t.distinct (Column_Selector.By_Name ["mismatched"]) on_problems=_
             problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
             Problems.test_problem_handling action2 problems2 test
 

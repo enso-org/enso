@@ -1,11 +1,11 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table import Table
-from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector import By_Name, By_Index
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index
 
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
 import Standard.Test
 

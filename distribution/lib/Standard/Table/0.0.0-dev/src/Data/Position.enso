@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Data.Position.Position import all
-from project.Data.Position.Position export all
-
 type Position
    ## UNSTABLE
       Selected columns will be moved to the front of the output table.

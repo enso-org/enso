@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Column, Data_Formatter_Data, Quote_Style, Delimited
+from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 from Standard.Table.Errors import all
 
 import Standard.Test
@@ -129,7 +129,7 @@ spec =
             text = lines.join '\n'
             text.write file
 
-            format = Delimited ',' headers=False value_formatter=(Data_Formatter_Data trim_values=False)
+            format = Delimited ',' headers=False value_formatter=(Data_Formatter.Value trim_values=False)
 
             reference_table = Table.new [["Column_1", ["a", "d", "1"]], ["Column_2", ["b", "e", "2"]], ["Column_3", ["c", "f", "3"]]]
             collapsed_table = Table.new <|
@@ -325,7 +325,7 @@ spec =
             t.at "QuotedNumbers" . to_vector . should_equal ["1", "2", Nothing, "34"]
             t.at "Mixed Types" . to_vector . should_equal ["33", Nothing, "45", "True"]
 
-            t2 = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True value_formatter=(Data_Formatter_Data allow_leading_zeros=True))
+            t2 = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True value_formatter=(Data_Formatter.Value allow_leading_zeros=True))
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
         Test.specify "should be able to detect types automatically" <|
@@ -384,7 +384,7 @@ spec =
 
             Delimited ',' . with_parsing . should_equal (Delimited ',')
             Delimited ',' . without_parsing . should_equal (Delimited ',' value_formatter=Nothing)
-            custom_formatter = Data_Formatter_Data true_values=["A", "B", "C"] false_values=["D", "E", "F"]
+            custom_formatter = Data_Formatter.Value true_values=["A", "B", "C"] false_values=["D", "E", "F"]
             Delimited ',' . with_parsing custom_formatter . should_equal (Delimited ',' value_formatter=custom_formatter)
             Delimited ',' row_limit=456 . without_parsing . should_equal (Delimited ',' value_formatter=Nothing row_limit=456)
 

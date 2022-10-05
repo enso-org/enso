@@ -13,11 +13,11 @@ import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
 
 from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
+from Standard.Table.Data.Column_Selector import Column_Selector
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
-import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 
 from Standard.Database.Data.Column import Column, Column_Data
@@ -120,7 +120,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (By_Name ["bar", "foo"])
+             table.select_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Select columns using names passed as a Vector.
@@ -130,21 +130,21 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
 
-             table.select_columns (By_Index [-1, 0, 1]) reorder=True
+             table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
 
        > Example
          Select columns with the same names as the ones provided.
 
-             table.select_columns (By_Column [column1, column2])
+             table.select_columns (Column_Selector.By_Column [column1, column2])
 
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems
         self.updated_columns new_columns
 
@@ -172,7 +172,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (By_Name ["bar", "foo"])
+             table.remove_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Remove columns using names passed as a Vector.
@@ -182,19 +182,19 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
 
-             table.remove_columns (By_Index [-1, 0, 1])
+             table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
 
        > Example
          Remove columns with the same names as the ones provided.
 
-             table.remove_columns (By_Column [column1, column2])
+             table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
-    remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
+    remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.internal_columns selector=columns on_problems=on_problems
         self.updated_columns new_columns
 
@@ -237,19 +237,19 @@ type Table
        > Example
          Swap the first two columns.
 
-             table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [1, 0]) position=Before_Other_Columns
 
        > Example
          Move the first column to back.
 
-             table.reorder_columns (By_Index [0]) position=After_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
 
        > Example
          Move the columns with names matching the provided columns to the front.
 
-             table.reorder_columns (By_Column [column1, column2])
+             table.reorder_columns (Column_Selector.By_Column [column1, column2])
     reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
-    reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.internal_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
 
@@ -628,7 +628,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         _ = [columns, case_sensitivity, on_problems]
         Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
 

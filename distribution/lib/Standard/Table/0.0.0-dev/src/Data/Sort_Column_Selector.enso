@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column import Column
-from Standard.Table.Data.Sort_Column import Sort_Column
+import Standard.Table.Data.Column.Column
+import Standard.Table.Data.Sort_Column.Sort_Column
 
 type Sort_Column_Selector
     By_Name (columns : Vector (Sort_Column.Name | Text)) (matcher:Matcher=Text_Matcher.Case_Sensitive)

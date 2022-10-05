@@ -6,35 +6,32 @@ import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
-from Standard.Table.Data.Column import Column
+import Standard.Table.Data.Column.Column
 from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
+
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
-import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
-from Standard.Table.IO.Auto_Detect import Auto_Detect
+import Standard.Table.IO.Auto_Detect.Auto_Detect
 
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
 import Standard.Table.Delimited.Delimited_Reader
 import Standard.Table.Delimited.Delimited_Writer
 
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
+import Standard.Table.Data.Column_Selector.Column_Selector
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
-from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
+import Standard.Table.Data.Data_Formatter.Data_Formatter
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns
 import Standard.Table.Data.Match_Columns
 
-import Standard.Table.Data.Column_Name_Mapping
-import Standard.Table.Data.Position
+from Standard.Table.Data.Column_Name_Mapping import Column_Name_Mapping
+from Standard.Table.Data.Position import Position
 from Standard.Table.Data.Sort_Column_Selector import Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
+from Standard.Table.Data.Sort_Column import Sort_Column
 
-# TODO Dubious constructor export
-from Standard.Table.Data.Table.Table import all
-from Standard.Table.Data.Table.Table export all
-
-import Standard.Table.Data.Aggregate_Column
+from Standard.Table.Data.Aggregate_Column import Aggregate_Column
 import Standard.Visualization
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
@@ -250,7 +247,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (By_Name ["bar", "foo"])
+             table.select_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Select columns using names passed as a Vector.
@@ -260,21 +257,21 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
 
-             table.select_columns (By_Index [-1, 0, 1]) reorder=True
+             table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
 
        > Example
          Select columns with the same names as the ones provided.
 
-             table.select_columns (By_Column [column1, column2])
+             table.select_columns (Column_Selector.By_Column [column1, column2])
 
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
         Table.new new_columns
 
@@ -302,7 +299,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (By_Name ["bar", "foo"])
+             table.remove_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Remove columns using names passed as a Vector.
@@ -312,19 +309,19 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
 
-             table.remove_columns (By_Index [-1, 0, 1])
+             table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
 
        > Example
          Remove columns with the same names as the ones provided.
 
-             table.remove_columns (By_Column [column1, column2])
+             table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
-    remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
+    remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
         Table.new new_columns
 
@@ -352,7 +349,7 @@ type Table
        > Example
          Move a column with a specified name to back.
 
-             table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
+             table.reorder_columns (Column_Selector.By_Name ["foo"]) position=After_Other_Columns
 
        > Example
          Move columns using names passed as a Vector.
@@ -362,24 +359,24 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Swap the first two columns.
 
-             table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [1, 0]) position=Before_Other_Columns
 
        > Example
          Move the first column to back.
 
-             table.reorder_columns (By_Index [0]) position=After_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
 
        > Example
          Move the columns with names matching the provided columns to the front.
 
-             table.reorder_columns (By_Column [column1, column2])
+             table.reorder_columns (Column_Selector.By_Column [column1, column2])
     reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
-    reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
         Table.new new_columns
 
@@ -652,7 +649,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
@@ -678,7 +675,7 @@ type Table
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values self value_formatter=Data_Formatter_Data column_types=Nothing on_problems=Report_Warning =
+    parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
 

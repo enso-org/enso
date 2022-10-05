@@ -4,7 +4,7 @@ from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
 
 import Standard.Table.Data.Table
 from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row_Data, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
-from Standard.Table.Data.Data_Formatter import Data_Formatter_Data
+from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format
 import Standard.Table.Delimited.Quote_Style
 
@@ -117,7 +117,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         wrapped = format.value_formatter.wrap_base_parser base_parser
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
     cell_type_guesser = if format.headers != Infer then Nothing else
-        formatter = format.value_formatter.if_nothing Data_Formatter_Data
+        formatter = format.value_formatter.if_nothing Data_Formatter.Value
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
