@@ -848,6 +848,10 @@ Spec.print_report self config builder =
                 Failure msg details ->
                     builder.append ('\n            <error message="' + (escape_xml msg) + '">\n')
                     if details.is_nothing.not then
+                        ## We duplicate the message, because sometimes the
+                           attribute is skipped if the node has any content.
+                        builder.append (escape_xml msg)
+                        builder.append '\n'
                         builder.append (escape_xml details)
                     builder.append '</error>\n'
                 Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
