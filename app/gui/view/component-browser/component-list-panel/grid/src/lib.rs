@@ -482,6 +482,17 @@ impl Model {
 // === Updating Style ===
 
 impl Model {
+    fn grid_size((style, content_size): &(Style, Vector2)) -> Vector2 {
+        let x = min(style.content_size().x, content_size.x);
+        let y = min(style.content_size().y, content_size.y);
+        Vector2(x, y)
+    }
+
+    fn grid_position((style, content_size): &(Style, Vector2)) -> Vector2 {
+        let y = style.content_size().y - min(style.content_size().y, content_size.y);
+        Vector2(0.0, y)
+    }
+
     fn entries_params(
         &self,
         (style, entry_style, color_intensities, group_colors): &(
@@ -597,18 +608,20 @@ impl component::Frp<Model> for Frp {
 
             // === Style and Entries Params ===
 
+            style_and_content_size <- all(&style.update, &grid.content_size);
             dimmed_groups <- out.active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
             entries_style <- all4(&style.update, &entry_style.update, &color_intensities.update, &group_colors);
             entries_params <- all_with(&entries_style, &dimmed_groups, f!((style, dimmed) model.entries_params(style, *dimmed)));
             selection_entries_style <- all(entries_params, selection_color_intensities.update);
             selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
-            grid_scroll_frp.resize <+ style.update.map(|s| s.content_size());
+            grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
+            grid_position <- style_and_content_size.map(Model::grid_position);
+            eval grid_position ((pos) model.grid.set_position_xy(*pos));
             grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
             grid.set_entries_size <+ style.update.map(|s| s.entry_size());
             grid.set_column_width <+ style.update.map(|s| (1, s.middle_column_width()));
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
-
 
 
             // === Header and Entries Models ===
@@ -630,7 +643,7 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
             // The content area is higher than just height of all entries, as we add also a gap
             // between all groups and local scope section.
-            grid_scroll_frp.set_content_height <+ all_with(&grid.content_size, &style.update, |c, s| c.y + s.column_gap);
+            grid_scroll_frp.set_content_height <+ style_and_content_size.map(|(s, c)| c.y + s.column_gap);
 
 
             // === Jumping by Groups ===

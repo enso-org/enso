@@ -456,7 +456,7 @@ mod tests {
         }
         fn id_and_rows_from_group(group: Option<LaidGroup<'_>>) -> Option<(usize, Range<Row>)> {
             group.map(|g| (g.group.id.index, g.rows()))
-        };
+        }
 
         let group_at =
             |row: Row, col: Col| id_and_rows_from_group(layout.group_at_location(row, col));
