@@ -88,11 +88,8 @@ case object MethodDefinitions extends IRPass {
     val withStaticAliases = newDefs.flatMap {
       case method: IR.Module.Scope.Definition.Method.Explicit
           if !method.isStatic =>
-        method.methodReference.typePointer.map(
-          _.unsafeGetMetadata(
-            this,
-            "just set it"
-          )
+        method.methodReference.typePointer.flatMap(
+          _.getMetadata(this)
         ) match {
           case Some(Resolution(ResolvedType(_, tp))) if tp.members.nonEmpty =>
             val dup = method.duplicate()
@@ -112,7 +109,7 @@ case object MethodDefinitions extends IRPass {
                 None
               )
             )
-            List(static, method)
+            List(method, static)
           case _ => List(method)
         }
 

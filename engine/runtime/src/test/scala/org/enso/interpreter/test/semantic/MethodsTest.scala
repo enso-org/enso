@@ -165,17 +165,25 @@ class MethodsTest extends InterpreterTest {
       eval(code).toString shouldEqual "(Mk_Foo 123)"
     }
 
-    "be callable on types when non-static, with additional arg" in {
+    "be callable on types when non-static, with additional self arg" in {
       val code =
-        """
+        """from Standard.Base.IO import all
+          |
           |type Foo
           |    Mk_Foo a
           |
           |    inc self = Foo.Mk_Foo self.a+1
           |
-          |main = Foo.inc (Foo.Mk_Foo 12)
+          |main = 
+          |    IO.println (Foo.inc (Foo.Mk_Foo 12))
+          |    IO.println (Foo.Mk_Foo 13).inc
+          |    IO.println (.inc self=Foo self=(Foo.Mk_Foo 14))
+          |    IO.println (Foo.inc self=(Foo.Mk_Foo 15))
           |""".stripMargin
-      eval(code).toString.shouldEqual("(Mk_Foo 13)")
+      eval(code)
+      consumeOut.shouldEqual(
+        List("(Mk_Foo 13)", "(Mk_Foo 14)", "(Mk_Foo 15)", "(Mk_Foo 16)")
+      )
     }
 
     "not be callable on instances when static" in {
