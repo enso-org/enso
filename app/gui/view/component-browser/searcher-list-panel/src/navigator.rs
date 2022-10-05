@@ -104,7 +104,7 @@ impl Navigator {
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
-        top_buttons.hide_selection();
+        // top_buttons.hide_selection();
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
