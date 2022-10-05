@@ -164,18 +164,10 @@ pub fn main() {
         panel.show();
         let network = frp::Network::new("new_component_list_panel_view");
         //TODO[ao] should be done by panel itself.
-        let adjust_pixels = f!([panel](&shape: &scene::Shape) {
-            let device_size = shape.device_pixels();
-            let origin_left_top_pos = Vector2(device_size.width, device_size.height)/ 2.0;
-            let adjusted_left_top_pos = Vector2(origin_left_top_pos.x.floor(), origin_left_top_pos.y.floor());
-            let offset = adjusted_left_top_pos - origin_left_top_pos;
-            panel.set_position_xy(offset);
-        });
         let grid = &panel.model().grid;
         frp::extend! { network
             grid.model_for_header <+ grid.model_for_header_needed.filter_map(|&id| get_header_model(id));
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(|&id| get_entry_model(id));
-            _adjust <- scene.frp.shape.map(adjust_pixels);
         }
 
         grid.reset(content_info());

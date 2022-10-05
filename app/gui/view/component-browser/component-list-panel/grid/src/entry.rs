@@ -45,7 +45,7 @@ pub use crate::entry::style::Style;
 /// The number of pixels the entries inside one group overlap each other.
 ///
 /// The entries need to overlap, otherwise we see artifacts at their boundaries.
-const ENTRIES_OVERLAP_PX: f32 = 1.0;
+const ENTRIES_OVERLAP_PX: f32 = 2.0;
 
 
 
@@ -104,7 +104,7 @@ pub enum Kind {
     /// being a group separator.
     Header,
     /// The entry in LocalScope section which leave no gap to the left or right.
-    LocalScopeEntry,
+    LocalScopeEntry { first_line: bool },
 }
 
 
@@ -225,7 +225,6 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                tracing::debug!("Creating new icon {icon_id:?}.");
                 shape.strong_color.set(self.strong_color.into());
                 shape.weak_color.set(self.weak_color.into());
                 self.display_object.add_child(&shape);
@@ -294,27 +293,39 @@ impl Data {
         grid_style: &GridStyle,
         entry_size: Vector2,
     ) {
+        let local_scope_offset = match kind {
+            Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
+            _ => 0.0,
+        };
+        let overlap = match kind {
+            Kind::Entry | Kind::LocalScopeEntry { first_line: false } => ENTRIES_OVERLAP_PX,
+            _ => 0.0,
+        };
+        let gap_over_header = match kind {
+            Kind::Header => grid_style.column_gap,
+            _ => 0.0,
+        };
         // For explanation how differend kinds of entry should behave, see documentation of
         // [`Kind`].
-        let bg_width =
-            if kind == Kind::LocalScopeEntry { entry_size.x } else { grid_style.column_width() };
-        let bg_height = entry_size.y
-            + if kind == Kind::Header { -grid_style.column_gap } else { ENTRIES_OVERLAP_PX };
+        let bg_width = match kind {
+            Kind::LocalScopeEntry { .. } => entry_size.x,
+            _ => grid_style.column_width(),
+        };
+        let bg_height = entry_size.y - gap_over_header + overlap;
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = if kind == Kind::Header {
-            -grid_style.column_gap / 2.0
-        } else {
-            ENTRIES_OVERLAP_PX / 2.0
-        };
+        let bg_y = -gap_over_header / 2.0 + overlap / 2.0 + local_scope_offset;
         self.background.set_position_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
-        self.icon.borrow().set_position_x(left + style.icon_size / 2.0);
+        let icon_x = left + style.icon_size / 2.0;
+        let icon_y = local_scope_offset;
+        self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
         let text_x = Self::text_x_position(kind, style, grid_style);
-        self.label.set_position_xy(Vector2(text_x, style.text_size.value / 2.0));
+        let text_y = style.text_size.value / 2.0 + local_scope_offset;
+        self.label.set_position_xy(Vector2(text_x, text_y));
     }
 
     fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
@@ -329,7 +340,11 @@ impl Data {
     }
 
     fn contour_offset(kind: Kind, grid_style: &GridStyle) -> Vector2 {
-        let y = if kind == Kind::Header { -grid_style.column_gap / 2.0 } else { 0.0 };
+        let y = match kind {
+            Kind::Header => -grid_style.column_gap / 2.0,
+            Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
+            _ => 0.0,
+        };
         Vector2(0.0, y)
     }
 

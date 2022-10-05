@@ -162,6 +162,12 @@ impl AllStyles {
         let width = self.grid.width - crop_left - crop_right;
         Vector2(width, self.panel.menu_height)
     }
+
+    fn grid_pos(&self) -> Vector2 {
+        let grid_x = -self.grid.content_size().x / 2.0 + self.navigator.width / 2.0;
+        let grid_y = self.grid.content_size().y / 2.0 - self.panel.menu_height / 2.0;
+        Vector2(grid_x, grid_y)
+    }
 }
 
 
@@ -275,8 +281,6 @@ impl Model {
     }
 
     fn update_style(&self, style: &AllStyles) {
-        // Background
-        tracing::warn!("Setting style {style:?}");
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.size.set(style.background_sprite_size());
         self.section_navigator.update_layout(style);
@@ -288,21 +292,7 @@ impl Model {
 
         self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
-
-        // Grid
-
-        let grid_x = -style.grid.content_size().x / 2.0 + style.navigator.width / 2.0;
-        let grid_y = style.grid.content_size().y / 2.0 - style.panel.menu_height / 2.0;
-        self.grid.set_position_xy(Vector2(grid_x, grid_y));
-
-        // Scroll Area
-
-        //TODO[ao]: check if all of these are implemented in grid::View.
-        // self.scroll_area.resize(scroll_area_size);
-        // self.scroll_area.set_corner_radius_bottom_right(style.content_corner_radius);
-        // self.selection.size.set(scroll_area_size);
-        // let selection_area_pos = Vector2(scroll_area_size.x / 2.0, -scroll_area_size.y / 2.0);
-        // self.selection.set_position_xy(selection_area_pos);
+        self.grid.set_position_xy(style.grid_pos());
     }
 
     /// Set the navigator so it can be disabled on hover.

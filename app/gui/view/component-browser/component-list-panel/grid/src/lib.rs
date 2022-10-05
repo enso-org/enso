@@ -260,7 +260,8 @@ impl Model {
         }
         let (row, col) = self.entry_id_to_location(*entry)?;
         let kind = if entry.group.section == SectionId::LocalScope {
-            entry::Kind::LocalScopeEntry
+            let first_line = row == self.layout.borrow().local_scope_rows().start;
+            entry::Kind::LocalScopeEntry { first_line }
         } else {
             entry::Kind::Entry
         };
@@ -331,7 +332,7 @@ impl Model {
     ) -> grid_view::Margins {
         let vertical_margin = style.content_size().y - style.entry_height;
         if active_section == SectionId::LocalScope {
-            grid_view::Margins { bottom: vertical_margin, ..default() }
+            grid_view::Margins { bottom: vertical_margin + style.column_gap, ..default() }
         } else {
             grid_view::Margins { top: vertical_margin, ..default() }
         }
@@ -442,6 +443,7 @@ impl component::Frp<Model> for Frp {
             grid_selection_frp.set_entries_params <+ selection_entries_params;
 
 
+
             // === Header and Entries Models ===
 
             grid.reset_entries <+ input.reset.map(f!((content) model.reset(content)));
@@ -459,12 +461,16 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
+            // The content area is higher than just height of all entries, as we add also a gap
+            // between all groups and local scope section.
+            grid_scroll_frp.set_content_height <+ all_with(&grid.content_size, &style.update, |c, s| c.y + s.column_gap);
 
 
             // === Jumping by Groups ===
 
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_up).filter_map(f!((loc) model.selection_after_jump_group_up(loc.as_ref()?)));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_down).filter_map(f!((loc) model.selection_after_jump_group_down(loc.as_ref()?)));
+
 
             // === Focus propagation ===
 
