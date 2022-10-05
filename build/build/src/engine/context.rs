@@ -254,13 +254,21 @@ impl RunContext {
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
         let github_hosted_macos_memory = 15_032_385;
-        if system.total_memory() > github_hosted_macos_memory {
+        let big_memory_machine = system.total_memory() > github_hosted_macos_memory;
+        // Windows native runner is not yet supported.
+        let build_native_runner =
+            self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
+
+        if big_memory_machine {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
                 ret.packages.engine = Some(self.paths.engine.clone());
+            }
+            if build_native_runner {
+                tasks.push("engine-runner-native/buildNativeImage");
             }
 
             if TARGET_OS != OS::Windows {
@@ -400,6 +408,13 @@ impl RunContext {
             enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
         }
 
+        if build_native_runner {
+            Command::new("runner")
+                .current_dir(&self.repo_root)
+                .args(["--run", "engine/runner-native/src/test/resources/Factorial.enso"])
+                .run_ok()
+                .await?;
+        }
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
