@@ -77,6 +77,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          max-annotations: "100"
           name: Enso Standard Library Tests (linux)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
@@ -141,6 +142,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          max-annotations: "100"
           name: Enso Standard Library Tests (macos)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
@@ -207,6 +209,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          max-annotations: "100"
           name: Enso Standard Library Tests (windows)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
           path-replace-backslashes: "true"
