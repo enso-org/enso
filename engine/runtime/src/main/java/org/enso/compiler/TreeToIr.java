@@ -1580,7 +1580,7 @@ final class TreeToIr {
     */
   IR$Case$Branch translateCaseBranch(Case branch) {
     return new IR$Case$Branch(
-          translatePattern(branch.getPattern()),
+          translatePattern(branch.getPattern(), nil()),
           translateExpression(branch.getExpression(), false),
           getIdentifiedLocation(branch.getExpression()), meta(), diag()
       );
@@ -1592,64 +1592,45 @@ final class TreeToIr {
     * @param block the case pattern to translate
     * @return
     */
-  IR.Pattern translatePattern(Tree block) {
-    return translatePattern(Collections.singletonList(block));
-  }
-
-  IR.Pattern translatePattern(java.util.List<Tree> block) {
-    var pattern = maybeManyParensed(block.get(0));
-    List<IR.Pattern> fields = nil();
-    for (int i = 1; i < block.size(); i++) {
-      var arg = block.get(i);
-      var argIR = switch (arg) {
-        case Tree.Ident id -> new IR$Pattern$Name(
-          buildName(arg), getIdentifiedLocation(arg), meta(), diag()
-        );
-        case Tree.OprApp id -> new IR$Pattern$Name(
-          buildQualifiedName(arg), getIdentifiedLocation(arg), meta(), diag()
-        );
-        case Tree.Wildcard wild -> translateWildcardPattern(wild);
-        default -> throw new UnhandledEntity(arg, "translatePattern");
-      };
-      fields = cons(argIR, fields);
-    }
+  IR.Pattern translatePattern(Tree block, List<IR.Pattern> fields) {
+    var pattern = maybeManyParensed(block);
     return switch (pattern) {
       case Tree.Ident id -> {
         yield new IR$Pattern$Constructor(
-          buildName(id), fields.reverse(),
+          buildName(id), fields,
           getIdentifiedLocation(id), meta(), diag()
         );
       }
       case Tree.OprApp id -> {
         var qualifiedName = buildQualifiedName(pattern);
         yield new IR$Pattern$Constructor(
-          qualifiedName, fields.reverse(),
+          qualifiedName, fields,
           getIdentifiedLocation(id), meta(), diag()
         );
+      }
+      case Tree.App id -> {
+        var args = translatePatternArguments(id.getArg(), fields);
+        yield translatePattern(id.getFunc(), args);
       }
       case Tree.Wildcard wild -> translateWildcardPattern(wild);
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
+  }
 
-    /*
-    AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
-      case AstView.ConstructorPattern(conses, fields) =>
-        val irConses = conses.map(translateIdent(_).asInstanceOf[IR.Name])
-        val name = irConses match {
-          case List(n) => n
-          case _       => IR.Name.Qualified(irConses, None)
-        }
-        Pattern.Constructor(
-          name,
-          fields.map(translatePattern),
-          getIdentifiedLocation(pattern)
-        )
-      case AstView.CatchAllPattern(name) =>
-        Pattern.Name(
-          translateIdent(name).asInstanceOf[IR.Name],
-          getIdentifiedLocation(pattern)
-        )
-      */
+  private List<IR.Pattern> translatePatternArguments(Tree tree, List<IR.Pattern> prev) {
+    return switch (tree) {
+      case Tree.OprApp app -> {
+       var tail = translatePatternArguments(app.getRhs(), prev);
+       yield cons(translatePattern(app.getLhs(), tail), nil());
+      }
+      case Tree.Ident id -> {
+        var name = buildName(id);
+        var pattern = new IR$Pattern$Name(name, getIdentifiedLocation(id), meta(), diag());
+        yield cons(pattern, prev);
+      }
+      case Tree.Wildcard wild -> cons(translateWildcardPattern(wild), prev);
+      default -> throw new UnhandledEntity(tree, "translatePattern");
+    };
   }
 
   private IR$Pattern$Name translateWildcardPattern(Tree.Wildcard wild) {
