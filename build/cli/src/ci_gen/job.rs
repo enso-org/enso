@@ -69,52 +69,6 @@ pub fn plain_job_customized(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct AssertChangelog;
-impl JobArchetype for AssertChangelog {
-    fn job(os: OS) -> Job {
-        let changed_files = r#"
-git fetch
-list=`git diff --name-only origin/develop HEAD | tr '\n' ' '`
-echo $list
-echo "::set-output name=list::'$list'"
-"#
-        .trim()
-        .to_string();
-
-        let changed_files_id = "changed_files";
-        let changelog_was_changed =
-            format!("contains(steps.{changed_files_id}.outputs.list,'CHANGELOG.md')");
-        let omit_in_commit_msg =
-            "contains(github.event.head_commit.message,'[ci no changelog needed]')";
-        let omit_in_pr_body = "contains(github.event.pull_request.body,'[ci no changelog needed]')";
-        let is_dependabot = "github.event.pull_request.user.login == 'dependabot'";
-
-        let steps = {
-            let mut steps = vec![];
-            steps.extend(checkout_repo_step());
-            steps.push(Step {
-                id: Some(changed_files_id.into()),
-                run: Some(changed_files),
-                ..default()
-            });
-            steps.push(                Step {
-                run: Some(format!("if [[ ${{{{ {changelog_was_changed} || {omit_in_commit_msg} || {omit_in_pr_body} || {is_dependabot} }}}} == false ]]; then exit 1; fi")),
-                r#if: Some("github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'".into()),
-                ..default()
-            });
-            steps
-        };
-
-        Job {
-            name: "Assert if CHANGELOG.md was updated (on pull request)".into(),
-            runs_on: runs_on(os),
-            steps,
-            ..default()
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 impl JobArchetype for CancelWorkflow {
     fn job(_os: OS) -> Job {

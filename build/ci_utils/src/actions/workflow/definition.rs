@@ -210,6 +210,8 @@ pub struct Push {
     pub paths_ignore:   Vec<PathBuf>,
 }
 
+/// Common branch-related fields between some event triggers.
+///
 /// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpull_requestpull_request_targetbranchesbranches-ignore
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -226,11 +228,46 @@ impl Branches {
     }
 }
 
+/// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PullRequestActivityType {
+    Assigned,
+    Unassigned,
+    Labeled,
+    Unlabeled,
+    Opened,
+    Edited,
+    Closed,
+    Reopened,
+    Synchronize,
+    ConvertedToDraft,
+    ReadyForReview,
+    Locked,
+    Unlocked,
+    ReviewRequested,
+    ReviewRequestRemoved,
+    AutoMergeEnabled,
+    AutoMergeDisabled,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PullRequest {
     #[serde(flatten)]
     pub inner_branches: Branches,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub types:          Vec<PullRequestActivityType>,
+}
+
+impl PullRequest {
+    pub fn with_types(
+        mut self,
+        types: impl IntoIterator<Item: Into<PullRequestActivityType>>,
+    ) -> Self {
+        self.types.extend(types.into_iter().map(Into::into));
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

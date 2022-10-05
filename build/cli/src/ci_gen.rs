@@ -1,8 +1,9 @@
+use crate::prelude::*;
+
 use crate::ci_gen::job::expose_os_specific_signing_secret;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
-use crate::prelude::*;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
@@ -17,6 +18,7 @@ use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::PullRequest;
+use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Schedule;
@@ -206,9 +208,17 @@ impl JobArchetype for UploadIde {
     }
 }
 
+/// Generate a workflow that checks if the changelog has been updated (if needed).
 pub fn changelog() -> Result<Workflow> {
+    use PullRequestActivityType::*;
     let mut ret = Workflow::new("Changelog");
-    ret.on.pull_request(default());
+    ret.on.pull_request(PullRequest::default().with_types([
+        Labeled,
+        Unlabeled,
+        Synchronize,
+        Opened,
+        Reopened,
+    ]));
     ret.add_job(Job {
         name: "Changelog".into(),
         runs_on: vec![RunnerLabel::X64],
@@ -284,7 +294,6 @@ pub fn typical_check_triggers() -> Event {
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
-    workflow.add::<job::AssertChangelog>(PRIMARY_OS);
     workflow.add::<job::CancelWorkflow>(PRIMARY_OS);
     workflow.add::<job::Lint>(PRIMARY_OS);
     workflow.add::<job::WasmTest>(PRIMARY_OS);

@@ -6,34 +6,6 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  enso-build-cli-ci-gen-job-assert-changelog-linux:
-    name: Assert if CHANGELOG.md was updated (on pull request)
-    runs-on:
-      - self-hosted
-      - Linux
-      - engine
-    steps:
-      - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        if: runner.os == 'Windows'
-        shell: cmd
-      - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        if: runner.os != 'Windows'
-        shell: bash
-      - name: Checking out the repository
-        uses: actions/checkout@v2
-        with:
-          clean: false
-          submodules: recursive
-      - id: changed_files
-        run: |-
-          git fetch
-          list=`git diff --name-only origin/develop HEAD | tr '\n' ' '`
-          echo $list
-          echo "::set-output name=list::'$list'"
-      - run: if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') || github.event.pull_request.user.login == 'dependabot' }} == false ]]; then exit 1; fi
-        if: github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'
   enso-build-cli-ci-gen-job-build-backend-linux:
     name: Build Backend (linux)
     runs-on:
