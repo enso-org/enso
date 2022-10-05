@@ -40,7 +40,6 @@ pub trait InstanceParamsTrait {
 
 pub trait Shape: 'static + Sized {
     type InstanceParams: Debug + InstanceParamsTrait;
-    type ProxyParams: Debug + Default;
     type GpuParams: Debug;
     fn pointer_events() -> bool;
     fn always_above() -> &'static [ShapeSystemId];
@@ -51,8 +50,6 @@ pub trait Shape: 'static + Sized {
         id: InstanceIndex,
     ) -> Self::InstanceParams;
     fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams;
-    fn bind_proxy_params(proxy_params: &Self::ProxyParams, shape: &ShapeInstance<Self>);
-    fn drop_proxy_params_bindings(proxy_params: &Self::ProxyParams);
     fn shape_def(
         style_watch: &display::shape::StyleWatch,
     ) -> display::shape::primitive::def::AnyShape;
@@ -94,60 +91,60 @@ impl<S: Shape> ShapeInstance<S> {
 
 
 
-// ==================
-// === ShapeProxy ===
-// ==================
-
-/// A proxy for zero or more [`ShapeInstance`]s. Proxies can be created and modified even if no
-/// [`ShapeInstance`] is created yet. [`ShapeInstance`]s are bound to a particular [`ShapeSystem`].
-/// They can be destroyed and created on demand (e.g. after moving the shape to a different layer,
-/// because each layer has its own copy of [`ShapeSystem`]). The [`ShapeProxy`] is an interface for
-/// all created [`ShapeInstance`]s. In case there are no [`ShapeInstance`]s, changing a parameter
-/// will not have any visual effect, however, all the changes will be recorded and applied as soon
-/// as a new [`ShapeInstance`] appears.
-#[allow(missing_docs)]
-#[derive(Deref, Derivative)]
-#[derivative(Debug(bound = ""))]
-#[derivative(Default(bound = ""))]
-#[allow(missing_docs)]
-pub struct ShapeProxy<S: Shape> {
-    #[deref]
-    proxy_params:   S::ProxyParams,
-    display_object: display::object::Instance,
-    // In most cases, there will be zero or one instance. Rarely, a shape can be added to two or
-    // more layers at the same time. Thus, using a small vec with a capacity of 2 is a good usage
-    // approximation.
-    instances:      Rc<RefCell<SmallVec<[ShapeInstance<S>; 2]>>>,
-}
-
-impl<S: Shape> ShapeProxy<S> {
-    /// Add a new shape instance and bind its parameters to the proxy parameters.
-    #[profile(Debug)]
-    pub fn add_instance(&self, instance: ShapeInstance<S>) {
-        self.display_object.add_child(&instance);
-        S::bind_proxy_params(&self.proxy_params, &instance);
-        self.instances.borrow_mut().push(instance);
-    }
-
-    /// Drop all shape instances. Unbnind the parameters.
-    #[profile(Debug)]
-    pub fn drop_all_instances(&self) {
-        mem::take(&mut *self.instances.borrow_mut());
-        S::drop_proxy_params_bindings(&self.proxy_params);
-    }
-}
-
-impl<S: Shape> display::shape::KnownShapeSystemId for ShapeProxy<S> {
-    fn shape_system_id() -> display::shape::ShapeSystemId {
-        ShapeSystem::<S>::id()
-    }
-}
-
-impl<S: Shape> display::Object for ShapeProxy<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
+// // ==================
+// // === ShapeProxy ===
+// // ==================
+//
+// /// A proxy for zero or more [`ShapeInstance`]s. Proxies can be created and modified even if no
+// /// [`ShapeInstance`] is created yet. [`ShapeInstance`]s are bound to a particular
+// [`ShapeSystem`]. /// They can be destroyed and created on demand (e.g. after moving the shape to
+// a different layer, /// because each layer has its own copy of [`ShapeSystem`]). The
+// [`ShapeProxy`] is an interface for /// all created [`ShapeInstance`]s. In case there are no
+// [`ShapeInstance`]s, changing a parameter /// will not have any visual effect, however, all the
+// changes will be recorded and applied as soon /// as a new [`ShapeInstance`] appears.
+// #[allow(missing_docs)]
+// #[derive(Deref, Derivative)]
+// #[derivative(Debug(bound = ""))]
+// #[derivative(Default(bound = ""))]
+// #[allow(missing_docs)]
+// pub struct ShapeProxy<S: Shape> {
+//     #[deref]
+//     proxy_params:   S::ProxyParams,
+//     display_object: display::object::Instance,
+//     // In most cases, there will be zero or one instance. Rarely, a shape can be added to two or
+//     // more layers at the same time. Thus, using a small vec with a capacity of 2 is a good usage
+//     // approximation.
+//     instances:      Rc<RefCell<SmallVec<[ShapeInstance<S>; 2]>>>,
+// }
+//
+// impl<S: Shape> ShapeProxy<S> {
+//     /// Add a new shape instance and bind its parameters to the proxy parameters.
+//     #[profile(Debug)]
+//     pub fn add_instance(&self, instance: ShapeInstance<S>) {
+//         self.display_object.add_child(&instance);
+//         S::bind_proxy_params(&self.proxy_params, &instance);
+//         self.instances.borrow_mut().push(instance);
+//     }
+//
+//     /// Drop all shape instances. Unbnind the parameters.
+//     #[profile(Debug)]
+//     pub fn drop_all_instances(&self) {
+//         mem::take(&mut *self.instances.borrow_mut());
+//         S::drop_proxy_params_bindings(&self.proxy_params);
+//     }
+// }
+//
+// impl<S: Shape> display::shape::KnownShapeSystemId for ShapeProxy<S> {
+//     fn shape_system_id() -> display::shape::ShapeSystemId {
+//         ShapeSystem::<S>::id()
+//     }
+// }
+//
+// impl<S: Shape> display::Object for ShapeProxy<S> {
+//     fn display_object(&self) -> &display::object::Instance {
+//         &self.display_object
+//     }
+// }
 
 
 
@@ -459,7 +456,7 @@ macro_rules! _define_shape_system {
         pub use shape_system_definition::Shape;
         // pub use shape_system_definition::ShapeSystemX;
         // pub use shape_system_definition::ShapeProxy;
-        pub use shape_system_definition::ProxyParams;
+        // pub use shape_system_definition::ProxyParams;
         pub use shape_system_definition::View;
 
         // FIXME: To be investigated why it's needed. We should not use shorter names, but it's not
@@ -495,7 +492,6 @@ macro_rules! _define_shape_system {
 
             impl $crate::display::shape::system::Shape for Shape {
                 type InstanceParams = InstanceParams;
-                type ProxyParams = ProxyParams;
                 type GpuParams = GpuParams;
                 fn pointer_events() -> bool {
                     let out = true;
@@ -524,19 +520,6 @@ macro_rules! _define_shape_system {
                         let $gpu_param = shape_system.add_input(name,val);
                     )*
                     Self::GpuParams {$($gpu_param),*}
-                }
-
-                fn bind_proxy_params(dyn_params:&Self::ProxyParams, shape: &ShapeInstance<Self>){
-                    // dyn_params.size.add_attribute_binding(shape.sprite.size.clone_ref());
-                    // $(
-                    //     let gpu_param = shape.$gpu_param.clone_ref();
-                    //     dyn_params.$gpu_param.add_attribute_binding(gpu_param);
-                    // )*
-                }
-
-                fn drop_proxy_params_bindings(proxy_params: &Self::ProxyParams) {
-                    // proxy_params.size.remove_attributes_bindings();
-                    // $(proxy_params.$gpu_param.remove_attributes_bindings();)*
                 }
 
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
@@ -575,21 +558,11 @@ macro_rules! _define_shape_system {
                 }
             }
 
-            /// Parameters of the [`ShapeProxy`].
-            #[derive(Debug, Default)]
-            #[allow(missing_docs)]
-            pub struct ProxyParams {
-                // pub size: ProxyParam<sprite::Size>,
-                // $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
-            }
-
             #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
             pub struct GpuParams {
                 $(pub $gpu_param: gpu::data::Buffer<$gpu_param_type>),*
             }
-
-            // pub type Shape = ShapeInstance<Shape>;
 
 
             // ============

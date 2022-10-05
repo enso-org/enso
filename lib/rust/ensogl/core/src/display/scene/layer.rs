@@ -13,7 +13,7 @@ use crate::display::scene::Scene;
 use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
-use crate::display::shape::system::ShapeProxy;
+// use crate::display::shape::system::ShapeProxy;
 use crate::display::shape::system::ShapeSystem;
 use crate::display::shape::system::ShapeSystemId;
 // use crate::display::shape::ShapeSystemInstance;
