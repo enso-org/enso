@@ -2,6 +2,7 @@
 use crate::prelude::*;
 use octocrab::models;
 
+/// Corresponds to https://github.com/actions/toolkit/blob/main/packages/github/src/interfaces.ts
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct WebhookPayload {
     pub repository:   Option<models::Repository>,
@@ -16,7 +17,6 @@ pub struct WebhookPayload {
 /// Corresponds to https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Context {
-    /// Webhook payload object that triggered the workflow.
     pub payload:     WebhookPayload,
     pub event_name:  String,
     pub sha:         String,

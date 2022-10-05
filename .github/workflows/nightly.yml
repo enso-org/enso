@@ -89,8 +89,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
@@ -102,8 +103,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-cli-ci-gen-job-upload-backend-linux:
@@ -147,8 +149,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
@@ -160,8 +163,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -206,8 +210,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
@@ -219,8 +224,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -267,8 +273,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
@@ -280,8 +287,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -329,8 +337,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run release deploy-to-ecr
@@ -346,8 +355,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -398,8 +408,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run release publish
@@ -411,8 +422,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -464,8 +476,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
@@ -477,8 +490,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -525,8 +539,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
@@ -543,8 +558,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
@@ -593,8 +609,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
@@ -608,8 +625,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:

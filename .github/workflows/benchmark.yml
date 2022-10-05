@@ -50,8 +50,9 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-        if: "false"
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend benchmark runtime
@@ -63,8 +64,9 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - run: ./run git-clean
-        if: always() && false
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 env:

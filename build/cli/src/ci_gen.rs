@@ -132,27 +132,26 @@ pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
     [win, non_win]
 }
 
-pub fn clean_step() -> Step {
-    run("git-clean")
-}
-
 /// The `f` is applied to the step that does an actual script invocation.
 pub fn setup_customized_script_steps(
     command_line: impl AsRef<str>,
     customize: impl FnOnce(Step) -> Step,
 ) -> Vec<Step> {
-    let pre_clean_condition = "false".to_string(); // TODO
-    let post_clean_condition = "false".to_string(); // TODO
+    use enso_build::ci::labels::CLEAN_BUILD_REQUIRED;
+    // Check if the pull request has a "Clean required" label.
+    let pre_clean_condition =
+        format!("contains(github.event.pull_request.labels.*.name, '{CLEAN_BUILD_REQUIRED}')",);
+    let post_clean_condition = format!("always() && {pre_clean_condition}");
 
     let mut steps = setup_script_steps();
-    let clean_step = clean_step().with_if(&pre_clean_condition).with_name("Clean before.");
+    let clean_step = run("git-clean").with_if(&pre_clean_condition).with_name("Clean before");
     steps.push(clean_step.clone());
     steps.push(customize(run(command_line)));
     steps.extend(list_everything_on_failure());
     steps.push(
         clean_step
             .with_if(format!("always() && {}", post_clean_condition))
-            .with_name("Clean after."),
+            .with_name("Clean after"),
     );
     steps
 }

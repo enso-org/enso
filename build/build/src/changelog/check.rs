@@ -1,26 +1,22 @@
 use crate::prelude::*;
 
+use crate::ci::labels::NO_CHANGELOG_CHECK;
 use crate::paths::generated::RepoRoot;
 use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::programs::Git;
-
-/// Name of the label that is used to mark the PRs that should not require changelog entry.
-///
-/// It should be defined in the `.github/settings.yml` file of the repository.
-const NO_CHECK_LABEL: &str = "CI: No changelog needed";
 
 /// Name of the remote source in the working copy.
 const REMOTE_NAME: &str = "origin";
 
 /// Check if a given label is the one that indicates that the changelog check should be skipped.
 pub fn is_skip_changelog_label(label: &octocrab::models::Label) -> bool {
-    label.name == NO_CHECK_LABEL
+    label.name == NO_CHANGELOG_CHECK
 }
 
 /// Check if the given PR has the changelog check skipped.
 pub fn has_check_disabled(pull_request: &octocrab::models::pulls::PullRequest) -> bool {
     if pull_request.labels.iter().flatten().any(is_skip_changelog_label) {
-        info!("Skipping changelog check because the PR has the label {}.", NO_CHECK_LABEL);
+        info!("Skipping changelog check because the PR has the label {}.", NO_CHANGELOG_CHECK);
         false
     } else {
         true
@@ -59,7 +55,7 @@ pub async fn check(repo_path: RepoRoot, context: ide_ci::actions::Context) -> Re
         let message = format!(
             "{} was not updated. Either update it or add the '{}' label to the PR.",
             crate::paths::generated::RepoRootChangelogMd::segment_name(),
-            NO_CHECK_LABEL
+            NO_CHANGELOG_CHECK
         );
         ide_ci::actions::workflow::message(MessageLevel::Error, &message);
         bail!(message);
