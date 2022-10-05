@@ -853,7 +853,8 @@ Spec.print_report self config builder =
             case behavior.result of
                 Success -> Nothing
                 Failure msg details ->
-                    builder.append ('\n            <error message="' + (escape_xml msg) + '">\n')
+                    escaped_message = escape_xml msg . replace '\n' '&#10;'
+                    builder.append ('\n            <error message="' + escaped_message + '">\n')
                     if details.is_nothing.not then
                         ## We duplicate the message, because sometimes the
                            attribute is skipped if the node has any content.
