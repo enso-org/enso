@@ -7,10 +7,10 @@ import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL_Query import Raw_SQL
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
-from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
-import Standard.Table.Data.Column as Materialized_Column
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+from Standard.Table.Data.Column import get_item_string
 import Standard.Table.Data.Table as Materialized_Table
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
+from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
 
 from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector
@@ -23,8 +23,6 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Database.Data.Column import Column, Column_Data
 from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
-
-import Standard.Table.Data.Position
 
 polyglot java import java.sql.JDBCType
 
@@ -1089,7 +1087,7 @@ display_dataframe df indices_count all_rows_count format_terminal =
     display_rows = df.row_count
     rows = Vector.new display_rows row_num->
         col_vals.map col->
-            if col.isNa row_num then "Nothing" else Materialized_Column.get_item_string col row_num
+            if col.isNa row_num then "Nothing" else get_item_string col row_num
     table = Materialized_Table.print_table col_names rows indices_count format_terminal
     if display_rows == all_rows_count then table else
         missing_rows_count = all_rows_count - display_rows

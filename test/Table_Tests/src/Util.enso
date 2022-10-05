@@ -11,7 +11,7 @@ Table.should_equal self expected =
     self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
     self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
 
-Column.Column.should_equal self expected =
+Column.should_equal self expected =
     if self.name != expected.name then
         Test.fail "Expected column name "+expected.name+", but got "+self.name+"."
     if self.length != expected.length then

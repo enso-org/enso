@@ -1,8 +1,8 @@
 from Standard.Base import Any, Problem_Behavior, Nothing, Error, Panic, Meta, File, File_Format, Plain_Text_Format, Bytes
 from Standard.Base.Error.Common import Unsupported_File_Type, Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-from Standard.Table.Delimited.Delimited_Format import Delimited_Format
-from Standard.Table.Excel.Excel_Format import Excel_Format
+import Standard.Table.Delimited.Delimited_Format.Delimited_Format
+import Standard.Table.Excel.Excel_Format.Excel_Format
 
 ## PRIVATE
    Set of File_Format types for read files.
@@ -19,7 +19,6 @@ get_format file =
     reader 0
 
 type Auto_Detect
-
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! Unsupported_File_Type

@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Table import Column
 import Standard.Table.Data.Column as Column_Module
-import Standard.Table.Data.Storage
+import Standard.Table.Data.Storage.Storage
 import Standard.Examples
 
 import Standard.Test

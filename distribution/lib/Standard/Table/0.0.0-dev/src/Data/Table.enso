@@ -17,21 +17,19 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.IO.Auto_Detect.Auto_Detect
 
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format, Delimited
-import Standard.Table.Delimited.Delimited_Reader
-import Standard.Table.Delimited.Delimited_Writer
 
 import Standard.Table.Data.Column_Selector.Column_Selector
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 import Standard.Table.Data.Data_Formatter.Data_Formatter
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns
-import Standard.Table.Data.Match_Columns
+import Standard.Table.Data.Match_Columns.Match_Columns
 
 from Standard.Table.Data.Column_Name_Mapping import Column_Name_Mapping
-from Standard.Table.Data.Position import Position
-from Standard.Table.Data.Sort_Column_Selector import Sort_Column_Selector
-from Standard.Table.Data.Sort_Column import Sort_Column
+import Standard.Table.Data.Position.Position
+import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column.Sort_Column
 
-from Standard.Table.Data.Aggregate_Column import Aggregate_Column
+import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Visualization
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
@@ -1171,14 +1169,6 @@ print_table header rows indices_count format_term =
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
-
-Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a Delimited then Delimited_Reader.read_text that format on_problems else
-        Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
-
-Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
-    if format.is_a Delimited then Delimited_Writer.write_text that format else
-        Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

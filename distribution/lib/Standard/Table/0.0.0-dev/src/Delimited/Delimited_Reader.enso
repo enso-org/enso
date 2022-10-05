@@ -2,11 +2,12 @@ from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
 
-import Standard.Table.Data.Table
+import Standard.Table.Data.Table.Table
+import Standard.Table.Data.Data_Formatter.Data_Formatter
+import Standard.Table.Delimited.Delimited_Format.Delimited_Format
+import Standard.Table.Delimited.Quote_Style.Quote_Style
+
 from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row_Data, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Table.Delimited.Delimited_Format import Delimited_Format
-import Standard.Table.Delimited.Quote_Style
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader

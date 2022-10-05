@@ -7,7 +7,7 @@ from Standard.Table.Excel.Section import Worksheet, Cell_Range
 import Standard.Table.Excel.Range.Excel_Range
 
 from Standard.Table.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
-import Standard.Table.Data.Match_Columns
+import Standard.Table.Data.Match_Columns.Match_Columns
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter

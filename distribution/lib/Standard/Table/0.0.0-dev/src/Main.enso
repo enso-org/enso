@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base import all
 import Standard.Base.System.File_Format
 
 import project.Data.Table.Table
@@ -9,21 +10,20 @@ import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Position.Position
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Filter_Condition.Filter_Condition
 
-## Add The File Read extension
 import project.IO.File_Read
 import project.IO.Auto_Detect.Auto_Detect
 
 import project.Delimited.Quote_Style.Quote_Style
 import project.Delimited.Delimited_Format
+import project.Data.Table_Conversions
 
 import project.Excel.Section
 import project.Excel.Range.Excel_Range
 import project.Excel.Excel_Format
-
-import project.Errors
 
 export project.Data.Table.Table
 export project.Data.Column.Column
@@ -32,13 +32,16 @@ export project.Data.Sort_Column.Sort_Column
 export project.Data.Sort_Column_Selector.Sort_Column_Selector
 export project.Data.Column_Name_Mapping.Column_Name_Mapping
 export project.Data.Match_Columns.Match_Columns
+export project.Data.Position.Position
 export project.Data.Aggregate_Column.Aggregate_Column
 export project.Data.Filter_Condition.Filter_Condition
 
+export project.IO.File_Read
 export project.IO.Auto_Detect.Auto_Detect
 
 export project.Delimited.Quote_Style.Quote_Style
 from project.Delimited.Delimited_Format export Delimited_Format, Delimited
+export project.Data.Table_Conversions
 
 from project.Excel.Excel_Format export Excel_Format, Excel
 from project.Excel.Section export Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
