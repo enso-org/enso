@@ -15,7 +15,6 @@ import org.enso.compiler.EnsoCompiler;
 import org.enso.compiler.core.IR;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.UnsupportedSyntaxException;
 import org.graalvm.polyglot.Source;
 
 class LoadParser implements FileVisitor<Path>, AutoCloseable {

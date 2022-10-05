@@ -11,6 +11,7 @@ Cargo.toml
 /lib/rust/metamodel/ @kazcw @wdanilo @jaroslavtulach
 /lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
 /lib/rust/profiler/ @kazcw @MichaelMauderer @wdanilo
+/lib/rust/reflect/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw @wdanilo @jaroslavtulach
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
 /tools/build-performance/ @kazcw @mwu-tow @wdanilo
 

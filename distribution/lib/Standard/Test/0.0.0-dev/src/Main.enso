@@ -605,7 +605,7 @@ type Verbs
     start_with : Text -> Text -> Assertion
     start_with self subject argument =
         if subject.starts_with argument then Success else
-            fail (subject.to_text + " did not start with " + argument.to_text))
+            fail (subject.to_text + " did not start with " + argument.to_text)
 
     ## PRIVATE
 

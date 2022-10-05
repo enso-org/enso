@@ -122,6 +122,10 @@ pub enum Primitive {
     Usize,
     /// A `u32`.
     U32,
+    /// An `i32`.
+    I32,
+    /// A `char`.
+    Char,
     /// A `String`.
     String,
     /// A `Vec<_>`.
@@ -197,7 +201,12 @@ pub trait ReferencedTypes {
 impl ReferencedTypes for Primitive {
     fn referenced_types(&self) -> Vec<LazyType> {
         match self {
-            Primitive::Bool | Primitive::Usize | Primitive::String | Primitive::U32 => vec![],
+            Primitive::Bool
+            | Primitive::Usize
+            | Primitive::String
+            | Primitive::U32
+            | Primitive::I32
+            | Primitive::Char => vec![],
             Primitive::Vec(ty) | Primitive::Option(ty) => vec![*ty],
             Primitive::Result(ty0, ty1) => vec![*ty0, *ty1],
         }
@@ -293,10 +302,12 @@ impl TypeData {
 impl Primitive {
     /// Get information about the composition operator relating the types this type is composed of.
     pub fn type_type(&self) -> TypeType {
-        match &self {
+        match self {
             Primitive::Bool
             | Primitive::Usize
             | Primitive::U32
+            | Primitive::I32
+            | Primitive::Char
             | Primitive::String
             | Primitive::Vec(_) => TypeType::Product,
             Primitive::Option(_) | Primitive::Result(_, _) => TypeType::Sum,
