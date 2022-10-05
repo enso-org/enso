@@ -1,7 +1,7 @@
-use enso_build::repo::deduce_repository_path;
-use enso_build_cli::prelude::*;
+use crate::prelude::*;
+
+use crate::paths::generated::RepoRoot;
 use ide_ci::actions::workflow::MessageLevel;
-use ide_ci::log::setup_logging;
 use ide_ci::programs::Git;
 
 /// Name of the label that is used to mark the PRs that should not require changelog entry.
@@ -38,17 +38,15 @@ pub fn is_check_needed(context: &ide_ci::actions::context::Context) -> bool {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result {
-    setup_logging()?;
-    let repo_path = deduce_repository_path()?;
-    let context = ide_ci::actions::context::Context::from_env()?;
+#[instrument("Checking if the changelog has been updated.", skip(context))]
+pub async fn check(repo_path: RepoRoot, context: ide_ci::actions::Context) -> Result {
+    trace!("The context is {context:#?}.");
     if !is_check_needed(&context) {
+        debug!("No changelog check necessary.");
         return Ok(());
     };
 
-    trace!("The context is {context:#?}.");
-    let changelog = enso_build::paths::generated::RepoRootChangelogMd::new(&repo_path).path;
+    let changelog = crate::paths::generated::RepoRootChangelogMd::new(&repo_path).path;
     let repository = context.payload.repository.context("Missing repository information.")?;
     let default_branch =
         repository.default_branch.context("Missing default branch information.")?;
@@ -59,8 +57,8 @@ async fn main() -> Result {
     let changelog_was_changed = files_changed.iter().contains(&changelog);
     if !changelog_was_changed {
         let message = format!(
-            "{} was not updated. Either update it or add the label {} to the PR.",
-            enso_build::paths::generated::RepoRootChangelogMd::segment_name(),
+            "{} was not updated. Either update it or add the '{}' label to the PR.",
+            crate::paths::generated::RepoRootChangelogMd::segment_name(),
             NO_CHECK_LABEL
         );
         ide_ci::actions::workflow::message(MessageLevel::Error, &message);

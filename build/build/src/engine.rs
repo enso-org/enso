@@ -216,9 +216,7 @@ pub struct BuiltPackageArtifacts {
 
 impl BuiltPackageArtifacts {
     pub fn iter(&self) -> impl IntoIterator<Item = &ComponentPaths> {
-        [&self.engine, &self.launcher, &self.project_manager]
-            .into_iter()
-            .flat_map(|b| b.iter())
+        [&self.engine, &self.launcher, &self.project_manager].into_iter().flat_map(|b| b.iter())
     }
 }
 

@@ -198,23 +198,40 @@ impl Workflow {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Push {
+    #[serde(flatten)]
+    pub inner_branches: Branches,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags:           Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags_ignore:    Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub paths:          Vec<PathBuf>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub paths_ignore:   Vec<PathBuf>,
+}
+
+/// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpull_requestpull_request_targetbranchesbranches-ignore
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Branches {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub branches:        Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags:            Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub branches_ignore: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags_ignore:     Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub paths:           Vec<PathBuf>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub paths_ignore:    Vec<PathBuf>,
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+impl Branches {
+    pub fn new(branches: impl IntoIterator<Item: Into<String>>) -> Self {
+        Self { branches: branches.into_iter().map(Into::into).collect(), ..default() }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PullRequest {}
+pub struct PullRequest {
+    #[serde(flatten)]
+    pub inner_branches: Branches,
+}
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -339,6 +356,32 @@ pub struct Event {
     pub schedule:          Vec<Schedule>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow_dispatch: Option<WorkflowDispatch>,
+}
+
+impl Event {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn push(&mut self, push: Push) -> &mut Self {
+        self.push = Some(push);
+        self
+    }
+
+    pub fn pull_request(&mut self, pull_request: PullRequest) -> &mut Self {
+        self.pull_request = Some(pull_request);
+        self
+    }
+
+    pub fn schedule(&mut self, schedule: Schedule) -> &mut Self {
+        self.schedule.push(schedule);
+        self
+    }
+
+    pub fn workflow_dispatch(&mut self, workflow_dispatch: WorkflowDispatch) -> &mut Self {
+        self.workflow_dispatch = Some(workflow_dispatch);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

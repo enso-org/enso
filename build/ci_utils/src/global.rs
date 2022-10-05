@@ -99,11 +99,14 @@ pub fn spawn(name: impl AsRef<str>, f: impl Future<Output = Result> + Send + 'st
     GLOBAL.lock().unwrap().ongoing_tasks.push(join_handle);
 }
 
+pub fn take_ongoing_tasks() -> Vec<JoinHandle<Result>> {
+    std::mem::take(&mut GLOBAL.lock().unwrap().ongoing_tasks)
+}
 
 pub async fn complete_tasks() -> Result {
     debug!("Waiting for remaining tasks to complete.");
     loop {
-        let tasks = std::mem::replace(&mut GLOBAL.lock().unwrap().ongoing_tasks, default());
+        let tasks = take_ongoing_tasks();
         if tasks.is_empty() {
             break;
         }

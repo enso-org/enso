@@ -5,6 +5,7 @@
   .github/:
     workflows/:
       benchmark.yml:
+      changelog.yml:
       gui.yml:
       nightly.yml:
       scala-new.yml:

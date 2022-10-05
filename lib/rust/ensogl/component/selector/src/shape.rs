@@ -138,7 +138,7 @@ pub mod track {
 struct OverflowShape {
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub width:  Var<Pixels>,
+    pub width: Var<Pixels>,
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
     pub height: Var<Pixels>,

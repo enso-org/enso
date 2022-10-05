@@ -11,6 +11,7 @@ use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_conda;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::wrap_expression;
+use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
@@ -91,8 +92,8 @@ impl RunsOn for BenchmarkRunner {
     }
 }
 
-pub fn on_develop_push() -> Push {
-    Push { branches: vec![DEFAULT_BRANCH_NAME.to_string()], ..default() }
+pub fn on_default_branch_push() -> Push {
+    Push { inner_branches: Branches::new([DEFAULT_BRANCH_NAME]), ..default() }
 }
 
 pub fn runs_on(os: OS) -> Vec<RunnerLabel> {
@@ -205,6 +206,18 @@ impl JobArchetype for UploadIde {
     }
 }
 
+pub fn changelog() -> Result<Workflow> {
+    let mut ret = Workflow::new("Changelog");
+    ret.on.pull_request(default());
+    ret.add_job(Job {
+        name: "Changelog".into(),
+        runs_on: vec![RunnerLabel::X64],
+        steps: setup_script_and_steps("changelog-check"),
+        ..default()
+    });
+    Ok(ret)
+}
+
 pub fn nightly() -> Result<Workflow> {
     let on = Event {
         workflow_dispatch: Some(default()),
@@ -261,9 +274,9 @@ pub fn nightly() -> Result<Workflow> {
 
 pub fn typical_check_triggers() -> Event {
     Event {
-        pull_request: Some(PullRequest {}),
+        pull_request: Some(default()),
         workflow_dispatch: Some(default()),
-        push: Some(on_develop_push()),
+        push: Some(on_default_branch_push()),
         ..default()
     }
 }
@@ -317,7 +330,7 @@ pub fn benchmark() -> Result<Workflow> {
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
     let on = Event {
-        push: Some(on_develop_push()),
+        push: Some(on_default_branch_push()),
         workflow_dispatch: Some(
             WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
         ),
@@ -340,6 +353,7 @@ pub fn benchmark() -> Result<Workflow> {
 
 
 pub fn generate(repo_root: &enso_build::paths::generated::RepoRootGithubWorkflows) -> Result {
+    repo_root.changelog_yml.write_as_yaml(&changelog()?)?;
     repo_root.nightly_yml.write_as_yaml(&nightly()?)?;
     repo_root.scala_new_yml.write_as_yaml(&backend()?)?;
     repo_root.gui_yml.write_as_yaml(&gui()?)?;

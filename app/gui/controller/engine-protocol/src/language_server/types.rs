@@ -205,7 +205,7 @@ pub struct ExpressionUpdates {
 pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
-    pub typename:       Option<String>,
+    pub typename: Option<String>,
     pub method_pointer: Option<SuggestionId>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,

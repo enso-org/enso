@@ -23,13 +23,6 @@ use crate::prelude::*;
 
 use ide_ci::env::Variable;
 
-#[derive(Clone, Copy, Debug)]
-pub struct BuildKind;
-impl Variable for BuildKind {
-    const NAME: &'static str = "ENSO_BUILD_KIND";
-    type Value = enso_build::version::BuildKind;
-}
-
 use crate::arg::java_gen;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
@@ -92,6 +85,13 @@ pub fn void<T>(_t: T) {}
 
 fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> String {
     input.unwrap_or_else(|| project.artifact_name())
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BuildKind;
+impl Variable for BuildKind {
+    const NAME: &'static str = "ENSO_BUILD_KIND";
+    type Value = enso_build::version::BuildKind;
 }
 
 /// The basic, common information available in this application.
@@ -859,6 +859,10 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
                 }
             }
             .await?;
+        }
+        Target::ChangelogCheck => {
+            let ci_context = ide_ci::actions::context::Context::from_env()?;
+            enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
     };
     info!("Completed main job.");

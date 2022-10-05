@@ -120,10 +120,11 @@ pub async fn compare_env(
         })
         .collect_vec();
 
-    changes.extend(environment_before.into_iter().map(|(variable_name, _)| Modification {
-        variable_name,
-        action:        env::Action::Remove,
-    }));
+    changes.extend(
+        environment_before
+            .into_iter()
+            .map(|(variable_name, _)| Modification { variable_name, action: env::Action::Remove }),
+    );
     // dbg!(&changes);
 
     Ok(changes)

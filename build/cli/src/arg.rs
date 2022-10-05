@@ -127,6 +127,8 @@ pub enum Target {
     CiGen,
     /// Regenerate `syntax2` library (new parser).
     JavaGen(java_gen::Target),
+    /// Check if the changelog has been updated. Requires CI environment.
+    ChangelogCheck,
 }
 
 /// Build, test and package Enso Engine.

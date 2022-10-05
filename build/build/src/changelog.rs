@@ -1,45 +1,11 @@
 use crate::prelude::*;
-use anyhow::Context;
-// use ouroboros::self_referencing;
+
 use pulldown_cmark::Event;
 use pulldown_cmark::HeadingLevel;
 use pulldown_cmark::Tag::Heading;
 use std::ops::Range;
-// use std::str::FromStr;
 
-// pub struct ChangelogFile {
-//     path:    PathBuf,
-//     content: String,
-// }
-//
-// impl ChangelogFile {
-//     pub fn new(path: impl Into<PathBuf>) -> Result<Self> {
-//         let path = path.into();
-//         let content = ide_ci::io::read_to_string(&path)?;
-//         Ok(Self { content, path })
-//     }
-//
-//     pub fn content(&self) -> Changelog
-//
-//     pub fn iterate_headers(&self) -> impl Iterator<Item = Header<'a>> + 'a {
-//         use pulldown_cmark::Options;
-//         use pulldown_cmark::Parser;
-//         let enable_all_exts = Options::all();
-//         Parser::new_ext(self.0, enable_all_exts)
-//             .into_offset_iter()
-//             .filter_map(|(e, pos)| Header::new(self.0, e, pos))
-//     }
-//
-//     pub fn last_release(&self) -> Result<Version> {
-//         self.iterate_headers()
-//             .find_map(|header| ide_ci::program::version::find_in_text(header.text).ok())
-//             .context("No release header with version number was found.")
-//     }
-//
-//     pub fn top_release_notes(&self) -> Result<Entry> {
-//
-//     }
-// }
+pub mod check;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Changelog<'a>(pub &'a str);
@@ -96,14 +62,3 @@ impl<'a> Header<'a> {
 pub fn is_release_notes_header(event: &Event) -> bool {
     matches!(event, Event::Start(Heading(HeadingLevel::H1, _, _)))
 }
-//
-// #[test]
-// fn aaaa() -> Result {
-//     // let opts = pulldown_cmark::Options::all();
-//
-//     let path = r"H:\NBO\enso\app\gui\CHANGELOG.md";
-//     // let text = std::fs::read_to_string(path)?;
-//     let entry = retrieve_unreleased_release_notes(path)?;
-//     dbg!(entry);
-//     Ok(())
-// }
