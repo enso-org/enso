@@ -782,6 +782,9 @@
     "methods":[{"name":"<init>","parameterTypes":[] }]}
 ,
   {
+    "name":"org.enso.interpreter.node.expression.builtin.meta.TypeOfMethodGen"}
+,
+  {
     "name":"org.enso.interpreter.node.expression.builtin.mutable.Array",
     "methods":[{"name":"<init>","parameterTypes":[] }]}
 ,

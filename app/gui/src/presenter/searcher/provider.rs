@@ -26,7 +26,7 @@ pub type Any = (
 );
 
 /// Create providers from the current controller's action list.
-pub fn create_providers_from_controller(logger: &Logger, controller: &controller::Searcher) -> Any {
+pub fn create_providers_from_controller(controller: &controller::Searcher) -> Any {
     use controller::searcher::Actions;
     match controller.actions() {
         Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
@@ -37,7 +37,7 @@ pub fn create_providers_from_controller(logger: &Logger, controller: &controller
             as_any(Rc::new(provider))
         }
         Actions::Error(err) => {
-            error!(logger, "Error while obtaining searcher action list: {err}");
+            error!("Error while obtaining searcher action list: {err}");
             as_any(Rc::new(list_view::entry::EmptyProvider))
         }
     }
@@ -106,8 +106,8 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
                     if let Some(char) = char_iter.next() {
                         let (char_idx, (byte_id, char)) = char;
                         if char_idx == *idx {
-                            let start = enso_text::unit::Bytes(byte_id as i32);
-                            let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                            let start = enso_text::index::Byte(byte_id);
+                            let end = enso_text::index::Byte(byte_id + char.len_utf8());
                             break Some(enso_text::Range::new(start, end));
                         }
                     } else {
@@ -207,7 +207,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 
 // === Component Provider helpers ===
 
-fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
+fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
     if let MatchInfo::Matches { subsequence } = match_info {
         let mut char_iter = label.char_indices().enumerate();
         subsequence
@@ -217,8 +217,8 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
                 if let Some(char) = char_iter.next() {
                     let (char_idx, (byte_id, char)) = char;
                     if char_idx == *idx {
-                        let start = enso_text::unit::Bytes(byte_id as i32);
-                        let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                        let start = enso_text::index::Byte(byte_id);
+                        let end = enso_text::index::Byte(byte_id + char.len_utf8());
                         break Some(enso_text::Range::new(start, end));
                     }
                 } else {

@@ -80,6 +80,7 @@ spec prefix table_builder test_selection pending=Nothing =
     Test.group prefix+"Table.select_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"])
+            expect_column_names ["foo", "bar"] <| table.select_columns (["bar", "foo"])
             expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
 
@@ -208,6 +209,7 @@ spec prefix table_builder test_selection pending=Nothing =
     Test.group prefix+"Table.remove_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["bar", "foo"])
+            expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns ["bar", "foo"]
             expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123"] <| table.remove_columns (By_Index [-1, 0, 1])
 
@@ -331,6 +333,7 @@ spec prefix table_builder test_selection pending=Nothing =
     Test.group prefix+"Table.reorder_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
+            expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"] <| table.reorder_columns ["foo", "bar"] position=After_Other_Columns
             expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
             expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Index [0]) position=After_Other_Columns
@@ -473,6 +476,11 @@ spec prefix table_builder test_selection pending=Nothing =
             vec = ["one", "two", "three"]
             expect_column_names ["one", "two", "three", "delta"] <|
                 table.rename_columns (Column_Name_Mapping.By_Position vec)
+
+        Test.specify "should work by Vector" <|
+            vec = ["one", "two", "three"]
+            expect_column_names ["one", "two", "three", "delta"] <|
+                table.rename_columns vec
 
         Test.specify "should work by name" <|
             map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]

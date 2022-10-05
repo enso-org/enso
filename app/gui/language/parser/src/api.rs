@@ -1,6 +1,7 @@
 //! A module containing structures and traits used in parser API.
 
 use crate::prelude::*;
+use enso_text::index::*;
 use enso_text::traits::*;
 use enso_text::unit::*;
 
@@ -43,11 +44,11 @@ pub struct SourceFile {
     /// The whole content of file.
     pub content:  String,
     /// The range in bytes of module's "Code" section.
-    pub code:     Range<Bytes>,
+    pub code:     Range<Byte>,
     /// The range in bytes of module's "Id Map" section.
-    pub id_map:   Range<Bytes>,
+    pub id_map:   Range<Byte>,
     /// The range in bytes of module's "Metadata" section.
-    pub metadata: Range<Bytes>,
+    pub metadata: Range<Byte>,
 }
 
 impl Display for SourceFile {
@@ -64,24 +65,24 @@ impl SourceFile {
     /// the whole contents is treated as the code.
     pub fn new(content: String) -> Self {
         pub const METADATA_LINES: usize = 3;
-        let nl_offsets = content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(ix));
-        let nl_offsets_bytes = nl_offsets.map(Bytes::from);
-        let nl_offsets_from_end = nl_offsets_bytes.rev().take(METADATA_LINES).collect_vec();
-        match nl_offsets_from_end.as_slice() {
-            [last, before_last, two_before_last] => {
+        let nl_indices = content.char_indices().filter_map(|(ix, c)| (c == '\n').as_some(ix));
+        let nl_indices_bytes = nl_indices.map(Byte::from);
+        let nl_indices_from_end = nl_indices_bytes.rev().take(METADATA_LINES).collect_vec();
+        match nl_indices_from_end.as_slice() {
+            &[last, before_last, two_before_last] => {
                 // Last line should be metadata. Line before should be id map. Line before is the
                 // metadata tag.
                 // We check that tag matches and that trailing lines looks like JSON list/object
                 // respectively.
-                let code_length = *two_before_last + 1.bytes() - Bytes::from(NEWLINES_BEFORE_TAG);
-                let code_range = 0.bytes()..code_length;
-                let tag_range = two_before_last + 1.bytes()..*before_last;
-                let id_map_range = before_last + 1.bytes()..*last;
-                let metadata_range = last + 1.bytes()..Bytes::from(content.len());
-                let tag = &content[tag_range.start.as_usize()..tag_range.end.as_usize()];
-                let idmap = &content[id_map_range.start.as_usize()..id_map_range.end.as_usize()];
-                let metadata =
-                    &content[metadata_range.start.as_usize()..metadata_range.end.as_usize()];
+                let code_length =
+                    two_before_last + 1.byte_diff() - ByteDiff::from(NEWLINES_BEFORE_TAG);
+                let code_range = 0.byte()..(0.byte() + code_length);
+                let tag_range = two_before_last + 1.byte_diff()..before_last;
+                let id_map_range = before_last + 1.byte_diff()..last;
+                let metadata_range = last + 1.byte_diff()..Byte::from(content.len());
+                let tag = &content[tag_range.start.value..tag_range.end.value];
+                let idmap = &content[id_map_range.start.value..id_map_range.end.value];
+                let metadata = &content[metadata_range.start.value..metadata_range.end.value];
                 let tag_matching = tag == METADATA_TAG;
                 let idmap_matching = Self::looks_like_idmap(idmap);
                 let metadata_matching = Self::looks_like_metadata(metadata);
@@ -102,9 +103,9 @@ impl SourceFile {
 
     /// Create a description of source file consisting only of code, with no metadata.
     fn new_without_metadata(content: String) -> Self {
-        let length = Bytes::from(content.len());
+        let length = Byte::from(content.len());
         Self {
-            code: (0.bytes()..length).into(),
+            code: (0.byte()..length).into(),
             id_map: (length..length).into(),
             metadata: (length..length).into(),
             content,
@@ -136,9 +137,9 @@ impl SourceFile {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<Bytes>) -> &str {
-        let start = range.start.as_usize();
-        let end = range.end.as_usize();
+    fn slice(&self, range: &Range<Byte>) -> &str {
+        let start = range.start.value;
+        let end = range.end.value;
         &self.content[start..end]
     }
 }
@@ -188,7 +189,7 @@ fn to_json_single_line(val: &impl Serialize) -> std::result::Result<String, serd
 impl<M: Metadata> ParsedSourceFile<M> {
     /// Serialize to the SourceFile structure,
     pub fn serialize(&self) -> std::result::Result<SourceFile, serde_json::Error> {
-        let code = self.ast.repr();
+        let code = self.ast.repr().into();
         let before_tag = "\n".repeat(NEWLINES_BEFORE_TAG);
         let before_idmap = "\n";
         let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);
@@ -196,18 +197,20 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let before_metadata = "\n";
         let metadata = to_json_single_line(&self.metadata)?;
 
-        let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
-        let id_map_start_bytes = Bytes::from(id_map_start);
+        let id_map_start =
+            code.len().value + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
+        let id_map_start_bytes = Byte::from(id_map_start);
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
-        let metadata_start_bytes = Bytes::from(metadata_start);
+        let metadata_start_bytes = Byte::from(metadata_start);
         Ok(SourceFile {
             content:  iformat!(
                 "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
                                  {before_metadata}{metadata}"
             ),
-            code:     (0.bytes()..Bytes::from(code.len())).into(),
-            id_map:   (id_map_start_bytes..id_map_start_bytes + Bytes::from(id_map.len())).into(),
-            metadata: (metadata_start_bytes..metadata_start_bytes + Bytes::from(metadata.len()))
+            code:     (0.byte()..code.len().to_byte()).into(),
+            id_map:   (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len()))
+                .into(),
+            metadata: (metadata_start_bytes..metadata_start_bytes + ByteDiff::from(metadata.len()))
                 .into(),
         })
     }
@@ -262,8 +265,6 @@ where T: Fail {
 mod test {
     use super::*;
 
-
-
     #[derive(Clone, Debug, Default, Deserialize, Serialize)]
     struct Metadata {
         foo: usize,
@@ -277,7 +278,7 @@ mod test {
         let node = ast::Ast::infix_var("2", "+", "2");
         let infix = ast::Ast::infix(main, "=", node);
         let ast: ast::known::Module = ast::Ast::one_line_module(infix).try_into().unwrap();
-        let repr = ast.repr();
+        let repr = ast.repr().into();
         let metadata = Metadata { foo: 321 };
         let source = ParsedSourceFile { ast, metadata };
         let serialized = source.serialize().unwrap();

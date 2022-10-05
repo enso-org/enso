@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -70,16 +71,15 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug, Derivative)]
+#[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "Shape:CloneRef")]
 struct Model<Shape> {
     icon: ShapeView<Shape>,
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "ToggleButton");
-        let icon = ShapeView::new(&logger);
+    fn new() -> Self {
+        let icon = ShapeView::new();
         Self { icon }
     }
 }
@@ -206,12 +206,18 @@ impl<Shape> Deref for ToggleButton<Shape> {
     }
 }
 
+impl<Shape: ColorableShape + 'static> Default for ToggleButton<Shape> {
+    fn default() -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(Model::<Shape>::new());
+        Self { frp, model }.init_frp()
+    }
+}
+
 impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let frp = Frp::new();
-        let model = Rc::new(Model::<Shape>::new(logger));
-        Self { frp, model }.init_frp()
+    pub fn new() -> Self {
+        default()
     }
 
     fn init_frp(self) -> Self {

@@ -21,7 +21,7 @@ pub mod test;
 
 
 /// An alias for a main animation loop.
-pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
+pub type MainLoop = animation::Loop;
 
 /// Executor. Uses a single-threaded `LocalPool` underneath, relying on ensogl's
 /// `animation::DynamicLoop` to do as much progress as possible on every animation frame.

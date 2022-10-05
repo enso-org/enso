@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "prettier": "2.4.1"
+  },
+  "dependencies": {
+    "chromedriver": "^106.0.1"
   }
 }

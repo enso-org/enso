@@ -53,7 +53,8 @@ impl<Host> Drop for ParentBind<Host> {
 
 /// Callbacks manager for display objects. Callbacks can be set only once. Panics if you try set
 /// another callback to field with an already assigned callback. This design was chosen because it
-/// is very lightweight and is not confusing (setting a callback unregisters previous one). We may
+/// is very lightweight and is not confusing (setting a callback unregistering previous one will be
+/// confusing, while allowing to set multiple callbacks will use more resources). We may
 /// want to switch to a real callback registry in the future if there will be suitable use cases for
 /// it.
 #[derive(Derivative)]
@@ -137,21 +138,22 @@ pub struct DirtyFlags<Host> {
     on_dirty:         Rc<RefCell<Box<dyn Fn()>>>,
 }
 
+impl<Host> Default for DirtyFlags<Host> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
 impl<Host> DirtyFlags<Host> {
     #![allow(trivial_casts)]
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger: Logger = Logger::new_sub(&logger, "dirty");
+    fn new() -> Self {
         let on_dirty = Rc::new(RefCell::new(Box::new(|| {}) as Box<dyn Fn()>));
-        let sub_logger = logger::WarningLogger::new_sub(&logger, "parent");
-        let parent = NewParentDirty::new(sub_logger, ());
-        let sub_logger = logger::WarningLogger::new_sub(&logger, "children");
-        let children = ChildrenDirty::new(sub_logger, on_dirty_callback(&on_dirty));
-        let sub_logger = logger::WarningLogger::new_sub(&logger, "removed_children");
-        let removed_children = RemovedChildren::new(sub_logger, on_dirty_callback(&on_dirty));
-        let sub_logger = logger::WarningLogger::new_sub(&logger, "transform");
-        let transform = TransformDirty::new(sub_logger, on_dirty_callback(&on_dirty));
-        let sub_logger = logger::WarningLogger::new_sub(&logger, "scene_layer");
-        let scene_layer = SceneLayerDirty::new(sub_logger, on_dirty_callback(&on_dirty));
+        let parent = NewParentDirty::new(());
+        let children = ChildrenDirty::new(on_dirty_callback(&on_dirty));
+        let removed_children = RemovedChildren::new(on_dirty_callback(&on_dirty));
+        let transform = TransformDirty::new(on_dirty_callback(&on_dirty));
+        let scene_layer = SceneLayerDirty::new(on_dirty_callback(&on_dirty));
         Self { parent, children, removed_children, transform, scene_layer, on_dirty }
     }
 
@@ -184,7 +186,7 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 ///
 /// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+#[derivative(Debug(bound = ""), Default(bound = ""))]
 pub struct Model<Host = Scene> {
     host:            PhantomData<Host>,
     /// Layers the object was explicitly assigned to.
@@ -198,34 +200,12 @@ pub struct Model<Host = Scene> {
     children:        RefCell<OptVec<WeakInstance<Host>>>,
     transform:       RefCell<CachedTransform>,
     visible:         Cell<bool>,
-    logger:          Logger,
 }
 
 impl<Host> Model<Host> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_from(logger);
-        let parent_bind = default();
-        let children = default();
-        let transform = default();
-        let dirty = DirtyFlags::new(&logger);
-        let visible = Cell::new(false);
-        let callbacks = default();
-        let host = default();
-        let assigned_layers = default();
-        let layers = default();
-        Self {
-            host,
-            assigned_layers,
-            layers,
-            dirty,
-            callbacks,
-            parent_bind,
-            children,
-            transform,
-            visible,
-            logger,
-        }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Checks whether the object is visible.
@@ -271,9 +251,19 @@ impl<Host> Model<Host> {
         });
     }
 
+    /// Removes all children of this display object and returns them.
+    pub fn remove_all_children(&self) -> Vec<Instance<Host>> {
+        let children: Vec<Instance<Host>> =
+            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+        for child in &children {
+            child.unset_parent();
+        }
+        children
+    }
+
     /// Removes the binding to the parent object. Parent is not updated.
     fn unsafe_unset_parent_without_update(&self) {
-        info!(self.logger, "Removing parent bind.");
+        trace!("Removing parent bind.");
         self.dirty.unset_on_dirty();
         self.dirty.parent.set();
     }
@@ -322,7 +312,7 @@ impl<Host> Model<Host> {
             }
         });
         if let Some(new_layers) = new_layers_opt {
-            debug!(self.logger, "Scene layers changed.", || {
+            debug_span!("Scene layers changed.").in_scope(|| {
                 let old_layers = mem::replace(&mut *self.layers.borrow_mut(), new_layers.to_vec());
                 self.callbacks.on_scene_layers_changed(host, &old_layers, new_layers);
             });
@@ -338,18 +328,18 @@ impl<Host> Model<Host> {
         let is_origin_dirty = has_new_parent || parent_origin_changed || layers_changed;
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
-        debug!(self.logger, "Update with {parent_origin_label} parent origin.", || {
+        debug_span!("Update with {} parent origin.", parent_origin_label).in_scope(|| {
             let origin_changed = self.transform.borrow_mut().update(new_parent_origin);
             let new_origin = self.transform.borrow().matrix;
             if origin_changed || layers_changed {
                 if origin_changed {
-                    info!(self.logger, "Self origin changed.");
+                    trace!("Self origin changed.");
                 } else {
-                    info!(self.logger, "Self origin did not change, but the layers changed");
+                    trace!("Self origin did not change, but the layers changed");
                 }
                 self.callbacks.on_updated(self);
                 if !self.children.borrow().is_empty() {
-                    debug!(self.logger, "Updating all children.", || {
+                    debug_span!("Updating all children.").in_scope(|| {
                         self.children.borrow().iter().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
@@ -364,9 +354,9 @@ impl<Host> Model<Host> {
                     })
                 }
             } else {
-                info!(self.logger, "Self origin and layers did not change.");
+                trace!("Self origin and layers did not change.");
                 if self.dirty.children.check_all() {
-                    debug!(self.logger, "Updating dirty children.", || {
+                    debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.children.take().iter().for_each(|ix| {
                             self.children
                                 .borrow()
@@ -402,7 +392,7 @@ impl<Host> Model<Host> {
 
     fn take_removed_children_and_update_their_visibility(&self, host: &Host) {
         if self.dirty.removed_children.check_all() {
-            debug!(self.logger, "Updating removed children.", || {
+            debug_span!("Updating removed children.").in_scope(|| {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
                         if !child.has_visible_parent() {
@@ -421,7 +411,7 @@ impl<Host> Model<Host> {
 
     fn set_vis_false(&self, host: &Host) {
         if self.visible.get() {
-            info!(self.logger, "Hiding.");
+            trace!("Hiding.");
             self.visible.set(false);
             self.callbacks.on_hide(host);
             self.children.borrow().iter().for_each(|child| {
@@ -432,7 +422,7 @@ impl<Host> Model<Host> {
 
     fn set_vis_true(&self, host: &Host, parent_layers: &[WeakLayer]) {
         if !self.visible.get() {
-            info!(self.logger, "Showing.");
+            trace!("Showing.");
             let this_scene_layers = self.assigned_layers.borrow();
             let this_scene_layers_slice = this_scene_layers.as_slice();
             let layers = if this_scene_layers_slice.is_empty() {
@@ -467,7 +457,7 @@ impl<Host> Model<Host> {
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind: ParentBind<Host>) {
-        info!(self.logger, "Adding new parent bind.");
+        trace!("Adding new parent bind.");
         if let Some(parent) = bind.parent() {
             let index = bind.index;
             let dirty = parent.dirty.children.clone_ref();
@@ -632,7 +622,7 @@ pub struct Id(usize);
 /// management.
 #[derive(Derivative)]
 #[derive(CloneRef)]
-#[derivative(Clone(bound = ""))]
+#[derivative(Clone(bound = ""), Default(bound = ""))]
 pub struct Instance<Host = Scene> {
     rc: Rc<Model<Host>>,
 }
@@ -646,8 +636,8 @@ impl<Host> Deref for Instance<Host> {
 
 impl<Host> Instance<Host> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        Self { rc: Rc::new(Model::new(logger)) }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Create a new weak pointer to this display object instance.
@@ -707,11 +697,11 @@ impl<Host> Instance<Host> {
     /// Adds a new `Object` as a child to the current one. This is the same as `add_child` but takes
     /// the ownership of `self`.
     pub fn add_child_take<T: Object<Host>>(self, child: &T) {
-        info!(self.rc.logger, "Adding new child.");
+        trace!("Adding new child.");
         let child = child.display_object();
         child.unset_parent();
         let index = self.register_child(child);
-        info!(self.rc.logger, "Child index is {index}.");
+        trace!("Child index is {index}.");
         let parent_bind = ParentBind { parent: self.downgrade(), index };
         child.set_parent_bind(parent_bind);
     }
@@ -789,7 +779,7 @@ impl<Host> Display for Instance<Host> {
 
 impl<Host> Debug for Instance<Host> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DisplayObject({})", self.logger.path())
+        write!(f, "DisplayObject")
     }
 }
 
@@ -940,6 +930,37 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
 
     fn position(&self) -> Vector3<f32> {
         self.display_object().rc.position()
+    }
+
+    fn x(&self) -> f32 {
+        self.position().x
+    }
+
+    fn y(&self) -> f32 {
+        self.position().y
+    }
+
+    fn z(&self) -> f32 {
+        self.position().z
+    }
+
+    fn xy(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.y)
+    }
+
+    fn xz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.z)
+    }
+
+    fn yz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.y, position.z)
+    }
+
+    fn xyz(&self) -> Vector3<f32> {
+        self.position()
     }
 
     fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
@@ -1226,9 +1247,9 @@ mod tests {
 
     #[test]
     fn hierarchy_test() {
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
+        let node1 = Instance::<()>::new();
+        let node2 = Instance::<()>::new();
+        let node3 = Instance::<()>::new();
         node1.add_child(&node2);
         assert_eq!(node2.parent_index(), Some(0));
 
@@ -1244,9 +1265,9 @@ mod tests {
 
     #[test]
     fn transformation_test() {
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
+        let node1 = Instance::<()>::new();
+        let node2 = Instance::<()>::new();
+        let node3 = Instance::<()>::new();
         assert_eq!(node1.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1311,9 +1332,9 @@ mod tests {
 
     #[test]
     fn parent_test() {
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
+        let node1 = Instance::<()>::new();
+        let node2 = Instance::<()>::new();
+        let node3 = Instance::<()>::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node2.unset_parent();
@@ -1343,8 +1364,8 @@ mod tests {
     }
 
     impl TestedNode {
-        fn new(label: impl Into<ImString>) -> Self {
-            let node = Instance::<()>::new(Logger::new(label));
+        fn new() -> Self {
+            let node = Instance::<()>::new();
             let show_counter = Rc::<Cell<usize>>::default();
             let hide_counter = Rc::<Cell<usize>>::default();
             node.set_on_show(f__!(show_counter.set(show_counter.get() + 1)));
@@ -1387,9 +1408,9 @@ mod tests {
 
     #[test]
     fn visibility_test() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node3.check_if_still_hidden();
         node3.update(&());
@@ -1425,8 +1446,8 @@ mod tests {
 
     #[test]
     fn visibility_test2() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
         node1.check_if_still_hidden();
         node1.update(&());
         node1.check_if_still_hidden();
@@ -1442,9 +1463,9 @@ mod tests {
 
     #[test]
     fn visibility_test3() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);
@@ -1461,10 +1482,10 @@ mod tests {
 
     #[test]
     fn visibility_test4() {
-        let node1 = TestedNode::new("node1");
-        let node2 = TestedNode::new("node2");
-        let node3 = TestedNode::new("node3");
-        let node4 = TestedNode::new("node4");
+        let node1 = TestedNode::new();
+        let node2 = TestedNode::new();
+        let node3 = TestedNode::new();
+        let node4 = TestedNode::new();
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);
@@ -1508,13 +1529,13 @@ mod tests {
     fn deep_hierarchy_test() {
         // === Init ===
 
-        let world = Instance::<()>::new(Logger::new("world"));
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
-        let node4 = Instance::<()>::new(Logger::new("node4"));
-        let node5 = Instance::<()>::new(Logger::new("node5"));
-        let node6 = Instance::<()>::new(Logger::new("node6"));
+        let world = Instance::<()>::new();
+        let node1 = Instance::<()>::new();
+        let node2 = Instance::<()>::new();
+        let node3 = Instance::<()>::new();
+        let node4 = Instance::<()>::new();
+        let node5 = Instance::<()>::new();
+        let node6 = Instance::<()>::new();
 
         world.force_set_visibility(true);
 
@@ -1581,9 +1602,9 @@ mod tests {
     fn layers_test() {
         let layer1 = Layer::new(Logger::new("0"));
         let layer2 = Layer::new(Logger::new("1"));
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
+        let node1 = Instance::<()>::new();
+        let node2 = Instance::<()>::new();
+        let node3 = Instance::<()>::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node1.update(&());

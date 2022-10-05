@@ -466,7 +466,7 @@ type Panic
     recover : (Vector.Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            Vector.Vector -> expected_types
+            _ : Vector.Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->

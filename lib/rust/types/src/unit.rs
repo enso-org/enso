@@ -42,6 +42,9 @@ macro_rules! unit {
     ($(#$meta:tt)* $name:ident :: $vname:ident (usize)) => {
         $crate::unsigned_unit!{$(#$meta)* $name :: $vname (usize)}
     };
+    ($(#$meta:tt)* $name:ident :: $vname:ident (usize) NO_SUB) => {
+        $crate::unsigned_unit_no_sub!{$(#$meta)* $name :: $vname (usize)}
+    };
     ($(#$meta:tt)* $name:ident :: $vname:ident (u32)) => {
         $crate::unsigned_unit!{$(#$meta)* $name :: $vname (u32)}
     };
@@ -71,6 +74,51 @@ macro_rules! unsigned_unit {
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
+            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
+            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
+            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
+            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
+            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
+            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
+
+            $crate::impl_unit_display! {$name::value}
+
+            pub trait Into {
+                type Output;
+                fn $vname(self) -> Self::Output;
+            }
+
+            impl<T:std::convert::Into<$name>> Into for T {
+                type Output = $name;
+                fn $vname(self) -> Self::Output {
+                    self.into()
+                }
+            }
+
+            pub mod export {
+                pub use super::$name;
+                pub use super::Into as TRAIT_Into;
+            }
+        }
+        pub use $vname::export::*;
+    };
+}
+
+/// Unit definition macro. See module docs to learn more.
+#[macro_export]
+macro_rules! unsigned_unit_no_sub {
+    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
+        #[allow(missing_docs)]
+        pub mod $vname {
+            use super::*;
+            use std::ops::AddAssign;
+            use std::ops::SubAssign;
+
+            $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
             $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
@@ -199,6 +247,7 @@ macro_rules! signed_unit {
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
             $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
@@ -319,6 +368,29 @@ macro_rules! newtype {
         impl SubAssign<$name> for $name {
             fn sub_assign(&mut self, rhs:Self) {
                 *self = Self { $($field:self.$field.sub(rhs.$field)),* }
+            }
+        }
+    };
+}
+
+/// Unit definition macro. See module docs to learn more.
+#[macro_export]
+macro_rules! newtype_no_sub {
+    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
+        use std::ops::AddAssign;
+        use std::ops::SubAssign;
+
+        $crate::newtype_struct! {$(#$meta)* $name { $($field : $field_type),*}}
+
+        $crate::impl_T_x_T_to_T! {Add           :: add            for $name {$($field),*}}
+        $crate::impl_T_x_T_to_T! {SaturatingAdd :: saturating_add for $name {$($field),*}}
+
+        $crate::impl_T_x_FIELD_to_T! {Add           :: add            for $name {$($field:$field_type),*}}
+        $crate::impl_T_x_FIELD_to_T! {SaturatingAdd :: saturating_add for $name {$($field:$field_type),*}}
+
+        impl AddAssign<$name> for $name {
+            fn add_assign(&mut self, rhs:Self) {
+                *self = Self { $($field:self.$field.add(rhs.$field)),* }
             }
         }
     };
@@ -796,7 +868,7 @@ macro_rules! impl_unit_display {
     ($name:ident :: $field:ident) => {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "{} [{}]", self.$field, stringify!($name))
+                write!(f, "{}", self.$field)
             }
         }
     };

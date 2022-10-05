@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
@@ -49,9 +50,8 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let logger = Logger::new("ShapeView");
 
-    let view1 = shape::View::new(&logger);
+    let view1 = shape::View::new();
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 

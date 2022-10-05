@@ -118,7 +118,7 @@ enum State {
 #[derive(Clone, Debug)]
 pub struct EntryData {
     display_object: display::object::Instance,
-    text:           text::Area,
+    text:           text::Text,
     separator:      separator::View,
     ellipsis:       ellipsis::View,
     state:          Rc<Cell<State>>,
@@ -126,14 +126,13 @@ pub struct EntryData {
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
-        let logger = Logger::new("breadcrumbs::Entry");
-        let display_object = display::object::Instance::new(&logger);
-        let text = app.new_view::<ensogl_text::Area>();
+        let display_object = display::object::Instance::new();
+        let text = app.new_view::<ensogl_text::Text>();
         if let Some(layer) = text_layer {
             text.add_to_scene_layer(layer);
         }
-        let ellipsis = ellipsis::View::new(&logger);
-        let separator = separator::View::new(&logger);
+        let ellipsis = ellipsis::View::new();
+        let separator = separator::View::new();
         let state = default();
         display_object.add_child(&ellipsis);
         Self { display_object, state, text, ellipsis, separator }
@@ -182,13 +181,13 @@ impl EntryData {
 
     fn update_layout(&self, contour: Contour, text_size: text::Size, text_offset: f32) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.raw / 2.0));
+        self.text.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }
 
     fn set_default_color(&self, color: color::Rgba) {
-        self.text.set_default_color(color);
+        self.text.set_property_default(color);
         self.ellipsis.alpha.set(color.alpha);
         self.separator.color.set(color.into());
     }
@@ -198,12 +197,17 @@ impl EntryData {
     }
 
     fn set_default_text_size(&self, size: text::Size) {
-        self.text.set_default_text_size(size);
+        self.text.set_property_default(size);
     }
 
-    fn is_state_switch(&self, model: &Model) -> bool {
+    fn is_state_change(&self, model: &Model) -> bool {
         match model {
-            Model::Text(_) => self.state.get() != State::Text,
+            Model::Text(new_text) => {
+                let previous_state_was_not_text = self.state.get() != State::Text;
+                let previous_text = String::from(self.text.content.value());
+                let text_was_different = previous_text.as_str() != new_text.as_str();
+                previous_state_was_not_text || text_was_different
+            }
             Model::Separator => self.state.get() != State::Separator,
             Model::Ellipsis => self.state.get() != State::Ellipsis,
         }
@@ -284,7 +288,7 @@ impl ensogl_grid_view::Entry for Entry {
             color_anim.target <+ should_grey_out.map(|should| if *should { 1.0 } else { 0.0 });
             target_color <- all_with3(&text_color, &greyed_out_color, &color_anim.value, mix);
             appear_anim.target <+ init.constant(1.0);
-            model_was_set <- input.set_model.map(f!((model) data.is_state_switch(model))).on_true();
+            model_was_set <- input.set_model.map(f!((model) data.is_state_change(model))).on_true();
             should_appear <- any(&init, &model_was_set);
             eval_ should_appear({
                 appear_anim.target.emit(0.0);

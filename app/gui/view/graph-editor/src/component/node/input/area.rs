@@ -1,7 +1,7 @@
 //! Definition of the node input port component.
 
 use crate::prelude::*;
-use enso_text::traits::*;
+use enso_text::index::*;
 use enso_text::unit::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
@@ -15,7 +15,7 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
-use enso_text::text::Text;
+use enso_text::text::Rope;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -108,13 +108,13 @@ impl Debug for Expression {
 /// Helper struct used for `Expression` conversions.
 #[derive(Debug, Default)]
 struct ExprConversion {
-    prev_tok_local_index:  Bytes,
+    prev_tok_local_index:  Byte,
     /// Index of the last traverse parent node in the `SpanTree`.
-    last_parent_tok_index: Bytes,
+    last_parent_tok_index: Byte,
 }
 
 impl ExprConversion {
-    fn new(last_parent_tok_index: Bytes) -> Self {
+    fn new(last_parent_tok_index: Byte) -> Self {
         let prev_tok_local_index = default();
         Self { prev_tok_local_index, last_parent_tok_index }
     }
@@ -126,17 +126,17 @@ impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
-        let mut shift = 0.bytes();
+        let mut shift = 0.byte();
         let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = span.size();
+            let mut size = Byte::try_from(span.size()).unwrap(); // FIXME: hande errors
             let mut index = span.start;
-            let offset_from_prev_tok = node.offset - info.prev_tok_local_index;
-            info.prev_tok_local_index = node.offset + size;
+            let offset_from_prev_tok = node.offset - info.prev_tok_local_index.to_diff();
+            info.prev_tok_local_index = size + node.offset;
             viz_code += &" ".repeat(offset_from_prev_tok.as_usize());
             if node.children.is_empty() {
                 viz_code += &code.as_str()[enso_text::Range::new(index, index + size)];
@@ -145,16 +145,16 @@ impl From<node::Expression> for Expression {
             if is_expected_arg {
                 if let Some(name) = node.name() {
                     size = name.len().into();
-                    index += 1.bytes();
-                    shift += 1.bytes() + size;
+                    index += 1.byte();
+                    shift += 1.byte() + size;
                     viz_code += " ";
                     viz_code += name;
                 }
             }
             let port = node.payload_mut();
             port.local_index = index - info.last_parent_tok_index;
-            port.index = index;
-            port.length = size;
+            port.index = index.into();
+            port.length = size.into();
             ExprConversion::new(index)
         });
         Self { viz_code, code, span_tree }
@@ -205,7 +205,7 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
-        expression          (Text),
+        expression          (Rope),
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
@@ -220,12 +220,11 @@ ensogl::define_endpoints! {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
     header:         display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
     styles:         StyleWatch,
@@ -235,13 +234,12 @@ pub struct Model {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let logger = Logger::new_sub(&logger, "input_ports");
-        let display_object = display::object::Instance::new(&logger);
-        let ports = display::object::Instance::new(&Logger::new_sub(&logger, "ports"));
-        let header = display::object::Instance::new(&Logger::new_sub(&logger, "header"));
+    pub fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
+        let ports = display::object::Instance::new();
+        let header = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
@@ -250,7 +248,6 @@ impl Model {
         display_object.add_child(&ports);
         ports.add_child(&header);
         Self {
-            logger,
             app,
             display_object,
             ports,
@@ -273,11 +270,11 @@ impl Model {
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.single_line(true);
+        self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(text_color);
-        self.label.set_default_text_size(text::Size(TEXT_SIZE));
+        self.label.set_property_default(text_color);
+        self.label.set_property_default(text::Size(TEXT_SIZE));
         self.label.remove_all_cursors();
 
         let origin = Vector2(TEXT_OFFSET, 0.0);
@@ -356,8 +353,8 @@ impl Deref for Area {
 impl Area {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let model = Rc::new(Model::new(logger, app));
+    pub fn new(app: &Application) -> Self {
+        let model = Rc::new(Model::new(app));
         let frp = Frp::new();
         let network = &frp.network;
         let selection_color = Animation::new(network);
@@ -446,13 +443,13 @@ impl Area {
             selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
 
             selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.label.set_selection_color <+ selection_color.value.map(|&c| color::Rgb::from(c));
+            model.label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
 
             init_colors         <- source::<()>();
             std_base_color      <- all(std_base_color,init_colors)._0();
             profiled_base_color <- all(profiled_base_color,init_colors)._0();
             base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
-            eval base_color ((color) model.label.set_default_color(color));
+            eval base_color ((color) model.label.set_property_default(color));
             init_colors.emit(());
         }
 
@@ -464,11 +461,11 @@ impl Area {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
             let unit = GLYPH_WIDTH;
-            let range_before = enso_text::Range::new(0.bytes(), node.payload.index);
-            let char_offset: Chars = expr.viz_code[range_before].chars().count().into();
-            let char_count: Chars = expr.viz_code[node.payload.range()].chars().count().into();
-            let width = unit * (i32::from(char_count) as f32);
-            let x = width / 2.0 + unit * (i32::from(char_offset) as f32);
+            let range_before = enso_text::Range::new(ByteDiff(0), node.payload.index);
+            let char_offset = expr.viz_code[range_before].chars().count();
+            let char_count = expr.viz_code[node.payload.range()].chars().count();
+            let width = unit * (char_count as f32);
+            let x = width / 2.0 + unit * (char_offset as f32);
             Vector2::new(TEXT_OFFSET + x, 0.0)
         })
     }
@@ -485,7 +482,7 @@ impl Area {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn label(&self) -> &text::Area {
+    pub fn label(&self) -> &text::Text {
         &self.model.label
     }
 
@@ -516,7 +513,7 @@ struct PortLayerBuilder {
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:           Chars,
+    shift:           usize,
     /// The depth at which the current expression is, where root is at depth 0.
     depth:           usize,
 }
@@ -528,7 +525,7 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Chars,
+        shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
@@ -546,7 +543,7 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        shift: Chars,
+        shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
@@ -601,7 +598,7 @@ impl Area {
             let range_before_start = node.payload.index - node.payload.local_index;
             let range_before_end = node.payload.index;
             let range_before = enso_text::Range::new(range_before_start, range_before_end);
-            let local_char_offset: Chars = code[range_before].chars().count().into();
+            let local_char_offset = code[range_before].chars().count();
 
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
@@ -609,17 +606,16 @@ impl Area {
                 let port = &mut node;
 
                 let index = local_char_offset + builder.shift;
-                let size: Chars = code[port.payload.range()].chars().count().into();
+                let size = code[port.payload.range()].chars().count();
                 let unit = GLYPH_WIDTH;
-                let width = unit * i32::from(size) as f32;
+                let width = unit * size as f32;
                 let width_padded = width + 2.0 * PORT_PADDING_X;
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
-                let logger = &self.model.logger;
-                let port_shape = port.payload_mut().init_shape(logger, size, node::HEIGHT);
+                let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
 
-                port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
+                port_shape.mod_position(|t| t.x = unit * index as f32);
                 if DEBUG {
                     port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
                 }
@@ -725,7 +721,7 @@ impl Area {
                 }
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
-            let new_shift = if !not_a_port { 0.chars() } else { builder.shift + local_char_offset };
+            let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
@@ -826,7 +822,8 @@ impl Area {
                     set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
-                        label.set_color_bytes(range,color::Rgba::from(color));
+                        let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
+                        label.set_property(range,color::Rgba::from(color));
                     });
                 }
 
@@ -905,7 +902,7 @@ impl Area {
         self.init_port_frp_on_new_expression(&mut new_expression);
         self.init_new_expression(new_expression);
         if self.frp.editing.value() {
-            self.model.label.set_cursor_at_end();
+            self.model.label.set_cursor_at_text_end();
         }
     }
 }

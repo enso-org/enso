@@ -87,7 +87,7 @@ find_codepoint_ranges text subrange =
                 Range_Data 0 indices.first
         By_Index indices ->
             case indices of
-                Vector.Vector ->
+                _ : Vector.Vector ->
                     if indices.length == 1 then resolve_index_or_range text indices.first else
                         batch_resolve_indices_or_ranges text indices
                 _ -> resolve_index_or_range text indices
@@ -155,7 +155,7 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
     case descriptor of
-        Integer ->
+        _ : Integer ->
             if descriptor < 0 then
                 iterator.last
             start = iterator.next descriptor
@@ -210,7 +210,7 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
     ranges = Vector.new_builder
     descriptors.each descriptor->
         case descriptor of
-            Integer ->
+            _ : Integer ->
                 ranges.append (Panic.rethrow <| characters.at descriptor)
             Range_Data _ _ _ ->
                 if descriptor.is_empty then Range_Data 0 0 else

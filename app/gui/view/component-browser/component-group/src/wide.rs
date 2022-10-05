@@ -134,12 +134,12 @@ ensogl::define_endpoints_2! {
 
 impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
     fn init(
+        network: &frp::Network,
         api: &Self::Private,
         _app: &Application,
         model: &Model<COLUMNS>,
         style: &StyleWatchFrp,
     ) {
-        let network = &api.network;
         let input = &api.input;
         let out = &api.output;
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
@@ -378,11 +378,11 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         "WideComponentGroupView"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
-        let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
+    fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
+        let background = background::View::new();
         display_object.add_child(&background);
-        let selection_background = background::View::new(&logger);
+        let selection_background = background::View::new();
         display_object.add_child(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);

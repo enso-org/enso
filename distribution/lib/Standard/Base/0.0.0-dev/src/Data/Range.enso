@@ -30,7 +30,7 @@ type Range
              10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
     with_step : Integer -> Range
     with_step self new_step = case new_step of
-        Integer ->
+        _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
                 if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
                     Range_Data self.start self.end self.step.signum*new_step
@@ -265,7 +265,7 @@ type Range
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
     contains self value = case value of
-        Integer ->
+        _ : Integer ->
             if self.step > 0 then (value >= self.start) && (value < self.end) && (((value - self.start) % self.step) == 0) else
                 if self.step < 0 then (value <= self.start) && (value > self.end) && (((self.start - value) % (-self.step)) == 0) else
                     throw_zero_step_error
@@ -289,7 +289,7 @@ type Range
          0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to self n = case n of
-    Integer -> Range_Data self n
+    _ : Integer -> Range_Data self n
     _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## ALIAS Range
@@ -305,7 +305,7 @@ Integer.up_to self n = case n of
          5.down_to 0
 Integer.down_to : Integer -> Range
 Integer.down_to self n = case n of
-    Integer -> Range_Data self n -1
+    _ : Integer -> Range_Data self n -1
     _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## PRIVATE

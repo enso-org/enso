@@ -140,7 +140,7 @@ parse text pattern=Nothing locale=Locale.default =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
             Nothing -> Date_Time.parse_builtin text
-            Text    -> Time_Utils.parse_datetime_format text pattern locale.java_locale
+            _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
 
 ## PRIVATE
@@ -558,7 +558,7 @@ type Date_Time
          (Date_Time.new 2000).compare_to (Date_Time.new 2001)
     compare_to : Time -> Ordering
     compare_to self that = case that of
-        Date_Time ->
+        _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error_Data Date_Time that "that")
@@ -566,7 +566,7 @@ type Date_Time
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
     == self that = case that of
-        Date_Time ->
+        _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             0 == sign
         _ -> False

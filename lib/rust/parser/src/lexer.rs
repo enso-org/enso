@@ -1174,7 +1174,7 @@ impl<'s> Lexer<'s> {
             internal_error.get_or_insert(message);
         }
         let value = self.output;
-        event!(TRACE, "Tokens:\n{:#?}", value);
+        trace!("Tokens:\n{:#?}", value);
         ParseResult { value, internal_error }
     }
 }

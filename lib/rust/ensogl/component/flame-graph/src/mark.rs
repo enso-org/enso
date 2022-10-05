@@ -68,10 +68,14 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = &api.network;
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        app: &Application,
+        model: &Model,
+        _style: &StyleWatchFrp,
+    ) {
         let background = &model.background.events;
-
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
 
@@ -95,7 +99,7 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     app:            Application,
     background:     background::View,
-    label:          Rc<RefCell<Option<text::Area>>>,
+    label:          Rc<RefCell<Option<text::Text>>>,
     display_object: display::object::Instance,
 }
 
@@ -104,12 +108,12 @@ impl component::Model for Model {
         "FlameGraphMark"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let label = default();
 
-        let background = background::View::new(&logger);
+        let background = background::View::new();
         display_object.add_child(&background);
         scene.layers.tooltip.add_exclusive(&background);
 

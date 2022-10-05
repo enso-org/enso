@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -16,7 +17,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_text::Bytes;
+use enso_text::Byte;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
@@ -90,7 +91,7 @@ struct MockEntries {
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
         const HIGHLIGHTED_ENTRY_NAME: &str = "convert";
-        const HIGHLIGHTED_RANGE: Range<Bytes> = Bytes(0)..Bytes(3);
+        const HIGHLIGHTED_RANGE: Range<Byte> = Byte(0)..Byte(3);
         Rc::new(Self {
             entries: PREPARED_ITEMS
                 .iter()
@@ -284,7 +285,7 @@ fn init(app: &Application) {
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
     {
-        let transparent_circle = transparent_circle::View::new(&app.logger);
+        let transparent_circle = transparent_circle::View::new();
         transparent_circle.size.set(Vector2(150.0, 150.0));
         transparent_circle.set_position_xy(Vector2(200.0, -150.0));
         scroll_area.content().add_child(&transparent_circle);

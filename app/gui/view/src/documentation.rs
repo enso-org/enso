@@ -73,14 +73,14 @@ impl Model {
     /// Constructor.
     fn new(scene: &Scene) -> Self {
         let logger = Logger::new("DocumentationView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
         let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
         let size =
             Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));
-        let overlay = overlay::View::new(&logger);
+        let overlay = overlay::View::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -163,7 +163,7 @@ impl Model {
                 match copy_button.add_event_listener_with_callback("click", callback) {
                     Ok(_) => Some(closure),
                     Err(e) => {
-                        error!(&self.logger, "Unable to add event listener to copy button: {e:?}");
+                        error!("Unable to add event listener to copy button: {e:?}");
                         None
                     }
                 }
@@ -174,10 +174,7 @@ impl Model {
         let ok_closures = closures.into_iter().filter_map(|t| t.ok()).collect_vec();
         let err_indices = errors.into_iter().filter_map(|t| t.err()).collect_vec();
         if !err_indices.is_empty() {
-            error!(
-                &self.logger,
-                "Failed to attach listeners to copy buttons with indices: {err_indices:?}."
-            )
+            error!("Failed to attach listeners to copy buttons with indices: {err_indices:?}.")
         }
         self.code_copy_closures.set(ok_closures)
     }
@@ -190,7 +187,6 @@ impl Model {
                 Ok(string) => string,
                 Err(err) => {
                     error!(
-                        self.logger,
                         "Error during documentation vis-data serialization: \
                         {err:?}"
                     );

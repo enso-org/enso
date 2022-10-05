@@ -14,6 +14,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -33,7 +34,6 @@ pub use ensogl_example_complex_shape_system as complex_shape_system;
 pub use ensogl_example_dom_symbols as dom_symbols;
 pub use ensogl_example_drop_manager as drop_manager;
 pub use ensogl_example_easing_animator as easing_animator;
-pub use ensogl_example_glyph_system as glyph_system;
 pub use ensogl_example_grid_view as grid_view;
 pub use ensogl_example_list_view as list_view;
 pub use ensogl_example_mouse_events as mouse_events;

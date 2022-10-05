@@ -224,14 +224,14 @@ impl Handle {
     ///
     /// Fails if method graph cannot be created (see `graph_for_method` documentation).
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
-        debug!(self.logger, "Entering node {local_call.call}.");
+        debug!("Entering node {}.", local_call.call);
         let method_ptr = &local_call.definition;
         let graph = controller::Graph::new_method(&self.logger, &self.project, method_ptr);
         let graph = graph.await?;
         self.execution_ctx.push(local_call.clone()).await?;
-        debug!(self.logger, "Replacing graph with {graph:?}.");
+        debug!("Replacing graph with {graph:?}.");
         self.graph.replace(graph);
-        debug!(self.logger, "Sending graph invalidation signal.");
+        debug!("Sending graph invalidation signal.");
         self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
 
         Ok(())

@@ -96,10 +96,10 @@ pub struct Shape {
 impl Shape {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: &Logger, size: Vector2, hover_height: f32) -> Self {
-        let root = display::object::Instance::new(logger);
-        let hover = hover::View::new(logger);
-        let viz = viz::View::new(logger);
+    pub fn new(size: Vector2, hover_height: f32) -> Self {
+        let root = display::object::Instance::new();
+        let hover = hover::View::new();
+        let viz = viz::View::new();
 
         let width_padded = size.x + 2.0 * PADDING_X;
         hover.size.set(Vector2::new(width_padded, hover_height));
@@ -152,9 +152,9 @@ pub struct Model {
     pub frp:             Frp,
     pub shape:           Option<Shape>,
     pub name:            Option<String>,
-    pub index:           Bytes,
-    pub local_index:     Bytes,
-    pub length:          Bytes,
+    pub index:           ByteDiff,
+    pub local_index:     ByteDiff,
+    pub length:          ByteDiff,
     pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 
@@ -176,21 +176,14 @@ impl Model {
     /// will be skipped, as there is no point in making them ports. The skip algorithm is
     /// implemented as part of the port are initialization.
     #[profile(Debug)]
-    pub fn init_shape(
-        &mut self,
-        logger: impl AnyLogger,
-        size: Vector2,
-        hover_height: f32,
-    ) -> Shape {
-        let logger_name = format!("port({},{})", self.index, self.length);
-        let logger = Logger::new_sub(logger, logger_name);
-        let shape = Shape::new(&logger, size, hover_height);
+    pub fn init_shape(&mut self, size: Vector2, hover_height: f32) -> Shape {
+        let shape = Shape::new(size, hover_height);
         self.shape = Some(shape);
         self.shape.as_ref().unwrap().clone_ref()
     }
 
     /// The range of this port.
-    pub fn range(&self) -> enso_text::Range<Bytes> {
+    pub fn range(&self) -> enso_text::Range<ByteDiff> {
         let start = self.index;
         let end = self.index + self.length;
         enso_text::Range::new(start, end)

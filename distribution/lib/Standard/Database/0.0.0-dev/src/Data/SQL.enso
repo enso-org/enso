@@ -295,7 +295,7 @@ type Builder
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
     ++ self other = case other of
-        Text -> if other == "" then self else Builder_Data (self.fragments ++ (code other).fragments)
+        text : Text -> if text == "" then self else Builder_Data (self.fragments ++ (code text).fragments)
         _ -> Builder_Data (self.fragments ++ other.fragments)
 
     ## UNSTABLE

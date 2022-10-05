@@ -66,6 +66,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.is_a Integer . should_be_true
         1.is_a Number . should_be_true
         1.is_a Decimal . should_be_false
+        1.is_a Date . should_be_false
 
         1.0.is_a Number . should_be_true
         1.0.is_a Decimal . should_be_true
@@ -147,7 +148,7 @@ spec = Test.group "Meta-Value Manipulation" <|
 
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:149:15-40"
+        loc = "Meta_Spec.enso:150:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

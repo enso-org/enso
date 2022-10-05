@@ -1,0 +1,1 @@
+primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"

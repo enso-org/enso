@@ -120,15 +120,15 @@ impl StyleWatchFrp {
     }
 
     /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
-    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<String> {
+    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<ImString> {
         let network = &self.network;
         let path = path.into();
         let warning = format!("Tried to access undefined text from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
             value <- source.map(move |t| {
-                t.text().unwrap_or_else(|| {
-                log::warn!("{}", warning);
+                t.im_string_or_else(|| {
+                    log::warn!("{}", warning);
                     default()
                 })
             });

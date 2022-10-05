@@ -130,7 +130,7 @@ parse : Text -> (Text | Nothing) -> Date ! Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
         Nothing -> Date.internal_parse text 0
-        Text -> Date.internal_parse text pattern
+        _ : Text -> Date.internal_parse text pattern
         _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error_Data err -> Time_Error_Data err.getMessage
@@ -496,7 +496,7 @@ type Date
          (Date.new 2000).compare_to (Date.new 2001)
     compare_to : Date -> Ordering
     compare_to self that = case that of
-        Date ->
+        _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error_Data Date that "that")
@@ -504,7 +504,7 @@ type Date
     ## Compares two Dates for equality.
     == : Date -> Boolean
     == self that = case that of
-        Date ->
+        _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             0 == sign
         _ -> False

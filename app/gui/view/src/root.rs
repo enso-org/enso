@@ -45,7 +45,7 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new("RootView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let state = Rc::new(CloneCell::new(State::WelcomeScreen));
         let status_bar = crate::status_bar::View::new(&app);
         display_object.add_child(&status_bar);
@@ -161,7 +161,7 @@ impl display::Object for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

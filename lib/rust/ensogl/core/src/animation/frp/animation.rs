@@ -48,6 +48,7 @@ pub struct Animation<T: mix::Mixable + frp::Data> {
     pub set_drag:   frp::Any<inertia::Drag>,
     pub value:      frp::Stream<T>,
     pub on_end:     frp::Stream<()>,
+    pub simulator:  AnimationSimulator<T>,
 }
 
 #[allow(missing_docs)]
@@ -65,23 +66,22 @@ where mix::Repr<T>: inertia::Value
         let simulator = AnimationSimulator::<T>::new(on_step, (), on_end);
         simulator.set_precision(DEFAULT_PRECISION);
         frp::extend! { network
-            target    <- any_mut::<T>();
-            precision <- any_mut::<f32>();
-            skip      <- any_mut::<()>();
+            target     <- any_mut::<T>();
+            precision  <- any_mut::<f32>();
+            skip       <- any_mut::<()>();
             set_spring <- any_mut::<inertia::Spring>();
-            set_mass <- any_mut::<inertia::Mass>();
-            set_drag <- any_mut::<inertia::Drag>();
-            eval  target    ((t) simulator.set_target_value(mix::into_space(t.clone())));
-            eval  precision ((t) simulator.set_precision(*t));
+            set_mass   <- any_mut::<inertia::Mass>();
+            set_drag   <- any_mut::<inertia::Drag>();
+            eval target     ((t) simulator.set_target_value(mix::into_space(t.clone())));
+            eval precision  ((t) simulator.set_precision(*t));
             eval_ skip      (simulator.skip());
             eval set_spring ((s) simulator.set_spring(*s));
-            eval set_mass ((m) simulator.set_mass(*m));
-            eval set_drag ((d) simulator.set_drag(*d));
+            eval set_mass   ((m) simulator.set_mass(*m));
+            eval set_drag   ((d) simulator.set_drag(*d));
         }
         let value = value_src.into();
         let on_end = on_end_src.into();
-        network.store(&simulator);
-        Self { target, precision, skip, set_spring, set_mass, set_drag, value, on_end }
+        Self { target, precision, skip, set_spring, set_mass, set_drag, value, on_end, simulator }
     }
 
     /// Constructor. The initial value is provided explicitly.
@@ -103,6 +103,10 @@ where mix::Repr<T>: inertia::Value
             this.skip <+ on_init.constant(());
         }
         this
+    }
+
+    pub fn target(&self) -> <T as mix::Mixable>::Repr {
+        self.simulator.target_value()
     }
 }
 

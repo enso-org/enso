@@ -165,12 +165,11 @@ struct Icons {
 }
 
 impl Icons {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "Icons");
-        let display_object = display::object::Instance::new(&logger);
-        let icon_root = display::object::Instance::new(&logger);
-        let reset_position_icon = pin_icon::View::new(&logger);
-        let drag_icon = four_arrow_icon::View::new(&logger);
+    fn new() -> Self {
+        let display_object = display::object::Instance::new();
+        let icon_root = display::object::Instance::new();
+        let reset_position_icon = pin_icon::View::new();
+        let drag_icon = four_arrow_icon::View::new();
         let size = default();
 
         display_object.add_child(&icon_root);
@@ -262,13 +261,12 @@ struct Model {
 
 impl Model {
     fn new(app: &Application, vis_registry: visualization::Registry) -> Self {
-        let logger = Logger::new("ActionBarModel");
-        let background = background::View::new(&logger);
-        let hover_area = hover_area::View::new(&logger);
+        let background = background::View::new();
+        let hover_area = hover_area::View::new();
         let visualization_chooser = VisualizationChooser::new(app, vis_registry);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let size = default();
-        let icons = Icons::new(logger);
+        let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
 
         app.display.default_scene.layers.below_main.add_exclusive(&hover_area);

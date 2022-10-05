@@ -246,6 +246,48 @@ class AstToIrTest extends CompilerTest with Inside {
       consPat.fields(1) shouldBe an[IR.Pattern.Name]
     }
 
+    "support type patterns " in {
+      val ir =
+        """
+          |case foo of
+          |    f : Foo -> process_foo f
+          |    b : Bar -> process_bar b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Type]
+
+      val tpePattern1 =
+        ir.branches(0).pattern.asInstanceOf[IR.Pattern.Type]
+
+      tpePattern1.name.name shouldEqual "f"
+      tpePattern1.tpe.name shouldEqual "Foo"
+
+      val tpePattern2 =
+        ir.branches(1).pattern.asInstanceOf[IR.Pattern.Type]
+
+      tpePattern2.name.name shouldEqual "b"
+      tpePattern2.tpe.name shouldEqual "Bar"
+    }
+
+    "support type patterns nested in constructor pattern " in {
+      val ir =
+        """
+          |case foo of
+          |    Cons (f : Foo) b -> process_foo f b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Constructor]
+
+      val consPattern =
+        ir.branches(0).pattern.asInstanceOf[IR.Pattern.Constructor]
+
+      consPattern.constructor.name shouldEqual "Cons"
+      consPattern.fields.length shouldEqual 2
+
+      consPattern.fields(0) shouldBe an[IR.Pattern.Type]
+      consPattern.fields(1) shouldBe an[IR.Pattern.Name]
+    }
+
   }
 
   "AST translation of function definitions" should {

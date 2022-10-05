@@ -75,7 +75,7 @@ type JDBC_Connection
                 Resource.bracket (prepare template holes) .close action
 
         case query of
-            Text -> go query []
+            _ : Text -> go query []
             Statement_Data _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second

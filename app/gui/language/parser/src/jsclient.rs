@@ -68,7 +68,7 @@ impl Client {
     /// Parses Enso code with JS-based parser.
     pub fn parse(&self, program: String, ids: IdMap) -> api::Result<Ast> {
         let ast = || {
-            let ids = JsonIdMap::from_id_map(&ids, &program);
+            let ids = JsonIdMap::from_id_map(&ids, &program.clone().into());
             let json_ids = serde_json::to_string(&ids)?;
             let json_ast = parse(program, json_ids)?;
             let ast = from_json_str_without_recursion_limit(&json_ast)?;
