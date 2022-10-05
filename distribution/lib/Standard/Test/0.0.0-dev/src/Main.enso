@@ -192,8 +192,8 @@ Any.should self verb argument = verb Verbs self argument
 
          example_fail = Test.fail "Something went wrong."
 fail : Text -> Assertion
-fail message =
-    failure = Failure message
+fail message details=Nothing =
+    failure = Failure message details
     Panic.throw failure
 
 ## Expect a function to fail with the provided dataflow error.
@@ -399,7 +399,7 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
         False ->
             loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-            Panic.throw (Failure msg)
+            fail msg
 
 ## Asserts that `self` value is not an error.
 
@@ -746,7 +746,8 @@ type Assertion
 
        Arguments:
        - message: The reason why the test failed.
-    Failure message
+       - details: Additional context of the error, for example the stack trace.
+    Failure message details
 
     ## PRIVATE
 
@@ -762,7 +763,7 @@ type Assertion
     is_fail : Boolean
     is_fail self = case self of
         Success -> False
-        Failure _ -> True
+        Failure _ _ -> True
         Pending _ -> False
 
 ## PRIVATE
@@ -782,10 +783,10 @@ run_spec ~behavior =
         _ -> Success
     result = maybeExc.catch Any ex->
         case ex of
-            Failure _ -> ex
+            Failure _ _ -> ex
             Finished_With_Error_Data err stack_trace_text ->
-                Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
-            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
+                Failure ("An unexpected error was returned: " + err.to_text) details=stack_trace_text
+            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text) details=maybeExc.get_stack_trace_text
     result
 
 ## PRIVATE
@@ -844,7 +845,11 @@ Spec.print_report self config builder =
             builder.append ('        <testcase name="' + (escape_xml behavior.name) + '">')
             case behavior.result of
                 Success -> Nothing
-                Failure msg -> builder.append ('\n            <error message="' + (escape_xml msg) + '"/>\n        ')
+                Failure msg details ->
+                    builder.append ('\n            <error message="' + (escape_xml msg) + '">\n')
+                    if details.is_nothing.not then
+                        builder.append (escape_xml details)
+                    builder.append '</error>\n'
                 Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
@@ -857,9 +862,11 @@ Spec.print_report self config builder =
                 Success ->
                     if config.print_only_failures.not then
                         IO.println ("    - " + behavior.name)
-                Failure msg ->
+                Failure msg details ->
                     IO.println ("    - [FAILED] " + behavior.name)
                     IO.println ("        Reason: " + msg)
+                    if details.is_nothing.not then
+                        IO.println details
                 Pending reason ->
                     if config.print_only_failures.not then
                         IO.println ("    - [PENDING] " + behavior.name)
