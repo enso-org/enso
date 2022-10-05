@@ -41,7 +41,6 @@ pub mod prelude {
 }
 
 pub mod aws;
-pub mod build2;
 pub mod bump_version;
 pub mod changelog;
 pub mod ci;
