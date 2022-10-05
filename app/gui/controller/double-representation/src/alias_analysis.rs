@@ -388,7 +388,7 @@ mod tests {
     }
 
     /// Runs the test for the given test case description.
-    fn run_case(parser: &parser::Parser, case: Case) {
+    fn run_case(parser: &parser_scala::Parser, case: Case) {
         DEBUG!("\n===========================================================================\n");
         DEBUG!("Case: " case.code);
         let ast = parser.parse_line_ast(&case.code).unwrap();
@@ -399,7 +399,7 @@ mod tests {
     }
 
     /// Runs the test for the test case expressed using markdown notation. See `Case` for details.
-    fn run_markdown_case(parser: &parser::Parser, marked_code: impl AsRef<str>) {
+    fn run_markdown_case(parser: &parser_scala::Parser, marked_code: impl AsRef<str>) {
         DEBUG!("Running test case for " marked_code.as_ref());
         let case = Case::from_markdown(marked_code.as_ref());
         run_case(parser, case)
@@ -407,7 +407,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_alias_analysis() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let test_cases = [
             "»foo«",
             "«five» = 5",

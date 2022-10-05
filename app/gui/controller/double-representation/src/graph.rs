@@ -214,14 +214,14 @@ mod tests {
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     /// Takes a program with main definition in root and returns main's graph.
-    fn main_graph(parser: &parser::Parser, program: impl Str) -> GraphInfo {
+    fn main_graph(parser: &parser_scala::Parser, program: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.into(), default()).unwrap();
         let name = DefinitionName::new_plain("main");
         let main = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
-    fn find_graph(parser: &parser::Parser, program: impl Str, name: impl Str) -> GraphInfo {
+    fn find_graph(parser: &parser_scala::Parser, program: impl Str, name: impl Str) -> GraphInfo {
         let module = parser.parse_module(program.into(), default()).unwrap();
         let crumbs = name.into().split('.').map(DefinitionName::new_plain).collect();
         let id = Id { crumbs };
@@ -231,7 +231,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn detect_a_node() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         // Each of these programs should have a `main` definition with a single `2+2` node.
         let programs = vec![
             "main = 2+2",
@@ -249,7 +249,7 @@ mod tests {
         }
     }
 
-    fn new_expression_node(parser: &parser::Parser, expression: &str) -> NodeInfo {
+    fn new_expression_node(parser: &parser_scala::Parser, expression: &str) -> NodeInfo {
         let node_ast = parser.parse(expression.to_string(), default()).unwrap();
         let line_ast = expect_single_line(&node_ast).clone();
         NodeInfo::from_main_line_ast(&line_ast).unwrap()
@@ -274,7 +274,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn add_node_to_graph_with_single_line() {
         let program = "main = print \"hello\"";
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 1);
@@ -301,7 +301,7 @@ mod tests {
     foo = node
     foo a = not_node
     print "hello""#;
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let mut graph = main_graph(&parser, program);
 
         let node_to_add0 = new_expression_node(&parser, "4 + 4");
@@ -360,7 +360,7 @@ mod tests {
     node2
 
 foo = 5";
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let mut graph = main_graph(&parser, program);
 
         let id2 = graph.nodes()[0].id();
@@ -388,7 +388,7 @@ foo = 5";
 
     #[wasm_bindgen_test]
     fn multiple_node_graph() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let program = r"
 main =
     ## Faux docstring
@@ -419,7 +419,7 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_node_from_graph() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2
@@ -445,7 +445,7 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_last_node_from_graph() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2";
@@ -465,7 +465,7 @@ main =
 
     #[wasm_bindgen_test]
     fn editing_nodes_expression_in_graph() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let program = r"
 main =
     foo = 2 + 2

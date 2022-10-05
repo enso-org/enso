@@ -746,7 +746,8 @@ pub mod test {
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }.plain(&parser::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }
+            .plain(&parser_scala::Parser::new_or_panic(), urm)
     }
 
     #[test]

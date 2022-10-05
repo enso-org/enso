@@ -376,7 +376,7 @@ pub mod tests {
     impl MockData {
         pub fn controller(&self) -> Handle {
             let logger = Logger::new("test");
-            let parser = parser::Parser::new_or_panic();
+            let parser = parser_scala::Parser::new_or_panic();
             let repository = Rc::new(model::undo_redo::Repository::new(&logger));
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();

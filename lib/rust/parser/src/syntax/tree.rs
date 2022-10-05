@@ -1167,9 +1167,9 @@ crate::with_token_definition!(define_visitor_for_tokens());
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for u32 {}
 impl<'s, 'a> TreeVisitableMut<'s, 'a> for u32 {}
-impl<'a, 't, 's> SpanVisitable<'s, 'a> for u32 {}
-impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for u32 {}
-impl<'a, 't, 's> ItemVisitable<'s, 'a> for u32 {}
+impl<'a, 's> SpanVisitable<'s, 'a> for u32 {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for u32 {}
+impl<'a, 's> ItemVisitable<'s, 'a> for u32 {}
 impl<'s> span::Builder<'s> for u32 {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span

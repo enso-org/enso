@@ -15,7 +15,7 @@ fn main() {
     let program = std::env::args().nth(1).unwrap_or(default_input);
     DEBUG!("Will parse: " program);
 
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     let output = parser.parse(program, default());
     match output {
         Ok(result) => DEBUG!("Parser responded with: {result:?}"),
@@ -27,7 +27,7 @@ fn main() {
     let program = std::env::args().nth(1).unwrap_or(default_input);
     DEBUG!("Will parse: " program);
 
-    let parser = parser::DocParser::new_or_panic();
+    let parser = parser_scala::DocParser::new_or_panic();
     let output = parser.generate_html_docs(program);
     match output {
         Ok(result) => DEBUG!("Doc parser responded with: {result:?}"),
@@ -39,7 +39,7 @@ fn main() {
     let program = std::env::args().nth(1).unwrap_or(default_input);
     DEBUG!("Will parse: " program);
 
-    let parser = parser::DocParser::new_or_panic();
+    let parser = parser_scala::DocParser::new_or_panic();
     let output = parser.generate_html_doc_pure(program);
     match output {
         Ok(result) => DEBUG!("Doc parser responded with: {result:?}"),
