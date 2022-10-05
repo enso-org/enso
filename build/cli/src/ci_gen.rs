@@ -142,15 +142,17 @@ pub fn setup_customized_script_steps(
     customize: impl FnOnce(Step) -> Step,
 ) -> Vec<Step> {
     let pre_clean_condition = "false".to_string(); // TODO
-
+    let post_clean_condition = "false".to_string(); // TODO
 
     let mut steps = setup_script_steps();
-    let clean_step = clean_step().with_if(&clean_condition).with_name("Clean before.");
+    let clean_step = clean_step().with_if(&pre_clean_condition).with_name("Clean before.");
     steps.push(clean_step.clone());
     steps.push(customize(run(command_line)));
     steps.extend(list_everything_on_failure());
     steps.push(
-        clean_step.with_if(format!("always() && {}", clean_condition)).with_name("Clean after."),
+        clean_step
+            .with_if(format!("always() && {}", post_clean_condition))
+            .with_name("Clean after."),
     );
     steps
 }
