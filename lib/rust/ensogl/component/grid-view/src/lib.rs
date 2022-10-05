@@ -498,7 +498,6 @@ impl<E: Entry> GridView<E> {
                 }
             );
             out.grid_size <+ grid_size;
-            out.grid_size <+ input.reset_entries;
             out.viewport <+ input.set_viewport;
             out.entries_size <+ input.set_entries_size;
             out.entries_params <+ input.set_entries_params;
