@@ -118,9 +118,9 @@ const INFINITE: f32 = 999999.0;
 pub struct Style {
     pub background_color:       color::Rgba,
     pub corners_radius:         f32,
-    #[base_path = "theme::menu"]
+    #[theme_path = "theme::menu::breadcrumbs::crop_left"]
     pub breadcrumbs_crop_left:  f32,
-    #[base_path = "theme::menu"]
+    #[theme_path = "theme::menu::breadcrumbs::crop_right"]
     pub breadcrumbs_crop_right: f32,
     pub menu_height:            f32,
     pub menu_divider_color:     color::Rgba,

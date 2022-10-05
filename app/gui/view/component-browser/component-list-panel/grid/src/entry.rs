@@ -324,7 +324,7 @@ impl Data {
         let icon_y = local_scope_offset;
         self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
         let text_x = Self::text_x_position(kind, style, grid_style);
-        let text_y = style.text_size.value / 2.0 + local_scope_offset;
+        let text_y = style.text_size / 2.0 + local_scope_offset;
         self.label.set_position_xy(Vector2(text_x, text_y));
     }
 
@@ -488,7 +488,7 @@ impl grid_view::Entry for View {
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
-            data.label.set_property_default <+ style.map(|s| s.text_size).ref_into_some();
+            data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
             data.label.set_font <+ style.map(|s| s.font.clone_ref()).on_change();
         }

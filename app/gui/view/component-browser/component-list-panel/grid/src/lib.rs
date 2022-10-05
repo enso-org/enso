@@ -390,7 +390,7 @@ impl component::Frp<Model> for Frp {
         frp_api: &<Self as API>::Private,
         _app: &Application,
         model: &Model,
-        style: &StyleWatchFrp,
+        style_frp: &StyleWatchFrp,
     ) {
         let input = &frp_api.input;
         let out = &frp_api.output;
@@ -399,8 +399,12 @@ impl component::Frp<Model> for Frp {
         let grid_extra_scroll_frp = grid.extra_scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
         let grid_header_frp = grid.header_frp();
-        let corners_radius = style.get_number(panel_theme::corners_radius);
-        let style = Style::from_theme(network, style);
+        let corners_radius = style_frp.get_number(panel_theme::corners_radius);
+        let style = Style::from_theme(network, style_frp);
+        let entry_style = entry::Style::from_theme(network, style_frp);
+        let color_intensities = entry::style::ColorIntensities::from_theme(network, style_frp);
+        let selection_color_intensities =
+            entry::style::SelectionColorIntensities::from_theme(network, style_frp);
         frp::extend! { network
             // === Active Entry ===
 
@@ -425,15 +429,12 @@ impl component::Frp<Model> for Frp {
 
             // === Style and Entries Params ===
 
-            entry_style <- source::<entry::Style>();
-            color_intensities <- source::<entry::style::ColorIntensities>();
-            selection_color_intensities <- source::<entry::style::SelectionColorIntensities>();
             group_colors <- source::<GroupColors>();
             dimmed_groups <- out.active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
-            entries_style <- all4(&style.update, &entry_style, &color_intensities, &group_colors);
+            entries_style <- all4(&style.update, &entry_style.update, &color_intensities.update, &group_colors);
             entries_params <- all_with(&entries_style, &dimmed_groups, f!((style, dimmed) model.entries_params(style, *dimmed)));
-            selection_entries_style <- all(entries_params, selection_color_intensities);
-            selection_entries_style <- all(entries_params, selection_color_intensities);
+            selection_entries_style <- all(entries_params, selection_color_intensities.update);
+            selection_entries_style <- all(entries_params, selection_color_intensities.update);
             selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style.update.map(|s| s.content_size());
             grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
@@ -482,31 +483,9 @@ impl component::Frp<Model> for Frp {
         // Set the proper number of columns so we can set column widths.
         grid.resize_grid(0, column::COUNT);
         style.init.emit(());
-        //TODO[ao] fix FromTheme and use it to get those values (without using source nodes).
-        entry_style.emit(entry::Style {
-            padding:                  17.0,
-            icon_size:                16.0,
-            text_size:                text::Size(12.0),
-            icon_text_padding:        8.0,
-            font:                     "default".into(),
-            selection_corners_radius: 12.0,
-            highlight_bold:           0.04,
-            header_shadow_size:       27.0,
-        });
-        color_intensities.emit(entry::style::ColorIntensities {
-            text:            1.0,
-            background:      0.2,
-            hover_highlight: 0.4,
-            dimmed:          0.5,
-            icon_strong:     1.0,
-            icon_weak:       0.5,
-        });
-        selection_color_intensities.emit(entry::style::SelectionColorIntensities {
-            text:        0.2,
-            background:  1.0,
-            icon_strong: 0.2,
-            icon_weak:   0.5,
-        });
+        entry_style.init.emit(());
+        color_intensities.init.emit(());
+        selection_color_intensities.init.emit(());
         group_colors.emit(GroupColors {
             variants:          [
                 color::Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),

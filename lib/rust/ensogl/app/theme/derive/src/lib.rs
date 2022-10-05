@@ -3,9 +3,9 @@
 //! if any of the values changes.
 //!
 //! The derive creates a method `from_theme` that can be used to receive updates to any of the
-//! values. A base path for the values can be set via the `base_path` attribute. This attribute can
-//! be used on the struct, as well as on the fields of the struct (which then overrides the struct
-//! `base_path` for that field.
+//! values. A base path for the values can be set via the `base_path` attribute. The field name is
+//! appended to `base_path` to get the full path to the value in the theme. It can be overridden
+//! using the `theme_path` attribute on the field.
 //!
 //! Example usage
 //!```no_compile
@@ -17,7 +17,7 @@
 //! struct Style {
 //!     some_number: f32,
 //!     some_color:  color::Rgba,
-//!     #[base_path = "ensogl_hardcoded_theme"]
+//!     #[theme_path = "ensogl_hardcoded_theme::some_path::label"]
 //!     some_label:  String,
 //! }
 //! ```
@@ -68,8 +68,8 @@ use syn::DeriveInput;
 mod from_theme;
 
 
-/// Implements the `FromTheme` derive macro. See thr crate docs for more information.   
-#[proc_macro_derive(FromTheme, attributes(base_path))]
+/// Implements the `FromTheme` derive macro. See thr crate docs for more information.
+#[proc_macro_derive(FromTheme, attributes(base_path, theme_path))]
 pub fn derive_from_thee(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     from_theme::expand(input).into()

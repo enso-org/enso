@@ -10,6 +10,8 @@ use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
 use ensogl_text as text;
+use entry_theme::highlight::selection as selection_theme;
+use grid_theme::entry as entry_theme;
 
 
 
@@ -22,25 +24,35 @@ use ensogl_text as text;
 /// The intensities of various parts of Component Entry view. The actual color is computed by mixing
 /// the main groups color with the application background - see [`Colors`] for more information.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct ColorIntensities {
+    #[theme_path = "entry_theme::text::color_intensity"]
     pub text:            f32,
+    #[theme_path = "entry_theme::background::color_intensity"]
     pub background:      f32,
+    #[theme_path = "entry_theme::highlight::hover::color_intensity"]
     pub hover_highlight: f32,
+    #[theme_path = "entry_theme::dimmed::color_intensity"]
     pub dimmed:          f32,
     /// The more contrasting parts of the [icon](crate::icon::Any).
+    #[theme_path = "entry_theme::icon::strong_color_intensity"]
     pub icon_strong:     f32,
     /// The less contrasting parts of the [icon](crate::icon::Any).
+    #[theme_path = "entry_theme::icon::weak_color_intensity"]
     pub icon_weak:       f32,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionColorIntensities {
+    #[theme_path = "selection_theme::text::color_intensity"]
     pub text:        f32,
+    #[theme_path = "selection_theme::background::color_intensity"]
     pub background:  f32,
     /// The more contrasting parts of the [icon](crate::icon::Any).
+    #[theme_path = "selection_theme::icon_strong::color_intensity"]
     pub icon_strong: f32,
     /// The less contrasting parts of the [icon](crate::icon::Any).
+    #[theme_path = "selection_theme::icon_weak::color_intensity"]
     pub icon_weak:   f32,
 }
 
@@ -59,17 +71,25 @@ impl Into<ColorIntensities> for SelectionColorIntensities {
 /// The style of entries in Component List Panel Grid view, passed as a part of
 /// [`Entry::Params`](ensogl_grid_view::entry::Entry).
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, FromTheme)]
 pub struct Style {
     /// The distance between left/right edge of the entry and its content.
+    #[theme_path = "entry_theme::padding"]
     pub padding:                  f32,
+    #[theme_path = "entry_theme::icon::size"]
     pub icon_size:                f32,
-    pub text_size:                text::Size,
+    #[theme_path = "entry_theme::text::size"]
+    pub text_size:                f32,
     /// The distance between right edge of the icon and left edge of the caption.
+    #[theme_path = "entry_theme::icon::text_padding"]
     pub icon_text_padding:        f32,
+    #[theme_path = "entry_theme::text::font"]
     pub font:                     ImString,
+    #[theme_path = "entry_theme::highlight::corners_radius"]
     pub selection_corners_radius: f32,
+    #[theme_path = "entry_theme::text::highlight_bold"]
     pub highlight_bold:           f32,
+    #[theme_path = "entry_theme::shadow::size"]
     pub header_shadow_size:       f32,
 }
 

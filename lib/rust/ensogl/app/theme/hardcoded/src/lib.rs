@@ -207,17 +207,19 @@ define_themes! { [light:0, dark:1]
                         }
                         icon {
                             size = 16.0, 16.0;
+                            text_padding = 8.0, 8.0;
                             strong_color_intensity = 1.0, 1.0;
                             weak_color_intensity = 0.5, 0.5;
                         }
                         highlight {
-                            corners_radius = 10.0, 10.0;
+                            corners_radius = 12.0, 12.0;
                             hover.color_intensity = 0.4, 0.4;
                             selection {
-                                background.color_intensity = 0.2, 0.2;
+                                background.color_intensity = 1.0, 1.0;
                                 dimmed.color_intensity = 0.5, 0.5;
-                                text.color_intensity = 1.0, 1.0;
-
+                                text.color_intensity = 0.2, 0.2;
+                                icon_strong.color_intensity = 0.5, 0.5;
+                                icon_weak.color_intensity = 0.2, 0.2;
                             }
                         }
                         shadow = shadow , shadow;
@@ -245,9 +247,9 @@ define_themes! { [light:0, dark:1]
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 menu_divider_height = 0.5,0.5;
                 menu {
-                    breadcrumbs_crop_left = 9.0, 9.0;
-                    breadcrumbs_crop_right = 3.0, 3.0;
                     breadcrumbs {
+                        crop_left = 9.0, 9.0;
+                        crop_right = 3.0, 3.0;
                         height = 28.0, 28.0;
                         separator {
                             width = 8.0, 8.0;
