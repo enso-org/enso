@@ -134,7 +134,7 @@ impl Navigator {
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
             tooltip.frp.set_style <+ marketplace_button_hovered.map(|hovered| if *hovered {
                     // FIXME[mc]: const TOOLTIP_LOCATION
-                    tooltip::Style::set_label("Marketplace will be available soon".into()).with_placement(tooltip::Placement::Bottom)
+                    tooltip::Style::set_label("Marketplace will be available soon.".into()).with_placement(tooltip::Placement::Bottom)
                 } else {
                     tooltip::Style::unset_label()
                 }
