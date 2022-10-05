@@ -202,7 +202,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testSignature5() throws Exception {
     parseTest("val : List Int -> Int");
   }
@@ -284,7 +283,6 @@ public class EnsoCompilerTest {
     """);
   }
 
-  @Ignore
   @Test
   public void testNamedArgument() throws Exception {
     parseTest("""
@@ -306,7 +304,6 @@ public class EnsoCompilerTest {
     """);
   }
 
-  @Ignore
   @Test
   public void testVectorLiteralMany() throws Exception {
     parseTest("""
