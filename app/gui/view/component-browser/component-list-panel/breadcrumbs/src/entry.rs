@@ -212,11 +212,17 @@ impl EntryData {
         }
     }
 
-    fn width(&self, text_offset: f32) -> f32 {
+    fn is_text_displayed(&self) -> bool {
+        self.state.get() == State::Text
+    }
+
+    /// Return the width of the entry if it is known. If the entry displays text, the width needs to
+    /// be calculated separately.
+    fn fixed_width(&self) -> Option<f32> {
         match self.state.get() {
-            State::Text => self.text.width.value() + text_offset * 2.0,
-            State::Separator => separator::ICON_WIDTH,
-            State::Ellipsis => ellipsis::ICON_WIDTH,
+            State::Text => None,
+            State::Separator => Some(separator::ICON_WIDTH),
+            State::Ellipsis => Some(ellipsis::ICON_WIDTH),
         }
     }
 }
@@ -306,14 +312,6 @@ impl ensogl_grid_view::Entry for Entry {
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
-            width <- map2(&input.set_model, &text_offset,
-                f!((model, text_offset) {
-                    data.set_model(model);
-                    data.width(*text_offset)
-                })
-            );
-            out.override_column_width <+ width;
-
             out.disabled <+ is_disabled;
             out.contour <+ contour;
             out.highlight_contour <+ contour.map2(&highlight_corners_radius,
@@ -321,6 +319,22 @@ impl ensogl_grid_view::Entry for Entry {
             );
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ init.constant(color::Rgba::transparent());
+
+
+            // === Override column width ===
+
+            // We need to adjust the width of the grid view column depending on the width of
+            // the entry. For entries displaying icons we use [`EntryData::fixed_width`] method.
+            // For text entries, we listen for [`Text::width`] changes.
+            out.override_column_width <+ input.set_model.map(
+                f!((model) {
+                    data.set_model(model);
+                    data.fixed_width()
+                })
+            ).filter_map(|w| *w);
+            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
+            entry_width <- text_width.map2(&text_offset, |w, text_offset| w + text_offset * 2.0);
+            out.override_column_width <+ entry_width;
         }
         init.emit(());
         Self { frp, data }
