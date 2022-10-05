@@ -1,0 +1,99 @@
+## TODO This is a prototype based on the current pending design, used to proceed
+   with handling of types in the `filter` component and others. It will be
+   revisited when proper type support is implemented.
+
+from Standard.Base import all
+
+from Standard.Table.Errors import Invalid_Value_Type
+
+## Type to represent the different sizes of integer or float possible within a database.
+type Bits
+    ## 16-bit (2 byte) value
+    Bits_16
+    ## 32-bit (4 byte) value
+    Bits_32
+    ## 64-bit (8 byte) value
+    Bits_64
+
+## Represents the different possible types of values within RDBMS columns.
+type Value_Type
+    ## Boolean or Bit value: 0 or 1.
+
+       ANSI SQL: BIT / BOOLEAN
+    Boolean
+
+    ## Integer value: 0 to 255
+
+       ANSI SQL: TINYINT
+    Byte
+
+    ## Integer value:
+
+       16-bit: -32,768 to 32,767
+       32-bit: -2,147,483,648 to -2,147,483,648
+       64-bit: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+       ANSI SQL: SMALLINT (16-bit), INT (32-bit), BIGINT (64-bit)
+    Integer size:Bits=Bits.Bits_64
+
+    ## Floating point value.
+
+       ANSI SQL: REAL, FLOAT, DOUBLE
+    Float size:(Bits.Bits_32 | Bits.Bits_64)=Bits.Bits_64
+
+    ## Arbitrary precision numerical value with a scale and precision.
+
+       ANSI SQL: NUMERIC, DECIMAL
+    Decimal precision:(Integer|Nothing)=Nothing scale:(Integer|Nothing)=Nothing
+
+    ## Character string.
+
+       ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
+    Char size:(Integer|Nothing)=Nothing variable:Boolean=True
+
+    ## Date
+
+       ANSI SQL: DATE
+    Date
+
+    ## Date and Time
+
+       ANSI SQL: TIMESTAMP / DateTime
+    Date_Time with_timezone:Boolean=True
+
+    ## Time of day
+
+       ANSI SQL: TIME, TIME WITHOUT TIME ZONE
+    Time
+
+    ## Binary stream.
+
+       ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB, BIT(n)
+    Binary size:(Integer|Nothing)=Nothing variable:Boolean=False
+
+    ## Unsupported SQL type.
+
+       Fallback provided to allow describing types that are not supported by Enso at this time.
+    Unsupported_Data_Type type_name:Text=""
+
+    ## A mix of values can be stored in the Column.
+
+       In-Memory and SQLite tables support this.
+    Mixed
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a textual type (with any settings)
+       and runs the following action or reports a type error.
+    expect_text : Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_text value_type ~action = case value_type of
+        Value_Type.Char _ _ -> action
+        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char value_type)
+
+    ## ADVANCED
+       UNSTABLE
+       Checks if the provided value type is a boolean type and runs the
+       following action or reports a type error.
+    expect_boolean : Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_boolean value_type ~action = case value_type of
+        Value_Type.Boolean -> action
+        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Boolean value_type)

@@ -173,7 +173,7 @@ run_tests connection db_name pending=Nothing =
 
     Common_Spec.spec prefix connection pending=pending
     postgres_specific_spec connection db_name pending=pending
-    common_selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False
+    common_selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
     selection = Aggregate_Spec.Test_Selection_Data first_last_row_order=False aggregation_problems=False date_support=False
