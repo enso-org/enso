@@ -1,5 +1,5 @@
 import Standard.Base.Data.Vector
-from Standard.Base.Data.Index_Sub_Range import First
+from Standard.Base.Data.Index_Sub_Range import First, Last
 import Standard.Base.Polyglot
 import Standard.Base.Nothing
 from Standard.Base.Runtime.Extensions import Source_Location, Source_Location_Data
@@ -22,9 +22,10 @@ get_stack_trace : Vector.Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_prims = Vector.from_polyglot_array prim_stack
-    stack = stack_with_prims.map wrap_primitive_stack_trace_element
-    # drop this frame and the one from `Runtime.primitive_get_stack_trace`
-    stack.drop (First 2)
+    # (First 2) drops the `Runtime.primitive_get_stack_trace` frame and this one
+    # (Last 1) drops the `org.graalvm.polyglot.Value<Function>.execute` frame
+    stack = stack_with_prims.drop (First 2) . drop (Last 1)
+    stack.map wrap_primitive_stack_trace_element
 
 ## ADVANCED
 
@@ -82,11 +83,7 @@ no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 wrap_primitive_stack_trace_element el =
     loc = if Polyglot.has_source_location el then Source_Location_Data (Polyglot.get_source_location el) else Nothing
     name = Polyglot.get_executable_name el
-    Stack_Trace_Element_Data name loc
-
-# TODO Dubious constructor export
-from project.Runtime.Stack_Trace_Element import all
-from project.Runtime.Stack_Trace_Element export all
+    Stack_Trace_Element.Stack_Trace_Element_Data name loc
 
 ## ADVANCED
    UNSTABLE

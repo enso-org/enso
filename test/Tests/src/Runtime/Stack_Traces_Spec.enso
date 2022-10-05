@@ -18,4 +18,3 @@ spec = Test.group "Stack traces" <|
         stack.take (First 5) . map .name . should_equal names
         file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
         stack.take (First 5) . map (.source_location >> .file) . each (_.should_equal file)
-

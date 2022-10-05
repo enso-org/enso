@@ -9,6 +9,7 @@ from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Ou
 import Standard.Table.Data.Storage
 from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Errors import Floating_Point_Grouping_Data
+from Standard.Table.Data.Filter_Condition import Filter_Condition
 
 import Standard.Visualization
 
@@ -271,34 +272,22 @@ spec =
     Test.group "Masking Tables" <|
         Test.specify "should allow selecting table rows based on a boolean column" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [True, False, False, True])
+            r = df.filter (Column.from_vector 'x' [True, False, False, True])
             r.at "a" . to_vector . should_equal ["1", "10"]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
         Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [Nothing, True, False])
+            r = df.filter (Column.from_vector 'x' [Nothing, True, False])
             r.at "a" . to_vector . should_equal ["4"]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
         Test.specify "should work correctly if a mask is bigger than the table itself" <|
             df = (enso_project.data / "simple_empty.csv").read
-            r = df.where (Column.from_vector 'x' [True, False, False, False, True])
+            r = df.filter (Column.from_vector 'x' [True, False, False, False, True])
             r.at "a" . to_vector . should_equal ["1"]
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
-
-    Test.group "Masking Columns" <|
-        Test.specify "should allow selecting column rows based on a boolean column" <|
-            df = (enso_project.data / "simple_empty.csv").read
-            mask = Column.from_vector 'x' [True, False, False, True]
-            df.at "a" . where mask . to_vector . should_equal ["1", "10"]
-            df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
-
-        Test.specify "should work correctly if a mask is bigger than the column itself" <|
-            col = Column.from_vector "col" [1, 2]
-            mask = Column.from_vector 'x' [True, False, False, True]
-            col.where mask . to_vector . should_equal [1]
 
     Test.group "Joining Tables" <|
         a_0 = ['x', [0, 1, 7, 3, 6]]
@@ -401,10 +390,6 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop missing rows in a Column" <|
-            col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            col.drop_missing.to_vector . should_equal [1, 2]
-
         Test.specify "should drop rows that contain at least one missing column in a Table" <|
             t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
             d = t.drop_missing_rows
@@ -870,6 +855,48 @@ spec =
             r = t.distinct on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", "b", "b"]
             r.at "B" . to_vector . should_equal [2, 1, 2]
+    Test.group "[In-Memory] Table.filter" <|
+        Test.specify "by a custom predicate" <|
+            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [5, 0, 4, 5, 1]]]
+            t1 = t.filter "X" (x -> x % 2 == 0)
+            t1.at "ix" . to_vector . should_equal [2, 3]
+            t1.at "X" . to_vector . should_equal [0, 4]
+
+            t2 = t.filter 1 (>2)
+            t2.at "ix" . to_vector . should_equal [1, 3, 4]
+            t2.at "X" . to_vector . should_equal [5, 4, 5]
+
+            t3 = t.filter (t.at "X" + 1) (x -> x % 2 == 0)
+            t3.at "ix" . to_vector . should_equal [1, 4, 5]
+            t3.at "X" . to_vector . should_equal [5, 5, 1]
+
+        Test.specify "by custom object comparisons" <|
+            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My_Data 1 2, My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]]]
+            t1 = t.filter "X" (Filter_Condition.Between (My_Data 10 20) (My_Data 300 400))
+            t1.at "ix" . to_vector . should_equal [2, 3]
+            t1.at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200]
+            t.filter "X" (Filter_Condition.Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 5 6]
+            t.filter "X" (Filter_Condition.Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 7 8]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]
+            t.filter "X" (Filter_Condition.Equal to=(My_Data 2 1)) . at "X" . to_vector . should_equal [My_Data 1 2]
+            t.filter "X" (Filter_Condition.Equal to=42) . at "X" . to_vector . should_equal []
+
+            c = Column.from_vector "Y" [My_Data 2 1, My_Data 400 300, My_Data 101 202, My_Data 10 10, My_Data 15 0]
+            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 300 400, My_Data 7 8]
+            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My_Data 100 200, My_Data 5 6]
+            t.filter "X" (Filter_Condition.Greater than=c) . at "X" . to_vector . should_equal []
+
+        Test.specify "by a boolean mask of varying length" <|
+            t = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
+
+            t1 = t.filter (Column.from_vector "f" [False, True])
+            t1.at "A" . to_vector . should_equal [2]
+            t1.at "B" . to_vector . should_equal [5]
+
+            t2 = t.filter (Column.from_vector "f" [False, True, True, True, True, True, True, True])
+            t2.at "A" . to_vector . should_equal [2, 3]
+            t2.at "B" . to_vector . should_equal [5, 6]
 
 main = Test.Suite.run_main spec
 

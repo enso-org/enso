@@ -4,7 +4,6 @@
 //! of [`enso_text`] crate carefully.
 
 #![recursion_limit = "1024"]
-
 // === Features ===
 #![feature(const_trait_impl)]
 #![feature(trait_alias)]
@@ -16,12 +15,10 @@
 #![feature(allocator_api)]
 #![feature(let_chains)]
 #![feature(step_trait)]
-
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

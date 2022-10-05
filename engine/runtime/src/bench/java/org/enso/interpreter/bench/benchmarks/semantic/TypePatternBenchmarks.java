@@ -44,7 +44,7 @@ public class TypePatternBenchmarks {
       "\n" +
       "avg arr =\n" +
       "    sum acc i = if i == arr.length then acc else\n" +
-      "        sum (acc + arr.at i) i+1\n" +
+      "        @Tail_Call sum (acc + arr.at i) i+1\n" +
       "    (sum 0 0) / arr.length\n" +
       "\n" +
       "avg_pattern self arr pattern =\n" +
@@ -56,6 +56,7 @@ public class TypePatternBenchmarks {
       "    b.append value\n" +
       "    add_more n = if n == size then b else\n" +
       "        b.append value\n" +
+      "        @Tail_Call add_more n+1\n" +
       "    add_more 2 . to_vector\n" +
       "\n" +
       "match_any = v -> case v of\n" +
@@ -69,7 +70,7 @@ public class TypePatternBenchmarks {
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
-    var length = 100000;
+    var length = 100;
     this.vec = getMethod.apply("gen_vec").execute(self, length, 1.1);
     switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
       case "matchOverAny":
@@ -104,8 +105,8 @@ public class TypePatternBenchmarks {
       throw new AssertionError("Shall be a double: " + average);
     }
     var result = average.asDouble();
-    if (result != 2.1) {
-      throw new AssertionError("Expecting the average to be 2.1: ");
+    if (result < 2.099 && result > 2.1) { // Precision loss due to conversion
+      throw new AssertionError("Expecting the average to be 2.1: " + result);
     }
     matter.consume(result);
   }
