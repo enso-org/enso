@@ -273,12 +273,15 @@ impl<'g> ProgramBuilder<'g> {
         match primitive {
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
             // to encode compatibly with other types.
-            Primitive::U32 => self.emit(Op::U32(1234567890)),
+            Primitive::U32 | Primitive::I32 => self.emit(Op::U32(1234567890)),
             // Value 1 chosen to detect errors better: 0 encodes the same way as Option::None.
             Primitive::Bool => self.emit(Op::U8(1)),
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
             // to encode compatibly with other types.
-            Primitive::U64 => self.emit(Op::U64(1234567890123456789)),
+            Primitive::Char => self.emit(Op::U32(0x10FFFF)),
+            // Value doesn't matter, but this will be recognizable in the output, and will tend not
+            // to encode compatibly with other types.
+            Primitive::U64 | Primitive::I64 => self.emit(Op::U64(1234567890123456789)),
             Primitive::String => self.emit(Op::U64("".len() as u64)),
             Primitive::Sequence(_) if basecase => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) => {

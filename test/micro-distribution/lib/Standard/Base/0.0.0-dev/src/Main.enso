@@ -25,5 +25,11 @@ from project.Data.Vector export Vector
 import project.Polyglot
 from project.Polyglot export all
 
-export project.Polyglot.Java
 import project.Polyglot.Java
+export project.Polyglot.Java
+
+import project.Runtime
+export project.Runtime
+
+import project.Warning
+export project.Warning
