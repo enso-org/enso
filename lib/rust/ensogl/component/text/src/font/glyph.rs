@@ -22,13 +22,12 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-#[cfg(target_arch = "wasm32")]
 use ensogl_core::display::world;
 use ensogl_core::frp;
-#[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use font::Font;
+use font::FontWithAtlas;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
@@ -41,6 +40,7 @@ use owned_ttf_parser::GlyphId;
 // === FRP ===
 // ===========
 
+
 ensogl_core::define_endpoints_2! {
     Input {
         set_color(color::Lcha),
@@ -48,64 +48,51 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-// /// A system for displaying glyphs.
-// #[derive(Clone, CloneRef, Debug)]
-// #[allow(missing_docs)]
-// pub struct SystemData {
-//     logger:        Logger,
-//     context:       Context,
-//     sprite_system: SpriteSystem,
-//     pub font:      Font,
-//     size:          Buffer<f32>,
-//     color:         Buffer<Vector4<f32>>,
-//     sdf_weight:    Buffer<f32>,
-//     atlas_index:   Buffer<f32>,
-//     atlas:         Uniform<Texture>,
-// }
-//
-// impl SystemData {
-//     /// Constructor.
-//     #[profile(Detail)]
-//     pub fn new(scene: impl AsRef<Scene>) -> Self {
-//         let scene = scene.as_ref();
-//         let logger = Logger::new("glyph_system");
-//         let fonts = scene.extension::<font::Registry>();
-//         let font = fonts.load(font::DEFAULT_FONT_MONO);
-//         let size = font::msdf::Texture::size();
-//         let sprite_system = SpriteSystem::new();
-//         let symbol = sprite_system.symbol();
-//         let context = scene.context.borrow().as_ref().unwrap().clone_ref();
-//         let texture = Texture::new(&context, (0, 0));
-//         let mesh = symbol.surface();
-//
-//         sprite_system.set_material(Self::material());
-//         sprite_system.set_alignment(Alignment::bottom_left());
-//         scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-//         scene.variables.add("msdf_size", size);
-//         Self {
-//             logger,
-//             context,
-//             sprite_system,
-//             font,
-//             atlas: symbol.variables().add_or_panic("atlas", texture),
-//             size: mesh.instance_scope().add_buffer("font_size"),
-//             color: mesh.instance_scope().add_buffer("color"),
-//             sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
-//             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
-//         }
-//     }
-// }
+
+
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct SystemData {
+    pub font: FontWithAtlas,
+}
+
 
 pub mod glyph {
     use super::*;
 
 
     ensogl_core::define_shape_system! {
+        SystemData(SystemData)
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
             let shape = Circle(50.px());
             let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
             shape.into()
         }
+    }
+}
+
+impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData {
+    fn new(
+        scene: &Scene,
+        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph::Shape>,
+    ) -> Self {
+        let fonts = scene.extension::<font::Registry>();
+        let font = fonts.load(font::DEFAULT_FONT_MONO);
+
+        let size = font::msdf::Texture::size();
+        let sprite_system = &data.model.sprite_system;
+        let symbol = sprite_system.symbol();
+
+        *data.model.material.borrow_mut() = System::material();
+
+        // sprite_system.set_material(Self::material());
+        sprite_system.set_alignment(Alignment::bottom_left());
+        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        scene.variables.add("msdf_size", size);
+
+        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+
+        SystemData { font }
     }
 }
 
@@ -146,14 +133,13 @@ pub struct GlyphData {
     pub display_object:     display::object::Instance,
     pub sprite:             Sprite,
     pub context:            Context,
-    pub font:               Font,
+    pub font:               FontWithAtlas,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
     pub size:               Attribute<f32>,
     pub color:              Attribute<Vector4<f32>>,
     pub sdf_weight:         Attribute<f32>,
     pub atlas_index:        Attribute<f32>,
-    pub atlas:              Uniform<Texture>,
     pub color_animation:    color::Animation,
     pub x_advance:          Rc<Cell<f32>>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
@@ -390,13 +376,13 @@ impl Glyph {
     #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
         let cpu_tex_height = self.font.msdf_texture_rows() as i32;
-        let gpu_tex_height = self.atlas.with_content(|texture| texture.storage().height);
+        let gpu_tex_height = self.font.atlas.with_content(|texture| texture.storage().height);
         let texture_changed = cpu_tex_height != gpu_tex_height;
         if texture_changed {
             let cpu_tex_width = font::msdf::Texture::WIDTH as i32;
             let texture = Texture::new(&self.context, (cpu_tex_width, cpu_tex_height));
             self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            self.atlas.set(texture);
+            self.font.atlas.set(texture);
         }
     }
 }
@@ -446,12 +432,11 @@ pub struct System {
     logger:        Logger,
     context:       Context,
     sprite_system: SpriteSystem,
-    pub font:      Font,
+    pub font:      FontWithAtlas,
     size:          Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     sdf_weight:    Buffer<f32>,
     atlas_index:   Buffer<f32>,
-    atlas:         Uniform<Texture>,
 }
 
 impl System {
@@ -466,19 +451,20 @@ impl System {
         let sprite_system = SpriteSystem::new();
         let symbol = sprite_system.symbol();
         let context = scene.context.borrow().as_ref().unwrap().clone_ref();
-        let texture = Texture::new(&context, (0, 0));
         let mesh = symbol.surface();
 
         sprite_system.set_material(Self::material());
         sprite_system.set_alignment(Alignment::bottom_left());
         scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         scene.variables.add("msdf_size", size);
+
+        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+
         Self {
             logger,
             context,
             sprite_system,
             font,
-            atlas: symbol.variables().add_or_panic("atlas", texture),
             size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
             sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
@@ -501,7 +487,6 @@ impl System {
         let sdf_weight = self.sdf_weight.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
-        let atlas = self.atlas.clone();
         let glyph_id = default();
         let line_byte_offset = default();
         let properties = default();
@@ -531,7 +516,6 @@ impl System {
                 color,
                 sdf_weight,
                 atlas_index,
-                atlas,
                 glyph_id,
                 line_byte_offset,
                 properties,

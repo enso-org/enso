@@ -697,6 +697,18 @@ impl<F: Family> FontTemplate<F> {
 }
 
 
+use ensogl_core::system::gpu;
+use ensogl_core::system::gpu::texture;
+
+type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+
+#[derive(Clone, CloneRef, Debug, Deref)]
+pub struct FontWithAtlas {
+    #[deref]
+    pub font:  Font,
+    pub atlas: gpu::Uniform<AtlasTexture>,
+}
+
 
 // ================
 // === Registry ===
@@ -706,20 +718,21 @@ shared! { Registry
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct RegistryData {
+    scene:    scene::Scene,
     embedded: Embedded,
-    fonts:    HashMap<Name,Font>,
+    fonts:    HashMap<Name, FontWithAtlas>,
 }
 
 impl {
     /// Load the default font. See the docs of [`load`] to learn more.
-    pub fn load_default(&mut self) -> Font {
+    pub fn load_default(&mut self) -> FontWithAtlas {
         self.load(DEFAULT_FONT)
     }
 
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns the default font if the name is missing in both cache
     /// and embedded font list.
-    pub fn load(&mut self, name:impl Into<Name>) -> Font {
+    pub fn load(&mut self, name:impl Into<Name>) -> FontWithAtlas {
         let name = name.into();
         self.try_load(&name).unwrap_or_else(|| {
             warn!("Font '{name}' not found. Loading the default font.");
@@ -730,7 +743,7 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns [`None`] if the name is missing in both cache and
     /// embedded font list.
-    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<Font> {
+    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<FontWithAtlas> {
         let name = name.into();
         debug!("Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
@@ -749,6 +762,10 @@ impl {
                             VariableFont::new(name, family).into()
                         }
                     };
+                    let context = self.scene.context.borrow().as_ref().unwrap().clone_ref();
+                    let texture = gpu::Texture::new(&context, (0, 0));
+                    let atlas   = gpu::Uniform::new(texture);
+                    let font    = FontWithAtlas {font,atlas};
                     entry.insert(font.clone_ref());
                     font
                 })
@@ -759,17 +776,18 @@ impl {
 
 impl Registry {
     /// Constructor.
-    pub fn init_and_load_embedded_fonts() -> Registry {
+    pub fn init_and_load_embedded_fonts(scene: &scene::Scene) -> Registry {
+        let scene = scene.clone_ref();
         let embedded = Embedded::init_and_load_embedded_fonts();
         let fonts = HashMap::new();
-        let data = RegistryData { embedded, fonts };
+        let data = RegistryData { scene, embedded, fonts };
         let rc = Rc::new(RefCell::new(data));
         Self { rc }
     }
 }
 
 impl scene::Extension for Registry {
-    fn init(_scene: &scene::Scene) -> Self {
-        Self::init_and_load_embedded_fonts()
+    fn init(scene: &scene::Scene) -> Self {
+        Self::init_and_load_embedded_fonts(scene)
     }
 }

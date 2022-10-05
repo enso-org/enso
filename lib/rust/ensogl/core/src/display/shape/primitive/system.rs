@@ -188,7 +188,7 @@ pub struct ShapeSystemData<S: Shape, UserData> {
 pub struct ShapeSystemStandardData<S: Shape> {
     #[deref]
     gpu_params:  S::GpuParams,
-    model:       ShapeSystemModel,
+    pub model:   ShapeSystemModel,
     style_watch: crate::display::shape::StyleWatch,
 }
 
@@ -210,6 +210,7 @@ impl<S: Shape> ShapeSystem<S> {
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(scene, &standard);
+        standard.model.init();
         let data = Rc::new(ShapeSystemData { standard, user });
         Self { data }.init_refresh_on_style_change()
     }
@@ -292,13 +293,15 @@ impl ShapeSystemModel {
         let material = Rc::new(RefCell::new(Self::surface_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
-        let this = Self { sprite_system, shape, material, pointer_events };
-        this.reload_shape();
-        this
+        Self { sprite_system, shape, material, pointer_events }
+    }
+
+    fn init(&self) {
+        self.reload_shape();
     }
 
     // TODO
-    // We should handle these attributes in a nicer way. Currently, they are hardcoded here and we
+    // We should handle these attributes in a nicer way. Currently, they are hardcoded here, and we
     // use magic to access them in shader builders.
     /// Defines a default material of this system.
     fn surface_material() -> Material {
