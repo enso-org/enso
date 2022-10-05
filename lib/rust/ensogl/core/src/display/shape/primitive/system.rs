@@ -30,12 +30,16 @@ newtype_prim_no_default_no_display! {
 }
 
 
+pub trait InstanceParamsTrait {
+    fn swap(&self, other: &Self);
+}
+
 // =============
 // === Shape ===
 // =============
 
 pub trait Shape: 'static + Sized {
-    type InstanceParams: Debug;
+    type InstanceParams: Debug + InstanceParamsTrait;
     type ProxyParams: Debug + Default;
     type GpuParams: Debug;
     fn pointer_events() -> bool;
@@ -67,13 +71,24 @@ pub trait Shape: 'static + Sized {
 #[derivative(Debug(bound = ""))]
 pub struct ShapeInstance<S: Shape> {
     #[deref]
-    pub params: S::InstanceParams,
-    pub sprite: Sprite,
+    pub params:     S::InstanceParams,
+    pub sprite:     RefCell<Sprite>,
+    display_object: display::object::Instance,
 }
 
 impl<S: Shape> display::Object for ShapeInstance<S> {
     fn display_object(&self) -> &display::object::Instance {
-        self.sprite.display_object()
+        &self.display_object
+    }
+}
+
+impl<S: Shape> ShapeInstance<S> {
+    pub(crate) fn swap(&self, other: &Self) {
+        self.params.swap(&other.params);
+        self.sprite.swap(&other.sprite);
+        for child in other.display_object.remove_all_children() {
+            self.display_object.add_child(&child);
+        }
     }
 }
 
@@ -182,7 +197,10 @@ impl<S: Shape> ShapeSystem<S> {
         let sprite = self.model.sprite_system.new_instance();
         let id = sprite.instance_id;
         let params = S::new_instance_params(&sprite, &self.gpu_params, id);
-        ShapeInstance { sprite, params }
+        let display_object = display::object::Instance::new();
+        display_object.add_child(&sprite);
+        let sprite = RefCell::new(sprite);
+        ShapeInstance { sprite, params, display_object }
     }
 
     // #[profile(Debug)]
@@ -203,7 +221,10 @@ impl<S: Shape> ShapeSystem<S> {
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let params = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
-        let shape = ShapeInstance { sprite, params };
+        let display_object = display::object::Instance::new();
+        display_object.add_child(&sprite);
+        let sprite = RefCell::new(sprite);
+        let shape = ShapeInstance { sprite, params, display_object };
         (shape, global_id)
     }
 }
@@ -322,70 +343,70 @@ pub trait KnownShapeSystemId {
 // === ProxyParam ===
 // ==================
 
-/// A dynamic version of shape parameter. In case the shape was initialized and bound to the
-/// GPU, the `attribute` will be initialized as well and will point to the right buffer
-/// section. Otherwise, changing the parameter will not have any visual effect, however,
-/// all the changes will be recorded and applied as soon as the shape will get initialized.
-#[derive(Derivative)]
-#[derivative(Default(bound = "T::Item:Default"))]
-#[derivative(Debug(bound = "T::Item:Copy+Debug, T:Debug"))]
+#[derive(Debug)]
 #[allow(missing_docs)]
-pub struct ProxyParam<T: HasItem> {
-    value:      Rc<Cell<T::Item>>,
-    attributes: Rc<RefCell<Vec<T>>>,
+pub struct ProxyParam<T> {
+    attribute: RefCell<T>,
 }
 
 impl<T> ProxyParam<T>
 where
     T: CellProperty,
-    T::Item: Copy,
+    T::Item: Copy + Debug,
 {
+    pub fn new(attribute: T) -> Self {
+        let attribute = RefCell::new(attribute);
+        Self { attribute }
+    }
+
     /// Set the parameter value.
     pub fn set(&self, value: T::Item) {
-        self.value.set(value);
-        for attribute in &*self.attributes.borrow() {
-            attribute.set(value)
-        }
+        self.attribute.borrow_mut().set(value)
     }
 
     /// Get the parameter value.
     pub fn get(&self) -> T::Item {
-        self.value.get()
+        self.attribute.borrow().get()
     }
 
     /// Modify the parameter value.
     pub fn modify(&self, f: impl FnOnce(T::Item) -> T::Item) {
         self.set(f(self.get()))
     }
-}
 
-/// Internal utilities for managing [`ProxyParam`]s. You would normally not need to ever use it
-/// explicitly, however, it is exposed as public interface as it is required for user-defined shape
-/// systems. Again, instead of implementing shape systems from scratch, you'd rather use the
-/// `define_shape_system!` macro.
-pub trait DynamicParamInternals<T> {
-    /// Add a new binding to an attribute. This is done for every [`ProxyParam`] after the
-    /// [`ShapeProxy`] gets initialized with a new [`Shape`].
-    fn add_attribute_binding(&self, attribute: T);
-    /// Remove all attribute bindings. This is used, for example, when the [`ShapeProxy`] gets
-    /// removed from the display hierarchy.
-    fn remove_attributes_bindings(&self);
-}
-
-impl<T> DynamicParamInternals<T> for ProxyParam<T>
-where
-    T: CellProperty,
-    T::Item: Copy,
-{
-    fn remove_attributes_bindings(&self) {
-        *self.attributes.borrow_mut() = default();
-    }
-
-    fn add_attribute_binding(&self, attribute: T) {
-        attribute.set(self.value.get());
-        self.attributes.borrow_mut().push(attribute);
+    pub fn swap(&self, other: &Self) {
+        other.set(self.get());
+        self.attribute.swap(&other.attribute);
     }
 }
+
+// /// Internal utilities for managing [`ProxyParam`]s. You would normally not need to ever use it
+// /// explicitly, however, it is exposed as public interface as it is required for user-defined
+// shape /// systems. Again, instead of implementing shape systems from scratch, you'd rather use
+// the /// `define_shape_system!` macro.
+// pub trait DynamicParamInternals<T> {
+//     /// Add a new binding to an attribute. This is done for every [`ProxyParam`] after the
+//     /// [`ShapeProxy`] gets initialized with a new [`Shape`].
+//     fn add_attribute_binding(&self, attribute: T);
+//     /// Remove all attribute bindings. This is used, for example, when the [`ShapeProxy`] gets
+//     /// removed from the display hierarchy.
+//     fn remove_attributes_bindings(&self);
+// }
+//
+// impl<T> DynamicParamInternals<T> for ProxyParam<T>
+// where
+//     T: CellProperty,
+//     T::Item: Copy,
+// {
+//     fn remove_attributes_bindings(&self) {
+//         *self.attributes.borrow_mut() = default();
+//     }
+//
+//     fn add_attribute_binding(&self, attribute: T) {
+//         attribute.set(self.value.get());
+//         self.attributes.borrow_mut().push(attribute);
+//     }
+// }
 
 
 
@@ -453,7 +474,7 @@ macro_rules! _define_shape_system {
             use $crate::display::symbol::geometry::Sprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
-            use $crate::display::shape::DynamicParamInternals;
+            // use $crate::display::shape::DynamicParamInternals;
             use $crate::display::shape::ShapeInstance;
             use $crate::display::shape::ShapeSystemId;
             use $crate::display::shape::ShapeOps;
@@ -491,8 +512,8 @@ macro_rules! _define_shape_system {
                 }
 
                 fn new_instance_params(sprite: &Sprite, gpu_params:&Self::GpuParams, id: InstanceIndex) -> Self::InstanceParams {
-                    let size = sprite.size.clone_ref();
-                    $(let $gpu_param = gpu_params.$gpu_param.at(id);)*
+                    let size = ProxyParam::new(sprite.size.clone_ref());
+                    $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     Self::InstanceParams { size, $($gpu_param),* }
                 }
 
@@ -506,16 +527,16 @@ macro_rules! _define_shape_system {
                 }
 
                 fn bind_proxy_params(dyn_params:&Self::ProxyParams, shape: &ShapeInstance<Self>){
-                    dyn_params.size.add_attribute_binding(shape.sprite.size.clone_ref());
-                    $(
-                        let gpu_param = shape.$gpu_param.clone_ref();
-                        dyn_params.$gpu_param.add_attribute_binding(gpu_param);
-                    )*
+                    // dyn_params.size.add_attribute_binding(shape.sprite.size.clone_ref());
+                    // $(
+                    //     let gpu_param = shape.$gpu_param.clone_ref();
+                    //     dyn_params.$gpu_param.add_attribute_binding(gpu_param);
+                    // )*
                 }
 
                 fn drop_proxy_params_bindings(proxy_params: &Self::ProxyParams) {
-                    proxy_params.size.remove_attributes_bindings();
-                    $(proxy_params.$gpu_param.remove_attributes_bindings();)*
+                    // proxy_params.size.remove_attributes_bindings();
+                    // $(proxy_params.$gpu_param.remove_attributes_bindings();)*
                 }
 
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
@@ -540,19 +561,26 @@ macro_rules! _define_shape_system {
             /// An initialized, GPU-bound shape definition. All changed parameters are immediately
             /// reflected in the [`Buffer`] and will be synchronised with GPU before next frame is
             /// drawn.
-            #[derive(Clone,CloneRef,Debug)]
+            #[derive(Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
-                pub size: sprite::Size,
-                $(pub $gpu_param : Attribute<$gpu_param_type>),*
+                pub size: ProxyParam<sprite::Size>,
+                $(pub $gpu_param : ProxyParam<Attribute<$gpu_param_type>>),*
+            }
+
+            impl InstanceParamsTrait for InstanceParams {
+                fn swap(&self, other: &Self) {
+                    self.size.swap(&other.size);
+                    $(self.$gpu_param.swap(&other.$gpu_param);)*
+                }
             }
 
             /// Parameters of the [`ShapeProxy`].
             #[derive(Debug, Default)]
             #[allow(missing_docs)]
             pub struct ProxyParams {
-                pub size: ProxyParam<sprite::Size>,
-                $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
+                // pub size: ProxyParam<sprite::Size>,
+                // $(pub $gpu_param: ProxyParam<Attribute<$gpu_param_type>>),*
             }
 
             #[derive(Clone, CloneRef, Debug)]

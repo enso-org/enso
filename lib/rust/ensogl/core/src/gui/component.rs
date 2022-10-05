@@ -143,10 +143,13 @@ impl<S: Shape> ShapeViewModel<S> {
 
 impl<S: Shape> ShapeViewModel<S> {
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
-        // let (shape, instance) = layer.instantiate(scene);
-        // scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
-        // self.pointer_targets.borrow_mut().push(instance.global_instance_id);
-        // let old_shape = mem::replace(&mut self.shape, shape);
+        warn!("add_to_scene_layer: {:?}", layer);
+        let (shape, instance) = layer.instantiate(scene);
+        scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
+        self.pointer_targets.borrow_mut().push(instance.global_instance_id);
+        // warn!(">>1");
+        self.shape.swap(&shape);
+        // warn!(">>2 {:?}", shape);
     }
 }
 

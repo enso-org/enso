@@ -335,7 +335,8 @@ impl<Host> Model<Host> {
                 self.callbacks.on_updated(self);
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
-                        self.children.borrow().iter().for_each(|weak_child| {
+                        let children = self.children.borrow().clone();
+                        children.iter().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
                                     host,
