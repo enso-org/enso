@@ -272,6 +272,7 @@ public class OpenCV {
 
     /** Cleans up patches done to the environment. */
     @Override
+    @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
       super.finalize();
 
