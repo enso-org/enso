@@ -846,6 +846,11 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             }
             Action::DeployToEcr(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
+                enso_build::release::dispatch_cloud_image_build_action(
+                    &ctx.octocrab,
+                    &ctx.triple.versions.version,
+                )
+                .await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;

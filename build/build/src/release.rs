@@ -120,3 +120,16 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
     Ok(())
 }
+
+pub async fn dispatch_cloud_image_build_action(octocrab: &Octocrab, version: &Version) -> Result {
+    let input = serde_json::json!({
+        "version": version.to_string(),
+    });
+    octocrab
+        .actions()
+        .create_workflow_dispatch("enso-org", "cloud-v2", "build-image.yaml", "main")
+        .inputs(input)
+        .send()
+        .await
+        .context("Failed to dispatch the cloud image build action.")
+}
