@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.time.Duration;
@@ -26,10 +27,6 @@ public class EnsoDuration implements TruffleObject {
 
   public EnsoDuration(Duration duration) {
     this.duration = duration;
-  }
-
-  public Duration getJavaDuration() {
-    return duration;
   }
 
   @ExportMessage
@@ -115,25 +112,36 @@ public class EnsoDuration implements TruffleObject {
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")
-  @Builtin.ReturningGuestObject
-  public EnsoDuration plus(EnsoDuration otherDuration) {
-    return new EnsoDuration(duration.plus(otherDuration.duration));
+  @Builtin.Specialize
+  public EnsoDuration plus(Object durationObject, InteropLibrary interop) {
+    return new EnsoDuration(duration.plus(ensureDuration(durationObject, interop)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts another Duration")
-  @Builtin.ReturningGuestObject
-  public EnsoDuration minus(EnsoDuration otherDuration) {
-    return new EnsoDuration(duration.minus(otherDuration.duration));
+  @Builtin.Specialize
+  public EnsoDuration minus(Object durationObject, InteropLibrary interop) {
+    return new EnsoDuration(duration.minus(ensureDuration(durationObject, interop)));
   }
 
   @Builtin.Method(name = "compare_to_builtin", description = "Compares to other duration")
-  public long compareTo(EnsoDuration otherDuration) {
-    return duration.compareTo(otherDuration.duration);
+  @Builtin.Specialize
+  public long compareTo(Object durationObject, InteropLibrary interop) {
+    return duration.compareTo(ensureDuration(durationObject, interop));
   }
 
   @Builtin.Method(name = "equals_builtin")
-  public boolean equalsDuration(EnsoDuration otherDuration) {
-    return duration.equals(otherDuration.duration);
+  @Builtin.Specialize
+  public boolean equalsDuration(Object durationObject, InteropLibrary interop) {
+    return duration.equals(ensureDuration(durationObject, interop));
+  }
+
+  private static Duration ensureDuration(Object durationObject, InteropLibrary interop) {
+    assert interop.isDuration(durationObject);
+    try {
+      return interop.asDuration(durationObject);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(e.getMessage(), interop);
+    }
   }
 
   @ExportMessage
