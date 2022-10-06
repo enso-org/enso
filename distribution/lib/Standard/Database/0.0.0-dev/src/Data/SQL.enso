@@ -153,7 +153,7 @@ optimize_fragments fragments =
             SQL_Fragment.Code_Part code ->
                 new_part = case last_part of
                     Nothing -> SQL_Fragment.Code_Part code
-                    SQL_Fragment.Code_Part other -> SQL_Fragment.Fragment.Code_Part other+code
+                    SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
                 State.put SQL_Fragment.Code_Part new_part
             SQL_Fragment.Interpolation _ _ ->
                 case last_part of
