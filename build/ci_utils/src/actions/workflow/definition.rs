@@ -575,7 +575,7 @@ impl Step {
     pub fn with_custom_argument(
         mut self,
         name: impl Into<String>,
-        value: impl Into<String>,
+        value: impl Into<serde_yaml::Value>,
     ) -> Self {
         match &mut self.with {
             Some(step::Argument::Other(map)) => {
@@ -648,11 +648,11 @@ pub mod step {
         GitHubScript {
             script: String,
         },
-        Other(BTreeMap<String, String>),
+        Other(BTreeMap<String, serde_yaml::Value>),
     }
 
     impl Argument {
-        pub fn new_other(name: impl Into<String>, value: impl Into<String>) -> Self {
+        pub fn new_other(name: impl Into<String>, value: impl Into<serde_yaml::Value>) -> Self {
             Argument::Other(BTreeMap::from_iter([(name.into(), value.into())]))
         }
     }

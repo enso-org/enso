@@ -18,7 +18,7 @@ pub fn test_reporter(os: OS) -> Step {
         "path",
         format!("{}/**/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR)),
     )
-    .with_custom_argument("path-replace-backslashes", "true")
-    .with_custom_argument("max-annotations", "100")
+    .with_custom_argument("path-replace-backslashes", true)
+    .with_custom_argument("max-annotations", 100)
     .with_custom_argument("name", format!("Enso Standard Library Tests ({os})"))
 }

@@ -653,9 +653,9 @@ impl<E: Entry> application::View for GridView<E> {
             (PressAndRepeat, "left", "move_selection_left"),
             (PressAndRepeat, "right", "move_selection_right"),
         ]
-            .iter()
-            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
-            .collect()
+        .iter()
+        .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+        .collect()
     }
 }
 

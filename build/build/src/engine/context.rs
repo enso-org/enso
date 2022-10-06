@@ -409,9 +409,9 @@ impl RunContext {
         }
 
         if build_native_runner {
-            Command::new("runner")
+            Command::new("./runner")
                 .current_dir(&self.repo_root)
-                .args(["--run", "engine/runner-native/src/test/resources/Factorial.enso"])
+                .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
                 .run_ok()
                 .await?;
         }

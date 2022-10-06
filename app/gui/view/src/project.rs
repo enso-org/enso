@@ -835,8 +835,8 @@ impl application::View for View {
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
         ]
-            .iter()
-            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-            .collect()
+        .iter()
+        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+        .collect()
     }
 }

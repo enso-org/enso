@@ -732,9 +732,9 @@ impl<E: Entry> application::View for ListView<E> {
             (Press, "end", "move_selection_to_last"),
             (Press, "enter", "chose_selected_entry"),
         ]
-            .iter()
-            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
-            .collect()
+        .iter()
+        .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+        .collect()
     }
 }
 

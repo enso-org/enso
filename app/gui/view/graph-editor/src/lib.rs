@@ -2566,9 +2566,9 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
         ]
-            .iter()
-            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-            .collect()
+        .iter()
+        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+        .collect()
     }
 }
 
