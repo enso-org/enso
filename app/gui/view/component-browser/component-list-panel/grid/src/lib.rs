@@ -234,6 +234,7 @@ impl Style {
 /// A [Model](component::Model) of [Component List Panel Grid View](View).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
+    display_object:         display::object::Instance,
     grid:                   Grid,
     grid_layer:             Layer,
     selection_layer:        Layer,
@@ -252,6 +253,7 @@ impl component::Model for Model {
     }
 
     fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new();
         let grid = Grid::new(app);
         let layout = default();
         let enterable_elements = default();
@@ -260,9 +262,11 @@ impl component::Model for Model {
         let base_layer = &app.display.default_scene.layers.node_searcher_text;
         let grid_layer = base_layer.create_sublayer();
         let selection_layer = base_layer.create_sublayer();
+        display_object.add_child(&grid);
         grid_layer.add_exclusive(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
         Self {
+            display_object,
             grid,
             layout,
             enterable_elements,
@@ -320,6 +324,24 @@ enum Action {
 impl Default for Action {
     fn default() -> Self {
         Self::EnterModule(default())
+    }
+}
+
+impl Action {
+    fn enter_module(self) -> Option<ElementId> {
+        if let Self::EnterModule(element) = self {
+            Some(element)
+        } else {
+            None
+        }
+    }
+
+    fn accept(self) -> Option<GroupEntryId> {
+        if let Self::Accept(entry) = self {
+            Some(entry)
+        } else {
+            None
+        }
     }
 }
 
@@ -488,8 +510,9 @@ impl Model {
         Vector2(x, y)
     }
 
-    fn grid_position((style, content_size): &(Style, Vector2)) -> Vector2 {
-        let y = style.content_size().y - min(style.content_size().y, content_size.y);
+    fn grid_position(input: &(Style, Vector2)) -> Vector2 {
+        let (style, _) = input;
+        let y = -style.content_size().y + Self::grid_size(input).y;
         Vector2(0.0, y)
     }
 
@@ -542,7 +565,7 @@ impl Model {
 
 impl display::Object for Model {
     fn display_object(&self) -> &display::object::Instance {
-        self.grid.display_object()
+        &self.display_object
     }
 }
 
@@ -576,16 +599,19 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             // === Active Entry ===
 
-            out.active <+ grid.entry_selected.filter_map(f!([model](loc) loc.as_ref().and_then(|l| model.location_to_element_id(l))));
+            out.active <+ grid.entry_selected.filter_map(
+                f!([model](loc) model.location_to_element_id(loc.as_ref()?))
+            );
             out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
 
             // === Accepting Suggestion and Expression ===
 
             action <- grid.entry_accepted.filter_map(f!((loc) model.action_after_accepting_entry(loc)));
-            out.module_entered <+ action.filter_map(|m| if let Action::EnterModule(m) = m {Some(*m)} else {None});
-            out.expression_accepted <+ action.filter_map(|e| if let Action::Accept(e) = e {Some(*e)} else {None});
-            out.suggestion_accepted <+ out.active.sample(&input.accept_suggestion).filter_map(|e| e.as_entry_id());
+            out.module_entered <+ action.filter_map(|m| m.enter_module());
+            out.expression_accepted <+ action.filter_map(|e| e.accept());
+            element_on_suggestion_accept <- out.active.sample(&input.accept_suggestion);
+            out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|e| e.as_entry_id());
 
 
             // === Groups colors ===
@@ -596,9 +622,9 @@ impl component::Frp<Model> for Frp {
             let group3 = style_frp.get_color(theme::group_colors::group_3);
             let group4 = style_frp.get_color(theme::group_colors::group_4);
             let group5 = style_frp.get_color(theme::group_colors::group_5);
-            groups <- all6(&group0, &group1, &group2, &group3, &group4, &group5);
+            groups <- all7(&style.init, &group0, &group1, &group2, &group3, &group4, &group5);
             let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
-            group_colors <- all_with3(&style.init, &groups, &local_scope_group, |(), &(g0, g1, g2, g3, g4, g5), ls| {
+            group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
                 GroupColors {
                     variants: [g0, g1, g2, g3, g4, g5],
                     local_scope_group: *ls
@@ -609,11 +635,14 @@ impl component::Frp<Model> for Frp {
             // === Style and Entries Params ===
 
             style_and_content_size <- all(&style.update, &grid.content_size);
-            dimmed_groups <- out.active_section.map(|section| entry::DimmedGroups::AllExceptSection(*section));
-            entries_style <- all4(&style.update, &entry_style.update, &color_intensities.update, &group_colors);
-            entries_params <- all_with(&entries_style, &dimmed_groups, f!((style, dimmed) model.entries_params(style, *dimmed)));
+            dimmed_groups <- out.active_section.map(|s| entry::DimmedGroups::AllExceptSection(*s));
+            entries_style <-
+                all4(&style.update, &entry_style.update, &color_intensities.update, &group_colors);
+            entries_params <-
+                all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
             selection_entries_style <- all(entries_params, selection_color_intensities.update);
-            selection_entries_params <- selection_entries_style.map(f!((input) model.selection_entries_params(input)));
+            selection_entries_params <-
+                selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_position_xy(*pos));
@@ -627,29 +656,50 @@ impl component::Frp<Model> for Frp {
             // === Header and Entries Models ===
 
             grid.reset_entries <+ input.reset.map(f!((content) model.reset(content)));
-            section_info <- input.model_for_header.filter_map(f!((input) model.make_section_info(input)));
-            grid.model_for_entry <+ section_info.map(|(rows, col, model)| (rows.start, *col, model.clone()));
-            grid.model_for_entry <+ input.model_for_entry.filter_map(f!((input) model.model_for_entry(input)));
-            grid_header_frp.section_info <+ section_info.filter(f!((input) model.is_requested_section(input)));
-            out.model_for_header_needed <+ grid_header_frp.section_info_needed.filter_map(f!((loc) model.section_info_requested(loc)));
-            out.model_for_header_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_headers_group_id(loc)));
-            out.model_for_entry_needed <+ grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
+            section_info <- input.model_for_header.filter_map(f!((m) model.make_section_info(m)));
+            grid.model_for_entry <+ section_info.map(|(rs, c, m)| (rs.start, *c, m.clone()));
+            grid.model_for_entry <+
+                input.model_for_entry.filter_map(f!((input) model.model_for_entry(input)));
+            grid_header_frp.section_info <+
+                section_info.filter(f!((input) model.is_requested_section(input)));
+            out.model_for_header_needed <+ grid_header_frp.section_info_needed.filter_map(
+                f!((loc) model.section_info_requested(loc))
+            );
+            out.model_for_header_needed <+ grid.model_for_entry_needed.filter_map(
+                f!((loc) model.location_to_headers_group_id(loc))
+            );
+            out.model_for_entry_needed <+
+                grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
 
             // === Scrolling and Jumping to Section ===
 
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
-            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(&out.active_section, &style.update, f!((section, style) model.navigation_scroll_margins(*section, style)));
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(f!((section) model.entry_to_select_when_switching_to_section(*section)));
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+
+                input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
+            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(
+                &out.active_section,
+                &style.update,
+                f!((section, style) model.navigation_scroll_margins(*section, style))
+            );
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
+                f!((section) model.entry_to_select_when_switching_to_section(*section))
+            );
             // The content area is higher than just height of all entries, as we add also a gap
             // between all groups and local scope section.
-            grid_scroll_frp.set_content_height <+ style_and_content_size.map(|(s, c)| c.y + s.column_gap);
+            grid_scroll_frp.set_content_height <+
+                style_and_content_size.map(|(s, c)| c.y + s.column_gap);
 
 
             // === Jumping by Groups ===
 
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_up).filter_map(f!((loc) model.selection_after_jump_group_up(loc.as_ref()?)));
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+ grid.entry_selected.sample(&input.jump_group_down).filter_map(f!((loc) model.selection_after_jump_group_down(loc.as_ref()?)));
+            entry_on_jump_down <- grid.entry_selected.sample(&input.jump_group_up);
+            entry_on_jump_up <- grid.entry_selected.sample(&input.jump_group_down);
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_down.filter_map(
+                f!((loc) model.selection_after_jump_group_up(loc.as_ref()?))
+            );
+            grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_up.filter_map(
+                f!((loc) model.selection_after_jump_group_down(loc.as_ref()?))
+            );
 
 
             // === Focus propagation ===
