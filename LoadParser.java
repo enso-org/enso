@@ -89,6 +89,10 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                             failed.add(file);
                             break TEST;
                         }
+                        if (ex.getMessage().contains("OprApp[\"\", \"@")) {
+                            failed.add(file);
+                            break TEST;
+                        }
                     }
                     irFailed.put(file, ex);
                 }
