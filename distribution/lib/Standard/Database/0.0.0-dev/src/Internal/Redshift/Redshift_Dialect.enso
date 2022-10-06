@@ -2,9 +2,12 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
 
-from Standard.Database.Data.SQL import SQL_Type, Statement
-import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Base_Generator
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Order_Descriptor
+import project.Internal.Postgres.Postgres_Dialect
+
+from project.Data.SQL import SQL_Type, Statement
 
 ## PRIVATE
 
@@ -48,6 +51,6 @@ type Redshift_Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
