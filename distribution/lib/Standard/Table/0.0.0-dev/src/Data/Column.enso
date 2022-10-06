@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Index_Sub_Range
 
@@ -464,7 +463,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = run_vectorized_unary_op self "is_empty" Filter_Condition_Module.is_empty
+    is_empty self = run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
