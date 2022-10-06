@@ -1596,28 +1596,28 @@ mod tests {
 
     #[test]
     fn layers_test() {
-        let layer1 = Layer::new(Logger::new("0"));
-        let layer2 = Layer::new(Logger::new("1"));
+        let layer1 = Layer::new("0", Logger::new("0"));
+        let layer2 = Layer::new("1", Logger::new("1"));
         let node1 = Instance::<()>::new();
         let node2 = Instance::<()>::new();
         let node3 = Instance::<()>::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node1.update(&());
-        assert_eq!(node1.display_layer(), vec![]);
-        assert_eq!(node2.display_layer(), vec![]);
-        assert_eq!(node3.display_layer(), vec![]);
+        assert_eq!(node1.display_layer(), None);
+        assert_eq!(node2.display_layer(), None);
+        assert_eq!(node3.display_layer(), None);
 
         node1.add_to_display_layer(&layer1);
         node1.update(&());
-        assert_eq!(node1.display_layer(), vec![layer1.downgrade()]);
-        assert_eq!(node2.display_layer(), vec![layer1.downgrade()]);
-        assert_eq!(node3.display_layer(), vec![layer1.downgrade()]);
+        assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
+        assert_eq!(node2.display_layer(), Some(layer1.downgrade()));
+        assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
 
-        node2.add_to_display_layer_exclusive(&layer2);
+        node2.add_to_display_layer(&layer2);
         node1.update(&());
-        assert_eq!(node1.display_layer(), vec![layer1.downgrade()]);
-        assert_eq!(node2.display_layer(), vec![layer2.downgrade()]);
-        assert_eq!(node3.display_layer(), vec![layer1.downgrade()]);
+        assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
+        assert_eq!(node2.display_layer(), Some(layer2.downgrade()));
+        assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
     }
 }

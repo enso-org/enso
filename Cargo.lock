@@ -2711,15 +2711,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-example-shape-system"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "ensogl-example-slider"
 version = "0.1.0"
 dependencies = [
@@ -2776,7 +2767,6 @@ dependencies = [
  "ensogl-example-profiling-run-graph",
  "ensogl-example-render-profile-flamegraph",
  "ensogl-example-scroll-area",
- "ensogl-example-shape-system",
  "ensogl-example-slider",
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",

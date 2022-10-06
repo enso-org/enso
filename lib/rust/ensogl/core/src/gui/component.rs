@@ -115,6 +115,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     pub fn new_with_data(data: S::ShapeData) -> Self {
         let scene = world::scene();
+        // FIXME: "something"
         let (shape, something) = scene.layers.root.instantiate(scene, &data);
         let events = PointerTarget::new();
         let pointer_targets = RefCell::new(vec![something.global_instance_id]);

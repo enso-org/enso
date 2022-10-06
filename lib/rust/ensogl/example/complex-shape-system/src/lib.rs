@@ -94,7 +94,7 @@ pub fn main() {
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    let mask_layer = scene::layer::Layer::new(logger.sub("MaskLayer"));
+    let mask_layer = scene::layer::Layer::new("MaskLayer", logger.sub("MaskLayer"));
     scene.layers.node_searcher.set_mask(&mask_layer);
 
     let mask = mask::View::new();
@@ -154,9 +154,9 @@ pub fn main() {
                 // DEBUG!("{scene.layers.node_searcher_mask:#?}");
                 // DEBUG!("{scene.layers.viz:#?}");
 
-                scene.layers.node_searcher.add_exclusive(&view1);
-                scene.layers.node_searcher.add_exclusive(&view2);
-                mask_layer.add_exclusive(&mask);
+                scene.layers.node_searcher.add(&view1);
+                scene.layers.node_searcher.add(&view2);
+                mask_layer.add(&mask);
             }
             if frame == 200 {
                 DEBUG!("Changing the theme.");

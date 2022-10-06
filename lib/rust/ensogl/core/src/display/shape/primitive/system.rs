@@ -64,6 +64,8 @@ impl<T> ShapeDataHasher for T {
 // === Shape ===
 // =============
 
+pub trait ShapeWithDefaultData = Shape where <Self as Shape>::ShapeData: Default;
+
 pub trait Shape: 'static + Sized {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
