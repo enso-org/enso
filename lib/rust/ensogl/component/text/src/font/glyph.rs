@@ -56,6 +56,39 @@ pub struct SystemData {
     pub font: FontWithAtlas,
 }
 
+#[cfg(target_os = "macos")]
+const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
+#[cfg(not(target_os = "macos"))]
+const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
+
+const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
+
+impl SystemData {
+    /// Defines a default material of this system.
+    fn material() -> Material {
+        let mut material = Material::new();
+        material.add_input_def::<texture::FloatSampler>("atlas");
+        material.add_input_def::<Vector2<f32>>("msdf_size");
+        material.add_input_def::<f32>("atlas_index");
+        material.add_input("pixel_ratio", 1.0);
+        material.add_input("z_zoom_1", 1.0);
+        material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        material.add_input("font_size", 10.0);
+        material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
+        material.add_input("sdf_weight", 0.0);
+        // FIXME We need to use this output, as we need to declare the same amount of shader
+        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
+        // FIXME intelligent. For example, we could allow defining output shader fragments,
+        // FIXME which will be enabled only if pass of given attachment type was enabled.
+        material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
+
+        let code = CodeTemplate::new(FUNCTIONS, MAIN, "");
+        material.set_code(code);
+        material
+    }
+}
+
+
 
 pub mod glyph {
     use super::*;
@@ -83,7 +116,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
         let sprite_system = &data.model.sprite_system;
         let symbol = sprite_system.symbol();
 
-        *data.model.material.borrow_mut() = System::material();
+        *data.model.material.borrow_mut() = Self::material();
         data.model.normal.set(false);
 
         sprite_system.set_alignment(Alignment::bottom_left());
@@ -132,15 +165,10 @@ pub struct GlyphData {
     pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
-    // pub sprite:             Sprite,
     pub context:            Context,
     pub font:               FontWithAtlas,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
-    // pub size:               Attribute<f32>,
-    // pub color:              Attribute<Vector4<f32>>,
-    // pub sdf_weight:         Attribute<f32>,
-    // pub atlas_index:        Attribute<f32>,
     pub color_animation:    color::Animation,
     pub x_advance:          Rc<Cell<f32>>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
@@ -430,14 +458,8 @@ impl WeakGlyph {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct System {
-    // logger:   Logger,
     context:  Context,
-    // sprite_system: SpriteSystem,
     pub font: FontWithAtlas,
-    // size:     Buffer<f32>,
-    // color:         Buffer<Vector4<f32>>,
-    // sdf_weight:    Buffer<f32>,
-    // atlas_index:   Buffer<f32>,
 }
 
 impl System {
@@ -445,32 +467,10 @@ impl System {
     #[profile(Detail)]
     pub fn new(scene: impl AsRef<Scene>) -> Self {
         let scene = scene.as_ref();
-        // let logger = Logger::new("glyph_system");
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font::DEFAULT_FONT_MONO);
-        // let size = font::msdf::Texture::size();
-        // let sprite_system = SpriteSystem::new();
-        // let symbol = sprite_system.symbol();
         let context = scene.context.borrow().as_ref().unwrap().clone_ref();
-        // let mesh = symbol.surface();
-
-        // sprite_system.set_material(Self::material());
-        // sprite_system.set_alignment(Alignment::bottom_left());
-        // scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        // scene.variables.add("msdf_size", size);
-        //
-        // symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
-
-        Self {
-            // logger,
-            context,
-            // sprite_system,
-            font,
-            // size: mesh.instance_scope().add_buffer("font_size"),
-            // color: mesh.instance_scope().add_buffer("color"),
-            // sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
-            // atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
-        }
+        Self { context, font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
@@ -481,12 +481,6 @@ impl System {
         #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
-        // let sprite = self.sprite_system.new_instance();
-        // let instance_id = sprite.instance_id;
-        // let size = self.size.at(instance_id);
-        // let color = self.color.at(instance_id);
-        // let sdf_weight = self.sdf_weight.at(instance_id);
-        // let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let glyph_id = default();
         let line_byte_offset = default();
@@ -512,13 +506,8 @@ impl System {
                 frp,
                 view,
                 display_object,
-                // sprite,
                 context,
                 font,
-                // size,
-                // color,
-                // sdf_weight,
-                // atlas_index,
                 glyph_id,
                 line_byte_offset,
                 properties,
@@ -528,51 +517,5 @@ impl System {
                 attached_to_cursor,
             }),
         }
-    }
-
-    // /// Get underlying sprite system.
-    // pub fn sprite_system(&self) -> &SpriteSystem {
-    //     &self.sprite_system
-    // }
-}
-
-// impl display::Object for System {
-//     fn display_object(&self) -> &display::object::Instance {
-//         self.sprite_system.display_object()
-//     }
-// }
-
-
-// === Material ===
-
-#[cfg(target_os = "macos")]
-const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
-#[cfg(not(target_os = "macos"))]
-const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
-
-const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
-
-impl System {
-    /// Defines a default material of this system.
-    fn material() -> Material {
-        let mut material = Material::new();
-        material.add_input_def::<texture::FloatSampler>("atlas");
-        material.add_input_def::<Vector2<f32>>("msdf_size");
-        material.add_input_def::<f32>("atlas_index");
-        material.add_input("pixel_ratio", 1.0);
-        material.add_input("z_zoom_1", 1.0);
-        material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        material.add_input("font_size", 10.0);
-        material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
-        material.add_input("sdf_weight", 0.0);
-        // FIXME We need to use this output, as we need to declare the same amount of shader
-        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
-        // FIXME intelligent. For example, we could allow defining output shader fragments,
-        // FIXME which will be enabled only if pass of given attachment type was enabled.
-        material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
-
-        let code = CodeTemplate::new(FUNCTIONS, MAIN, "");
-        material.set_code(code);
-        material
     }
 }
