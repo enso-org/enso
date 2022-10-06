@@ -40,7 +40,7 @@ type Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Table_Data name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
+    Value name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
 
     ## UNSTABLE
 
@@ -725,7 +725,7 @@ type Table
             new_limit = Nothing
             new_ctx = Context.Value new_from [] [] [] new_index new_limit
 
-            Table.Table_Data new_table_name self.connection new_columns new_ctx
+            Table.Value new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -914,7 +914,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table.Table_Data self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = Table.Value self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -923,7 +923,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context self ctx = Table.Table_Data self.name self.connection self.internal_columns ctx
+    updated_context self ctx = Table.Value self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -933,7 +933,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table.Table_Data self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns = Table.Value self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -1058,7 +1058,7 @@ type Integrity_Error
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
     cols = columns.map (p -> Internal_Column.Value p.first p.second (Expression.Column table_name p.first))
-    Table.Table_Data table_name connection cols ctx
+    Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

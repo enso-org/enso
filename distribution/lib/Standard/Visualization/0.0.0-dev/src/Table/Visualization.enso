@@ -30,7 +30,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
             Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
         make_json dataframe [index] all_rows_count
 
-    Database_Table.Table_Data _ _ _ _ ->
+    Database_Table.Value _ _ _ _ ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
         df = x.reset_index.read max_rows
         # Then split into actual columns and indices.
