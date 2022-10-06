@@ -150,7 +150,7 @@ bound_data bounds data = case bounds of
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
 type Extreme
-    Values min_x max_x min_y max_y
+    Value min_x max_x min_y max_y
 
 ## PRIVATE
 limit_data limit data = case limit of
