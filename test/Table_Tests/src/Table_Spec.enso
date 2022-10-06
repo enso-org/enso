@@ -1,13 +1,11 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
-import Standard.Table
-from Standard.Table import Column, Sort_Column, Sort_Column_Selector, Aggregate_Column
-from Standard.Table.Data.Aggregate_Column import all hiding First, Last
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
-import Standard.Table.Data.Storage
-from Standard.Table.Data.Column_Selector import By_Name
+from Standard.Table.Data.Storage import Storage
 from Standard.Table.Errors import Floating_Point_Grouping_Data
 from Standard.Table.Data.Filter_Condition import Filter_Condition
 
@@ -19,21 +17,17 @@ import Standard.Test.Problems
 import project.Common_Table_Spec
 from project.Util import all
 
-# TODO Dubious constructor export
-from project.Table_Spec.My import all
-from project.Table_Spec.My export all
-
 type My
-    My_Data x y
+    Data x y
 
-My.== self that = case that of
-    My_Data x1 y1 -> (self.x + self.y) == (x1 + y1)
-    _ -> False
+    == self that = case that of
+        My.Data x1 y1 -> (self.x + self.y) == (x1 + y1)
+        _ -> False
 
-My.compare_to self that = self.x+self.y . compare_to that.x+that.y
+    compare_to self that = self.x+self.y . compare_to that.x+that.y
 
-My.frobnicate self = case self of
-    My_Data x1 y1 -> My_Data y1 x1
+    frobnicate self = case self of
+        My.Data x1 y1 -> My.Data y1 x1
 
 spec =
     Test.group "JSON construction" <|
@@ -98,7 +92,7 @@ spec =
             ints = ["ints", [Nothing, 1, 2, 4]]
             doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
             doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
-            custom_objects = ["custom_objects", [My_Data 1 2, My_Data 3 4, Nothing, Nothing]]
+            custom_objects = ["custom_objects", [My.Data 1 2, My.Data 3 4, Nothing, Nothing]]
             dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
             times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
             datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
@@ -161,7 +155,7 @@ spec =
             col_1 = Column.from_vector 'x' [1, 2, 3]
             col_1.to_vector.reduce (+) . should_equal 6
 
-            col_2 = Column.from_vector 'y' [My_Data 1 2, My_Data 2 3]
+            col_2 = Column.from_vector 'y' [My.Data 1 2, My.Data 2 3]
             col_2.to_vector.map (my -> my.x + my.y) . should_equal [3, 5]
 
             col_3 = Column.from_vector 'z' [False, True, False]
@@ -177,8 +171,8 @@ spec =
             c_dec.map (+ 1.5) . to_vector . should_equal [3.4, 3.5, 2.7, 7.1, 3.4]
             c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
             c_bool.map (_.to_text) . to_vector . should_equal ["True", "False", Nothing, "True", "False"]
-            c_any = Column.from_vector 'x' [My_Data 1 6, My_Data 6 3, My_Data 2 5, My_Data 3 4, My_Data 200 300]
-            c_any.map (_.frobnicate) . to_vector . should_equal [My_Data 6 1, My_Data 3 6, My_Data 5 2, My_Data 4 3, My_Data 300 200]
+            c_any = Column.from_vector 'x' [My.Data 1 6, My.Data 6 3, My.Data 2 5, My.Data 3 4, My.Data 200 300]
+            c_any.map (_.frobnicate) . to_vector . should_equal [My.Data 6 1, My.Data 3 6, My.Data 5 2, My.Data 4 3, My.Data 300 200]
 
         Test.specify "should correctly handle storage of results" <|
             c_int = Column.from_vector 'year' [2022, 2000, 1999]
@@ -214,8 +208,8 @@ spec =
             (c_dec == 1.9).to_vector.should_equal [True, False, False, False, True]
             c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
             (c_bool == False).to_vector.should_equal [False, True, Nothing, False, True]
-            c_any = Column.from_vector 'x' [My_Data 1 6, My_Data 6 3, My_Data 2 5, My_Data 3 4, My_Data 200 300]
-            (c_any == My_Data 7 0).to_vector.should_equal [True, False, True, True, False]
+            c_any = Column.from_vector 'x' [My.Data 1 6, My.Data 6 3, My.Data 2 5, My.Data 3 4, My.Data 200 300]
+            (c_any == My.Data 7 0).to_vector.should_equal [True, False, True, True, False]
 
         Test.specify "should switch between maps and zips based on argument type" <|
             a = Column.from_vector 'x' [0, 1, 7, 3, 6]
@@ -447,7 +441,7 @@ spec =
 
         Test.specify 'should respect defined comparison operations for custom types' <|
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
-            c_2 = ['val', [My_Data 1 2, My_Data 3 4, My_Data 2 1, My_Data 5 2, My_Data 7 0, My_Data 4 -1]]
+            c_2 = ['val', [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]]
             df = Table.new [c_1, c_2]
             r = df.order_by (Sort_Column_Selector.By_Name ['val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
@@ -468,7 +462,7 @@ spec =
             dates = [Date.new 2020, Date.new 1999, Date.new 2000 10 3, Date.new 1999 12 31, Date.new 2000 2 7]
             times = [Time_Of_Day.new 12, Time_Of_Day.new 1 30 40, Time_Of_Day.new 23 59 59, Time_Of_Day.new 12 30 0, Time_Of_Day.new 10 20 30]
             datetimes = [Date_Time.new 2020 1 1 12, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 12 31 12 30 0, Date_Time.new 2000 10 3 10 20 30]
-            objs = [My_Data 100 2, My_Data 2 3, My_Data 6 7, My_Data 8 9, My_Data 10 30]
+            objs = [My.Data 100 2, My.Data 2 3, My.Data 6 7, My.Data 8 9, My.Data 10 30]
             mixed_dates = [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 2000]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs], ['dates', dates], ['times', times], ['datetimes', datetimes], ['mixed_dates', mixed_dates]]
@@ -486,7 +480,7 @@ spec =
             r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
             df.at 'texts' . to_vector . should_equal texts
 
-            r.at 'objs' . to_vector . should_equal [My_Data 100 2, My_Data 10 30, My_Data 6 7, My_Data 2 3, My_Data 8 9]
+            r.at 'objs' . to_vector . should_equal [My.Data 100 2, My.Data 10 30, My.Data 6 7, My.Data 2 3, My.Data 8 9]
             df.at 'objs' . to_vector . should_equal objs
 
             r.at 'dates' . to_vector . should_equal [Date.new 2020, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 1999, Date.new 1999 12 31]
@@ -512,7 +506,7 @@ spec =
             r4.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
 
             r5 = df.order_by (Sort_Column_Selector.By_Name ['objs'])
-            r5.at 'objs' . to_vector . should_equal [My_Data 2 3, My_Data 6 7, My_Data 8 9, My_Data 10 30, My_Data 100 2]
+            r5.at 'objs' . to_vector . should_equal [My.Data 2 3, My.Data 6 7, My.Data 8 9, My.Data 10 30, My.Data 100 2]
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (Sort_Column_Selector.By_Name ['mixed_dates'])
@@ -532,15 +526,15 @@ spec =
             r_3.to_vector.should_equal [Nothing,Nothing,8,7,4,1]
 
         Test.specify 'should respect defined comparison operations for custom types' <|
-            c = Column.from_vector 'foo'  [My_Data 1 2, My_Data 3 4, My_Data 2 1, My_Data 5 2, My_Data 7 0, My_Data 4 -1]
+            c = Column.from_vector 'foo'  [My.Data 1 2, My.Data 3 4, My.Data 2 1, My.Data 5 2, My.Data 7 0, My.Data 4 -1]
             r = c.sort
-            r.to_vector.should_equal [My_Data 1 2, My_Data 2 1, My_Data 4 -1, My_Data 3 4, My_Data 5 2, My_Data 7 0]
+            r.to_vector.should_equal [My.Data 1 2, My.Data 2 1, My.Data 4 -1, My.Data 3 4, My.Data 5 2, My.Data 7 0]
 
         Test.specify 'should allow passing a custom comparator' <|
-            c = Column.from_vector 'foo' [My_Data 1 2, My_Data 2 5, My_Data 3 4, My_Data 6 3, Nothing, My_Data 1 0]
+            c = Column.from_vector 'foo' [My.Data 1 2, My.Data 2 5, My.Data 3 4, My.Data 6 3, Nothing, My.Data 1 0]
             cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
             r = c.sort comparator=cmp
-            r.to_vector.should_equal [My_Data 1 2, My_Data 3 4, My_Data 1 0, My_Data 2 5, My_Data 6 3, Nothing]
+            r.to_vector.should_equal [My.Data 1 2, My.Data 3 4, My.Data 1 0, My.Data 2 5, My.Data 6 3, Nothing]
 
         Test.specify 'should handle Unicode characters correctly' <|
             c = Column.from_vector 'c' ['z', 'a', 'd', 'f', 's', 'e\u0301', 'ś', 'ą', 's\u0301', 'w', 'b']
@@ -677,7 +671,7 @@ spec =
             t_3 = Table.new [c_3_1, c_3_2, c_3_3]
             t_3.default_visualization.should_equal Visualization.Id.table
 
-    selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
+    selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
     Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
@@ -729,7 +723,7 @@ spec =
             mixed = ["mixed", [1, "a", "a", 1]]
             ints = ["ints", [0, 1, 1, 0]]
             floats = ["floats", [0.1, 1.0, 2.0, 1.5]]
-            objects = ["objects", [My_Data 0 1, My_Data 0 1, My_Data 2 2, My_Data 2 2]]
+            objects = ["objects", [My.Data 0 1, My.Data 0 1, My.Data 2 2, My.Data 2 2]]
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
             t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
@@ -770,12 +764,12 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r1 = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r1 = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
             r1.at "A" . to_vector . should_equal ["a"]
             r1.at "B" . to_vector . should_equal [1]
             r1.at "C" . to_vector . should_equal [0.1]
 
-            r2 = t.distinct (By_Name ["A", "B"]) on_problems=Report_Error
+            r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -794,7 +788,7 @@ spec =
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
-            r = t.distinct (By_Name ["A"]) on_problems=Report_Error
+            r = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
             r.at "A" . to_vector . should_equal ["a", Nothing, "b"]
             r.at "B" . to_vector . should_equal [1, 2, 3]
 
@@ -806,11 +800,11 @@ spec =
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
-            d1 = t1.distinct (By_Name ["X"]) on_problems=Report_Error
+            d1 = t1.distinct (Column_Selector.By_Name ["X"]) on_problems=Report_Error
             d1.at "X" . to_vector . should_equal ['A', 'a', 'enso', 'śledź', 'Enso']
             d1.at "Y" . to_vector . should_equal [1, 2, 3, 4, 5]
 
-            d2 = t1.distinct (By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
+            d2 = t1.distinct (Column_Selector.By_Name ["X"]) case_sensitivity=Case_Sensitivity.Insensitive on_problems=Report_Error
             d2.at "X" . to_vector . should_equal ['A', 'enso', 'śledź']
             d2.at "Y" . to_vector . should_equal [1, 3, 4]
 
@@ -836,16 +830,16 @@ spec =
             t = Table.new [["A", [1, 2, 1, 1]]]
             test table = table.should_equal t
 
-            action1 = t.distinct (By_Name []) on_problems=_
+            action1 = t.distinct (Column_Selector.By_Name []) on_problems=_
             problems1 = [No_Input_Columns_Selected]
             Problems.test_problem_handling action1 problems1 test
 
-            action2 = t.distinct (By_Name ["mismatched"]) on_problems=_
+            action2 = t.distinct (Column_Selector.By_Name ["mismatched"]) on_problems=_
             problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
             Problems.test_problem_handling action2 problems2 test
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
-            t = Table.new [["X", [My_Data 1 2, My_Data 3 4, My_Data 1 2]]]
+            t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
             t.distinct . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "should group by all columns by default" <|
@@ -871,20 +865,20 @@ spec =
             t3.at "X" . to_vector . should_equal [5, 5, 1]
 
         Test.specify "by custom object comparisons" <|
-            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My_Data 1 2, My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]]]
-            t1 = t.filter "X" (Filter_Condition.Between (My_Data 10 20) (My_Data 300 400))
+            t = Table.new [["ix", [1, 2, 3, 4, 5]], ["X", [My.Data 1 2, My.Data 300 400, My.Data 100 200, My.Data 5 6, My.Data 7 8]]]
+            t1 = t.filter "X" (Filter_Condition.Between (My.Data 10 20) (My.Data 300 400))
             t1.at "ix" . to_vector . should_equal [2, 3]
-            t1.at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200]
-            t.filter "X" (Filter_Condition.Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2]
-            t.filter "X" (Filter_Condition.Equal_Or_Less than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 5 6]
-            t.filter "X" (Filter_Condition.Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(My_Data 5 6)) . at "X" . to_vector . should_equal [My_Data 300 400, My_Data 100 200, My_Data 5 6, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Equal to=(My_Data 2 1)) . at "X" . to_vector . should_equal [My_Data 1 2]
+            t1.at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200]
+            t.filter "X" (Filter_Condition.Less than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 1 2]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 5 6]
+            t.filter "X" (Filter_Condition.Greater than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(My.Data 5 6)) . at "X" . to_vector . should_equal [My.Data 300 400, My.Data 100 200, My.Data 5 6, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Equal to=(My.Data 2 1)) . at "X" . to_vector . should_equal [My.Data 1 2]
             t.filter "X" (Filter_Condition.Equal to=42) . at "X" . to_vector . should_equal []
 
-            c = Column.from_vector "Y" [My_Data 2 1, My_Data 400 300, My_Data 101 202, My_Data 10 10, My_Data 15 0]
-            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My_Data 1 2, My_Data 300 400, My_Data 7 8]
-            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My_Data 100 200, My_Data 5 6]
+            c = Column.from_vector "Y" [My.Data 2 1, My.Data 400 300, My.Data 101 202, My.Data 10 10, My.Data 15 0]
+            t.filter "X" (Filter_Condition.Equal to=c) . at "X" . to_vector . should_equal [My.Data 1 2, My.Data 300 400, My.Data 7 8]
+            t.filter "X" (Filter_Condition.Less than=c) . at "X" . to_vector . should_equal [My.Data 100 200, My.Data 5 6]
             t.filter "X" (Filter_Condition.Greater than=c) . at "X" . to_vector . should_equal []
 
         Test.specify "by a boolean mask of varying length" <|

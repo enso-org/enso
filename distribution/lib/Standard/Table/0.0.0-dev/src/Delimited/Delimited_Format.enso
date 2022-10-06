@@ -1,17 +1,14 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
-import Standard.Table.Data.Match_Columns
+from Standard.Table.Data.Table import Table
+from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Table.Data.Match_Columns import Match_Columns
 import Standard.Table.Delimited.Delimited_Reader
 import Standard.Table.Delimited.Delimited_Writer
+import Standard.Table.Delimited.Quote_Style.Quote_Style
 
-from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
-
-import Standard.Table.Delimited.Quote_Style
-
-# TODO Dubious constructor export
-from project.Delimited.Delimited_Format.Delimited_Format import all
-from project.Delimited.Delimited_Format.Delimited_Format export all
+from project.Delimited.Delimited_Format.Delimited_Format import Delimited
+from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
@@ -51,7 +48,7 @@ type Delimited_Format
          character if it anywhere else than at the beginning of the line. This
          option is only applicable for read mode and does not affect writing. It
          defaults to `Nothing` which means that comments are disabled.
-    Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter_Data) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
+    Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Delimited_Format | Nothing
@@ -101,7 +98,7 @@ type Delimited_Format
 
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited_Format
-    with_parsing self (value_formatter=Data_Formatter_Data) =
+    with_parsing self (value_formatter=Data_Formatter.Value) =
         self.clone value_formatter=value_formatter
 
     ## Create a clone of this without value parsing.

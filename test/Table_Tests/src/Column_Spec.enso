@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Table import Column
-import Standard.Table.Data.Storage
+import Standard.Table.Data.Column as Column_Module
+import Standard.Table.Data.Storage.Storage
 import Standard.Examples
 
 import Standard.Test
@@ -12,14 +13,14 @@ spec = Test.group "Columns" <|
     empty_column = Column.from_vector "Test" []
 
     Test.specify "should correctly map storage types" <|
-        Column.storage_types.at Java_Storage.Type.LONG . should_equal Storage.Integer
-        Column.storage_types.at Java_Storage.Type.DOUBLE . should_equal Storage.Decimal
-        Column.storage_types.at Java_Storage.Type.STRING . should_equal Storage.Text
-        Column.storage_types.at Java_Storage.Type.BOOL . should_equal Storage.Boolean
-        Column.storage_types.at Java_Storage.Type.OBJECT . should_equal Storage.Any
-        Column.storage_types.at Java_Storage.Type.DATE . should_equal Storage.Date
-        Column.storage_types.at Java_Storage.Type.TIME_OF_DAY . should_equal Storage.Time_Of_Day
-        Column.storage_types.at Java_Storage.Type.DATE_TIME . should_equal Storage.Date_Time
+        Column_Module.storage_types.at Java_Storage.Type.LONG . should_equal Storage.Integer
+        Column_Module.storage_types.at Java_Storage.Type.DOUBLE . should_equal Storage.Decimal
+        Column_Module.storage_types.at Java_Storage.Type.STRING . should_equal Storage.Text
+        Column_Module.storage_types.at Java_Storage.Type.BOOL . should_equal Storage.Boolean
+        Column_Module.storage_types.at Java_Storage.Type.OBJECT . should_equal Storage.Any
+        Column_Module.storage_types.at Java_Storage.Type.DATE . should_equal Storage.Date
+        Column_Module.storage_types.at Java_Storage.Type.TIME_OF_DAY . should_equal Storage.Time_Of_Day
+        Column_Module.storage_types.at Java_Storage.Type.DATE_TIME . should_equal Storage.Date_Time
 
     Test.specify "should allow getting specific elements" <|
         test_column.at 0 . should_equal 1
@@ -47,12 +48,12 @@ spec = Test.group "Columns" <|
     Test.specify "should be able to get the first / head element" <|
         test_column.first . should_equal 1
         test_column.head . should_equal 1
-        empty_column.first.should_fail_with Column.Empty_Error
-        empty_column.head.should_fail_with Column.Empty_Error
+        empty_column.first.should_fail_with Column_Module.Empty_Error
+        empty_column.head.should_fail_with Column_Module.Empty_Error
 
     Test.specify "should be able to get the last element" <|
         test_column.last . should_equal 6
-        empty_column.last.should_fail_with Column.Empty_Error
+        empty_column.last.should_fail_with Column_Module.Empty_Error
 
     Test.specify "should be able to be reversed" <|
         expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]

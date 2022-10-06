@@ -40,7 +40,7 @@ type Connection
 
 
     ## Returns the list of databases (or catalogs) for the connection.
-    databases : [Text]
+    databases : Vector Text
     databases self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getCatalogs "TABLE_CAT"
@@ -60,7 +60,7 @@ type Connection
             SQL_Error.throw_sql_error "Changing database is not supported."
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
-    schemas : [Text]
+    schemas : Vector Text
     schemas self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getSchemas "TABLE_SCHEM"
@@ -94,7 +94,7 @@ type Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table.Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
@@ -112,7 +112,7 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    query : Text | SQL_Query -> Text -> Database_Table
+    query : Text | SQL_Query -> Text -> Database_Table.Table
     query self query alias="" = handle_sql_errors <| case query of
         _ : Text ->
             self.query alias=alias <|
@@ -134,13 +134,13 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query -> Text -> Integer | Nothing -> Table
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table.Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Table
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table.Table
     read_statement self statement expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -177,7 +177,7 @@ type Connection
          usually not be visible to other connections.
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
-    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
+    upload_table : Text -> Materialized_Table.Table -> Boolean -> Integer -> Database_Table.Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <|
         create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql

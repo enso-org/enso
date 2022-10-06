@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref
 
-import Standard.Table as Materialized_Table
+from Standard.Table import Table
 
 import Standard.Database
 from Standard.Database import all
@@ -42,7 +42,7 @@ run_tests connection pending=Nothing =
         name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
-        in_mem_table = Materialized_Table.new columns
+        in_mem_table = Table.new columns
         case connection.upload_table name in_mem_table of
             table ->
                 tables.append name
@@ -55,10 +55,10 @@ run_tests connection pending=Nothing =
 
     Common_Spec.spec prefix connection pending=pending
     redshift_specific_spec connection pending=pending
-    common_selection = Common_Table_Spec.Test_Selection_Data supports_case_sensitive_columns=False order_by=False take_drop=False
+    common_selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=False order_by=False take_drop=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
-    selection = Aggregate_Spec.Test_Selection_Data text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False date_support=False
+    selection = Aggregate_Spec.Test_Selection.Config text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
