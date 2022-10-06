@@ -1,8 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 
-from Standard.Table.Data.Column_Type_Selection import Auto
-import Standard.Table.Data.Storage
+import Standard.Table.Data.Column_Type_Selection.Auto
+import Standard.Table.Data.Storage.Storage
+
 import Standard.Table.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser
@@ -23,10 +24,6 @@ polyglot java import org.enso.table.formatting.DateFormatter
 polyglot java import org.enso.table.formatting.DateTimeFormatter
 polyglot java import org.enso.table.formatting.TimeFormatter
 polyglot java import org.enso.table.formatting.TextFormatter
-
-# TODO Dubious constructor export
-from project.Data.Data_Formatter.Data_Formatter import all
-from project.Data.Data_Formatter.Data_Formatter export all
 
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
@@ -57,7 +54,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    Data_Formatter_Data trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+    Value trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 
@@ -125,14 +122,14 @@ type Data_Formatter
 
        Arguments:
        - locale: The locale to use when parsing dates and times.
-    with_locale : Locale -> Data_Formatter_Data
+    with_locale : Locale -> Data_Formatter
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
 
     ## PRIVATE
        Clone the instance with some properties overridden.
     clone : Boolean -> Boolean -> Text -> Text -> Boolean -> [Text] -> [Text] -> [Text] -> Locale -> [Text] -> [Text] -> Data_Formatter
     clone self (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (datetime_locale=self.datetime_locale) (true_values=self.true_values) (false_values=self.false_values) =
-        Data_Formatter_Data trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
+        Data_Formatter.Value trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
 
     ## PRIVATE
     get_thousand_separator self =

@@ -12,9 +12,9 @@ component-groups:
   extends:
     - Standard.Base.Input:
         exports:
-          - Standard.Table.Data.Table.new
-          - Standard.Table.Data.Table.from_rows
-          - Standard.Table.Data.Column.from_vector
+          - Standard.Table.Data.Table.Table.new
+          - Standard.Table.Data.Table.Table.from_rows
+          - Standard.Table.Data.Column.Column.from_vector
           - Standard.Base.System.File.read
     - Standard.Base.Select:
         exports:

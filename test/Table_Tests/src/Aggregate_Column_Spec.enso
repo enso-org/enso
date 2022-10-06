@@ -1,11 +1,10 @@
 from Standard.Base import all hiding First, Last
 
-import Standard.Table
-from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector import By_Name, By_Index
+from Standard.Table import Table, Column_Selector
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
 import Standard.Test
 
@@ -150,9 +149,9 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Count_Distinct float_col test_name ignore_nothing=True) test_name 4
 
     Test.specify "should be able to count distinct items on a multiple sets of values" <|
-        test_aggregator simple_table (Count_Distinct (By_Index [0, 1])) "Count Distinct count is_valid" 5
-        test_aggregator simple_table (Count_Distinct (By_Name ["is_valid", "float"])) "Count Distinct is_valid float" 5
-        test_aggregator simple_table (Count_Distinct (By_Name ["is_valid", "float"]) ignore_nothing=True) "Count Distinct is_valid float" 4
+        test_aggregator simple_table (Count_Distinct (Column_Selector.By_Index [0, 1])) "Count Distinct count is_valid" 5
+        test_aggregator simple_table (Count_Distinct (Column_Selector.By_Name ["is_valid", "float"])) "Count Distinct is_valid float" 5
+        test_aggregator simple_table (Count_Distinct (Column_Selector.By_Name ["is_valid", "float"]) ignore_nothing=True) "Count Distinct is_valid float" 4
 
     Test.specify "should be able to get the minimum of a set of values" <|
         test_aggregator simple_table (Minimum -2) "Minimum float" 1

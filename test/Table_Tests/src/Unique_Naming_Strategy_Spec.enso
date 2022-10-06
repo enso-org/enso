@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Internal.Unique_Name_Strategy
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 import Standard.Test
 

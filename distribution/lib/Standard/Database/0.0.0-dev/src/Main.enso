@@ -1,5 +1,3 @@
-import Standard.Database.Data.Table
-import Standard.Database.Data.Column
 import Standard.Database.Data.SQL_Query
 import Standard.Database.Connection.Database
 
@@ -11,9 +9,6 @@ import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.Postgres_Options
 import Standard.Database.Connection.SQLite_Options
 import Standard.Database.Connection.Redshift_Options
-
-export Standard.Database.Data.Table
-export Standard.Database.Data.Column
 
 export Standard.Database.Connection.SSL_Mode
 

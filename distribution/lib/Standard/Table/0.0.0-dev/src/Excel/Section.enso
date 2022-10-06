@@ -1,8 +1,7 @@
 from Standard.Base import all
 
-from Standard.Table.Excel.Range import Excel_Range
+import Standard.Table.Excel.Range.Excel_Range
 
-# TODO Dubious constructor export
 from project.Excel.Section.Excel_Section import all
 from project.Excel.Section.Excel_Section export all
 
