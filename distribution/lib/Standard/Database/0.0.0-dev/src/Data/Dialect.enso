@@ -4,9 +4,9 @@ import Standard.Base.Error.Common as Errors
 from Standard.Table import Aggregate_Column
 from Standard.Database.Data.SQL import Statement, SQL_Type
 import Standard.Database.Internal.IR
-import Standard.Database.Internal.Postgres.Postgres_Dialect
-import Standard.Database.Internal.Redshift.Redshift_Dialect
-import Standard.Database.Internal.SQLite.SQLite_Dialect
+import project.Internal.Postgres.Postgres_Dialect
+import project.Internal.Redshift.Redshift_Dialect
+import project.Internal.SQLite.SQLite_Dialect
 
 ## PRIVATE
 

@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.SQLite.SQLite_Connection
+import project.Internal.SQLite.SQLite_Connection
 import Standard.Database.Connection.Connection_Options
 
 # TODO Dubious constructor export
