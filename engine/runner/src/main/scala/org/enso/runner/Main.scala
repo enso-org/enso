@@ -765,7 +765,7 @@ object Main {
       val mainFun  = mainModule.getMethod(mainType, mainMethodName)
       mainFun match {
         case Some(main) if mainMethodName != "main" =>
-          main.execute(mainType.newInstance())
+          main.execute(mainType)
         case Some(main) =>
           // Opportunistically parse arguments and convert to ints.
           // This avoids conversions in main function.
