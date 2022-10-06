@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.codegen.AstToIr;
@@ -44,12 +43,12 @@ public class EnsoCompilerTest {
     type Msg
         Ahoj
         Ciao
-        """
 
-//    c x = case x of
-//        Ahoj -> 0
-//        Ciao -> 1
-//    """);
+    c x = case x of
+        Ahoj -> 0
+        Ciao -> 1
+        Msg.Ciao -> 2
+    """
     );
   }
 
@@ -203,7 +202,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testSignature5() throws Exception {
     parseTest("val : List Int -> Int");
   }
@@ -252,6 +250,96 @@ public class EnsoCompilerTest {
     measure = ~act -> label -> iter_size -> num_iters ->
         42
     """);
+  }
+
+  @Test
+  public void testReverseListType() throws Exception {
+    parseTest("""
+    reverse_list : List Any -> List
+    reverse_list list = Nil
+    """);
+  }
+
+  @Test
+  public void testReverseList() throws Exception {
+    parseTest("""
+    reverse_list list =
+        go = list -> acc -> case list of
+            Cons h t -> go t (Cons h acc)
+            Cons h _ -> acc
+            Nil -> acc
+            _ -> acc
+        res = go list Nil
+        res
+    """);
+  }
+
+  @Test
+  public void testProblemHandling() throws Exception {
+    parseTest("""
+    test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
+    test_problem_handling action expected_problems result_checker =
+        result_checker result_ignoring
+    """);
+  }
+
+  @Test
+  public void testNamedArgument() throws Exception {
+    parseTest("""
+    fn = get_all frames_to_skip=1
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralEmpty() throws Exception {
+    parseTest("""
+    fn = []
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralOne() throws Exception {
+    parseTest("""
+    fn = [ 1 ]
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralMany() throws Exception {
+    parseTest("""
+    fn = [ 1, 2, 3 ]
+    """);
+  }
+
+  @Test
+  public void testInvokeMethod() throws Exception {
+    parseTest("""
+    fn = result_ignoring . should_equal
+    """);
+  }
+
+  @Test
+  public void testTableDataArgumentInCase() throws Exception {
+    parseTest("""
+    process_to_json_text value =
+        json = case value of
+            Table.Table_Data _ -> json_from_table value
+            _ -> value.to_json
+        """);
+  }
+
+  @Test
+  public void testVisualizationCaseOf() throws Exception {
+    parseTest("""
+    prepare_visualization : Any -> Integer -> Json
+    prepare_visualization x max_rows=1000 = case x of
+        Array ->
+            prepare_visualization (Vector.from_polyglot_array x) max_rows
+
+        # Anything else will be visualized with the JSON or matrix visualization
+        _ ->
+            Json.from_pairs [["json", x]] . to_text
+        """);
   }
 
   @SuppressWarnings("unchecked")
