@@ -36,6 +36,7 @@ import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
 import org.enso.compiler.core.IR$Pattern$Name;
+import org.enso.compiler.core.IR$Pattern$Literal;
 import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
@@ -750,11 +751,7 @@ final class TreeToIr {
       case Tree.Group group -> {
         yield translateExpression(group.getBody(), moreArgs, insideTypeSignature, isMethod);
       }
-      case Tree.TextLiteral txt -> {
-        var fullTxt = txt.codeRepr().trim();
-        var t = fullTxt.substring(1, fullTxt.length() - 1);
-        yield new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
-      }
+      case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
         var expr = translateExpression(cas.getExpression(), insideTypeSignature);
         List<IR$Case$Branch> branches = nil();
@@ -954,6 +951,12 @@ final class TreeToIr {
         getIdentifiedLocation(ast), meta(), diag()
       );
     }
+  }
+
+  IR.Literal translateLiteral(Tree.TextLiteral txt) {
+    var fullTxt = txt.codeRepr().trim();
+    var t = fullTxt.substring(1, fullTxt.length() - 1);
+    return new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
   }
 
   /** Translates a program literal from its [[AST]] representation into
@@ -1544,6 +1547,9 @@ final class TreeToIr {
         yield translatePattern(id.getFunc(), args);
       }
       case Tree.Wildcard wild -> translateWildcardPattern(wild);
+      case Tree.TextLiteral lit -> {
+        yield new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
+      }
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
   }
