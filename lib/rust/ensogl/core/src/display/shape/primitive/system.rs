@@ -36,16 +36,29 @@ pub trait InstanceParamsTrait {
 
 
 pub trait CustomSystemData<S: Shape> {
-    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>) -> Self;
+    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
 }
 
 impl<S: Shape> CustomSystemData<S> for () {
-    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>) -> Self {
+    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {
         ()
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub struct ShapeDataHash {
+    pub hash: u64,
+}
 
+pub trait ShapeDataHasher {
+    fn hash(&self) -> ShapeDataHash;
+}
+
+impl<T> ShapeDataHasher for T {
+    default fn hash(&self) -> ShapeDataHash {
+        ShapeDataHash { hash: 0 }
+    }
+}
 
 // =============
 // === Shape ===
@@ -55,6 +68,7 @@ pub trait Shape: 'static + Sized {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
+    type ShapeData: Debug + ShapeDataHasher;
     fn pointer_events() -> bool;
     fn always_above() -> &'static [ShapeSystemId];
     fn always_below() -> &'static [ShapeSystemId];
@@ -202,14 +216,14 @@ impl<S: Shape> ShapeSystem<S> {
     }
 
     #[profile(Debug)]
-    pub fn new(scene: &display::scene::Scene) -> Self {
+    pub fn new(scene: &display::scene::Scene, shape_data: &S::ShapeData) -> Self {
         let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
         let model = display::shape::ShapeSystemModel::new(scene, &shape_def, events);
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
-        let user = CustomSystemData::<S>::new(scene, &standard);
+        let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
         standard.model.init();
         let data = Rc::new(ShapeSystemData { standard, user });
         Self { data }.init_refresh_on_style_change()
@@ -452,6 +466,7 @@ where
 macro_rules! define_shape_system {
     (
         $(SystemData($system_data:ident))?
+        $(ShapeData($shape_data:ident))?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -459,6 +474,7 @@ macro_rules! define_shape_system {
     ) => {
         $crate::_define_shape_system! {
             $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -484,6 +500,7 @@ macro_rules! define_shape_system {
 macro_rules! _define_shape_system {
     (
         $(SystemData($system_data:ident))?
+        $(ShapeData($shape_data:ident))?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -533,6 +550,7 @@ macro_rules! _define_shape_system {
                 type InstanceParams = InstanceParams;
                 type GpuParams = GpuParams;
                 type SystemData = ($($system_data)?);
+                type ShapeData = ($($shape_data)?);
                 fn pointer_events() -> bool {
                     let out = true;
                     $(let out = $pointer_events;)?

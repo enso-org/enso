@@ -14,6 +14,8 @@ use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
 // use crate::display::shape::system::ShapeProxy;
+use crate::display::shape::primitive::system::ShapeDataHash;
+use crate::display::shape::primitive::system::ShapeDataHasher;
 use crate::display::shape::system::ShapeSystem;
 use crate::display::shape::system::ShapeSystemId;
 // use crate::display::shape::ShapeSystemInstance;
@@ -214,10 +216,16 @@ impl Layer {
     // }
 
     /// Instantiate the provided [`ShapeProxy`].
-    pub fn instantiate<S>(&self, scene: &Scene) -> (ShapeInstance<S>, LayerDynamicShapeInstance)
-    where S: Shape {
+    pub fn instantiate<S>(
+        &self,
+        scene: &Scene,
+        data: &S::ShapeData,
+    ) -> (ShapeInstance<S>, LayerDynamicShapeInstance)
+    where
+        S: Shape,
+    {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
-            self.shape_system_registry.instantiate(scene);
+            self.shape_system_registry.instantiate(scene, data);
         self.add_shape(shape_system_info, symbol_id);
         (shape_instance, LayerDynamicShapeInstance::new(self, global_instance_id))
     }
@@ -1064,25 +1072,25 @@ shared! { ShapeSystemRegistry
 /// the same type on the same layer. Read the docs of [`ShapeProxy`] to learn more.
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
-    shape_system_map : HashMap<TypeId,ShapeSystemRegistryEntry>,
+    shape_system_map : HashMap<(TypeId, ShapeDataHash),ShapeSystemRegistryEntry>,
 }
 
 impl {
-    // TODO: This API requires Scene to be passed as argument, which is ugly. Consider splitting
-    //       the Scene into few components.
-    /// Query the registry for a user defined shape system of a given type. In case the shape system
-    /// was not yet used, it will be created.
-    pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystem<S>
-    where S : Shape {
-        self.with_get_or_register_mut::<S,_,_>
-            (scene,|entry| {entry.shape_system.clone_ref()})
-    }
+    // // TODO: This API requires Scene to be passed as argument, which is ugly. Consider splitting
+    // //       the Scene into few components.
+    // /// Query the registry for a user defined shape system of a given type. In case the shape system
+    // /// was not yet used, it will be created.
+    // pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystem<S>
+    // where S : Shape {
+    //     self.with_get_or_register_mut::<S,_,_>
+    //         (scene,|entry| {entry.shape_system.clone_ref()})
+    // }
 
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
-    (&mut self, scene:&Scene) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
+    (&mut self, scene:&Scene, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)
     where S : Shape {
-        self.with_get_or_register_mut::<S,_,_>(scene,|entry| {
+        self.with_get_or_register_mut::<S,_,_>(scene, data, |entry| {
             let system = entry.shape_system;
             let system_id = ShapeSystem::<S>::id();
             let (shape_instance, global_instance_id) = system.instantiate();
@@ -1099,10 +1107,10 @@ impl {
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
     /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
     /// perform necessary cleanup.
-    pub(crate) fn drop_instance<S>(&mut self) -> (usize,ShapeSystemId,PhantomData<S>)
+    pub(crate) fn drop_instance<S>(&mut self, data_hash: ShapeDataHash) -> (usize,ShapeSystemId,PhantomData<S>)
     where S : Shape {
         let system_id      = ShapeSystem::<S>::id();
-        let instance_count = if let Some(entry) = self.get_mut::<S>() {
+        let instance_count = if let Some(entry) = self.get_mut::<S>(data_hash) {
             *entry.instance_count -= 1;
             *entry.instance_count
         } else { 0 };
@@ -1111,10 +1119,15 @@ impl {
 }}
 
 impl ShapeSystemRegistryData {
-    fn get_mut<S>(&mut self) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>>
-    where S: Shape {
+    fn get_mut<S>(
+        &mut self,
+        data_hash: ShapeDataHash,
+    ) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>>
+    where
+        S: Shape,
+    {
         let id = TypeId::of::<S>();
-        self.shape_system_map.get_mut(&id).and_then(|t| {
+        self.shape_system_map.get_mut(&(id, data_hash)).and_then(|t| {
             let shape_system = t.shape_system.downcast_mut::<ShapeSystem<S>>();
             let instance_count = &mut t.instance_count;
             shape_system.map(move |shape_system| ShapeSystemRegistryEntryRefMut {
@@ -1125,24 +1138,38 @@ impl ShapeSystemRegistryData {
     }
 
     // T: ShapeSystemInstance
-    fn register<S>(&mut self, scene: &Scene) -> ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>
-    where S: Shape {
+    fn register<S>(
+        &mut self,
+        scene: &Scene,
+        data: &S::ShapeData,
+    ) -> ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>
+    where
+        S: Shape,
+    {
         let id = TypeId::of::<S>();
-        let system = ShapeSystem::<S>::new(scene);
+        let data_hash = data.hash();
+        let system = ShapeSystem::<S>::new(scene, data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
-        self.shape_system_map.entry(id).insert_entry(entry);
+        self.shape_system_map.entry((id, data_hash)).insert_entry(entry);
         // The following line is safe, as the object was just registered.
-        self.get_mut().unwrap()
+        self.get_mut(data_hash).unwrap()
     }
 
-    fn with_get_or_register_mut<S, F, Out>(&mut self, scene: &Scene, f: F) -> Out
+    fn with_get_or_register_mut<S, F, Out>(
+        &mut self,
+        scene: &Scene,
+        data: &S::ShapeData,
+        f: F,
+    ) -> Out
     where
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
-        S: Shape, {
-        match self.get_mut() {
+        S: Shape,
+    {
+        let data_hash = data.hash();
+        match self.get_mut(data_hash) {
             Some(entry) => f(entry),
-            None => f(self.register(scene)),
+            None => f(self.register(scene, data)),
         }
     }
 }

@@ -456,6 +456,13 @@ pub type NonVariableFont = FontTemplate<NonVariableFamily>;
 pub type VariableFont = FontTemplate<VariableFamily>;
 
 impl Font {
+    pub fn name(&self) -> &Name {
+        match self {
+            Font::NonVariable(font) => &font.name,
+            Font::Variable(font) => &font.name,
+        }
+    }
+
     /// List all possible weights. In case of variable fonts, [`None`] will be returned.
     pub fn possible_weights(&self) -> Option<Vec<Weight>> {
         match self {

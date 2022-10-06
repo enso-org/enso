@@ -749,13 +749,13 @@ impl TextModel {
         let height_dirty = default();
         let shaped_lines = default();
 
-        let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let symbol = &shape_system.sprite_system().symbol;
-
-        // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
-        // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
-        scene.layers.main.remove_symbol(symbol);
-        scene.layers.label.add(symbol);
+        // let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
+        // let symbol = &shape_system.sprite_system().symbol;
+        //
+        // // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of
+        // mouse // pointer and nodes. Should be refactored when proper sorting mechanisms
+        // are in place. scene.layers.main.remove_symbol(symbol);
+        // scene.layers.label.add(symbol);
 
         let frp = frp.downgrade();
         let data = TextModelData {

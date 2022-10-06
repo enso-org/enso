@@ -11,6 +11,7 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::Shape;
+use crate::display::shape::primitive::system::ShapeDataHasher;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::world;
 // use crate::display::shape::primitive::system::DynamicShapeInternals;
@@ -44,9 +45,14 @@ pub struct ShapeView<S: Shape> {
 
 // S: DynamicShapeInternals + 'static
 impl<S: Shape> ShapeView<S> {
+    pub fn new() -> Self
+    where S::ShapeData: Default {
+        Self::new_with_data(default())
+    }
+
     /// Constructor.
-    pub fn new() -> Self {
-        let model = Rc::new(ShapeViewModel::new());
+    pub fn new_with_data(data: S::ShapeData) -> Self {
+        let model = Rc::new(ShapeViewModel::new_with_data(data));
         Self { model }.init()
     }
 
@@ -70,7 +76,11 @@ impl<S: Shape> HasContent for ShapeView<S> {
 }
 
 // S: DynamicShapeInternals + 'static
-impl<S: Shape> Default for ShapeView<S> {
+impl<S> Default for ShapeView<S>
+where
+    S: Shape,
+    S::ShapeData: Default,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -89,6 +99,7 @@ impl<S: Shape> Default for ShapeView<S> {
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
     shape:               ShapeInstance<S>,
+    pub data:            RefCell<S::ShapeData>,
     pub events:          PointerTarget,
     pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
@@ -102,13 +113,14 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 
 // S : DynamicShapeInternals
 impl<S: Shape> ShapeViewModel<S> {
-    pub fn new() -> Self {
+    pub fn new_with_data(data: S::ShapeData) -> Self {
         let scene = world::scene();
-        let (shape, something) = scene.layers.root.instantiate(scene);
+        let (shape, something) = scene.layers.root.instantiate(scene, &data);
         let events = PointerTarget::new();
         let pointer_targets = RefCell::new(vec![something.global_instance_id]);
+        let data = RefCell::new(data);
         scene.shapes.insert_mouse_target(something.global_instance_id, events.clone_ref());
-        ShapeViewModel { shape, events, pointer_targets }
+        ShapeViewModel { shape, data, events, pointer_targets }
     }
 
     #[profile(Debug)]
@@ -129,9 +141,10 @@ impl<S: Shape> ShapeViewModel<S> {
     }
 
     fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
+        let data_hash = self.data.borrow().hash();
         if let Some(layer) = old_layer.upgrade() {
             let (instance_count, shape_system_id, _) =
-                layer.shape_system_registry.drop_instance::<S>();
+                layer.shape_system_registry.drop_instance::<S>(data_hash);
             if instance_count == 0 {
                 layer.remove_shape_system(shape_system_id);
             }
@@ -144,7 +157,7 @@ impl<S: Shape> ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         warn!("add_to_scene_layer: {:?}", layer);
-        let (shape, instance) = layer.instantiate(scene);
+        let (shape, instance) = layer.instantiate(scene, &*self.data.borrow());
         scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         // warn!(">>1");

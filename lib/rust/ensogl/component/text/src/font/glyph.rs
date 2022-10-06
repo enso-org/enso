@@ -52,9 +52,7 @@ ensogl_core::define_endpoints_2! {
 
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct SystemData {
-    pub font: FontWithAtlas,
-}
+pub struct SystemData {}
 
 #[cfg(target_os = "macos")]
 const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
@@ -89,13 +87,24 @@ impl SystemData {
 }
 
 
+#[derive(Debug)]
+pub struct ShapeData {
+    pub font: FontWithAtlas,
+}
+
+impl display::shape::system::ShapeDataHasher for ShapeData {
+    fn hash(&self) -> display::shape::system::ShapeDataHash {
+        let mut hasher = DefaultHasher::new();
+        std::hash::Hash::hash(&self.font.name(), &mut hasher);
+        display::shape::system::ShapeDataHash { hash: hasher.finish() }
+    }
+}
 
 pub mod glyph {
     use super::*;
-
-
     ensogl_core::define_shape_system! {
         SystemData(SystemData)
+        ShapeData(ShapeData)
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
             let shape = Circle(50.px());
             let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
@@ -108,9 +117,9 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
     fn new(
         scene: &Scene,
         data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph::Shape>,
+        shape_data: &ShapeData,
     ) -> Self {
-        let fonts = scene.extension::<font::Registry>();
-        let font = fonts.load(font::DEFAULT_FONT_MONO);
+        let font = &shape_data.font;
 
         let size = font::msdf::Texture::size();
         let sprite_system = &data.model.sprite_system;
@@ -125,13 +134,10 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
 
         symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
 
-        SystemData { font }
+        SystemData {}
     }
 }
 
-fn test() {
-    let g = glyph::View::new();
-}
 
 
 // =============
@@ -143,9 +149,6 @@ type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
 type Context = world::Context;
 
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &Scene) -> Context {}
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -166,7 +169,6 @@ pub struct GlyphData {
     pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
     pub context:            Context,
-    pub font:               FontWithAtlas,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
     pub color_animation:    color::Animation,
@@ -355,7 +357,7 @@ impl Glyph {
     pub fn set_size(&self, size: Size) {
         let size = size.value;
         self.view.font_size.set(size);
-        let opt_glyph_info = self.font.glyph_info(
+        let opt_glyph_info = self.view.data.borrow().font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
@@ -376,7 +378,8 @@ impl Glyph {
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
         let variations = self.variations.borrow();
-        let opt_glyph_info = self.font.glyph_info(self.properties.get(), &variations, glyph_id);
+        let opt_glyph_info =
+            self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
@@ -404,14 +407,19 @@ impl Glyph {
     fn update_atlas(&self) {}
     #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
-        let cpu_tex_height = self.font.msdf_texture_rows() as i32;
-        let gpu_tex_height = self.font.atlas.with_content(|texture| texture.storage().height);
+        let cpu_tex_height = self.view.data.borrow().font.msdf_texture_rows() as i32;
+        let gpu_tex_height =
+            self.view.data.borrow().font.atlas.with_content(|texture| texture.storage().height);
         let texture_changed = cpu_tex_height != gpu_tex_height;
         if texture_changed {
             let cpu_tex_width = font::msdf::Texture::WIDTH as i32;
             let texture = Texture::new(&self.context, (cpu_tex_width, cpu_tex_height));
-            self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            self.font.atlas.set(texture);
+            self.view
+                .data
+                .borrow()
+                .font
+                .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+            self.view.data.borrow().font.atlas.set(texture);
         }
     }
 }
@@ -489,7 +497,7 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
-        let view = glyph::View::new();
+        let view = glyph::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
         display_object.add_child(&view);
@@ -507,7 +515,6 @@ impl System {
                 view,
                 display_object,
                 context,
-                font,
                 glyph_id,
                 line_byte_offset,
                 properties,

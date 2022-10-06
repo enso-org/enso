@@ -87,11 +87,12 @@ impl {
 
     // // S:ShapeSystemInstance
     fn register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
-        let id     = TypeId::of::<S>();
-        let system = ShapeSystem::<S>::new(self.scene.as_ref().unwrap());
-        let any    = Box::new(system.clone_ref());
-        self.shape_system_map.insert(id,any);
-        system
+        panic!()
+        // let id     = TypeId::of::<S>();
+        // let system = ShapeSystem::<S>::new(self.scene.as_ref().unwrap());
+        // let any    = Box::new(system.clone_ref());
+        // self.shape_system_map.insert(id,any);
+        // system
     }
 
     fn get_or_register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
