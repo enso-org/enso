@@ -1700,7 +1700,8 @@ impl TextModel {
 
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
-        panic!()
+        // FIXME
+        // panic!()
         // let app = &self.app;
         // let scene = &app.display.default_scene;
         // let fonts = scene.extension::<font::Registry>();
@@ -1897,26 +1898,29 @@ impl TextModel {
 impl TextModel {
     fn add_symbols_to_scene_layer(&self) {
         let layer = &self.layer.get();
-        for symbol in self.symbols() {
-            layer.add(&symbol);
-        }
+        layer.add(&self);
+        // for symbol in self.symbols() {
+        //     layer.add(&symbol);
+        // }
     }
 
     fn remove_symbols_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.remove_symbol(&symbol);
-        }
+        layer.remove(&self);
+
+        // for symbol in self.symbols() {
+        //     layer.remove_symbol(&symbol);
+        // }
     }
 
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        panic!()
-        // let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
-        // let shapes = &self.app.display.default_scene.shapes;
-        // let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        // let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
-        // //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        // SmallVec::from_buf([text_symbol /* selection_symbol */])
-    }
+    // fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+    //     panic!()
+    //     // let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
+    //     // let shapes = &self.app.display.default_scene.shapes;
+    //     // let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+    //     // let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
+    //     // //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
+    //     // SmallVec::from_buf([text_symbol /* selection_symbol */])
+    // }
 }
 
 

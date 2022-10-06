@@ -210,6 +210,10 @@ impl Layer {
         object.display_object().add_to_display_layer(self);
     }
 
+    pub fn remove(&self, object: impl display::Object) {
+        object.display_object().remove_from_scene_layer(self);
+    }
+
     // /// Add the display object to this layer and remove it from any other layers.
     // pub fn add_exclusive(&self, object: impl display::Object) {
     //     object.display_object().add_to_display_layer_exclusive(self);

@@ -52,10 +52,9 @@ impl MouseEvents {
     /// Connect the given [`PointerTarget`] to the [`Events`] output.
     pub fn add_sub_shape<S: Shape>(&self, sub_shape: &ShapeView<S>) {
         // T:DynamicShape
-        panic!()
-        // frp::extend! { network
-        //     self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
-        //     self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;
-        // }
+        frp::extend! { network
+            self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
+            self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;
+        }
     }
 }
