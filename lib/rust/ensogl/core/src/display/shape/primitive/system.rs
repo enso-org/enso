@@ -279,6 +279,7 @@ pub struct ShapeSystemModel {
     /// has pointer events disabled would be completely transparent for the mouse (they would pass
     /// through all mouse events).
     pub pointer_events: Immutable<bool>,
+    pub normal:         Rc<Cell<bool>>, // FIXME: remove
 }
 
 impl ShapeSystemModel {
@@ -293,11 +294,16 @@ impl ShapeSystemModel {
         let material = Rc::new(RefCell::new(Self::surface_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
-        Self { sprite_system, shape, material, pointer_events }
+        let normal = Rc::new(Cell::new(true));
+        Self { sprite_system, shape, material, pointer_events, normal }
     }
 
     fn init(&self) {
-        self.reload_shape();
+        if self.normal.get() {
+            self.reload_shape();
+        } else {
+            self.reload_material();
+        }
     }
 
     // TODO
@@ -325,9 +331,11 @@ impl ShapeSystemModel {
     /// Generates the shape again. It is used after some parameters are changed, like setting new
     /// `shape`.
     fn reload_shape(&self) {
-        let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
-        self.material.borrow_mut().set_code(code);
-        self.reload_material();
+        if self.normal.get() {
+            let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
+            self.material.borrow_mut().set_code(code);
+            self.reload_material();
+        }
     }
 
     /// Define a new shader input.

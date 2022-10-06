@@ -84,8 +84,8 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
         let symbol = sprite_system.symbol();
 
         *data.model.material.borrow_mut() = System::material();
+        data.model.normal.set(false);
 
-        // sprite_system.set_material(Self::material());
         sprite_system.set_alignment(Alignment::bottom_left());
         scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         scene.variables.add("msdf_size", size);
@@ -128,18 +128,19 @@ pub struct GlyphData {
     // cloned in the FRP definition and thus will not cause any mem leak.
     #[deref]
     pub frp:                Frp,
+    pub view:               glyph::View,
     pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
-    pub sprite:             Sprite,
+    // pub sprite:             Sprite,
     pub context:            Context,
     pub font:               FontWithAtlas,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
-    pub size:               Attribute<f32>,
-    pub color:              Attribute<Vector4<f32>>,
-    pub sdf_weight:         Attribute<f32>,
-    pub atlas_index:        Attribute<f32>,
+    // pub size:               Attribute<f32>,
+    // pub color:              Attribute<Vector4<f32>>,
+    // pub sdf_weight:         Attribute<f32>,
+    // pub atlas_index:        Attribute<f32>,
     pub color_animation:    color::Animation,
     pub x_advance:          Rc<Cell<f32>>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
@@ -308,31 +309,31 @@ impl Glyph {
 
     /// SDF-based glyph thickness getter.
     pub fn sdf_weight(&self) -> SdfWeight {
-        SdfWeight(self.sdf_weight.get())
+        SdfWeight(self.view.sdf_weight.get())
     }
 
     /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
     /// values lower than 0 makes it thinner.
     pub fn set_sdf_weight(&self, value: impl Into<SdfWeight>) {
-        self.sdf_weight.set(value.into().value);
+        self.view.sdf_weight.set(value.into().value);
     }
 
     /// Size getter.
     pub fn size(&self) -> Size {
-        Size(self.size.get())
+        Size(self.view.font_size.get())
     }
 
     /// Size setter.
     pub fn set_size(&self, size: Size) {
         let size = size.value;
-        self.size.set(size);
+        self.view.font_size.set(size);
         let opt_glyph_info = self.font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
         );
         if let Some(glyph_info) = opt_glyph_info {
-            self.sprite.size.set(glyph_info.scale.scale(size))
+            self.view.size.set(glyph_info.scale.scale(size))
         } else {
             error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
@@ -349,9 +350,9 @@ impl Glyph {
         let variations = self.variations.borrow();
         let opt_glyph_info = self.font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
-            self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+            self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            self.sprite.size.set(glyph_info.scale.scale(self.size().value));
+            self.view.size.set(glyph_info.scale.scale(self.size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
             warn!("Cannot find glyph render info for glyph id: {:?}.", glyph_id);
@@ -429,14 +430,14 @@ impl WeakGlyph {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct System {
-    logger:        Logger,
-    context:       Context,
-    sprite_system: SpriteSystem,
-    pub font:      FontWithAtlas,
-    size:          Buffer<f32>,
-    color:         Buffer<Vector4<f32>>,
-    sdf_weight:    Buffer<f32>,
-    atlas_index:   Buffer<f32>,
+    // logger:   Logger,
+    context:  Context,
+    // sprite_system: SpriteSystem,
+    pub font: FontWithAtlas,
+    // size:     Buffer<f32>,
+    // color:         Buffer<Vector4<f32>>,
+    // sdf_weight:    Buffer<f32>,
+    // atlas_index:   Buffer<f32>,
 }
 
 impl System {
@@ -444,31 +445,31 @@ impl System {
     #[profile(Detail)]
     pub fn new(scene: impl AsRef<Scene>) -> Self {
         let scene = scene.as_ref();
-        let logger = Logger::new("glyph_system");
+        // let logger = Logger::new("glyph_system");
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font::DEFAULT_FONT_MONO);
-        let size = font::msdf::Texture::size();
-        let sprite_system = SpriteSystem::new();
-        let symbol = sprite_system.symbol();
+        // let size = font::msdf::Texture::size();
+        // let sprite_system = SpriteSystem::new();
+        // let symbol = sprite_system.symbol();
         let context = scene.context.borrow().as_ref().unwrap().clone_ref();
-        let mesh = symbol.surface();
+        // let mesh = symbol.surface();
 
-        sprite_system.set_material(Self::material());
-        sprite_system.set_alignment(Alignment::bottom_left());
-        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        scene.variables.add("msdf_size", size);
-
-        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+        // sprite_system.set_material(Self::material());
+        // sprite_system.set_alignment(Alignment::bottom_left());
+        // scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        // scene.variables.add("msdf_size", size);
+        //
+        // symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
 
         Self {
-            logger,
+            // logger,
             context,
-            sprite_system,
+            // sprite_system,
             font,
-            size: mesh.instance_scope().add_buffer("font_size"),
-            color: mesh.instance_scope().add_buffer("color"),
-            sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
-            atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
+            // size: mesh.instance_scope().add_buffer("font_size"),
+            // color: mesh.instance_scope().add_buffer("color"),
+            // sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
+            // atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
         }
     }
 
@@ -480,12 +481,12 @@ impl System {
         #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
-        let sprite = self.sprite_system.new_instance();
-        let instance_id = sprite.instance_id;
-        let size = self.size.at(instance_id);
-        let color = self.color.at(instance_id);
-        let sdf_weight = self.sdf_weight.at(instance_id);
-        let atlas_index = self.atlas_index.at(instance_id);
+        // let sprite = self.sprite_system.new_instance();
+        // let instance_id = sprite.instance_id;
+        // let size = self.size.at(instance_id);
+        // let color = self.color.at(instance_id);
+        // let sdf_weight = self.sdf_weight.at(instance_id);
+        // let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let glyph_id = default();
         let line_byte_offset = default();
@@ -494,28 +495,30 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
-        display_object.add_child(&sprite);
-        color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
-        atlas_index.set(0.0);
+        let view = glyph::View::new();
+        view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
+        view.atlas_index.set(0.0);
+        display_object.add_child(&view);
 
         let network = frp.network();
         frp::extend! {network
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
-            eval color_animation.value ((c) color.set(Rgba::from(c).into()));
+            eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
         }
 
         Glyph {
             data: Rc::new(GlyphData {
                 frp,
+                view,
                 display_object,
-                sprite,
+                // sprite,
                 context,
                 font,
-                size,
-                color,
-                sdf_weight,
-                atlas_index,
+                // size,
+                // color,
+                // sdf_weight,
+                // atlas_index,
                 glyph_id,
                 line_byte_offset,
                 properties,
@@ -527,17 +530,17 @@ impl System {
         }
     }
 
-    /// Get underlying sprite system.
-    pub fn sprite_system(&self) -> &SpriteSystem {
-        &self.sprite_system
-    }
+    // /// Get underlying sprite system.
+    // pub fn sprite_system(&self) -> &SpriteSystem {
+    //     &self.sprite_system
+    // }
 }
 
-impl display::Object for System {
-    fn display_object(&self) -> &display::object::Instance {
-        self.sprite_system.display_object()
-    }
-}
+// impl display::Object for System {
+//     fn display_object(&self) -> &display::object::Instance {
+//         self.sprite_system.display_object()
+//     }
+// }
 
 
 // === Material ===

@@ -735,7 +735,7 @@ impl TextModel {
         let display_object = display::object::Instance::new();
         let glyph_system = {
             let glyph_system = font::glyph::System::new(&scene);
-            display_object.add_child(&glyph_system);
+            // display_object.add_child(&glyph_system);
             RefCell::new(glyph_system)
         };
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
@@ -1388,7 +1388,7 @@ impl TextModel {
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);
                             glyph.set_glyph_id(shaped_glyph.id());
                             glyph.x_advance.set(x_advance);
-                            glyph.sprite.set_position_xy(glyph_render_offset);
+                            glyph.view.set_position_xy(glyph_render_offset);
                             glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
                             glyph_offset_x += x_advance;
@@ -1909,12 +1909,13 @@ impl TextModel {
     }
 
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
-        let shapes = &self.app.display.default_scene.shapes;
-        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
-        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol /* selection_symbol */])
+        panic!()
+        // let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
+        // let shapes = &self.app.display.default_scene.shapes;
+        // let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+        // let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
+        // //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
+        // SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
 }
 
