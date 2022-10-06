@@ -2081,7 +2081,10 @@ pkgStdLibInternal := Def.inputTask {
       (`std-google-api` / Compile / packageBin).value
     case _ =>
   }
-  val libs = if (cmd == "All") Seq("Base", "Table", "Database", "Image", "Google_Api") else Seq(cmd)
+  val libs = if (cmd != "All") Seq(cmd) else {
+    val prefix = "Standard."
+    Editions.standardLibraries.filter(_.startsWith(prefix)).map(_.stripPrefix(prefix))
+  }
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,
