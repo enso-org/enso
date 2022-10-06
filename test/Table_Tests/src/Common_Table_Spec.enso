@@ -1118,7 +1118,7 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal ["b", "c"]
             t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
-        Test.specify "by text search (contains, starts_with, ends_with)" <|
+        Test.specify "by text search (contains, starts_with, ends_with, like)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "b", "c", "a"]]]
 
             t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana"]
@@ -1129,8 +1129,21 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
             t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "banana", "nana"]
 
+            t.filter "X" (Filter_Condition.Like "%an%") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (Filter_Condition.Like "_a%") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
+            t.filter "X" (Filter_Condition.Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Like "nana") on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
+
+        Test.specify "by empty text search" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "", " ", Nothing, "nana"]]]
+            t.filter "X" Filter_Condition.Is_Empty on_problems=Report_Error . at "X" . to_vector . should_equal ["", Nothing]
+            t.filter "X" Filter_Condition.Not_Empty on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", " ", "nana"]
+
+        Test.specify "should check types for text operations" <|
+            t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, "A", "", " "]]]
             check_column_type_error_handling action =
-                tester = check_empty ["ix", "X", "Y"]
+                tester = check_empty ["ix", "X"]
                 check_problem problem =
                     problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
                     problem.expected . should_equal Value_Type.Char
@@ -1142,17 +1155,27 @@ spec prefix table_builder test_selection pending=Nothing =
             check_column_type_error_handling (t.filter "X" (Filter_Condition.Starts_With (t.at "ix")) on_problems=_)
             check_column_type_error_handling (t.filter "X" (Filter_Condition.Ends_With (t.at "ix")) on_problems=_)
             check_column_type_error_handling (t.filter "X" (Filter_Condition.Contains (t.at "ix")) on_problems=_)
+            check_column_type_error_handling (t.filter "X" (Filter_Condition.Like (t.at "ix")) on_problems=_)
+            check_column_type_error_handling (t.filter "X" (Filter_Condition.Not_Like (t.at "ix")) on_problems=_)
+
             check_column_type_error_handling (t.filter "ix" (Filter_Condition.Starts_With "A") on_problems=_)
             check_column_type_error_handling (t.filter "ix" (Filter_Condition.Ends_With "A") on_problems=_)
             check_column_type_error_handling (t.filter "ix" (Filter_Condition.Contains "A") on_problems=_)
+            check_column_type_error_handling (t.filter "ix" (Filter_Condition.Like "A") on_problems=_)
+            check_column_type_error_handling (t.filter "ix" (Filter_Condition.Not_Like "A") on_problems=_)
+
+            check_column_type_error_handling (t.filter "ix" Filter_Condition.Is_Empty on_problems=_)
+            check_column_type_error_handling (t.filter "ix" Filter_Condition.Not_Empty on_problems=_)
 
             check_scalar_type_error_handling name action =
-                tester = check_empty ["ix", "X", "Y"]
+                tester = check_empty ["ix", "X"]
                 problems = [Type_Error_Data Text Integer name]
                 Problems.test_problem_handling action problems tester
             check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42) on_problems=_)
             check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42) on_problems=_)
             check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Contains 42) on_problems=_)
+            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Like 42) on_problems=_)
+            check_scalar_type_error_handling "pattern" (t.filter "X" (Filter_Condition.Not_Like 42) on_problems=_)
 
         Test.specify "by nulls" <|
             t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, 1, Nothing, 4]]]
@@ -1169,6 +1192,8 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "b" on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 4, 5]
             t.filter "b" Filter_Condition.Is_False on_problems=Report_Error . at "ix" . to_vector . should_equal [2]
 
+        Test.specify "should check types of boolean operations" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             tester = check_empty ["ix", "b"]
             check_problem problem =
                 problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
