@@ -389,8 +389,7 @@ type Date_Time
 
              example_plus = Date_Time.new 2020 + 15.years + 3.hours
     + : Duration -> Date_Time
-    + self amount =
-        Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period amount.internal_duration
+    + self amount = self.plus_builtin amount
 
     ## Shift the date by the specified amount of business days.
 
@@ -443,8 +442,7 @@ type Date_Time
 
              example_minus = Date_Time.new 2020 - 1.year - 9.months
     - : Duration -> Date_Time
-    - self amount =
-        Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS amount.internal_period amount.internal_duration
+    - self amount = self.minus_builtin amount
 
     ## Convert this time to text using the default formatter.
 

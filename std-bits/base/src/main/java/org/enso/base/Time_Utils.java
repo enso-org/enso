@@ -79,18 +79,6 @@ public class Time_Utils {
     }
   }
 
-  public static ZonedDateTime datetime_adjust(
-      ZonedDateTime datetime, AdjustOp op, Period period, Duration duration) {
-    switch (op) {
-      case PLUS:
-        return datetime.plus(period).plus(duration);
-      case MINUS:
-        return datetime.minus(period).minus(duration);
-      default:
-        throw new DateTimeException("Unknown adjust operation");
-    }
-  }
-
   public static LocalTime time_adjust(LocalTime time, AdjustOp op, Duration duration) {
     switch (op) {
       case PLUS:

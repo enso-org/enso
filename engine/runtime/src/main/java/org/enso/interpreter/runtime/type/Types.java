@@ -55,6 +55,7 @@ import org.enso.polyglot.data.TypeGraph;
   EnsoDateTime.class,
   EnsoTimeOfDay.class,
   EnsoTimeZone.class,
+  EnsoDuration.class
 })
 public class Types {
 
@@ -145,6 +146,8 @@ public class Types {
       return ConstantsGen.DATE_TIME;
     } else if (TypesGen.isEnsoTimeOfDay(value)) {
       return ConstantsGen.TIME_OF_DAY;
+    } else if (TypesGen.isEnsoDuration(value)) {
+      return ConstantsGen.DURATION;
     } else if (TypesGen.isEnsoTimeZone(value)) {
       return ConstantsGen.TIME_ZONE;
     } else if (TypesGen.isEnsoFile(value)) {
@@ -244,6 +247,7 @@ public class Types {
     graph.insert(ConstantsGen.DATE, ConstantsGen.ANY);
     graph.insert(ConstantsGen.DATE_TIME, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TIME_OF_DAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DURATION, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TIME_ZONE, ConstantsGen.ANY);
     graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);

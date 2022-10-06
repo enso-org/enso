@@ -1,8 +1,10 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -136,6 +138,30 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(name = "zone", description = "Gets the zone")
   public EnsoTimeZone zone() {
     return new EnsoTimeZone(dateTime.getZone());
+  }
+
+  @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this date time")
+  @TruffleBoundary
+  public EnsoDateTime plus(Object durationObject) {
+    InteropLibrary interop = InteropLibrary.getUncached();
+    return new EnsoDateTime(dateTime.plus(ensureDuration(durationObject, interop)));
+  }
+
+  @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
+  @TruffleBoundary
+  public EnsoDateTime minus(Object durationObject) {
+    InteropLibrary interop = InteropLibrary.getUncached();
+    return new EnsoDateTime(dateTime.minus(ensureDuration(durationObject, interop)));
+  }
+
+  private static Duration ensureDuration(Object durationObject, InteropLibrary interop) {
+    assert interop.isDuration(durationObject);
+    try {
+      return interop.asDuration(durationObject);
+    } catch (UnsupportedMessageException e) {
+      // TODO: Proper internal error
+      throw new RuntimeException(e);
+    }
   }
 
   @Builtin.Method(description = "Return the number of seconds from the Unix epoch.")
