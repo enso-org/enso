@@ -3,13 +3,14 @@ import Standard.Base.Error.Common as Errors
 
 from Standard.Table import Aggregate_Column
 
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 
-from project.Data.SQL import Statement, SQL_Type
+from project.Data.SQL import Statement
 
 ## PRIVATE
 

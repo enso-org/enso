@@ -4,13 +4,14 @@ import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Data.SQL
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor
 import project.Internal.IR.Nulls_Order
 
-from project.Data.SQL import SQL_Type, Statement, code
+from project.Data.SQL import Statement, code
 from project.Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE

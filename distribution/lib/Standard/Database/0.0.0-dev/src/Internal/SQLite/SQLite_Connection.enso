@@ -3,12 +3,13 @@ from Standard.Base import all
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.JDBC_Connection
 import project.Data.Dialect
 import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table
 
-from project.Data.SQL import SQL_Type, Statement
+from project.Data.SQL import Statement
 from project.Errors import SQL_Error
 
 type SQLite_Connection

@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.SQL.SQL_Type
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Expression.Expression
 
 type Internal_Column

@@ -2,12 +2,13 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
 
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor
 import project.Internal.Postgres.Postgres_Dialect
 
-from project.Data.SQL import SQL_Type, Statement
+from project.Data.SQL import Statement
 
 ## PRIVATE
 
