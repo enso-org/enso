@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 from Standard.Table import Table
-import Standard.Test
-import Standard.Visualization.Helpers
+
+import project.Helpers
 
 ## PRIVATE
 
