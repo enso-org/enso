@@ -110,6 +110,7 @@ impl Model {
         match self.controller.use_as_suggestion(entry_id) {
             Ok(new_code) => {
                 let new_code_and_trees = node_view::Expression::new_plain(new_code);
+                self.update_breadcrumbs();
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
@@ -188,6 +189,7 @@ impl Model {
         });
         match new_code {
             Ok(new_code) => {
+                self.update_breadcrumbs();
                 let new_code_and_trees = node_view::Expression::new_plain(new_code);
                 Some((self.input_view, new_code_and_trees))
             }
@@ -202,7 +204,8 @@ impl Model {
         self.controller.select_breadcrumb(id);
     }
 
-    fn set_breadcrumbs(&self, names: impl Iterator<Item = ImString>) {
+    fn update_breadcrumbs(&self) {
+        let names = self.controller.breadcrumbs().into_iter();
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             // We only update the breadcrumbs starting from the second element because the first
             // one is reserved as a section name.
@@ -232,8 +235,7 @@ impl Model {
             group.component_id?
         };
         self.controller.enter_module(&id);
-        let names = self.controller.breadcrumbs();
-        self.set_breadcrumbs(names.into_iter());
+        self.update_breadcrumbs();
         let show_ellipsis = self.controller.last_module_has_submodules();
         self.show_breadcrumbs_ellipsis(show_ellipsis);
         Some(())

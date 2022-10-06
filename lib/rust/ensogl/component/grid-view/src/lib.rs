@@ -188,6 +188,9 @@ ensogl_core::define_endpoints_2! {
         properties(Properties),
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
+        /// Event emitted after visible entries were detached after reset, before any
+        /// `model_for_entry_needed` request.
+        entries_reset(Row, Col),
         entry_shown(Row, Col),
         entry_contour(Row, Col, entry::Contour),
         entry_hovered(Option<(Row, Col)>),
@@ -516,6 +519,10 @@ impl<E: Entry> GridView<E> {
             content_size_params <- all(out.grid_size, input.set_entries_size, column_resized);
             out.content_size <+ content_size_params.map(f!((&((rows, cols), esz, _)) model.content_size(rows, cols, esz)));
 
+            reset_result <-
+                input.reset_entries.map2(&out.properties, f!((_, p) model.reset_entries(*p)));
+            out.entries_reset <+ input.reset_entries.sample(&reset_result);
+
             request_models_after_vis_area_change <=
                 input.set_viewport.map2(&out.properties, f!((_, p) model.update_entries_visibility(*p)));
             request_model_after_grid_size_change <=
@@ -524,8 +531,7 @@ impl<E: Entry> GridView<E> {
                 &out.properties,
                 f!((_, p) model.update_after_entries_size_change(*p))
             );
-            request_models_after_reset <=
-                input.reset_entries.map2(&out.properties, f!((_, p) model.reset_entries(*p)));
+            request_models_after_reset <= reset_result;
             request_models_after_column_resize <=
                 resized_column.map2(&out.properties, f!((col, p) model.update_after_column_resize(*col, *p)));
             request_models_after_text_layer_change <=

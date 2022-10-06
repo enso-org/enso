@@ -61,8 +61,8 @@ pub struct SelectionColorIntensities {
 impl From<SelectionColorIntensities> for ColorIntensities {
     fn from(selection: SelectionColorIntensities) -> Self {
         let SelectionColorIntensities { text, background, icon_strong, icon_weak } = selection;
-        let dimmed = default();
-        let hover_highlight = default();
+        let dimmed = 1.0;
+        let hover_highlight = background;
         Self { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
     }
 }

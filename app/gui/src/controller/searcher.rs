@@ -766,6 +766,7 @@ impl Searcher {
         self.data.borrow_mut().input = new_parsed_input;
         self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
         self.reload_list();
+        self.breadcrumbs.set_content(iter::empty());
         Ok(new_input)
     }
 
@@ -774,7 +775,7 @@ impl Searcher {
         added_ast: Ast,
         pattern_offset: usize,
     ) -> ast::Shifted<ast::prefix::Chain> {
-        match self.data.borrow_mut().input.expression.take() {
+        match self.data.borrow().input.expression.clone() {
             None => {
                 let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
                 ast::Shifted::new(pattern_offset, ast)
@@ -849,7 +850,7 @@ impl Searcher {
             self.mode.node_id(),
             Box::new(|md| md.intended_method = intended_method),
         )?;
-        tracing::debug!("Previewing expression: \"{:?}\".", expression);
+        tracing::warn!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -2231,7 +2232,7 @@ pub mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn picked_completions_list_maintaining() {
         let Fixture { test: _test, searcher, entry1, entry2, .. } =
             Fixture::new_custom(|data, client| {

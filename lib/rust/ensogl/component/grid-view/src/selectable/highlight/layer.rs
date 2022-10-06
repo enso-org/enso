@@ -80,8 +80,8 @@ impl<InnerGridView> Handler<InnerGridView> {
             eval viewport ([shape](&vp) shape::set_viewport(&shape, vp));
             grid_frp.set_viewport <+ viewport;
             grid_frp.set_entries_size <+ all(init, base_grid_frp.entries_size)._1();
-            grid_frp.reset_entries <+ all(init, base_grid_frp.reset_entries)._1();
-            grid_frp.resize_grid <+ all(init, base_grid_frp.resize_grid)._1();
+            grid_frp.resize_grid <+ all(init, base_grid_frp.grid_size)._1();
+            grid_frp.reset_entries <+ base_grid_frp.entries_reset;
             grid_frp.model_for_entry <+ base_grid_frp.model_for_entry;
             grid_frp.set_column_width <+ base_grid_frp.set_column_width;
 
