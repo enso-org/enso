@@ -135,7 +135,6 @@ impl SheetNode {
 #[allow(missing_docs)]
 pub struct Expression {
     pub args:     Vec<Path>,
-    #[allow(clippy::type_complexity)]
     pub function: Rc<dyn Fn(&[&Data]) -> Data>,
 }
 
@@ -192,13 +191,11 @@ impls! { From<&StaticPath> for Expression { |t| Self::reference(t) }}
 #[derive(Clone)]
 pub struct BoundExpression {
     args:     Vec<Index<Query>>,
-    #[allow(clippy::type_complexity)]
     function: Rc<dyn Fn(&[&Data]) -> Data>,
 }
 
 impl BoundExpression {
     /// Constructor.
-    #[allow(clippy::type_complexity)]
     pub fn new(args: Vec<Index<Query>>, function: Rc<dyn Fn(&[&Data]) -> Data>) -> Self {
         Self { args, function }
     }

@@ -83,7 +83,6 @@ pub trait StreamTestExt<S: ?Sized + Stream> {
     ///
     /// Takes a list of predicates. Items are matched against them, after predicate succeeds match
     /// it is removed from the list.
-    #[allow(clippy::type_complexity)]
     fn expect_many<'a>(&mut self, mut expected: Vec<Box<dyn Fn(&S::Item) -> bool + 'a>>)
     where S::Item: Debug {
         while !expected.is_empty() {
