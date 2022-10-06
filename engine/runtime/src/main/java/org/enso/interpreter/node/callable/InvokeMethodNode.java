@@ -361,8 +361,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DURATION"
-      }
-  )
+      })
   Stateful doConvertDuration(
       VirtualFrame frame,
       Object state,
@@ -371,8 +370,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached MethodResolverNode methodResolverNode
-  ) {
+      @Cached MethodResolverNode methodResolverNode) {
     var ctx = Context.get(this);
     try {
       var duration = interop.asDuration(self);

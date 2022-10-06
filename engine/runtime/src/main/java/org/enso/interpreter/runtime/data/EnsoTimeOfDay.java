@@ -11,9 +11,11 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -75,6 +77,31 @@ public class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(description = "Gets a value nanosecond")
   public long nanosecond() {
     return localTime.getNano();
+  }
+
+  @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
+  @Builtin.Specialize
+  public EnsoTimeOfDay plus(Object durationObject, InteropLibrary interop) {
+    assert interop.isDuration(durationObject);
+    return new EnsoTimeOfDay(localTime.plus(ensureDuration(durationObject, interop)));
+  }
+
+  @Builtin.Method(
+      name = "minus_builtin",
+      description = "Subtracts a duration from this Time_Of_Day")
+  @Builtin.Specialize
+  public EnsoTimeOfDay minus(Object durationObject, InteropLibrary interop) {
+    assert interop.isDuration(durationObject);
+    return new EnsoTimeOfDay(localTime.minus(ensureDuration(durationObject, interop)));
+  }
+
+  private static Duration ensureDuration(Object durationObject, InteropLibrary interop) {
+    assert interop.isDuration(durationObject);
+    try {
+      return interop.asDuration(durationObject);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(e.getMessage(), interop);
+    }
   }
 
   @Builtin.Method(description = "Gets a value second")
