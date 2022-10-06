@@ -2,7 +2,6 @@ from Standard.Base.Data.Numbers import all
 from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Data.Filter_Condition.Filter_Condition
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Function.Function
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe
@@ -183,7 +182,7 @@ type List
              example_filter = Examples.list.filter (Filter_Condition.Less than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = case filter of
-        _ : Filter_Condition -> self.filter (Filter_Condition_Module.to_predicate filter)
+        _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
             go_filter list = case list of
                 Cons h t ->

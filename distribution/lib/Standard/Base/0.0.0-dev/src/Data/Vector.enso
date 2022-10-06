@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -346,7 +345,7 @@ type Vector a
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = case filter of
-        _ : Filter_Condition -> self.filter (Filter_Condition_Module.to_predicate filter)
+        _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
             builder = self.fold new_builder builder-> elem->
                 if predicate elem then builder.append elem else builder

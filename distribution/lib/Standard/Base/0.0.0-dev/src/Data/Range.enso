@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 
 # TODO Dubious constructor export
 from project.Data.Range.Range import all
@@ -112,7 +111,7 @@ type Range
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = case filter of
-        _ : Filter_Condition -> self.filter (Filter_Condition_Module.to_predicate filter)
+        _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
             builder = self.fold Vector.new_builder builder-> elem->
                 if predicate elem then builder.append elem else builder
