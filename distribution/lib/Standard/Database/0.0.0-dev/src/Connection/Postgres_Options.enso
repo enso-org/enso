@@ -10,6 +10,9 @@ import project.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
+from project.Connection.Postgres_Options.Postgres_Options import Postgres
+from project.Connection.Postgres_Options.Postgres_Options export Postgres
+
 type Postgres_Options
     ## Connect to a PostgreSQL database.
 
