@@ -2,14 +2,14 @@ from Standard.Base import all
 import Standard.Base.System
 import Standard.Base.Error.Common as Errors
 
-import Standard.Table.Data.Table
+from Standard.Table.Data.Table import Table
 from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-import Standard.Table.Data.Storage
+from Standard.Table.Data.Storage import Storage
 from Standard.Table.Delimited.Delimited_Format import Delimited_Format
-import Standard.Table.Delimited.Quote_Style
-from Standard.Table.Delimited.Delimited_Reader import Existing_Headers, No_Headers, detect_metadata
-import Standard.Table.Data.Match_Columns
+from Standard.Table.Delimited.Quote_Style import Quote_Style
+from Standard.Table.Delimited.Delimited_Reader import Detected_Headers, detect_metadata
+from Standard.Table.Data.Match_Columns import Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior
@@ -63,13 +63,13 @@ append_to_file table format file match_columns on_problems =
 
         reordered_java_table = case preexisting_headers of
             Nothing -> table.java_table
-            Existing_Headers column_names -> case match_columns of
+            Detected_Headers.Existing column_names -> case match_columns of
                 Match_Columns.By_Name ->
                     ColumnMapper.mapColumnsByName table.java_table column_names.to_array
                 Match_Columns.By_Position ->
                     column_count = column_names.length
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
-            No_Headers column_count -> case match_columns of
+            Detected_Headers.None column_count -> case match_columns of
                 Match_Columns.By_Name ->
                     Error.throw (Illegal_Argument_Error_Data "Cannot append by name when headers are not present in the existing data.")
                 Match_Columns.By_Position ->

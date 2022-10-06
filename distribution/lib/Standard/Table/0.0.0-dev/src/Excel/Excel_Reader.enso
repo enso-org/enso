@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.System.File.Option
 
-import Standard.Table.Data.Table
+import Standard.Table.Data.Table.Table
+import Standard.Table.Excel.Range.Excel_Range
 
-from Standard.Table.Excel.Range import Excel_Range_Data
 from Standard.Table.Excel.Section import Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
 
 from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
@@ -71,7 +71,7 @@ read_file file section headers on_problems xls_format=False =
                 _ : Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
             prepare_reader_table on_problems <| case address of
-                Excel_Range_Data _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
+                _ : Excel_Range -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
                 _ : Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
     handle_reader file reader

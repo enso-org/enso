@@ -4,10 +4,10 @@ import Standard.Table.Data.Table
 
 from Standard.Table.Excel.Excel_Reader import handle_reader, make_java_headers
 from Standard.Table.Excel.Section import Worksheet, Cell_Range
-from Standard.Table.Excel.Range import Excel_Range_Data
+import Standard.Table.Excel.Range.Excel_Range
 
 from Standard.Table.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
-import Standard.Table.Data.Match_Columns
+import Standard.Table.Data.Match_Columns.Match_Columns
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
@@ -44,7 +44,7 @@ write_file file table on_existing_file section headers match_columns _ xls_forma
         Worksheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
-            Excel_Range_Data java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+            Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
             _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
 
     if result.is_error then result else

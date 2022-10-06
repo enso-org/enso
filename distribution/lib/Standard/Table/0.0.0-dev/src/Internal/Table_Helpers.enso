@@ -4,14 +4,14 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Table.Data.Position
+import Standard.Table.Data.Position.Position
 from Standard.Table.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
-import Standard.Table.Data.Column_Name_Mapping
-import Standard.Table.Internal.Unique_Name_Strategy
-import Standard.Table.Internal.Problem_Builder
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
+import Standard.Table.Data.Column_Selector.Column_Selector
+import Standard.Table.Data.Column_Name_Mapping.Column_Name_Mapping
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column.Sort_Column
 
 polyglot java import java.util.HashSet
 
@@ -234,20 +234,20 @@ sort_columns internal_columns direction text_ordering =
 select_columns_helper : Vector -> Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
 select_columns_helper internal_columns selector reorder problem_builder = case selector of
     _ : Vector.Vector ->
-        select_columns_helper internal_columns (By_Name selector) reorder problem_builder
-    By_Name names matcher ->
+        select_columns_helper internal_columns (Column_Selector.By_Name selector) reorder problem_builder
+    Column_Selector.By_Name names matcher ->
         valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
         Matching.match_criteria_callback matcher internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
-    By_Index indices ->
+    Column_Selector.By_Index indices ->
         good_indices = validate_indices internal_columns.length indices problem_builder . map .first
         case reorder of
             True ->
                 select_indices_reordering internal_columns good_indices
             False ->
                 select_indices_preserving_order internal_columns good_indices
-    By_Column columns ->
+    Column_Selector.By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names Text_Matcher.Case_Sensitive
+        new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
         select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
@@ -356,14 +356,10 @@ validate_unique vector problem_callback on=(x->x) =
 
     acc.at 1 . to_vector
 
-# TODO Dubious constructor export
-from project.Internal.Table_Helpers.Column_Transform_Element import all
-from project.Internal.Table_Helpers.Column_Transform_Element export all
-
 ## PRIVATE
    A helper type used by transform helpers.
 type Column_Transform_Element
-    Column_Transform_Element_Data column associated_selector
+    Value column associated_selector
 
 ## PRIVATE
 prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
@@ -422,7 +418,7 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
             if matching_selectors.length > 1 then
                 problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
             matching_selectors.first
-        Column_Transform_Element column associated_selector
+        Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE
    A helper function which can be used by methods that transform a subset of
@@ -446,7 +442,7 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
     selectors_map = Map.from_vector good_indices
     internal_columns.map_with_index i-> column->
         associated_selector = selectors_map.get_or_else i Nothing
-        Column_Transform_Element_Data column associated_selector
+        Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE
    A helper function which can be used by methods that transform a subset of
@@ -504,7 +500,7 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
                 problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
             associated_selector_index = matching_selector_indices.first
             associated_selector = name_selectors.at associated_selector_index
-            element = Column_Transform_Element_Data column associated_selector
+            element = Column_Transform_Element.Value column associated_selector
             results.append (Pair_Data element [associated_selector_index, i])
     # We sort the results by the associated selector index, breaking ties by the column index.
     sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
@@ -531,7 +527,7 @@ select_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer
 select_columns_by_index internal_columns index_selectors problem_builder index_extractor =
     good_selectors = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     good_selectors.map pair->
-        Column_Transform_Element_Data (internal_columns.at pair.first) pair.second
+        Column_Transform_Element.Value (internal_columns.at pair.first) pair.second
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of

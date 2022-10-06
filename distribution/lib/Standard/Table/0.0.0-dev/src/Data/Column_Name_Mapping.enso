@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Data.Column_Name_Mapping.Column_Name_Mapping import all
-from project.Data.Column_Name_Mapping.Column_Name_Mapping export all
-
 ## Specifies a selection of columns from the table and the new name for them to
    become.
 type Column_Name_Mapping
