@@ -215,9 +215,12 @@ ThisBuild / Test / testOptions ++=
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>
-      Tests.Argument(TestFrameworks.ScalaTest, "-u", junitDir)
+      Tests.Argument(
+        TestFrameworks.ScalaTest,
+        "-u",
+        (file(junitDir) / "engine").toString
+      )
     }
-
 
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
