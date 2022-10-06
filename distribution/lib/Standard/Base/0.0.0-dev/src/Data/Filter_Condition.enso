@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
+polyglot java import org.enso.base.Regex_Utils
+
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
     Less than:Any
@@ -127,6 +129,5 @@ type Filter_Condition
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =
-    ## FIXME: IMO this will not work for `[ab]%` which will match `aaaa` and `bbbb` but it should not - it should however match `[ab]aaa`. `[]` are not special in SQL
-    regex_pattern = "^" + (sql_pattern.replace "\" "\\" . replace "." "\" . replace "_" "." . replace "%" ".*?") + "$"
+    regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
