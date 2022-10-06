@@ -369,6 +369,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testExtensionMethod() throws Exception {
+    parseTest("""
+    Any.meaning = -42
+      """);
+  }
+
+  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of

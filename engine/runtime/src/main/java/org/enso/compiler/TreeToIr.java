@@ -88,20 +88,32 @@ final class TreeToIr {
         for (Line line : b.getStatements()) {
           switch (line.getExpression()) {
             case Tree.Assignment a -> {
-              var name = switch (a.getPattern()) {
-                case Tree.Ident id -> new IR$Name$Literal(
-                  id.getToken().codeRepr(), false,
-                  getIdentifiedLocation(id),
-                  meta(), diag()
-                );
+              var r = switch (a.getPattern()) {
+                case Tree.Ident id -> {
+                  var name = new IR$Name$Literal(
+                    id.getToken().codeRepr(), false,
+                    getIdentifiedLocation(id),
+                    meta(), diag()
+                  );
+                  yield new IR$Name$MethodReference(
+                    Option.empty(),
+                    name,
+                    name.location(),
+                    meta(), diag()
+                  );
+                }
+                case Tree.OprApp opr -> {
+                  var pointer = buildQualifiedName(opr.getLhs());
+                  var name = buildName(opr.getRhs());
+                  yield new IR$Name$MethodReference(
+                    Option.apply(pointer),
+                    name,
+                    Option.empty(),
+                    meta(), diag()
+                  );
+                }
                 default -> throw new IllegalStateException("Not an identifier: " + a.getPattern());
               };
-              var r = new IR$Name$MethodReference(
-                Option.empty(),
-                name,
-                name.location(),
-                meta(), diag()
-              );
               var m = new IR$Module$Scope$Definition$Method$Binding(
                 r,
                 nil(),
@@ -1554,7 +1566,8 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.Pattern> translatePatternArguments(Tree tree, List<IR.Pattern> prev) {
+  private List<IR.Pattern> translatePatternArguments(Tree t, List<IR.Pattern> prev) {
+    var tree = maybeManyParensed(t);
     return switch (tree) {
       case Tree.OprApp app -> {
        var tail = translatePatternArguments(app.getRhs(), prev);
