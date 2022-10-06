@@ -11,6 +11,7 @@ use crate::Style;
 
 use enso_frp as frp;
 use ensogl_component::tooltip::Tooltip;
+use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::Application;
 use ensogl_core::application::tooltip;
 use ensogl_core::display;
@@ -117,6 +118,10 @@ impl Navigator {
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
+        let tooltip_hide_timer = DelayedAnimation::new(&network);
+        // FIXME[mc]: const TOOLTIP_HIDE_ONSET_DELAY_MS
+        tooltip_hide_timer.set_delay(3000.0);
+        tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             chosen_section <- source();
             eval bottom_buttons.chosen_entry([chosen_section](id) match id {
@@ -131,7 +136,13 @@ impl Navigator {
             marketplace_button_selected <- top_buttons.selected_entry.map(|id| *id == Some(1));
             marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
-            tooltip.frp.set_style <+ marketplace_button_hovered.map(|hovered| if *hovered {
+            tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
+            tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false(); // TODO[mc]: ok?
+            // FIXME[mc]: rename
+            tooltip_not_timed_out <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
+            showing_tooltip <- marketplace_button_hovered && tooltip_not_timed_out;
+            // tooltip.frp.set_style <+ marketplace_button_hovered.map(|hovered| if *hovered {
+            tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
                     // FIXME[mc]: const TOOLTIP_LOCATION
                     tooltip::Style::set_label("Marketplace will be available soon.".into()).with_placement(tooltip::Placement::Bottom)
                 } else {
@@ -141,8 +152,12 @@ impl Navigator {
             eval marketplace_button_hovered([](hovered) {
                 tracing::warn!("MCDBG marketplace_button_hovered {hovered}")
             });
+            eval tooltip_not_timed_out([](not_timed_out) {
+                tracing::warn!("MCDBG tooltip_not_timed_out {not_timed_out}")
+            });
         }
         bottom_buttons.select_entry(Some(2));
+        tooltip_hide_timer.reset();
 
         Self { display_object, top_buttons, bottom_buttons, tooltip, network, chosen_section }
     }
