@@ -803,6 +803,18 @@ final class TreeToIr {
         );
         case IR.Expression e -> e;
       };
+      case Tree.TypeSignature sig -> {
+        var methodName = buildName(sig, sig.getVariable());
+        var methodReference = new IR$CallArgument$Specified(
+                Option.empty(),
+                methodName,
+                getIdentifiedLocation(sig),
+                meta(), diag()
+        );
+        var opName = buildName(null, sig.getOperator(), true);
+        var signature = translateCallArgument(sig.getType(), true);
+        yield new IR$Application$Operator$Binary(methodReference, opName, signature, getIdentifiedLocation(sig), meta(), diag());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*

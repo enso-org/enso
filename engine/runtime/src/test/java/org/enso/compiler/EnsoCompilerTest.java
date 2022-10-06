@@ -376,6 +376,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeSignature() throws Exception {
+    parseTest("""
+    resolve_aggregate table problem_builder aggregate_column =
+        table_columns = table.columns
+
+        resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
+        resolve c = 42
+    """);
+  }
+
+  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of
