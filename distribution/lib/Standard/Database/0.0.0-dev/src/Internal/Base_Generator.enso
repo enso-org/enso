@@ -186,7 +186,7 @@ is_empty = arguments ->
         True ->
             arg = arguments.at 0
             is_null = (arg ++ " IS NULL").paren
-            is_empty = (arg ++ " == ''").paren
+            is_empty = (arg ++ " = ''").paren
             (is_null ++ " OR " ++ is_empty).paren
         False ->
             Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation ISEMPTY")
