@@ -62,6 +62,7 @@ class PatternsTest extends CompilerTest {
         |    F.Foo a b c -> a + b + c
         |    F.Foo a b -> a + b
         |    Does_Not_Exist x y z -> x + y + z
+        |    x : F -> x.a + x.b + x.c
         |
         |""".stripMargin.preprocessModule.analyse
 
@@ -85,6 +86,10 @@ class PatternsTest extends CompilerTest {
       patterns(2)
         .asInstanceOf[IR.Pattern.Constructor]
         .constructor shouldBe a[IR.Error.Resolution]
+      patterns(3)
+        .asInstanceOf[IR.Pattern.Type]
+        .tpe
+        .getMetadata(Patterns) shouldBe defined
     }
   }
 }

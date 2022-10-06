@@ -39,14 +39,12 @@ fn main() {
     let ast = enso_parser::syntax::Tree::reflect();
     let tree = enso_parser::syntax::Tree::reflect().id;
     let token = enso_parser::syntax::Token::<enso_parser::syntax::token::Variant>::reflect().id;
-    let unsupported = enso_parser::syntax::tree::Unsupported::reflect().id;
     let (graph, rust_to_meta) = rust::to_meta(ast);
     let (graph, meta_to_java) = java::from_meta(&graph, enso_parser_generate_java::EITHER_TYPE);
     let mut graph = java::transform::optional_to_null(graph);
     let rust_to_java = |id| meta_to_java[&rust_to_meta[&id]];
-    let (tree, token, unsupported) =
-        (rust_to_java(tree), rust_to_java(token), rust_to_java(unsupported));
-    serialization::derive(&mut graph, tree, token, unsupported);
+    let (tree, token) = (rust_to_java(tree), rust_to_java(token));
+    serialization::derive(&mut graph, tree, token);
     let graph = java::to_syntax(&graph, enso_parser_generate_java::PACKAGE);
     let mut args = std::env::args();
     args.next().unwrap();

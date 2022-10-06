@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Table
+from Standard.Table import Table
 
 ## UNSTABLE
 
@@ -21,6 +21,6 @@ import Standard.Table
          import Standard.Geo
 
          example_point = Geo.point 51.509865 -0.118092
-point : Decimal -> Decimal -> Decimal -> Table.Table
+point : Decimal -> Decimal -> Decimal -> Table
 point latitude longitude elevation=0 =
     Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]

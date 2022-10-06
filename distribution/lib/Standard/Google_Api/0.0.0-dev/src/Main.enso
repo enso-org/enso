@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Table
+from Standard.Table import Table
 
 polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes

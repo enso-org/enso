@@ -190,7 +190,10 @@ impl<'g> ToSExpr<'g> {
     fn primitive(&self, primitive: Primitive, data: &mut &[u8]) -> Value {
         match primitive {
             Primitive::U32 => Value::Number(read_u32(data).into()),
+            Primitive::I32 => Value::Number((read_u32(data) as i32).into()),
+            Primitive::Char => Value::Char(char::try_from(read_u32(data)).unwrap()),
             Primitive::U64 => Value::Number(read_u64(data).into()),
+            Primitive::I64 => Value::Number((read_u64(data) as i64).into()),
             Primitive::Bool => {
                 let value = read_u8(data);
                 let value = match value {

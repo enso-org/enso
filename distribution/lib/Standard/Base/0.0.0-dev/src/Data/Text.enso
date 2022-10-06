@@ -47,5 +47,5 @@ type Text
     == : Any -> Boolean
     == self that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
         case that of
-            Text -> Text_Utils.equals self that
+            _ : Text -> Text_Utils.equals self that
             _ -> False

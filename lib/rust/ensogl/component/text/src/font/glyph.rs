@@ -40,7 +40,6 @@ use owned_ttf_parser::GlyphId;
 // === FRP ===
 // ===========
 
-
 ensogl_core::define_endpoints_2! {
     Input {
         set_color(color::Lcha),

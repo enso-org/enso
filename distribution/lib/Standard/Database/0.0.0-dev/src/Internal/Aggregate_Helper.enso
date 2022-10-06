@@ -1,6 +1,6 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL import SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data

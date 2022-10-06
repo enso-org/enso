@@ -1,8 +1,7 @@
 from Standard.Base import all
 
-from Standard.Table import Sort_Column, Sort_Column_Selector
-from Standard.Table.Data.Column_Selector import By_Name
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 
 from Standard.Database import all
@@ -29,7 +28,7 @@ spec =
     t1 = test_connection.query (Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
-            q1 = t1.where (t1.at "A" == 42) . to_json
+            q1 = t1.filter (t1.at "A" == 42) . to_json
             part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
             interp = Json.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
             part2 = Json.from_pairs [["sql_interpolation", interp]]
@@ -43,7 +42,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select_columns (By_Name ["C", "B", "undefined"]) reorder=True
+            t2 = t1.select_columns (Column_Selector.By_Name ["C", "B", "undefined"]) reorder=True
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"
@@ -60,7 +59,7 @@ spec =
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns (By_Name [])
+            empty = t1.select_columns (Column_Selector.By_Name [])
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.column_count . should_equal 0
@@ -92,11 +91,11 @@ spec =
 
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
-            t2 = t1.where (t1.at "A" == 42)
+            t2 = t1.filter (t1.at "A" == 42)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
 
         Test.specify "should allow selecting column rows based on a boolean expression" <|
-            c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
+            c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
     Test.group "[Codegen] Joining Tables" <|
@@ -140,10 +139,6 @@ spec =
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
-
-        Test.specify "drop_missing should drop missing rows in a Column" <|
-            col = t1.at "A" . drop_missing
-            col.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL))', []]
 
         Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.drop_missing_rows

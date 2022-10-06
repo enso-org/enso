@@ -49,7 +49,8 @@
 //! ```text
 //! pub enum Variant {
 //!     Newline (variant::Newline),
-//!     Symbol (variant::Symbol),
+//!     OpenSymbol (variant::OpenSymbol),
+//!     CloseSymbol (variant::CloseSymbol),
 //!     Wildcard (variant::Wildcard),
 //!     Ident (variant::Ident),
 //!     // ... many more
@@ -81,7 +82,8 @@
 //! ```text
 //! pub enum VariantMarker {
 //!     Newline,
-//!     Symbol,
+//!     OpenSymbol,
+//!     CloseSymbol,
 //!     Wildcard,
 //!     Ident,
 //!     // ... many more
@@ -251,7 +253,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[derive(Default)]
     pub enum Variant {
         Newline,
-        Symbol,
+        OpenSymbol,
+        CloseSymbol,
         BlockStart,
         BlockEnd,
         Wildcard {
@@ -261,14 +264,18 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Ident {
             pub is_free:    bool,
             pub lift_level: usize,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub is_type:    bool,
+            #[serde(skip)]
+            #[reflect(skip)]
             pub is_default: bool,
         },
         Operator {
+            #[serde(skip)]
+            #[reflect(skip)]
             pub properties: OperatorProperties,
         },
-        Modifier,
-        DocComment,
         Digits {
             pub base: Option<Base>
         },
@@ -276,21 +283,30 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextStart,
         TextEnd,
         TextSection,
-        TextEscapeSymbol,
-        TextEscapeChar,
-        TextEscapeLeader,
-        TextEscapeHexDigits,
-        TextEscapeSequenceStart,
-        TextEscapeSequenceEnd,
+        TextEscape {
+            #[serde(serialize_with = "crate::serialization::serialize_optional_char")]
+            #[serde(deserialize_with = "crate::serialization::deserialize_optional_char")]
+            #[reflect(as = "char")]
+            pub value: Option<char>,
+        },
+        Invalid,
     }
 }}}
 
 impl Variant {
-    /// Return whether this token can introduce a macro invocation.
-    pub fn can_start_macro(&self) -> bool {
-        // Prevent macro interpretation of symbols that have been lexically contextualized as text
-        // escape control characters.
-        !matches!(self, Variant::TextEscapeSymbol(_) | Variant::TextEscapeSequenceStart(_))
+    /// Return whether this token can introduce a macro segment.
+    pub fn can_start_macro_segment(&self) -> bool {
+        !matches!(
+            self,
+            // Prevent macro interpretation of symbols that have been lexically contextualized as
+            // text escape control characters.
+            Variant::TextEscape(_)
+            | Variant::TextSection(_)
+            | Variant::TextStart(_)
+            | Variant::TextEnd(_)
+            // Prevent macro interpretation of lexically-inappropriate tokens.
+            | Variant::Invalid(_)
+        )
     }
 }
 
@@ -304,50 +320,23 @@ impl Default for Variant {
 // === Operator properties ===
 
 /// Properties of an operator that are identified when lexing.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Serialize,
-    Reflect,
-    Deserialize,
-    PartialOrd,
-    Ord,
-    Default
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct OperatorProperties {
     // Precedence
-    #[serde(skip)]
-    #[reflect(skip)]
     binary_infix_precedence:   Option<Precedence>,
-    #[serde(skip)]
-    #[reflect(skip)]
     unary_prefix_precedence:   Option<Precedence>,
+    // Operator section behavior
+    lhs_section_termination:   Option<crate::syntax::operator::SectionTermination>,
     // Special properties
-    #[serde(skip)]
-    #[reflect(skip)]
     is_compile_time_operation: bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_right_associative:      bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     can_be_decimal_operator:   bool,
     // Unique operators
-    #[serde(skip)]
-    #[reflect(skip)]
     is_type_annotation:        bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_assignment:             bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_arrow:                  bool,
-    #[serde(skip)]
-    #[reflect(skip)]
     is_sequence:               bool,
+    is_suspension:             bool,
 }
 
 impl OperatorProperties {
@@ -376,6 +365,13 @@ impl OperatorProperties {
         Self { is_right_associative: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to have the specified LHS operator-section/
+    /// template-function behavior.
+    pub fn with_lhs_section_termination<T>(self, lhs_section_termination: T) -> Self
+    where T: Into<Option<crate::syntax::operator::SectionTermination>> {
+        Self { lhs_section_termination: lhs_section_termination.into(), ..self }
+    }
+
     /// Return a copy of this operator, modified to be flagged as a type annotation operator.
     pub fn as_type_annotation(self) -> Self {
         Self { is_type_annotation: true, ..self }
@@ -394,6 +390,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as the sequence operator.
     pub fn as_sequence(self) -> Self {
         Self { is_sequence: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the execution-suspension operator.
+    pub fn as_suspension(self) -> Self {
+        Self { is_suspension: true, ..self }
     }
 
     /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
@@ -421,6 +422,11 @@ impl OperatorProperties {
         self.is_type_annotation
     }
 
+    /// Return the LHS operator-section/template-function behavior of this operator.
+    pub fn lhs_section_termination(&self) -> Option<crate::syntax::operator::SectionTermination> {
+        self.lhs_section_termination
+    }
+
     /// Return whether this operator is the assignment operator.
     pub fn is_assignment(&self) -> bool {
         self.is_assignment
@@ -434,6 +440,11 @@ impl OperatorProperties {
     /// Return whether this operator is the sequence operator.
     pub fn is_sequence(&self) -> bool {
         self.is_sequence
+    }
+
+    /// Return whether this operator is the execution-suspension operator.
+    pub fn is_suspension(&self) -> bool {
+        self.is_suspension
     }
 
     /// Return this operator's associativity.
@@ -502,7 +513,9 @@ macro_rules! generate_token_aliases {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({
+                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
+                })?
             ),* $(,)?
         }
     ) => { paste!{
