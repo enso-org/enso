@@ -2,12 +2,13 @@ from Standard.Base import all
 
 import Standard.Database.Internal.Helpers
 import Standard.Database.Internal.IR
-import Standard.Database.Data.Table
+from Standard.Database.Data.Table import Table, freshen_columns
 from Standard.Table import Filter_Condition
-import Standard.Table.Data.Column as Materialized_Column
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-from Standard.Table.Data.Value_Type import Value_Type
+
+import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column.Sort_Column
+import Standard.Table.Data.Value_Type.Value_Type
 
 from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Data.Table import Integrity_Error
@@ -69,7 +70,7 @@ type Column
     ## UNSTABLE
 
        Converts this column into a single-column table.
-    to_table : Table.Table
+    to_table : Table
     to_table self =
         Table.Table_Data self.name self.connection [self.as_internal] self.context
 
@@ -558,7 +559,7 @@ lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
-    ixes = Table.freshen_columns [new_name] context.meta_index
+    ixes = freshen_columns [new_name] context.meta_index
     col = IR.Internal_Column_Data new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first

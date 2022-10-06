@@ -2,11 +2,12 @@ from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
 
-import Standard.Table.Data.Table
+import Standard.Table.Data.Table.Table
+import Standard.Table.Data.Data_Formatter.Data_Formatter
+import Standard.Table.Delimited.Delimited_Format.Delimited_Format
+import Standard.Table.Delimited.Quote_Style.Quote_Style
+
 from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row_Data, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
-from Standard.Table.Data.Data_Formatter import Data_Formatter_Data
-from Standard.Table.Delimited.Delimited_Format import Delimited_Format
-import Standard.Table.Delimited.Quote_Style
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -117,7 +118,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         wrapped = format.value_formatter.wrap_base_parser base_parser
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
     cell_type_guesser = if format.headers != Infer then Nothing else
-        formatter = format.value_formatter.if_nothing Data_Formatter_Data
+        formatter = format.value_formatter.if_nothing Data_Formatter.Value
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
@@ -136,22 +137,14 @@ translate_reader_problem problem =
     if found.is_error then problem else
         found.second problem
 
-# TODO Dubious constructor export
-from project.Delimited.Delimited_Reader.Detected_Headers import all
-from project.Delimited.Delimited_Reader.Detected_Headers export all
-
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
 type Detected_Headers
     ## Represents the headers found in the file.
-    Existing_Headers (column_names : Vector Text)
+    Existing (column_names : Vector Text)
 
     ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
-    No_Headers (column_count : Integer)
-
-# TODO Dubious constructor export
-from project.Delimited.Delimited_Reader.Detected_File_Metadata import all
-from project.Delimited.Delimited_Reader.Detected_File_Metadata export all
+    None (column_count : Integer)
 
 type Detected_File_Metadata
     ## PRIVATE
@@ -164,12 +157,12 @@ type Detected_File_Metadata
        - ends_with_newline: specifies if the last line ends with a line
          separator that is consistent with the detected one.
        - has_any_content: specifies if the file contains any content.
-    Detected_File_Metadata_Data (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
+    Value (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
    count.
-detect_metadata : File -> Delimited_Format -> Detected_Headers
+detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
 detect_metadata file format =
     on_problems = Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
@@ -190,8 +183,8 @@ detect_metadata file format =
                     Nothing ->
                         column_count = reader.getColumnCount
                         if column_count == 0 then Nothing else
-                            No_Headers column_count
-                    _ -> Existing_Headers (Vector.from_polyglot_array defined_columns)
+                            Detected_Headers.None column_count
+                    _ -> Detected_Headers.Existing (Vector.from_polyglot_array defined_columns)
                 line_separator_from_parser = reader.getEffectiveLineSeparator
                 has_seen_newline = newline_detecting_reader.newlineEncountered
                 ## If the parser has seen a newline, we can trust that it
@@ -203,8 +196,8 @@ detect_metadata file format =
                     True -> line_separator_from_parser
                     False -> trailing_line_separator
                 has_any_content = reader.getVisitedCharactersCount > 0
-                Detected_File_Metadata_Data headers effective_line_separator has_trailing_line_separator has_any_content
-    result.catch File.File_Not_Found (_->(Detected_File_Metadata_Data Nothing Nothing False False))
+                Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
+    result.catch File.File_Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
 
 ## PRIVATE
    Checks if the file has a newline at the end.
