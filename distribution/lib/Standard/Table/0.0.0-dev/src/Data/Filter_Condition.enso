@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column import Column
-from Standard.Table.Data.Table import Table
-from Standard.Table.Data.Value_Type import Value_Type
+import project.Data.Column.Column
+import project.Data.Table.Table
+import project.Data.Value_Type.Value_Type
 
-from Standard.Table.Data.Filter_Condition.Filter_Condition import all
+from project.Data.Filter_Condition.Filter_Condition import all
 
 type Filter_Condition
     ## Is less than a value (or another column)?

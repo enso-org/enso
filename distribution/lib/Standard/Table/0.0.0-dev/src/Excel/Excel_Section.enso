@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-import Standard.Table.Excel.Range.Excel_Range
+import project.Excel.Excel_Range.Excel_Range
 
-from project.Excel.Section.Excel_Section import all
-from project.Excel.Section.Excel_Section export all
+from project.Excel.Excel_Section.Excel_Section import all
+from project.Excel.Excel_Section.Excel_Section export all
 
 type Excel_Section
     ## Gets a list of sheets within a workbook.

@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column.Column
-polyglot java import org.enso.table.data.table.Column as Java_Column
+import project.Data.Column.Column
+import project.Data.Table.Table
 
-import Standard.Table.Data.Table.Table
+polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
 polyglot java import org.enso.table.data.index.DefaultIndex

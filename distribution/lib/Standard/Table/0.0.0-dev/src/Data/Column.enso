@@ -2,10 +2,10 @@ from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Index_Sub_Range
 
-import Standard.Table.Data.Table.Table
-from Standard.Table.Data.Table import print_table
-import Standard.Table.Data.Storage.Storage
-import Standard.Table.Data.Value_Type.Value_Type
+import project.Data.Table.Table
+import project.Data.Storage.Storage
+import project.Data.Value_Type.Value_Type
+from project.Data.Table import print_table
 
 from project.Errors import No_Index_Set_Error
 
