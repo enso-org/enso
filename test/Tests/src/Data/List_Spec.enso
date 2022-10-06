@@ -69,6 +69,13 @@ spec = Test.group "List" <|
         txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
         Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
 
+        ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing].to_list
+        ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"].to_list
+        ["abab", "aaabaaaa", "ba"].to_list.filter (Filter_Condition.Like "ba") . should_equal (Cons "ba" Nil)
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "_ba_") . should_equal ["abab"].to_list
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"].to_list
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Not_Like "%ba%") . should_equal Nil
+
         mixed = [1, Nothing, "b"].to_list
         mixed.filter Filter_Condition.Is_Nothing . should_equal (Cons Nothing Nil)
         mixed.filter Filter_Condition.Not_Nothing . should_equal (Cons 1 (Cons "b" Nil))

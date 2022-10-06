@@ -165,9 +165,20 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
         Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
 
+        ["", Nothing, " ", "a"].filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
+        ["", Nothing, " ", "a"].filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]
+        ["abab", "aaabaaaa", "ba"].filter (Filter_Condition.Like "ba") . should_equal ["ba"]
+        ["abab", "aaabaaaa"].filter (Filter_Condition.Like "_ba_") . should_equal ["abab"]
+        ["abab", "aaabaaaa"].filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"]
+        ["aaaa", "bbbbb", "[ab]aaaa"].filter (Filter_Condition.Like "[ab]%") . should_equal ["[ab]aaaa"]
+        ["f.txt", "abc.*"].filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
+        ["f.txt", "abc.*"].filter (Filter_Condition.Not_Like "%.*") . should_equal ["f.txt"]
+
         mixed = [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
         mixed.filter Filter_Condition.Not_Nothing . should_equal [1, "b"]
+        mixed.filter Filter_Condition.Is_Empty . should_equal [Nothing]
+        mixed.filter Filter_Condition.Not_Empty . should_equal [1, "b"]
 
         boolvec = [True, False, Nothing, True]
         boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
