@@ -85,6 +85,10 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                             failed.add(file);
                             break TEST;
                         }
+                        if (ex.getMessage().contains("translateCaseBranch = Case[null, null")) {
+                            failed.add(file);
+                            break TEST;
+                        }
                     }
                     irFailed.put(file, ex);
                 }

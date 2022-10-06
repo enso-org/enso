@@ -1496,6 +1496,9 @@ final class TreeToIr {
     * @return the [[IR]] representation of `branch`
     */
   IR$Case$Branch translateCaseBranch(Case branch) {
+    if (branch.getPattern() == null) {
+      throw new UnhandledEntity(branch, "translateCaseBranch");
+    }
     return new IR$Case$Branch(
           translatePattern(branch.getPattern(), nil()),
           translateExpression(branch.getExpression(), false),
