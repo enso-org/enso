@@ -4,6 +4,11 @@ import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Storage
+from Standard.Table.Data.Value_Type import Value_Type
+
+# TODO Dubious constructor export
+from Standard.Table.Data.Column.Column import all
+from Standard.Table.Data.Column.Column export all
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -23,10 +28,6 @@ polyglot java import org.enso.table.operations.OrderBuilder
              Table.Column.from_vector "My Column" [1, 2, 3, 4, 5]
 from_vector : Text -> Vector -> Column
 from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
-
-# TODO Dubious constructor export
-from project.Data.Column.Column import all
-from project.Data.Column.Column export all
 
 type Column
 
@@ -485,20 +486,6 @@ type Column
         col = Java_Column.new name index new_st
         Column_Data col
 
-    ## ALIAS Drop Missing
-
-       Returns a new column without rows that had missing values.
-
-       > Example
-         Drop missing values from a column.
-
-             import Standard.Examples
-
-             example_drop_missing = Examples.decimal_column.drop_missing
-    drop_missing : Any -> Column
-    drop_missing self =
-        self.where self.is_missing.not
-
     ## Checks for each element of the column if it starts with `other`.
 
        Arguments:
@@ -742,27 +729,6 @@ type Column
             if storage.isNa index then Nothing else
                 storage.getItem index
 
-    ## Selects only the rows of this column that correspond to `True` values in
-       `indexes`.
-
-       Arguments:
-       - indexes: A column containing boolean values that is used to mask
-         `self`.
-
-       This is useful for filtering the rows by given predicate.
-
-       > Example
-         Select only the rows of the column where the length of the text exceeds
-         2.
-
-             import Standard.Examples
-
-             example_where =
-                 Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
-    where : Column -> Column
-    where self indexes =
-        Column_Data (self.java_column.mask indexes.java_column)
-
     ## Returns a vector containing all the elements in this column.
 
        > Example
@@ -787,6 +753,18 @@ type Column
         tp = self.java_column.getStorage.getType
         storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
             Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
+
+    ## UNSTABLE TODO this is a prototype that will be revisited later on
+    value_type : Value_Type
+    value_type self = case self.storage_type of
+        Storage.Text -> Value_Type.Char
+        Storage.Integer -> Value_Type.Integer
+        Storage.Decimal -> Value_Type.Float
+        Storage.Boolean -> Value_Type.Boolean
+        Storage.Date -> Value_Type.Date
+        Storage.Time_Of_Day -> Value_Type.Time
+        Storage.Date_Time -> Value_Type.Date_Time
+        Storage.Any -> Value_Type.Mixed
 
     ## UNSTABLE
 
@@ -1008,8 +986,7 @@ type Column
         new_col = self.java_column.applyMask mask
         Column_Data new_col
 
-    ## UNSTABLE
-       Creates a new Column with the specified range of rows from the input
+    ## Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -1018,8 +995,7 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## UNSTABLE
-       Creates a new Column from the input with the specified range of rows
+    ## Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:

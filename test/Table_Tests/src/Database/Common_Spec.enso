@@ -7,6 +7,7 @@ from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data
 
 from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -115,7 +116,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
-            t2 = t1.where (t1.at "a" == 1)
+            t2 = t1.filter (t1.at "a" == 1)
             df = t2.read
             df.at "a" . to_vector . should_equal [1]
             df.at "b" . to_vector . should_equal [2]
@@ -186,10 +187,6 @@ spec prefix connection pending=Nothing =
             col.length . should_equal 5
             col.count . should_equal 3
             col.count_missing . should_equal 2
-
-        Test.specify "drop_missing should drop missing rows in a Column" <|
-            col = t4.at 'a'
-            col.drop_missing.to_vector . should_equal [0, 1, 42]
 
         Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             d = t4.drop_missing_rows.read
@@ -353,6 +350,9 @@ spec prefix connection pending=Nothing =
             t2.at  "sum price" . to_vector . should_equal [110.2]
             t2.at  "sum quantity" . to_vector . should_equal [312]
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
+    Test.group prefix+"Table.filter" pending=pending <|
+        Test.specify "report error when trying to filter by a custom predicate" <|
+            t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation_Error_Data
 
     clean_table name = Panic.recover Any <|
         sql = 'DROP TABLE "' + name + '"'
