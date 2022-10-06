@@ -73,7 +73,7 @@ config_from_env =
                 IO.println "Unable to determine root project path. JUnit output disabled."
                 Nothing
             False ->
-                (File.new junit_folder) / "stdlib" / project_root.name / "JUnit.xml"
+                (File.new junit_folder) / project_root.name / "JUnit.xml"
 
     Suite_Config_Data only_group_regexp print_only_failures results_path
 
