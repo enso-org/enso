@@ -354,6 +354,13 @@ public class EnsoCompilerTest {
       """);
   }
 
+  @Test
+  public void testUnaryDot() throws Exception {
+    parseTest("""
+    write_file = ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+      """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

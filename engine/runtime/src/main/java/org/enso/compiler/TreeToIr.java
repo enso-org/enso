@@ -776,6 +776,13 @@ final class TreeToIr {
             getIdentifiedLocation(fun), true, meta(), diag()
         );
       }
+      case Tree.OprSectionBoundary bound -> {
+        var ast = translateExpression(bound.getAst(), insideTypeSignature);
+        yield switch (ast) {
+          case IR$Application$Prefix p -> p.function();
+          default -> ast;
+        };
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
