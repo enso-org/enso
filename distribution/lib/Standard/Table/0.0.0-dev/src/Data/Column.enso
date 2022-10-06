@@ -751,7 +751,7 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
+        Storage.types.at tp . catch Index_Out_Of_Bounds_Error _->
             Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
@@ -1138,20 +1138,6 @@ run_vectorized_unary_op column name fallback_fn =
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn
     Column.Column_Data (Java_Column.new "Result" ix rs)
-
-## PRIVATE
-   Enumerates storage types in a way that is consistent with
-   `org.enso.table.data.Storage.Storage`, i.e.
-   `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
-   corresponding `Storage.Integer`.
-storage_types : Vector Storage
-storage_types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
-
-## PRIVATE
-
-   Keep this in sync with `org.enso.table.data.Storage.Storage.STRING`
-storage_type_string : Integer
-storage_type_string = 3
 
 ## PRIVATE
 
