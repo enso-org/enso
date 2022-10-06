@@ -27,7 +27,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
         index = dataframe.index.catch Any _->
-            Dataframe_Column.Column.from_vector "" (Vector.new included_rows i->i)
+            Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
         make_json dataframe [index] all_rows_count
 
     Database_Table.Table_Data _ _ _ _ ->
