@@ -80,7 +80,7 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (linux)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
       - name: Engine test report
@@ -154,7 +154,7 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (macos)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
       - name: Engine test report
@@ -230,7 +230,7 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (windows)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
       - name: Engine test report
