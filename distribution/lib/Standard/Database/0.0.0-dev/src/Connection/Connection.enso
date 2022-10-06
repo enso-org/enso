@@ -2,8 +2,10 @@ from Standard.Base import all
 
 import project.Data.SQL_Query.SQL_Query
 
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Query.Query
 
-import Standard.Database.Internal.IR
 import Standard.Database.Data.SQL
 import Standard.Database.Data.Table as Database_Table
 
@@ -11,16 +13,12 @@ import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
 
 from Standard.Database.Data.SQL import SQL_Type, Statement, Statement_Data
-from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
+from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 from Standard.Database.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
-
-# TODO Dubious constructor export
-from project.Connection.Connection.Connection import all
-from project.Connection.Connection.Connection export all
 
 type Connection
     ## PRIVATE
@@ -31,7 +29,7 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-    Connection_Data jdbc_connection dialect
+    Value jdbc_connection dialect
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -123,11 +121,11 @@ type Connection
         SQL_Query.Raw_SQL raw_sql ->
             columns = self.jdbc_connection.fetch_columns raw_sql
             name = if alias == "" then (UUID.randomUUID.to_text) else alias
-            ctx = IR.context_for_query raw_sql name
+            ctx = Context.for_query raw_sql name
             Database_Table.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            ctx = IR.context_for_table name (if alias == "" then name else alias)
-            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (IR.Select_All ctx))
+            ctx = Context.for_table name (if alias == "" then name else alias)
+            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select_All ctx))
             Database_Table.make_table self name columns ctx
 
     ## Execute the query and load the results into memory as a Table.
@@ -186,8 +184,8 @@ type Connection
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
-            insert_query = self.dialect.generate_sql <| IR.Insert name pairs
+            pairs = db_table.internal_columns.map col->[col.name, Expression.Constant col.sql_type Nothing]
+            insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
             self.jdbc_connection.load_table insert_template db_table table batch_size
 

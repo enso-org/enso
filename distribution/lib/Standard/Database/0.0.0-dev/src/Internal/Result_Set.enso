@@ -4,7 +4,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Java_Exports
 
-from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data
+from project.Data.SQL import SQL_Type, SQL_Type_Data
 
 polyglot java import java.sql.ResultSet
 

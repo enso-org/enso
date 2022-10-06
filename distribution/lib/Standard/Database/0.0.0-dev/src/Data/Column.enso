@@ -2,6 +2,10 @@ from Standard.Base import all
 
 import project.Internal.Helpers
 import Standard.Database.Internal.IR
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Internal_Column.Internal_Column
+
 from Standard.Database.Data.Table import Table, freshen_columns
 from Standard.Table import Filter_Condition
 
@@ -37,7 +41,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Column_Data name:Text connection:Connection sql_type:SQL_Type expression:IR.Expression context:IR.Context
+    Column_Data name:Text connection:Connection sql_type:SQL_Type expression:Expression context:Context
 
     ## UNSTABLE
 
@@ -139,12 +143,12 @@ type Column
                     False ->
                         Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
-                        new_expr = IR.Operation op_kind [self.expression, other_expr]
+                        new_expr = Expression.Operation op_kind [self.expression, other_expr]
                         Column_Data self.name self.connection actual_new_type new_expr self.context
             _ ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
-                other = IR.make_constant actual_operand_type operand
-                new_expr = IR.Operation op_kind [self.expression, other]
+                other = Expression.Constant actual_operand_type operand
+                new_expr = Expression.Operation op_kind [self.expression, other]
                 Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
@@ -158,7 +162,7 @@ type Column
     make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
     make_unary_op self op_kind new_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
-        new_expr = IR.Operation op_kind [self.expression]
+        new_expr = Expression.Operation op_kind [self.expression]
         Column_Data self.name self.connection actual_new_type new_expr self.context
 
     ## UNSTABLE
@@ -521,8 +525,8 @@ type Column
     contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
 
     ## PRIVATE
-    as_internal : IR.Internal_Column
-    as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
+    as_internal : Internal_Column
+    as_internal self = Internal_Column.Value self.name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -537,7 +541,7 @@ type Column
 make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = new_type.if_nothing column.sql_type
-    expr = IR.Operation operation [column.expression]
+    expr = Expression.Operation operation [column.expression]
     case Helpers.ensure_name_is_sane name_suffix of
         True ->
             new_name = column.name + name_suffix
@@ -554,18 +558,18 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
    - expected_type: The expected SQL type of the column.
    - expr: The expression for the query.
    - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> SQL_Type -> IR.Expression -> IR.Context -> Column
+lift_aggregate : Text -> Connection -> SQL_Type -> Expression -> Context -> Column
 lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
     ixes = freshen_columns [new_name] context.meta_index
-    col = IR.Internal_Column_Data new_name expected_type expr
+    col = Internal_Column.Value new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first
     cols = setup.second
     new_col = cols.first.first
     new_ixes = cols.second
-    new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
+    new_ctx = Context.for_subquery subquery . set_index new_ixes
     Column_Data new_name connection new_col.sql_type new_col.expression new_ctx
 

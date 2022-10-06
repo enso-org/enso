@@ -5,11 +5,13 @@ from Standard.Base.Runtime.Resource import Managed_Resource
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
 
-import Standard.Database.Data.SQL
+import project.Data.SQL
 import project.Internal.Base_Generator
-import Standard.Database.Data.Table.Table as Database_Table
-from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data, Statement, Statement_Data
-from Standard.Database.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
+
+import project.Data.Table.Table as Database_Table
+
+from project.Data.SQL import SQL_Type, SQL_Type_Data, Statement, Statement_Data
+from project.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
 
 polyglot java import java.util.Properties
 
@@ -20,13 +22,9 @@ polyglot java import java.sql.SQLTimeoutException
 
 polyglot java import org.enso.database.JDBCProxy
 
-# TODO Dubious constructor export
-from project.Internal.JDBC_Connection.JDBC_Connection import all
-from project.Internal.JDBC_Connection.JDBC_Connection export all
-
 type JDBC_Connection
     ## PRIVATE
-    JDBC_Connection_Data connection_resource
+    Value connection_resource
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -142,7 +140,7 @@ create url properties = handle_sql_errors <|
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection
-    JDBC_Connection_Data resource
+    JDBC_Connection.Value resource
 
 ## PRIVATE
 

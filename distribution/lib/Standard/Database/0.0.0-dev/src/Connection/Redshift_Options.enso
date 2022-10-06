@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Dialect
-import Standard.Database.Internal.JDBC_Connection
-import Standard.Database.Connection.Connection
+import project.Internal.JDBC_Connection
+import project.Connection.Connection.Connection
 from Standard.Database.Connection.Credentials import Credentials, Username_And_Password
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
@@ -15,8 +15,8 @@ polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
 # TODO Dubious constructor export
-from project.Connection.Redshift_Options.Redshift_Options import all
-from project.Connection.Redshift_Options.Redshift_Options export all
+from project.Connection.Redshift_Options.Redshift_Options import Redshift
+from project.Connection.Redshift_Options.Redshift_Options export Redshift
 
 type Redshift_Options
     ## Connect to a AWS Redshift database.
@@ -44,7 +44,7 @@ type Redshift_Options
             java_props.setProperty pair.first pair.second
 
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection.Connection_Data jdbc_connection Dialect.redshift
+        Connection.Value jdbc_connection Dialect.redshift
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
