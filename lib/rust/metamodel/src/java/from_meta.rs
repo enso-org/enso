@@ -75,8 +75,11 @@ impl FromMeta {
     fn primitive(&self, ty: &meta::Primitive) -> Result<Primitive, Class> {
         match ty {
             meta::Primitive::Bool => Ok(Primitive::Bool),
-            meta::Primitive::U64 => Ok(Primitive::Long { unsigned: true }),
+            meta::Primitive::I32 => Ok(Primitive::Int { unsigned: false }),
+            meta::Primitive::I64 => Ok(Primitive::Long { unsigned: false }),
             meta::Primitive::U32 => Ok(Primitive::Int { unsigned: true }),
+            meta::Primitive::U64 => Ok(Primitive::Long { unsigned: true }),
+            meta::Primitive::Char => Ok(Primitive::Int { unsigned: true }),
             meta::Primitive::String => Err(Class::string()),
             meta::Primitive::Option(t0_) => Err(Class::optional(self.meta_to_java[t0_])),
             meta::Primitive::Sequence(t0_) => Err(Class::list(self.meta_to_java[t0_])),

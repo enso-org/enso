@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column
-import Standard.Table.Data.Storage
+import Standard.Table.Data.Storage.Storage
 
 ## PRIVATE
 
@@ -91,7 +91,7 @@ Table.all_columns : Vector
 Table.all_columns self =
     index = self.index.catch_ []
     index_columns = case index of
-        Vector.Vector -> index
+        _ : Vector.Vector -> index
         a -> [a]
     index_columns + self.columns
 
@@ -111,6 +111,6 @@ Table.lookup_ignore_case self name =
 ## PRIVATE
 
   Checks if the column stores numbers.
-Column.Column.is_numeric : Boolean
-Column.Column.is_numeric self =
+Column.is_numeric : Boolean
+Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type

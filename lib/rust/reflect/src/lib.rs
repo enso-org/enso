@@ -113,6 +113,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -269,6 +270,8 @@ macro_rules! reflect_primitive {
 reflect_primitive!(bool, Primitive::Bool);
 reflect_primitive!(usize, Primitive::Usize);
 reflect_primitive!(u32, Primitive::U32);
+reflect_primitive!(i32, Primitive::I32);
+reflect_primitive!(char, Primitive::Char);
 reflect_primitive!(String, Primitive::String);
 
 

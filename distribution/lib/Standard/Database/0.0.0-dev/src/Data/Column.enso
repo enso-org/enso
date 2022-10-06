@@ -2,10 +2,13 @@ from Standard.Base import all
 
 import Standard.Database.Internal.Helpers
 import Standard.Database.Internal.IR
-import Standard.Database.Data.Table
-import Standard.Table.Data.Column as Materialized_Column
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
+from Standard.Database.Data.Table import Table, freshen_columns
+from Standard.Table import Filter_Condition
+
+import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column.Sort_Column
+import Standard.Table.Data.Value_Type.Value_Type
 
 from Standard.Database.Data.SQL import SQL_Type, Statement
 from Standard.Database.Data.Table import Integrity_Error
@@ -67,7 +70,7 @@ type Column
     ## UNSTABLE
 
        Converts this column into a single-column table.
-    to_table : Table.Table
+    to_table : Table
     to_table self =
         Table.Table_Data self.name self.connection [self.as_internal] self.context
 
@@ -92,6 +95,21 @@ type Column
         without_ix = self.to_table.set_index []
         without_ix . read  . at self.name . to_vector
 
+    ## UNSTABLE TODO this is a very early prototype that will be revisited later
+       This implementation is really just so that we can use the types in
+       `filter`, it does not provide even a decent approximation of the true
+       type in many cases. It will be improved when the types work is
+       implemented.
+    value_type : Value_Type
+    value_type self =
+        if self.sql_type.is_definitely_boolean then Value_Type.Boolean else
+            if self.sql_type.is_definitely_text then Value_Type.Char else
+                ## TODO we could return integers here too but then we should
+                   check how many bits there are - and this is out of scope for
+                   this prototype especially as the method for checking the type
+                   is likely to change so this code would likely be thrown away.
+                   So we just fall back to unsupported (abusing it slightly).
+                Value_Type.Unsupported_Data_Type self.sql_type.name
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.
@@ -211,13 +229,15 @@ type Column
 
        Returns the number of missing items in this column.
     count_missing : Integer
-    count_missing self = self.where self.is_missing . length
+    count_missing self =
+        self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## UNSTABLE
 
        Returns the number of non-null items in this column.
     count : Integer
-    count self = self.where self.is_missing.not . length
+    count self =
+        self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
     ## UNSTABLE
 
@@ -399,36 +419,6 @@ type Column
 
     ## UNSTABLE
 
-       Selects only the rows of this column that correspond to `True` values in
-       `filter`.
-
-       Arguments:
-       - filter: A column of booleans to mask `self` by.
-
-       This is useful for filtering the rows by given predicate.
-
-       > Example
-         Select only the rows of `my_column` where the `status_column` column
-         has the value `"Valid"`
-             my_column.where (status_column == "Valid")
-    where : Column -> Column
-    where self filter =
-        case Helpers.check_integrity self filter of
-            False ->
-                Error.throw (Integrity_Error "Column "+filter.name)
-            True ->
-                new_filters = self.context.where_filters + [filter.expression]
-                new_ctx = self.context.set_where_filters new_filters
-                Column_Data self.name self.connection self.sql_type self.expression new_ctx
-
-    ## UNSTABLE
-
-       Returns a new column without rows that had missing values.
-    drop_missing : Any -> Column
-    drop_missing self = self.where self.is_missing.not
-
-    ## UNSTABLE
-
        Returns the same column with changed name.
 
        Arguments:
@@ -569,7 +559,7 @@ lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
-    ixes = Table.freshen_columns [new_name] context.meta_index
+    ixes = freshen_columns [new_name] context.meta_index
     col = IR.Internal_Column_Data new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first

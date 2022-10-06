@@ -12,10 +12,10 @@ use futures::channel::oneshot;
 /// their answer.
 /// `Id` identifies the request.
 /// `Reply` represents the answer.
-#[derive(Debug)]
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = ""))]
 pub struct OngoingCalls<Id, Reply>
 where Id: Hash + Eq {
-    logger:        Logger,
     ongoing_calls: HashMap<Id, oneshot::Sender<Reply>>,
 }
 
@@ -23,11 +23,8 @@ impl<Id, Reply> OngoingCalls<Id, Reply>
 where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
 {
     /// Creates a new, empty ongoing request storage.
-    pub fn new(parent: impl AnyLogger) -> OngoingCalls<Id, Reply> {
-        OngoingCalls {
-            logger:        Logger::new_sub(parent, "ongoing_calls"),
-            ongoing_calls: HashMap::new(),
-        }
+    pub fn new() -> OngoingCalls<Id, Reply> {
+        default()
     }
 
     /// Removes the request from the storage and returns it (if present).
@@ -35,9 +32,9 @@ where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
     pub fn remove_request(&mut self, id: &Id) -> Option<oneshot::Sender<Reply>> {
         let ret = self.ongoing_calls.remove(id);
         if ret.is_some() {
-            info!(self.logger, "Removing request {id}");
+            info!("Removing request {id}");
         } else {
-            info!(self.logger, "Failed to remove non-present request {id}");
+            info!("Failed to remove non-present request {id}");
         }
         ret
     }
@@ -45,7 +42,7 @@ where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
     /// Inserts a new request with given id and completer (i.e. the channel capable of accepting
     /// the peer's reply and completing the request).
     pub fn insert_request(&mut self, id: Id, completer: oneshot::Sender<Reply>) {
-        info!(self.logger, "Storing a new request {id}");
+        info!("Storing a new request {id}");
         // There will be no previous request, since Ids are assumed to be unique.
         // Still, if there was, we can just safely drop it.
         self.ongoing_calls.insert(id, completer);
@@ -74,7 +71,7 @@ where Id: Copy + Debug + Display + Hash + Eq + Send + Sync + 'static
 
     /// Removes all awaiting requests. Their futures will signal cancellation.
     pub fn clear(&mut self) {
-        info!(self.logger, "Clearing all the requests.");
+        info!("Clearing all the requests.");
         self.ongoing_calls.clear()
     }
 

@@ -47,8 +47,8 @@ impl<S> Deref for ShapeView<S> {
 
 impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let model = Rc::new(ShapeViewModel::new(logger));
+    pub fn new() -> Self {
+        let model = Rc::new(ShapeViewModel::new());
         Self { model }.init()
     }
 
@@ -69,6 +69,12 @@ impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
 
 impl<S> HasContent for ShapeView<S> {
     type Content = S;
+}
+
+impl<S: DynamicShapeInternals + 'static> Default for ShapeView<S> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 
@@ -134,12 +140,8 @@ impl<S: DynamicShapeInternals> ShapeViewModel<S> {
 
 impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let shape = S::new(logger);
-        let events = PointerTarget::new();
-        let registry = default();
-        let pointer_targets = default();
-        ShapeViewModel { shape, events, registry, pointer_targets }
+    pub fn new() -> Self {
+        default()
     }
 
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {

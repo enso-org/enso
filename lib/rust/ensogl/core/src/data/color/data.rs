@@ -110,6 +110,12 @@ impl<C> From<Color<C>> for Color<Alpha<C>> {
     }
 }
 
+impl<C> From<Color<Alpha<C>>> for Color<C> {
+    fn from(color: Color<Alpha<C>>) -> Self {
+        color.data.opaque
+    }
+}
+
 impl<D> From<Color<D>> for ComponentsOf<Color<D>>
 where D: HasComponents
 {

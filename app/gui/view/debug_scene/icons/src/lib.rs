@@ -1,6 +1,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use ensogl::system::web::traits::*;
 use ide_view_component_group::prelude::*;
@@ -45,7 +46,6 @@ mod frame {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_searcher_icons() {
-    let logger = Logger::new("Icons example");
     let app = Application::new("root");
     ensogl_hardcoded_theme::builtin::dark::register(&app);
     ensogl_hardcoded_theme::builtin::light::register(&app);
@@ -79,7 +79,7 @@ pub fn entry_point_searcher_icons() {
 
     let mut x = -300.0;
     icon::Id::for_each(|id| {
-        let shape = id.create_shape(&logger, Vector2(icon::SIZE, icon::SIZE));
+        let shape = id.create_shape(Vector2(icon::SIZE, icon::SIZE));
         shape.strong_color.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.weak_color.set(color::Rgba(0.655, 0.788, 0.624, 1.0).into());
         shape.set_position_x(x);

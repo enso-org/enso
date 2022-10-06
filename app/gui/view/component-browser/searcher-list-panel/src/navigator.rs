@@ -92,7 +92,7 @@ const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScop
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new(&app.logger);
+        let display_object = display::object::Instance::new();
         let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         top_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);

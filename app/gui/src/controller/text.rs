@@ -176,7 +176,7 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_text::traits::*;
+    use enso_text::index::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -206,7 +206,7 @@ mod test {
             };
             let mut sub = controller.subscribe();
 
-            let change = enso_text::Change::inserted(8.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(8.byte(), "2".to_string());
             module.apply_code_change(change).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })

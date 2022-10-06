@@ -3,6 +3,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use std::path::Path;
 use std::path::PathBuf;

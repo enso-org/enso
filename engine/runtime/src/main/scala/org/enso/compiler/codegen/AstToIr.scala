@@ -1144,6 +1144,17 @@ object AstToIr {
           translateLiteral(literal).asInstanceOf[IR.Literal],
           getIdentifiedLocation(pattern)
         )
+      case AstView.TypePattern(name, tpe) =>
+        val irConses = tpe.map(translateIdent(_).asInstanceOf[IR.Name])
+        val tpeName = irConses match {
+          case List(n) => n
+          case _       => IR.Name.Qualified(irConses, None)
+        }
+        Pattern.Type(
+          translateIdent(name).asInstanceOf[IR.Name],
+          tpeName,
+          getIdentifiedLocation(pattern)
+        )
       case _ =>
         throw new UnhandledEntity(pattern, "translatePattern")
     }

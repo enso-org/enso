@@ -259,12 +259,11 @@ pub struct BreadcrumbInfo {
 /// Breadcrumbs model.
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbModel {
-    logger:            Logger,
     display_object:    display::object::Instance,
     view:              background::View,
     separator:         separator::View,
     icon:              icon::View,
-    label:             text::Area,
+    label:             text::Text,
     animations:        Animations,
     style:             StyleWatch,
     /// Breadcrumb information such as name and expression id.
@@ -283,13 +282,11 @@ impl BreadcrumbModel {
         expression_id: &ast::Id,
     ) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("Breadcrumbs");
-        let display_object = display::object::Instance::new(&logger);
-        let view_logger = Logger::new_sub(&logger, "view_logger");
-        let view = background::View::new(&view_logger);
-        let icon = icon::View::new(&view_logger);
-        let separator = separator::View::new(&view_logger);
-        let label = app.new_view::<text::Area>();
+        let display_object = display::object::Instance::new();
+        let view = background::View::new();
+        let icon = icon::View::new();
+        let separator = separator::View::new();
+        let label = app.new_view::<text::Text>();
         let expression_id = *expression_id;
         let method_pointer = method_pointer.clone();
         let info = Rc::new(BreadcrumbInfo { method_pointer, expression_id });
@@ -323,7 +320,6 @@ impl BreadcrumbModel {
         //         system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
         Self {
-            logger,
             display_object,
             view,
             separator,
@@ -350,9 +346,9 @@ impl BreadcrumbModel {
 
         let color = if self.is_selected() { full_color } else { transparent_color };
 
-        self.label.set_default_color.emit(color);
-        self.label.set_default_text_size(text::style::Size::from(TEXT_SIZE));
-        self.label.single_line(true);
+        self.label.set_property_default(color);
+        self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
+        self.label.set_single_line_mode(true);
         self.label.set_position_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
         self.label.set_position_y(TEXT_SIZE / 2.0);
         self.label.set_content(&self.info.method_pointer.name);
@@ -403,7 +399,7 @@ impl BreadcrumbModel {
 
     fn set_color(&self, value: Vector4<f32>) {
         let color = color::Rgba::from(value);
-        self.label.set_color_all(color);
+        self.label.set_property(.., color);
         self.icon.red.set(color.red);
         self.icon.green.set(color.green);
         self.icon.blue.set(color.blue);

@@ -19,7 +19,7 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        Vector.Vector ->
+        _ : Vector.Vector ->
             Scalar.new value.to_array
         Matrix.Matrix_Data m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix.Dimensions_Not_Equal

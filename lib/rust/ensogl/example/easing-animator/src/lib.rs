@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -236,7 +237,7 @@ impl Sampler {
 // ===============
 
 struct Example {
-    _animator: animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>,
+    _animator: animation::Loop,
 }
 
 impl Example {
@@ -251,7 +252,8 @@ impl Example {
         example.set_attribute_or_warn("id", name);
         example.set_style_or_warn("margin", "10px");
         let container = web::document.get_html_element_by_id("examples").unwrap();
-        let header = web::document.get_html_element_by_id("center").unwrap();
+        let header = web::document.create_div_or_panic();
+        header.set_attribute_or_warn("id", "center");
         header.set_style_or_warn("background-color", "black");
         header.set_style_or_warn("color", "white");
         header.set_inner_html(name);

@@ -13,7 +13,8 @@
 //! - https://gankra.github.io/blah/text-hates-you
 //! - https://lord.io/blog/2019/text-editing-hates-you-too
 //! - https://utf8everywhere.org
-//! - https://docs.google.com/document/d/1wuzzMOvKOJw93SWZAqoim1VUl9mloUxE0W6Ki_G23tw/edit (copy) https://docs.google.com/document/d/1D7iWPWQHrWY276WPVFZTi8JJqUnTcIVJs4dlG0IdCp8
+//! - https://docs.google.com/document/d/1wuzzMOvKOJw93SWZAqoim1VUl9mloUxE0W6Ki_G23tw/edit (copy)
+//! - https://docs.google.com/document/d/1D7iWPWQHrWY276WPVFZTi8JJqUnTcIVJs4dlG0IdCp8
 //!
 //! As a very short introduction, there are several common names used in this implementation:
 //!
@@ -76,9 +77,14 @@
 //! "code points except high-surrogate and low-surrogate code points" - but the surrogate code
 //! points are not used uin UTF-8 anyway).
 
+// === Features ===
+#![feature(step_trait)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -93,20 +99,23 @@
 // === Export ===
 // ==============
 
+pub mod index;
 pub mod range;
 pub mod rope;
 pub mod spans;
 pub mod text;
 pub mod unit;
 
+pub use index::*;
 pub use range::Range;
 pub use range::RangeBounds;
 pub use rope::metric;
 pub use rope::Cursor;
 pub use spans::Spans;
 pub use text::Change;
-pub use text::Text;
-pub use text::TextCell;
+pub use text::FromInContextSnapped;
+pub use text::Rope;
+pub use text::RopeCell;
 pub use unit::traits;
 pub use unit::*;
 

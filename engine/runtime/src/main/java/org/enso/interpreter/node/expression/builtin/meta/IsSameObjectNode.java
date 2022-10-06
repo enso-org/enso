@@ -13,11 +13,11 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     description = "Checks if the two arguments share an underlying reference.")
 public abstract class IsSameObjectNode extends Node {
 
-  static IsSameObjectNode build() {
+  public static IsSameObjectNode build() {
     return IsSameObjectNodeGen.create();
   }
 
-  abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
+  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
 
   @Specialization(limit = "3")
   boolean doExecute(

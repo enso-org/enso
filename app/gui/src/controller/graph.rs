@@ -766,7 +766,7 @@ impl Handle {
         let ast_so_far = self.module.ast();
         let definition = self.definition()?;
         let new_definition = f(definition.item)?;
-        info!(self.logger, "Applying graph changes onto definition");
+        info!("Applying graph changes onto definition");
         let new_ast = new_definition.ast.into();
         let new_module = ast_so_far.set_traversing(&definition.crumbs, new_ast)?;
         self.module.update_ast(new_module)
@@ -795,7 +795,7 @@ impl Handle {
 
     /// Adds a new node to the graph and returns information about created node.
     pub fn add_node(&self, node: NewNodeInfo) -> FallibleResult<ast::Id> {
-        info!(self.logger, "Adding node with expression `{node.expression}`");
+        info!("Adding node with expression `{}`", node.expression);
         let expression_ast = self.parse_node_expression(&node.expression)?;
         let main_line = MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
         let documentation = node
@@ -827,7 +827,7 @@ impl Handle {
 
     /// Removes the node with given Id.
     pub fn remove_node(&self, id: ast::Id) -> FallibleResult {
-        info!(self.logger, "Removing node {id}");
+        info!("Removing node {id}");
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.remove_node(id)?;
@@ -842,7 +842,7 @@ impl Handle {
     /// Sets the given's node expression.
     #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
-        info!(self.logger, "Setting node {id} expression to `{expression_text.as_ref()}`");
+        info!("Setting node {id} expression to `{}`", expression_text.as_ref());
         let new_expression_ast = self.parse_node_expression(expression_text)?;
         self.set_expression_ast(id, new_expression_ast)
     }
@@ -850,7 +850,7 @@ impl Handle {
     /// Sets the given's node expression.
     #[profile(Debug)]
     pub fn set_expression_ast(&self, id: ast::Id, expression: Ast) -> FallibleResult {
-        info!(self.logger, "Setting node {id} expression to `{expression.repr()}`");
+        info!("Setting node {id} expression to `{}`", expression.repr());
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
@@ -888,7 +888,7 @@ impl Handle {
         use double_representation::refactorings::collapse::collapse;
         use double_representation::refactorings::collapse::Collapsed;
         let nodes = nodes.into_iter().map(|id| self.node(id)).collect::<Result<Vec<_>, _>>()?;
-        info!(self.logger, "Collapsing {nodes:?}.");
+        info!("Collapsing {nodes:?}.");
         let collapsed_positions = nodes
             .iter()
             .filter_map(|node| node.metadata.as_ref().and_then(|metadata| metadata.position));
@@ -921,7 +921,7 @@ impl Handle {
             let mut graph = GraphInfo::from_definition(definition);
             graph.update_node(id, |node| {
                 let new_node = f(node);
-                info!(self.logger, "Setting node {id} line to `{new_node.repr()}`");
+                info!("Setting node {id} line to `{}`", new_node.repr());
                 Some(new_node)
             })?;
             Ok(graph.source)
@@ -992,7 +992,7 @@ pub mod tests {
     use double_representation::identifier::NormalizedName;
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
-    use enso_text::traits::*;
+    use enso_text::index::*;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -1066,7 +1066,7 @@ pub mod tests {
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();
-            Rc::new(SuggestionDatabase::new_from_entries(Logger::new("Test"), entries))
+            Rc::new(SuggestionDatabase::new_from_entries(entries))
         }
     }
 
@@ -1115,7 +1115,7 @@ pub mod tests {
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
-            let change = TextChange { range: (12.bytes()..12.bytes()).into(), text: "2".into() };
+            let change = TextChange { range: (12.byte()..12.byte()).into(), text: "2".into() };
             graph.module.apply_code_change(change, &graph.parser, default()).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         });

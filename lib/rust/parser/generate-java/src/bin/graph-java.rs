@@ -9,6 +9,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 
 use enso_metamodel::graphviz;
 use enso_metamodel::java;

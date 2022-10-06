@@ -1,7 +1,7 @@
 //! A Wrapper for module which synchronizes opening/closing and all changes with Language Server.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
@@ -20,9 +20,9 @@ use double_representation::module::ImportId;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
+use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
-use enso_text::Text;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -38,13 +38,17 @@ use parser::Parser;
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ContentSummary {
     digest:      Sha3_224,
-    end_of_file: Location,
+    /// The Engine's Locations are in java Characters, which are equal to UTF16 Code Units.
+    /// See https://docs.oracle.com/javase/8/docs/api/java/lang/Character.html
+    end_of_file: Location<enso_text::Utf16CodeUnit>,
 }
 
 impl ContentSummary {
-    fn new(text: &Text) -> Self {
+    fn new(text: &text::Rope) -> Self {
         let parts = text.rope.iter_chunks(..).map(|s| s.as_bytes());
-        Self { digest: Sha3_224::from_parts(parts), end_of_file: text.location_of_text_end() }
+        let end_location_bytes = text.last_line_end_location();
+        let end_of_file = text.utf16_code_unit_location_of_location(end_location_bytes);
+        Self { digest: Sha3_224::from_parts(parts), end_of_file }
     }
 }
 
@@ -55,19 +59,20 @@ impl ContentSummary {
 struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary:  ContentSummary,
-    source:   Text,
-    code:     Range<Location>,
-    id_map:   Range<Location>,
-    metadata: Range<Location>,
+    source:   text::Rope,
+    code:     Range<Location<Byte>>,
+    id_map:   Range<Location<Byte>>,
+    metadata: Range<Location<Byte>>,
 }
 
 impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source: &SourceFile) -> Self {
-        let content = Text::from(&source.content);
-        let code = source.code.map(|i| content.location_of_byte_offset_snapped(i));
-        let id_map = source.id_map.map(|i| content.location_of_byte_offset_snapped(i));
-        let metadata = source.metadata.map(|i| content.location_of_byte_offset_snapped(i));
+        let content = text::Rope::from(&source.content);
+        let to_location = |i: Byte| content.offset_to_location_snapped(i);
+        let code = source.code.map(to_location);
+        let id_map = source.id_map.map(to_location);
+        let metadata = source.metadata.map(to_location);
         ParsedContentSummary {
             summary: ContentSummary::new(&content),
             source: content,
@@ -78,23 +83,23 @@ impl ParsedContentSummary {
     }
 
     // Get fragment of string with code.
-    pub fn code_slice(&self) -> Text {
+    pub fn code_slice(&self) -> text::Rope {
         self.slice(&self.code)
     }
 
     /// Get fragment of string with id map.
-    pub fn id_map_slice(&self) -> Text {
+    pub fn id_map_slice(&self) -> text::Rope {
         self.slice(&self.id_map)
     }
 
     /// Get fragment of string with metadata.
-    pub fn metadata_slice(&self) -> Text {
+    pub fn metadata_slice(&self) -> text::Rope {
         self.slice(&self.metadata)
     }
 
-    fn slice(&self, range: &Range<Location>) -> Text {
-        let start_ix = self.source.byte_offset_of_location_snapped(range.start);
-        let end_ix = self.source.byte_offset_of_location_snapped(range.end);
+    fn slice(&self, range: &Range<Location<Byte>>) -> text::Rope {
+        let start_ix = self.source.location_offset_snapped(range.start);
+        let end_ix = self.source.location_offset_snapped(range.end);
         self.source.sub(Range::new(start_ix, end_ix))
     }
 }
@@ -135,7 +140,6 @@ impl LanguageServerContent {
 pub struct Module {
     model:           model::module::Plain,
     language_server: Rc<language_server::Connection>,
-    logger:          Logger,
 }
 
 
@@ -153,21 +157,20 @@ impl Module {
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
     ) -> FallibleResult<Rc<Self>> {
-        let logger = Logger::new(iformat!("Module {path}"));
         let file_path = path.file_path().clone();
-        info!(logger, "Opening module {file_path}");
+        info!("Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
-        let content: Text = (&opened.content).into();
-        info!(logger, "Read content of the module {path}, digest is {opened.current_version:?}");
-        let end_of_file = content.location_of_text_end();
+        let content: text::Rope = (&opened.content).into();
+        info!("Read content of the module {path}, digest is {:?}", opened.current_version);
+        let end_of_file_byte = content.last_line_end_location();
+        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
         let source = parser.parse_with_metadata(opened.content)?;
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-        let model =
-            model::module::Plain::new(&logger, path, source.ast, source.metadata, repository);
-        let this = Rc::new(Module { model, language_server, logger });
+        let model = model::module::Plain::new(path, source.ast, source.metadata, repository);
+        let this = Rc::new(Module { model, language_server });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
         executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
@@ -176,12 +179,11 @@ impl Module {
 
     /// Create a module mock.
     pub fn mock(model: model::module::Plain) -> Rc<Self> {
-        let logger = Logger::new(iformat!("Mocked Module {model.path()}"));
         let client = language_server::MockClient::default();
         client.expect.close_text_file(|_| Ok(()));
         // We don't expect any other call, because we don't execute `runner()`.
         let language_server = language_server::Connection::new_mock_rc(client);
-        Rc::new(Module { model, language_server, logger })
+        Rc::new(Module { model, language_server })
     }
 }
 
@@ -299,7 +301,7 @@ impl Module {
                 let this = weak.upgrade();
                 match (notification, this) {
                     (Some(notification), Some(this)) => {
-                        debug!(this.logger, "Processing a notification: {notification:?}");
+                        debug!("Processing a notification: {notification:?}");
                         let result = this.handle_notification(&ls_content, notification).await;
                         ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
                     }
@@ -320,11 +322,11 @@ impl Module {
     ) -> LanguageServerContent {
         match new_content {
             Ok(new_content) => {
-                debug!(self.logger, "Updating the LS content digest to: {new_content.summary:?}");
+                debug!("Updating the LS content digest to: {:?}", new_content.summary);
                 LanguageServerContent::Synchronized(new_content)
             }
             Err(err) => {
-                error!(self.logger, "Error during sending text change to Language Server: {err}");
+                error!("Error during sending text change to Language Server: {err}");
                 LanguageServerContent::Desynchronized(old_content)
             }
         }
@@ -339,7 +341,9 @@ impl Module {
     ) -> FallibleResult<ParsedContentSummary> {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
-        debug!(self.logger, "Handling notification: {content:?}.");
+        debug!("Handling notification: {content:?}.");
+        let code = enso_text::Rope::from(self.model.serialized_content()?.content);
+        let to_engine_location = |l: Location<Byte>| code.utf16_code_unit_location_of_location(l);
         match content {
             LanguageServerContent::Desynchronized(summary) =>
                 profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
@@ -347,10 +351,12 @@ impl Module {
                 NotificationKind::Invalidate =>
                     profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
                 NotificationKind::CodeChanged { change, replaced_location } => {
-                    let code_change =
-                        TextEdit { range: replaced_location.into(), text: change.text };
+                    let code_change = TextEdit {
+                        range: replaced_location.map(to_engine_location).into(),
+                        text:  change.text,
+                    };
                     let id_map_change = TextEdit {
-                        range: summary.id_map.into(),
+                        range: summary.id_map.map(to_engine_location).into(),
                         text:  new_file.id_map_slice().to_string(),
                     };
                     //id_map goes first, because code change may alter its position.
@@ -360,7 +366,7 @@ impl Module {
                 }
                 NotificationKind::MetadataChanged => {
                     let edits = vec![TextEdit {
-                        range: summary.metadata.into(),
+                        range: summary.metadata.map(to_engine_location).into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
@@ -378,20 +384,24 @@ impl Module {
         ls_content: &ContentSummary,
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
-        debug!(self.logger, "Handling full invalidation: {ls_content:?}.");
+        debug!("Handling full invalidation: {ls_content:?}.");
         let range = Range::new(Location::default(), ls_content.end_of_file);
         let edits = vec![TextEdit { range: range.into(), text: new_file.content.clone() }];
         self.notify_language_server(ls_content, &new_file, edits)
     }
 
-    fn edit_for_snipped(start: &Location, source: Text, target: Text) -> Option<TextEdit> {
+    fn edit_for_snipped(
+        start: &Location<Byte>,
+        source: text::Rope,
+        target: text::Rope,
+    ) -> Option<TextEdit> {
         // This is an implicit assumption that always seems to be true. Otherwise finding the
         // correct location for the final edit would be more complex.
-        debug_assert_eq!(start.column, 0.column());
+        debug_assert_eq!(start.offset, 0.byte());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
         (edit.range.start != edit.range.end || !edit.text.is_empty())
-            .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
+            .as_some_from(|| edit.move_by_lines(start.line.value))
     }
 
     fn edit_for_code(ls_content: &ParsedContentSummary, new_file: &SourceFile) -> Option<TextEdit> {
@@ -435,7 +445,7 @@ impl Module {
         ls_content: &ParsedContentSummary,
         new_file: SourceFile,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
-        debug!(self.logger, "Handling partial invalidation: {ls_content:?}.");
+        debug!("Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
             //id_map and metadata go first, because code change may alter their position.
             Self::edit_for_idmap(ls_content, &new_file),
@@ -464,7 +474,7 @@ impl Module {
             old_version: ls_content.digest.clone(),
             new_version: Sha3_224::new(new_file.content.as_bytes()),
         };
-        debug!(self.logger, "Notifying LS with edit: {edit:#?}.");
+        debug!("Notifying LS with edit: {edit:#?}.");
         let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
         async move {
             ls_future_reply.await?;
@@ -477,11 +487,10 @@ impl Drop for Module {
     fn drop(&mut self) {
         let file_path = self.path().file_path().clone();
         let language_server = self.language_server.clone_ref();
-        let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             let result = language_server.client.close_text_file(&file_path).await;
             if let Err(err) = result {
-                error!(logger, "Error when closing module file {file_path}: {err}");
+                error!("Error when closing module file {file_path}: {err}");
             }
         });
     }
@@ -517,8 +526,8 @@ pub mod test {
     use engine_protocol::language_server::MockClient;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::TextRange;
+    use enso_text::text;
     use enso_text::Change;
-    use enso_text::Text;
     use json_rpc::error::RpcError;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -528,22 +537,19 @@ pub mod test {
     // Ensures that subsequent LS text operations form a consistent series of versions.
     #[derive(Clone, Debug)]
     struct LsClientSetup {
-        logger:             Logger,
         path:               Path,
-        current_ls_content: Rc<CloneCell<Text>>,
+        current_ls_content: Rc<CloneCell<text::Rope>>,
         current_ls_version: Rc<CloneCell<Sha3_224>>,
     }
 
     impl LsClientSetup {
-        fn new(parent: impl AnyLogger, path: Path, initial_content: impl Into<Text>) -> Self {
+        fn new(path: Path, initial_content: impl Into<text::Rope>) -> Self {
             let current_ls_content = initial_content.into();
             let current_ls_version =
                 Sha3_224::from_parts(current_ls_content.iter_chunks(..).map(|ch| ch.as_bytes()));
-            let logger = Logger::new_sub(parent, "LsClientSetup");
-            debug!(logger, "Initial content:\n===\n{current_ls_content}\n===");
+            debug!("Initial content:\n===\n{current_ls_content}\n===");
             Self {
                 path,
-                logger,
                 current_ls_content: Rc::new(CloneCell::new(current_ls_content)),
                 current_ls_version: Rc::new(CloneCell::new(current_ls_version)),
             }
@@ -551,7 +557,7 @@ pub mod test {
 
         /// Create a setup initialized with the data from the given mock description.
         fn new_for_mock_data(data: &crate::test::mock::Unified) -> Self {
-            Self::new(&data.logger, data.module_path.clone(), data.get_code())
+            Self::new(data.module_path.clone(), data.get_code())
         }
 
         /// Set up general text edit expectation in the mock client.
@@ -572,18 +578,18 @@ pub mod test {
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
-                debug!(this.logger, "Actual digest:   {actual_old} => {actual_new}");
-                debug!(this.logger, "Declared digest: {edits.old_version} => {edits.new_version}");
-                debug!(this.logger, "New content:\n===\n{new_content}\n===");
+                debug!("Actual digest:   {actual_old} => {actual_new}");
+                debug!("Declared digest: {} => {}", edits.old_version, edits.new_version);
+                debug!("New content:\n===\n{new_content}\n===");
                 assert_eq!(&edits.path, this.path.file_path());
                 assert_eq!(edits.old_version, actual_old);
                 assert_eq!(edits.new_version, actual_new);
                 if result.is_ok() {
                     this.current_ls_content.set(new_content);
                     this.current_ls_version.set(actual_new);
-                    debug!(this.logger, "Accepted!");
+                    debug!("Accepted!");
                 } else {
-                    debug!(this.logger, "Rejected!");
+                    debug!("Rejected!");
                 }
                 result
             });
@@ -603,8 +609,10 @@ pub mod test {
                     // TODO [mwu]
                     //  Currently this assumes that the whole idmap is replaced at each edit.
                     //  This code should be adjusted, if partial metadata updates are implemented.
-                    let idmap_range =
-                        file_so_far.id_map.map(|x| code_so_far.location_of_byte_offset_snapped(x));
+                    let idmap_range = file_so_far.id_map.map(|x| {
+                        let location_bytes = code_so_far.offset_to_location_snapped(x);
+                        code_so_far.utf16_code_unit_location_of_location(location_bytes)
+                    });
                     let idmap_range = TextRange::from(idmap_range);
                     assert_eq!(edit_idmap.range, idmap_range);
                     assert!(SourceFile::looks_like_idmap(&edit_idmap.text));
@@ -640,21 +648,24 @@ pub mod test {
 
         fn whole_document_range(&self) -> TextRange {
             let code_so_far = self.current_ls_content.get();
-            let end_of_file = code_so_far.location_of_text_end();
+            let end_of_file_bytes = code_so_far.last_line_end_location();
+            let end_of_file = code_so_far.utf16_code_unit_location_of_location(end_of_file_bytes);
             TextRange { start: Position { line: 0, character: 0 }, end: end_of_file.into() }
         }
     }
 
-    fn apply_edit(code: impl Into<Text>, edit: &TextEdit) -> Text {
+    fn apply_edit(code: impl Into<text::Rope>, edit: &TextEdit) -> text::Rope {
         let mut code = code.into();
-        let start_loc = code.byte_offset_of_location_snapped(edit.range.start.into());
-        let end_loc = code.byte_offset_of_location_snapped(edit.range.end.into());
-        let change = Change { range: Range::new(start_loc, end_loc), text: edit.text.clone() };
+        let start = code.location_of_utf16_code_unit_location_snapped(edit.range.start.into());
+        let start_byte = code.location_offset_snapped(start);
+        let end = code.location_of_utf16_code_unit_location_snapped(edit.range.end.into());
+        let end_byte = code.location_offset_snapped(end);
+        let change = Change { range: Range::new(start_byte, end_byte), text: edit.text.clone() };
         code.apply_change(change);
         code
     }
 
-    fn apply_edits(code: impl Into<Text>, file_edit: &FileEdit) -> Text {
+    fn apply_edits(code: impl Into<text::Rope>, file_edit: &FileEdit) -> text::Rope {
         let initial = code.into();
         file_edit.edits.iter().fold(initial, |content, edit| apply_edit(&content, edit))
     }
@@ -677,7 +688,7 @@ pub mod test {
         // Parser which is time-consuming to construct.
         let test = |runner: &mut Runner| {
             let module_path = data.module_path.clone();
-            let edit_handler = Rc::new(LsClientSetup::new(&data.logger, module_path, initial_code));
+            let edit_handler = Rc::new(LsClientSetup::new(module_path, initial_code));
             let mut fixture = data.fixture_customize(|data, client, _| {
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
@@ -752,10 +763,10 @@ pub mod test {
 
     #[test]
     fn handle_insertion_edits_bug180558676() {
-        let source = Text::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
-        let target = Text::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let source = text::Rope::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let target = text::Rope::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
         let edit = Module::edit_for_snipped(
-            &Location { line: 0.into(), column: 0.into() },
+            &Location { line: 0.into(), offset: 0.into() },
             source,
             target,
         );

@@ -240,7 +240,7 @@ impl Client {
 
     /// Sends a request to parser service to parse Enso code.
     pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
-        let ids = JsonIdMap::from_id_map(&ids, &program);
+        let ids = JsonIdMap::from_id_map(&ids, &program.as_str().into());
         let request = Request::ParseRequest { program, ids };
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {

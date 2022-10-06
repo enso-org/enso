@@ -102,14 +102,14 @@ impl<'s> From<&'s str> for Offset<'s> {
     }
 }
 
-impl<'s> std::ops::AddAssign<Offset<'s>> for Offset<'s> {
+impl<'s> AddAssign<Offset<'s>> for Offset<'s> {
     fn add_assign(&mut self, other: Offset<'s>) {
         self.visible += other.visible;
         self.code += other.code;
     }
 }
 
-impl<'s> std::ops::AddAssign<&Offset<'s>> for Offset<'s> {
+impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
     fn add_assign(&mut self, other: &Offset<'s>) {
         self.visible += other.visible;
         self.code += &other.code;

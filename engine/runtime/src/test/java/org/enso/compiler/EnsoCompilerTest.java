@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.codegen.AstToIr;
@@ -12,7 +11,6 @@ import org.enso.compiler.core.IR;
 import org.enso.syntax.text.AST.ASTOf;
 import org.enso.syntax.text.Parser;
 import org.enso.syntax.text.Shape;
-import org.enso.syntax2.UnsupportedSyntaxException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,18 +38,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testCase() throws Exception {
     parseTest("""
     type Msg
         Ahoj
         Ciao
-        """
 
-//    c x = case x of
-//        Ahoj -> 0
-//        Ciao -> 1
-//    """);
+    c x = case x of
+        Ahoj -> 0
+        Ciao -> 1
+        Msg.Ciao -> 2
+    """
     );
   }
 
@@ -62,7 +59,6 @@ public class EnsoCompilerTest {
     import project.IO
     import Standard.Base as Enso_List
     from Standard.Base import all hiding Number, Boolean
-    from Standard.Table as Column_Module import Column
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
@@ -94,7 +90,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testFactorial() throws Exception {
     parseTest("""
     fac n = if n == 1 then 1 else n * fac n-1
@@ -168,7 +163,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testIfThenBlock() throws Exception {
     parseTest("""
       from_java_set java_set =
@@ -198,15 +192,18 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testSignature3() throws Exception {
     parseTest("val = 123 : Int");
   }
 
   @Test
-  @Ignore
   public void testSignature4() throws Exception {
     parseTest("val = foo (123 : Int)");
+  }
+
+  @Test
+  public void testSignature5() throws Exception {
+    parseTest("val : List Int -> Int");
   }
 
   @Test
@@ -227,11 +224,6 @@ public class EnsoCompilerTest {
   @Test
   public void testExportFromAllHiding() throws Exception {
     parseTest("from prj.Data.Foo export all hiding Bar, Baz");
-  }
-
-  @Test
-  public void testExportFromAsExport() throws Exception {
-    parseTest("from prj.Data.Foo as Bar export Baz, Quux");
   }
 
   @Test
@@ -260,8 +252,98 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testReverseListType() throws Exception {
+    parseTest("""
+    reverse_list : List Any -> List
+    reverse_list list = Nil
+    """);
+  }
+
+  @Test
+  public void testReverseList() throws Exception {
+    parseTest("""
+    reverse_list list =
+        go = list -> acc -> case list of
+            Cons h t -> go t (Cons h acc)
+            Cons h _ -> acc
+            Nil -> acc
+            _ -> acc
+        res = go list Nil
+        res
+    """);
+  }
+
+  @Test
+  public void testProblemHandling() throws Exception {
+    parseTest("""
+    test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
+    test_problem_handling action expected_problems result_checker =
+        result_checker result_ignoring
+    """);
+  }
+
+  @Test
+  public void testNamedArgument() throws Exception {
+    parseTest("""
+    fn = get_all frames_to_skip=1
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralEmpty() throws Exception {
+    parseTest("""
+    fn = []
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralOne() throws Exception {
+    parseTest("""
+    fn = [ 1 ]
+    """);
+  }
+
+  @Test
+  public void testVectorLiteralMany() throws Exception {
+    parseTest("""
+    fn = [ 1, 2, 3 ]
+    """);
+  }
+
+  @Test
+  public void testInvokeMethod() throws Exception {
+    parseTest("""
+    fn = result_ignoring . should_equal
+    """);
+  }
+
+  @Test
+  public void testTableDataArgumentInCase() throws Exception {
+    parseTest("""
+    process_to_json_text value =
+        json = case value of
+            Table.Table_Data _ -> json_from_table value
+            _ -> value.to_json
+        """);
+  }
+
+  @Test
+  public void testVisualizationCaseOf() throws Exception {
+    parseTest("""
+    prepare_visualization : Any -> Integer -> Json
+    prepare_visualization x max_rows=1000 = case x of
+        Array ->
+            prepare_visualization (Vector.from_polyglot_array x) max_rows
+
+        # Anything else will be visualized with the JSON or matrix visualization
+        _ ->
+            Json.from_pairs [["json", x]] . to_text
+        """);
+  }
+
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
+  private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
