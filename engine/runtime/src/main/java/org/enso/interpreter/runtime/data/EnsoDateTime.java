@@ -141,16 +141,14 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this date time")
-  @TruffleBoundary
-  public EnsoDateTime plus(Object durationObject) {
-    InteropLibrary interop = InteropLibrary.getUncached();
+  @Builtin.Specialize
+  public EnsoDateTime plus(Object durationObject, InteropLibrary interop) {
     return new EnsoDateTime(dateTime.plus(ensureDuration(durationObject, interop)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
-  @TruffleBoundary
-  public EnsoDateTime minus(Object durationObject) {
-    InteropLibrary interop = InteropLibrary.getUncached();
+  @Builtin.Specialize
+  public EnsoDateTime minus(Object durationObject, InteropLibrary interop) {
     return new EnsoDateTime(dateTime.minus(ensureDuration(durationObject, interop)));
   }
 

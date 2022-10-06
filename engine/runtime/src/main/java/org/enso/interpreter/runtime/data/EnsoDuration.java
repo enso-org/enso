@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -50,7 +51,6 @@ public class EnsoDuration implements TruffleObject {
         name = "new_builtin",
         description = "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds")
     @TruffleBoundary
-    @Builtin.ReturningGuestObject
     public static EnsoDuration create(long hours, long minutes, long seconds, long milliseconds, long nanoseconds) {
         var duration = Duration.ofHours(hours)
                 .plusMinutes(minutes)
@@ -63,10 +63,8 @@ public class EnsoDuration implements TruffleObject {
     @Builtin.Method(
         name = "between_builtin",
         description = "Construct a new Duration that is between the given start date inclusive, and end date exclusive")
-    @TruffleBoundary
-    @Builtin.ReturningGuestObject
-    public static EnsoDuration between(Object startInclusive, Object endExclusive) {
-        InteropLibrary interop = InteropLibrary.getUncached();
+    @Builtin.Specialize
+    public static EnsoDuration between(Object startInclusive, Object endExclusive, InteropLibrary interop) {
         ZonedDateTime startDateTime = convertToZonedDateTime(startInclusive, interop);
         ZonedDateTime endDateTime = convertToZonedDateTime(endExclusive, interop);
         return new EnsoDuration(
