@@ -80,6 +80,12 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                         throw new NullPointerException();
                     }
                 } catch (Exception ex) {
+                    if (ex.getClass().getName().contains("UnhandledEntity")) {
+                        if (ex.getMessage().contains("= Invalid[")) {
+                            failed.add(file);
+                            break TEST;
+                        }
+                    }
                     irFailed.put(file, ex);
                 }
             }
