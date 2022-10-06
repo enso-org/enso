@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.Helpers
+import project.Internal.Helpers
 import Standard.Database.Internal.IR
 from Standard.Database.Data.Table import Table, freshen_columns
 from Standard.Table import Filter_Condition

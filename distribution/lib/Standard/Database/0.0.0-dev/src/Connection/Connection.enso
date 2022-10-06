@@ -1,8 +1,10 @@
 from Standard.Base import all
 
+import project.Data.SQL_Query.SQL_Query
+
+
 import Standard.Database.Internal.IR
 import Standard.Database.Data.SQL
-import Standard.Database.Data.SQL_Query
 import Standard.Database.Data.Table as Database_Table
 
 import Standard.Table.Data.Table as Materialized_Table
