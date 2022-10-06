@@ -342,6 +342,18 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Test
+  public void testAggregateColumnGroupByTrue() throws Exception {
+    parseTest("""
+    prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+    prepare_aggregate_columns aggregates table =
+        # Grouping Key
+        is_a_key c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+      """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

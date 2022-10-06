@@ -17,6 +17,7 @@ import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Function$Lambda;
+import org.enso.compiler.core.IR$Function$Binding;
 import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
@@ -765,6 +766,15 @@ final class TreeToIr {
           branches = cons(br, branches);
         }
         yield new IR$Case$Expr(expr, branches.reverse(), getIdentifiedLocation(tree), meta(), diag());
+      }
+      case Tree.Function fun -> {
+        var name = buildName(fun.getName());
+        var args = translateArgumentsDefinition(fun.getArgs(), nil());
+        var body = translateExpression(fun.getBody(), false);
+
+        yield new IR$Function$Binding(name, args, body,
+            getIdentifiedLocation(fun), true, meta(), diag()
+        );
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
