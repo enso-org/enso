@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Data.SQL
+import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.From_Spec.From_Spec
@@ -8,8 +9,8 @@ import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Order_Descriptor
 import project.Internal.IR.Nulls_Order
 import project.Internal.IR.Query.Query
+from project.Data.SQL import code
 
-from project.Data.SQL import Builder, code
 from project.Errors import Unsupported_Database_Operation_Error
 
 type Internal_Dialect

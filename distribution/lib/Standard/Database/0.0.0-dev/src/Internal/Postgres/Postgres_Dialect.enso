@@ -3,7 +3,7 @@ import Standard.Base.Error.Common as Errors
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
-import project.Data.SQL
+import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.IR.Expression.Expression
@@ -11,7 +11,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor
 import project.Internal.IR.Nulls_Order
 
-from project.Data.SQL import Statement, code
+from project.Data.SQL import join, code
 from project.Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
@@ -38,7 +38,7 @@ type Postgres_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Statement
+    generate_sql : Query -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -160,7 +160,7 @@ make_first_aggregator reverse ignore_null args =
         filter_clause = if ignore_null.not then "" else
             code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
         order_clause =
-            code " ORDER BY " ++ SQL.join "," order_bys
+            code " ORDER BY " ++ join "," order_bys
         index_expr = case reverse of
             True -> if ignore_null.not then "COUNT(*)" else
                 code "COUNT(" ++ result_expr ++ ")"
@@ -196,15 +196,15 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_E
             ## A tuple of nulls is not a null, so it will not be skipped - but
                we want to ignore all-null columns. So we manually filter them
                out.
-            count = code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ "))"
+            count = code "COUNT(DISTINCT (" ++ join ", " args ++ "))"
             are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = code " FILTER (WHERE NOT (" ++ SQL.join " AND " are_nulls ++ "))"
+            all_nulls_filter = code " FILTER (WHERE NOT (" ++ join " AND " are_nulls ++ "))"
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
-    code "COUNT(DISTINCT (" ++ SQL.join ", " args ++ ", 0))"
+    code "COUNT(DISTINCT (" ++ join ", " args ++ ", 0))"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->

@@ -5,13 +5,13 @@ from Standard.Base.Runtime.Resource import Managed_Resource
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
 
-import project.Data.SQL_Type.SQL_Type
 import project.Data.SQL
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 
 import project.Data.Table.Table as Database_Table
 
-from project.Data.SQL import SQL_Type_Data, Statement, Statement_Data
 from project.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
 
 polyglot java import java.util.Properties
@@ -60,7 +60,7 @@ type JDBC_Connection
 
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
-    with_prepared_statement : Text  | Statement -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement : Text  | SQL_Statement -> (PreparedStatement -> Any) -> Any
     with_prepared_statement self query action =
         prepare template holes = self.connection_resource.with java_connection->
             stmt = java_connection.prepareStatement template
@@ -75,7 +75,7 @@ type JDBC_Connection
 
         case query of
             _ : Text -> go query []
-            Statement_Data _ ->
+            SQL_Statement.Value _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second
 
@@ -83,7 +83,7 @@ type JDBC_Connection
 
        Given a prepared statement, gets the column names and types for the
        result set.
-    fetch_columns : Text | Statement -> Any
+    fetch_columns : Text | SQL_Statement -> Any
     fetch_columns self statement =
         self.with_prepared_statement statement stmt->
             metadata = stmt.executeQuery.getMetaData
@@ -181,7 +181,7 @@ set_statement_values stmt holes =
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.
-create_table_statement : Text -> Materialized_Table -> Boolean -> Statement
+create_table_statement : Text -> Materialized_Table -> Boolean -> SQL_Statement
 create_table_statement name table temporary =
     column_types = table.columns.map col-> default_storage_type col.storage_type
     column_names = table.columns.map .name

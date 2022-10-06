@@ -13,6 +13,7 @@ from Standard.Table.Data.Table import print_table
 from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 
 import project.Data.Column.Column
+import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
@@ -22,7 +23,6 @@ import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Query.Query
-from Standard.Database.Data.SQL import Statement
 
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
@@ -860,7 +860,7 @@ type Table
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this table.
-    to_sql : Statement
+    to_sql : SQL_Statement
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of

@@ -9,7 +9,7 @@ import project.Data.Dialect
 import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table
 
-from project.Data.SQL import Statement
+import project.Data.SQL_Statement.SQL_Statement
 from project.Errors import SQL_Error
 
 type SQLite_Connection
@@ -98,7 +98,7 @@ type SQLite_Connection
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.connection.read_statement statement expected_types
 
@@ -109,9 +109,9 @@ type SQLite_Connection
        returns 0 for other types of queries (like creating or altering tables).
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of Statement
+       - query: either raw SQL code as Text or an instance of SQL_Statement
          representing the query to execute.
-    execute_update : Text | Statement -> Integer
+    execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         self.connection.execute_update query
 

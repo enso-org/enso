@@ -4,15 +4,14 @@ from Standard.Table import Column_Selector, Column_Name_Mapping
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
-import Standard.Database.Data.SQL
+import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import Standard.Database.Data.Table as Database_Table
+import project.Data.Table as Database_Table
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.Query.Query
 
-from Standard.Database.Data.SQL import Statement, Statement_Data
-from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
+from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from project.Errors import SQL_Error
 
@@ -139,7 +138,7 @@ type Connection
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -151,9 +150,9 @@ type Connection
        returns 0 for other types of queries (like creating or altering tables).
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of SQL.Statement
+       - query: either raw SQL code as Text or an instance of SQL_Statement
          representing the query to execute.
-    execute_update : Text | SQL.Statement -> Integer
+    execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         self.jdbc_connection.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
