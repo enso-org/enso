@@ -21,7 +21,6 @@ class ApiTest extends AnyFlatSpec with Matchers {
   )
 
   "Parsing a file and calling a toplevel function defined in it" should "be possible" in {
-    if ("".length == 0) fail("oops...")
     val code =
       """
         |foo = x -> x + 1
