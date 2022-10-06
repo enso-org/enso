@@ -10,10 +10,10 @@ from Standard.Database.Data.SQL import Statement, SQL_Type
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 from Standard.Table.Data.Column import get_item_string
 import Standard.Table.Data.Table.Table as Materialized_Table
-from Standard.Table.Data.Table import No_Index_Set_Error, print_table
+from Standard.Table.Data.Table import print_table
 from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
 
-from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector
 
 import Standard.Table.Internal.Java_Exports

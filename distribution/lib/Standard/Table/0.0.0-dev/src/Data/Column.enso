@@ -3,9 +3,11 @@ import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Table as Table_Module
+from Standard.Table.Data.Table import print_table
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Value_Type.Value_Type
+
+from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -61,7 +63,7 @@ type Column
             row = if storage.isNa num then "Nothing" else
                 get_item_string storage num
             [index.ilocString num, row]
-        table = Table_Module.print_table [index.getName, col_name] items 1 format_terminal
+        table = print_table [index.getName, col_name] items 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -685,9 +687,9 @@ type Column
              import Standard.Examples
 
              example_index = Examples.decimal_column.index
-    index : Column ! Table_Module.No_Index_Set_Error
+    index : Column ! No_Index_Set_Error
     index self = case self.java_column.getIndex.toColumn of
-        Nothing -> Error.throw Table_Module.No_Index_Set_Error
+        Nothing -> Error.throw No_Index_Set_Error
         i -> Column_Data i
 
     ## Sets the index of this column, using the provided column.
