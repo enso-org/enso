@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Connection.Client_Certificate.Client_Certificate import all
-from project.Connection.Client_Certificate.Client_Certificate export all
-
 type Client_Certificate
     ## Creates a new Client_Certificate object.
 
@@ -11,7 +7,7 @@ type Client_Certificate
        - cert_file: path to the client certificate file.
        - key_file: path to the client key file.
        - key_password: password for the client key file.
-    Client_Certificate_Data cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
+    Value cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
 
     ## PRIVATE
        Creates the JDBC properties for the client certificate.

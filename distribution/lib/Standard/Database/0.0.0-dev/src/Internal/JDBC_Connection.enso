@@ -5,12 +5,13 @@ from Standard.Base.Runtime.Resource import Managed_Resource
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
 
+import project.Data.SQL_Type.SQL_Type
 import project.Data.SQL
 import project.Internal.Base_Generator
 
 import project.Data.Table.Table as Database_Table
 
-from project.Data.SQL import SQL_Type, SQL_Type_Data, Statement, Statement_Data
+from project.Data.SQL import SQL_Type_Data, Statement, Statement_Data
 from project.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
 
 polyglot java import java.util.Properties
@@ -91,7 +92,7 @@ type JDBC_Connection
                 name = metadata.getColumnName ix+1
                 typeid = metadata.getColumnType ix+1
                 typename = metadata.getColumnTypeName ix+1
-                [name, SQL_Type_Data typeid typename]
+                [name, SQL_Type.Value typeid typename]
 
             Vector.new metadata.getColumnCount resolve_column
 

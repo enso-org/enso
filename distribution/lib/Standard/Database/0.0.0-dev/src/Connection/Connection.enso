@@ -1,21 +1,20 @@
 from Standard.Base import all
 
-import project.Data.SQL_Query.SQL_Query
+from Standard.Table import Column_Selector, Column_Name_Mapping
+import Standard.Table.Data.Table.Table as Materialized_Table
 
+import project.Data.SQL_Query.SQL_Query
+import Standard.Database.Data.SQL
+import project.Data.SQL_Type.SQL_Type
+import Standard.Database.Data.Table as Database_Table
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.Query.Query
 
-import Standard.Database.Data.SQL
-import Standard.Database.Data.Table as Database_Table
-
-import Standard.Table.Data.Table as Materialized_Table
-from Standard.Table import Column_Selector, Column_Name_Mapping
-
-from Standard.Database.Data.SQL import SQL_Type, Statement, Statement_Data
-from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
+from Standard.Database.Data.SQL import Statement, Statement_Data
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
-from Standard.Database.Errors import SQL_Error
+from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
+from project.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -94,7 +93,7 @@ type Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table.Table
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
@@ -134,13 +133,13 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table.Table
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table.Table
+    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -177,7 +176,7 @@ type Connection
          usually not be visible to other connections.
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
-    upload_table : Text -> Materialized_Table.Table -> Boolean -> Integer -> Database_Table.Table
+    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table.Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <|
         create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql

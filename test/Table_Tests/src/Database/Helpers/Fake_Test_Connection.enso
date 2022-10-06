@@ -1,10 +1,11 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Table.Table as Materialized_Table
-from Standard.Database import SQL_Query, Raw_SQL, Table_Name
+from Standard.Database import SQL_Query
 import Standard.Database.Data.Table as Database_Table
-from Standard.Database.Data.SQL import Statement, SQL_Type
-import Standard.Database.Internal.IR.Context
+import Standard.Database.Data.SQL.Statement
+import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.Internal.IR.Context.Context
 
 type Fake_Test_Connection
     # type Fake_Test_Connection.Value (tables : Map Text (Vector [Text, SQL_Type])) (dialect : Text)
@@ -18,10 +19,10 @@ type Fake_Test_Connection
        - alias: optionally specify a friendly alias for the query.
     query : Text | SQL_Query -> Text -> Database_Table.Table
     query self query alias="" = case query of
-        Text -> self.query (Table_Name query) alias
-        Raw_SQL _ ->
+        Text -> self.query (SQL_Query.Table_Name query) alias
+        SQL_Query.Raw_SQL _ ->
             Error.throw (Illegal_Argument_Error "Cannot query a fake connection with raw SQL")
-        Table_Name name ->
+        SQL_Query.Table_Name name ->
             columns = self.tables.get name
             Database_Table.make_table self name columns (Context.for_table name)
 

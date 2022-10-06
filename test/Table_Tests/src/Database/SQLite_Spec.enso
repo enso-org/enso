@@ -3,8 +3,7 @@ import Standard.Base.Runtime.Ref
 
 from Standard.Table import Table
 
-import Standard.Database
-from Standard.Database import all
+from Standard.Database import Database, SQLite, In_Memory, Raw_SQL, Table_Name
 from Standard.Database.Errors import SQL_Error_Data
 
 import Standard.Test

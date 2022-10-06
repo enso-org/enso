@@ -42,7 +42,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     # We display columns as 1-column tables.
     Dataframe_Column.Column_Data _ ->
         prepare_visualization x.to_table max_rows
-    Database_Column.Column_Data _ _ _ _ _ ->
+    Database_Column.Value _ _ _ _ _ ->
         prepare_visualization x.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?
