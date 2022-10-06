@@ -1,11 +1,16 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Data.Index_Sub_Range
+from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector
+from Standard.Table.Data.Value_Type import Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Data.Column_Selector import all
 from Standard.Table.Data.Position import all
+from Standard.Table.Data.Filter_Condition import Filter_Condition
+
+from Standard.Database.Errors import SQL_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -17,7 +22,7 @@ from project.Common_Table_Spec.Test_Selection import all
 from project.Common_Table_Spec.Test_Selection export all
 
 type Test_Selection
-    Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
+    Test_Selection_Data supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True
 
 ## A common test suite for shared operations on the Table API.
 
@@ -1059,3 +1064,144 @@ spec prefix table_builder test_selection pending=Nothing =
 
             three.drop (While (_ > 10)) . should_equal three
             three.drop (While (_ < 10)) . should_equal empty
+
+    check_empty expected_column_names table =
+        table.columns.map .name . should_equal expected_column_names
+        expected_column_names.each x->
+            table.at x . to_vector . should_equal []
+        table.row_count . should_equal 0
+
+    ## Currently these tests rely on filtering preserving the insertion ordering
+       within tables. This is not necessarily guaranteed by RDBMS, so we may
+       adapt this in the future. For now we implicitly assume the ordering is
+       preserved, as that seems to be the case.
+    Test.group prefix+"Table.filter" pending=pending <|
+        Test.specify "by integer comparisons" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+            t1 = t.filter "X" (Filter_Condition.Less than=10)
+            t1.at "ix" . to_vector . should_equal [2, 4]
+            t1.at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t2 = t.filter "X" (Filter_Condition.Equal to=100)
+            t2 . at "X" . to_vector . should_equal [100]
+            t2 . at "ix" . to_vector . should_equal [1]
+            t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
+            v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v.should_equal []
+                False -> v.should_fail_with SQL_Error_Data
+
+            t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 3]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [12]
+            t.filter "Y" (Filter_Condition.Between (t.at "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
+
+        Test.specify "by text comparisons" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]], ["Y", ["a", "b", "b", "c", "c"]]]
+            t1 = t.filter "X" (Filter_Condition.Less than="c")
+            t1.at "ix" . to_vector . should_equal [1, 2, 3]
+            t1.at "X" . to_vector . should_equal ["abb", "baca", "b"]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than="b") . at "X" . to_vector . should_equal ["abb", "b"]
+            t.filter "X" (Filter_Condition.Greater than="b") . at "X" . to_vector . should_equal ["baca", "c"]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than="b") . at "X" . to_vector . should_equal ["baca", "b", "c"]
+            t.filter "X" (Filter_Condition.Between "b" "c") . at "X" . to_vector . should_equal ["baca", "b", "c"]
+            t.filter "X" (Filter_Condition.Equal to="baca") . at "X" . to_vector . should_equal ["baca"]
+            v = t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v.should_equal []
+                False -> v.should_fail_with SQL_Error_Data
+
+            t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca"]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca", "b", "c"]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(t.at "Y")) . at "X" . to_vector . should_equal ["b", "c"]
+            t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal ["b", "c"]
+            t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
+
+        Test.specify "by text search (contains, starts_with, ends_with)" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "b", "c", "a"]]]
+
+            t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana"]
+            t.filter "X" (Filter_Condition.Ends_With "na") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (Filter_Condition.Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca"]
+
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "banana"]
+            t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "banana", "nana"]
+
+            check_column_type_error_handling action =
+                tester = check_empty ["ix", "X", "Y"]
+                check_problem problem =
+                    problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
+                    problem.expected . should_equal Value_Type.Char
+                warnings_tester warnings =
+                    (warnings.length >= 1).should_be_true
+                    check_problem warnings.first
+                error_tester result = check_problem result.catch
+                Problems.test_advanced_problem_handling action error_tester warnings_tester tester
+            check_column_type_error_handling (t.filter "X" (Filter_Condition.Starts_With (t.at "ix")) on_problems=_)
+            check_column_type_error_handling (t.filter "X" (Filter_Condition.Ends_With (t.at "ix")) on_problems=_)
+            check_column_type_error_handling (t.filter "X" (Filter_Condition.Contains (t.at "ix")) on_problems=_)
+            check_column_type_error_handling (t.filter "ix" (Filter_Condition.Starts_With "A") on_problems=_)
+            check_column_type_error_handling (t.filter "ix" (Filter_Condition.Ends_With "A") on_problems=_)
+            check_column_type_error_handling (t.filter "ix" (Filter_Condition.Contains "A") on_problems=_)
+
+            check_scalar_type_error_handling name action =
+                tester = check_empty ["ix", "X", "Y"]
+                problems = [Type_Error_Data Text Integer name]
+                Problems.test_problem_handling action problems tester
+            check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42) on_problems=_)
+            check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42) on_problems=_)
+            check_scalar_type_error_handling "substring" (t.filter "X" (Filter_Condition.Contains 42) on_problems=_)
+
+        Test.specify "by nulls" <|
+            t = table_builder [["ix", [1, 2, 3, 4]], ["X", [Nothing, 1, Nothing, 4]]]
+            t1 = t.filter "X" (Filter_Condition.Is_Nothing) on_problems=Report_Error
+            t1.at "ix" . to_vector . should_equal [1, 3]
+            t1.at "X" . to_vector . should_equal [Nothing, Nothing]
+
+            t2 = t.filter "X" (Filter_Condition.Not_Nothing) on_problems=Report_Error
+            t2.at "ix" . to_vector . should_equal [2, 4]
+            t2.at "X" . to_vector . should_equal [1, 4]
+
+        Test.specify "by a boolean mask" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter "b" on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 4, 5]
+            t.filter "b" Filter_Condition.Is_False on_problems=Report_Error . at "ix" . to_vector . should_equal [2]
+
+            tester = check_empty ["ix", "b"]
+            check_problem problem =
+                problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
+                problem.expected . should_equal Value_Type.Boolean
+            warnings_tester warnings =
+                (warnings.length >= 1).should_be_true
+                check_problem warnings.first
+            error_tester result = check_problem result.catch
+            Problems.test_advanced_problem_handling (t.filter "ix" Filter_Condition.Is_True on_problems=_) error_tester warnings_tester tester
+            Problems.test_advanced_problem_handling (t.filter "ix" Filter_Condition.Is_False on_problems=_) error_tester warnings_tester tester
+
+        Test.specify "by a custom expression built from table's columns" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10, 20, 13, 4, 5]], ["Y", [0, -100, 8, 2, 5]]]
+            t.filter (t.at "X" + t.at "Y" > 9) on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 3, 5]
+
+        Test.specify "should handle selection errors: unknown column name" <|
+            t = table_builder [["X", [10, 20, 13, 4, 5]]]
+            action = t.filter "unknown column" on_problems=_
+            tester table =
+                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
+            problems = [No_Such_Column_Error_Data "unknown column"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should handle selection errors: out of bounds index" <|
+            t = table_builder [["X", [10, 20, 13, 4, 5]]]
+            action = t.filter 4 on_problems=_
+            tester table =
+                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
+            problems = [Index_Out_Of_Bounds_Error_Data 4 1]
+            Problems.test_problem_handling action problems tester
