@@ -10,7 +10,6 @@
      well as the number of each item sold across those transactions.
 
          import Standard.Examples
-         import Standard.Table
 
          example_group =
              transactions = Examples.transactions_table
@@ -18,7 +17,7 @@
              aggregated = transactions.group by="item_id"
              num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
              num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
-             Table.join [item_names, num_transactions, num_sold]
+             item_names.join [num_transactions, num_sold]
 
    > Example
      Compute the maximum value of a column, the minimum value, the sum of its

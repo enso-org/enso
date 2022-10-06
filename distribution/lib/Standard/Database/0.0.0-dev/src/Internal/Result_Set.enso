@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Internal.Java_Exports
 from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data
 
@@ -23,7 +24,7 @@ read_column result_set column_name =
 
 ## PRIVATE
    Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
+result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table.Table
 result_set_to_table result_set expected_types=Nothing =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
@@ -42,7 +43,7 @@ result_set_to_table result_set expected_types=Nothing =
     go result_set.next
     columns = column_builders.zip column_names builder-> name->
         builder.make_column name
-    Materialized_Table.from_columns columns
+    Materialized_Table.Table.new columns
 
 ## PRIVATE
 
@@ -54,14 +55,10 @@ result_set_to_table result_set expected_types=Nothing =
 create_builder : SQL_Type -> Builder
 create_builder sql_type =
     initial_size = 10
-    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
-        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
-            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
-                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
-
-# TODO Dubious constructor export
-from project.Internal.Result_Set.Builder import all
-from project.Internal.Result_Set.Builder export all
+    if sql_type.is_definitely_boolean then Builder.Builder_Boolean (Java_Exports.make_bool_builder) else
+        if sql_type.is_definitely_integer then Builder.Builder_Long (Java_Exports.make_long_builder initial_size) else
+            if sql_type.is_definitely_double then Builder.Builder_Double (Java_Exports.make_double_builder initial_size) else
+                Builder.Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
 
 type Builder
 
@@ -108,20 +105,20 @@ type Builder
          ResultSet convention).
     fetch_and_append : ResultSet -> Integer -> Nothing
     fetch_and_append self rs i = case self of
-        Builder_Inferred _ ->
+        Builder.Builder_Inferred _ ->
             obj = rs.getObject i
             self.java_builder.append obj
-        Builder_Boolean _ ->
+        Builder.Builder_Boolean _ ->
             bool = rs.getBoolean i
             case rs.wasNull of
                 True -> self.java_builder.appendNulls 1
                 False -> self.java_builder.appendBoolean bool
-        Builder_Long _ ->
+        Builder.Builder_Long _ ->
             long = rs.getLong i
             case rs.wasNull of
                 True -> self.java_builder.appendNulls 1
                 False -> self.java_builder.appendLong long
-        Builder_Double _ ->
+        Builder.Builder_Double _ ->
             double = rs.getDouble i
             case rs.wasNull of
                 True -> self.java_builder.appendNulls 1
@@ -133,7 +130,7 @@ type Builder
 
        Argument:
        - name: The name of the column.
-    make_column : Text -> Java_Exports.Column
+    make_column : Text -> Materialized_Column.Column
     make_column self name =
         storage = self.java_builder.seal
         Java_Exports.make_column name storage

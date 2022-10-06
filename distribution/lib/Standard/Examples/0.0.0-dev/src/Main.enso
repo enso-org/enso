@@ -6,7 +6,7 @@ import Standard.Base.System.Platform
 import Standard.Base.Network.URI
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
-import Standard.Table
+from Standard.Table import Table, Column
 
 import Standard.Image
 import Standard.Image.Codecs
@@ -240,41 +240,41 @@ geo_json = Json.parse <| '''
     }
 
 ## A small table column containing integers.
-integer_column : Table.Column.Column
-integer_column = Table.Column.from_vector "Integer" [1, 4, 8, 2, 5]
+integer_column : Column.Column
+integer_column = Column.from_vector "Integer" [1, 4, 8, 2, 5]
 
 ## A small table column containing decimal numbers.
-decimal_column : Table.Column.Column
-decimal_column = Table.Column.from_vector "Decimal" [2.30, -2.1, Nothing, -10.1, 1.0]
+decimal_column : Column.Column
+decimal_column = Column.from_vector "Decimal" [2.30, -2.1, Nothing, -10.1, 1.0]
 
 ## A small table column containing booleans.
-bool_column_1 : Table.Column.Column
-bool_column_1 = Table.Column.from_vector "Bools" [True, True, False, True, False]
+bool_column_1 : Column.Column
+bool_column_1 = Column.from_vector "Bools" [True, True, False, True, False]
 
 ## A small table column containing booleans.
-bool_column_2 : Table.Column.Column
-bool_column_2 = Table.Column.from_vector "Bools" [False, True, Nothing, True, True]
+bool_column_2 : Column.Column
+bool_column_2 = Column.from_vector "Bools" [False, True, Nothing, True, True]
 
 ## A small table column containing text.
-text_column_1 : Table.Column.Column
-text_column_1 = Table.Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
+text_column_1 : Column.Column
+text_column_1 = Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
 
 ## A small table column containing text.
-text_column_2 : Table.Column.Column
-text_column_2 = Table.Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
+text_column_2 : Column.Column
+text_column_2 = Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
 ## A simple table that contains basic shop inventory data for the food shop.
-inventory_table : Table.Table
+inventory_table : Table
 inventory_table = csv.read . set_index "item_id"
 
 ## A simple table that contains basic item popularity data for the food shop.
-popularity_table : Table.Table
+popularity_table : Table
 popularity_table =
     table = (enso_project.data / "food_shop_popularity.csv") . read
     table.set_index "item_id"
 
 ## A simple tablethat contains basic transaction data for the food shop.
-transactions_table : Table.Table
+transactions_table : Table
 transactions_table =
     (enso_project.data / "food_shop_transactions.csv") . read
 

@@ -1,7 +1,7 @@
 from Standard.Base import all hiding First, Last
 
 import Standard.Base.Error.Common as Errors
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Database.Data.SQL import SQL_Type, Statement, code
 import Standard.Database.Data.SQL
 import Standard.Database.Data.Dialect

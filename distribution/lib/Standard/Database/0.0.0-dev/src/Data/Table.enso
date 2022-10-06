@@ -7,30 +7,25 @@ import Standard.Database.Internal.IR
 from Standard.Database.Data.SQL_Query import Raw_SQL
 from Standard.Database.Data.SQL import Statement, SQL_Type
 
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+from Standard.Table.Data.Column import get_item_string
+import Standard.Table.Data.Table.Table as Materialized_Table
+from Standard.Table.Data.Table import print_table
 from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
-import Standard.Table.Data.Column as Materialized_Column
-import Standard.Table.Data.Table as Materialized_Table
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns
 
-from Standard.Table.Errors import No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Index, By_Name
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Data.Column_Selector import Column_Selector
 
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
-import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 
 from Standard.Database.Data.Column import Column, Column_Data
 from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-import Standard.Table.Data.Position
-
 polyglot java import java.sql.JDBCType
-
-# TODO Dubious constructor export
-from project.Data.Table.Table import all
-from project.Data.Table.Table export all
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
@@ -124,7 +119,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (By_Name ["bar", "foo"])
+             table.select_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Select columns using names passed as a Vector.
@@ -134,21 +129,21 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
 
-             table.select_columns (By_Index [-1, 0, 1]) reorder=True
+             table.select_columns (Column_Selector.By_Index [-1, 0, 1]) reorder=True
 
        > Example
          Select columns with the same names as the ones provided.
 
-             table.select_columns (By_Column [column1, column2])
+             table.select_columns (Column_Selector.By_Column [column1, column2])
 
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+    select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems
         self.updated_columns new_columns
 
@@ -176,7 +171,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (By_Name ["bar", "foo"])
+             table.remove_columns (Column_Selector.By_Name ["bar", "foo"])
 
        > Example
          Remove columns using names passed as a Vector.
@@ -186,19 +181,19 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
 
-             table.remove_columns (By_Index [-1, 0, 1])
+             table.remove_columns (Column_Selector.By_Index [-1, 0, 1])
 
        > Example
          Remove columns with the same names as the ones provided.
 
-             table.remove_columns (By_Column [column1, column2])
+             table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
-    remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
+    remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.internal_columns selector=columns on_problems=on_problems
         self.updated_columns new_columns
 
@@ -241,19 +236,19 @@ type Table
        > Example
          Swap the first two columns.
 
-             table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [1, 0]) position=Before_Other_Columns
 
        > Example
          Move the first column to back.
 
-             table.reorder_columns (By_Index [0]) position=After_Other_Columns
+             table.reorder_columns (Column_Selector.By_Index [0]) position=After_Other_Columns
 
        > Example
          Move the columns with names matching the provided columns to the front.
 
-             table.reorder_columns (By_Column [column1, column2])
+             table.reorder_columns (Column_Selector.By_Column [column1, column2])
     reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
-    reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+    reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.internal_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
 
@@ -531,11 +526,11 @@ type Table
        itself).
 
        Throws `No_Index_Set_Error` if there is no index set.
-    index : Column | Vector Column ! Materialized_Table.No_Index_Set_Error
+    index : Column | Vector Column ! No_Index_Set_Error
     index self =
         ixes = self.indices
         len = ixes.length
-        if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
+        if len == 0 then Error.throw No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
 
     ## Sorts the rows of the table according to the specified columns and order.
@@ -632,7 +627,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         _ = [columns, case_sensitivity, on_problems]
         Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
 
@@ -659,8 +654,8 @@ type Table
        Icon: join
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
-        Column_Data _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
-        Table_Data _ _ _ _ -> Panic.recover Any <|
+        _ : Column -> self.join other.to_table on drop_unmatched left_suffix right_suffix
+        _ : Table -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
                 Panic.throw <| Illegal_State_Error_Data "left_suffix must be different from right_suffix"
@@ -729,7 +724,7 @@ type Table
             new_limit = Nothing
             new_ctx = IR.Context_Data new_from [] [] [] new_index new_limit
 
-            Table_Data new_table_name self.connection new_columns new_ctx
+            Table.Table_Data new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -833,7 +828,7 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Integer | Nothing) -> Materialized_Table.Table
+    read : (Integer | Nothing) -> Materialized_Table
     read self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
             True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
@@ -841,8 +836,7 @@ type Table
                 preprocessed = self.reset_index.limit max_rows
                 case preprocessed.internal_columns.is_empty of
                     True ->
-                        internal_table = Java_Exports.make_table_without_columns self.row_count
-                        Materialized_Table.Table_Data internal_table
+                        Java_Exports.make_table_without_columns self.row_count
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
@@ -919,7 +913,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table_Data self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = Table.Table_Data self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -928,7 +922,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context self ctx = Table_Data self.name self.connection self.internal_columns ctx
+    updated_context self ctx = Table.Table_Data self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -938,7 +932,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table_Data self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns = Table.Table_Data self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -1067,7 +1061,7 @@ type Integrity_Error
 make_table : Connection -> Text -> Vector -> IR.Context -> Table
 make_table connection table_name columns ctx =
     cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
-    Table_Data table_name connection cols ctx
+    Table.Table_Data table_name connection cols ctx
 
 ## PRIVATE
 
@@ -1085,7 +1079,7 @@ make_table connection table_name columns ctx =
      line will be included that will say how many hidden rows there are.
    - format_term: A boolean flag, specifying whether to use ANSI escape codes
      for rich formatting in the terminal.
-display_dataframe : Materialized_Table.Table -> Integer -> Integer -> Boolean -> Text
+display_dataframe : Materialized_Table -> Integer -> Integer -> Boolean -> Text
 display_dataframe df indices_count all_rows_count format_terminal =
     cols = Vector.from_polyglot_array df.java_table.getColumns
     col_names = cols.map .getName
@@ -1093,8 +1087,8 @@ display_dataframe df indices_count all_rows_count format_terminal =
     display_rows = df.row_count
     rows = Vector.new display_rows row_num->
         col_vals.map col->
-            if col.isNa row_num then "Nothing" else Materialized_Column.get_item_string col row_num
-    table = Materialized_Table.print_table col_names rows indices_count format_terminal
+            if col.isNa row_num then "Nothing" else get_item_string col row_num
+    table = print_table col_names rows indices_count format_terminal
     if display_rows == all_rows_count then table else
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
