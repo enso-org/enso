@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Filter_Condition, Sort_Column, Sort_Column_Selector
-import Standard.Table.Data.Value_Type
+import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 
 import project.Data.SQL_Type.SQL_Type
@@ -69,7 +69,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table
     to_table self =
-        Table.Table_Data self.name self.connection [self.as_internal] self.context
+        Table.Value self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 

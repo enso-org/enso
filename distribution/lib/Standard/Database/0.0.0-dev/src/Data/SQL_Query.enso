@@ -1,8 +1,5 @@
 from Standard.Base import Text
 
-from project.Data.SQL_Query.SQL_Query import Table_Name, Raw_SQL
-from project.Data.SQL_Query.SQL_Query export Table_Name, Raw_SQL
-
 type SQL_Query
     ## Query a whole table or view.
     Table_Name name:Text
