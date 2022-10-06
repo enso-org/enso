@@ -822,14 +822,18 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    diagnostics.find { case (mod, diags) =>
-      if (diags.nonEmpty) {
-        context.getOut.println(s"In module ${mod.getName}:")
-        reportDiagnostics(diags, mod.getSource)
-      } else {
-        false
+    // It may be tempting to replace `.foldLeft(..)` with
+    // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
+    // not just the first one.
+    diagnostics
+      .foldLeft(false) { case (result, (mod, diags)) =>
+        if (diags.nonEmpty) {
+          context.getOut.println(s"In module ${mod.getName}:")
+          reportDiagnostics(diags, mod.getSource) || result
+        } else {
+          result
+        }
       }
-    }.nonEmpty
   }
 
   /** Reports compilation diagnostics to the standard output and throws an

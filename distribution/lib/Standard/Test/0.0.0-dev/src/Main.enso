@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Time.Duration
 import Standard.Base.Runtime.State
 import Standard.Base.System
 
@@ -163,11 +164,13 @@ group name ~behaviors pending=Nothing =
                      2+3 . should_equal 5
 specify : Text -> Any -> (Text | Nothing) -> Nothing
 specify label ~behavior pending=Nothing =
-    result = case pending of
-        Nothing -> run_spec behavior
-        reason -> Pending reason
+    pair = case pending of
+        Nothing -> Duration.time_execution (run_spec behavior)
+        reason -> Pair_Data 0.milliseconds (Pending reason)
+    result = pair.second
+    time_taken = pair.first
     spec = State.get Spec
-    new_spec = Spec_Data spec.name (Cons (Behavior_Data label result) spec.behaviors)
+    new_spec = Spec_Data spec.name (Cons (Behavior_Data label result time_taken) spec.behaviors)
     State.put Spec new_spec
 
 ## PRIVATE
@@ -192,8 +195,8 @@ Any.should self verb argument = verb Verbs self argument
 
          example_fail = Test.fail "Something went wrong."
 fail : Text -> Assertion
-fail message =
-    failure = Failure message
+fail message details=Nothing =
+    failure = Failure message details
     Panic.throw failure
 
 ## Expect a function to fail with the provided dataflow error.
@@ -399,7 +402,7 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
         False ->
             loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-            Panic.throw (Failure msg)
+            fail msg
 
 ## Asserts that `self` value is not an error.
 
@@ -695,8 +698,9 @@ from project.Main.Behavior import all
    Arguments:
    - name: The name of the behavior.
    - result: The result of the behavior.
+   - time_taken: The duration that the behaviour took to run.
 type Behavior
-    Behavior_Data name result
+    Behavior_Data name result time_taken
 
 ## PRIVATE
 
@@ -746,7 +750,8 @@ type Assertion
 
        Arguments:
        - message: The reason why the test failed.
-    Failure message
+       - details: Additional context of the error, for example the stack trace.
+    Failure message details
 
     ## PRIVATE
 
@@ -762,7 +767,7 @@ type Assertion
     is_fail : Boolean
     is_fail self = case self of
         Success -> False
-        Failure _ -> True
+        Failure _ _ -> True
         Pending _ -> False
 
 ## PRIVATE
@@ -782,10 +787,10 @@ run_spec ~behavior =
         _ -> Success
     result = maybeExc.catch Any ex->
         case ex of
-            Failure _ -> ex
+            Failure _ _ -> ex
             Finished_With_Error_Data err stack_trace_text ->
-                Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
-            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
+                Failure ("An unexpected error was returned: " + err.to_text) details=stack_trace_text
+            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text) details=maybeExc.get_stack_trace_text
     result
 
 ## PRIVATE
@@ -821,7 +826,7 @@ wrap_junit_testsuites config builder ~action =
 report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 report_pending_group name reason config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '" time="0">\n')
         builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
         builder.append '    </testsuite>\n'
 
@@ -833,33 +838,47 @@ report_pending_group name reason config builder =
    Prints a report on the tests to standard output.
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report self config builder =
+    total_time = self.behaviors.fold 0.milliseconds acc-> behavior->
+        acc + behavior.time_taken
     if config.should_output_junit then
         builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
+        builder.append (' time="' + (total_time.total_milliseconds / 1000.0).to_text + '"')
         builder.append ('>\n')
 
         self.behaviors.reverse.each behavior->
-            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '">')
+            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '" time="' + ((behavior.time_taken.total_milliseconds / 1000.0).to_text) + '">')
             case behavior.result of
                 Success -> Nothing
-                Failure msg -> builder.append ('\n            <error message="' + (escape_xml msg) + '"/>\n        ')
+                Failure msg details ->
+                    escaped_message = escape_xml msg . replace '\n' '&#10;'
+                    builder.append ('\n            <error message="' + escaped_message + '">\n')
+                    if details.is_nothing.not then
+                        ## We duplicate the message, because sometimes the
+                           attribute is skipped if the node has any content.
+                        builder.append (escape_xml msg)
+                        builder.append '\n'
+                        builder.append (escape_xml details)
+                    builder.append '</error>\n'
                 Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 
     should_print_behavior = config.print_only_failures.not || self.behaviors.any (b -> b.result.is_a Failure)
     if should_print_behavior then
-        IO.println (self.name + ":")
+        IO.println (self.name + ":  [" + total_time.total_milliseconds.to_text + "ms]")
         self.behaviors.reverse.each behavior->
             case behavior.result of
                 Success ->
                     if config.print_only_failures.not then
-                        IO.println ("    - " + behavior.name)
-                Failure msg ->
-                    IO.println ("    - [FAILED] " + behavior.name)
+                        IO.println ("    - " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                Failure msg details ->
+                    IO.println ("    - [FAILED] " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
                     IO.println ("        Reason: " + msg)
+                    if details.is_nothing.not then
+                        IO.println details
                 Pending reason ->
                     if config.print_only_failures.not then
                         IO.println ("    - [PENDING] " + behavior.name)
