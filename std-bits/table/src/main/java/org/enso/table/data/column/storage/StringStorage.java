@@ -1,10 +1,14 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.regex.Pattern;
+
+import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
 
@@ -94,6 +98,20 @@ public class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
+        new UnaryMapOperation<>(Maps.IS_EMPTY) {
+          @Override
+          protected Storage run(SpecializedStorage<String> storage) {
+            BitSet r = new BitSet();
+            for (int i = 0; i < storage.size; i++) {
+              String s = storage.data[i];
+              if (s == null || s.isEmpty()) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, new BitSet(), storage.size, false);
+          }
+        });
+    t.add(
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
@@ -112,6 +130,13 @@ public class StringStorage extends SpecializedStorage<String> {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.contains(a, b);
+          }
+        });
+    t.add(
+        new StringBooleanOp(Maps.LIKE) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return Pattern.compile(Regex_Utils.sql_like_pattern_to_regex(b)).matcher(a).matches();
           }
         });
     return t;
