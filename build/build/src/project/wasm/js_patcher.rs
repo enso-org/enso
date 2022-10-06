@@ -15,6 +15,7 @@ lazy_static! {
     ]
     .into_iter()
     .try_collect_vec()
+    // We parse literals that we know to be correct, as ensured by the tests.
     .unwrap();
 }
 
@@ -61,4 +62,14 @@ pub fn patch_js_glue(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>
 
 pub fn patch_js_glue_in_place(path: impl AsRef<Path>) -> Result {
     patch_js_glue(&path, &path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_regexes() {
+        for replacement in REPLACEMENTS.iter() {}
+    }
 }

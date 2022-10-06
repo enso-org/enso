@@ -158,11 +158,8 @@ pub async fn update_manifest(repo_context: &RepoContext, edition_file: &Path) ->
         debug!("Should remove {}", nightly_to_remove);
     }
 
-    let new_edition_filename = edition_file
-        .file_name()
-        .context("Edition file path is missing filename!")?
-        .to_str()
-        .unwrap();
+    let new_edition_filename =
+        edition_file.file_name().context("Edition file path is missing filename!")?.as_str();
 
     bucket_context.put(new_edition_filename, ByteStream::from_path(&edition_file).await?).await?;
 

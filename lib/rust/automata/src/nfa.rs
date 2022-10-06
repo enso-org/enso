@@ -242,14 +242,14 @@ impl Nfa {
     }
 
     /// Convert the automata to a GraphViz Dot code for the deubgging purposes.
-    pub fn as_graphviz_code(&self) -> String {
+    pub fn as_graphviz_code(&self) -> FallibleResult<String> {
         use std::fmt::Write;
 
         let mut out = String::new();
         for (ix, state) in self.states.iter().enumerate() {
             let opts =
                 if state.export { "" } else { "[fillcolor=\"#EEEEEE\" fontcolor=\"#888888\"]" };
-            writeln!(out, "node_{}[label=\"{}\"]{}", ix, ix, opts).unwrap();
+            writeln!(out, "node_{}[label=\"{}\"]{}", ix, ix, opts)?;
             for link in &state.links {
                 writeln!(
                     out,
@@ -257,16 +257,15 @@ impl Nfa {
                     ix,
                     link.target.id(),
                     link.display_symbols()
-                )
-                .unwrap();
+                )?;
             }
             for link in &state.epsilon_links {
-                writeln!(out, "node_{} -> node_{}[style=dashed]", ix, link.id()).unwrap();
+                writeln!(out, "node_{} -> node_{}[style=dashed]", ix, link.id())?;
             }
         }
         let opts = "node [shape=circle style=filled fillcolor=\"#4385f5\" fontcolor=\"#FFFFFF\" \
         color=white penwidth=5.0 margin=0.1 width=0.5 height=0.5 fixedsize=true]";
-        format!("digraph G {{\n{}\n{}\n}}\n", opts, out)
+        Ok(format!("digraph G {{\n{}\n{}\n}}\n", opts, out))
     }
 }
 
