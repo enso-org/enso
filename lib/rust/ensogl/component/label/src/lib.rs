@@ -117,7 +117,7 @@ impl Model {
         // FIXME[MM/WD]: Depth sorting of labels to in front of everything else in the scene.
         //  Temporary solution. The depth management needs to allow defining relative position of
         //  the text and background and let the whole component to be set to am an arbitrary layer.
-        background_layer.add_exclusive(&self.background);
+        background_layer.add(&self.background);
         self.label.add_to_scene_layer(text_layer);
     }
 

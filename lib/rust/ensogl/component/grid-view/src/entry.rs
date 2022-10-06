@@ -152,10 +152,10 @@ pub trait ShapeWithEntryContour {
     const PADDING_PX: f32 = 5.0;
 
     /// Get the size parameter.
-    fn size(&self) -> &DynamicParam<sprite::Size>;
+    fn size(&self) -> &ProxyParam<sprite::Size>;
 
     /// Get the corner radius parameter.
-    fn corner_radius(&self) -> &DynamicParam<Attribute<f32>>;
+    fn corner_radius(&self) -> &ProxyParam<Attribute<f32>>;
 
     /// Update shape's contour.
     fn set_contour(&self, contour: Contour) {
@@ -168,11 +168,11 @@ pub trait ShapeWithEntryContour {
 macro_rules! implement_shape_with_entry_contour {
     () => {
         impl ShapeWithEntryContour for View {
-            fn size(&self) -> &DynamicParam<sprite::Size> {
+            fn size(&self) -> &ProxyParam<sprite::Size> {
                 &self.size
             }
 
-            fn corner_radius(&self) -> &DynamicParam<Attribute<f32>> {
+            fn corner_radius(&self) -> &ProxyParam<Attribute<f32>> {
                 &self.corner_radius
             }
         }
@@ -192,7 +192,7 @@ pub mod overlay {
             let shape_height : Var<Pixels> = "input_size.y".into();
             let width = shape_width - 2.0.px() * View::PADDING_PX;
             let height = shape_height - 2.0.px() * View::PADDING_PX;
-            Rect((width, height)).corners_radius(corner_radius.px()).fill(HOVER_COLOR).into()
+            Rect((width, height)).corners_radius(corner_radius.px()).fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 

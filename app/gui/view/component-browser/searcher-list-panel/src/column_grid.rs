@@ -168,7 +168,7 @@ impl Model {
             .borrow()
             .iter()
             .for_each(|entry| entry.content.model().set_layers(&layers.groups));
-        layers.scroll_layer.add_exclusive(&self.display_object);
+        layers.scroll_layer.add(&self.display_object);
         self.layers.set(layers.clone_ref());
     }
 

@@ -171,7 +171,7 @@ impl Model {
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
         let camera = scene.camera();
 
-        scene.layers.panel.add_exclusive(&background);
+        scene.layers.panel.add(&background);
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.panel_text);
 

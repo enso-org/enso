@@ -800,12 +800,10 @@ impl LayerModel {
         &self,
     ) -> (bool, PhantomData<S1>, PhantomData<S2>)
     where
-        S1: HasContent,
-        S2: HasContent,
-        Content<S1>: KnownShapeSystemId,
-        Content<S2>: KnownShapeSystemId, {
-        let s1_id = <Content<S1>>::shape_system_id();
-        let s2_id = <Content<S2>>::shape_system_id();
+        S1: Shape,
+        S2: Shape, {
+        let s1_id = ShapeSystem::<S1>::id();
+        let s2_id = ShapeSystem::<S2>::id();
         let fresh = self.add_global_elements_order_dependency(s1_id, s2_id);
         (fresh, default(), default())
     }
@@ -818,12 +816,10 @@ impl LayerModel {
         &self,
     ) -> (bool, PhantomData<S1>, PhantomData<S2>)
     where
-        S1: HasContent,
-        S2: HasContent,
-        Content<S1>: KnownShapeSystemId,
-        Content<S2>: KnownShapeSystemId, {
-        let s1_id = <Content<S1>>::shape_system_id();
-        let s2_id = <Content<S2>>::shape_system_id();
+        S1: Shape,
+        S2: Shape, {
+        let s1_id = ShapeSystem::<S1>::id();
+        let s2_id = ShapeSystem::<S2>::id();
         let found = self.remove_global_elements_order_dependency(s1_id, s2_id);
         (found, default(), default())
     }
@@ -1252,7 +1248,7 @@ macro_rules! shapes_order_dependencies {
     ($scene:expr => {
         $( $p1:ident $(:: $ps1:ident)* -> $p2:ident $(:: $ps2:ident)*; )*
     }) => {$(
-        $scene.layers.add_global_shapes_order_dependency::<$p1$(::$ps1)*::View, $p2$(::$ps2)*::View>();
+        $scene.layers.add_global_shapes_order_dependency::<$p1$(::$ps1)*::Shape, $p2$(::$ps2)*::Shape>();
     )*};
 }
 

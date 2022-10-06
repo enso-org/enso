@@ -115,7 +115,7 @@ impl component::Model for Model {
 
         let background = background::View::new();
         display_object.add_child(&background);
-        scene.layers.tooltip.add_exclusive(&background);
+        scene.layers.tooltip.add(&background);
 
         let app = app.clone_ref();
         Model { app, background, label, display_object }

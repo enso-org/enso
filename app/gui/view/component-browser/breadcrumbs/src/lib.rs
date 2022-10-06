@@ -130,9 +130,9 @@ impl Layers {
     /// Constructor.
     pub fn new(base_layer: &Layer) -> Self {
         let logger = Logger::new("BreadcrumbsMask");
-        let mask = Layer::new_with_cam(logger, &base_layer.camera());
-        let main = base_layer.create_sublayer();
-        let text = main.create_sublayer();
+        let mask = Layer::new_with_cam("mask", logger, &base_layer.camera());
+        let main = base_layer.create_sublayer("main");
+        let text = main.create_sublayer("text");
         main.set_mask(&mask);
         Layers { main, text, mask }
     }
@@ -229,9 +229,9 @@ impl Model {
 
 
     fn set_layers(&self, layers: Layers) {
-        layers.mask.add_exclusive(&self.mask);
-        layers.main.add_exclusive(&self.display_object);
-        layers.main.add_exclusive(&self.grid);
+        layers.mask.add(&self.mask);
+        layers.main.add(&self.display_object);
+        layers.main.add(&self.grid);
         self.grid.set_text_layer(Some(layers.text.downgrade()));
         self.network.store(&layers);
     }

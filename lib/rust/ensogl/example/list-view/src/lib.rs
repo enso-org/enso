@@ -99,7 +99,7 @@ fn init(app: &Application) {
     list_view.focus();
     app.display.add_child(&list_view);
     // FIXME[WD]: This should not be needed after text gets proper depth-handling.
-    app.display.default_scene.layers.below_main.add_exclusive(&list_view);
+    app.display.default_scene.layers.below_main.add(&list_view);
 
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network

@@ -219,7 +219,7 @@ impl View {
 
     fn init(self) -> Self {
         self.set_layer(visualization::Layer::Default);
-        self.scene.layers.viz.add_exclusive(&self);
+        self.scene.layers.viz.add(&self);
         self
     }
 }

@@ -21,6 +21,7 @@ use crate::display;
 use crate::display::Scene;
 use crate::new_entry;
 
+use ensogl::data::color;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::path::path;
 use ensogl::display::Attribute;
@@ -74,16 +75,41 @@ pub struct UnknownIcon {
 // ===============
 
 /// One of the icon generated from the [`define_icons`] macro. Returned from `create_shape` method.
-#[derive(Derivative)]
-#[derivative(Debug)]
 pub struct Any {
     /// The underlying icon shape.
-    #[derivative(Debug = "ignore")]
-    pub view:         Box<dyn display::Object>,
-    /// Strong (darker, or more contrasting) color parameter.
-    pub strong_color: DynamicParam<Attribute<Vector4>>,
-    /// Weak (lighter, or less contrasting) color parameter.
-    pub weak_color:   DynamicParam<Attribute<Vector4>>,
+    pub view:               Box<dyn display::Object>,
+    /// Getter for vivid (darker, or more contrasting) color parameter.
+    pub vivid_color_fn:     Box<dyn Fn() -> color::Lcha>,
+    /// Setter for vivid (darker, or more contrasting) color parameter.
+    pub set_vivid_color_fn: Box<dyn Fn(color::Lcha)>,
+    /// Getter for dull (lighter, or less contrasting) color parameter.
+    pub dull_color_fn:      Box<dyn Fn() -> color::Lcha>,
+    /// Setter for dull (lighter, or less contrasting) color parameter.
+    pub set_dull_color_fn:  Box<dyn Fn(color::Lcha)>,
+}
+
+impl Any {
+    pub fn vivid_color(&self) -> color::Lcha {
+        (self.vivid_color_fn)()
+    }
+
+    pub fn set_vivid_color(&self, color: color::Lcha) {
+        (self.set_vivid_color_fn)(color)
+    }
+
+    pub fn dull_color(&self) -> color::Lcha {
+        (self.dull_color_fn)()
+    }
+
+    pub fn set_dull_color(&self, color: color::Lcha) {
+        (self.set_dull_color_fn)(color)
+    }
+}
+
+impl Debug for Any {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Any")
+    }
 }
 
 impl display::Object for Any {
@@ -91,6 +117,7 @@ impl display::Object for Any {
         self.view.display_object()
     }
 }
+
 
 
 // =============
@@ -104,7 +131,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let shape = FiveStar(7.0.px(),0.447);
                 let shape = shape.fill(style.get_color(theme::favorites));
                 shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -117,11 +144,11 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let dot = Circle(2.0.px());
                 let outer = Circle(7.0.px()) - Circle(6.0.px());
                 let shape = dot + outer;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -133,7 +160,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let corners_radius = 1.5;
                 let top = Rect((10.0.px(), 1.5.px()));
                 let top = top.corners_radius(corners_radius.px()).translate_y(5.25.px());
@@ -142,7 +169,7 @@ crate::define_icons! {
                 let bottom = Rect((16.0.px(), 6.5.px()));
                 let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.75).px());
                 let shape = top + middle + bottom;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -154,7 +181,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Border ===
 
@@ -176,7 +203,7 @@ crate::define_icons! {
                 // === Shape ===
 
                 let shape = border + arrow;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -187,7 +214,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Border ===
 
@@ -209,7 +236,7 @@ crate::define_icons! {
                 // === Shape ===
 
                 let shape = border + arrow;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -220,7 +247,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Border ===
 
@@ -251,7 +278,7 @@ crate::define_icons! {
                 // === Shape ===
 
                 let shape = border + cursor + letter;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -262,7 +289,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Border ===
 
@@ -309,7 +336,7 @@ crate::define_icons! {
                 // === Shape ===
 
                 let shape = border + cursor + number;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -320,7 +347,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 // We need to create the table in two parts, left and right of the cursor to achieve
                 // the right cell arangement.
                 let left_table  = table(2,2).translate(((-8.0).px(),(-4.5).px()));
@@ -329,7 +356,7 @@ crate::define_icons! {
                 let cursor      = cursor();
 
                 let shape = left_table + right_table - gap + cursor;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -340,14 +367,14 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let upper_arrow = arrow(10.0,1.0,4.5,6.0).rotate((-PI/2.0).radians());
                 let upper_arrow = upper_arrow.translate(((-8.0).px(),1.0.px()));
                 let lower_arrow = arrow(10.0,1.0,4.5,6.0).rotate((PI/2.0).radians());
                 let lower_arrow = lower_arrow.translate((8.0.px(),(-1.5).px()));
 
                 let shape = upper_arrow + lower_arrow;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -358,8 +385,8 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let table_color = weak_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let table_color = dull_color;
                 let table =
                     table(2,3).translate(((-8.0).px(),(-6.5).px())).fill(table_color.clone());
                 let bottom_line =
@@ -373,7 +400,7 @@ crate::define_icons! {
                 let eraser_inner = Rect((7.0.px(),3.0.px()));
                 let eraser_bar   = Rect((1.0.px(),4.0.px())).translate_x((-1.0).px());
                 let eraser       = eraser - eraser_inner + eraser_bar;
-                let eraser       = eraser.fill(strong_color);
+                let eraser       = eraser.fill(vivid_color);
                 let eraser       = eraser.rotate((-0.25 * std::f32::consts::PI).radians());
                 let eraser       = eraser.translate((3.5.px(),(-1.5).px()));
 
@@ -389,9 +416,9 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let old_color = weak_color;
-                let new_color = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let old_color = dull_color;
+                let new_color = vivid_color;
 
                 let old_column = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(old_color);
                 let new_column =
@@ -410,9 +437,9 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let old_color = weak_color;
-                let new_color = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let old_color = dull_color;
+                let new_color = vivid_color;
 
                 let old_row = table(3,1).translate(((-6.5).px(),3.0.px())).fill(old_color);
                 let new_row =
@@ -431,11 +458,11 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let unselected = table(2,3).translate(((-8.0).px(),(-6.5).px()));
-                let unselected = unselected.fill(weak_color);
+                let unselected = unselected.fill(dull_color);
                 let selected   = table(1,3).translate((3.0.px(),(-6.5).px()));
-                let selected   = selected.fill(strong_color);
+                let selected   = selected.fill(vivid_color);
 
                 let shape = unselected + selected;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -449,11 +476,11 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let unselected = table(3,2).translate(((-6.5).px(),(-1.0).px()));
-                let unselected = unselected.fill(weak_color);
+                let unselected = unselected.fill(dull_color);
                 let selected   = table(3,1).translate(((-6.5).px(),(-8.0).px()));
-                let selected   = selected.fill(strong_color);
+                let selected   = selected.fill(vivid_color);
 
                 let shape = unselected + selected;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -467,16 +494,16 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let weak_color   = weak_color;
-                let strong_color = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let dull_color   = dull_color;
+                let vivid_color = vivid_color;
 
-                let weak_column   = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(weak_color);
-                let strong_column =
-                    table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(strong_color.clone());
-                let lightning = lightning_bolt().translate_x(5.25.px()).fill(strong_color);
+                let dull_column   = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(dull_color);
+                let vivid_column =
+                    table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(vivid_color.clone());
+                let lightning = lightning_bolt().translate_x(5.25.px()).fill(vivid_color);
 
-                let shape = weak_column + strong_column + lightning;
+                let shape = dull_column + vivid_column + lightning;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -488,17 +515,17 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let weak_color   = weak_color;
-                let strong_color = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let dull_color   = dull_color;
+                let vivid_color = vivid_color;
 
-                let weak_row   = table(3,1).translate(((-6.5).px(),3.0.px())).fill(weak_color);
-                let strong_row =
-                    table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(strong_color.clone());
+                let dull_row   = table(3,1).translate(((-6.5).px(),3.0.px())).fill(dull_color);
+                let vivid_row =
+                    table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(vivid_color.clone());
                 let lightning  = lightning_bolt().rotate((PI/2.0).radians());
-                let lightning  = lightning.translate_y((-5.25).px()).fill(strong_color);
+                let lightning  = lightning.translate_y((-5.25).px()).fill(vivid_color);
 
-                let shape = weak_row + strong_row + lightning;
+                let shape = dull_row + vivid_row + lightning;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -510,9 +537,9 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let column_color = weak_color;
-                let plus_color   = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let column_color = dull_color;
+                let plus_color   = vivid_color;
 
                 let left_column  =
                     table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(column_color.clone());
@@ -531,9 +558,9 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let row_color  = weak_color;
-                let plus_color = strong_color;
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
+                let row_color  = dull_color;
+                let plus_color = vivid_color;
 
                 let top_row = table(3,1).translate(((-6.5).px(),3.0.px())).fill(row_color.clone());
                 let bottom_row = table(3,1).translate(((-6.5).px(),(-8.0).px())).fill(row_color);
@@ -551,7 +578,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let shape = path(2.0,&[
                     ( 4.0 ,  4.0),
                     ( 4.0 ,  5.5),
@@ -561,7 +588,7 @@ crate::define_icons! {
                     ( 4.0 , -5.5),
                     ( 5.0 , -3.5),
                 ]);
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -574,7 +601,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Page border ===
 
@@ -591,7 +618,7 @@ crate::define_icons! {
                 let line3 = Rect((2.0.px(),1.0.px())).translate_x(5.0.px());
                 let line4 = Rect((3.0.px(),1.0.px())).translate((4.5.px(),(-3.0).px()));
                 let page  = page + line1 + line2 + line3 + line4;
-                let page  = page.fill(weak_color);
+                let page  = page.fill(dull_color);
 
 
                 // === Crack ===
@@ -603,7 +630,7 @@ crate::define_icons! {
                     (-1.25 , -3.25),
                     ( 0.0  , -6.5),
                 ]);
-                let crack = crack.fill(strong_color);
+                let crack = crack.fill(vivid_color);
 
                 let crack_left  = crack.translate_x((-1.0).px());
                 let crack_right = crack.translate_x(2.0.px());
@@ -623,16 +650,16 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle = Circle(2.0.px());
-                let circle1 = circle.translate_y(5.5.px()).fill(weak_color.clone());
-                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(weak_color.clone());
-                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(weak_color);
+                let circle1 = circle.translate_y(5.5.px()).fill(dull_color.clone());
+                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(dull_color.clone());
+                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(dull_color);
 
-                let circle4 = circle.fill(strong_color.clone());
+                let circle4 = circle.fill(vivid_color.clone());
                 let rect = Rect((4.0.px(),4.0.px()));
-                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(strong_color.clone());
-                let rect2 = rect.translate_y((-5.5).px()).fill(strong_color);
+                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(vivid_color.clone());
+                let rect2 = rect.translate_y((-5.5).px()).fill(vivid_color);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -646,15 +673,15 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle = Circle(1.0.px())
-                    .fill(strong_color.clone());
+                    .fill(vivid_color.clone());
                 let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(strong_color.clone());
+                    .fill(vivid_color.clone());
                 let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(strong_color);
+                    .fill(vivid_color);
                 let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(weak_color);
+                    .fill(dull_color);
 
                 let shape = circle + arc1 + arc2 + arc3;
                 let shape = shape.translate_y((-5.5).px());
@@ -669,7 +696,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
                 let background = background.fill(style.get_color(theme::system::background));
@@ -694,7 +721,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let rect0 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
                 let rect0 = rect0.fill(style.get_color(theme::libraries::_0));
                 let rect0 = rect0.translate(((-3.75).px(),3.75.px()));
@@ -723,7 +750,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let plus = plus(6.5,1.5);
                 let plus = plus.fill(style.get_color(theme::libraries::_0));
                 let plus = plus.translate(((-3.75).px(),3.75.px()));
@@ -753,14 +780,14 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
                 let upper = half_arrow.translate((7.0.px(),0.5.px()));
                 let lower = half_arrow.rotate(PI.radians()).translate(((-7.0).px(),(-1.0).px()));
 
                 let base  = upper + lower;
-                let outer = base.fill(strong_color);
-                let inner = base.shrink(0.5.px()).fill(weak_color);
+                let outer = base.fill(vivid_color);
+                let inner = base.shrink(0.5.px()).fill(dull_color);
 
                 let shape = outer + inner;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -776,7 +803,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
 
                 // === Outline ===
 
@@ -791,7 +818,7 @@ crate::define_icons! {
                     (-6.5 ,  5.5),
                     (-6.5 ,  6.0),
                 ]);
-                let outline = outline.fill(strong_color);
+                let outline = outline.fill(vivid_color);
 
 
                 // === Fill ===
@@ -802,7 +829,7 @@ crate::define_icons! {
                 let small_triangle = Triangle(5.0.px(),2.5.px()).rotate((-PI/2.0).radians());
                 let small_triangle = small_triangle.translate(((-0.25).px(),(-4.5).px()));
                 let fill = big_triangle + pipe + small_triangle;
-                let fill = fill.fill(weak_color);
+                let fill = fill.fill(dull_color);
 
 
                 // === Shape ===
@@ -819,16 +846,16 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let left_circle = Circle(5.0.px()).translate_x((-3.0).px());
                 let right_circle = Circle(5.0.px()).translate_x(3.0.px());
                 let intersection = &left_circle * &right_circle;
                 let left_outline = left_circle.grow(1.0.px()) - &left_circle;
                 let right_outline = right_circle.grow(1.0.px()) - &right_circle;
 
-                let left_circle = left_circle.fill(weak_color.clone());
-                let right_circle = right_circle.fill(weak_color);
-                let intersection = intersection.fill(strong_color.clone());
+                let left_circle = left_circle.fill(dull_color.clone());
+                let right_circle = right_circle.fill(dull_color);
+                let intersection = intersection.fill(vivid_color.clone());
 
                 let shape =
                     left_circle + right_circle + intersection - left_outline - right_outline;
@@ -844,7 +871,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
                 let page = page.translate_x((-2.0).px());
                 let page = &page - page.shrink(1.0.px());
@@ -857,7 +884,7 @@ crate::define_icons! {
                 let line2 = line1.translate_y((-3.0).px());
 
                 let shape = page + arrow + line1 + line2;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -869,7 +896,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle = Circle(7.75.px());
                 let circle = &circle - circle.shrink(1.0.px());
 
@@ -878,7 +905,7 @@ crate::define_icons! {
 
                 let shape = circle + big_hand + small_hand;
                 let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -891,7 +918,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle   = Circle(4.5.px()).translate_y(3.5.px());
                 let circle   = &circle - circle.shrink(2.0.px());
                 let triangle = Triangle(7.0,5.75).rotate(PI.radians()).translate_y((-2.125).px());
@@ -905,7 +932,7 @@ crate::define_icons! {
                 let ellipse     = ellipse - ellipse_gap;
 
                 let shape = marker + ellipse;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -917,7 +944,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle = Circle(5.5.px());
                 let sphere = &circle - circle.shrink(1.0.px());
 
@@ -931,7 +958,7 @@ crate::define_icons! {
                 let base = base - circle.translate_y(1.5.px()).grow(2.0.px());
 
                 let shape = sphere + base;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -943,7 +970,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let body = Rect((10.0.px(),15.0.px()))
                     .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
                     .translate_y((-0.5).px());
@@ -958,7 +985,7 @@ crate::define_icons! {
                 let right_arm = Rect((1.0.px(),4.5.px())).translate((6.5.px(),(-2.75).px()));
 
                 let shape = body + collar + left_eye + right_eye + antenna + left_arm + right_arm;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -971,17 +998,17 @@ crate::define_icons! {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
             pointer_events = false;
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let lens =
                     Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
                 let outline = Circle(4.5.px()) - Circle(3.5.px());
-                let outline = outline.fill(strong_color);
+                let outline = outline.fill(vivid_color);
 
                 let base =
                     Circle(7.0.px()).translate_y(6.0.px()) * HalfPlane().translate_y(7.0.px());
                 let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
                 let base = base - Circle(5.5.px());
-                let base = base.fill(weak_color);
+                let base = base.fill(dull_color);
 
                 let shape = lens + outline + base;
                 let shape = shape.translate_y((-2.0).px());
@@ -997,9 +1024,9 @@ crate::define_icons! {
     pub mod atom(Atom) {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
-                let shape = circle.fill(strong_color);
+                let shape = circle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1012,9 +1039,9 @@ crate::define_icons! {
     pub mod function(Function) {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
-                let shape = triangle.fill(strong_color);
+                let shape = triangle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1027,9 +1054,9 @@ crate::define_icons! {
     pub mod local(Local) {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let dot = Circle(4.0.px());
-                let shape = dot.fill(strong_color);
+                let shape = dot.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1042,7 +1069,7 @@ crate::define_icons! {
     pub mod method(Method) {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
                     (0.0, -6.0),
@@ -1050,7 +1077,7 @@ crate::define_icons! {
                     (0.0, 6.0),
                     (6.0, 0.0),
                 ]);
-                let shape = rhomb.fill(strong_color);
+                let shape = rhomb.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1063,10 +1090,10 @@ crate::define_icons! {
     pub mod module(Module) {
         ensogl::define_shape_system! {
            above = [crate::background, list_view::background, list_view::selection, new_entry::background, grid_view::selectable::highlight::shape];
-            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+            (style: Style, vivid_color: Vector4, dull_color: Vector4) {
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
-                let shape = rect.fill(strong_color);
+                let shape = rect.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }

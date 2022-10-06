@@ -300,7 +300,7 @@ impl Model {
             self.track.corner_left.set(left_corner_roundness);
         } else {
             self.show_shadow(false);
-            self.background.color.set(HOVER_COLOR.into());
+            self.background.color.set(INVISIBLE_HOVER_COLOR.into());
             self.track.corner_right.set(0.0);
             self.track.corner_left.set(0.0);
         }

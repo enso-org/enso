@@ -205,7 +205,7 @@ impl BreadcrumbsModel {
         let background = background::View::new();
         let gap_width = default();
 
-        scene.layers.panel.add_exclusive(&background);
+        scene.layers.panel.add(&background);
 
         Self {
             logger,

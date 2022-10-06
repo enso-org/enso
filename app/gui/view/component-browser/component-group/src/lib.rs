@@ -187,13 +187,12 @@ pub mod selection_header_background {
 pub mod header_overlay {
     use super::*;
 
-    use ensogl::display::shape::constants::HOVER_COLOR;
+    use ensogl::display::shape::constants::INVISIBLE_HOVER_COLOR;
 
     ensogl::define_shape_system! {
         above = [background];
         () {
-            let bg_color = HOVER_COLOR;
-            Plane().fill(bg_color).into()
+            Plane().fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 }
@@ -283,7 +282,7 @@ impl HeaderGeometry {
 /// these colors will be computed by mixing "main color" with application background - for details,
 /// see [`Colors::from_main_color`].
 ///
-/// `icon_strong` and `icon_weak` parameters represent the more/less contrasting parts of the
+/// `icon_vivid` and `icon_dull` parameters represent the more/less contrasting parts of the
 /// [icon](crate::icon::Any), they do not represent highlighted state of the icon.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
@@ -292,8 +291,8 @@ pub struct Colors {
     // (by emitting `init` event in `Colors::from_main_color) will be lost - the FRP system does
     // not keep value of nodes if they are not connected to anything, and those nodes won't be
     // before returning from `from_main_color`.
-    pub icon_strong: frp::Sampler<color::Rgba>,
-    pub icon_weak:   frp::Sampler<color::Rgba>,
+    pub icon_vivid:  frp::Sampler<color::Rgba>,
+    pub icon_dull:   frp::Sampler<color::Rgba>,
     pub header_text: frp::Sampler<color::Rgba>,
     pub entry_text:  frp::Sampler<color::Rgba>,
     pub background:  frp::Sampler<color::Rgba>,
@@ -307,8 +306,8 @@ pub struct SelectedColors {
     pub background:  frp::Sampler<color::Rgba>,
     pub entry_text:  frp::Sampler<color::Rgba>,
     pub header_text: frp::Sampler<color::Rgba>,
-    pub icon_strong: frp::Sampler<color::Rgba>,
-    pub icon_weak:   frp::Sampler<color::Rgba>,
+    pub icon_vivid:  frp::Sampler<color::Rgba>,
+    pub icon_dull:   frp::Sampler<color::Rgba>,
 }
 
 impl Colors {
@@ -345,8 +344,8 @@ impl Colors {
             bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
             app_bg_and_entry_text <- all(&app_bg, &entry_text_);
             entry_text <- app_bg_and_entry_text.all_with(&intensity.value, mix).sampler();
-            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
-            icon_strong <- main.sampler();
+            icon_dull <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
+            icon_vivid <- main.sampler();
             selected_bg <- app_bg_and_main.all_with(&selection_intensity, mix).sampler();
             main_and_selected <- all(&main, &selected);
             selected_icon_weak <- main_and_selected.all_with(&icon_weak_intensity, mix).sampler();
@@ -356,10 +355,10 @@ impl Colors {
             background:  selected_bg,
             header_text: selected.clone_ref(),
             entry_text:  selected.clone_ref(),
-            icon_weak:   selected_icon_weak,
-            icon_strong: selected.clone_ref(),
+            icon_dull:   selected_icon_weak,
+            icon_vivid:  selected.clone_ref(),
         };
-        Self { icon_weak, icon_strong, header_text, entry_text, background: bg, selected }
+        Self { icon_dull, icon_vivid, header_text, entry_text, background: bg, selected }
     }
 }
 
@@ -622,10 +621,10 @@ impl LayersInner {
     /// Layers will be attached to a `parent_layer` as sublayers.
     pub fn new(logger: &Logger, parent_layer: &Layer) -> Self {
         let camera = parent_layer.camera();
-        let background = Layer::new_with_cam(logger.clone_ref(), &camera);
-        let text = Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header = Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header_text = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let background = Layer::new_with_cam("background", logger.clone_ref(), &camera);
+        let text = Layer::new_with_cam("text", logger.clone_ref(), &camera);
+        let header = Layer::new_with_cam("header", logger.clone_ref(), &camera);
+        let header_text = Layer::new_with_cam("header_text", logger.clone_ref(), &camera);
         background.add_sublayer(&text);
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
@@ -678,7 +677,7 @@ impl component::Model for Model {
         let selected_header = text::Text::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
-        entries.set_background_color(HOVER_COLOR);
+        entries.set_background_color(INVISIBLE_HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
@@ -711,18 +710,18 @@ impl Model {
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
         // Set normal layers.
-        layers.normal.background.add_exclusive(&self.background);
-        layers.normal.header_text.add_exclusive(&self.header_overlay);
-        layers.normal.background.add_exclusive(&self.entries);
+        layers.normal.background.add(&self.background);
+        layers.normal.header_text.add(&self.header_overlay);
+        layers.normal.background.add(&self.entries);
         self.entries.set_label_layer(&layers.normal.text);
-        layers.normal.header.add_exclusive(&self.header_background);
+        layers.normal.header.add(&self.header_background);
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // Set selected layers.
         let mut params = self.entries.entry_params();
         params.selection_layer = Rc::new(Some(layers.selection.text.downgrade()));
         self.entries.set_entry_params_and_recreate_entries(params);
-        layers.selection.background.add_exclusive(&self.selection_background);
-        layers.selection.header.add_exclusive(&self.selection_header_background);
+        layers.selection.background.add(&self.selection_background);
+        layers.selection.header.add(&self.selection_header_background);
         self.selected_header.add_to_scene_layer(&layers.selection.header_text);
     }
 

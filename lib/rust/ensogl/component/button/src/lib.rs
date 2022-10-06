@@ -149,8 +149,7 @@ impl Default for State {
 }
 
 /// Trait to be defined on a specific button's shape.
-pub trait ButtonShape:
-    CloneRef + display::object::class::Object + ShapeWithDefaultData + 'static {
+pub trait ButtonShape: ShapeWithDefaultData + 'static {
     /// The human-readable name of the button, for debug purposes.
     fn debug_name() -> &'static str;
 
@@ -199,8 +198,8 @@ pub mod shape {
 // =============
 
 /// An internal model of the button component.
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "S: CloneRef")]
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Model<S: Shape> {
     app:            Application,
@@ -264,8 +263,8 @@ ensogl_core::define_endpoints! {
 /// the primary mouse button pressed without interrupting the click.
 ///
 /// The button is fully theme-aware and dynamically sized.
-#[derive(Clone, CloneRef, Debug, Deref)]
-#[clone_ref(bound = "S: CloneRef")]
+#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct View<S: Shape> {
     #[deref]
@@ -315,7 +314,7 @@ impl<Shape: ButtonShape> View<Shape> {
         let events = &model.shape.events;
 
         frp::extend! { network
-            eval frp.set_size ((&size) model.shape.size().set(size));
+            eval frp.set_size ((&size) model.shape.size.set(size));
             frp.source.size <+ frp.set_size;
 
             // Mouse

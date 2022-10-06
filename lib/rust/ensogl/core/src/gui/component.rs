@@ -34,10 +34,8 @@ pub use crate::display::scene::PointerTarget;
 /// A view for a shape definition. The view manages the lifetime and scene-registration of a shape
 /// instance. In particular, it registers / unregisters callbacks for shape initialization and mouse
 /// events handling.
-#[derive(CloneRef, Deref, Derivative)]
-#[clone_ref(bound = "")]
+#[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
 #[allow(missing_docs)]
 pub struct ShapeView<S: Shape> {
     model: Rc<ShapeViewModel<S>>,
@@ -93,8 +91,7 @@ where
 // ======================
 
 /// Model of [`ShapeView`].
-#[derive(Deref, Derivative)]
-#[derivative(Debug(bound = ""))]
+#[derive(Deref, Debug)]
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]

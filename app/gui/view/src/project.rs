@@ -281,7 +281,7 @@ impl Model {
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
-            scene.layers.panel.add_exclusive(&window_control_buttons);
+            scene.layers.panel.add(&window_control_buttons);
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
@@ -289,7 +289,7 @@ impl Model {
 
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
-        scene.layers.panel.add_exclusive(&prompt_background);
+        scene.layers.panel.add(&prompt_background);
         prompt.remove_from_scene_layer(&scene.layers.main);
         prompt.add_to_scene_layer(&scene.layers.panel_text);
 

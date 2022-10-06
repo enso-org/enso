@@ -130,11 +130,14 @@ struct Layers {
 impl Layers {
     fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
         let camera = app.display.default_scene.layers.node_searcher.camera();
-        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &camera);
-        let selection = Layer::new_with_cam(app.logger.sub("selection"), &camera);
-        let navigator = Layer::new_with_cam(app.logger.sub("navigator"), &camera);
-        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
-        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
+        let base =
+            Layer::new_with_cam("component_groups", app.logger.sub("component_groups"), &camera);
+        let selection = Layer::new_with_cam("selection", app.logger.sub("selection"), &camera);
+        let navigator = Layer::new_with_cam("navigator", app.logger.sub("navigator"), &camera);
+        let scrollbar_layer =
+            Layer::new_with_cam("scroll_bar", app.logger.sub("scroll_bar"), &camera);
+        let selection_mask =
+            Layer::new_with_cam("selection_mask", app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
@@ -454,11 +457,11 @@ impl Model {
         scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
         display_object.add_child(&scroll_area);
         let layers = Layers::new(&app, &scroll_area);
-        layers.base.add_exclusive(&scroll_area);
+        layers.base.add(&scroll_area);
 
         let section_navigator = SectionNavigator::new(&app);
         display_object.add_child(&section_navigator);
-        layers.navigator.add_exclusive(&section_navigator);
+        layers.navigator.add(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&layers.navigator);
@@ -467,7 +470,7 @@ impl Model {
 
         let selection = selection_box::View::new();
         scroll_area.add_child(&selection);
-        layers.selection_mask.add_exclusive(&selection);
+        layers.selection_mask.add(&selection);
 
         scroll_area.set_scrollbars_layer(&layers.scrollbar_layer);
         layers.scrollbar_layer.set_mask(scroll_area.mask_layer());
@@ -637,7 +640,7 @@ impl Model {
     // sub-components still need to receive all of the mouse events, too.
     fn is_hovered(&self, pos: Vector2) -> bool {
         let center = self.display_object.position().xy();
-        let size = self.background.size().get();
+        let size = self.background.size.get();
         let viewport = BoundingBox::from_center_and_size(center, size);
         viewport.contains(pos)
     }
@@ -848,9 +851,9 @@ impl SectionContent for column_grid::ColumnGrid {
 impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_layers(&self, layers: &Layers) {
         self.content.set_layers(layers);
-        layers.scroll_layer.add_exclusive(&self.label);
+        layers.scroll_layer.add(&self.label);
         self.label.add_to_scene_layer(&layers.scroll_layer);
-        layers.scroll_layer.add_exclusive(&self.divider);
+        layers.scroll_layer.add(&self.divider);
     }
 
     /// Full height of the section including header.
@@ -1074,9 +1077,9 @@ impl component::Frp<Model> for Frp {
 
             // === Navigator icons colors ===
 
-            let strong_color = style.get_color(list_panel_theme::navigator_icon_strong_color);
-            let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
-            let params = icon::Params { strong_color, weak_color };
+            let vivid_color = style.get_color(list_panel_theme::navigator_icon_strong_color);
+            let dull_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
+            let params = icon::Params { vivid_color, dull_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
 
 

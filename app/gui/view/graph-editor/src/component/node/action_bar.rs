@@ -42,7 +42,7 @@ mod hover_area {
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));
             let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(HOVER_COLOR);
+            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
             rect_filled.into()
         }
     }
@@ -80,9 +80,9 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 struct Icons {
     display_object: display::object::Instance,
-    freeze:         ToggleButton<icon::freeze::DynamicShape>,
-    visibility:     ToggleButton<icon::visibility::DynamicShape>,
-    skip:           ToggleButton<icon::skip::DynamicShape>,
+    freeze:         ToggleButton<icon::freeze::Shape>,
+    visibility:     ToggleButton<icon::visibility::Shape>,
+    skip:           ToggleButton<icon::skip::Shape>,
 }
 
 impl Icons {

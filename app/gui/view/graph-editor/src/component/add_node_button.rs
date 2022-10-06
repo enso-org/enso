@@ -37,7 +37,7 @@ mod shape {
     }
 }
 
-impl ButtonShape for shape::DynamicShape {
+impl ButtonShape for shape::Shape {
     fn debug_name() -> &'static str {
         "AddNodeButton"
     }
@@ -58,11 +58,11 @@ impl ButtonShape for shape::DynamicShape {
         }
     }
 
-    fn background_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn background_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.background_color
     }
 
-    fn icon_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn icon_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.icon_color
     }
 }
@@ -73,7 +73,7 @@ impl ButtonShape for shape::DynamicShape {
 // === AddNodeButton ===
 // =====================
 
-type View = ensogl_component::button::View<shape::DynamicShape>;
+type View = ensogl_component::button::View<shape::Shape>;
 
 /// Add Node Button Component.
 ///
@@ -119,7 +119,7 @@ impl AddNodeButton {
             });
         }
 
-        scene.layers.panel.add_exclusive(&view);
+        scene.layers.panel.add(&view);
         init.emit(());
 
         Self { network, view, style_watch }

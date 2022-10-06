@@ -301,17 +301,18 @@ impl BreadcrumbModel {
             }
         }
 
-        scene.layers.panel.add_exclusive(&view);
-        let background = &scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<background::DynamicShape>)
-            .shape_system
-            .symbol;
-        scene.layers.panel.add_exclusive(&background);
-        scene.layers.panel.add_exclusive(&icon);
-        scene.layers.panel.add_exclusive(&separator);
+        scene.layers.panel.add(&view);
+        // FIXME!!!
+        // let background = &scene
+        //     .layers
+        //     .panel
+        //     .shape_system_registry
+        //     .shape_system(scene, PhantomData::<background::Shape>)
+        //     .shape_system
+        //     .symbol;
+        // scene.layers.panel.add(&background);
+        scene.layers.panel.add(&icon);
+        scene.layers.panel.add(&separator);
 
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.panel_text);

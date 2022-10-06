@@ -179,8 +179,8 @@ pub fn main() {
         let world = &app.display;
         let scene = &world.default_scene;
         let main_layer = &app.display.default_scene.layers.node_searcher;
-        let grid_layer = main_layer.create_sublayer();
-        let selection_layer = main_layer.create_sublayer();
+        let grid_layer = main_layer.create_sublayer("grid");
+        let selection_layer = main_layer.create_sublayer("selection");
         let style = StyleWatch::new(&scene.style_sheet);
         let group_color_paths = vec![
             column_grid::entry_color_0,
@@ -238,7 +238,7 @@ pub fn main() {
             new_entry::View,
             new_entry::View,
         >::new(&app);
-        grid_layer.add_exclusive(&grid);
+        grid_layer.add(&grid);
         grid.set_position_xy(Vector2(-200.0, 200.0));
         let network = frp::Network::new("new_component_list_panel_view");
         let header_frp = grid.header_frp();

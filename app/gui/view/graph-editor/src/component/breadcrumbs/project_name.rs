@@ -149,7 +149,7 @@ impl ProjectNameModel {
 
         let view = background::View::new();
 
-        scene.layers.panel.add_exclusive(&view);
+        scene.layers.panel.add(&view);
 
         let project_name = default();
         Self { app, display_object, view, style, text_field, project_name }.init()

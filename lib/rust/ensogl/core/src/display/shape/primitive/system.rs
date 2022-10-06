@@ -64,25 +64,48 @@ impl<T> ShapeDataHasher for T {
 // === Shape ===
 // =============
 
+
 pub trait ShapeWithDefaultData = Shape where <Self as Shape>::ShapeData: Default;
 
-pub trait Shape: 'static + Sized {
+pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
     type ShapeData: Debug + ShapeDataHasher;
     fn pointer_events() -> bool;
-    fn always_above() -> &'static [ShapeSystemId];
-    fn always_below() -> &'static [ShapeSystemId];
+    fn always_above() -> Vec<ShapeSystemId>;
+    fn always_below() -> Vec<ShapeSystemId>;
     fn new_instance_params(
         sprite: &Sprite,
         gpu_params: &Self::GpuParams,
         id: InstanceIndex,
-    ) -> Self::InstanceParams;
+    ) -> ShapeWithSize<Self>;
     fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(
         style_watch: &display::shape::StyleWatch,
     ) -> display::shape::primitive::def::AnyShape;
+}
+
+
+
+#[derive(Debug, Deref)]
+pub struct ShapeWithSize<S> {
+    #[deref]
+    shape:    S,
+    pub size: ProxyParam<sprite::Size>,
+}
+
+impl<S> ShapeWithSize<S> {
+    pub fn new(shape: S, size: ProxyParam<sprite::Size>) -> Self {
+        Self { shape, size }
+    }
+}
+
+impl<S: Shape> ShapeWithSize<S> {
+    pub fn swap(&self, other: &ShapeWithSize<S>) {
+        self.size.swap(&other.size);
+        self.shape.as_ref().swap(other.shape.as_ref());
+    }
 }
 
 
@@ -94,28 +117,33 @@ pub trait Shape: 'static + Sized {
 /// A visible shape instance, bound to a particular [`ShapeSystem`]. Shape instances are stored and
 /// managed by [`ShapeProxy`]s.
 #[allow(missing_docs)]
-#[derive(Deref, Derivative)]
-#[derivative(Debug(bound = ""))]
-pub struct ShapeInstance<S: Shape> {
+#[derive(Deref, Debug)]
+pub struct ShapeInstance<S> {
     #[deref]
-    pub params:     S::InstanceParams,
+    pub shape:      ShapeWithSize<S>,
     pub sprite:     RefCell<Sprite>,
     display_object: display::object::Instance,
 }
 
-impl<S: Shape> display::Object for ShapeInstance<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+impl<S> ShapeInstance<S> {
+    pub fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
+        self.sprite.borrow().is_this_target(target)
     }
 }
 
 impl<S: Shape> ShapeInstance<S> {
     pub(crate) fn swap(&self, other: &Self) {
-        self.params.swap(&other.params);
+        self.shape.swap(&other.shape);
         self.sprite.swap(&other.sprite);
         for child in other.display_object.remove_all_children() {
             self.display_object.add_child(&child);
         }
+    }
+}
+
+impl<S> display::Object for ShapeInstance<S> {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }
 
@@ -209,8 +237,8 @@ pub struct ShapeSystemStandardData<S: Shape> {
 }
 
 impl<S: Shape> ShapeSystem<S> {
-    pub fn id() -> display::shape::ShapeSystemId {
-        std::any::TypeId::of::<S>().into()
+    pub const fn id() -> display::shape::ShapeSystemId {
+        ShapeSystemId::new(std::any::TypeId::of::<S>())
     }
 
     pub fn sprite_system(&self) -> &SpriteSystem {
@@ -235,11 +263,11 @@ impl<S: Shape> ShapeSystem<S> {
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
         let id = sprite.instance_id;
-        let params = S::new_instance_params(&sprite, &self.gpu_params, id);
+        let shape = S::new_instance_params(&sprite, &self.gpu_params, id);
         let display_object = display::object::Instance::new();
         display_object.add_child(&sprite);
         let sprite = RefCell::new(sprite);
-        ShapeInstance { sprite, params, display_object }
+        ShapeInstance { sprite, shape, display_object }
     }
 
     // #[profile(Debug)]
@@ -248,8 +276,8 @@ impl<S: Shape> ShapeSystem<S> {
     //     // let sprite = self.model.sprite_system.new_instance();
     //     // let instance_id = sprite.instance_id;
     //     // let global_id = sprite.global_instance_id;
-    //     // let params = S::new_instance_params(&self.gpu_params, instance_id);
-    //     // let shape = ShapeInstance { sprite, params };
+    //     // let shape = S::new_instance_params(&self.gpu_params, instance_id);
+    //     // let shape = ShapeInstance { sprite, shape };
     //     // dyn_shape.add_instance(shape);
     //     // global_id
     // }
@@ -259,11 +287,11 @@ impl<S: Shape> ShapeSystem<S> {
         let sprite = self.model.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
-        let params = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
+        let shape = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
         let display_object = display::object::Instance::new();
         display_object.add_child(&sprite);
         let sprite = RefCell::new(sprite);
-        let shape = ShapeInstance { sprite, params, display_object };
+        let shape = ShapeInstance { sprite, shape, display_object };
         (shape, global_id)
     }
 }
@@ -545,8 +573,10 @@ macro_rules! _define_shape_system {
             // === Shape ===
             // =============
 
-            #[derive(Clone, Copy, Debug)]
-            pub struct Shape;
+            #[derive(AsRef, Debug, Deref)]
+            pub struct Shape {
+                pub params: InstanceParams,
+            }
 
             impl $crate::display::shape::system::Shape for Shape {
                 type InstanceParams = InstanceParams;
@@ -559,18 +589,20 @@ macro_rules! _define_shape_system {
                     out
                 }
 
-                fn always_above() -> &'static [ShapeSystemId] {
-                    &[ $($($always_above_1 $(::$always_above_2)* :: ShapeSystemModel :: id()),*)? ]
+                fn always_above() -> Vec<ShapeSystemId> {
+                    vec![$($( ShapeSystem::<$always_above_1 $(::$always_above_2)*::Shape>::id() ),*)?]
                 }
 
-                fn always_below() -> &'static [ShapeSystemId] {
-                    &[ $($($always_below_1 $(::$always_below_2)* :: ShapeSystemModel :: id()),*)? ]
+                fn always_below() -> Vec<ShapeSystemId> {
+                    vec![$($( ShapeSystem::<$always_below_1 $(::$always_below_2)*::Shape> :: id()),*)?]
                 }
 
-                fn new_instance_params(sprite: &Sprite, gpu_params:&Self::GpuParams, id: InstanceIndex) -> Self::InstanceParams {
+                fn new_instance_params(sprite: &Sprite, gpu_params:&Self::GpuParams, id: InstanceIndex) -> ShapeWithSize<Shape> {
                     let size = ProxyParam::new(sprite.size.clone_ref());
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
-                    Self::InstanceParams { size, $($gpu_param),* }
+                    let params = Self::InstanceParams { $($gpu_param),* };
+                    let shape = Shape { params };
+                    ShapeWithSize::new(shape, size)
                 }
 
                 fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams {
@@ -607,13 +639,11 @@ macro_rules! _define_shape_system {
             #[derive(Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
-                pub size: ProxyParam<sprite::Size>,
                 $(pub $gpu_param : ProxyParam<Attribute<$gpu_param_type>>),*
             }
 
             impl InstanceParamsTrait for InstanceParams {
                 fn swap(&self, other: &Self) {
-                    self.size.swap(&other.size);
                     $(self.$gpu_param.swap(&other.$gpu_param);)*
                 }
             }
@@ -641,11 +671,27 @@ macro_rules! _define_shape_system {
 // === Shapes ===
 // ==============
 
-mod shape {
+mod shape2 {
     use super::*;
 
 
     crate::define_shape_system! {
+        (style:Style, foo:f32) {
+            let circle1    = Circle(50.px());
+            let circle_bg  = circle1.translate_x(-(50.0.px()));
+            let circle_sub = circle1.translate_y(-(50.0.px()));
+            let rect       = Rect((100.0.px(),100.0.px()));
+            let shape      = circle_bg + rect - circle_sub;
+            let shape      = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
+            shape.into()
+        }
+    }
+}
+
+mod shape {
+    use super::*;
+    crate::define_shape_system! {
+        above = [shape2];
         (style:Style, foo:f32) {
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));

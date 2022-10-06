@@ -13,7 +13,7 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::system::DynamicShape;
+use ensogl::display::shape::system::Shape;
 use ensogl::gui::component::ShapeView;
 use ensogl_component::drop_down_menu;
 use ensogl_hardcoded_theme as theme;
@@ -178,11 +178,11 @@ impl Icons {
         Self { display_object, icon_root, reset_position_icon, drag_icon, size }.init_layout()
     }
 
-    fn place_shape_in_slot<T: DynamicShape>(&self, view: &ShapeView<T>, index: usize) {
+    fn place_shape_in_slot<S: Shape>(&self, view: &ShapeView<S>, index: usize) {
         let icon_size = self.icon_size();
         let index = index as f32;
         view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
-        view.size().set(icon_size)
+        view.size.set(icon_size)
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -269,9 +269,9 @@ impl Model {
         let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
 
-        app.display.default_scene.layers.below_main.add_exclusive(&hover_area);
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
-        app.display.default_scene.layers.above_nodes.add_exclusive(&icons);
+        app.display.default_scene.layers.below_main.add(&hover_area);
+        app.display.default_scene.layers.below_main.add(&background);
+        app.display.default_scene.layers.above_nodes.add(&icons);
 
         shapes.add_sub_shape(&hover_area);
         shapes.add_sub_shape(&background);

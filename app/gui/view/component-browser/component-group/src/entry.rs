@@ -95,12 +95,12 @@ impl Default for Params {
             background:  default_color.clone_ref(),
             header_text: default_color.clone_ref(),
             entry_text:  default_color.clone_ref(),
-            icon_strong: default_color.clone_ref(),
-            icon_weak:   default_color.clone_ref(),
+            icon_vivid:  default_color.clone_ref(),
+            icon_dull:   default_color.clone_ref(),
         };
         let colors = Colors {
-            icon_strong: default_color.clone_ref(),
-            icon_weak: default_color.clone_ref(),
+            icon_vivid: default_color.clone_ref(),
+            icon_dull: default_color.clone_ref(),
             header_text: default_color.clone_ref(),
             entry_text: default_color.clone_ref(),
             background: default_color.clone_ref(),
@@ -128,15 +128,15 @@ struct CurrentIcon {
 }
 
 impl CurrentIcon {
-    fn set_strong_color(&self, color: color::Rgba) {
+    fn set_strong_color(&self, color: color::Lcha) {
         if let Some(shape) = &self.shape {
-            shape.strong_color.set(color.into());
+            shape.set_vivid_color(color);
         }
     }
 
-    fn set_weak_color(&self, color: color::Rgba) {
+    fn set_weak_color(&self, color: color::Lcha) {
         if let Some(shape) = &self.shape {
-            shape.weak_color.set(color.into());
+            shape.set_dull_color(color);
         }
     }
 }
@@ -168,19 +168,19 @@ impl View {
         model: &Model,
         icon: &RefCell<CurrentIcon>,
         layer: Option<Layer>,
-        strong_color: color::Rgba,
-        weak_color: color::Rgba,
+        vivid_color: color::Lcha,
+        dull_color: color::Lcha,
     ) {
         let mut icon = icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
             let shape = model.icon.create_shape(Vector2(icon::SIZE, icon::SIZE));
-            shape.strong_color.set(strong_color.into());
-            shape.weak_color.set(weak_color.into());
+            shape.set_vivid_color(vivid_color);
+            shape.set_dull_color(dull_color);
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
             if let Some(layer) = layer {
-                layer.add_exclusive(&shape);
+                layer.add(&shape);
             }
             icon.shape = Some(shape);
         }
@@ -233,10 +233,10 @@ impl list_view::Entry for View {
             });
             label.inner.label.set_property_default <+ all(&colors.entry_text, &init)._0().ref_into_some();
             selected_label.inner.label.set_property_default <+ all(&colors.selected.entry_text,&init)._0().ref_into_some();
-            eval colors.icon_strong ((&c) icon.borrow().set_strong_color(c));
-            eval colors.selected.icon_strong((&c) selected_icon.borrow().set_strong_color(c));
-            eval colors.icon_weak ((&c) icon.borrow().set_weak_color(c));
-            eval colors.selected.icon_weak((&c) selected_icon.borrow().set_weak_color(c));
+            eval colors.icon_vivid ((&c) icon.borrow().set_strong_color(c.into()));
+            eval colors.selected.icon_vivid((&c) selected_icon.borrow().set_strong_color(c.into()));
+            eval colors.icon_dull ((&c) icon.borrow().set_weak_color(c.into()));
+            eval colors.selected.icon_dull((&c) selected_icon.borrow().set_weak_color(c.into()));
         }
         init.emit(());
         let selection_layer = selection_layer.clone_ref();
@@ -262,8 +262,8 @@ impl list_view::Entry for View {
             model,
             &self.icon,
             None,
-            self.colors.icon_strong.value(),
-            self.colors.icon_weak.value(),
+            self.colors.icon_vivid.value().into(),
+            self.colors.icon_dull.value().into(),
         );
         if let Some(weak_layer) = &*self.selection_layer {
             if let Some(layer) = weak_layer.upgrade() {
@@ -271,8 +271,8 @@ impl list_view::Entry for View {
                     model,
                     &self.selected_icon,
                     Some(layer),
-                    self.colors.selected.icon_strong.value(),
-                    self.colors.selected.icon_weak.value(),
+                    self.colors.selected.icon_vivid.value().into(),
+                    self.colors.selected.icon_dull.value().into(),
                 );
             } else {
                 error!("Cannot add icon shape to a dropped scene layer.");

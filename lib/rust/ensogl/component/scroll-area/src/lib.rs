@@ -249,20 +249,20 @@ impl ScrollArea {
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
-        let content_layer = display_object.layer.masked_layer.create_sublayer();
-        let ui_layer = display_object.layer.masked_layer.create_sublayer();
+        let content_layer = display_object.layer.masked_layer.create_sublayer("content_layer");
+        let ui_layer = display_object.layer.masked_layer.create_sublayer("ui_layer");
 
         let content = display::object::Instance::new();
         display_object.add_child(&content);
-        content_layer.add_exclusive(&content);
+        content_layer.add(&content);
 
         let scrollbars = display::object::Instance::new();
         display_object.add_child(&scrollbars);
-        ui_layer.add_exclusive(&scrollbars);
+        ui_layer.add(&scrollbars);
 
         let mask = mask::View::new();
         display_object.add_child(&mask);
-        display_object.layer.mask_layer.add_exclusive(&mask);
+        display_object.layer.mask_layer.add(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
         scrollbars.add_child(&h_scrollbar);
@@ -392,7 +392,7 @@ impl ScrollArea {
 
     /// Set a scene layer for scrollbars.
     pub fn set_scrollbars_layer(&self, layer: &layer::Layer) {
-        layer.add_exclusive(&self.model.scrollbars);
+        layer.add(&self.model.scrollbars);
     }
 
     /// A scene layer used as a mask for the content.

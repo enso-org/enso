@@ -4,6 +4,7 @@ use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
 use ensogl_core::data::color;
+use ensogl_core::display::shape::system::Shape;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 
@@ -82,7 +83,7 @@ pub mod io_rect {
             let sprite_height : Var<Pixels> = "input_size.y".into();
 
             let rect  = Rect((&sprite_width,&sprite_height));
-            let shape = rect.fill(HOVER_COLOR);
+            let shape = rect.fill(INVISIBLE_HOVER_COLOR);
 
             shape.into()
         }
@@ -111,7 +112,6 @@ pub mod track {
             let width         = background.width;
             let height        = background.height;
             let corner_radius = corner_inner * &height/2.0;
-
 
             let track_width = (&right - &left) * &width;
             let track_start = left * &width;
@@ -157,7 +157,7 @@ impl OverflowShape {
         let shape = shape.fill(&overflow_color);
 
         let hover_area = Circle(&height);
-        let hover_area = hover_area.fill(HOVER_COLOR);
+        let hover_area = hover_area.fill(INVISIBLE_HOVER_COLOR);
 
         let shape = (shape + hover_area).into();
         OverflowShape { width, height, shape }
@@ -228,7 +228,7 @@ pub fn shape_is_dragged(
 
 /// Returns the position of a mouse down on a shape. The position is given in the shape's local
 /// coordinate system
-pub fn relative_shape_down_position<T: 'static + display::Object + CloneRef>(
+pub fn relative_shape_down_position<T: 'static + Shape>(
     network: &Network,
     scene: &Scene,
     shape: &ShapeView<T>,

@@ -94,7 +94,7 @@ impl ProjectList {
         display_object.add_child(&background);
         display_object.add_child(&caption);
         display_object.add_child(&list);
-        app.display.default_scene.layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
         list.set_label_layer(&app.display.default_scene.layers.panel_text);

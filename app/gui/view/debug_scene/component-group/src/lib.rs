@@ -249,8 +249,10 @@ fn init(app: &Application) {
     // === Layers setup ===
 
     let main_camera = app.display.default_scene.layers.main.camera();
-    let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
-    let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+    let selection_layer =
+        Layer::new_with_cam("selection", app.logger.sub("selection"), &main_camera);
+    let groups_layer =
+        Layer::new_with_cam("component_groups", app.logger.sub("component_groups"), &main_camera);
     app.display.default_scene.layers.main.add_sublayer(&groups_layer);
     app.display.default_scene.layers.main.add_sublayer(&selection_layer);
 
@@ -264,7 +266,7 @@ fn init(app: &Application) {
     scroll_area.set_content_width(COMPONENT_GROUP_WIDTH * 4.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
-    groups_layer.add_exclusive(&scroll_area);
+    groups_layer.add(&scroll_area);
 
 
     // === Component groups ===

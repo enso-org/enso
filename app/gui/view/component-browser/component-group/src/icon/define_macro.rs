@@ -27,7 +27,7 @@
 ///         //
 ///         // `use super::*` import is added silently.
 ///         ensogl::define_shape_system! {
-///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
+///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
 ///                 Plane().into()
 ///             }
 ///         }
@@ -35,8 +35,8 @@
 ///
 ///     pub mod icon2(Icon2) {
 ///         ensogl::define_shape_system! {
-///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
-///                 Plane().fill(strong_color).into()
+///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
+///                 Plane().fill(vivid_color).into()
 ///             }
 ///         }
 ///     }
@@ -85,10 +85,18 @@ macro_rules! define_icons {
                     Self::$variant => {
                         let view = $name::View::new();
                         view.size.set(size);
-                        let strong_color = view.strong_color.clone_ref();
-                        let weak_color = view.weak_color.clone_ref();
+                        let vivid_color_fn = Box::new(f!([view]() color::Lcha::from(color::Rgba::from(view.vivid_color.get()))));
+                        let dull_color_fn = Box::new(f!([view]() color::Lcha::from(color::Rgba::from(view.dull_color.get()))));
+                        let set_vivid_color_fn = Box::new(f!([view](c) view.vivid_color.set(color::Rgba::from(c).into())));
+                        let set_dull_color_fn = Box::new(f!([view](c) view.dull_color.set(color::Rgba::from(c).into())));
                         let view = Box::new(view);
-                        $crate::icon::Any {view, strong_color, weak_color}
+                        $crate::icon::Any {
+                            view,
+                            vivid_color_fn,
+                            dull_color_fn,
+                            set_vivid_color_fn,
+                            set_dull_color_fn
+                        }
                     }
                 )*}
             }

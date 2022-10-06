@@ -151,7 +151,7 @@ pub mod overlay {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let (width, height) = background_size(sprite_width, sprite_height);
-            Rect((&width,&height)).corners_radius(corners_radius_px).fill(HOVER_COLOR).into()
+            Rect((&width,&height)).corners_radius(corners_radius_px).fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 }

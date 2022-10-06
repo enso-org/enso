@@ -404,15 +404,15 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
     /// Assign a set of layers to render the component group. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &crate::Layers) {
-        layers.normal.background.add_exclusive(&self.background);
-        layers.selection.background.add_exclusive(&self.selection_background);
+        layers.normal.background.add(&self.background);
+        layers.selection.background.add(&self.selection_background);
         self.no_items_label.set_layers(&layers.normal.text, &layers.normal.text);
         let layer = &layers.selection.text;
         for column in self.columns.iter() {
             let mut params = column.list_view.entry_params();
             params.selection_layer = Rc::new(Some(layer.downgrade()));
             column.list_view.set_entry_params_and_recreate_entries(params);
-            layers.normal.background.add_exclusive(&column.list_view);
+            layers.normal.background.add(&column.list_view);
             column.list_view.set_label_layer(&layers.normal.text);
         }
     }

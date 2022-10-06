@@ -42,7 +42,7 @@ pub mod arrow {
             let shape_expanded = shape.grow(touch_area);
 
             let shape = shape.fill(color::Rgba::black());
-            let shape_expanded = shape_expanded.fill(HOVER_COLOR);
+            let shape_expanded = shape_expanded.fill(INVISIBLE_HOVER_COLOR);
 
             (shape + shape_expanded).into()
         }
