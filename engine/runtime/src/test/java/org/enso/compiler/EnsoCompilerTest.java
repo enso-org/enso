@@ -361,6 +361,13 @@ public class EnsoCompilerTest {
       """);
   }
 
+  @Test
+  public void testUnaryMinus() throws Exception {
+    parseTest("""
+    meaning = -42
+      """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

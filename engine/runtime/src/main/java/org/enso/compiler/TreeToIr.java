@@ -783,6 +783,17 @@ final class TreeToIr {
           default -> ast;
         };
       }
+      case Tree.UnaryOprApp un -> switch (translateExpression(un.getRhs(), insideTypeSignature)) {
+        case IR$Literal$Number n when "-".equals(un.getOpr().codeRepr()) -> n.copy(
+          n.copy$default$1(),
+          "-" + n.copy$default$2(),
+          n.copy$default$3(),
+          n.copy$default$4(),
+          n.copy$default$5(),
+          n.copy$default$6()
+        );
+        case IR.Expression e -> e;
+      };
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
