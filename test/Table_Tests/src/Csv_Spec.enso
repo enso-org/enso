@@ -1,8 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table
-from Standard.Table import Column, Delimited
-from Standard.Table.Data.Column_Selector import By_Index
+from Standard.Table import Table, Column, Delimited, Column_Selector
 
 import Standard.Test
 
@@ -17,7 +15,7 @@ spec =
     Test.group "Table.from Text" <|
         Test.specify "should create a table from a textual CSV" <|
             file_contents = (enso_project.data / "simple_empty.csv") . read_text
-            table = Table.Table.from file_contents (format = Delimited ",")
+            table = Table.from file_contents (format = Delimited ",")
             table.should_equal expected_table
 
     Test.group "File.read (Delimited)" <|
@@ -37,13 +35,13 @@ spec =
             c_6 = ["Column_6", ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']]
 
             expected = Table.new [c_1, c_3, c_4, c_5, c_6]
-            varied_column.select_columns (By_Index [0, 2, 3, 4, 5]) . should_equal expected
+            varied_column.select_columns (Column_Selector.By_Index [0, 2, 3, 4, 5]) . should_equal expected
 
         Test.specify "should handle duplicated columns" <|
             csv = """
                 name,x,y,x,y
                 foo,10,20,30,20
-            t = Table.Table.from csv (format = Delimited ",")
+            t = Table.from csv (format = Delimited ",")
             t.columns.map .name . should_equal ['name', 'x', 'y', 'x_1', 'y_1']
 
     Test.group 'Writing' <|

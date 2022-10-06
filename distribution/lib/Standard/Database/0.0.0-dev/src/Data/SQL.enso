@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Internal.Vector_Builder
+import Standard.Table.Internal.Vector_Builder.Vector_Builder
 
 polyglot java import java.sql.Types
 
@@ -285,7 +285,7 @@ type Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    Builder_Data (fragments:(Vector_Builder.Vector_Builder SQL_Fragment))
+    Builder_Data (fragments:(Vector_Builder SQL_Fragment))
 
     ## UNSTABLE
 

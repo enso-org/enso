@@ -2,7 +2,7 @@ from Standard.Base import Any, Text, Problem_Behavior, Nothing, Error, Panic, Me
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-from Standard.Table.IO.Auto_Detect import Auto_Detect
+import Standard.Table.IO.Auto_Detect.Auto_Detect
 
 ## ALIAS Read Text File, Read File
 
@@ -46,7 +46,7 @@ File.read path (format=Auto_Detect) (on_problems=Report_Warning) =
    > Example
      Read the first sheet of an XLSX from disk and convert it into a table.
 
-         import Standard.Table
+         from Standard.Table import all
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -54,7 +54,7 @@ File.read path (format=Auto_Detect) (on_problems=Report_Warning) =
    > Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
-         import Standard.Table
+         from Standard.Table import all
          from Standard.Table import Excel, Worksheet
          import Standard.Examples
 

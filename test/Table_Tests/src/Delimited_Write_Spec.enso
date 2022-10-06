@@ -2,23 +2,16 @@ from Standard.Base import all
 import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior import all
 
-import Standard.Table
-from Standard.Table import Column, Data_Formatter, Data_Formatter_Data, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
+from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
 from Standard.Table.Errors import all
-from Standard.Table.Data.Column_Selector import By_Name
-from Standard.Table.Errors import Column_Count_Mismatch_Data, Column_Name_Mismatch_Data
 
 import Standard.Test
 import Standard.Test.Problems
 
 from project.Util import all
 
-# TODO Dubious constructor export
-from project.Delimited_Write_Spec.My_Type import all
-from project.Delimited_Write_Spec.My_Type export all
-
 type My_Type
-    My_Type_Data x
+    Value x
 
     to_text : Text
     to_text self = "[[[My Type :: " + self.x.to_text + "]]]"
@@ -32,7 +25,7 @@ spec =
     line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
-            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type_Data 10]]]
+            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type.Value 10]]]
             file = (enso_project.data / "transient" / "written.csv")
             file.delete_if_exists
             table.write file on_problems=Report_Error . should_succeed
@@ -67,7 +60,7 @@ spec =
             file.delete
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [,""] variant' <|
-            data_formatter = Data_Formatter_Data decimal_point=","
+            data_formatter = Data_Formatter.Value decimal_point=","
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
@@ -83,7 +76,7 @@ spec =
             file.delete
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
-            data_formatter = Data_Formatter_Data thousand_separator="'"
+            data_formatter = Data_Formatter.Value thousand_separator="'"
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
             file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
@@ -100,7 +93,7 @@ spec =
             file.delete
 
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
-            data_formatter = Data_Formatter_Data thousand_separator="'"
+            data_formatter = Data_Formatter.Value thousand_separator="'"
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
             file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
@@ -151,7 +144,7 @@ spec =
             file.delete
 
         Test.specify 'should not quote values if quoting is disabled' <|
-            format = Delimited "," value_formatter=(Data_Formatter_Data decimal_point=",") . without_quotes
+            format = Delimited "," value_formatter=(Data_Formatter.Value decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
@@ -167,8 +160,8 @@ spec =
             file.delete
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
-            format = Delimited "," value_formatter=(Data_Formatter_Data thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
-            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type_Data 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55), Nothing, Nothing]]]
+            format = Delimited "," value_formatter=(Data_Formatter.Value thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
+            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type.Value 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
             table.write file format on_problems=Report_Error . should_succeed
