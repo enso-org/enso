@@ -23,7 +23,6 @@ use engine_protocol::types::Sha3_224;
 use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
-use enso_text::Utf16CodeUnit;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -98,11 +97,11 @@ impl ParsedContentSummary {
         self.slice(&self.metadata)
     }
 
-    pub fn id_map_engine_range(&self) -> Range<Location<Utf16CodeUnit>> {
+    pub fn id_map_engine_range(&self) -> Range<Location<enso_text::Utf16CodeUnit>> {
         self.id_map.map(|l| self.source.utf16_code_unit_location_of_location(l))
     }
 
-    pub fn metadata_engine_range(&self) -> Range<Location<Utf16CodeUnit>> {
+    pub fn metadata_engine_range(&self) -> Range<Location<enso_text::Utf16CodeUnit>> {
         self.metadata.map(|l| self.source.utf16_code_unit_location_of_location(l))
     }
 
