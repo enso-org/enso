@@ -1,9 +1,9 @@
 from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import Sample
 
 from Standard.Table import Table, Column
 
-import Standard.Visualization.Helpers
-from Standard.Base.Data.Index_Sub_Range import Sample
+import project.Helpers
 
 ## PRIVATE
 
@@ -22,10 +22,6 @@ axis_field = 'axis'
 ## PRIVATE
 label_field : Text
 label_field = 'label'
-
-# TODO Dubious constructor export
-from project.Scatter_Plot.Point_Data import all
-from project.Scatter_Plot.Point_Data export all
 
 ## PRIVATE
 
@@ -54,7 +50,7 @@ type Point_Data
 
        Returns all recognized point data fields.
     all_fields : Vector
-    all_fields = [X,Y,Color,Shape,Label,Size]
+    all_fields = [Point_Data.X, Point_Data.Y, Point_Data.Color, Point_Data.Shape, Point_Data.Label, Point_Data.Size]
 
     ## PRIVATE
     recognized_names : Vector
@@ -71,9 +67,9 @@ type Point_Data
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
-        X -> table.index.catch_ <| Point_Data.iota table.row_count
-        Y ->
-            x_column = X.lookup_in table
+        Point_Data.X -> table.index.catch_ <| Point_Data.iota table.row_count
+        Point_Data.Y ->
+            x_column = Point_Data.X.lookup_in table
             candidates = table.all_columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
             is_good c = is_good_enough c && (self.is_recognized c).not
@@ -124,8 +120,8 @@ Table.axes self =
         col_name = field.lookup_in self . name
         label = Json.from_pairs [[label_field, col_name]]
         [field.name, label]
-    x_axis = describe_axis X
-    y_axis = describe_axis Y
+    x_axis = describe_axis Point_Data.X
+    y_axis = describe_axis Point_Data.Y
     is_valid axis_pair =
         label = axis_pair.at 1
         label.is_valid && (self.all_columns.length > 0)
@@ -136,7 +132,7 @@ Table.axes self =
 Vector.Vector.point_data : Vector -> Object
 Vector.Vector.point_data self  =
     self.map_with_index <| i-> elem->
-        Json.from_pairs [[X.name,i],[Y.name,elem]]
+        Json.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
 
 ## PRIVATE
 bound_data bounds data = case bounds of
@@ -153,12 +149,8 @@ bound_data bounds data = case bounds of
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
-# TODO Dubious constructor export
-from project.Scatter_Plot.Extreme import all
-from project.Scatter_Plot.Extreme export all
-
 type Extreme
-    Extreme_Data min_x max_x min_y max_y
+    Value min_x max_x min_y max_y
 
 ## PRIVATE
 limit_data limit data = case limit of
@@ -172,11 +164,11 @@ limit_data limit data = case limit of
             new_min_y = if y current.min_y.second > y point then [idx, point] else current.min_y
             new_max_x = if x current.max_x.second < x point then [idx, point] else current.max_x
             new_max_y = if y current.max_y.second < y point then [idx, point] else current.max_y
-            Extreme_Data new_min_x new_max_x new_min_y new_max_y
+            Extreme.Value new_min_x new_max_x new_min_y new_max_y
 
         first = [0, data.first]
-        bounds = case data.fold_with_index (Extreme_Data first first first first) update_extreme of
-            Extreme_Data min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
+        bounds = case data.fold_with_index (Extreme.Value first first first first) update_extreme of
+            Extreme.Value min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
             _ -> []
         extreme = Map.from_vector bounds . values
 
@@ -199,9 +191,9 @@ json_from_vector vec bounds limit =
 
 ## PRIVATE
 
-   Default preprocessor for the scatterplot visualization.
+   Default preprocessor for the scatter-plot visualization.
 
-   Generates JSON text describing the scatterplot visualization.
+   Generates JSON text describing the scatter-plot visualization.
 
    Arguments:
    - value: the value to be visualized.
@@ -214,4 +206,3 @@ process_to_json_text value bounds=Nothing limit=Nothing =
         _                 -> json_from_vector value.to_vector bounds limit
 
     json.to_text
-

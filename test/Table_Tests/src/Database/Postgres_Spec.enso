@@ -7,11 +7,10 @@ from Standard.Base.System.Process.Exit_Code import Exit_Success
 from Standard.Table import Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First
 
-import Standard.Database
-from Standard.Database import all
+from Standard.Database import Database, Postgres, SQL_Query, Credentials, SSL_Mode
 from Standard.Database.Errors import SQL_Error
-from Standard.Database.Data.SQL import SQL_Type
-from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry_Data
+import Standard.Database.Data.SQL_Type.SQL_Type
+
 import Standard.Database.Internal.Postgres.Pgpass
 
 import Standard.Test
@@ -39,14 +38,14 @@ postgres_specific_spec connection db_name pending =
 
         Test.specify "should allow changing schema" <|
             new_connection = connection.set_schema "information_schema"
-            new_schema = new_connection.read (Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
+            new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
             new_schema . should_equal "information_schema"
 
         databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
         pending_database = if databases.length != 0 then Nothing else "Cannot tests changing database unless two databases defined."
         Test.specify "should allow changing database" pending=pending_database <|
             new_connection = connection.set_database databases.first
-            new_database = new_connection.read (Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
+            new_database = new_connection.read (SQL_Query.Raw_SQL "SELECT current_database()") . at 0 . to_vector . first
             new_database . should_equal databases.first
 
     Test.group "[PostgreSQL] Tables and Table Types" <|
@@ -91,7 +90,7 @@ postgres_specific_spec connection db_name pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL, "doubles" DOUBLE PRECISION)'
-        t = connection.query (Table_Name tinfo)
+        t = connection.query (SQL_Query.Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2, 0.000000000001]
         t.insert ["abc", Nothing, Nothing, 1.3, Nothing]
         t.insert ["def", 42, True, 1.4, 10]
@@ -118,7 +117,7 @@ postgres_specific_spec connection db_name pending =
     Test.group "[PostgreSQL] Table.aggregate should correctly infer result types" pending=pending <|
         name = Name_Generator.random_name "Ttypes"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
-        t = connection.query (Table_Name name)
+        t = connection.query (SQL_Query.Table_Name name)
         Test.specify "Concatenate, Shortest and Longest" <|
             r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
             r.columns.at 0 . sql_type . should_equal SQL_Type.text
@@ -198,27 +197,27 @@ table_spec =
     ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
     Test.group "[PostgreSQL] SSL connectivity tests" pending=ssl_pending <|
         Test.specify "should connect without ssl parameter" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Username_And_Password db_user db_password)) . should_succeed
+            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)) . should_succeed
 
         Test.specify "should connect, requiring SSL" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Username_And_Password db_user db_password) use_ssl=SSL_Mode.Require) . should_succeed
+            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Require) . should_succeed
 
         Test.specify "should connect be able to verify the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Verify_CA ca_cert_file)) . should_succeed
+            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Verify_CA ca_cert_file)) . should_succeed
 
             ## Default certificate should not accept the self signed certificate.
-            ca_fail = Database.connect (Postgres db_host db_port db_name credentials=(Username_And_Password db_user db_password) use_ssl=SSL_Mode.Verify_CA)
+            ca_fail = Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Verify_CA)
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
         Test.specify "should connect be able to verify the host name against the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
+            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
 
         alternate_host = Environment.get "ENSO_DATABASE_TEST_ALTERNATE_HOST" . if_nothing <|
             if db_host == "127.0.0.1" then "localhost" else Nothing
         pending_alternate = if alternate_host.is_nothing then "Alternative host name not configured." else Nothing
         Test.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
-            ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
+            ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
             ca_fail.is_error . should_equal True
             ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
 
@@ -228,7 +227,7 @@ table_spec =
             connection = Error.throw message
             run_tests connection pending=message
         False ->
-            connection = Database.connect (Postgres (db_host_port.at 0) db_port db_name credentials=(Username_And_Password db_user db_password))
+            connection = Database.connect (Postgres (db_host_port.at 0) db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
             run_tests connection db_name
 
 
@@ -240,18 +239,18 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
     Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
         result = Pgpass.parse_file pgpass_file
         result.length . should_equal 12
-        e1 = Pgpass_Entry_Data "localhost" "5432" "postgres" "postgres" "postgres"
-        e2 = Pgpass_Entry_Data "192.168.4.0" "1234" "foo" "bar" "baz"
-        e3 = Pgpass_Entry_Data "host with : semicolons in it? what?" "*" "*" "*" "well yes, that is possible, the :password: can contain those as well"
-        e4 = Pgpass_Entry_Data ":" ":" ":" ":" ":"
-        e5 = Pgpass_Entry_Data "you can escape an escape too: see \\" "*" "*" "*" "yes it is possible"
-        e6 = Pgpass_Entry_Data "other escapes like \n or \? " "*" "*" "*" "are just parsed as-is"
-        e7 = Pgpass_Entry_Data "a trailing escape character" "*" "*" "*" "is treated as a regular slash\"
-        e8 = Pgpass_Entry_Data "passwords should preserve leading space" "*" "*" "*" "   pass"
-        e9 = Pgpass_Entry_Data "\:" "*" "*" "*" "\:"
-        e10 = Pgpass_Entry_Data "::1" "*" "database_name" "user_that_has_no_password" ""
-        e11 = Pgpass_Entry_Data "*" "*" "*" "*" "fallback_password"
-        e12 = Pgpass_Entry_Data "order_matters" "1234" "this" "will_still_match_the_fallback_password" "not_this_one"
+        e1 = Pgpass.Pgpass_Entry.Value "localhost" "5432" "postgres" "postgres" "postgres"
+        e2 = Pgpass.Pgpass_Entry.Value "192.168.4.0" "1234" "foo" "bar" "baz"
+        e3 = Pgpass.Pgpass_Entry.Value "host with : semicolons in it? what?" "*" "*" "*" "well yes, that is possible, the :password: can contain those as well"
+        e4 = Pgpass.Pgpass_Entry.Value ":" ":" ":" ":" ":"
+        e5 = Pgpass.Pgpass_Entry.Value "you can escape an escape too: see \\" "*" "*" "*" "yes it is possible"
+        e6 = Pgpass.Pgpass_Entry.Value "other escapes like \n or \? " "*" "*" "*" "are just parsed as-is"
+        e7 = Pgpass.Pgpass_Entry.Value "a trailing escape character" "*" "*" "*" "is treated as a regular slash\"
+        e8 = Pgpass.Pgpass_Entry.Value "passwords should preserve leading space" "*" "*" "*" "   pass"
+        e9 = Pgpass.Pgpass_Entry.Value "\:" "*" "*" "*" "\:"
+        e10 = Pgpass.Pgpass_Entry.Value "::1" "*" "database_name" "user_that_has_no_password" ""
+        e11 = Pgpass.Pgpass_Entry.Value "*" "*" "*" "*" "fallback_password"
+        e12 = Pgpass.Pgpass_Entry.Value "order_matters" "1234" "this" "will_still_match_the_fallback_password" "not_this_one"
         entries = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12]
         result.should_equal entries
 
@@ -313,7 +312,7 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
 
     add_ssl props = props+[Pair_Data 'sslmode' 'prefer']
     Test.specify "should use the given credentials" <|
-        c = Postgres credentials=(Username_And_Password "myuser" "mypass")
+        c = Postgres credentials=(Credentials.Username_And_Password "myuser" "mypass")
         c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
         c.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "myuser", Pair_Data "password" "mypass"]
 

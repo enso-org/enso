@@ -2,14 +2,15 @@ from Standard.Base import all
 import Standard.Base.System
 import Standard.Base.Error.Common as Errors
 
-from Standard.Table.Data.Table import Table
-from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Table.Data.Storage import Storage
-from Standard.Table.Delimited.Delimited_Format import Delimited_Format
-from Standard.Table.Delimited.Quote_Style import Quote_Style
-from Standard.Table.Delimited.Delimited_Reader import Detected_Headers, detect_metadata
-from Standard.Table.Data.Match_Columns import Match_Columns
+import project.Data.Table.Table
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Match_Columns.Match_Columns
+import project.Data.Storage.Storage
+import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Quote_Style.Quote_Style
+
+from project.Delimited.Delimited_Reader import Detected_Headers, detect_metadata
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior

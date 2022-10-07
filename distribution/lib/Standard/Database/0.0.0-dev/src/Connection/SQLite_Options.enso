@@ -1,11 +1,10 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.SQLite.SQLite_Connection
-import Standard.Database.Connection.Connection_Options
+import project.Connection.Connection_Options
+import project.Internal.SQLite.SQLite_Connection
 
-# TODO Dubious constructor export
-from project.Connection.SQLite_Options.SQLite_Options import all
-from project.Connection.SQLite_Options.SQLite_Options export all
+from project.Connection.SQLite_Options.SQLite_Options import SQLite
+from project.Connection.SQLite_Options.SQLite_Options export SQLite
 
 type SQLite_Options
     ## Connect to a SQLite DB File or InMemory DB.

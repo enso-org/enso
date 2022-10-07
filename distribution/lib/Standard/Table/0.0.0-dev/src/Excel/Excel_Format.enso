@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table.Table
+import project.Data.Table.Table
+import project.Excel.Excel_Reader
+import project.Excel.Excel_Writer
 
-from Standard.Table.Excel.Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
-import Standard.Table.Excel.Excel_Reader
-import Standard.Table.Excel.Excel_Writer
+from project.Excel.Excel_Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
 
 from project.Excel.Excel_Format.Excel_Format import Excel
 from project.Excel.Excel_Format.Excel_Format export Excel

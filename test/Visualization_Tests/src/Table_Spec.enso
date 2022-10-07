@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Aggregate_Column
 
 from Standard.Database import SQLite
-import Standard.Database
+from Standard.Database import Database
 import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization as Visualization
@@ -32,7 +32,7 @@ visualization_spec connection =
 
     Test.group "Table Visualization" <|
         Test.specify "should wrap internal errors" <|
-            bad_table = Database_Table.Table_Data Nothing Nothing Nothing Nothing
+            bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             vis = Visualization.prepare_visualization bad_table 2
             json = Json.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
             vis . should_equal json.to_text
