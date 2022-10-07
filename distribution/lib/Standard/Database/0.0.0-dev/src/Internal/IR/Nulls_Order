@@ -1,11 +1,5 @@
 from Standard.Base import all
 
-import project.Internal.IR.Expression.Expression
-
-## PRIVATE
-type Order_Descriptor
-    Value (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
-
 ## PRIVATE
 
    Specifies how null values should be handled within the ordering.

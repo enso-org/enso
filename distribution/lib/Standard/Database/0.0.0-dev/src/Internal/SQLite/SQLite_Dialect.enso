@@ -2,13 +2,14 @@ from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
+import project.Data.SQL
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Order_Descriptor
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 
-from project.Data.SQL import join, code
+from project.Data.SQL import code
 from project.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE
@@ -157,7 +158,7 @@ window_aggregate window_type ignore_null args =
         filter_clause = if ignore_null.not then code "" else
             code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
 
-        code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ join "," order_exprs ++ ")"
+        code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL.join "," order_exprs ++ ")"
 
 ## PRIVATE
 concat_ops =

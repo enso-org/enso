@@ -6,8 +6,8 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Join_Kind.Join_Kind
-import project.Internal.IR.Order_Descriptor
-import project.Internal.IR.Nulls_Order
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 from project.Data.SQL import code
 
