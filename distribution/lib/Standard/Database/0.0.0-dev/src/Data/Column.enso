@@ -133,12 +133,12 @@ type Column
                     Error.throw <| Unsupported_Database_Operation_Error "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
-                IR.make_constant actual_operand_type constant
+                Expression.Constant actual_operand_type constant
         actual_operand_types = operand_types.if_nothing (Vector.fill operands.length Nothing)
         expressions = operands.zip actual_operand_types prepare_operand
 
         actual_new_type = new_type.if_nothing self.sql_type
-        new_expr = IR.Operation op_kind ([self.expression] + expressions)
+        new_expr = Expression.Operation op_kind ([self.expression] + expressions)
         Column.Value self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
