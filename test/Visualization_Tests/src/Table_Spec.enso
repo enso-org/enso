@@ -1,11 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Aggregate_Column
-import Standard.Table
 
 from Standard.Database import SQLite
 import Standard.Database
-import Standard.Database.Data.Table as Database_Table
+import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization as Visualization
 

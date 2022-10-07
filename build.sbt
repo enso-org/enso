@@ -210,9 +210,13 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ywarn-unused:privates"              // Warn if a private member is unused.
 )
 
-ThisBuild / Test / testOptions += Tests.Argument(
-  "-oI"
-)
+ThisBuild / Test / testOptions ++=
+  Seq(Tests.Argument("-oI")) ++
+  sys.env
+    .get("ENSO_TEST_JUNIT_DIR")
+    .map { junitDir =>
+      Tests.Argument(TestFrameworks.ScalaTest, "-u", junitDir)
+    }
 
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }

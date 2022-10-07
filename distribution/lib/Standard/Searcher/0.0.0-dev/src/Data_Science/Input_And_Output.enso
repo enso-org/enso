@@ -9,7 +9,7 @@
    > Example
      Read the active sheet of an XLSX from disk and convert it into a table.
 
-         import Standard.Table
+         from Standard.Table import Table
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -17,7 +17,7 @@
    > Example
      Read a CSV from disk and convert it into a table.
 
-         import Standard.Table
+         from Standard.Table import Table
          import Standard.Examples
 
          example_csv_to_table = Examples.csv.read
@@ -25,6 +25,7 @@
    > Example
      Write a table to an XLSX file.
 
+         from Standard.Table import Table
          import Standard.Examples
 
          example_to_xlsx =
@@ -34,6 +35,7 @@
    > Example
      Write a table to a CSV file.
 
+         from Standard.Table import Table
          import Standard.Examples
 
          example_to_csv =

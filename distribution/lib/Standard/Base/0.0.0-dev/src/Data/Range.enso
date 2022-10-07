@@ -96,22 +96,26 @@ type Range
     map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
-    ## Returns a vector of all elements of this range which satisfy a predicate.
+    ## Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - filter: The filter to apply to the range. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
 
        > Example
          Selecting all elements that are greater than 3.
 
              (0.up_to 7).filter (> 3)
-    filter : (Any -> Boolean) -> Vector Any
-    filter self predicate =
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+             (0.up_to 7).filter (Filter_Condition.Greater than=3)
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter filter.to_predicate
+        predicate : Function ->
+            builder = self.fold Vector.new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
 
     ## Applies a function for each element in the range.
 
