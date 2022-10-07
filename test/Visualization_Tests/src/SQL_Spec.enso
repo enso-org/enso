@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database import Database, SQLite
+from Standard.Database import Database, SQLite, Table_Name
 
 import Standard.Visualization.SQL.Visualization as Visualization
 
