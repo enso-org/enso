@@ -774,7 +774,7 @@ final class TreeToIr {
       }
       case Tree.Function fun -> {
         var name = buildName(fun.getName());
-        var args = translateArgumentsDefinition(fun.getArgs(), nil());
+        var args = translateArgumentsDefinition(fun.getArgs());
         var body = translateExpression(fun.getBody(), false);
 
         yield new IR$Function$Binding(name, args, body,
