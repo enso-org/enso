@@ -2,28 +2,32 @@ package org.enso.table.parsing;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/*
-Variables: designated with [ and ].  Right bracket is escaped by doubling - ]]
-Quotes: like Enso, we will accept either ‘ or “ for a string.
-Literals: Int, Float
-Operators: +, -, *, /, %, &, |, ^, =, <, >, <=, >=, <>, !=, &&, ||, !, ~
-Note - there are no assignment operators.  This defines an immutable expression which is incompatible with things like +=
-*/
+import java.util.stream.Collectors;
 
 public class ExpressionParser {
   public enum TokenType {
+    NOTHING,
     NUMBER,
+    BOOLEAN,
     STRING,
     COLUMN_NAME,
     OPERATOR,
+    UNARY_MINUS,
     BRACKET_START,
     BRACKET_END,
     IDENTIFIER,
     COMMA
   }
 
-  public record Token(TokenType type, String value) {}
+  public record Token(TokenType type, String value) {
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof Token other) {
+        return type == other.type && value.equals(other.value);
+      }
+      return false;
+    }
+  }
 
   private static boolean isOperator(char c) {
     return switch (c) {
@@ -39,10 +43,11 @@ public class ExpressionParser {
     };
   }
 
-  private static boolean isDigit(char c, boolean allowDecimalPoint) {
+  private static boolean isDigit(char c, boolean allowDecimalPoint, boolean allowUnderscore) {
     return switch (c) {
       case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> true;
       case '.' -> allowDecimalPoint;
+      case '_' -> allowUnderscore;
       default -> false;
     };
   }
@@ -50,16 +55,13 @@ public class ExpressionParser {
   private static boolean isLetter(char c) {
     return switch (c) {
       case 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-           'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' -> true;
+          'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' -> true;
       default -> false;
     };
   }
 
   private static boolean isIdentifier(char c) {
-    return switch (c) {
-      case '_', ' ' -> true;
-      default -> isLetter(c) || isDigit(c, false);
-    };
+    return c == '_' || isLetter(c) || isDigit(c, false, false);
   }
 
   public static List<Token> tokenise(String expression) throws IllegalArgumentException {
@@ -71,20 +73,30 @@ public class ExpressionParser {
       if (isWhitespace(c)) {
         index++;
       } else if (isOperator(c)) {
-        output.add(new Token(TokenType.OPERATOR, Character.toString(c)));
+        index = handleOperator(index, output, c);
         index++;
       } else if (c == '(') {
         output.add(new Token(TokenType.BRACKET_START, "("));
         index++;
       } else if (c == ')') {
-        output.add(new Token(TokenType.BRACKET_START, ")"));
+        output.add(new Token(TokenType.BRACKET_END, ")"));
         index++;
-      } else if (isDigit(c, false)) {
+      } else if (isDigit(c, false, false)) {
         var start = index;
-        while (index < expression.length() && isDigit(expression.charAt(index), true)) {
+
+        boolean foundDecimalPoint = false;
+        while (index < expression.length() && isDigit(expression.charAt(index), !foundDecimalPoint, true)) {
+          if (expression.charAt(index) == '.') {
+            foundDecimalPoint = true;
+          }
           index++;
         }
-        output.add(new Token(TokenType.NUMBER, expression.substring(start, index)));
+        var value = expression.substring(start, index).replace("_", "");
+        if (lastMatches(output, TokenType.UNARY_MINUS)) {
+          output.set(output.size() - 1, new Token(TokenType.NUMBER, "-" + value));
+        } else {
+          output.add(new Token(TokenType.NUMBER, value));
+        }
       } else if (expression.charAt(index) == '"') {
         // Enter Excel Style String
         var end = findEnd(expression, index + 1, '"', '"');
@@ -93,7 +105,7 @@ public class ExpressionParser {
       } else if (expression.charAt(index) == '\'') {
         // Enter Enso Style String
         var end = findEnd(expression, index + 1, '\'', '\\');
-        output.add(new Token(TokenType.STRING, expression.substring(index + 1, end - 1).replaceAll("\\(.)", "$1")));
+        output.add(new Token(TokenType.STRING, expression.substring(index + 1, end - 1).replaceAll("\\\\(.)", "$1")));
         index = end + 1;
       } else if (expression.charAt(index) == '[') {
         // Column Name
@@ -101,11 +113,7 @@ public class ExpressionParser {
         output.add(new Token(TokenType.COLUMN_NAME, expression.substring(index + 1, end - 1).replace("]]", "]")));
         index = end + 1;
       } else if (isLetter(c)) {
-        var start = index;
-        while (index < expression.length() && isIdentifier(expression.charAt(index))) {
-          index++;
-        }
-        output.add(new Token(TokenType.IDENTIFIER, expression.substring(start, index)));
+        index = handleIdentifier(expression, index, output);
       } else if (c == ',') {
         output.add(new Token(TokenType.COMMA, ","));
         index++;
@@ -113,24 +121,117 @@ public class ExpressionParser {
         throw new IllegalArgumentException("Unexpected character " + c + " at position " + index);
       }
     }
-    return output;
+
+    return output.stream()
+        .map(ExpressionParser::MapSingleEquals)         // Map `=` to `==`
+        .collect(Collectors.toList());
+  }
+
+  private static Token MapSingleEquals(Token token) {
+    if (token.equals(new Token(TokenType.OPERATOR, "="))) {
+      return new Token(TokenType.OPERATOR, "==");
+    } else {
+      return token;
+    }
+  }
+
+  private static int handleOperator(int index, List<Token> output, char c) {
+    if (output.size() > 0 && output.get(output.size() - 1).type() == TokenType.OPERATOR) {
+      var prev = output.get(output.size() - 1).value;
+      if (c == '=' && (prev.equals("<") || prev.equals(">") || prev.equals("!") || prev.equals("="))) {
+        output.set(output.size() - 1, new Token(TokenType.OPERATOR, prev + c));
+        index++;
+      } else if (c == '&' && prev.equals("&")) {
+        output.set(output.size() - 1, new Token(TokenType.OPERATOR, "&&"));
+        index++;
+      } else if (c == '|' && prev.equals("|")) {
+        output.set(output.size() - 1, new Token(TokenType.OPERATOR, "||"));
+        index++;
+      } else if (c == '>' && prev.equals("<")) {
+        output.set(output.size() - 1, new Token(TokenType.OPERATOR, "!="));
+        index++;
+      } else if (c == '-' || c == '!') {
+        output.add(new Token(TokenType.OPERATOR, Character.toString(c)));
+      } else {
+        throw new IllegalArgumentException("Unexpected operator '" + prev + c + "' at index " + (index - 1));
+      }
+    } else {
+      if (c == '-' && (output.size() == 0 || lastMatches(output, TokenType.BRACKET_START, TokenType.COMMA, TokenType.IDENTIFIER, TokenType.OPERATOR))) {
+        output.add(new Token(TokenType.UNARY_MINUS, "-"));
+      } else {
+        output.add(new Token(TokenType.OPERATOR, Character.toString(c)));
+      }
+    }
+    return index;
+  }
+
+  private static boolean lastMatches(List<Token> output, TokenType... types) {
+    if (output.size() == 0) {
+      return false;
+    }
+    var last = output.get(output.size() - 1);
+    for (var type : types) {
+      if (last.type() == type) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static int handleIdentifier(String expression, int index, List<Token> output) {
+    var start = index;
+    while (index < expression.length() && isIdentifier(expression.charAt(index))) {
+      index++;
+    }
+    var identifer = expression.substring(start, index);
+    switch (identifer.toLowerCase()) {
+      case "true" -> output.add(new Token(TokenType.BOOLEAN, "True"));
+      case "false" -> output.add(new Token(TokenType.BOOLEAN, "False"));
+      case "and" -> output.add(new Token(TokenType.OPERATOR, "&&"));
+      case "or" -> output.add(new Token(TokenType.OPERATOR, "||"));
+      case "is" -> output.add(new Token(TokenType.OPERATOR, "IS"));
+      case "not" -> {
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT"));
+        } else {
+          output.add(new Token(TokenType.UNARY_MINUS, "!"));
+        }
+      }
+      case "null" -> {
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NULL"));
+        } else if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS NOT"))) {
+          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT NULL"));
+        } else {
+          output.add(new Token(TokenType.NOTHING, "Nothing"));
+        }
+      }
+      case "empty" -> {
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS EMPTY"));
+        } else if (output.size() > 0 && output.get(output.size() - 1) .equals(new Token(TokenType.OPERATOR, "IS NOT"))) {
+          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT EMPTY"));
+        } else {
+          throw new IllegalArgumentException("Unexpected identifier 'Empty' at index " + start);
+        }
+      }
+      default -> output.add(new Token(TokenType.IDENTIFIER, identifer));
+    }
+    return index;
   }
 
   private static int findEnd(CharSequence expression, int index, char label, char escape) throws IllegalArgumentException {
     while (index < expression.length()) {
-      switch (expression.charAt(index)) {
-        case escape -> {
-          if (escape == label && (index + 1 == expression.length() || expression.charAt(index + 1) != label)) {
-            return index + 1;
-          }
-          index += 1;
+      char c = expression.charAt(index);
+      if (c == escape) {
+        if (escape == label && (index + 1 == expression.length() || expression.charAt(index + 1) != label)) {
+          return index + 1;
         }
-        case label -> {
-          return index;
-        }
-        default -> {
-          index++;
-        }
+        index += 2;
+      } else if (c == label) {
+        return index + 1;
+      } else {
+        index++;
       }
     }
 

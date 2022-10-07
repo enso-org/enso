@@ -1,6 +1,16 @@
 from Standard.Base import all
 
-polyglot java import org.enso.table.parsing.ExpressionParser
+import project.Data.Table.Table
+import project.Data.Column.Column
 
-tokenise_expression : Text -> Vector
-tokenise_expression expression = ExpressionParser.tokenise expression
+polyglot java import org.enso.table.parsing.ExpressionEvaluator
+polyglot java import java.util.UUID
+
+type Expression
+    For_Column expression:Text
+
+    evaluate : Table -> Column
+    evaluate self table =
+        getColumn name = table.at name
+        makeConstant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new table.row_count _->value)
+        ExpressionEvaluator.evaluate self.expression getColumn makeConstant

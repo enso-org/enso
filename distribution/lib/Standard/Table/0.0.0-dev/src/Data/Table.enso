@@ -24,6 +24,7 @@ import project.Internal.Table_Helpers
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Data.Expression.Expression
 
 from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
@@ -865,6 +866,9 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
+        _ : Text -> case on_problems.handle_errors (self.at column) fallback=Nothing of
+            Nothing -> self.filter (Expression.For_Column expr . evaluate self) filter on_problems=on_problems
+            _ : Column -> self.filter resolved_column filter on_problems=on_problems
         _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
@@ -937,8 +941,11 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
-    set : Text -> Column | Vector.Vector -> Table
+    set : Text -> Column | Vector.Vector | Text -> Table
     set self name column = case column of
+        _ : Text ->
+            expr = Expression.For_Column column
+            self.set name (expr.evaluate self)
         _ : Vector.Vector ->
             self.set name (Column.from_vector name column)
         Column.Column_Data _ ->

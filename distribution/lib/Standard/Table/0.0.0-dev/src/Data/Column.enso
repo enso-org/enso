@@ -430,6 +430,11 @@ type Column
     && self other =
         run_vectorized_binary_op self "&&" (&&) other
 
+    % : Column | Any -> Column
+    % self other = case other of
+        _ : Column -> self.to_vector.map_with_index i->v->(v % other.at i)
+        _ -> self.map v->(v%other)
+
     ## ALIAS OR Columns
 
        Element-wise boolean disjunction.
