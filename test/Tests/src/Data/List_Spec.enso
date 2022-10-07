@@ -53,6 +53,8 @@ spec = Test.group "List" <|
         list.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5].to_list
         list.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal Nil
         list.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4].to_list
+        list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
+        list.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5].to_list
 
         Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
         list.filter Filter_Condition.Is_True . should_equal Nil

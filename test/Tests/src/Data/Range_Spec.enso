@@ -77,6 +77,8 @@ spec = Test.group "Range" <|
         range.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal []
         range.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
         range.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
+        range.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3]
+        range.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5]
 
         Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
         Test.expect_panic_with (range.filter (Filter_Condition.Like "a%")) Unsupported_Argument_Types_Data
