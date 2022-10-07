@@ -80,7 +80,15 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (linux)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: "true"
+          reporter: java-junit
+      - name: Engine test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Engine Tests (linux)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
@@ -146,7 +154,15 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (macos)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: "true"
+          reporter: java-junit
+      - name: Engine test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Engine Tests (macos)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
@@ -214,7 +230,15 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests (windows)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: "true"
+          reporter: java-junit
+      - name: Engine test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Engine Tests (windows)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: "true"
           reporter: java-junit
 env:
