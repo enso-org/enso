@@ -13,4 +13,4 @@ type Expression
     evaluate self table =
         getColumn name = table.at name
         makeConstant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new table.row_count _->value)
-        ExpressionEvaluator.evaluate self.expression getColumn makeConstant
+        ExpressionEvaluator.evaluate self.expression getColumn makeConstant "Standard.Table.Data.Column"

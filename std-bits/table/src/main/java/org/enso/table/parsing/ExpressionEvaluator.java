@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class ExpressionEvaluator {
 
-  public static Value evaluate(String expression, Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn)
+  public static Value evaluate(String expression, Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn, String moduleName)
     throws UnsupportedOperationException {
     var tokens = ExpressionParser.tokenise(expression);
     List<Value> values = new ArrayList<>(tokens.size());
@@ -29,7 +29,7 @@ public class ExpressionEvaluator {
     }
 
     // Get Enso Column
-    final Value module = Context.getCurrent().getBindings("enso").invokeMember("get_module", "Standard.Table.Data.Column");
+    final Value module = Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", "Column");
     final Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
 
@@ -85,7 +85,7 @@ public class ExpressionEvaluator {
 
   private static void evaluateSubExpression(List<Value> values, Function<String, Value> getMethod)
   {
-    String[][] precedence = {{"~"}, {"*", "/", "%"}, {"negate", "+", "-", "&", "^", "|"}, {"<", "<=", ">", ">=", "==", "!="}, {"IS NULL", "IS NOT NULL", "IS EMPTY", "IS NOT EMPTY"}, {"!"}, {"&&"}, {"||"}};
+    String[][] precedence = {{"negate", "~"}, {"^"}, {"*", "/", "%"}, {"+", "-"}, {"<", "<=", ">", ">=", "==", "!="}, {"IS NULL", "IS NOT NULL", "IS EMPTY", "IS NOT EMPTY", "LIKE", "IN", "BETWEEN"}, {"!"}, {"&&"}, {"||"}};
 
     // Do other operators
     for (String[] operators : precedence) {
@@ -133,10 +133,9 @@ public class ExpressionEvaluator {
 
   private static String ensoOperationName(String operation) {
     return switch (operation) {
-      case "+", "-", "*", "/", "<", "<=", "!=", "==", ">=", ">", "&&", "||", "%" -> operation;
+      case "+", "-", "*", "/", "<", "<=", "!=", "==", ">=", ">", "&&", "||", "%", "^" -> operation;
       case "~" -> "bit_not";
       case "&" -> "bit_and";
-      case "^" -> "bit_xor";
       case "|" -> "bit_or";
       case "!" -> "not";
       case "IS NULL" -> "is_missing";
