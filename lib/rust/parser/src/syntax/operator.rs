@@ -169,7 +169,8 @@ impl<'s> ExpressionBuilder<'s> {
             // it's acting as unary.
             (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::Unary(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
-            (false, None, Some(_)) => self.operand(syntax::Tree::unary_opr_app(opr, None).into()),
+            (false, None, Some(_)) =>
+                self.operand(syntax::tree::apply_unary_operator(opr, None).into()),
             // Binary operator section (no LHS).
             (_, Some(prec), _) => self.binary_operator(prec, assoc, opr),
             // Failed to compute a role for the operator; this should not be possible.
@@ -238,7 +239,7 @@ impl<'s> ExpressionBuilder<'s> {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
                 Arity::Unary(opr) =>
-                    Operand::from(rhs_).map(|item| syntax::Tree::unary_opr_app(opr, item)),
+                    Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
                 Arity::Binary { tokens, lhs_section_termination } => {
                     let lhs = self.output.pop();
                     if let Some(lhs_termination) = lhs_section_termination {

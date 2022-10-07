@@ -14,17 +14,31 @@ use crate::syntax::operator;
 /// All built-in macro definitions.
 pub fn all() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
+    // Contexts:
+    // - Value (Expression)
+    // - Statement
+    // - Type
+    // - Pattern
+
+    // Value context
+    // - match sub: shifted + if start_at_zero then 0 else 1
     macro_map.register(if_then());
     macro_map.register(if_then_else());
+    macro_map.register(case());
+    // Statement context
+    // - no match: from foo bar = 42
+    // - no match: (from foo bar)
+    // - match, error: from foo bar
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
-    macro_map.register(group());
     macro_map.register(type_def());
+    // Symbols, handle in lexer?
+    macro_map.register(group());
     macro_map.register(lambda());
-    macro_map.register(case());
     macro_map.register(array());
     macro_map.register(tuple());
     macro_map.register(splice());
+
     macro_map
 }
 
