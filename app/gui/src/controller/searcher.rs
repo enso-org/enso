@@ -2231,7 +2231,7 @@ pub mod test {
         }
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn picked_completions_list_maintaining() {
         let Fixture { test: _test, searcher, entry1, entry2, .. } =
             Fixture::new_custom(|data, client| {
