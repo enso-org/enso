@@ -9,6 +9,7 @@ import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
 
@@ -132,13 +133,7 @@ public class StringStorage extends SpecializedStorage<String> {
             return Text_Utils.contains(a, b);
           }
         });
-    t.add(
-        new StringBooleanOp(Maps.LIKE) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Pattern.compile(Regex_Utils.sql_like_pattern_to_regex(b)).matcher(a).matches();
-          }
-        });
+    t.add(new LikeOp());
     return t;
   }
 }
