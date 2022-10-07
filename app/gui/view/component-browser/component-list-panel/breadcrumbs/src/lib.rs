@@ -212,12 +212,12 @@ impl Model {
                     entry::Params {
                         margin,
                         text_padding_left: *text_padding,
-                        text_size: text::Size::from(*text_size),
-                        hover_color:*hover_color,
-                        font_name: font.clone(),
-                        selected_color: *selected_color,
+                        text_size:         text::Size::from(*text_size),
+                        hover_color:       hover_color.into(),
+                        font_name:         font.clone(),
+                        selected_color:    selected_color.into(),
                         highlight_corners_radius,
-                        greyed_out_color: *greyed_out_color,
+                        greyed_out_color:  greyed_out_color.into(),
                         greyed_out_start
                     }
                 }

@@ -111,11 +111,11 @@ pub struct Style {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
-    pub background:      frp::Sampler<color::Rgba>,
-    pub hover_highlight: frp::Sampler<color::Rgba>,
-    pub text:            frp::Sampler<color::Rgba>,
-    pub icon_strong:     frp::Sampler<color::Rgba>,
-    pub icon_weak:       frp::Sampler<color::Rgba>,
+    pub background:      frp::Sampler<color::Lcha>,
+    pub hover_highlight: frp::Sampler<color::Lcha>,
+    pub text:            frp::Sampler<color::Lcha>,
+    pub icon_strong:     frp::Sampler<color::Lcha>,
+    pub icon_weak:       frp::Sampler<color::Lcha>,
     pub skip_animations: frp::Any,
 }
 
@@ -128,11 +128,11 @@ impl Colors {
     pub fn from_main_color(
         network: &frp::Network,
         style_watch: &StyleWatchFrp,
-        color: &frp::Stream<color::Rgba>,
+        color: &frp::Stream<color::Lcha>,
         color_intensities: &frp::Stream<ColorIntensities>,
         is_dimmed: &frp::Stream<bool>,
     ) -> Self {
-        fn mix((c1, c2): &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
+        fn mix((c1, c2): &(color::Lcha, color::Lcha), coefficient: &f32) -> color::Lcha {
             color::mix(*c1, *c2, *coefficient)
         }
         let app_bg = style_watch.get_color(ensogl_hardcoded_theme::application::background);
@@ -152,7 +152,7 @@ impl Colors {
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();
             intensity.target <+ is_dimmed.switch(&one, &dimmed_intensity);
-            app_bg <- all_with(&app_bg, &init, |col, ()| color::Rgba::from(col));
+            app_bg <- all_with(&app_bg, &init, |col, ()| color::Lcha::from(col));
             app_bg_and_input <- all(&app_bg, color);
             main <- app_bg_and_input.all_with(&intensity.value, mix);
             app_bg_and_main <- all(&app_bg, &main);

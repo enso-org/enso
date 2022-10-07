@@ -59,7 +59,7 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         entries_params(EntryParams),
         position(Vector2),
         contour(entry::Contour),
-        color(color::Rgba),
+        color(color::Lcha),
         /// Used in [Grid Views with headers](header::GridView). The y position of line separating
         /// the header of scrolled down section from the rest of entries. If other entry than
         /// this header is selected, the highlight should be top-clipped at this position.
@@ -80,7 +80,7 @@ pub struct Animations {
     position:       frp::Stream<Vector2>,
     size:           Animation<Vector2>,
     corners_radius: Animation<f32>,
-    color:          Animation<color::Rgba>,
+    color:          color::Animation,
     top_clip_jump:  Animation<f32>,
     top_clip:       frp::Stream<f32>,
 }
@@ -92,7 +92,7 @@ impl Animations {
         let position_jump = Animation::<Vector2>::new(network);
         let size = Animation::<Vector2>::new(network);
         let corners_radius = Animation::<f32>::new(network);
-        let color = Animation::<color::Rgba>::new(network);
+        let color = color::Animation::new(network);
         let top_clip_jump = Animation::<f32>::new(network);
 
         frp::extend! { network
@@ -168,7 +168,7 @@ where InnerGrid: AsRef<crate::GridView<E>>
             frp::extend! { network
                 highlight_grid_frp.set_entries_params <+ entries_params;
             }
-            kind::Hover::set_color(shape, color::Rgba::black());
+            kind::Hover::set_color(shape, color::Lcha::black());
             kind::Selection::set_size(shape, default());
             layers
         });

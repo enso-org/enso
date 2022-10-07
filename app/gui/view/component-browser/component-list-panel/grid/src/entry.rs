@@ -124,7 +124,7 @@ pub enum MainColor {
     /// The entry should use one variant of predefined color taken from the style sheet.
     Predefined { variant_index: usize },
     /// The entry's color is defined by library's author.
-    Custom(color::Rgba),
+    Custom(color::Lcha),
     /// The entry should have color defined for the Local Scope section.
     LocalScope,
 }
@@ -136,7 +136,7 @@ impl Default for MainColor {
 }
 
 impl MainColor {
-    fn obtain(self, group_colors: &GroupColors) -> color::Rgba {
+    fn obtain(self, group_colors: &GroupColors) -> color::Lcha {
         match self {
             Self::Predefined { variant_index: variant } =>
                 group_colors.variants[variant % group_colors.variants.len()],
@@ -216,8 +216,8 @@ pub struct Params {
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
-    strong_color:   color::Rgba,
-    weak_color:     color::Rgba,
+    strong_color:   color::Lcha,
+    weak_color:     color::Lcha,
     shape:          Option<icon::Any>,
     id:             Option<icon::Id>,
 }
@@ -250,14 +250,14 @@ impl CurrentIcon {
         }
     }
 
-    fn set_strong_color(&mut self, color: color::Rgba) {
+    fn set_strong_color(&mut self, color: color::Lcha) {
         self.strong_color = color;
         if let Some(shape) = &self.shape {
             shape.strong_color.set(color.into());
         }
     }
 
-    fn set_weak_color(&mut self, color: color::Rgba) {
+    fn set_weak_color(&mut self, color: color::Lcha) {
         self.weak_color = color;
         if let Some(shape) = &self.shape {
             shape.weak_color.set(color.into());

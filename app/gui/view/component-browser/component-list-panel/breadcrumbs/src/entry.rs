@@ -185,10 +185,10 @@ impl EntryData {
         self.ellipsis.size.set(size);
     }
 
-    fn set_default_color(&self, color: color::Rgba) {
+    fn set_default_color(&self, color: color::Lcha) {
         self.text.set_property_default(color);
         self.ellipsis.alpha.set(color.alpha);
-        self.separator.color.set(color.into());
+        self.separator.color.set(color::Rgba::from(color).into());
     }
 
     fn set_font(&self, font: String) {
@@ -236,13 +236,13 @@ pub struct Params {
     /// The margin of the entry's [`Contour`]. The [`Contour`] specifies the size of the
     /// clickable area of the entry. If the margin is zero, the contour covers the entire entry.
     pub margin:                   f32,
-    pub hover_color:              color::Rgba,
+    pub hover_color:              color::Lcha,
     pub font_name:                ImString,
     pub text_padding_left:        f32,
     pub text_size:                text::Size,
-    pub selected_color:           color::Rgba,
+    pub selected_color:           color::Lcha,
     pub highlight_corners_radius: f32,
-    pub greyed_out_color:         color::Rgba,
+    pub greyed_out_color:         color::Lcha,
     /// The first greyed out column. All columns to the right will also be greyed out.
     pub greyed_out_start:         Option<Col>,
 }
@@ -268,7 +268,7 @@ impl ensogl_grid_view::Entry for Entry {
         let network = frp.network();
         let color_anim = Animation::new(network);
         let appear_anim = Animation::new(network);
-        fn mix(c1: &color::Rgba, c2: &color::Rgba, coefficient: &f32) -> color::Rgba {
+        fn mix(c1: &color::Lcha, c2: &color::Lcha, coefficient: &f32) -> color::Lcha {
             color::mix(*c1, *c2, *coefficient)
         }
 
@@ -284,7 +284,7 @@ impl ensogl_grid_view::Entry for Entry {
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.highlight_corners_radius).on_change();
-            transparent_color <- init.constant(color::Rgba::transparent());
+            transparent_color <- init.constant(color::Lcha::transparent());
 
             col <- input.set_location._1();
             should_grey_out <- all_with(&col, &greyed_out_from,
@@ -318,7 +318,7 @@ impl ensogl_grid_view::Entry for Entry {
                 |c, r| Contour { corners_radius: *r, ..*c }
             );
             out.hover_highlight_color <+ hover_color;
-            out.selection_highlight_color <+ init.constant(color::Rgba::transparent());
+            out.selection_highlight_color <+ init.constant(color::Lcha::transparent());
 
 
             // === Override column width ===

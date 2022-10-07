@@ -182,9 +182,9 @@ pub type Grid = grid_view::scrollable::SelectableGridViewWithHeaders<entry::View
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct GroupColors {
     /// Variants to be used in groups in column layout.
-    variants:          [color::Rgba; GROUP_COLOR_VARIANT_COUNT],
+    variants:          [color::Lcha; GROUP_COLOR_VARIANT_COUNT],
     /// The color of the group in Local Scope section.
-    local_scope_group: color::Rgba,
+    local_scope_group: color::Lcha,
 }
 
 
@@ -631,8 +631,8 @@ impl component::Frp<Model> for Frp {
             let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
             group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
                 GroupColors {
-                    variants: [g0, g1, g2, g3, g4, g5],
-                    local_scope_group: *ls
+                    variants: [g0, g1, g2, g3, g4, g5].map(color::Lcha::from),
+                    local_scope_group: ls.into()
                 }
             });
 
