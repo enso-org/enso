@@ -1,53 +1,8 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column import Column
-from Standard.Table.Data.Table import Table
 from Standard.Table.Data.Value_Type import Value_Type
 
-from Standard.Table.Data.Filter_Condition.Filter_Condition import all
-
-type Filter_Condition
-    ## Is less than a value (or another column)?
-    Less than:(Column|Any)
-
-    ## Is less than or equal to a value (or another column)?
-    Equal_Or_Less than:(Column|Any)
-
-    ## Is equal to a value (or another column)?
-    Equal to:(Column|Any)
-
-    ## Is greater than or equal to a value (or another column)?
-    Equal_Or_Greater than:(Column|Any)
-
-    ## Is greater than a value (or another column)?
-    Greater than:(Column|Any)
-
-    ## Is not equal to a value (or another column)?
-    Not_Equal to:(Column|Any)
-
-    ## Is between (inclusive) two values (or columns)?'
-    Between lower:(Column|Any) upper:(Column|Any)
-
-    ## Does the value start with a prefix (Text only)?
-    Starts_With (prefix:Text|Column)
-
-    ## Does the value end with a suffix (Text only)?
-    Ends_With (suffix:Text|Column)
-
-    ## Does the value contain the needle (Text only)?
-    Contains (substring:Text|Column)
-
-    ## Is equal to Nothing?
-    Is_Nothing
-
-    ## Is not equal to Nothing?
-    Not_Nothing
-
-    ## Is the value equal to True (Boolean only)?
-    Is_True
-
-    ## Is the value equal to False (Boolean only)?
-    Is_False
+from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask

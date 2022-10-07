@@ -9,6 +9,7 @@ import project.Data.Map
 import project.Data.Maybe
 import project.Data.Noise
 import project.Data.Numbers
+import project.Data.Filter_Condition
 import project.Data.Ordering
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
@@ -93,6 +94,7 @@ export project.Warning
 from project.Data.Array export Array
 from project.Data.Any export all
 from project.Data.Boolean export all
+from project.Data.Filter_Condition export Filter_Condition
 from project.Data.List export Nil, Cons, List
 from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
 from project.Data.Noise export all hiding Noise

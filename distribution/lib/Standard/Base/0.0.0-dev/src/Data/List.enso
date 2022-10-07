@@ -1,6 +1,9 @@
 from Standard.Base.Data.Numbers import all
 from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
+import Standard.Base.Data.Filter_Condition.Filter_Condition
+import Standard.Base.Data.Vector
+import Standard.Base.Function.Function
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe
 
@@ -162,12 +165,13 @@ type List
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Selects all elements of this list which satisfy a predicate.
+    ## Selects all elements of this list which satisfy a condition.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - filter: The filter to apply to the list. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
 
        > Example
          Selecting all elements that are less than 3.
@@ -175,13 +179,17 @@ type List
              import Standard.Examples
 
              example_filter = Examples.list.filter (< 3)
-    filter : (Any -> Boolean) -> List
-    filter self predicate =
-        case self of
-            Cons a b ->
-                rest = b.filter predicate
-                if predicate a then Cons a rest else rest
-            Nil -> Nil
+             example_filter = Examples.list.filter (Filter_Condition.Less than=3)
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter filter.to_predicate
+        predicate : Function ->
+            go_filter list = case list of
+                Cons h t ->
+                    rest = go_filter t
+                    if predicate h then Cons h rest else rest
+                Nil -> Nil
+            go_filter self
 
     ## Applies a function to each element of the list, returning the list of
        results.
@@ -350,6 +358,14 @@ type List
              example_rest = Examples.list.rest
     rest : List ! Empty_Error
     rest self = self.tail
+
+    ## UNSTABLE
+       Convert this list to a vector with the same elements.
+    to_vector : Vector
+    to_vector self =
+        builder = self.fold (Vector.new_builder self.length) builder-> elem->
+            builder.append elem
+        builder.to_vector
 
 ## UNSTABLE
 

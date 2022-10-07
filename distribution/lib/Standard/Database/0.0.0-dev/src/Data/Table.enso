@@ -11,7 +11,7 @@ from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column
 from Standard.Table.Data.Column import get_item_string
 import Standard.Table.Data.Table.Table as Materialized_Table
 from Standard.Table.Data.Table import print_table
-from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
+from Standard.Table.Data.Filter_Condition_Helpers import make_filter_column
 
 from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector
@@ -390,11 +390,11 @@ type Table
                    new_filters = self.context.where_filters + [filter_column.expression]
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
-           case Meta.type_of filter of
-               Filter_Condition ->
+           case filter of
+               _ : Filter_Condition ->
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
-               Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
+               _ : Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems

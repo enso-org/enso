@@ -40,8 +40,42 @@ spec = Test.group "List" <|
     Test.specify "should allow checking if the list is not empty `.not_empty`" <|
         l.not_empty . should_be_true
         empty.not_empty . should_be_false
+    Test.specify "should be convertible to a vector" <|
+        (Cons 3 (Cons "a" (Cons 1 Nil))).to_vector.should_equal [3, "a", 1]
     Test.specify "should allow filtering of the list using `.filter`" <|
         l.filter (> 2) . should_equal (Cons 3 Nil)
+    Test.specify "should filter elements by Filter_Condition" <|
+        list = [1, 2, 3, 4, 5].to_list
+        list.filter (Filter_Condition.Greater than=3) . should_equal [4, 5].to_list
+        list.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3].to_list
+        list.filter (Filter_Condition.Equal to=3) . should_equal (Cons 3 Nil)
+        list.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5].to_list
+        list.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal Nil
+        list.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4].to_list
+
+        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        list.filter Filter_Condition.Is_True . should_equal Nil
+        list.filter Filter_Condition.Is_False . should_equal Nil
+        list.filter Filter_Condition.Is_Nothing . should_equal Nil
+        list.filter Filter_Condition.Not_Nothing . should_equal list
+
+        txt = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"].to_list
+        txt.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"].to_list
+        txt.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"].to_list
+        txt.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"].to_list
+        txt.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"].to_list
+        txt.filter (Filter_Condition.Less than="a") . should_equal Nil
+        txt.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
+        txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
+        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+
+        mixed = [1, Nothing, "b"].to_list
+        mixed.filter Filter_Condition.Is_Nothing . should_equal (Cons Nothing Nil)
+        mixed.filter Filter_Condition.Not_Nothing . should_equal (Cons 1 (Cons "b" Nil))
+
+        bools = [True, False, Nothing, True].to_list
+        bools.filter Filter_Condition.Is_True . should_equal [True, True].to_list
+        bools.filter Filter_Condition.Is_False . should_equal [False].to_list
     Test.specify "should allow mapping a function over its elements with .map" <|
         l.map +1 . head . should_equal 2
     Test.specify "should allow executing an action for each element with .each" <|
@@ -78,3 +112,4 @@ spec = Test.group "List" <|
         l.rest . should_equal (Cons 2 (Cons 3 Nil))
         empty.rest.should_fail_with Empty_Error
 
+main = Test.Suite.run_main spec
