@@ -7,7 +7,6 @@ from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 from Standard.Table.Data.Storage import Storage
 from Standard.Table.Errors import Floating_Point_Grouping_Data
-from Standard.Table.Data.Filter_Condition import Filter_Condition
 
 import Standard.Visualization
 

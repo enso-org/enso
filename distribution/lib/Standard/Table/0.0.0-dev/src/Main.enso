@@ -12,7 +12,6 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Filter_Condition.Filter_Condition
 
 import project.IO.File_Read
 import project.IO.Auto_Detect.Auto_Detect
