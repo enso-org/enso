@@ -35,7 +35,7 @@ public abstract class MethodResolverNode extends Node {
   @Specialization(
       guards = {
         "!getContext().isInlineCachingDisabled()",
-        "cachedSymbol == symbol",
+        "cachedSymbol.equals(symbol)",
         "cachedType == type"
       },
       limit = "CACHE_SIZE")
