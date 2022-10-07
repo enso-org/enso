@@ -61,7 +61,10 @@ public class ExpressionParser {
   }
 
   private static boolean isIdentifier(char c) {
-    return c == '_' || isLetter(c) || isDigit(c, false, false);
+    return switch (c) {
+      case '_' -> true;
+      default -> isLetter(c) || isDigit(c, false, false);
+    };
   }
 
   public static List<Token> tokenise(String expression) throws IllegalArgumentException {
@@ -140,16 +143,12 @@ public class ExpressionParser {
       var prev = output.get(output.size() - 1).value;
       if (c == '=' && (prev.equals("<") || prev.equals(">") || prev.equals("!") || prev.equals("="))) {
         output.set(output.size() - 1, new Token(TokenType.OPERATOR, prev + c));
-        index++;
       } else if (c == '&' && prev.equals("&")) {
         output.set(output.size() - 1, new Token(TokenType.OPERATOR, "&&"));
-        index++;
       } else if (c == '|' && prev.equals("|")) {
         output.set(output.size() - 1, new Token(TokenType.OPERATOR, "||"));
-        index++;
       } else if (c == '>' && prev.equals("<")) {
         output.set(output.size() - 1, new Token(TokenType.OPERATOR, "!="));
-        index++;
       } else if (c == '-' || c == '!') {
         output.add(new Token(TokenType.OPERATOR, Character.toString(c)));
       } else {
