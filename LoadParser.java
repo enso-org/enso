@@ -6,16 +6,23 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.enso.compiler.EnsoCompiler;
+import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.IR$Comment$Documentation;
+import org.enso.syntax.text.AST;
+import org.enso.syntax.text.Shape;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
 import org.graalvm.polyglot.Source;
+import scala.Function1;
 
 class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final File root;
@@ -25,6 +32,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final Set<Path> failed = new LinkedHashSet<>();
     private final Set<Path> irTested = new LinkedHashSet<>();
     private final Map<Path,Exception> irFailed = new LinkedHashMap<>();
+    private final Set<Path> irDiff = new LinkedHashSet<>();
 
     private LoadParser(File root) {
         this.parser = Parser.create();
@@ -73,12 +81,14 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             if (tree == null) {
                 failed.add(file);
             } else {
+                IR.Module ir;
                 try {
                     irTested.add(file);
                     IR.Module m = compiler.generateIR(tree);
                     if (m == null) {
                         throw new NullPointerException();
                     }
+                    ir = sanitize(m);
                 } catch (Exception ex) {
                     if (ex.getClass().getName().contains("UnhandledEntity")) {
                         if (ex.getMessage().contains("= Invalid[")) {
@@ -95,6 +105,44 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                         }
                     }
                     irFailed.put(file, ex);
+                    break TEST;
+                }
+
+                var oldAst = new org.enso.syntax.text.Parser().runWithIds(src.getCharacters().toString());
+                var oldIr = sanitize(AstToIr.translate((AST.ASTOf<Shape>)(Object)oldAst));
+
+                Function<IR, String> filter = (i) -> {
+                  var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
+                  for (;;) {
+                    final String pref = "IdentifiedLocation(";
+                    int at = txt.indexOf(pref);
+                    if (at == -1) {
+                      break;
+                    }
+                    int to = at + pref.length();
+                    int depth = 1;
+                    while (depth > 0) {
+                      switch (txt.charAt(to)) {
+                        case '(': depth++; break;
+                        case ')': depth--; break;
+                      }
+                      to++;
+                    }
+                    txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+                  }
+                  return txt;
+                };
+
+                var old = filter.apply(oldIr);
+                var now = filter.apply(ir);
+                if (!old.equals(now)) {
+                    irDiff.add(file);
+                    var oldFile = file.getParent().resolve(file.getFileName() + ".old");
+                    var nowFile = file.getParent().resolve(file.getFileName() + ".now");
+                    System.err.println("difference1: " + oldFile);
+                    System.err.println("difference2: " + nowFile);
+                    Files.writeString(oldFile , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                    Files.writeString(nowFile, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                 }
             }
         } catch (Exception ex) {
@@ -127,5 +175,20 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         }
         System.out.println("Found " + visited.size() + " files. " + failed.size() + " failed to parse");
         System.out.println("From " + irTested.size() + " files " + irFailed.size() + " failed to produce IR");
+        System.out.println("From " + (irTested.size() - irFailed.size()) + " files " + irDiff.size() + " have different IR");
     }
+
+    private static IR.Module sanitize(IR.Module m) {
+        class NoComments implements Function1<IR.Expression, IR.Expression> {
+            @Override
+            public IR.Expression apply(IR.Expression exp) {
+                if (exp instanceof IR$Comment$Documentation) {
+                    return null;
+                }
+                return exp.mapExpressions(this);
+            }
+        }
+        return m.mapExpressions(new NoComments());
+    }
+
 }
