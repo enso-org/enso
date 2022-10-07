@@ -752,7 +752,6 @@ impl {
     /// embedded font list.
     pub fn try_load(&mut self, name:impl Into<Name>) -> Option<FontWithAtlas> {
         let name = name.into();
-        debug!("Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => Some(entry.get().clone_ref()),
             Entry::Vacant   (entry) => {

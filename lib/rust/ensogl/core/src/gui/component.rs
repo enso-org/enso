@@ -9,7 +9,6 @@ use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
-use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeDataHasher;
 use crate::display::shape::primitive::system::ShapeInstance;
@@ -117,7 +116,7 @@ impl<S: Shape> ShapeViewModel<S> {
         let events = PointerTarget::new();
         let pointer_targets = RefCell::new(vec![something.global_instance_id]);
         let data = RefCell::new(data);
-        scene.shapes.insert_mouse_target(something.global_instance_id, events.clone_ref());
+        scene.pointer_target_registry.insert(something.global_instance_id, events.clone_ref());
         ShapeViewModel { shape, data, events, pointer_targets }
     }
 
@@ -155,7 +154,7 @@ impl<S: Shape> ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let (shape, instance) = layer.instantiate(scene, &*self.data.borrow());
-        scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
+        scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
     }
@@ -164,7 +163,7 @@ impl<S: Shape> ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-            scene().shapes.remove_mouse_target(global_instance_id);
+            scene().pointer_target_registry.remove(global_instance_id);
         }
     }
 }

@@ -60,71 +60,41 @@ pub use pointer_target::PointerTargetId;
 // === ShapeRegistry ===
 // =====================
 
-shared! { ShapeRegistry
+shared! { PointerTargetRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
-    //            after proper implementation of text depth sorting, which is the only component
-    //            using the obsolete fields now.
-    scene            : Option<Scene>,
-    shape_system_map : HashMap<TypeId,Box<dyn Any>>,
     mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
 }
 
 impl {
     fn new(background: &PointerTarget) -> Self {
-        let scene = default();
-        let shape_system_map = default();
         let mouse_target_map = default();
-        Self {scene, shape_system_map, mouse_target_map} . init(background)
+        Self {mouse_target_map} . init(background)
     }
 
-    // // T:ShapeSystemInstance
-    fn get<S:display::shape::system::Shape>(&self) -> Option<ShapeSystem<S>> {
-        let id = TypeId::of::<S>();
-        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<ShapeSystem<S>>()).map(|t| t.clone_ref())
-    }
-
-    // // S:ShapeSystemInstance
-    fn register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
-        panic!()
-        // let id     = TypeId::of::<S>();
-        // let system = ShapeSystem::<S>::new(self.scene.as_ref().unwrap());
-        // let any    = Box::new(system.clone_ref());
-        // self.shape_system_map.insert(id,any);
-        // system
-    }
-
-    fn get_or_register<S:display::shape::system::Shape>(&mut self) -> ShapeSystem<S> {
-        self.get().unwrap_or_else(|| self.register())
-    }
-
-    pub fn shape_system<S:display::shape::system::Shape>
-    (&mut self, _phantom:PhantomData<S>) -> ShapeSystem<S> {
-        self.get_or_register::<S>()
-    }
-
-    pub fn new_instance<S:display::shape::system::Shape>(&mut self) -> ShapeInstance<S> {
-        let system = self.get_or_register::<S>();
-        system.new_instance()
-    }
-
-    pub fn insert_mouse_target
+    pub fn insert
     (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
         self.mouse_target_map.insert(id.into(),target.into());
     }
 
-    pub fn remove_mouse_target
+    pub fn remove
     (&mut self, id:impl Into<PointerTargetId>) {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
+    pub fn get(&self, target:PointerTargetId) -> Option<PointerTarget> {
         self.mouse_target_map.get(&target).cloned()
     }
 }}
 
-impl ShapeRegistry {
+impl ShapeRegistryData {
+    fn init(mut self, background: &PointerTarget) -> Self {
+        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+        self
+    }
+}
+
+impl PointerTargetRegistry {
     /// Runs the provided function on the [`PointerTarget`] associated with the provided
     /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
     /// evaluation of the provided function this registry might be changed, which would result in
@@ -134,20 +104,13 @@ impl ShapeRegistry {
         target: PointerTargetId,
         f: impl FnOnce(&PointerTarget) -> T,
     ) -> Option<T> {
-        match self.get_mouse_target(target) {
+        match self.get(target) {
             Some(target) => Some(f(&target)),
             None => {
                 WARNING!("Internal error. Symbol ID {target:?} is not registered.");
                 None
             }
         }
-    }
-}
-
-impl ShapeRegistryData {
-    fn init(mut self, background: &PointerTarget) -> Self {
-        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
-        self
     }
 }
 
@@ -740,7 +703,7 @@ pub struct SceneData {
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
     pub background: PointerTarget,
-    pub shapes: ShapeRegistry,
+    pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
     pub logger: Logger,
@@ -775,7 +738,7 @@ impl SceneData {
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
         let background = PointerTarget::new();
-        let shapes = ShapeRegistry::new(&background);
+        let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
@@ -816,7 +779,7 @@ impl SceneData {
             mouse,
             keyboard,
             uniforms,
-            shapes,
+            pointer_target_registry,
             background,
             stats,
             dirty,
@@ -999,24 +962,30 @@ impl SceneData {
     /// mouse release events. To learn more see the documentation of [`PointerTarget`].
     fn init_mouse_down_and_up_events(&self) {
         let network = &self.frp.network;
-        let shapes = &self.shapes;
+        let pointer_target_registry = &self.pointer_target_registry;
         let target = &self.mouse.target;
         let pointer_position_changed = &self.pointer_position_changed;
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
-            eval self.mouse.frp.down ([shapes,target,pressed](button) {
+            eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
                 let current_target = target.get();
                 pressed.borrow_mut().insert(*button,current_target);
-                shapes.with_mouse_target(current_target, |t| t.emit_mouse_down(*button));
+                pointer_target_registry.with_mouse_target(current_target, |t|
+                    t.emit_mouse_down(*button)
+                );
             });
 
-            eval self.mouse.frp.up ([shapes,target,pressed](button) {
+            eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    shapes.with_mouse_target(last_target, |t| t.emit_mouse_release(*button));
+                    pointer_target_registry.with_mouse_target(last_target, |t|
+                        t.emit_mouse_release(*button)
+                    );
                 }
-                shapes.with_mouse_target(current_target, |t| t.emit_mouse_up(*button));
+                pointer_target_registry.with_mouse_target(current_target, |t|
+                    t.emit_mouse_up(*button)
+                );
             });
 
             eval_ self.mouse.frp.position (pointer_position_changed.set(true));
@@ -1033,8 +1002,9 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.shapes.with_mouse_target(current_target, |t| t.mouse_out.emit(()));
-            self.shapes.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
+            self.pointer_target_registry
+                .with_mouse_target(current_target, |t| t.mouse_out.emit(()));
+            self.pointer_target_registry.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }
@@ -1068,8 +1038,8 @@ impl Scene {
         let no_mut_access = SceneData::new(logger, stats, on_mut);
         let this = Self { no_mut_access };
 
-        // FIXME MEMORY LEAK:
-        this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
+        // // FIXME MEMORY LEAK:
+        // this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
         this
     }
 
