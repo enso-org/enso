@@ -221,6 +221,16 @@ impl Model {
         }
     }
 
+    fn set_first_breadcrumb(&self, text: &str) {
+        if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
+            browser.model().list.model().breadcrumbs.set_entry((ImString::new(text).into(), 0));
+        }
+    }
+
+    fn on_active_section_change(&self, section_id: component_grid::SectionId) {
+        self.set_first_breadcrumb(section_id.as_str());
+    }
+
     fn module_entered(&self, module: component_grid::ElementId) {
         self.enter_module(module);
     }
@@ -380,6 +390,7 @@ impl Searcher {
                     eval entry_selected((entry) model.suggestion_selected(*entry));
                     eval grid.module_entered((id) model.module_entered(*id));
                     eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
+                    eval grid.active_section((section) model.on_active_section_change(*section));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {

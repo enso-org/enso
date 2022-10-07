@@ -347,12 +347,20 @@ impl Model {
         self.grid.set_entries_params(params);
     }
 
+    /// Set the breadcrumb at a specified index. Does nothing if index is out of bounds.
+    pub fn set_entry(&self, entry: &Breadcrumb, index: BreadcrumbId) {
+        if let Some(e) = self.entries.borrow_mut().get_mut(index) {
+            *e = entry.clone_ref();
+        }
+        self.grid.request_model_for_visible_entries();
+    }
+
     /// Set the breadcrumbs starting from the [`starting_from`] index. Existing entries after
     /// [`starting_from`] will be overwritten. [`self.entries`] will be extended if needed to fit
     /// all added entries.
     /// Immediately selects the last breadcrumb. All inactive (greyed out) breadcrumbs will be
     /// removed.
-    pub fn set_entries(&self, starting_from: usize, new_entries: &[Breadcrumb]) {
+    pub fn set_entries(&self, new_entries: &[Breadcrumb], starting_from: BreadcrumbId) {
         {
             let mut borrowed = self.entries.borrow_mut();
             let end_of_overwritten_entries = starting_from + new_entries.len();
@@ -375,7 +383,7 @@ impl Model {
     /// A newly added breadcrumb will be placed after the currently selected one. All inactive
     /// (greyed out) breadcrumbs will be removed.
     pub fn push(&self, breadcrumb: &Breadcrumb) {
-        self.set_entries(self.entries.borrow().len(), &[breadcrumb.clone_ref()]);
+        self.set_entries(&[breadcrumb.clone_ref()], self.entries.borrow().len());
     }
 
     /// Move the selection to the previous breadcrumb. Stops at the first one. There is always at
@@ -432,6 +440,8 @@ ensogl_core::define_endpoints_2! {
         push(Breadcrumb),
         /// Set the displayed breadcrumbs starting from the specific index.
         set_entries_from((Vec<Breadcrumb>, usize)),
+        /// Set the breadcrumb at a specified index.
+        set_entry((Breadcrumb, usize)),
         /// Enable or disable displaying of the ellipsis icon at the end of the list.
         show_ellipsis(bool),
         /// Remove all breadcrumbs.
@@ -484,7 +494,8 @@ impl Breadcrumbs {
             eval_ input.clear(model.clear());
             selected <- selected_grid_col.map(|(_, col)| col / 2);
             eval input.push((b) model.push(b));
-            eval input.set_entries_from(((entries, from)) model.set_entries(*from, entries));
+            eval input.set_entries_from(((entries, from)) model.set_entries(entries, *from));
+            eval input.set_entry(((entry, index)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
             scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid
