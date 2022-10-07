@@ -2,7 +2,7 @@ from Standard.Base import Any, Text, Problem_Behavior, Nothing, Error, Panic, Me
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Unsupported_File_Type_Data, No_Such_Method_Error_Data, Illegal_Argument_Error_Data
 
-import Standard.Table.IO.Auto_Detect.Auto_Detect
+import project.IO.Auto_Detect.Auto_Detect
 
 ## ALIAS Read Text File, Read File
 

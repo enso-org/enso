@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Expression.Expression
+
+type Internal_Column
+    ## PRIVATE
+
+       An internal column structure.
+
+       Arguments:
+       - name: The column name.
+       - sql_type: The SQL type of the column.
+       - expression: An expression for applying to the column.
+    Value name:Text sql_type:SQL_Type expression:Expression
+
+    ## PRIVATE
+
+       Rename the internal column.
+
+       Arguments:
+       - new_name: The new name for the column.
+    rename : Text -> Internal_Column
+    rename self new_name = Internal_Column.Value new_name self.sql_type self.expression

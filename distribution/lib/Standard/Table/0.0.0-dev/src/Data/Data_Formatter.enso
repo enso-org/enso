@@ -1,10 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 
-import Standard.Table.Data.Column_Type_Selection.Auto
-import Standard.Table.Data.Storage.Storage
-
-import Standard.Table.Internal.Parse_Values_Helper
+import project.Data.Column_Type_Selection.Auto
+import project.Data.Storage.Storage
+import project.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser

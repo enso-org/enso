@@ -1,15 +1,17 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.IR
+import project.Data.SQL
+import project.Data.SQL.Builder
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Query.Query
+from project.Data.SQL import code
 
-from Standard.Database.Data.SQL import Builder, code
-import Standard.Database.Data.SQL
-
-from Standard.Database.Errors import Unsupported_Database_Operation_Error
-
-# TODO Dubious constructor export
-from project.Internal.Base_Generator.Internal_Dialect import all
-from project.Internal.Base_Generator.Internal_Dialect export all
+from project.Errors import Unsupported_Database_Operation_Error
 
 type Internal_Dialect
 
@@ -26,7 +28,7 @@ type Internal_Dialect
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
-    Internal_Dialect_Data (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier:(Text->Builder))
+    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier:(Text->Builder))
 
     ## PRIVATE
 
@@ -37,7 +39,7 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect_Data new_map self.wrap_identifier
+        Internal_Dialect.Value new_map self.wrap_identifier
 
 ## PRIVATE
 
@@ -173,7 +175,7 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
-    Internal_Dialect_Data base_map wrap_in_quotes
+    Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
 
@@ -182,16 +184,16 @@ base_dialect =
    Arguments:
    - dialect: The SQL dialect in which the expression is being generated.
    - expr: The expression to generate SQL code for.
-generate_expression : Internal_Dialect -> IR.Expression -> Builder
+generate_expression : Internal_Dialect -> Expression | Order_Descriptor -> Builder
 generate_expression dialect expr = case expr of
-    IR.Column origin name ->
+    Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-    IR.Constant sql_type value -> SQL.interpolation sql_type value
-    IR.Operation kind arguments ->
+    Expression.Constant sql_type value -> SQL.interpolation sql_type value
+    Expression.Operation kind arguments ->
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
-    IR.Order_Descriptor_Data _ _ _ _ -> generate_order dialect expr
+    _ : Order_Descriptor -> generate_order dialect expr
 
 ## PRIVATE
 
@@ -215,22 +217,22 @@ alias dialect name =
    - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
-    IR.From_Table name as_name ->
+    From_Spec.From_Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
-    IR.From_Query raw_sql as_name ->
+    From_Spec.From_Query raw_sql as_name ->
         code raw_sql . paren ++ alias dialect as_name
-    IR.Join kind left_spec right_spec on ->
+    From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
         prefix = case kind of
-            IR.Join_Inner -> "INNER JOIN"
-            IR.Join_Left -> "LEFT JOIN"
-            IR.Join_Right -> "RIGHT JOIN"
-            IR.Join_Cross -> "CROSS JOIN"
+            Join_Kind.Inner -> "INNER JOIN"
+            Join_Kind.Left -> "LEFT JOIN"
+            Join_Kind.Right -> "RIGHT JOIN"
+            Join_Kind.Cross -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
         left ++ (" " + prefix + " ") ++ right ++ ons
-    IR.Sub_Query columns context as_name ->
-        sub = generate_query dialect (IR.Select columns context)
+    From_Spec.Sub_Query columns context as_name ->
+        sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
 
 ## PRIVATE
@@ -247,8 +249,8 @@ generate_order dialect order_descriptor =
         Sort_Direction.Descending -> " DESC"
     nulls_suffix = case order_descriptor.nulls_order of
         Nothing -> ""
-        IR.Nulls_First -> " NULLS FIRST"
-        IR.Nulls_Last -> " NULLS LAST"
+        Nulls_Order.First -> " NULLS FIRST"
+        Nulls_Order.Last -> " NULLS LAST"
     collation = case order_descriptor.collation of
         Nothing -> ""
         collation_name -> ' COLLATE "' + collation_name + '"'
@@ -263,7 +265,7 @@ generate_order dialect order_descriptor =
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - ctx: A description of the SELECT clause.
-generate_select_context : Internal_Dialect -> IR.Context -> Builder
+generate_select_context : Internal_Dialect -> Context -> Builder
 generate_select_context dialect ctx =
     gen_exprs exprs = exprs.map (generate_expression dialect)
     from_part = generate_from_part dialect ctx.from_spec
@@ -301,15 +303,15 @@ generate_insert_query dialect table_name pairs =
    Arguments:
    - dialect: The SQL dialect for which the code is being generated.
    - query: An IR describing the query.
-generate_query : Internal_Dialect -> IR.Query -> Builder
+generate_query : Internal_Dialect -> Query -> Builder
 generate_query dialect query = case query of
-    IR.Select columns ctx ->
+    Query.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
         cols = SQL.join ", " (columns.map gen_column)
         code "SELECT " ++ cols ++ generate_select_context dialect ctx
-    IR.Select_All ctx ->
+    Query.Select_All ctx ->
         code "SELECT * " ++ generate_select_context dialect ctx
-    IR.Insert table_name pairs ->
+    Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."
 

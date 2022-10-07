@@ -1,9 +1,5 @@
 from Standard.Base import Text
 
-# TODO Dubious constructor export
-from project.Data.SQL_Query.SQL_Query import all
-from project.Data.SQL_Query.SQL_Query export all
-
 type SQL_Query
     ## Query a whole table or view.
     Table_Name name:Text
