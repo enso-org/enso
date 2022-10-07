@@ -1,9 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.regex.Pattern;
-
-import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
