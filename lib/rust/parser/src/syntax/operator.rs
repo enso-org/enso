@@ -118,7 +118,7 @@ fn starts_new_no_space_group(item: &syntax::item::Item) -> bool {
         return true;
     }
     if let syntax::item::Item::Token(Token { variant: token::Variant::Operator(opr), .. }) = item
-            && opr.properties.is_sequence() {
+            && opr.properties.breaks_nospace_group() {
         return true;
     }
     false

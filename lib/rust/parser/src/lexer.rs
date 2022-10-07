@@ -652,6 +652,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
             return operator
                 .with_binary_infix_precedence(1)
                 .as_right_associative()
+                .as_nospace_group_breaker()
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
                 .as_arrow(),
@@ -664,6 +665,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         "," =>
             return operator
                 .with_binary_infix_precedence(1)
+                .as_nospace_group_breaker()
                 .as_compile_time_operation()
                 .as_sequence(),
         "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
