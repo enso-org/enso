@@ -180,8 +180,6 @@ mod background {
     ensogl_core::define_shape_system! {
         below = [grid::entry::background, list_view::overlay];
         (style:Style,bg_color:Vector4) {
-            // let theme_path: style::Path = list_panel_theme::HERE.into();
-
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
 
@@ -370,10 +368,6 @@ impl component::Frp<Model> for Frp {
         let input = &frp_api.input;
         let output = &frp_api.output;
 
-        tracing::warn!("Init");
-        //TODO[ao] what about it?
-        // let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
-        // selection_animation.set_spring.emit(spring);
         frp::extend! { network
 
             is_visible <- bool(&input.hide, &input.show);
@@ -382,7 +376,8 @@ impl component::Frp<Model> for Frp {
                 model.is_hovered(pos.xy())
             })).gate(&is_visible).on_change();
             // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible
+            //   component browser is visible. The proper implementation is tracked in
+            //   https://www.pivotaltracker.com/story/show/180872763
             model.grid.set_focus <+ is_visible;
 
             on_hover <- is_hovered.on_true();

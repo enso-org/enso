@@ -109,8 +109,8 @@ const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
-        groups:           GROUPS.into(),
-        local_scope_size: LOCAL_SCOPE_GROUP_SIZE,
+        groups:                  GROUPS.into(),
+        local_scope_entry_count: LOCAL_SCOPE_GROUP_SIZE,
     }
 }
 

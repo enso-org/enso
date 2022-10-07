@@ -298,7 +298,7 @@ mod tests {
     use crate::column::*;
 
     #[test]
-    fn group_layout() {
+    fn checking_element_at_location_and_location_of_element() {
         let group_ids =
             (0..6).map(|index| GroupId { section: SectionId::Popular, index }).collect_vec();
         let group_sizes = vec![2, 1, 3, 3, 2, 1];
@@ -327,6 +327,7 @@ mod tests {
             element: ElementInGroup::Entry(entry_idx),
         };
 
+        // Check all possible locations.
         assert_eq!(layout.element_at_location(0, LEFT), None);
         assert_eq!(layout.element_at_location(0, CENTER), Some(header_of(3)));
         assert_eq!(layout.element_at_location(0, RIGHT), None);
@@ -349,6 +350,7 @@ mod tests {
         assert_eq!(layout.element_at_location(9, CENTER), Some(local_scope_entry(7)));
         assert_eq!(layout.element_at_location(9, RIGHT), None);
 
+        // Check location of all possible elements
         assert_eq!(layout.location_of_element(header_of(3)), Some((0, CENTER)));
         assert_eq!(layout.location_of_element(entry_of(3, 0)), Some((1, CENTER)));
         assert_eq!(layout.location_of_element(header_of(5)), Some((1, RIGHT)));
@@ -369,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn group_layouts_with_empty_column_and_local_scope() {
+    fn checking_element_at_location_and_location_of_element_empty_column_and_empty_local_scope() {
         let mut layout = Layout::new(3, 3, 0);
         let group = Group {
             id:              GroupId { section: SectionId::Popular, index: 0 },

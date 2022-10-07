@@ -54,6 +54,7 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use ensogl_text as text;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -90,6 +91,13 @@ pub mod prelude {
 pub mod column {
     use ensogl_grid_view::Col;
 
+    /// The priority telling which column will be selected first when switching to section having
+    /// many lowest elements (with maximum row index).
+    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
+
+    // The constants below plays informative role, and should not be easily changed, as the
+    // layouter algorithm rely strongly on assumption that there are 3 columns.
+
     /// Number of columns in Component List Panel Grid.
     pub const COUNT: usize = 3;
     /// The index of left column.
@@ -98,9 +106,6 @@ pub mod column {
     pub const CENTER: Col = 1;
     /// The index of right column.
     pub const RIGHT: Col = 2;
-    /// The priority telling which column will be selected first when switching to section having
-    /// many lowest elements (with maximum row index).
-    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
 }
 /// The number of color variants taken from the style sheet, used to coloring group without color
 /// specified by library author.
@@ -285,7 +290,7 @@ impl Model {
     /// The grid is resetting: remove all data regarding existing entries and return new grid size.
     fn reset(&self, content: &content::Info) -> (Row, Col) {
         let layouter = layouting::Layouter::new(content.groups.iter().copied());
-        let layout = layouter.create_layout(content.local_scope_size);
+        let layout = layouter.create_layout(content.local_scope_entry_count);
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
         *self.colors.borrow_mut() = Self::collect_colors(content);
@@ -303,7 +308,7 @@ impl Model {
                 let color = match (group.color, group.id.section) {
                     (Some(color), _) => entry::MainColor::Custom(color.into()),
                     (None, SectionId::LocalScope) => entry::MainColor::LocalScope,
-                    _ => entry::MainColor::Predefined { variant },
+                    _ => entry::MainColor::Predefined { variant_index: variant },
                 };
                 (group.id, color)
             })
@@ -599,8 +604,8 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             // === Active Entry ===
 
-            out.active <+ grid.entry_selected.filter_map(
-                f!([model](loc) model.location_to_element_id(loc.as_ref()?))
+            out.active <+ grid.entry_selected.filter_map(f!((loc)
+                model.location_to_element_id(loc.as_ref()?))
             );
             out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
@@ -648,7 +653,7 @@ impl component::Frp<Model> for Frp {
             eval grid_position ((pos) model.grid.set_position_xy(*pos));
             grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
             grid.set_entries_size <+ style.update.map(|s| s.entry_size());
-            grid.set_column_width <+ style.update.map(|s| (1, s.middle_column_width()));
+            grid.set_column_width <+ style.update.map(|s| (column::CENTER, s.middle_column_width()));
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
 

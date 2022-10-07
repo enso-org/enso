@@ -118,13 +118,11 @@ pub enum Kind {
 ///
 /// Each group has devined "main color" for entries, from which are derived colros of various
 /// entries' elements: text, icon, background, etc. (see [`style::Colors`] documentation).
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug)]
 pub enum MainColor {
     /// The entry should use one variant of predefined color taken from the style sheet.
-    Predefined {
-        /// The index of the variant.
-        variant: usize,
-    },
+    Predefined { variant_index: usize },
     /// The entry's color is defined by library's author.
     Custom(color::Rgba),
     /// The entry should have color defined for the Local Scope section.
@@ -133,14 +131,14 @@ pub enum MainColor {
 
 impl Default for MainColor {
     fn default() -> Self {
-        Self::Predefined { variant: 0 }
+        Self::Predefined { variant_index: 0 }
     }
 }
 
 impl MainColor {
     fn obtain(self, group_colors: &GroupColors) -> color::Rgba {
         match self {
-            Self::Predefined { variant } =>
+            Self::Predefined { variant_index: variant } =>
                 group_colors.variants[variant % group_colors.variants.len()],
             Self::Custom(color) => color,
             Self::LocalScope => group_colors.local_scope_group,
@@ -310,6 +308,8 @@ impl Data {
         grid_style: &GridStyle,
         entry_size: Vector2,
     ) {
+        // For explanation how differend kinds of entry should behave, see documentation of
+        // [`Kind`].
         let local_scope_offset = match kind {
             Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
             _ => 0.0,
@@ -322,8 +322,6 @@ impl Data {
             Kind::Header => grid_style.column_gap,
             _ => 0.0,
         };
-        // For explanation how differend kinds of entry should behave, see documentation of
-        // [`Kind`].
         let bg_width = match kind {
             Kind::LocalScopeEntry { .. } => entry_size.x,
             _ => grid_style.column_width(),

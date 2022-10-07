@@ -483,11 +483,15 @@ impl Data {
 }
 
 /// A helper wrapper for the state needed to provide the list of visible components.
+///
+/// It wraps the [`component::List`] structure and provide API providing always currently visible
+/// entries. Those in turn depends on current breadcrumbs state and presence of
+/// ["this" argument](ThisNode).
 #[derive(Clone, Debug, CloneRef)]
 pub struct ComponentsProvider {
     breadcrumbs:  Breadcrumbs,
     list:         component::List,
-    has_this_arg: Rc<bool>,
+    has_this_arg: Immutable<bool>,
 }
 
 impl ComponentsProvider {
@@ -508,7 +512,7 @@ impl ComponentsProvider {
     /// The favorites section is not empty only if the root module is selected.
     pub fn favorites(&self) -> group::List {
         if self.breadcrumbs.is_top_module() {
-            self.components().favorites
+            self.components().favorites.clone_ref()
         } else {
             default()
         }
@@ -520,12 +524,12 @@ impl ComponentsProvider {
         if let Some(selected) = self.breadcrumbs.selected() {
             components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
         } else {
-            components.local_scope
+            components.local_scope.clone_ref()
         }
     }
 
-    fn components(&self) -> component::List {
-        self.list.clone_ref()
+    fn components(&self) -> &component::List {
+        &self.list
     }
 }
 
@@ -667,7 +671,7 @@ impl Searcher {
         ComponentsProvider {
             breadcrumbs:  self.breadcrumbs.clone_ref(),
             list:         self.components(),
-            has_this_arg: Rc::new(self.this_arg.is_some()),
+            has_this_arg: Immutable(self.this_arg.is_some()),
         }
     }
 
@@ -707,7 +711,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
-        tracing::debug!("Manually setting input to {new_input}.");
+        debug!("Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
         let new_expr = parsed_input.expression.repr();
@@ -749,11 +753,11 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        tracing::info!("Picking suggestion: {picked_suggestion:?}.");
+        info!("Picking suggestion: {picked_suggestion:?}.");
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{code_to_insert}\"");
+        debug!("Code to insert: \"{code_to_insert}\"");
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
@@ -810,7 +814,7 @@ impl Searcher {
 
     /// Preview the suggestion in the searcher.
     pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
-        tracing::debug!("Previewing entry: {index:?}.");
+        debug!("Previewing entry: {index:?}.");
         let error = || NoSuchAction { index };
         let suggestion = {
             let data = self.data.borrow();
@@ -826,13 +830,13 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
-        tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{code_to_insert}\".",);
+        debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         {
@@ -850,7 +854,7 @@ impl Searcher {
             self.mode.node_id(),
             Box::new(|md| md.intended_method = intended_method),
         )?;
-        tracing::warn!("Previewing expression: \"{:?}\".", expression);
+        warn!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -923,7 +927,7 @@ impl Searcher {
             let list = data.actions.list().ok_or_else(error)?;
             list.get_cloned(index).ok_or_else(error)?.action
         };
-        tracing::debug!("Previewing action: {action:?}");
+        debug!("Previewing action: {action:?}");
         Ok(())
     }
 
@@ -1084,20 +1088,18 @@ impl Searcher {
             .filter_map(|(id, import_metadata)| {
                 import_metadata.is_temporary.then(|| {
                     if let Err(e) = module.remove_import_by_id(id) {
-                        tracing::warn!("Failed to remove import because of: {e:?}");
+                        warn!("Failed to remove import because of: {e:?}");
                     }
                     id
                 })
             })
             .collect_vec();
         if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
-            tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
+            warn!("Failed to update module ast when removing imports because of: {e:?}");
         }
         for id in metadata_to_remove {
             if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
-                tracing::warn!(
-                    "Failed to remove import metadata for import id {id} because of: {e:?}"
-                );
+                warn!("Failed to remove import metadata for import id {id} because of: {e:?}");
             }
         }
     }
@@ -1445,11 +1447,11 @@ struct EditGuard {
 
 impl EditGuard {
     pub fn new(mode: &Mode, graph: controller::ExecutedGraph) -> Self {
-        tracing::debug!("Initialising EditGuard.");
+        debug!("Initialising EditGuard.");
 
         let ret = Self { node_id: mode.node_id(), graph, revert_expression: Cell::new(true) };
         ret.save_node_expression_to_metadata(mode).unwrap_or_else(|e| {
-            tracing::error!("Failed to save the node edit metadata due to error: {}", e)
+            error!("Failed to save the node edit metadata due to error: {}", e)
         });
         ret
     }
@@ -1513,20 +1515,19 @@ impl EditGuard {
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
-                tracing::error!(
+                error!(
                     "Tried to revert the expression of the edited node, \
                 but found no edit metadata."
                 );
             }
             Some(NodeEditStatus::Created) => {
-                tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
+                debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
             Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
-                tracing::debug!(
+                debug!(
                     "Reverting expression of node {} to {} after aborting edit.",
-                    self.node_id,
-                    &previous_expression
+                    self.node_id, &previous_expression
                 );
                 let graph = self.graph.graph();
                 graph.set_expression(self.node_id, previous_expression)?;
@@ -1547,16 +1548,14 @@ impl Drop for EditGuard {
     fn drop(&mut self) {
         if self.revert_expression.get() {
             self.revert_node_expression_edit().unwrap_or_else(|e| {
-                tracing::error!(
-                    "Failed to revert node edit after editing ended because of an error: {e}"
-                )
+                error!("Failed to revert node edit after editing ended because of an error: {e}")
             });
         } else {
-            tracing::debug!("Not reverting node expression after edit.")
+            debug!("Not reverting node expression after edit.")
         }
         if self.graph.graph().node_exists(self.node_id) {
             self.clear_node_edit_metadata().unwrap_or_else(|e| {
-                tracing::error!(
+                error!(
                 "Failed to clear node edit metadata after editing ended because of an error: {e}"
             )
             });

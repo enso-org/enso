@@ -4,8 +4,6 @@
 use crate::prelude::*;
 
 use ensogl_core::data::color;
-use num_enum::IntoPrimitive;
-use num_enum::TryFromPrimitive;
 
 
 
@@ -16,16 +14,16 @@ use num_enum::TryFromPrimitive;
 // === SectionId ===
 
 /// A Component Groups List Section identifier.
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, IntoPrimitive, PartialEq, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[repr(usize)]
 pub enum SectionId {
     /// The "Popular Tools" section.
     #[default]
-    Popular    = 1,
+    Popular,
     /// The "Local Scope" section.
-    LocalScope = 2,
+    LocalScope,
     /// The "Sub-Modules" section.
-    SubModules = 0,
+    SubModules,
 }
 
 
@@ -127,14 +125,17 @@ pub struct GroupEntryId {
 
 // === Group ===
 
-/// A information about group in column (not Local Scope group).
+/// An information about group being laid in one of the Component List Panel columns.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Group {
     /// The group identifier.
     pub id:              GroupId,
-    /// Height of group in rows, not counting the header nor filtered-out entries.
+    /// Height of group in rows, not counting the header as it will be visible in Component List
+    /// Panel. If the entries are not filtered, should be equal to [`original_height`]. Otherwise
+    /// the filtered out entries will not be counted.
     pub height:          usize,
-    /// Height of group in rows if no entry is filtered out, not counting the header.
+    /// Height in rows the groups would have if no filtering is applied. Used to layout groups
+    /// in columns.
     pub original_height: usize,
     /// The group color defined by library's author.
     pub color:           Option<color::Rgb>,
@@ -146,8 +147,8 @@ pub struct Group {
 /// A information about Grid content allowing to compute groups' layout.
 #[derive(Clone, Debug, Default)]
 pub struct Info {
-    /// List of groups arranged in columns.
-    pub groups:           Vec<Group>,
+    /// List of groups to be arranged in columns. Does not contain Local Scope Group.
+    pub groups:                  Vec<Group>,
     /// A number of entries in Local Scope section.
-    pub local_scope_size: usize,
+    pub local_scope_entry_count: usize,
 }

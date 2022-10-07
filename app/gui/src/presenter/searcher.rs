@@ -15,7 +15,7 @@ use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-use crate::presenter::searcher::provider::ComponentsProviderExt;
+use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
 use ide_view as view;

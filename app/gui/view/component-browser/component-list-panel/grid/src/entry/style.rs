@@ -152,7 +152,7 @@ impl Colors {
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();
             intensity.target <+ is_dimmed.switch(&one, &dimmed_intensity);
-            app_bg <- all(&app_bg, &init)._0();
+            app_bg <- all_with(&app_bg, &init, |col, ()| color::Rgba::from(col));
             app_bg_and_input <- all(&app_bg, color);
             main <- app_bg_and_input.all_with(&intensity.value, mix);
             app_bg_and_main <- all(&app_bg, &main);

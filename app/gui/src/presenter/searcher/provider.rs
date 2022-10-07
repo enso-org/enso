@@ -148,13 +148,13 @@ impl ide_view::searcher::DocumentationProvider for Action {
 
 
 
-// ===========================
-// === provider::Component ===
-// ===========================
+// =======================================
+// === ControllerComponentsProviderExt ===
+// =======================================
 
 /// An extension for controller's component provider adding useful functions for conversions between
 /// controller and view structures.
-pub trait ComponentsProviderExt {
+pub trait ControllerComponentsProviderExt {
     /// Return the component from controllers by view's id.
     fn component_by_view_id(
         &self,
@@ -180,7 +180,10 @@ pub trait ComponentsProviderExt {
     ) -> Option<component_grid::HeaderModel>;
 }
 
-impl ComponentsProviderExt for controller::searcher::ComponentsProvider {
+
+// === Implementation ===
+
+impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvider {
     fn component_by_view_id(
         &self,
         id: component_grid::GroupEntryId,
@@ -209,8 +212,8 @@ impl ComponentsProviderExt for controller::searcher::ComponentsProvider {
             top_modules.deref(),
         );
         component_list_panel::grid::content::Info {
-            groups:           popular_section.chain(submodules_section).collect(),
-            local_scope_size: self.local_scope().matched_items.get(),
+            groups:                  popular_section.chain(submodules_section).collect(),
+            local_scope_entry_count: self.local_scope().matched_items.get(),
         }
     }
 
@@ -235,6 +238,9 @@ impl ComponentsProviderExt for controller::searcher::ComponentsProvider {
         Some(group_to_header_model(&group, can_be_entered))
     }
 }
+
+
+// === ControllerComponentsProviderExt Helper Functions ===
 
 fn controller_group_to_grid_group_info(
     id: component_grid::GroupId,
@@ -299,6 +305,36 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
     }
 }
 
+fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
+    if let MatchInfo::Matches { subsequence } = match_info {
+        let mut char_iter = label.char_indices().enumerate();
+        subsequence
+            .indices
+            .iter()
+            .filter_map(|idx| loop {
+                if let Some(char) = char_iter.next() {
+                    let (char_idx, (byte_id, char)) = char;
+                    if char_idx == *idx {
+                        let start = enso_text::index::Byte(byte_id);
+                        let end = enso_text::index::Byte(byte_id + char.len_utf8());
+                        break Some(enso_text::Range::new(start, end));
+                    }
+                } else {
+                    break None;
+                }
+            })
+            .collect()
+    } else {
+        default()
+    }
+}
+
+
+
+// ===========================
+// === provider::Component ===
+// ===========================
+
 /// An object providing element models for view's [grid](component_list_panel::grid::View) derived
 /// from [controller's provider](ontroller::searcher::ComponentsProvider).
 ///
@@ -324,44 +360,17 @@ impl Component {
             // the connections alone does not belong to network - thus when provider's network would
             // be dropped, the connections would remain. Therefore we create intermediate nodes
             // `entry_model` and `header_model`.
-            entry_model <- grid.model_for_entry_needed.filter_map(f!([provider](&id) {
+            entry_model <- grid.model_for_entry_needed.filter_map(f!([provider](&id)
                 Some((id, provider.get_entry_model(id)?))
-            }));
-            header_model <- grid.model_for_header_needed.filter_map(f!([provider](&id) {
+            ));
+            header_model <- grid.model_for_header_needed.filter_map(f!([provider](&id)
                 Some((id, provider.get_header_model(id)?))
-            }));
+            ));
             grid.model_for_entry <+ entry_model;
             grid.model_for_header <+ header_model;
         }
         let content = provider.create_grid_content_info();
         grid.reset(content);
         Self { _network: network }
-    }
-}
-
-
-// === Component Provider helpers ===
-
-fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
-    if let MatchInfo::Matches { subsequence } = match_info {
-        let mut char_iter = label.char_indices().enumerate();
-        subsequence
-            .indices
-            .iter()
-            .filter_map(|idx| loop {
-                if let Some(char) = char_iter.next() {
-                    let (char_idx, (byte_id, char)) = char;
-                    if char_idx == *idx {
-                        let start = enso_text::index::Byte(byte_id);
-                        let end = enso_text::index::Byte(byte_id + char.len_utf8());
-                        break Some(enso_text::Range::new(start, end));
-                    }
-                } else {
-                    break None;
-                }
-            })
-            .collect()
-    } else {
-        default()
     }
 }

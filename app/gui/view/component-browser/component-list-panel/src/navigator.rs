@@ -69,6 +69,36 @@ pub struct Style {
 
 
 
+// =========================================================
+// === Conversions Between SectionId and List View Index ===
+// =========================================================
+
+/// Convert [`SectionId`] to index on [`Navigator::bottom_buttons`].
+fn section_id_to_list_index(id: &SectionId) -> usize {
+    match id {
+        SectionId::Popular => 1,
+        SectionId::LocalScope => 2,
+        SectionId::SubModules => 0,
+    }
+}
+
+/// Convert the index on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
+/// index and returns the id of topmost section.
+fn index_to_section_id(&index: &usize) -> SectionId {
+    let highest = SectionId::SubModules;
+    match index {
+        0 => highest,
+        1 => SectionId::Popular,
+        2 => SectionId::LocalScope,
+        index => {
+            error!("Tried to create SectionId from too high Navigator List index ({}).", index);
+            highest
+        }
+    }
+}
+
+
+
 // =================
 // === Navigator ===
 // =================
@@ -110,13 +140,15 @@ impl Navigator {
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-        bottom_buttons.select_entry(Some(SectionId::Popular.into()));
+        bottom_buttons.select_entry(Some(section_id_to_list_index(&SectionId::Popular)));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         frp::extend! { network
             select_section <- any(...);
-            bottom_buttons.select_entry <+ select_section.map(|&id: &SectionId| Some(id.into()));
-            chosen_section <- bottom_buttons.chosen_entry.filter_map(|&id| Some(SectionId::try_from(id?).ok()));
+            bottom_buttons.select_entry <+
+                select_section.map(section_id_to_list_index).cloned_into_some();
+            chosen_section <-
+                bottom_buttons.chosen_entry.map(|&id| id.as_ref().map(index_to_section_id));
         }
 
         Self {
