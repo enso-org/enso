@@ -101,17 +101,17 @@ public class ExpressionParser {
         // Enter Excel Style String
         var end = findEnd(expression, index + 1, '"', '"');
         output.add(new Token(TokenType.STRING, expression.substring(index + 1, end - 1).replace("\"\"", "\"")));
-        index = end + 1;
+        index = end;
       } else if (expression.charAt(index) == '\'') {
         // Enter Enso Style String
         var end = findEnd(expression, index + 1, '\'', '\\');
         output.add(new Token(TokenType.STRING, expression.substring(index + 1, end - 1).replaceAll("\\\\(.)", "$1")));
-        index = end + 1;
+        index = end;
       } else if (expression.charAt(index) == '[') {
         // Column Name
         var end = findEnd(expression, index + 1, ']', ']');
         output.add(new Token(TokenType.COLUMN_NAME, expression.substring(index + 1, end - 1).replace("]]", "]")));
-        index = end + 1;
+        index = end;
       } else if (isLetter(c)) {
         index = handleIdentifier(expression, index, output);
       } else if (c == ',') {
