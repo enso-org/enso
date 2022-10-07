@@ -7,7 +7,7 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column.Column
-from Standard.Table.Data.Filter_Condition import make_filter_column, Filter_Condition
+from Standard.Table.Data.Filter_Condition_Helpers import make_filter_column
 
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
@@ -777,11 +777,11 @@ type Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Table_Data (self.java_table.mask filter_column.java_column)
-            case Meta.type_of filter of
-                Filter_Condition ->
+            case filter of
+                _ : Filter_Condition ->
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
-                Function -> mask (column.map filter)
+                _ : Function -> mask (column.map filter)
         _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems

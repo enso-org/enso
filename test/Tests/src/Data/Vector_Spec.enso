@@ -132,12 +132,46 @@ spec = Test.group "Vectors" <|
         non_empty.not_empty . should_be_true
         empty.not_empty . should_be_false
 
-    Test.specify "should filter elements" <|
+    Test.specify "should filter elements by a predicate" <|
         vec = [1, 2, 3, 4, 5]
         vec.filter (x -> x > 3) . should_equal [4, 5]
         vec.filter (x -> x == 1) . should_equal [1]
         vec.filter (x -> x < 0) . should_equal []
         vec.filter (x -> if x == 2 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error.Value
+
+    Test.specify "should filter elements by Filter_Condition" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.filter (Filter_Condition.Greater than=3) . should_equal [4, 5]
+        vec.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3]
+        vec.filter (Filter_Condition.Equal to=3) . should_equal [3]
+        vec.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5]
+        vec.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal []
+        vec.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
+        vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
+
+        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        vec.filter Filter_Condition.Is_True . should_equal []
+        vec.filter Filter_Condition.Is_False . should_equal []
+        vec.filter Filter_Condition.Is_Nothing . should_equal []
+        vec.filter Filter_Condition.Not_Nothing . should_equal vec
+
+        txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
+        txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
+        txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
+        txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
+        txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
+        txtvec.filter (Filter_Condition.Less than="a") . should_equal []
+        txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
+        txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
+        Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+
+        mixed = [1, Nothing, "b"]
+        mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
+        mixed.filter Filter_Condition.Not_Nothing . should_equal [1, "b"]
+
+        boolvec = [True, False, Nothing, True]
+        boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
+        boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
     Test.specify "should filter elements with indices" <|
         [0, 10, 2, 2].filter_with_index (==) . should_equal [0, 2]
@@ -211,6 +245,11 @@ spec = Test.group "Vectors" <|
     Test.specify "should define concatenation" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
+
+    Test.specify "should be convertible to a list" <|
+        [].to_list . should_equal Nil
+        ["A"].to_list . should_equal (Cons "A" Nil)
+        [1, 2, "B", 3].to_list . should_equal (Cons 1 (Cons 2 (Cons "B" (Cons 3 Nil))))
 
     Test.specify "Vector slice should return a Vector" <|
         vec = [1, 2, 3, 4, 5, 6]
