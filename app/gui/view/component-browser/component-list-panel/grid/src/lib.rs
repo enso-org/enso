@@ -54,7 +54,6 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use ensogl_text as text;
 
 
-
 // ==============
 // === Export ===
 // ==============
