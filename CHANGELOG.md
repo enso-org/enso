@@ -207,6 +207,8 @@
 - [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
 - [Replaced `Table.where` with a new API relying on `Table.filter`.][3750]
 - [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
+- [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
+  `Not_Like`.][3775]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -332,6 +334,7 @@
 [3749]: https://github.com/enso-org/enso/pull/3749
 [3750]: https://github.com/enso-org/enso/pull/3750
 [3770]: https://github.com/enso-org/enso/pull/3770
+[3775]: https://github.com/enso-org/enso/pull/3775
 
 #### Enso Compiler
 
