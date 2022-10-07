@@ -20,9 +20,10 @@ use double_representation::module::ImportId;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
-use enso_text::{text, Utf16CodeUnit};
+use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
+use enso_text::Utf16CodeUnit;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::Parser;
@@ -357,7 +358,8 @@ impl Module {
                 NotificationKind::Invalidate =>
                     profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
                 NotificationKind::CodeChanged { change, replaced_location } => {
-                    let to_engine_location = |l: Location<Byte>| summary.source.utf16_code_unit_location_of_location(l);
+                    let to_engine_location =
+                        |l: Location<Byte>| summary.source.utf16_code_unit_location_of_location(l);
                     let code_change = TextEdit {
                         range: replaced_location.map(to_engine_location).into(),
                         text:  change.text,
