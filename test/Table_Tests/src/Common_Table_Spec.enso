@@ -1119,7 +1119,7 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
         Test.specify "by text search (contains, starts_with, ends_with, like)" <|
-            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "b", "c", "a"]]]
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "b", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana"]
             t.filter "X" (Filter_Condition.Ends_With "na") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
@@ -1133,9 +1133,12 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Like "_a%") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
             t.filter "X" (Filter_Condition.Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (Filter_Condition.Like "nana") on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
-            t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
+            t.filter "Z" (Filter_Condition.Like "[ab]_%") on_problems=Report_Error . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
 
-        Test.specify "by empty text search" <|
+            t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
+            t.filter "Z" (Filter_Condition.Not_Like "[ab]%") on_problems=Report_Error . at "Z" . to_vector . should_equal ["aaaaa", "bbbbb"]
+
+        Test.specify "by empty text" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "", " ", Nothing, "nana"]]]
             t.filter "X" Filter_Condition.Is_Empty on_problems=Report_Error . at "X" . to_vector . should_equal ["", Nothing]
             t.filter "X" Filter_Condition.Not_Empty on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", " ", "nana"]
