@@ -310,7 +310,7 @@ type Date
 
              example_add = Date.new 2020 + 6.months
     + : Date_Period -> Date
-    + self amount = unimplemented "Date.+"
+    + self _ = unimplemented "Date.+"
 
     ## Shift the date by the specified amount of business days.
 
@@ -434,7 +434,7 @@ type Date
 
              example_subtract = Date.new 2020 - 7.days
     - : Date_Period -> Date
-    - self amount = unimplemented "Date.-"
+    - self _ = unimplemented "Date.-"
 
 
     ## A Date to Json conversion.
