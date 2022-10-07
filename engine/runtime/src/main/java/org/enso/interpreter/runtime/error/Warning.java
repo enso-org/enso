@@ -23,7 +23,7 @@ import java.util.Comparator;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
 @ExportLibrary(TypesLibrary.class)
-public class Warning implements TruffleObject {
+public final class Warning implements TruffleObject {
   private final Object value;
   private final Object origin;
   private final ArrayRope<Reassignment> reassignments;
@@ -137,7 +137,7 @@ public class Warning implements TruffleObject {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  public static class Reassignment implements TruffleObject {
+  public static final class Reassignment implements TruffleObject {
     private final String methodName;
     private final SourceSection location;
 

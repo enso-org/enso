@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "TimeOfDay", stdlibName = "Standard.Base.Data.Time.Time_Of_Day")
-public class EnsoTimeOfDay implements TruffleObject {
+public final class EnsoTimeOfDay implements TruffleObject {
   private LocalTime localTime;
 
   public EnsoTimeOfDay(LocalTime localTime) {

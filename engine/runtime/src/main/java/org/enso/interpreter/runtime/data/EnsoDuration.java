@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "Duration", stdlibName = "Standard.Base.Data.Time.Duration")
-public class EnsoDuration implements TruffleObject {
+public final class EnsoDuration implements TruffleObject {
   private final Duration duration;
 
   public EnsoDuration(Duration duration) {

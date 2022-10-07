@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(TypesLibrary.class)
-public class WithWarnings implements TruffleObject {
+public final class WithWarnings implements TruffleObject {
   private final ArrayRope<Warning> warnings;
   private final Object value;
 

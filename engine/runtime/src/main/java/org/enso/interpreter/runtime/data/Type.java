@@ -29,7 +29,7 @@ import java.util.*;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-public class Type implements TruffleObject {
+public final class Type implements TruffleObject {
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
   private final boolean builtin;

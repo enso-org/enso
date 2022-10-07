@@ -27,7 +27,7 @@ import org.enso.interpreter.epb.node.ContextRewrapNode;
  * org.enso.interpreter.epb.EpbLanguage} for the explanation of this system.
  */
 @ExportLibrary(InteropLibrary.class)
-public class PolyglotProxy implements TruffleObject {
+public final class PolyglotProxy implements TruffleObject {
   final Object delegate;
   private final GuardedTruffleContext origin;
   private final GuardedTruffleContext target;
