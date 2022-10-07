@@ -170,6 +170,7 @@ public class StorageListView implements List<Object> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T[] toArray(T[] a) {
     T[] result =
         a.length >= size() ? a : (T[]) Array.newInstance(a.getClass().getComponentType(), size());
