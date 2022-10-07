@@ -1,23 +1,23 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-import Standard.Database.Data.SQL
-from Standard.Database.Data.SQL import SQL_Type, Statement, code
-import Standard.Database.Data.Dialect
-import Standard.Database.Internal.Base_Generator
-import Standard.Database.Internal.IR
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+
+import project.Data.SQL
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.Base_Generator
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+
+from project.Data.SQL import code
+from project.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE
 
    The dialect of SQLite databases.
-sqlite : Dialect
+sqlite : SQLite_Dialect
 sqlite =
-    SQLite_Dialect_Data make_internal_generator_dialect
-
-# TODO Dubious constructor export
-from project.Internal.SQLite.SQLite_Dialect.SQLite_Dialect import all
-from project.Internal.SQLite.SQLite_Dialect.SQLite_Dialect export all
+    SQLite_Dialect.Value make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -26,7 +26,7 @@ type SQLite_Dialect
     ## PRIVATE
 
        The dialect of SQLite databases.
-    SQLite_Dialect_Data internal_generator_dialect
+    Value internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
@@ -36,7 +36,7 @@ type SQLite_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Statement
+    generate_sql : Query -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -53,22 +53,22 @@ type SQLite_Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
-                        IR.Order_Descriptor_Data internal_column.expression sort_direction collation=Nothing
+                        Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
                     Case_Sensitivity.Sensitive ->
-                        IR.Order_Descriptor_Data internal_column.expression sort_direction collation="BINARY"
+                        Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
-                            IR.Order_Descriptor_Data internal_column.expression sort_direction collation="NOCASE"
+                            Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
         False ->
-            IR.Order_Descriptor_Data internal_column.expression sort_direction collation=Nothing
+            Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
 
 ## PRIVATE
 make_internal_generator_dialect =

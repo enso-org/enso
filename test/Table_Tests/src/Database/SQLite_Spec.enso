@@ -3,8 +3,7 @@ import Standard.Base.Runtime.Ref
 
 from Standard.Table import Table
 
-import Standard.Database
-from Standard.Database import all
+from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import SQL_Error_Data
 
 import Standard.Test
@@ -67,17 +66,17 @@ sqlite_specific_spec connection =
 
     Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
-            connection.read (Raw_SQL "foobar") . should_fail_with SQL_Error_Data
+            connection.read (SQL_Query.Raw_SQL "foobar") . should_fail_with SQL_Error_Data
             connection.execute_update "foobar" . should_fail_with SQL_Error_Data
 
-            action = connection.read (Raw_SQL "SELECT A FROM undefined_table")
+            action = connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
             action . should_fail_with SQL_Error_Data
             action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
 
     Test.group "[SQLite] Metadata" <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        t = connection.query (Table_Name tinfo)
+        t = connection.query (SQL_Query.Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
         t.insert ["def", 42, True, 1.4]

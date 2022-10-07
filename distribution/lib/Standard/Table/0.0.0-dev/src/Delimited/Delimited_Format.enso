@@ -1,11 +1,11 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Table import Table
-from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Table.Data.Match_Columns import Match_Columns
-import Standard.Table.Delimited.Delimited_Reader
-import Standard.Table.Delimited.Delimited_Writer
-import Standard.Table.Delimited.Quote_Style.Quote_Style
+import project.Data.Table.Table
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Match_Columns.Match_Columns
+import project.Delimited.Delimited_Reader
+import project.Delimited.Delimited_Writer
+import project.Delimited.Quote_Style.Quote_Style
 
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited

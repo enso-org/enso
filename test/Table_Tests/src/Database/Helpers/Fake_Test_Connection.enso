@@ -1,10 +1,11 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table as Materialized_Table
-from Standard.Database import SQL_Query, Raw_SQL, Table_Name
+import Standard.Table.Data.Table.Table as Materialized_Table
+from Standard.Database import SQL_Query
 import Standard.Database.Data.Table as Database_Table
-from Standard.Database.Data.SQL import Statement, SQL_Type
-import Standard.Database.Internal.IR
+import Standard.Database.Data.SQL_Statement.SQL_Statement
+import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.Internal.IR.Context.Context
 
 type Fake_Test_Connection
     # type Fake_Test_Connection.Value (tables : Map Text (Vector [Text, SQL_Type])) (dialect : Text)
@@ -16,14 +17,14 @@ type Fake_Test_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    query : Text | SQL_Query -> Text -> Database_Table
+    query : Text | SQL_Query -> Text -> Database_Table.Table
     query self query alias="" = case query of
-        Text -> self.query (Table_Name query) alias
-        Raw_SQL _ ->
+        Text -> self.query (SQL_Query.Table_Name query) alias
+        SQL_Query.Raw_SQL _ ->
             Error.throw (Illegal_Argument_Error "Cannot query a fake connection with raw SQL")
-        Table_Name name ->
+        SQL_Query.Table_Name name ->
             columns = self.tables.get name
-            Database_Table.make_table self name columns (IR.context_for_table name)
+            Database_Table.make_table self name columns (Context.for_table name)
 
     ## Execute the query and load the results into memory as a Table.
 
@@ -32,7 +33,7 @@ type Fake_Test_Connection
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
        - limit: the maximum number of rows to return (default 1000).
-    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table.Table
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table
     read self _ _="" _=Nothing =
         Error.throw "Materialization not supported on fake connection."
 
@@ -41,7 +42,7 @@ type Fake_Test_Connection
     close self = Nothing
 
     ## PRIVATE
-    execute_update : Text | Statement -> Integer
+    execute_update : Text | SQL_Statement -> Integer
     execute_update self _ =
         Error.throw "Materialization not supported on fake connection."
 

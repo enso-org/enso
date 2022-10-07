@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Visualization.File_Upload
-import Standard.Visualization.Id
-import Standard.Visualization.Preprocessor
+import project.File_Upload
+import project.Id
+import project.Preprocessor
 
-from Standard.Visualization.File_Upload export file_uploading
-export Standard.Visualization.Id
+from project.File_Upload export file_uploading
+export project.Id

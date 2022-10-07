@@ -4,14 +4,15 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Table.Data.Position.Position
-from Standard.Table.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
-import Standard.Table.Data.Column_Selector.Column_Selector
-import Standard.Table.Data.Column_Name_Mapping.Column_Name_Mapping
-import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Table.Internal.Problem_Builder.Problem_Builder
-import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column.Sort_Column
+import project.Data.Position.Position
+import project.Data.Column_Name_Mapping.Column_Name_Mapping
+import project.Data.Column_Selector.Column_Selector
+import project.Data.Sort_Column_Selector.Sort_Column_Selector
+import project.Data.Sort_Column.Sort_Column
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+from project.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
 
 polyglot java import java.util.HashSet
 

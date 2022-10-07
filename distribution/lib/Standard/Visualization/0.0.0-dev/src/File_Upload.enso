@@ -9,15 +9,11 @@ from Standard.Base import all
    - `path`: The path to which the file is being uploaded.
 file_uploading : (File.File | Text) -> File.File ! File_Being_Uploaded
 file_uploading path =
-    err = File_Being_Uploaded_Data <| case path of
+    err = File_Being_Uploaded.Value <| case path of
         _ : Text -> path
         _ : File.File -> path.path
         _ -> ""
     Error.throw err
-
-# TODO Dubious constructor export
-from project.File_Upload.File_Being_Uploaded import all
-from project.File_Upload.File_Being_Uploaded export all
 
 ## UNSTABLE
 
@@ -26,4 +22,4 @@ from project.File_Upload.File_Being_Uploaded export all
    Arguments:
    - file_path: The path at which the file is being uploaded.
 type File_Being_Uploaded
-    File_Being_Uploaded_Data file_path
+    Value file_path
