@@ -396,7 +396,7 @@ js_parse text format=Nothing =
 js_set_zone local_datetime =
     zone = Time_Zone.utc
     datetime_with_tz = local_datetime.at_zone zone
-    diff = Duration.between datetime_with_tz local_datetime
+    diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     (datetime_with_tz + diff).to_localdate_builtin
 
 js_date year month=1 day=1 =

@@ -10,9 +10,11 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.Temporal;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -60,23 +62,26 @@ public final class EnsoDuration implements TruffleObject {
           "Construct a new Duration that is between the given start date inclusive, and end date exclusive")
   @Builtin.Specialize
   public static EnsoDuration between(
-      Object startInclusive, Object endExclusive, InteropLibrary interop) {
-    ZonedDateTime startDateTime = convertToZonedDateTime(startInclusive, interop);
-    ZonedDateTime endDateTime = convertToZonedDateTime(endExclusive, interop);
-    return new EnsoDuration(Duration.between(startDateTime.toInstant(), endDateTime.toInstant()));
+      Object startInclusive, Object endExclusive, boolean timeZoneAware, InteropLibrary interop) {
+    Temporal startTime = convertToDateTime(startInclusive, timeZoneAware, interop);
+    Temporal endTime = convertToDateTime(endExclusive, timeZoneAware, interop);
+    return new EnsoDuration(Duration.between(startTime, endTime));
   }
 
-  private static ZonedDateTime convertToZonedDateTime(Object dateObject, InteropLibrary interop) {
+  private static Temporal convertToDateTime(Object dateObject, boolean timeZoneAware, InteropLibrary interop) {
     assert interop.isDate(dateObject);
     try {
       LocalDate date = interop.asDate(dateObject);
       LocalTime time = interop.isTime(dateObject) ? interop.asTime(dateObject) : LocalTime.MIN;
-      ZoneId zone =
-          interop.isTimeZone(dateObject) ? interop.asTimeZone(dateObject) : ZoneId.systemDefault();
-      return ZonedDateTime.of(date, time, zone);
+      if (timeZoneAware) {
+        ZoneId zone =
+            interop.isTimeZone(dateObject) ? interop.asTimeZone(dateObject) : ZoneId.systemDefault();
+        return ZonedDateTime.of(date, time, zone);
+      } else {
+        return LocalDateTime.of(date, time);
+      }
     } catch (UnsupportedMessageException e) {
-      // TODO: Panic
-      throw new RuntimeException(e);
+      throw new PanicException(e.getMessage(), interop);
     }
   }
 

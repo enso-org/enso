@@ -19,8 +19,8 @@ polyglot java import org.enso.base.Time_Utils
 
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
 between : (Date|Date_Time) -> (Date|Date_Time) -> Duration
-between start_inclusive end_exclusive =
-    Duration.between_builtin start_inclusive end_exclusive
+between start_inclusive end_exclusive timezone_aware=True =
+    Duration.between_builtin start_inclusive end_exclusive timezone_aware
 
 ## Create a duration from time units.
 
@@ -52,7 +52,7 @@ time_execution ~function =
     start = System.nano_time
     result = Runtime.no_inline function
     end = System.nano_time
-    duration = Duration.new nanoseconds=(end - start)
+    duration = new nanoseconds=(end - start)
     Pair_Data duration result
 
 

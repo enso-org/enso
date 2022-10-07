@@ -845,11 +845,11 @@ Spec.print_report self config builder =
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
-        builder.append (' time="' + (total_time.total_milliseconds / 1000.0).to_text + '"')
+        builder.append (' time="' + (total_time.milliseconds / 1000.0).to_text + '"')
         builder.append ('>\n')
 
         self.behaviors.reverse.each behavior->
-            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '" time="' + ((behavior.time_taken.total_milliseconds / 1000.0).to_text) + '">')
+            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '" time="' + ((behavior.time_taken.milliseconds / 1000.0).to_text) + '">')
             case behavior.result of
                 Success -> Nothing
                 Failure msg details ->
@@ -868,14 +868,14 @@ Spec.print_report self config builder =
 
     should_print_behavior = config.print_only_failures.not || self.behaviors.any (b -> b.result.is_a Failure)
     if should_print_behavior then
-        IO.println (self.name + ":  [" + total_time.total_milliseconds.to_text + "ms]")
+        IO.println (self.name + ":  [" + total_time.milliseconds.to_text + "ms]")
         self.behaviors.reverse.each behavior->
             case behavior.result of
                 Success ->
                     if config.print_only_failures.not then
-                        IO.println ("    - " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                        IO.println ("    - " + behavior.name + " [" + behavior.time_taken.milliseconds.to_text + "ms]")
                 Failure msg details ->
-                    IO.println ("    - [FAILED] " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                    IO.println ("    - [FAILED] " + behavior.name + " [" + behavior.time_taken.milliseconds.to_text + "ms]")
                     IO.println ("        Reason: " + msg)
                     if details.is_nothing.not then
                         IO.println details

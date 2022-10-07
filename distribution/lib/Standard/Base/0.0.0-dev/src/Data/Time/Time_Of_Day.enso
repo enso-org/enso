@@ -233,7 +233,7 @@ type Time_Of_Day
 
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
-    - self _ = self.minus_builtin
+    - self amount = self.minus_builtin amount
 
     ## Format this time of day as text using the default formatter.
 
