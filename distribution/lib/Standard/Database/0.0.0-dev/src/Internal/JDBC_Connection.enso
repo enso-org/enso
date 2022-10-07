@@ -7,7 +7,7 @@ import Standard.Database.Data.SQL
 from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data, Statement, Statement_Data
 from Standard.Database.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
 import Standard.Database.Internal.Base_Generator
-import Standard.Table.Data.Storage
+import Standard.Table.Data.Storage.Storage
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
@@ -101,7 +101,7 @@ type JDBC_Connection
 
        Given an insert query template and the associated Database_Table, and a
        Materialized_Table of data, load to the database.
-    load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
+    load_table : Text -> Database_Table.Table -> Materialized_Table.Table -> Integer -> Nothing
     load_table self insert_template db_table table batch_size =
         db_types = db_table.internal_columns.map .sql_type
         self.with_connection java_connection->
@@ -182,7 +182,7 @@ set_statement_values stmt holes =
 
 ## PRIVATE
    Given a Materialized_Table, create a SQL statement to build the table.
-create_table_statement : Text -> Materialized_Table -> Boolean -> Statement
+create_table_statement : Text -> Materialized_Table.Table -> Boolean -> Statement
 create_table_statement name table temporary =
     column_types = table.columns.map col-> default_storage_type col.storage_type
     column_names = table.columns.map .name

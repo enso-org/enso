@@ -252,14 +252,14 @@ final class TreeToIr {
             continue;
           }
           var constructorName = buildName(inputAst, cExpr.getConstructor());
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments(), nil());
+          List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
           var cAt = getIdentifiedLocation(inputAst);
           var data = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
 
           translatedBody = cons(data, translatedBody);
         }
         // type
-        List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams(), nil());
+        List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         yield new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
@@ -309,7 +309,7 @@ final class TreeToIr {
           getIdentifiedLocation(fn),
           meta(), diag()
         );
-        var args = translateArgumentsDefinition(fn.getArgs(), nil());
+        var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody(), false);
 
         yield new IR$Module$Scope$Definition$Method$Binding(
@@ -390,12 +390,8 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> params, List<IR.DefinitionArgument> args) {
-      for (var p : params) {
-        var m = translateArgumentDefinition(p.getPattern(), p.getDefault() != null ? p.getDefault().getExpression() : null, false);
-        args = cons(m, args);
-      }
-    return args.reverse();
+  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> args) {
+    return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
   }
 
   /** Translates the body of a type expression.
@@ -1095,104 +1091,26 @@ final class TreeToIr {
 
 
   /** Translates an argument definition from [[AST]] into [[IR]].
-    *
-    * @param arg the argument to translate
-    * @param isSuspended `true` if the argument is suspended, otherwise `false`
-    * @return the [[IR]] representation of `arg`
-    */
-  IR.DefinitionArgument translateArgumentDefinition(Tree arg, Tree defValue, boolean isSuspended) {
-    var core = maybeManyParensed(arg);
-    return switch (core) {
-      case null -> null;
-      case Tree.OprApp app when isOperator(":", app.getOpr()) -> {
-        yield switch (translateIdent(app.getLhs(), false)) {
-          case IR.Name name -> {
-            var type = translateQualifiedNameOrExpression(app.getRhs());
-            var defaultValue = translateExpression(defValue, false);
-            yield new IR$DefinitionArgument$Specified(
-              name,
-              Option.apply(type), Option.apply(defaultValue),
-              false, getIdentifiedLocation(app), meta(), diag()
-            );
-          }
-          default -> throw new UnhandledEntity(app.getLhs(), "translateArgumentDefinition");
-        };
-      }
-      case Tree.OprApp withValue when isOperator("=", withValue.getOpr()) -> {
-        var defaultValue = translateExpression(withValue.getRhs(), false);
-        yield switch (withValue.getLhs()) {
-          case Tree.OprApp app when isOperator(":", app.getOpr()) -> {
-            yield switch (translateIdent(app.getLhs(), false)) {
-              case IR.Name name -> {
-                var type = translateQualifiedNameOrExpression(app.getRhs());
-                yield new IR$DefinitionArgument$Specified(
-                  name,
-                  Option.apply(type), Option.apply(defaultValue),
-                  false, getIdentifiedLocation(app), meta(), diag()
-                );
-              }
-              default -> throw new UnhandledEntity(app.getLhs(), "translateArgumentDefinition");
-            };
-          }
-          case Tree.TypeAnnotated anno -> {
-            yield null;
-          }
-          default -> throw new UnhandledEntity(withValue.getLhs(), "translateArgumentDefinition");
-        };
-      }
-      case Tree.OprSectionBoundary bound -> {
-          yield translateArgumentDefinition(bound.getAst(), null, isSuspended);
-      }
-      case Tree.TypeAnnotated anno -> {
-        yield null;
-      }
+   *
+   * @param def the argument to translate
+   * @return the [[IR]] representation of `arg`
+   */
+  IR.DefinitionArgument translateArgumentDefinition(ArgumentDefinition def) {
+    Tree pattern = def.getPattern();
+    IR.Name name = switch (pattern) {
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
       case Tree.Ident id -> {
         IR.Expression identifier = translateIdent(id, false);
-        var defaultValue = translateExpression(defValue, false);
         yield switch (identifier) {
-          case IR.Name name -> new IR$DefinitionArgument$Specified(
-            name,
-            Option.empty(),
-            Option.apply(defaultValue),
-            isSuspended,
-            getIdentifiedLocation(arg),
-            meta(), diag()
-          );
-          default -> throw new UnhandledEntity(arg, "translateArgumentDefinition");
+          case IR.Name name_ -> name_;
+          // TODO: Other types of pattern. Needs IR support.
+          default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
         };
       }
-      case Tree.UnaryOprApp opr when "~".equals(opr.getOpr().codeRepr()) -> {
-        yield translateArgumentDefinition(opr.getRhs(), null, true);
-      }
-        /*
-      case AstView.AssignedArgument(name, value) =>
-        translateIdent(name) match {
-          case name: IR.Name =>
-            DefinitionArgument.Specified(
-              name,
-              None,
-              Some(translateExpression(value)),
-              isSuspended,
-              getIdentifiedLocation(arg)
-            )
-          case _ =>
-            throw new UnhandledEntity(arg, "translateArgumentDefinition")
-        }
-      */
-      case Tree.Wildcard wild -> {
-        var loc = getIdentifiedLocation(arg);
-        yield new IR$DefinitionArgument$Specified(
-            new IR$Name$Blank(loc, meta(), diag()),
-            Option.empty(),
-            Option.empty(),
-            isSuspended,
-            loc,
-            meta(), diag()
-          );
-      }
-      default -> throw new UnhandledEntity(core, "translateArgumentDefinition");
+      // TODO: Other types of pattern. Needs IR support.
+      default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
     };
-    /*
+    boolean isSuspended = def.getSuspension() != null;
     var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true));
     var defaultValue = Option.apply(def.getDefault()).map(default_ -> translateExpression(default_.getExpression(), false));
     return new IR$DefinitionArgument$Specified(
@@ -1204,7 +1122,6 @@ final class TreeToIr {
             meta(),
             diag()
     );
-    */
   }
 
   @SuppressWarnings("unchecked")

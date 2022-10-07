@@ -1,9 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table as Materialized_Table
-from Standard.Table import Sort_Column, Sort_Column_Selector
-from Standard.Table.Data.Column_Selector import By_Name
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table import Table, Sort_Column, Column_Selector, Sort_Column_Selector
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data
 
 from Standard.Database import all
@@ -24,7 +22,7 @@ spec prefix connection pending=Nothing =
         tables_to_clean.append name
         table
 
-    t1 = upload "T1" (Materialized_Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
+    t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" pending=pending <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
@@ -56,17 +54,17 @@ spec prefix connection pending=Nothing =
             ix2.name . should_equal 'a'
             ix2.to_vector . should_equal [1, 4]
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns (By_Name [])
+            empty = t1.select_columns []
             empty.read.column_count . should_equal 0
             empty.read.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
             n = 1000
-            original = Materialized_Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
+            original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
             table = upload "Big" original
             table.read.row_count . should_equal n
 
     Test.group prefix+"Mapping Operations" pending=pending <|
-        t2 = upload "T2" <| Materialized_Table.new [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
+        t2 = upload "T2" <| Table.new [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
         x = t2.at "x"
         y = t2.at "y"
         b = t2.at "b"
@@ -98,7 +96,7 @@ spec prefix connection pending=Nothing =
             x.is_missing.to_vector . should_equal [False, False, False, True]
             (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
-        t3 = upload "T3" <| Materialized_Table.new [["s1", ["foobar", "bar", "baz", Nothing]], ["s2", ["foo", "ar", "a", Nothing]]]
+        t3 = upload "T3" <| Table.new [["s1", ["foobar", "bar", "baz", Nothing]], ["s2", ["foo", "ar", "a", Nothing]]]
         s1 = t3.at "s1"
         s2 = t3.at "s2"
         Test.specify "should handle Text operations" <|
@@ -126,8 +124,8 @@ spec prefix connection pending=Nothing =
             t2.at "c" . to_vector . should_equal [3]
 
     Test.group prefix+"Joining Tables" pending=pending <|
-        a = upload "TA" <| Materialized_Table.new [["x", [0, 1, 7, 3, 6]], ["y", ["foo", "bar", "baz", "spam", "eggs"]]]
-        b = upload "TB" <| Materialized_Table.new [["w", [6, 3, 5, 5, 3, 3]], ["z", ["foo", "foo", "bar", "spam", "bar", "eggs"]]]
+        a = upload "TA" <| Table.new [["x", [0, 1, 7, 3, 6]], ["y", ["foo", "bar", "baz", "spam", "eggs"]]]
+        b = upload "TB" <| Table.new [["w", [6, 3, 5, 5, 3, 3]], ["z", ["foo", "foo", "bar", "spam", "bar", "eggs"]]]
 
         ## The tests below use `sort`, because the SQL backend is not guaranteed
            to return the rows in any particular order. This is the `sort` from
@@ -162,20 +160,20 @@ spec prefix connection pending=Nothing =
             r_2.columns.map .name . should_equal ['y_old', 'y_new']
 
         Test.specify "should correctly handle multi-joins" <|
-            ta = upload "M_TA" <| Materialized_Table.new [["id", [0, 1]], ["name", ["Foo", "Hmm"]]]
-            tb = upload "M_TB" <| Materialized_Table.new [["id", [2, 0]], ["name", ["Bar", "Hmm"]]]
-            tc = upload "M_TC" <| Materialized_Table.new [["id_a", [0, 1]], ["id_b", [2, 0]]]
+            ta = upload "M_TA" <| Table.new [["id", [0, 1]], ["name", ["Foo", "Hmm"]]]
+            tb = upload "M_TB" <| Table.new [["id", [2, 0]], ["name", ["Bar", "Hmm"]]]
+            tc = upload "M_TC" <| Table.new [["id_a", [0, 1]], ["id_b", [2, 0]]]
             ta_2 = ta.set_index "id"
             tb_2 = tb.set_index "id"
             res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
-            sel = res.select_columns (By_Name ["name_a", "name_b"])
+            sel = res.select_columns (Column_Selector.By_Name ["name_a", "name_b"])
             df = sel.read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "name_a"])
             df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
             df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
 
     Test.group prefix+"Missing Values" pending=pending <|
         t4 = upload "T4" <|
-            Materialized_Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
+            Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
         Test.specify "fill_missing should replace nulls" <|
             t4.at 'a' . fill_missing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
             t4.at 'b' . fill_missing False . to_vector . should_equal [True, False, True, False, False]
@@ -196,7 +194,7 @@ spec prefix connection pending=Nothing =
 
         Test.specify "drop_missing_columns should drop columns that contain at least one missing row in a Table" <|
             t5 = upload "T5" <|
-                Materialized_Table.new [["a", [1, 2, 3]], ["b", [True, False, Nothing]], ["c", ["foo", Nothing, "aaa"]]]
+                Table.new [["a", [1, 2, 3]], ["b", [True, False, Nothing]], ["c", ["foo", Nothing, "aaa"]]]
 
             r = t5.drop_missing_columns
             r.columns.map .name . should_equal ["a"]
@@ -209,7 +207,7 @@ spec prefix connection pending=Nothing =
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
             t7 = upload "T7" <|
-                Materialized_Table.new [['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]]
+                Table.new [['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]]
             price = t7.at 'price'
             price.sum.should_equal 107.6 epsilon=eps
             price.min.should_equal 0.4 epsilon=eps
@@ -218,7 +216,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Sorting" pending=pending <|
         df = upload "clothes" <|
-            Materialized_Table.new [["id", [1,2,3,4,5,6]], ["name", ["shoes","trousers","dress","skirt","blouse","t-shirt"]], ["quantity", [20,10,20,10,30,30]], ["rating", [3.0,Nothing,7.3,3.0,2.2,Nothing]], ["price", [37.2,42.1,64.1,87.4,13.5,64.2]]]
+            Table.new [["id", [1,2,3,4,5,6]], ["name", ["shoes","trousers","dress","skirt","blouse","t-shirt"]], ["quantity", [20,10,20,10,30,30]], ["rating", [3.0,Nothing,7.3,3.0,2.2,Nothing]], ["price", [37.2,42.1,64.1,87.4,13.5,64.2]]]
 
         Test.specify "should allow sorting by a single column name" <|
             r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'quantity'])
@@ -251,7 +249,7 @@ spec prefix connection pending=Nothing =
             bools = [False, False, True, True, False]
             texts = ["foo", "foo", "bar", "baz", "spam"]
             df = upload "T8" <|
-                Materialized_Table.new [["ord", [0,3,2,4,1]], ["ints", ints], ["reals", reals], ["bools", bools], ["texts", texts]]
+                Table.new [["ord", [0,3,2,4,1]], ["ints", ints], ["reals", reals], ["bools", bools], ["texts", texts]]
             r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
@@ -277,7 +275,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Index" pending=pending <|
         t0 = upload "Tix" <|
-            Materialized_Table.new [["ix", [1,2,3]], ["c1", [4,5,6]]]
+            Table.new [["ix", [1,2,3]], ["c1", [4,5,6]]]
         t = t0.set_index 'ix'
         Test.specify "should be accessible by `at` like other columns" <|
             t.at 'ix' . to_vector . should_equal t.index.to_vector
@@ -310,7 +308,7 @@ spec prefix connection pending=Nothing =
         insert ["zzzz", 0, 0]
         insert ["zzzz", Nothing, Nothing]
         t = upload "T9" <|
-            Materialized_Table.new [["name", builders.at 0 . to_vector], ["price", builders.at 1 . to_vector], ["quantity", builders.at 2 . to_vector]]
+            Table.new [["name", builders.at 0 . to_vector], ["price", builders.at 1 . to_vector], ["quantity", builders.at 2 . to_vector]]
 
         ## A helper which makes sure that the groups in a materialized
            (InMemory) table are ordered according to a specified column or list

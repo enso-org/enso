@@ -66,6 +66,23 @@ spec = Test.group "Range" <|
     Test.specify "should allow to filter its elements, returning a vector" <|
         elements = 0.up_to 10
         elements.filter (x -> x % 2 == 0) . should_equal [0, 2, 4, 6, 8]
+
+    Test.specify "should filter elements by Filter_Condition" <|
+        range = 1.up_to 6
+        range.filter (Filter_Condition.Greater than=3) . should_equal [4, 5]
+        range.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3]
+        range.filter (Filter_Condition.Equal to=3) . should_equal [3]
+        range.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5]
+        range.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal []
+        range.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
+        range.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
+
+        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        range.filter Filter_Condition.Is_True . should_equal []
+        range.filter Filter_Condition.Is_False . should_equal []
+        range.filter Filter_Condition.Is_Nothing . should_equal []
+        range.filter Filter_Condition.Not_Nothing . should_equal [1, 2, 3, 4, 5]
+
     Test.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)

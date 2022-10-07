@@ -2,34 +2,34 @@ from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Index_Sub_Range
 
-import Standard.Table.Data.Table
-import Standard.Table.Data.Storage
-from Standard.Table.Data.Value_Type import Value_Type
+import Standard.Table.Data.Table.Table
+from Standard.Table.Data.Table import print_table
+import Standard.Table.Data.Storage.Storage
+import Standard.Table.Data.Value_Type.Value_Type
 
-# TODO Dubious constructor export
-from Standard.Table.Data.Column.Column import all
-from Standard.Table.Data.Column.Column export all
+from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
-## Creates a new column given a name and a vector of elements.
-
-   Arguments:
-   - name: The name of the column to create.
-   - items: The elements to contain in the column.
-
-   > Example
-     Create a new column called "My Column" from a vector of numbers.
-
-         import Standard.Table
-
-         example_from_vector =
-             Table.Column.from_vector "My Column" [1, 2, 3, 4, 5]
-from_vector : Text -> Vector -> Column
-from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
+from project.Data.Column.Column import Column_Data
 
 type Column
+    ## Creates a new column given a name and a vector of elements.
+
+       Arguments:
+       - name: The name of the column to create.
+       - items: The elements to contain in the column.
+
+       > Example
+         Create a new column called "My Column" from a vector of numbers.
+
+             from Standard.Table import Column
+
+             example_from_vector =
+                 Column.from_vector "My Column" [1, 2, 3, 4, 5]
+    from_vector : Text -> Vector -> Column
+    from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
 
     ## PRIVATE
 
@@ -63,7 +63,7 @@ type Column
             row = if storage.isNa num then "Nothing" else
                 get_item_string storage num
             [index.ilocString num, row]
-        table = Table.print_table [index.getName, col_name] items 1 format_terminal
+        table = print_table [index.getName, col_name] items 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -687,9 +687,9 @@ type Column
              import Standard.Examples
 
              example_index = Examples.decimal_column.index
-    index : Column ! Table.No_Index_Set_Error
+    index : Column ! No_Index_Set_Error
     index self = case self.java_column.getIndex.toColumn of
-        Nothing -> Error.throw Table.No_Index_Set_Error
+        Nothing -> Error.throw No_Index_Set_Error
         i -> Column_Data i
 
     ## Sets the index of this column, using the provided column.
@@ -748,7 +748,7 @@ type Column
              import Standard.Examples
 
              example_storage_type = Examples.integer_column.storage_type
-    storage_type : Storage.Type
+    storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
         storage_types.at tp . catch Index_Out_Of_Bounds_Error _->
@@ -816,7 +816,7 @@ type Column
              import Standard.Examples
 
              example_join = Examples.integer_column.join Examples.bool_column_1
-    join : Table.Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         self.to_table.join other on drop_unmatched left_suffix right_suffix
 
@@ -828,7 +828,7 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table : Table.Table
+    to_table : Table
     to_table self = Table.Table_Data self.java_column.toTable
 
     ## UNSTABLE
@@ -1091,168 +1091,6 @@ type Column
     duplicate_count : Column
     duplicate_count self = Column_Data self.java_column.duplicateCount
 
-# TODO Dubious constructor export
-from project.Data.Column.Aggregate_Column import all
-from project.Data.Column.Aggregate_Column export all
-
-## Wraps a column grouped by its index. Allows performing aggregation operations
-   on the contained values.
-type Aggregate_Column
-
-    ## PRIVATE
-    Aggregate_Column_Data java_column
-
-    ## Converts this aggregate column into a column, aggregating groups
-       with the provided `function`.
-
-       Arguments:
-       - function: the function used for value aggregation. Values belonging to
-         each group are passed to this function in a vector.
-       - skip_missing: controls whether missing values should be included in
-         groups.
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Convert an aggregate column of transaction ids into a column by
-         counting the number of transactions. per item.
-
-             import Standard.Examples
-
-             example_reduce =
-                 Examples.aggregate_column.reduce .length . rename "transaction_count"
-    reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
-    reduce self function skip_missing=True name_suffix="_result" =
-        f arr = function (Vector.from_polyglot_array arr)
-        r = self.java_column.aggregate Nothing name_suffix f skip_missing
-        Column_Data r
-
-    ## Sums the values in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Convert an aggregate column of transaction ids into a column by summing
-         the transaction IDs together.
-
-             import Standard.Examples
-
-             example_sum = Examples.aggregate_column.sum . rename "id_sum"
-    sum : Text -> Column
-    sum self name_suffix='_sum' =
-        r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.from_polyglot_array x . reduce (+)) True
-        Column r
-
-    ## Computes the maximum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Get the latest (maximum ID) transaction id for each item.
-
-             import Standard.Examples
-
-             example_max = Examples.aggregate_column.max . rename "latest_transaction"
-    max : Text -> Column
-    max self name_suffix='_max' =
-        r = self.java_column.aggregate 'max' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.max) True
-        Column_Data r
-
-    ## Computes the minimum element of each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Get the earliest (mimumum ID) transaction id for each item.
-
-             import Standard.Examples
-
-             example_min = Examples.aggregate_column.min . rename "first_transaction"
-    min : Text -> Column
-    min self name_suffix='_min' =
-        r = self.java_column.aggregate 'min' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.min) True
-        Column_Data r
-
-    ## Computes the number of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Count the number of non-missing elements in each group in the column,
-         which gives the number of transactions in which a given item was sold.
-
-             import Standard.Examples
-
-             example_count = Examples.aggregate_column.count . rename "transaction_count"
-    count : Text -> Column
-    count self name_suffix='_count' =
-        r = self.java_column.aggregate 'count' name_suffix (x-> x.length) True
-        Column_Data r
-
-    ## Computes the mean of non-missing elements in each group.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Get the mean transaction id for each item.
-
-             import Standard.Examples
-
-             example_mean = Examples.aggregate_column.mean
-    mean : Text -> Column
-    mean self name_suffix='_mean' =
-        vec_mean v = if v.length == 0 then Nothing else
-            (Vector.from_polyglot_array v).reduce (+) / v.length
-        r = self.java_column.aggregate 'mean' name_suffix vec_mean True
-        Column_Data r
-
-    ## Gathers all elements in a group into a vector and returns a column of
-       such vectors.
-
-       Arguments:
-       - name_suffix: a suffix that will be appended to the original column name
-         to generate the resulting column name.
-
-       > Example
-         Gather the values of the aggregate column together.
-
-             import Standard.Examples
-
-             example_values = Examples.aggregate_column.values
-    values : Text -> Column
-    values self name_suffix='_values' =
-        r = self.java_column.aggregate Nothing name_suffix Vector.from_polyglot_array False
-        Column_Data r
-
-    ## Prints an ASCII-art column with this data to the standard output.
-
-       Arguments:
-       - show_rows: the number of initial rows that should be displayed.
-
-       > Example
-         Pretty-print an aggregate column and display it using the standard
-         output.
-
-             import Standard.Examples
-
-             example_print = Examples.aggregate_column.print
-    print : Nothing
-    print self = self.values.print
-
-# TODO Dubious constructor export
-from project.Data.Column.Empty_Error import all
-from project.Data.Column.Empty_Error export all
-
 ## UNSTABLE
 
    An error for when the column contains no elements.
@@ -1274,17 +1112,17 @@ type Empty_Error
    - operand: The operand to apply to the function after `column`.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_binary_op column name fallback_fn operand = case operand of
-    Column_Data col2 ->
+    Column.Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 True
-        Column_Data (Java_Column.new "Result" ix rs)
+        Column.Column_Data (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand
-        Column_Data (Java_Column.new "Result" ix rs)
+        Column.Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
 
@@ -1299,19 +1137,19 @@ run_vectorized_unary_op column name fallback_fn =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn
-    Column_Data (Java_Column.new "Result" ix rs)
+    Column.Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
    Enumerates storage types in a way that is consistent with
-   `org.enso.table.data.Storage.Type`, i.e.
-   `storage_type.at org.enso.table.data.Storage.Type.LONG` will yield the
+   `org.enso.table.data.Storage.Storage`, i.e.
+   `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
    corresponding `Storage.Integer`.
-storage_types : Vector Storage.Type
+storage_types : Vector Storage
 storage_types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
 
 ## PRIVATE
 
-   Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
+   Keep this in sync with `org.enso.table.data.Storage.Storage.STRING`
 storage_type_string : Integer
 storage_type_string = 3
 
