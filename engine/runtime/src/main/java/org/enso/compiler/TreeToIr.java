@@ -1521,7 +1521,9 @@ final class TreeToIr {
       }
       case Tree.Ident id -> {
         var name = buildName(id);
-        var pattern = new IR$Pattern$Name(name, getIdentifiedLocation(id), meta(), diag());
+        var pattern = Character.isLowerCase(name.name().charAt(0)) ?
+                new IR$Pattern$Name(name, getIdentifiedLocation(id), meta(), diag()) :
+                new IR$Pattern$Constructor(name, nil(), getIdentifiedLocation(id), meta(), diag());
         yield cons(pattern, prev);
       }
       case Tree.Wildcard wild -> cons(translateWildcardPattern(wild), prev);
