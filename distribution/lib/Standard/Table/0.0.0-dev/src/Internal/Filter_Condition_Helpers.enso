@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Value_Type import Value_Type
+import project.Data.Value_Type.Value_Type
 
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 

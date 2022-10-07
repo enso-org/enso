@@ -1,28 +1,29 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
-import Standard.Database.Internal.Helpers
-import Standard.Database.Internal.Aggregate_Helper
-import Standard.Database.Internal.IR
-from Standard.Database.Data.SQL_Query import Raw_SQL
-from Standard.Database.Data.SQL import Statement, SQL_Type
-
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Sort_Column_Selector, Sort_Column, Match_Columns, Position
-from Standard.Table.Data.Column import get_item_string
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Table.Table as Materialized_Table
-from Standard.Table.Data.Table import print_table
-from Standard.Table.Data.Filter_Condition_Helpers import make_filter_column
-
-from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
-from Standard.Table.Data.Column_Selector import Column_Selector
-
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
+from Standard.Table.Data.Column import get_item_string
+from Standard.Table.Data.Table import print_table
+from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 
-from Standard.Database.Data.Column import Column, Column_Data
-from Standard.Database.Internal.IR import Internal_Column, Internal_Column_Data
+import project.Data.Column.Column
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.Helpers
+import project.Internal.Aggregate_Helper
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.Query.Query
+
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 polyglot java import java.sql.JDBCType
@@ -39,7 +40,7 @@ type Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Table_Data name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
+    Value name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
 
     ## UNSTABLE
 
@@ -335,7 +336,7 @@ type Table
         _ : Text -> Panic.rethrow (self.at column)
         _ ->
             if Helpers.check_integrity self column then column else
-                Panic.throw (Integrity_Error_Data "Column "+column.name)
+                Panic.throw (Integrity_Error.Error "Column "+column.name)
 
     ## ALIAS Filter Rows
 
@@ -385,7 +386,7 @@ type Table
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
-                   Error.throw (Integrity_Error_Data "Column "+filter_column.name)
+                   Error.throw (Integrity_Error.Error "Column "+filter_column.name)
                True ->
                    new_filters = self.context.where_filters + [filter_column.expression]
                    new_ctx = self.context.set_where_filters new_filters
@@ -401,7 +402,7 @@ type Table
 
     ## PRIVATE
     with_no_rows self =
-        false_expression = IR.Operation "=" [IR.Constant SQL_Type.integer 1, IR.Constant SQL_Type.integer 2]
+        false_expression = Expression.Operation "=" [Expression.Constant SQL_Type.integer 1, Expression.Constant SQL_Type.integer 2]
         new_filters = self.context.where_filters + [false_expression]
         new_ctx = self.context.set_where_filters new_filters
         self.updated_context new_ctx
@@ -483,7 +484,7 @@ type Table
             case is_used_in_index of
                 True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                 False ->
-                    new_col = Internal_Column_Data name column.sql_type column.expression
+                    new_col = Internal_Column.Value name column.sql_type column.expression
                     replace = self.internal_columns.exists (c -> c.name == name)
                     case replace of
                         True ->
@@ -659,7 +660,7 @@ type Table
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
                 Panic.throw <| Illegal_State_Error_Data "left_suffix must be different from right_suffix"
-            kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
+            kind = if drop_unmatched then Join_Kind.Inner else Join_Kind.Left
 
             # Prepare the left and right pairs of indices along which the join will be performed.
             left_join_index : Vector Internal_Column
@@ -719,12 +720,12 @@ type Table
             new_columns = left_renamed_columns + right_renamed_columns
 
             on_exprs = left_new_join_index.zip right_new_join_index l-> r->
-                IR.Operation "=" [l.expression, r.expression]
-            new_from = IR.Join kind left_subquery right_subquery on_exprs
+                Expression.Operation "=" [l.expression, r.expression]
+            new_from = From_Spec.Join kind left_subquery right_subquery on_exprs
             new_limit = Nothing
-            new_ctx = IR.Context_Data new_from [] [] [] new_index new_limit
+            new_ctx = Context.Value new_from [] [] [] new_index new_limit
 
-            Table.Table_Data new_table_name self.connection new_columns new_ctx
+            Table.Value new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -763,7 +764,7 @@ type Table
                 agg = p.second
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
-            partitioned = results.partition (_.is_a Internal_Column_Data)
+            partitioned = results.partition (_.is_a Internal_Column.Value)
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
                the `lift_aggregate` method to push the aggregates into a
@@ -793,11 +794,11 @@ type Table
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table
     drop_missing_columns self =
-        rows_expr = IR.Operation "COUNT_ROWS" []
+        rows_expr = Expression.Operation "COUNT_ROWS" []
         all_rows_column_name = "row_count"
-        make_count_expr expr = IR.Operation "COUNT" [expr]
+        make_count_expr expr = Expression.Operation "COUNT" [expr]
         cols = self.internal_columns.map (c -> [c.name, make_count_expr c.expression])
-        query = IR.Select [[all_rows_column_name, rows_expr]]+cols self.context
+        query = Query.Select [[all_rows_column_name, rows_expr]]+cols self.context
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
         all_rows = table.at all_rows_column_name . at 0
@@ -808,15 +809,15 @@ type Table
     ## Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
-        expr = IR.Operation "COUNT_ROWS" []
+        expr = Expression.Operation "COUNT_ROWS" []
         column_name = "row_count"
         ## We need to keep some column in the subquery which will determine if
            the query is performing regular selection or aggregation. To avoid
            computing too much we do not pass all the columns but only the first
            one.
         setup = self.context.as_subquery self.name [[self.internal_columns.first]]
-        new_ctx = IR.subquery_as_ctx setup.first
-        query = IR.Select [[column_name, expr]] new_ctx
+        new_ctx = Context.for_subquery setup.first
+        query = Query.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
         table.at column_name . at 0
@@ -859,13 +860,13 @@ type Table
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this table.
-    to_sql : Statement
+    to_sql : SQL_Statement
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
             True -> Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot generate SQL for a table with no columns."
             False ->
-                query = IR.Select cols self.context
+                query = Query.Select cols self.context
                 self.connection.dialect.generate_sql query
 
     ## Returns a Table describing this table's contents.
@@ -881,10 +882,10 @@ type Table
                Naively wrapping each column in a `COUNT(...)` will not
                always work as aggregates cannot be nested.
             setup = self.context.as_subquery self.name [self.internal_columns]
-            new_ctx = IR.subquery_as_ctx setup.first
+            new_ctx = Context.for_subquery setup.first
             new_columns = setup.second.first.map column->
-                [column.name, IR.Operation "COUNT" [column.expression]]
-            query = IR.Select new_columns new_ctx
+                [column.name, Expression.Operation "COUNT" [column.expression]]
+            query = Query.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
@@ -904,7 +905,7 @@ type Table
         # these distinctness assumptions, to avoid this renaming.
         ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
-        Column_Data internal.name self.connection internal.sql_type internal.expression new_ctx
+        Column.Value internal.name self.connection internal.sql_type internal.expression new_ctx
 
     ## PRIVATE
 
@@ -913,7 +914,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table.Table_Data self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = Table.Value self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -922,7 +923,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context self ctx = Table.Table_Data self.name self.connection self.internal_columns ctx
+    updated_context self ctx = Table.Value self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -932,7 +933,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table.Table_Data self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns = Table.Value self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -956,12 +957,12 @@ type Table
     insert : Vector Any -> Nothing
     insert self values =
         table_name = case self.context.from_spec of
-            IR.From_Table name _ -> name
+            From_Spec.From_Table name _ -> name
             _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
-            [col.name, IR.Constant col.sql_type value]
-        query = self.connection.dialect.generate_sql <| IR.Insert table_name pairs
+            [col.name, Expression.Constant col.sql_type value]
+        query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
             False -> Error.throw <| Illegal_State_Error_Data "The update unexpectedly affected "+affected_rows.to_text+" rows."
@@ -1016,20 +1017,16 @@ type Table
          Write a database table to a CSV file.
 
              import Standard.Examples
-             import Standard.Database
+             from Standard.Database import all
 
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
-                 table = connection.query (Table_Name "Table")
+                 table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
-
-# TODO Dubious constructor export
-from project.Data.Table.Integrity_Error import all
-from project.Data.Table.Integrity_Error export all
 
 type Integrity_Error
 
@@ -1039,7 +1036,7 @@ type Integrity_Error
        contexts.
 
        To use columns from different tables, you must first join them.
-    Integrity_Error_Data object_description
+    Error object_description
 
     # Return a readable description of this error.
     to_text : Text
@@ -1057,11 +1054,11 @@ type Integrity_Error
    - table_name: The name of the table to get.
    - columns: The names of the columns to get.
    - ctx: The context to use for the table.
-# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> IR.Context -> Table
-make_table : Connection -> Text -> Vector -> IR.Context -> Table
+# make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
+make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
-    cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
-    Table.Table_Data table_name connection cols ctx
+    cols = columns.map (p -> Internal_Column.Value p.first p.second (Expression.Column table_name p.first))
+    Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

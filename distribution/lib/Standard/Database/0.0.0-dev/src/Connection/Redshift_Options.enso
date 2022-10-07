@@ -1,22 +1,20 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Dialect
-import Standard.Database.Internal.JDBC_Connection
-import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials import Credentials, Username_And_Password
-import Standard.Database.Connection.Connection_Options
-import Standard.Database.Connection.SSL_Mode
-from Standard.Database.Connection.SSL_Mode import all
-import Standard.Database.Connection.Client_Certificate
-import Standard.Database.Internal.Postgres.Pgpass
+import project.Connection.Client_Certificate.Client_Certificate
+import project.Connection.Connection.Connection
+import project.Connection.Connection_Options.Connection_Options
+import project.Connection.Credentials.Credentials
+import project.Connection.SSL_Mode.SSL_Mode
+import project.Data.Dialect
+import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Pgpass
 
 polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
-# TODO Dubious constructor export
-from project.Connection.Redshift_Options.Redshift_Options import all
-from project.Connection.Redshift_Options.Redshift_Options export all
+from project.Connection.Redshift_Options.Redshift_Options import Redshift
+from project.Connection.Redshift_Options.Redshift_Options export Redshift
 
 type Redshift_Options
     ## Connect to a AWS Redshift database.
@@ -26,9 +24,9 @@ type Redshift_Options
        - port: The port of the database server (defaults to 5432).
        - schema: The schema to connect to (if not provided or empty, the default schema will be used).
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
-       - use_ssl: Whether to use SSL (defaults to `Require`).
+       - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## Build the Connection resource.
 
@@ -44,14 +42,13 @@ type Redshift_Options
             java_props.setProperty pair.first pair.second
 
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection.Connection_Data jdbc_connection Dialect.redshift
+        Connection.Value jdbc_connection Dialect.redshift
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
         prefix = case self.credentials of
-            AWS_Profile _ _ -> 'jdbc:redshift:iam://'
-            AWS_Key _ _ _ -> 'jdbc:redshift:iam://'
+            _ : AWS_Credential -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
         prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)
 
@@ -60,11 +57,11 @@ type Redshift_Options
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
-            AWS_Profile db_user profile ->
+            AWS_Credential.Profile db_user profile ->
                 [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
-            AWS_Key db_user access_key secret_access_key ->
+            AWS_Credential.Key db_user access_key secret_access_key ->
                 [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
-            Username_And_Password username password ->
+            Credentials.Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.
@@ -75,17 +72,13 @@ type Redshift_Options
 
         credentials + ssl_properties + cert_properties
 
-# TODO Dubious constructor export
-from project.Connection.Redshift_Options.AWS_Credential import all
-from project.Connection.Redshift_Options.AWS_Credential export all
-
 type AWS_Credential
     ## Access Redshift using IAM via an AWS profile.
 
        Arguments:
        - db_user: Redshift username to connect as.
        - profile: AWS profile name (if empty uses default).
-    AWS_Profile db_user:Text profile:Text=''
+    Profile db_user:Text profile:Text=''
 
     ## Access Redshift using IAM via an AWS access key ID and secret access key.
 
@@ -93,4 +86,4 @@ type AWS_Credential
        - db_user: Redshift username to connect as.
        - access_key: AWS access key ID.
        - secret_access_key: AWS secret access key.
-    AWS_Key db_user:Text access_key:Text secret_access_key:Text
+    Key db_user:Text access_key:Text secret_access_key:Text

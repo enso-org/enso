@@ -1,0 +1,60 @@
+from Standard.Base import all
+
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Join_Kind.Join_Kind
+
+## PRIVATE
+
+   Used as part of the context, specifies the sources of the query.
+type From_Spec
+    ## PRIVATE
+
+       A query source that takes data directly from a table in the
+       database.
+
+       Arguments:
+       - table_name: the full name identifying the table in the database.
+       - alias: the name upon which the table can be referred to in other
+         parts of the query, this is especially useful for example in
+         self-joins, allowing to differentiate between different instances of
+         the same table.
+    From_Table (table_name : Text) (alias : Text)
+
+    ## PRIVATE
+
+       A query source that holds a raw SQL statement.
+
+       Arguments:
+       - raw_sql: the raw SQL code of a query used as a source for this table.
+       - alias: the name upon which the table can be referred to in other
+         parts of the query, this is especially useful for example in
+         self-joins, allowing to differentiate between different instances of
+         the same table.
+    From_Query (raw_sql : Text) (alias : Text)
+
+    ## PRIVATE
+
+       A query source that performs a join operation on two sources.
+
+       Arguments:
+       - kind: the kind of the join.
+       - left_spec: the left data source to be joined
+       - right_spec: the right data source to be joined
+       - on: a list of expressions that will be used as join conditions, these
+         are usually be equalities between expressions from the left and right
+         sources.
+    Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector Expression)
+
+    ## PRIVATE
+
+       A query source consisting of a sub-query.
+
+       Arguments:
+       - columns: a list of pairs; each first element is the alias for the
+         column created in the sub-query and the second element is the
+         expression to be computed.
+       - context: the context for the sub-query.
+       - alias: the name upon which the results of this sub-query can be
+         referred to in other parts of the query.
+    Sub_Query (columns : Vector (Pair Text Expression)) (context : Context) (alias : Text)

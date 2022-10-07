@@ -1,13 +1,12 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
+import project.Data.Table
+import project.Data.Match_Columns.Match_Columns
+import project.Excel.Excel_Range.Excel_Range
 
-from Standard.Table.Excel.Excel_Reader import handle_reader, make_java_headers
-from Standard.Table.Excel.Section import Worksheet, Cell_Range
-import Standard.Table.Excel.Range.Excel_Range
-
-from Standard.Table.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
-import Standard.Table.Data.Match_Columns.Match_Columns
+from project.Excel.Excel_Reader import handle_reader, make_java_headers
+from project.Excel.Excel_Section import Worksheet, Cell_Range
+from project.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
