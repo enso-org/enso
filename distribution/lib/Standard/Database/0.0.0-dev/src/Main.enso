@@ -8,7 +8,7 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Postgres_Options
 import project.Connection.SQLite_Options
 import project.Connection.Redshift_Options
-import project.Data.SQL_Query
+import project.Data.SQL_Query.SQL_Query
 
 from project.Connection.Credentials export Credentials, Username_And_Password
 
@@ -17,8 +17,8 @@ export project.Connection.Client_Certificate.Client_Certificate
 export project.Connection.Connection_Options.Connection_Options
 
 export project.Connection.Database
+export project.Data.SQL_Query.SQL_Query
 
 from project.Connection.Postgres_Options export Postgres_Options, Postgres
 from project.Connection.SQLite_Options export SQLite_Options, In_Memory, SQLite
 from project.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Credential, AWS_Profile, AWS_Key
-from project.Data.SQL_Query export SQL_Query, Table_Name, Raw_SQL
