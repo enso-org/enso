@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import project.Data.Value_Type.Value_Type
 
-from project.Data.Filter_Condition.Filter_Condition import all
+from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
 ## PRIVATE
    A helper function gathering the common logic that generates a boolean mask

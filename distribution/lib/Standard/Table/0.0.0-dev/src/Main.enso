@@ -33,7 +33,6 @@ export project.Data.Column_Name_Mapping.Column_Name_Mapping
 export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
 export project.Data.Aggregate_Column.Aggregate_Column
-export project.Data.Filter_Condition.Filter_Condition
 
 export project.IO.File_Read
 export project.IO.Auto_Detect.Auto_Detect

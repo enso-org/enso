@@ -8,8 +8,8 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
-from Standard.Table.Data.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Data.Table import print_table
+from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
 
 import project.Data.Column.Column

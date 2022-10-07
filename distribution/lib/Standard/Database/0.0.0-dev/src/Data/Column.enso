@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Filter_Condition, Sort_Column, Sort_Column_Selector
+from Standard.Table import Sort_Column, Sort_Column_Selector
 import Standard.Table.Data.Value_Type.Value_Type
 import Standard.Table.Data.Column.Column as Materialized_Column
 
