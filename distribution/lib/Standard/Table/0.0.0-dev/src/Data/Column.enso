@@ -432,8 +432,32 @@ type Column
 
     % : Column | Any -> Column
     % self other = case other of
-        _ : Column -> self.to_vector.map_with_index i->v->(v % other.at i)
+        _ : Column -> Column.from_vector "Result_%" (self.to_vector.map_with_index i->v->(v % (other.at i)))
         _ -> self.map v->(v%other)
+
+    bit_not : Column
+    bit_not self = self.map v->(v.bit_not)
+
+    bit_and : Column | Any -> Column
+    bit_and self other = case other of
+        _ : Column -> Column.from_vector "Result_&" (self.to_vector.map_with_index i->v->(v.bit_and (other.at i)))
+        _ -> self.map v->(v.bit_and other)
+
+    bit_xor : Column | Any -> Column
+    bit_xor self other = case other of
+        _ : Column -> Column.from_vector "Result_^" (self.to_vector.map_with_index i->v->(v.bit_xor (other.at i)))
+        _ -> self.map v->(v.bit_xor other)
+
+    bit_or : Column | Any -> Column
+    bit_or self other = case other of
+        _ : Column -> Column.from_vector "Result_|" (self.to_vector.map_with_index i->v->(v.bit_or (other.at i)))
+        _ -> self.map v->(v.bit_or other)
+
+    is_empty : Column
+    is_empty self = self.map v->(v == "" || v == Nothing)
+
+    is_not_empty : Column
+    is_not_empty self = self.map v->(v == "" || v == Nothing).not
 
     ## ALIAS OR Columns
 

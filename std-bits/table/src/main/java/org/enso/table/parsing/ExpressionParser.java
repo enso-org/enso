@@ -12,7 +12,7 @@ public class ExpressionParser {
     STRING,
     COLUMN_NAME,
     OPERATOR,
-    UNARY_MINUS,
+    UNARY_OPERATOR,
     BRACKET_START,
     BRACKET_END,
     IDENTIFIER,
@@ -92,7 +92,7 @@ public class ExpressionParser {
           index++;
         }
         var value = expression.substring(start, index).replace("_", "");
-        if (lastMatches(output, TokenType.UNARY_MINUS)) {
+        if (lastMatches(output, TokenType.UNARY_OPERATOR)) {
           output.set(output.size() - 1, new Token(TokenType.NUMBER, "-" + value));
         } else {
           output.add(new Token(TokenType.NUMBER, value));
@@ -157,7 +157,7 @@ public class ExpressionParser {
       }
     } else {
       if (c == '-' && (output.size() == 0 || lastMatches(output, TokenType.BRACKET_START, TokenType.COMMA, TokenType.IDENTIFIER, TokenType.OPERATOR))) {
-        output.add(new Token(TokenType.UNARY_MINUS, "-"));
+        output.add(new Token(TokenType.UNARY_OPERATOR, "-"));
       } else {
         output.add(new Token(TokenType.OPERATOR, Character.toString(c)));
       }
@@ -189,28 +189,28 @@ public class ExpressionParser {
       case "false" -> output.add(new Token(TokenType.BOOLEAN, "False"));
       case "and" -> output.add(new Token(TokenType.OPERATOR, "&&"));
       case "or" -> output.add(new Token(TokenType.OPERATOR, "||"));
-      case "is" -> output.add(new Token(TokenType.OPERATOR, "IS"));
+      case "is" -> output.add(new Token(TokenType.UNARY_OPERATOR, "IS"));
       case "not" -> {
-        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
-          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT"));
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.UNARY_OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.UNARY_OPERATOR, "IS NOT"));
         } else {
-          output.add(new Token(TokenType.UNARY_MINUS, "!"));
+          output.add(new Token(TokenType.UNARY_OPERATOR, "!"));
         }
       }
       case "null" -> {
-        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
-          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NULL"));
-        } else if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS NOT"))) {
-          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT NULL"));
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.UNARY_OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.UNARY_OPERATOR, "IS NULL"));
+        } else if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.UNARY_OPERATOR, "IS NOT"))) {
+          output.set(output.size() - 1, new Token(TokenType.UNARY_OPERATOR, "IS NOT NULL"));
         } else {
           output.add(new Token(TokenType.NOTHING, "Nothing"));
         }
       }
       case "empty" -> {
-        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.OPERATOR, "IS"))) {
-          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS EMPTY"));
-        } else if (output.size() > 0 && output.get(output.size() - 1) .equals(new Token(TokenType.OPERATOR, "IS NOT"))) {
-          output.set(output.size() - 1, new Token(TokenType.OPERATOR, "IS NOT EMPTY"));
+        if (output.size() > 0 && output.get(output.size() - 1).equals(new Token(TokenType.UNARY_OPERATOR, "IS"))) {
+          output.set(output.size() - 1, new Token(TokenType.UNARY_OPERATOR, "IS EMPTY"));
+        } else if (output.size() > 0 && output.get(output.size() - 1) .equals(new Token(TokenType.UNARY_OPERATOR, "IS NOT"))) {
+          output.set(output.size() - 1, new Token(TokenType.UNARY_OPERATOR, "IS NOT EMPTY"));
         } else {
           throw new IllegalArgumentException("Unexpected identifier 'Empty' at index " + start);
         }

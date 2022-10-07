@@ -867,8 +867,8 @@ type Table
                         mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
         _ : Text -> case on_problems.handle_errors (self.at column) fallback=Nothing of
-            Nothing -> self.filter (Expression.For_Column expr . evaluate self) filter on_problems=on_problems
-            _ : Column -> self.filter resolved_column filter on_problems=on_problems
+            Nothing -> self.filter (Expression.For_Column column . evaluate self) filter on_problems=on_problems
+            resolved_column -> self.filter resolved_column filter on_problems=on_problems
         _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
