@@ -7,15 +7,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
 import java.time.DateTimeException;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -25,6 +17,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -148,23 +146,18 @@ public final class EnsoDateTime implements TruffleObject {
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this date time")
   @Builtin.Specialize
-  public EnsoDateTime plus(Object durationObject, InteropLibrary interop) {
-    return new EnsoDateTime(dateTime.plus(ensureDuration(durationObject, interop)));
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  public EnsoDateTime plus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    return new EnsoDateTime(dateTime.plus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
   @Builtin.Specialize
-  public EnsoDateTime minus(Object durationObject, InteropLibrary interop) {
-    return new EnsoDateTime(dateTime.minus(ensureDuration(durationObject, interop)));
-  }
-
-  private static Duration ensureDuration(Object durationObject, InteropLibrary interop) {
-    assert interop.isDuration(durationObject);
-    try {
-      return interop.asDuration(durationObject);
-    } catch (UnsupportedMessageException e) {
-      throw new PanicException(e.getMessage(), interop);
-    }
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  public EnsoDateTime minus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    return new EnsoDateTime(dateTime.minus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(description = "Return the number of seconds from the Unix epoch.")
