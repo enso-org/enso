@@ -395,6 +395,15 @@ public class EnsoCompilerTest {
       """);
   }
 
+  @Test
+  public void testCaseWithUnderscore() throws Exception {
+    parseTest("""
+    choose ch = case ch of
+        0 -> _.name
+        _ -> Nothing
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

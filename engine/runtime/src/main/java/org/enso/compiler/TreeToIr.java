@@ -675,7 +675,7 @@ final class TreeToIr {
           getIdentifiedLocation(arr), meta(), diag()
         );
       }
-      case Tree.Number n -> translateDecimalLiteral(n, n.getInteger(), n.getFractionalDigits());
+      case Tree.Number n -> translateDecimalLiteral(n);
       case Tree.Ident id -> {
         var exprId = translateIdent(id, isMethod);
         if (moreArgs.isEmpty()) {
@@ -811,6 +811,12 @@ final class TreeToIr {
         var signature = translateCallArgument(sig.getType(), true);
         yield new IR$Application$Operator$Binary(methodReference, opName, signature, getIdentifiedLocation(sig), meta(), diag());
       }
+      case Tree.TemplateFunction templ -> {
+        yield translateExpression(templ.getAst(), insideTypeSignature);
+      }
+      case Tree.Wildcard wild -> {
+        yield new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -939,6 +945,10 @@ final class TreeToIr {
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
     */
+  }
+
+  IR.Expression translateDecimalLiteral(Tree.Number ast) {
+    return translateDecimalLiteral(ast, ast.getInteger(), ast.getFractionalDigits());
   }
 
   IR.Expression translateDecimalLiteral(
@@ -1491,6 +1501,9 @@ final class TreeToIr {
       case Tree.TextLiteral lit -> {
         yield new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       }
+      case Tree.Number num -> {
+        yield new IR$Pattern$Literal((IR.Literal) translateDecimalLiteral(num), getIdentifiedLocation(num), meta(), diag());
+      }
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
   }
@@ -1501,6 +1514,10 @@ final class TreeToIr {
       case Tree.OprApp app -> {
        var tail = translatePatternArguments(app.getRhs(), prev);
        yield cons(translatePattern(app.getLhs(), tail), nil());
+      }
+      case Tree.App app -> {
+       var tail = translatePatternArguments(app.getArg(), prev);
+       yield cons(translatePattern(app.getFunc(), tail), nil());
       }
       case Tree.Ident id -> {
         var name = buildName(id);
