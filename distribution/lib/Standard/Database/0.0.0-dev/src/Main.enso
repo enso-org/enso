@@ -1,6 +1,6 @@
 import project.Connection.Database
 
-import project.Connection.Credentials
+import project.Connection.Credentials.Credentials
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Connection.Connection_Options.Connection_Options
@@ -10,7 +10,7 @@ import project.Connection.SQLite_Options
 import project.Connection.Redshift_Options
 import project.Data.SQL_Query.SQL_Query
 
-from project.Connection.Credentials export Credentials, Username_And_Password
+export project.Connection.Credentials.Credentials
 
 export project.Connection.SSL_Mode.SSL_Mode
 export project.Connection.Client_Certificate.Client_Certificate
@@ -21,4 +21,4 @@ export project.Data.SQL_Query.SQL_Query
 
 from project.Connection.Postgres_Options export Postgres_Options, Postgres
 from project.Connection.SQLite_Options export SQLite_Options, In_Memory, SQLite
-from project.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Credential, AWS_Profile, AWS_Key
+from project.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Credential

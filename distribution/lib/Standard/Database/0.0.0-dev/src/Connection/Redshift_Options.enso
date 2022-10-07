@@ -14,9 +14,7 @@ polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
 from project.Connection.Redshift_Options.Redshift_Options import Redshift
-from project.Connection.Redshift_Options.AWS_Credential import AWS_Profile, AWS_Key
 from project.Connection.Redshift_Options.Redshift_Options export Redshift
-from project.Connection.Redshift_Options.AWS_Credential export AWS_Profile, AWS_Key
 
 type Redshift_Options
     ## Connect to a AWS Redshift database.
@@ -50,8 +48,7 @@ type Redshift_Options
     jdbc_url : Text
     jdbc_url self =
         prefix = case self.credentials of
-            AWS_Credential.AWS_Profile _ _ -> 'jdbc:redshift:iam://'
-            AWS_Credential.AWS_Key _ _ _ -> 'jdbc:redshift:iam://'
+            _ : AWS_Credential -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
         prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)
 
@@ -60,9 +57,9 @@ type Redshift_Options
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
-            AWS_Credential.AWS_Profile db_user profile ->
+            AWS_Credential.Profile db_user profile ->
                 [Pair_Data 'user' db_user] + (if profile == '' then [] else [Pair_Data 'profile' profile])
-            AWS_Credential.AWS_Key db_user access_key secret_access_key ->
+            AWS_Credential.Key db_user access_key secret_access_key ->
                 [Pair_Data 'user' db_user, Pair_Data 'AccessKeyID' access_key, Pair_Data 'SecretAccessKey' secret_access_key]
             Credentials.Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
@@ -81,7 +78,7 @@ type AWS_Credential
        Arguments:
        - db_user: Redshift username to connect as.
        - profile: AWS profile name (if empty uses default).
-    AWS_Profile db_user:Text profile:Text=''
+    Profile db_user:Text profile:Text=''
 
     ## Access Redshift using IAM via an AWS access key ID and secret access key.
 
@@ -89,4 +86,4 @@ type AWS_Credential
        - db_user: Redshift username to connect as.
        - access_key: AWS access key ID.
        - secret_access_key: AWS secret access key.
-    AWS_Key db_user:Text access_key:Text secret_access_key:Text
+    Key db_user:Text access_key:Text secret_access_key:Text
