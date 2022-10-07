@@ -250,7 +250,7 @@ impl<S: Shape> ShapeSystem<S> {
         let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(scene, &shape_def, events);
+        let model = display::shape::ShapeSystemModel::new(scene, shape_def, events);
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
@@ -269,18 +269,6 @@ impl<S: Shape> ShapeSystem<S> {
         let sprite = RefCell::new(sprite);
         ShapeInstance { sprite, shape, display_object }
     }
-
-    // #[profile(Debug)]
-    // pub fn instantiate(&self, dyn_shape: &ShapeProxy<S>) -> symbol::GlobalInstanceId {
-    //     panic!();
-    //     // let sprite = self.model.sprite_system.new_instance();
-    //     // let instance_id = sprite.instance_id;
-    //     // let global_id = sprite.global_instance_id;
-    //     // let shape = S::new_instance_params(&self.gpu_params, instance_id);
-    //     // let shape = ShapeInstance { sprite, shape };
-    //     // dyn_shape.add_instance(shape);
-    //     // global_id
-    // }
 
     #[profile(Debug)]
     pub fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
@@ -301,7 +289,7 @@ impl<S: Shape> ShapeSystem<S> {
     fn init_refresh_on_style_change(self) -> Self {
         let model = &self.model;
         let style_watch = self.style_watch.clone_ref();
-        self.style_watch.set_on_style_change(f!(() model.set_shape(&S::shape_def(&style_watch))));
+        self.style_watch.set_on_style_change(f!(() model.set_shape(S::shape_def(&style_watch))));
         self
     }
 }
@@ -316,45 +304,42 @@ impl<S: Shape> ShapeSystem<S> {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ShapeSystemModel {
-    pub sprite_system:  SpriteSystem,
-    pub shape:          Rc<RefCell<def::AnyShape>>,
-    pub material:       Rc<RefCell<Material>>,
+    pub sprite_system: SpriteSystem,
+    pub shape: Rc<RefCell<def::AnyShape>>,
+    pub material: Rc<RefCell<Material>>,
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
-    /// has pointer events disabled would be completely transparent for the mouse (they would pass
-    /// through all mouse events).
+    /// have pointer events disabled will be completely transparent for the mouse (they will pass
+    /// through all mouse events to shapes behind them).
     pub pointer_events: Immutable<bool>,
-    pub normal:         Rc<Cell<bool>>, // FIXME: remove
+    /// Do not use the provided shape definition to generate material's body. It is rarely needed,
+    /// when a custom material is provided that does not require any additional shape definition
+    /// code. For example, the text system uses this field, as its material fully describes how to
+    /// render glyphs.
+    pub do_not_use_shape_definition: Rc<Cell<bool>>,
 }
 
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new<'t, S, Sh>(scene: S, shape: Sh, pointer_events: bool) -> Self
-    where
-        S: Into<&'t Scene>,
-        Sh: Into<def::AnyShape>, {
-        let shape = shape.into();
+    pub fn new<'t, S>(scene: S, shape: def::AnyShape, pointer_events: bool) -> Self
+    where S: Into<&'t Scene> {
         let sprite_system = SpriteSystem::new();
-        let material = Rc::new(RefCell::new(Self::surface_material()));
+        let material = Rc::new(RefCell::new(Self::default_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
-        let normal = Rc::new(Cell::new(true));
-        Self { sprite_system, shape, material, pointer_events, normal }
+        let do_not_use_shape_definition = default();
+        Self { sprite_system, shape, material, pointer_events, do_not_use_shape_definition }
     }
 
     fn init(&self) {
-        if self.normal.get() {
-            self.reload_shape();
-        } else {
-            self.reload_material();
-        }
+        self.reload_shape();
     }
 
     // TODO
     // We should handle these attributes in a nicer way. Currently, they are hardcoded here, and we
     // use magic to access them in shader builders.
     /// Defines a default material of this system.
-    fn surface_material() -> Material {
+    fn default_material() -> Material {
         let mut material = Material::new();
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
@@ -366,20 +351,18 @@ impl ShapeSystemModel {
 
     /// Replaces the shape definition.
     #[profile(Detail)]
-    pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
-        let shape = shape.into();
+    pub fn set_shape(&self, shape: def::AnyShape) {
         *self.shape.borrow_mut() = shape;
         self.reload_shape();
     }
 
-    /// Generates the shape again. It is used after some parameters are changed, like setting new
-    /// `shape`.
+    /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
-        if self.normal.get() {
+        if !self.do_not_use_shape_definition.get() {
             let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
             self.material.borrow_mut().set_code(code);
-            self.reload_material();
         }
+        self.reload_material();
     }
 
     /// Define a new shader input.

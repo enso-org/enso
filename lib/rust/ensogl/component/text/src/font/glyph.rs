@@ -105,9 +105,7 @@ pub mod glyph {
         SystemData(SystemData)
         ShapeData(ShapeData)
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
-            let shape = Circle(50.px());
-            let shape = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
-            shape.into()
+            Plane().into()
         }
     }
 }
@@ -125,7 +123,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
         let symbol = sprite_system.symbol();
 
         *data.model.material.borrow_mut() = Self::material();
-        data.model.normal.set(false);
+        data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.set_alignment(Alignment::bottom_left());
         scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
