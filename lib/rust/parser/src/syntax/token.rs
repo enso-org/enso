@@ -331,7 +331,6 @@ pub struct OperatorProperties {
     is_compile_time_operation: bool,
     is_right_associative:      bool,
     can_be_decimal_operator:   bool,
-    breaks_nospace_group:      bool,
     // Unique operators
     is_type_annotation:        bool,
     is_assignment:             bool,
@@ -404,11 +403,6 @@ impl OperatorProperties {
         Self { is_suspension: true, ..self }
     }
 
-    /// Return a copy of this operator, modified to be flagged as breaking nospace groups.
-    pub fn as_nospace_group_breaker(self) -> Self {
-        Self { breaks_nospace_group: true, ..self }
-    }
-
     /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
     pub fn with_decimal_interpretation(self) -> Self {
         Self { can_be_decimal_operator: true, ..self }
@@ -427,11 +421,6 @@ impl OperatorProperties {
     /// Return whether this operator can form operator sections.
     pub fn can_form_section(&self) -> bool {
         !self.is_compile_time_operation
-    }
-
-    /// Return whether this operator ends a nospace group to its left.
-    pub fn breaks_nospace_group(&self) -> bool {
-        self.breaks_nospace_group
     }
 
     /// Return whether this operator is the type annotation operator.

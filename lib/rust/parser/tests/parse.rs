@@ -876,12 +876,7 @@ fn new_lambdas() {
 
 #[test]
 fn old_lambdas() {
-    #[rustfmt::skip]
-    let cases = [
-        ("v -> v", block![(OprApp (Ident v) (Ok "->") (Ident v))]),
-        ("v ->\n v", block![(OprApp (Ident v) (Ok "->") (BodyBlock #((Ident v))))]),
-        ("v->\n v", block![(OprApp (Ident v) (Ok "->") (BodyBlock #((Ident v))))]),
-    ];
+    let cases = [("v -> v", block![(OprApp (Ident v) (Ok "->") (Ident v))])];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
