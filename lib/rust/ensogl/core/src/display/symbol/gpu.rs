@@ -556,8 +556,6 @@ pub struct SymbolData {
     global_instance_id: Buffer<i32>,
 }
 
-
-
 impl SymbolData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(

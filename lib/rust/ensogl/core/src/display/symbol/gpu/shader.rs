@@ -166,9 +166,9 @@ impl {
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
                     let profiler = self.profiler.take().unwrap_or_else(new_profiler);
-                    let handler = context.shader_compiler.submit(code, profiler, move |p| {
-                        on_ready(&bindings,&p);
-                        *program.borrow_mut() = Some(p);
+                    let handler = context.shader_compiler.submit(code, profiler, move |prog| {
+                        on_ready(&bindings, &prog);
+                        *program.borrow_mut() = Some(prog);
                     });
                     self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
                     self.dirty.unset_all();
