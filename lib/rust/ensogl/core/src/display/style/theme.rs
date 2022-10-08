@@ -26,7 +26,7 @@ use super::sheet::Value;
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct Theme {
     tree:   Rc<RefCell<HashMapTree<String, Option<Value>>>>,
-    on_mut: callback::registry::MutNoArgs,
+    on_mut: callback::registry::NoArgs,
 }
 
 impl Theme {
@@ -66,7 +66,7 @@ impl Theme {
     }
 
     /// Add a new callback which will be triggered everytime this theme is modified.
-    pub fn on_mut(&self, callback: impl callback::MutNoArgs) -> callback::Handle {
+    pub fn on_mut(&self, callback: impl callback::NoArgs) -> callback::Handle {
         self.on_mut.add(callback)
     }
 

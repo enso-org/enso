@@ -28,10 +28,10 @@ newtype_prim! {
 }
 
 /// Dirty flag collecting information which buffers were mutated.
-pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn Fn()>>;
+pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn FnMut()>>;
 
 /// Dirty flag indicating that the shape of the attribute (all buffers) was changed.
-pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type ShapeDirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
 
 

@@ -70,7 +70,7 @@ impl From<ScopeType> for usize {
 // === Types ===
 
 /// Dirty flag remembering which scopes were mutated.
-pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn Fn()>>;
+pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn FnMut()>>;
 
 
 // === Implementation ===

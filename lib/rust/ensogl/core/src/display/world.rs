@@ -192,9 +192,9 @@ impl Deref for WorldDataWithLoop {
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    pub prev_frame_stats: callback::registry::RefMut1<StatsData>,
-    pub before_frame:     callback::registry::CopyMut1<animation::TimeInfo>,
-    pub after_frame:      callback::registry::CopyMut1<animation::TimeInfo>,
+    pub prev_frame_stats: callback::registry::Ref1<StatsData>,
+    pub before_frame:     callback::registry::Copy1<animation::TimeInfo>,
+    pub after_frame:      callback::registry::Copy1<animation::TimeInfo>,
 }
 
 

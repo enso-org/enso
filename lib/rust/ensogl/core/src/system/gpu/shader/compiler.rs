@@ -534,7 +534,7 @@ pub struct Controller {
 
 #[derive(Debug, Default)]
 struct ControllerData {
-    on_idle: callback::registry::MutNoArgs,
+    on_idle: callback::registry::NoArgs,
 }
 
 impl Controller {

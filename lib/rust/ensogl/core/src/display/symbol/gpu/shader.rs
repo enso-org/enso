@@ -52,7 +52,7 @@ impl VarBinding {
 // === Shader ===
 // ==============
 
-pub type Dirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type Dirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
 shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.

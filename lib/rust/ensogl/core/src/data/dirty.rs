@@ -483,11 +483,13 @@ pub struct SetData<Item> {
 impl<Item> HasArg for SetData<Item> {
     type Arg = Item;
 }
+
 impl<Item> HasCheckAll for SetData<Item> {
     fn check_all(&self) -> bool {
         !self.set.is_empty()
     }
 }
+
 impl<Item> HasUnsetAll for SetData<Item> {
     fn unset_all(&mut self) {
         self.set.clear();
