@@ -10,7 +10,6 @@ use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
-use std::convert::identity;
 
 
 
@@ -48,14 +47,14 @@ pub fn plain_job(
     name: impl AsRef<str>,
     command_line: impl AsRef<str>,
 ) -> Job {
-    plain_job_customized(runs_on_info, name, command_line, identity)
+    plain_job_customized(runs_on_info, name, command_line, |s| vec![s])
 }
 
 pub fn plain_job_customized(
     runs_on_info: &impl RunsOn,
     name: impl AsRef<str>,
     command_line: impl AsRef<str>,
-    f: impl FnOnce(Step) -> Step,
+    f: impl FnOnce(Step) -> Vec<Step>,
 ) -> Job {
     let name = if let Some(os_name) = runs_on_info.os_name() {
         format!("{} ({})", name.as_ref(), os_name)
@@ -154,13 +153,15 @@ pub struct UploadRuntimeToEcr;
 impl JobArchetype for UploadRuntimeToEcr {
     fn job(os: OS) -> Job {
         plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-to-ecr", |step| {
-            step.with_env("ENSO_BUILD_ECR_REPOSITORY", enso_build::aws::ecr::runtime::NAME)
+            let step = step
+                .with_env("ENSO_BUILD_ECR_REPOSITORY", enso_build::aws::ecr::runtime::NAME)
                 .with_secret_exposed_as(secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
                 .with_secret_exposed_as(
                     secret::ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY,
                     "AWS_SECRET_ACCESS_KEY",
                 )
-                .with_env("AWS_DEFAULT_REGION", enso_build::aws::ecr::runtime::REGION)
+                .with_env("AWS_DEFAULT_REGION", enso_build::aws::ecr::runtime::REGION);
+            vec![step]
         })
     }
 }
@@ -194,7 +195,7 @@ impl JobArchetype for PackageIde {
             &os,
             "Package IDE",
             "ide build --wasm-source current-ci-run --backend-source current-ci-run",
-            |step| expose_os_specific_signing_secret(os, step),
+            |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }
 }
@@ -203,8 +204,8 @@ impl JobArchetype for PackageIde {
 pub struct CiCheckBackend;
 impl JobArchetype for CiCheckBackend {
     fn job(os: OS) -> Job {
-        let mut ret = plain_job(&os, "Engine", "backend ci-check");
-        ret.steps.push(step::test_reporter(os));
-        ret
+        plain_job_customized(&os, "Engine", "backend ci-check", |main_step| {
+            vec![main_step, step::engine_test_reporter(os), step::stdlib_test_reporter(os)]
+        })
     }
 }

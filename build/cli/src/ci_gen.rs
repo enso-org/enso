@@ -28,7 +28,6 @@ use ide_ci::actions::workflow::definition::Workflow;
 use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
-use std::convert::identity;
 
 
 // ==============
@@ -143,7 +142,7 @@ pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
 /// The `f` is applied to the step that does an actual script invocation.
 pub fn setup_customized_script_steps(
     command_line: impl AsRef<str>,
-    customize: impl FnOnce(Step) -> Step,
+    customize: impl FnOnce(Step) -> Vec<Step>,
 ) -> Vec<Step> {
     use enso_build::ci::labels::CLEAN_BUILD_REQUIRED;
     // Check if the pull request has a "Clean required" label.
@@ -154,7 +153,7 @@ pub fn setup_customized_script_steps(
     let mut steps = setup_script_steps();
     let clean_step = run("git-clean").with_if(&pre_clean_condition).with_name("Clean before");
     steps.push(clean_step.clone());
-    steps.push(customize(run(command_line)));
+    steps.extend(customize(run(command_line)));
     steps.extend(list_everything_on_failure());
     steps.push(
         clean_step
@@ -165,7 +164,7 @@ pub fn setup_customized_script_steps(
 }
 
 pub fn setup_script_and_steps(command_line: impl AsRef<str>) -> Vec<Step> {
-    setup_customized_script_steps(command_line, identity)
+    setup_customized_script_steps(command_line, |s| vec![s])
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -215,7 +214,7 @@ pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(os: OS) -> Job {
         plain_job_customized(&os, "Build IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
-            expose_os_specific_signing_secret(os, step)
+            vec![expose_os_specific_signing_secret(os, step)]
         )
     }
 }
