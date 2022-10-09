@@ -404,6 +404,44 @@ impl Command {
     // }
 }
 
+impl Command {
+    pub fn with_arg(self, arg: impl AsRef<OsStr>) -> Self {
+        let mut this = self;
+        this.arg(arg);
+        this
+    }
+
+    pub fn with_args(self, args: impl IntoIterator<Item = impl AsRef<OsStr>>) -> Self {
+        let mut this = self;
+        this.args(args);
+        this
+    }
+
+    pub fn with_stdin(self, stdin: Stdio) -> Self {
+        let mut this = self;
+        this.stdin(stdin);
+        this
+    }
+
+    pub fn with_stdout(self, stdout: Stdio) -> Self {
+        let mut this = self;
+        this.stdout(stdout);
+        this
+    }
+
+    pub fn with_stderr(self, stderr: Stdio) -> Self {
+        let mut this = self;
+        this.stderr(stderr);
+        this
+    }
+
+    pub fn with_current_dir(self, dir: impl AsRef<Path>) -> Self {
+        let mut this = self;
+        this.current_dir(dir);
+        this
+    }
+}
+
 pub fn spawn_log_processor(
     prefix: String,
     out: impl AsyncRead + Send + Unpin + 'static,

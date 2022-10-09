@@ -11,19 +11,20 @@
 
 // === Features ===
 #![feature(exit_status_error)]
+#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::let_and_return)]
 #![allow(clippy::bool_to_int_with_if)]
 // === Non-Standard Linter Configuration ===
+#![allow(missing_docs)]
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
 #![deny(missing_abi)]
 #![deny(pointer_structural_match)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(unconditional_recursion)]
-#![warn(missing_docs)]
 #![warn(absolute_paths_not_starting_with_crate)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
@@ -41,19 +42,13 @@
 #![warn(variant_size_differences)]
 #![warn(unreachable_pub)]
 
-use lazy_static::lazy_static;
+use ide_ci::prelude::*;
+
+use ide_ci::fs::tokio as fs;
 use regex::Regex;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fmt::Debug;
-use std::fs;
-use std::hash::Hash;
 use std::hash::Hasher;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
+use tokio as _;
 
 
 
@@ -121,14 +116,17 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
 // === Utils ===
 // =============
 
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
+pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
 }
 
-fn read_file_with_hash(path: impl AsRef<Path>) -> std::io::Result<(u64, String)> {
-    fs::read_to_string(path).map(|t| (calculate_hash(&t), t))
+pub async fn read_file_with_hash(path: impl AsRef<Path>) -> Result<(u64, String)> {
+    ide_ci::fs::tokio::read_to_string(path).await.map(|content| {
+        let hash = calculate_hash(&content);
+        (hash, content)
+    })
 }
 
 
@@ -176,7 +174,7 @@ pub struct HeaderElement {
 }
 
 impl Debug for HeaderElement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}({:?})", self.token, self.reg_match.as_str())
     }
 }
@@ -369,92 +367,87 @@ pub struct RustSourcePath {
 /// uses non-documented API and is slow as well (8 seconds for the whole codebase). It should be
 /// possible to improve the latter solution to get good performance, but it seems way harder than it
 /// should be.
-fn process_path(path: impl AsRef<Path>, action: Action) {
-    let paths = discover_paths(path);
+pub async fn process_path(path: impl AsRef<Path>, action: Action) -> Result {
+    let paths = discover_paths(&path)?;
     let total = paths.len();
     let mut hash_map = HashMap::<PathBuf, u64>::new();
     for (i, sub_path) in paths.iter().enumerate() {
         let dbg_msg = if sub_path.is_main { " [main]" } else { "" };
-        println!("[{}/{}] Processing {}{}.", i + 1, total, sub_path.path.display(), dbg_msg);
-        let hash = process_file(&sub_path.path, action, sub_path.is_main);
+        info!("[{}/{}] Processing {}{}.", i + 1, total, sub_path.path.display(), dbg_msg);
+        let hash = process_file(&sub_path.path, action, sub_path.is_main).await?;
         hash_map.insert((&sub_path.path).into(), hash);
     }
     if action == Action::Format || action == Action::FormatAndCheck {
-        Command::new("cargo")
-            .arg("fmt")
-            .stdin(Stdio::null())
-            .status()
-            .expect("'cargo fmt' failed to start.")
-            .exit_ok()
-            .unwrap();
+        ide_ci::programs::cargo::fmt::format(&path).await?;
     }
 
     if action == Action::FormatAndCheck {
         let mut changed = Vec::new();
         for sub_path in &paths {
-            let (hash, _) = read_file_with_hash(&sub_path.path).unwrap();
+            let (hash, _) = read_file_with_hash(&sub_path.path).await?;
             if hash_map.get(&sub_path.path) != Some(&hash) {
                 changed.push(sub_path.path.clone());
             }
         }
-        if !changed.is_empty() {
-            panic!("{} files changed:\n{:#?}", changed.len(), changed);
-        }
+        ensure!(changed.is_empty(), "{} files changed:\n{:#?}", changed.len(), changed);
     }
+    Ok(())
 }
 
 /// Discover all paths containing Rust sources, recursively.
-fn discover_paths(path: impl AsRef<Path>) -> Vec<RustSourcePath> {
+pub fn discover_paths(path: impl AsRef<Path>) -> Result<Vec<RustSourcePath>> {
     let mut vec = Vec::default();
-    discover_paths_internal(&mut vec, path, false);
-    vec
+    discover_paths_internal(&mut vec, path, false)?;
+    Ok(vec)
 }
 
-fn discover_paths_internal(
+pub fn discover_paths_internal(
     vec: &mut Vec<RustSourcePath>,
     path: impl AsRef<Path>,
     is_main_dir: bool,
-) {
+) -> Result {
+    use ide_ci::fs;
     let path = path.as_ref();
-    let md = fs::metadata(path);
-    let md = md.unwrap_or_else(|_| panic!("Could get metadata of {}", path.display()));
-    if md.is_dir() && path.file_name() != Some(OsStr::new("target")) {
+    let md = fs::metadata(path)?;
+    if md.is_dir() && !path.file_name().contains(&"target") {
         let dir_name = path.file_name();
         // FIXME: This should cover 'tests' folder also, but only the files that contain actual
         //        tests. Otherwise, not all attributes are allowed there.
-        let is_main_dir = dir_name == Some(OsStr::new("bin")); // || dir_name == Some(OsStr::new("tests"));
-        let sub_paths = fs::read_dir(path).unwrap();
+        let is_main_dir = dir_name.contains(&"bin"); // || dir_name == Some(OsStr::new("tests"));
+        let sub_paths = fs::read_dir(path)?;
         for sub_path in sub_paths {
-            discover_paths_internal(vec, &sub_path.unwrap().path(), is_main_dir)
+            discover_paths_internal(vec, &sub_path?.path(), is_main_dir)?;
         }
-    } else if md.is_file() && path.extension() == Some(OsStr::new("rs")) {
-        let file_name = path.file_name().and_then(|s| s.to_str());
-        let is_main_file = file_name == Some("lib.rs") || file_name == Some("main.rs");
+    } else if md.is_file() && path.extension().contains(&"rs") {
+        let is_main_file = path
+            .file_name()
+            .map_or(false, |file_name| file_name == "main.rs" || file_name == "lib.rs");
         let is_main = is_main_file || is_main_dir;
         let path = path.into();
         vec.push(RustSourcePath { path, is_main });
     }
+    Ok(())
 }
 
-fn process_file(path: impl AsRef<Path>, action: Action, is_main_file: bool) -> u64 {
+#[context("Failed to process file {}", path.as_ref().display())]
+pub async fn process_file(
+    path: impl AsRef<Path>,
+    action: Action,
+    is_main_file: bool,
+) -> Result<u64> {
     let path = path.as_ref();
-    let (hash, input) = read_file_with_hash(path).unwrap();
-
-    match process_file_content(input, is_main_file) {
-        Err(e) => panic!("{:?}: {}", path, e),
-        Ok(out) => {
-            if action == Action::DryRun {
-                println!("{}", out)
-            } else if action == Action::Format || action == Action::FormatAndCheck {
-                fs::write(path, out).expect("Unable to write back to the source file.")
-            }
-            hash
-        }
+    let (hash, input) = read_file_with_hash(path).await?;
+    let out = process_file_content(input, is_main_file)?;
+    if action == Action::DryRun {
+        println!("{}", out)
+    } else if action == Action::Format || action == Action::FormatAndCheck {
+        fs::write(path, out).await?;
     }
+    Ok(hash)
 }
 
 /// Process a single source file.
-fn process_file_content(input: String, is_main_file: bool) -> Result<String, String> {
+pub fn process_file_content(input: String, is_main_file: bool) -> Result<String> {
     let mut str_ptr: &str = &input;
     let mut attrs = vec![];
     let mut header = vec![];
@@ -503,14 +496,14 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     let contains_comments =
         header.iter().find(|t| t.token == Comment && !t.reg_match.starts_with("// ==="));
     if let Some(comment) = contains_comments {
-        return Err(format!(
+        bail!(
             "File contains comments in the import section. This is not allowed:\n{}",
             comment.reg_match
-        ));
+        );
     }
 
     // Error if the star import is used for non prelude- or traits-like imports.
-    // TODO: This is commented for now because it requires several non-trival changes in the code.
+    // TODO: This is commented for now because it requires several non-trivial changes in the code.
     // let invalid_star_import = header.iter().any(|t| {
     //     t.token == UseStar
     //         && !t.reg_match.contains("prelude::*")
@@ -583,19 +576,19 @@ fn process_file_content(input: String, is_main_file: bool) -> Result<String, Str
     Ok(out)
 }
 
-fn main() {
-    process_path(".", Action::Format);
-}
-
 
 
 // =============
 // === Tests ===
 // =============
 
-#[test]
-fn test_formatting() {
-    let input = r#"//! Module-level documentation
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_formatting() {
+        let input = r#"//! Module-level documentation
 //! written in two lines.
 
 #![warn(missing_copy_implementations)]
@@ -614,7 +607,7 @@ pub mod mod2;
 pub struct Struct1 {}
 "#;
 
-    let output = r#"//! Module-level documentation
+        let output = r#"//! Module-level documentation
 //! written in two lines.
 
 #![recursion_limit = "512"]
@@ -654,5 +647,6 @@ pub use lib_f::item_1;
 
 pub struct Struct1 {}
 "#;
-    assert_eq!(process_file_content(input.into(), true), Ok(output.into()));
+        assert_eq!(process_file_content(input.into(), true), Ok(output.into()));
+    }
 }

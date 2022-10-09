@@ -10,6 +10,7 @@ use crate::program::command::Manipulator;
 
 pub mod build_env;
 pub mod clippy;
+pub mod fmt;
 
 
 

@@ -159,6 +159,7 @@ pub mod prelude {
     pub use crate::extensions::str::StrLikeExt;
     pub use crate::github::RepoPointer;
     pub use crate::goodie::Goodie;
+    pub use crate::log::setup_logging;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
     pub use crate::program::command::provider::CommandProvider;

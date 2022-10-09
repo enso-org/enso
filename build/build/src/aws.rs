@@ -159,9 +159,10 @@ pub async fn update_manifest(repo_context: &RepoContext, edition_file: &Path) ->
     }
 
     let new_edition_filename =
-        edition_file.file_name().context("Edition file path is missing filename!")?.as_str();
-
-    bucket_context.put(new_edition_filename, ByteStream::from_path(&edition_file).await?).await?;
+        edition_file.file_name().context("Edition file path is missing filename!")?;
+    bucket_context
+        .put(new_edition_filename.as_str(), ByteStream::from_path(&edition_file).await?)
+        .await?;
 
     bucket_context.put_yaml("manifest.yaml", &new_manifest).await?;
     Ok(())

@@ -6,7 +6,7 @@ members = [
   "app/gui",
   "app/gui/enso-profiler-enso-data",
   "build/cli",
-  "build/deprecated/enso-formatter",
+  "build/enso-formatter",
   "build/deprecated/rust-scripts",
   "lib/rust/*",
   "lib/rust/parser/src/syntax/tree/visitor",

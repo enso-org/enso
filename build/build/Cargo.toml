@@ -68,7 +68,7 @@ sysinfo = "0.26.2"
 tar = "0.4.37"
 tempfile = "3.2.0"
 toml = "0.5.8"
-tokio = { workspace = true, features = ["full", "tracing"] }
+tokio = { workspace = true }
 tracing = { version = "0.1.32" }
 tracing-subscriber = "0.3.11"
 console-subscriber = { workspace = true }

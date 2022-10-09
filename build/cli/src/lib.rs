@@ -2,6 +2,7 @@
 #![feature(option_result_contains)]
 #![feature(once_cell)]
 #![feature(default_free_fn)]
+#![feature(future_join)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -30,6 +31,7 @@ pub mod prelude {
 }
 
 use crate::prelude::*;
+use std::future::join;
 
 use ide_ci::env::Variable;
 
@@ -837,8 +839,14 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             prettier::check(&ctx.repo_root).await?;
         }
         Target::Fmt => {
-            prettier::write(&ctx.repo_root).await?;
-            Cargo.cmd()?.current_dir(&ctx.repo_root).arg("fmt").run_ok().await?;
+            let prettier = prettier::write(&ctx.repo_root);
+            let our_formatter =
+                enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
+            // our_formatter.await?;
+            // prettier.await?;
+            let (r1, r2) = join!(prettier, our_formatter).await;
+            r1?;
+            r2?;
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {

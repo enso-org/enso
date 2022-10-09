@@ -74,7 +74,7 @@ syn = "1.0.86"
 sysinfo = "0.26.2"
 tar = "0.4.37"
 tempfile = "3.2.0"
-tokio = { version = "=1.20.1", features = ["full", "tracing"] }
+tokio = { workspace = true }
 tokio-util = { version = "0.7.2", features = ["full"] }
 tracing = "0.1.32"
 tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }

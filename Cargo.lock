@@ -1950,6 +1950,7 @@ dependencies = [
  "clap 3.1.15",
  "derivative",
  "enso-build",
+ "enso-formatter",
  "futures 0.3.24",
  "futures-util",
  "glob",
@@ -2035,8 +2036,9 @@ dependencies = [
 name = "enso-formatter"
 version = "0.1.0"
 dependencies = [
- "lazy_static",
+ "ide-ci",
  "regex",
+ "tokio",
 ]
 
 [[package]]

@@ -127,6 +127,7 @@ pub enum Target {
     /// Lint the codebase.
     Lint,
     /// Apply automatic formatters on the repository.
+    #[clap(alias = "format")]
     Fmt,
     /// Release-related subcommand.
     Release(release::Target),

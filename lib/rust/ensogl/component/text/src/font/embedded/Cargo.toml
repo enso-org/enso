@@ -17,6 +17,6 @@ ide-ci = { path = "../../../../../../../../build/ci_utils" }
 enso-build = { path = "../../../../../../../../build/build" }
 enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }
-tokio = { version = "1.19.2", features = ["macros"] }
+tokio = { workspace = true }
 zip = { version = "0.5" }
 owned_ttf_parser = "0.15.1"
