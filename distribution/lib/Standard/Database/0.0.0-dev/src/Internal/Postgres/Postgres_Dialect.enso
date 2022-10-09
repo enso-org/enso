@@ -1,24 +1,26 @@
 from Standard.Base import all hiding First, Last
-
 import Standard.Base.Error.Common as Errors
+
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Database.Data.SQL import SQL_Type, Statement, code
-import Standard.Database.Data.SQL
-import Standard.Database.Data.Dialect
-import Standard.Database.Internal.Base_Generator
-import Standard.Database.Internal.IR
-from Standard.Database.Errors import Unsupported_Database_Operation_Error
+
+import project.Data.SQL
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.Base_Generator
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.Nulls_Order.Nulls_Order
+
+from project.Data.SQL import code
+from project.Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-postgres : Dialect
+postgres : Postgres_Dialect
 postgres =
-    Postgres_Dialect_Data make_internal_generator_dialect
-
-# TODO Dubious constructor export
-from project.Internal.Postgres.Postgres_Dialect.Postgres_Dialect import all
-from project.Internal.Postgres.Postgres_Dialect.Postgres_Dialect export all
+    Postgres_Dialect.Value make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -27,7 +29,7 @@ type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    Postgres_Dialect_Data internal_generator_dialect
+    Value internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
@@ -37,7 +39,7 @@ type Postgres_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Statement
+    generate_sql : Query -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
@@ -54,7 +56,7 @@ type Postgres_Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
 
@@ -225,23 +227,23 @@ contains = Base_Generator.lift_binary_op "contains" make_contains_expr
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =
     nulls = case sort_direction of
-        Sort_Direction.Ascending -> IR.Nulls_First
-        Sort_Direction.Descending -> IR.Nulls_Last
+        Sort_Direction.Ascending -> Nulls_Order.First
+        Sort_Direction.Descending -> Nulls_Order.Last
     case internal_column.sql_type.is_likely_text of
         True ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
-                        IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
                     Case_Sensitivity.Sensitive ->
-                        IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
-                            upper = IR.Operation "UPPER" [internal_column.expression]
-                            folded_expression = IR.Operation "LOWER" [upper]
-                            IR.Order_Descriptor_Data folded_expression sort_direction nulls_order=nulls collation=Nothing
+                            upper = Expression.Operation "UPPER" [internal_column.expression]
+                            folded_expression = Expression.Operation "LOWER" [upper]
+                            Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
         False ->
-            IR.Order_Descriptor_Data internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing

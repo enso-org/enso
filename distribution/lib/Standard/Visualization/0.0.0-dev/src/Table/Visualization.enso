@@ -7,7 +7,7 @@ import Standard.Database.Data.Column.Column as Database_Column
 
 import Standard.Table.Data.Column_Selector.Column_Selector
 
-import Standard.Visualization.Helpers
+import project.Helpers
 
 # TODO add an initial offset to fully support lazy visualizations
 
@@ -22,7 +22,7 @@ import Standard.Visualization.Helpers
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Json
 prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
-    Dataframe_Table.Table_Data _ ->
+    _ : Dataframe_Table ->
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
@@ -30,7 +30,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
             Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
         make_json dataframe [index] all_rows_count
 
-    Database_Table.Table_Data _ _ _ _ ->
+    _ : Database_Table ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
         df = x.reset_index.read max_rows
         # Then split into actual columns and indices.
@@ -40,9 +40,9 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         make_json vis_df indices all_rows_count
 
     # We display columns as 1-column tables.
-    Dataframe_Column.Column_Data _ ->
+    _ : Dataframe_Column ->
         prepare_visualization x.to_table max_rows
-    Database_Column.Column_Data _ _ _ _ _ ->
+    _ : Database_Column ->
         prepare_visualization x.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?

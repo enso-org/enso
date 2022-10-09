@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database import all
-import Standard.Database
+from Standard.Database import Database, SQLite, SQL_Query
 
 import Standard.Visualization.SQL.Visualization as Visualization
 
@@ -9,7 +8,7 @@ import Standard.Test
 
 visualization_spec connection =
     connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
-    t = connection.query (Table_Name "T")
+    t = connection.query (SQL_Query.Table_Name "T")
     Test.group "SQL Visualization" <|
         Test.specify "should provide type metadata for interpolations" <|
             q = t.filter ((t.at "B" == 2) && (t.at "A" == True)) . at "C"

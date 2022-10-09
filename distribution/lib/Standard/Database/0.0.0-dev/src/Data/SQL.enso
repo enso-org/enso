@@ -2,13 +2,14 @@ from Standard.Base import all
 
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 
-polyglot java import java.sql.Types
+import project.Data.SQL_Type.SQL_Type
+import project.Data.SQL_Statement.SQL_Statement
 
 ## UNSTABLE
 
    Creates a Builder representing and empty code fragment.
 empty : Builder
-empty = Builder_Data (Vector_Builder.empty)
+empty = Builder.Value (Vector_Builder.empty)
 
 ## UNSTABLE
 
@@ -19,8 +20,8 @@ empty = Builder_Data (Vector_Builder.empty)
    - text: The raw SQL code.
 code : Text -> Builder
 code text =
-    vec = if text.is_empty then [] else [SQL_Code_Part text]
-    Builder_Data (Vector_Builder.from_vector vec)
+    vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
+    Builder.Value (Vector_Builder.from_vector vec)
 
 ## UNSTABLE
 
@@ -31,7 +32,7 @@ code text =
    - object: The object to be interpolated into the query as if it has the type
      given by `sql_type`.
 interpolation : SQL_Type -> Any -> Builder
-interpolation sql_type object = Builder_Data (Vector_Builder.from_vector [SQL_Interpolation sql_type object])
+interpolation sql_type object = Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation sql_type object])
 
 ## UNSTABLE
 
@@ -43,133 +44,19 @@ interpolation sql_type object = Builder_Data (Vector_Builder.from_vector [SQL_In
 join : Builder | Text -> Vector Builder -> Builder
 join separator statements =
     sep = case separator of
-        Builder_Data _ -> separator
+        Builder.Value _ -> separator
         _ -> code separator
 
     if statements.length == 0 then empty else
         (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
-# TODO Dubious constructor export
-from project.Data.SQL.SQL_Type import all
-from project.Data.SQL.SQL_Type export all
-
-## Represents an internal SQL data-type.
-type SQL_Type
-
-    ## Represents an internal SQL data-type.
-
-       Arguments:
-       - typeid: a numerical type id, as defined in `java.sql.Types`.
-       - name: a database-specific type name, used for pretty printing.
-    SQL_Type_Data typeid name
-
-    == self that = case that of
-        SQL_Type_Data that_id _ ->
-            self.typeid == that_id
-        _ -> False
-
-    ## The SQL representation of `Boolean` type.
-    boolean : SQL_Type
-    boolean = SQL_Type_Data Types.BOOLEAN "BOOLEAN"
-
-    ## The SQL representation of `Integer` type.
-    integer : SQL_Type
-    integer = SQL_Type_Data Types.INTEGER "INTEGER"
-
-    ## The SQL representation of the `BIGINT` type.
-    bigint : SQL_Type
-    bigint = SQL_Type_Data Types.BIGINT "BIGINT"
-
-    ## The SQL representation of the `SMALLINT` type.
-    smallint : SQL_Type
-    smallint = SQL_Type_Data Types.SMALLINT "SMALLINT"
-
-    ## The SQL type representing decimal numbers.
-    decimal : SQL_Type
-    decimal = SQL_Type_Data Types.DECIMAL "DECIMAL"
-
-    ## The SQL type representing decimal numbers.
-    real : SQL_Type
-    real = SQL_Type_Data Types.REAL "REAL"
-
-    ## The SQL type representing double-precision floating-point numbers.
-    double : SQL_Type
-    double = SQL_Type_Data Types.DOUBLE "DOUBLE PRECISION"
-
-    ## The SQL type representing a general numeric type.
-    numeric : SQL_Type
-    numeric = SQL_Type_Data Types.NUMERIC "NUMERIC"
-
-    ## The SQL type representing one of the suppported textual types.
-    varchar : SQL_Type
-    varchar = SQL_Type_Data Types.VARCHAR "VARCHAR"
-
-    ## UNSTABLE
-       The SQL type representing one of the suppported textual types.
-
-       It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
-    text : SQL_Type
-    text = SQL_Type_Data Types.VARCHAR "VARCHAR"
-
-    ## The SQL type representing a binary object.
-    blob : SQL_Type
-    blob = SQL_Type_Data Types.BLOB "BLOB"
-
-    ## PRIVATE
-
-       Returns True if this type represents an integer.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_integer : Boolean
-    is_definitely_integer self =
-        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a boolean.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_boolean : Boolean
-    is_definitely_boolean self =
-        [Types.BOOLEAN, Types.BIT].contains self.typeid
-
-    ## PRIVATE
-
-       Returns True if this type represents a floating point number.
-
-       It only handles the standard types so it may return false negatives for
-       non-standard ones.
-    is_definitely_double : Boolean
-    is_definitely_double self =
-        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text.
-    is_definitely_text : Boolean
-    is_definitely_text self =
-       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
-
-    ## PRIVATE
-       Returns True if this type represents a Text, using heuristics that may
-       match more possible types.
-    is_likely_text : Boolean
-    is_likely_text self =
-       self.is_definitely_text || self.name.contains "text" Text_Matcher.Case_Insensitive
-
-
-# TODO Dubious constructor export
-from project.Data.SQL.SQL_Fragment import all
-from project.Data.SQL.SQL_Fragment export all
-
 ## UNSTABLE
 
    A fragment of a SQL query.
 
-   It can either be a SQL_Code_Part that represents raw SQL code or
-   SQL_Interpolation which represents an object that will be interpolated into
-   the query.
+   It can either be a SQL_Fragment.Code_Part that represents raw SQL code or
+   SQL_Fragment.Interpolation which represents an object that will be
+   interpolated into the query.
 type SQL_Fragment
 
     ## UNSTABLE
@@ -178,7 +65,7 @@ type SQL_Fragment
 
        Arguments:
        - code: A fragment of SQL code.
-    SQL_Code_Part code:Text
+    Code_Part code:Text
 
     ## UNSTABLE
 
@@ -189,90 +76,7 @@ type SQL_Fragment
        - sql_type: The expected SQL type of `object`.
        - object: A value that will be interpolated into the query, interpreted
          as having the type `sql_type`.
-    SQL_Interpolation sql_type:SQL_Type object:Any
-
-# TODO Dubious constructor export
-from project.Data.SQL.Statement import all
-from project.Data.SQL.Statement export all
-
-type Statement
-
-    ## UNSTABLE
-
-       Represents a built SQL statement.
-
-       Arguments:
-       - internal_fragments: A vector of SQL code fragments.
-
-       The statement consists of SQL code with parameters and values that will be
-       interpolated for these parameters.
-    Statement_Data (internal_fragments:(Vector SQL_Fragment))
-
-    ## UNSTABLE
-
-       A vector of code fragments.
-
-       Consists of two types of values:
-       - SQL_Code_Part, representing parts of raw SQL code and
-       - SQL_Interpolation, representing objects that will be interpolated in
-         between the SQL code.
-    fragments : Vector SQL_Fragment
-    fragments self = self.internal_fragments
-
-    ## UNSAFE
-       UNSTABLE
-       ADVANCED
-
-       This function returns a raw SQL string for the query, manually handling
-       the interpolation that is normally handled by the database engine itself.
-
-       It should be used EXTREMELY carefully - the returned SQL code should
-       always be read by a human to ensure that it does what is expected before
-       executing it in any REPLs or other database interfaces.
-
-       It should NEVER be used in production code.
-    unsafe_to_raw_sql : Text
-    unsafe_to_raw_sql self =
-        strings = self.internal_fragments . map <| case _ of
-            SQL_Code_Part code -> code
-            # TODO at some point we may try more sophisticated serialization based on data type
-            SQL_Interpolation _ obj -> case obj of
-                Number -> obj.to_text
-                _ -> "'" + obj.to_text.replace "'" "''" + "'"
-        strings.join ""
-
-    ## UNSTABLE
-
-       Returns a pair consisting of the SQL code with holes for values and
-       a list for values that should be substituted.
-    # prepare : [Text, Vector Any]
-    prepare self =
-        to_code fragment = case fragment of
-            SQL_Code_Part code -> code
-            SQL_Interpolation _ _ -> "?"
-        to_subst fragment = case fragment of
-            SQL_Code_Part _ -> []
-            SQL_Interpolation typ obj -> [[obj, typ]]
-        sql = self.fragments.map to_code . join ""
-        substitutions = self.fragments.flat_map to_subst
-        [sql, substitutions]
-
-    ## UNSTABLE
-
-       Returns a JSON representation of the statement.
-    to_json : Json
-    to_json self =
-        jsonify fragment = case fragment of
-            SQL_Code_Part code -> Json.from_pairs [["sql_code", code]]
-            SQL_Interpolation typ obj ->
-                inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
-                Json.from_pairs [["sql_interpolation", inner]]
-        fragments = Json.Array (self.internal_fragments.map jsonify)
-        Json.from_pairs [["query", fragments]]
-
-# TODO Dubious constructor export
-from project.Data.SQL.Builder import all
-from project.Data.SQL.Builder export all
+    Interpolation sql_type:SQL_Type object:Any
 
 type Builder
 
@@ -285,7 +89,7 @@ type Builder
 
        It can be used to concatenate parts of SQL code in O(1) time and at the
        end build the actual query in linear time.
-    Builder_Data (fragments:(Vector_Builder SQL_Fragment))
+    Value (fragments:(Vector_Builder SQL_Fragment))
 
     ## UNSTABLE
 
@@ -295,8 +99,8 @@ type Builder
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
     ++ self other = case other of
-        text : Text -> if text == "" then self else Builder_Data (self.fragments ++ (code text).fragments)
-        _ -> Builder_Data (self.fragments ++ other.fragments)
+        text : Text -> if text == "" then self else Builder.Value (self.fragments ++ (code text).fragments)
+        _ -> Builder.Value (self.fragments ++ other.fragments)
 
     ## UNSTABLE
 
@@ -307,10 +111,10 @@ type Builder
     ## UNSTABLE
 
        Builds a SQL statement.
-    build : Statement
+    build : SQL_Statement
     build self =
         fragments = optimize_fragments self.fragments.build
-        Statement_Data fragments
+        SQL_Statement.Value fragments
 
     ## UNSTABLE
 
@@ -329,7 +133,7 @@ type Builder
     prefix_if_present : Text | Builder -> Builder
     prefix_if_present self prefix =
         pref = case prefix of
-            Builder_Data _ -> prefix
+            _ : Builder -> prefix
             _ -> code prefix
         if self.is_empty then self else pref++self
 
@@ -344,25 +148,24 @@ optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder
     go elem =
-        last_part = State.get SQL_Code_Part
+        last_part = State.get SQL_Fragment.Code_Part
         case elem of
-            SQL_Code_Part code ->
+            SQL_Fragment.Code_Part code ->
                 new_part = case last_part of
-                    Nothing -> SQL_Code_Part code
-                    SQL_Code_Part other -> SQL_Code_Part other+code
-                State.put SQL_Code_Part new_part
-            SQL_Interpolation _ _ ->
+                    Nothing -> SQL_Fragment.Code_Part code
+                    SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
+                State.put SQL_Fragment.Code_Part new_part
+            SQL_Fragment.Interpolation _ _ ->
                 case last_part of
                     Nothing -> Nothing
-                    SQL_Code_Part _ ->
+                    SQL_Fragment.Code_Part _ ->
                         builder.append last_part
-                        State.put SQL_Code_Part Nothing
+                        State.put SQL_Fragment.Code_Part Nothing
                 builder.append elem
-    State.run SQL_Code_Part Nothing <|
+    State.run SQL_Fragment.Code_Part Nothing <|
         fragments.each go
-        last_part = State.get SQL_Code_Part
+        last_part = State.get SQL_Fragment.Code_Part
         case last_part of
             Nothing -> Nothing
-            SQL_Code_Part _ -> builder.append last_part
+            SQL_Fragment.Code_Part _ -> builder.append last_part
     builder.to_vector
-

@@ -1,9 +1,10 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.Data.Column as Materialized_Column
+import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Java_Exports
-from Standard.Database.Data.SQL import SQL_Type, SQL_Type_Data
+
+import project.Data.SQL_Type.SQL_Type
 
 polyglot java import java.sql.ResultSet
 
@@ -24,7 +25,7 @@ read_column result_set column_name =
 
 ## PRIVATE
    Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table.Table
+result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
 result_set_to_table result_set expected_types=Nothing =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
@@ -33,7 +34,7 @@ result_set_to_table result_set expected_types=Nothing =
         Vector.new ncols ix->
             typeid = metadata.getColumnType ix+1
             name = metadata.getColumnTypeName ix+1
-            SQL_Type_Data typeid name
+            SQL_Type.Value typeid name
     column_builders = column_types.map typ->
         create_builder typ
     go has_next = if has_next.not then Nothing else
@@ -43,7 +44,7 @@ result_set_to_table result_set expected_types=Nothing =
     go result_set.next
     columns = column_builders.zip column_names builder-> name->
         builder.make_column name
-    Materialized_Table.Table.new columns
+    Materialized_Table.new columns
 
 ## PRIVATE
 
@@ -130,7 +131,7 @@ type Builder
 
        Argument:
        - name: The name of the column.
-    make_column : Text -> Materialized_Column.Column
+    make_column : Text -> Materialized_Column
     make_column self name =
         storage = self.java_builder.seal
         Java_Exports.make_column name storage

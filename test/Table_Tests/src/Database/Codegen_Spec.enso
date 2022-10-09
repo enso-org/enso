@@ -5,8 +5,8 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 
 from Standard.Database import all
-from Standard.Database.Data.SQL import SQL_Type
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Data.Table import combine_names, fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
@@ -25,7 +25,7 @@ spec =
         table3 = ["T3", [["A", int], ["E", bool], ["F", int]]]
         tables = Map.from_vector [table1, table2, table3]
         Fake_Test_Connection.make Dialect.sqlite tables
-    t1 = test_connection.query (Table_Name "T1")
+    t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
@@ -99,8 +99,8 @@ spec =
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
     Test.group "[Codegen] Joining Tables" <|
-        t2 = test_connection.query (Table_Name "T2")
-        t3 = test_connection.query (Table_Name "T3")
+        t2 = test_connection.query (SQL_Query.Table_Name "T2")
+        t3 = test_connection.query (SQL_Query.Table_Name "T3")
         Test.specify "should allow joining tables index-on-index" <|
             r1 = t1.set_index 'A' . join (t2.set_index 'D')
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."A_1" = "T2"."D")', []]
@@ -123,8 +123,8 @@ spec =
                 table2 = ["T2", [["X", int], ["A", int], ["B", int]]]
                 tables = Map.from_vector [table1, table2]
                 Fake_Test_Connection.make Dialect.sqlite tables
-            t1 = connection.query (Table_Name "T1")
-            t2 = connection.query (Table_Name "T2")
+            t1 = connection.query (SQL_Query.Table_Name "T1")
+            t2 = connection.query (SQL_Query.Table_Name "T2")
             (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should ensure that name suffixes are distinct" <|

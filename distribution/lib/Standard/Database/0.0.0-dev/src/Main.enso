@@ -1,23 +1,24 @@
-import Standard.Database.Data.SQL_Query
-import Standard.Database.Connection.Database
+import project.Connection.Database
 
-import Standard.Database.Connection.Credentials
-import Standard.Database.Connection.Client_Certificate
-import Standard.Database.Connection.SSL_Mode
-import Standard.Database.Connection.Connection_Options
+import project.Connection.Credentials.Credentials
+import project.Connection.Client_Certificate.Client_Certificate
+import project.Connection.SSL_Mode.SSL_Mode
+import project.Connection.Connection_Options.Connection_Options
 
-import Standard.Database.Connection.Postgres_Options
-import Standard.Database.Connection.SQLite_Options
-import Standard.Database.Connection.Redshift_Options
+import project.Connection.Postgres_Options
+import project.Connection.SQLite_Options
+import project.Connection.Redshift_Options
+import project.Data.SQL_Query.SQL_Query
 
-export Standard.Database.Connection.SSL_Mode
+export project.Connection.Credentials.Credentials
 
-from Standard.Database.Connection.Credentials export Credentials, Username_And_Password
-from Standard.Database.Connection.Client_Certificate export Client_Certificate
-from Standard.Database.Connection.Connection_Options export Connection_Options
+export project.Connection.SSL_Mode.SSL_Mode
+export project.Connection.Client_Certificate.Client_Certificate
+export project.Connection.Connection_Options.Connection_Options
 
-from Standard.Database.Connection.Database export connect
-from Standard.Database.Connection.Postgres_Options export Postgres_Options, Postgres
-from Standard.Database.Connection.SQLite_Options export SQLite_Options, SQLite, In_Memory
-from Standard.Database.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Profile, AWS_Key
-from Standard.Database.Data.SQL_Query export SQL_Query, Table_Name, Raw_SQL
+export project.Connection.Database
+export project.Data.SQL_Query.SQL_Query
+
+from project.Connection.Postgres_Options export Postgres_Options, Postgres
+from project.Connection.SQLite_Options export SQLite_Options, In_Memory, SQLite
+from project.Connection.Redshift_Options export Redshift_Options, Redshift, AWS_Credential

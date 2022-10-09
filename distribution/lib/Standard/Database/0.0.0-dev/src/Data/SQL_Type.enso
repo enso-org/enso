@@ -1,0 +1,108 @@
+from Standard.Base import all
+
+polyglot java import java.sql.Types
+
+## Represents an internal SQL data-type.
+type SQL_Type
+
+    ## Represents an internal SQL data-type.
+
+       Arguments:
+       - typeid: a numerical type id, as defined in `java.sql.Types`.
+       - name: a database-specific type name, used for pretty printing.
+    Value typeid name
+
+    == self that = case that of
+        SQL_Type.Value that_id _ ->
+            self.typeid == that_id
+        _ -> False
+
+    ## The SQL representation of `Boolean` type.
+    boolean : SQL_Type
+    boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
+
+    ## The SQL representation of `Integer` type.
+    integer : SQL_Type
+    integer = SQL_Type.Value Types.INTEGER "INTEGER"
+
+    ## The SQL representation of the `BIGINT` type.
+    bigint : SQL_Type
+    bigint = SQL_Type.Value Types.BIGINT "BIGINT"
+
+    ## The SQL representation of the `SMALLINT` type.
+    smallint : SQL_Type
+    smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
+
+    ## The SQL type representing decimal numbers.
+    decimal : SQL_Type
+    decimal = SQL_Type.Value Types.DECIMAL "DECIMAL"
+
+    ## The SQL type representing decimal numbers.
+    real : SQL_Type
+    real = SQL_Type.Value Types.REAL "REAL"
+
+    ## The SQL type representing double-precision floating-point numbers.
+    double : SQL_Type
+    double = SQL_Type.Value Types.DOUBLE "DOUBLE PRECISION"
+
+    ## The SQL type representing a general numeric type.
+    numeric : SQL_Type
+    numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
+
+    ## The SQL type representing one of the suppported textual types.
+    varchar : SQL_Type
+    varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
+
+    ## UNSTABLE
+       The SQL type representing one of the suppported textual types.
+
+       It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
+    text : SQL_Type
+    text = SQL_Type.Value Types.VARCHAR "VARCHAR"
+
+    ## The SQL type representing a binary object.
+    blob : SQL_Type
+    blob = SQL_Type.Value Types.BLOB "BLOB"
+
+    ## PRIVATE
+
+       Returns True if this type represents an integer.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_integer : Boolean
+    is_definitely_integer self =
+        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
+
+    ## PRIVATE
+
+       Returns True if this type represents a boolean.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_boolean : Boolean
+    is_definitely_boolean self =
+        [Types.BOOLEAN, Types.BIT].contains self.typeid
+
+    ## PRIVATE
+
+       Returns True if this type represents a floating point number.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_double : Boolean
+    is_definitely_double self =
+        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
+
+    ## PRIVATE
+       Returns True if this type represents a Text.
+    is_definitely_text : Boolean
+    is_definitely_text self =
+       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
+
+    ## PRIVATE
+       Returns True if this type represents a Text, using heuristics that may
+       match more possible types.
+    is_likely_text : Boolean
+    is_likely_text self =
+       self.is_definitely_text || self.name.contains "text" Text_Matcher.Case_Insensitive
