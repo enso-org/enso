@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column
-import Standard.Table
 
 import Standard.Visualization.Helpers
 from Standard.Base.Data.Index_Sub_Range import Sample
@@ -106,8 +105,8 @@ type No_Fallback_Column
 ## PRIVATE
 
    Generates JSON that describes points data.
-Table.Table.point_data : Table -> Object
-Table.Table.point_data self =
+Table.point_data : Table -> Object
+Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name . catch Any (_->Nothing)
     columns = Point_Data.all_fields.map get_point_data . filter (x -> x.is_nothing.not)
     (0.up_to self.row_count).to_vector.map <| row_n->
@@ -119,8 +118,8 @@ Table.Table.point_data self =
 ## PRIVATE
 
    Generates JSON that describes plot axes.
-Table.Table.axes : Table -> Object
-Table.Table.axes self =
+Table.axes : Table -> Object
+Table.axes self =
     describe_axis field =
         col_name = field.lookup_in self . name
         label = Json.from_pairs [[label_field, col_name]]
@@ -209,10 +208,10 @@ json_from_vector vec bounds limit =
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        Column.Column_Data _ -> json_from_table  value.to_table bounds limit
-        Table.Table_Data _   -> json_from_table  value bounds limit
+        _ : Column        -> json_from_table  value.to_table bounds limit
+        _ : Table         -> json_from_table  value bounds limit
         _ : Vector.Vector -> json_from_vector value bounds limit
-        _               -> json_from_vector value.to_vector bounds limit
+        _                 -> json_from_vector value.to_vector bounds limit
 
     json.to_text
 

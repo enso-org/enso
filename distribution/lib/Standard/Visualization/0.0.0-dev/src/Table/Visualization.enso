@@ -1,10 +1,12 @@
 from Standard.Base import all
-from Standard.Table.Data.Column_Selector import By_Name
 
-import Standard.Table.Data.Table as Dataframe_Table
-import Standard.Table.Data.Column as Dataframe_Column
-import Standard.Database.Data.Table as Database_Table
-import Standard.Database.Data.Column as Database_Column
+import Standard.Table.Data.Table.Table as Dataframe_Table
+import Standard.Table.Data.Column.Column as Dataframe_Column
+import Standard.Database.Data.Table.Table as Database_Table
+import Standard.Database.Data.Column.Column as Database_Column
+
+import Standard.Table.Data.Column_Selector.Column_Selector
+
 import Standard.Visualization.Helpers
 
 # TODO add an initial offset to fully support lazy visualizations
@@ -32,8 +34,8 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
         df = x.reset_index.read max_rows
         # Then split into actual columns and indices.
-        vis_df = df.select_columns (By_Name (x.columns.map .name))
-        indices = df.select_columns (By_Name (x.indices.map .name)) . columns
+        vis_df = df.select_columns (Column_Selector.By_Name (x.columns.map .name))
+        indices = df.select_columns (Column_Selector.By_Name (x.indices.map .name)) . columns
         all_rows_count = x.row_count
         make_json vis_df indices all_rows_count
 
@@ -42,11 +44,6 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         prepare_visualization x.to_table max_rows
     Database_Column.Column_Data _ _ _ _ _ ->
         prepare_visualization x.to_table max_rows
-
-    # We display aggregates as their ungrouped counterparts.
-    Dataframe_Column.Aggregate_Column_Data _ ->
-        ungrouped = Dataframe_Column.Column_Data x.java_column.getColumn
-        prepare_visualization ungrouped.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays

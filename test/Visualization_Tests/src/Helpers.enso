@@ -4,7 +4,7 @@ from Standard.Table import Column
 
 import Standard.Test
 
-Column.Column.expect : Text -> Vector -> Test.Success
-Column.Column.expect self name contents =
+Column.expect : Text -> Vector -> Test.Success
+Column.expect self name contents =
     self.name.should_equal name
     self.to_vector.should_equal contents

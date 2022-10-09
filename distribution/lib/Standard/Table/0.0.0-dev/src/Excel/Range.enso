@@ -14,13 +14,9 @@ excel_2007_column_limit = 16384
 ## PRIVATE
 excel_2007_row_limit = 1048576
 
-# TODO Dubious constructor export
-from project.Excel.Range.Excel_Range import all
-from project.Excel.Range.Excel_Range export all
-
 type Excel_Range
     ## Specifies a range within an Excel Workbook.
-    Excel_Range_Data java_range:Java_Range
+    Value java_range:Java_Range
 
     ## Gets the name of the sheet.
     sheet_name : Text
@@ -89,7 +85,7 @@ type Excel_Range
     from_address : Text -> Excel_Range
     from_address address =
         Illegal_Argument_Error.handle_java_exception <|
-            Excel_Range_Data (Java_Range.new address)
+            Excel_Range.Value (Java_Range.new address)
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
@@ -100,7 +96,7 @@ type Excel_Range
         row_valid = validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
-            Excel_Range_Data (Java_Range.new sheet col_index row)
+            Excel_Range.Value (Java_Range.new sheet col_index row)
 
     ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
@@ -114,7 +110,7 @@ type Excel_Range
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         left_valid <| right_valid <| top_valid <| bottom_valid <|
-            Excel_Range_Data (Java_Range.new sheet left_index top right_index bottom)
+            Excel_Range.Value (Java_Range.new sheet left_index top right_index bottom)
 
     ## Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
@@ -126,7 +122,7 @@ type Excel_Range
         right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
-            Excel_Range_Data (Java_Range.forColumns sheet left_index right_index)
+            Excel_Range.Value (Java_Range.forColumns sheet left_index right_index)
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
@@ -135,4 +131,4 @@ type Excel_Range
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
-            Excel_Range_Data (Java_Range.forRows sheet top bottom)
+            Excel_Range.Value (Java_Range.forRows sheet top bottom)

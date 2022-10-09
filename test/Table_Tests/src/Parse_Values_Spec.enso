@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table
-from Standard.Table import Data_Formatter
+from Standard.Table import Table, Data_Formatter
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector

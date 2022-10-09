@@ -2,8 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import Sample
 import Standard.Base.Data.Time.Duration
 
-import Standard.Table
-from Standard.Table import Sort_Column_Selector
+from Standard.Table import Table, Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 
 import Standard.Test.Bench
