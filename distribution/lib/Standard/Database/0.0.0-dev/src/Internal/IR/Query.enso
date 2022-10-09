@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+
+## PRIVATE
+
+   Describes a full SQL query.
+type Query
+
+    ## PRIVATE
+
+       A Select SQL query.
+
+       Arguments:
+       - expressions: List of pairs specifying the columns to materialize; each
+         is a pair whose first element is the name of the materialized column
+         and the second element is the expression to compute.
+       - context: The query context, see `Context` for more detail.
+    Select (expressions : Vector (Pair Text Expression)) (context : Context)
+
+    ## PRIVATE
+
+       A Select SQL query that gets all columns in a table.
+
+       Arguments:
+       - context: The query context, see `Context` for more detail.
+    Select_All context
+
+    ## PRIVATE
+
+       An Insert SQL query that inserts a single row to the table.
+
+       Arguments:
+       - table_name: The name of the table to insert to.
+       - pairs: A list of pairs consisting of a column name and and expression.
+    Insert table_name pairs

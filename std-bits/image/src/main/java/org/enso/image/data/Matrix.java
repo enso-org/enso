@@ -1,6 +1,6 @@
 package org.enso.image.data;
 
-import org.enso.image.opencv.OpenCV;
+import nu.pattern.OpenCV;
 import org.opencv.core.*;
 
 /** Methods for standard library operations on Matrix. */

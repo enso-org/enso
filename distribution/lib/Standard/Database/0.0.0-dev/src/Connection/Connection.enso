@@ -1,24 +1,22 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.IR
-import Standard.Database.Data.SQL
-import Standard.Database.Data.SQL_Query
-import Standard.Database.Data.Table as Database_Table
-
-import Standard.Table.Data.Table as Materialized_Table
 from Standard.Table import Column_Selector, Column_Name_Mapping
+import Standard.Table.Data.Table.Table as Materialized_Table
 
-from Standard.Database.Data.SQL import SQL_Type, Statement, Statement_Data
-from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
-from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
-from Standard.Database.Errors import SQL_Error
+import project.Data.SQL_Query.SQL_Query
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Data.Table as Database_Table
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Query.Query
+
+from project.Internal.Result_Set import read_column, result_set_to_table
+from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
+from project.Errors import SQL_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
-
-# TODO Dubious constructor export
-from project.Connection.Connection.Connection import all
-from project.Connection.Connection.Connection export all
 
 type Connection
     ## PRIVATE
@@ -29,7 +27,7 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-    Connection_Data jdbc_connection dialect
+    Value jdbc_connection dialect
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -94,7 +92,7 @@ type Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table.Table
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
@@ -121,11 +119,11 @@ type Connection
         SQL_Query.Raw_SQL raw_sql ->
             columns = self.jdbc_connection.fetch_columns raw_sql
             name = if alias == "" then (UUID.randomUUID.to_text) else alias
-            ctx = IR.context_for_query raw_sql name
+            ctx = Context.for_query raw_sql name
             Database_Table.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            ctx = IR.context_for_table name (if alias == "" then name else alias)
-            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (IR.Select_All ctx))
+            ctx = Context.for_table name (if alias == "" then name else alias)
+            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select_All ctx))
             Database_Table.make_table self name columns ctx
 
     ## Execute the query and load the results into memory as a Table.
@@ -134,13 +132,13 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table.Table
+    read : Text | SQL_Query -> Text -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing =
         self.query query . read max_rows=limit
 
     ## PRIVATE
        Internal read function for a statement with optional types.
-    read_statement : Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table.Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type) -> Materialized_Table
     read_statement self statement expected_types=Nothing =
         self.jdbc_connection.with_prepared_statement statement stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -152,9 +150,9 @@ type Connection
        returns 0 for other types of queries (like creating or altering tables).
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of SQL.Statement
+       - query: either raw SQL code as Text or an instance of SQL_Statement
          representing the query to execute.
-    execute_update : Text | SQL.Statement -> Integer
+    execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         self.jdbc_connection.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
@@ -177,15 +175,15 @@ type Connection
          usually not be visible to other connections.
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
-    upload_table : Text -> Materialized_Table.Table -> Boolean -> Integer -> Database_Table.Table
+    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table.Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <|
         create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
-            insert_query = self.dialect.generate_sql <| IR.Insert name pairs
+            pairs = db_table.internal_columns.map col->[col.name, Expression.Constant col.sql_type Nothing]
+            insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
             self.jdbc_connection.load_table insert_template db_table table batch_size
 

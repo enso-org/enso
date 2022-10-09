@@ -2,9 +2,9 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Ref
 
-import Standard.Table.Internal.Vector_Builder.Vector_Builder
+import project.Internal.Vector_Builder.Vector_Builder
 
-from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Column_Selectors_Data, Input_Indices_Already_Matched_Data, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors_Data
+from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Column_Selectors_Data, Input_Indices_Already_Matched_Data, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors_Data
 
 type Problem_Builder
     Value oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other

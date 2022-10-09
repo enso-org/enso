@@ -7,7 +7,6 @@ from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selecto
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
 from Standard.Table.Errors import all
-from Standard.Table.Data.Filter_Condition import Filter_Condition
 
 from Standard.Database.Errors import SQL_Error_Data
 

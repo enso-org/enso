@@ -35,13 +35,9 @@ read host port database username=Nothing =
             Nothing -> []
             entry -> [Pair_Data 'user' entry.username, Pair_Data 'password' entry.password]
 
-# TODO Dubious constructor export
-from project.Internal.Postgres.Pgpass.Pgpass_Entry import all
-from project.Internal.Postgres.Pgpass.Pgpass_Entry export all
-
 type Pgpass_Entry
     ## PRIVATE
-    Pgpass_Entry_Data host port database username password
+    Value host port database username password
 
     ## PRIVATE
     matches : Text -> Text|Integer -> Text -> Text -> Boolean
@@ -88,7 +84,7 @@ parse_file file =
         if line.starts_with "#" || line.is_empty then Nothing else
             elements = parse_line line
             if elements.length != 5 then Nothing else
-                Pgpass_Entry_Data (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
+                Pgpass_Entry.Value (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
 
     File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
 
