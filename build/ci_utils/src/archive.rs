@@ -187,23 +187,6 @@ pub async fn extract_to(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::archive::extract_to;
-    use crate::archive::pack_directory_contents;
-
-    #[tokio::test]
-    async fn handling_directory() -> Result {
-        let target = PathBuf::from(r"C:\Temp\api");
-
-        let out = PathBuf::from(r"C:\Temp\foo");
-        crate::fs::reset_dir(&out)?;
-
-        let archive = PathBuf::from(r"C:\Temp\foo.tar.gz");
-        pack_directory_contents(&archive, &target).await?;
-
-        extract_to(&archive, &out).await?;
-
-        Ok(())
-    }
 
     #[test]
     fn format_from_filename() -> Result {

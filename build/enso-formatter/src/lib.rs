@@ -88,6 +88,8 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "warn(variant_size_differences)",
     // Rustc lints that emit a warning by default:
     // "deny(unconditional_recursion)",
+    // The code triggering this lint is usually more readable than the suggested alternative.
+    "allow(clippy::bool_to_int_with_if)",
     // This is allowed because in some cases, it allows way nicer formatting. For example, the
     // code: ```
     // fn test(x: usize) -> usize {
@@ -106,8 +108,6 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // }
     // ```
     "allow(clippy::let_and_return)",
-    // The code triggering this lint is usually more readable than the suggested alternative.
-    "allow(clippy::bool_to_int_with_if)",
 ];
 
 
@@ -587,7 +587,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_formatting() {
+    fn test_formatting() -> Result {
         let input = r#"//! Module-level documentation
 //! written in two lines.
 
@@ -618,6 +618,7 @@ pub struct Struct1 {}
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
 // === Non-Standard Linter Configuration ===
@@ -647,6 +648,7 @@ pub use lib_f::item_1;
 
 pub struct Struct1 {}
 "#;
-        assert_eq!(process_file_content(input.into(), true), Ok(output.into()));
+        assert_eq!(process_file_content(input.into(), true)?, output);
+        Ok(())
     }
 }

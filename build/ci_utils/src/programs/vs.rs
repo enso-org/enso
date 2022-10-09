@@ -45,6 +45,7 @@ pub enum Version {
 }
 
 #[tokio::test]
+#[ignore]
 async fn foo() -> Result {
     // let old_vars = dbg!(std::env::vars_os().map(|(name, _)| name).collect_vec());
     apply_dev_environment().await?;

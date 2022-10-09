@@ -70,6 +70,6 @@ mod tests {
 
     #[test]
     fn validate_regexes() {
-        for replacement in REPLACEMENTS.iter() {}
+        for _replacement in REPLACEMENTS.iter() {}
     }
 }

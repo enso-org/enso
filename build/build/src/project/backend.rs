@@ -163,18 +163,3 @@ impl IsTarget for Backend {
             .context("Failed to find release asset with Enso Project Manager bundle.")
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use ide_ci::log::setup_logging;
-
-    #[tokio::test]
-    async fn run_project_manager() -> Result {
-        setup_logging()?;
-        let pm = PathBuf::from(r"H:\NBO\ci-build\dist\project-manager\bin\project-manager.exe");
-        Command::new(pm).run_ok().await?;
-        Ok(())
-    }
-}
