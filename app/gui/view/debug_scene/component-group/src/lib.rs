@@ -249,10 +249,8 @@ fn init(app: &Application) {
     // === Layers setup ===
 
     let main_camera = app.display.default_scene.layers.main.camera();
-    let selection_layer =
-        Layer::new_with_cam("selection", app.logger.sub("selection"), &main_camera);
-    let groups_layer =
-        Layer::new_with_cam("component_groups", app.logger.sub("component_groups"), &main_camera);
+    let selection_layer = Layer::new_with_cam("selection", &main_camera);
+    let groups_layer = Layer::new_with_cam("component_groups", &main_camera);
     app.display.default_scene.layers.main.add_sublayer(&groups_layer);
     app.display.default_scene.layers.main.add_sublayer(&selection_layer);
 
@@ -273,7 +271,7 @@ fn init(app: &Application) {
 
     let normal_parent = &scroll_area.content_layer();
     let selected_parent = &selection_layer;
-    let layers = component_group::Layers::new(&app.logger, normal_parent, selected_parent);
+    let layers = component_group::Layers::new(normal_parent, selected_parent);
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";

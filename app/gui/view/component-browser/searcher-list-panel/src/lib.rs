@@ -130,21 +130,18 @@ struct Layers {
 impl Layers {
     fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
         let camera = app.display.default_scene.layers.node_searcher.camera();
-        let base =
-            Layer::new_with_cam("component_groups", app.logger.sub("component_groups"), &camera);
-        let selection = Layer::new_with_cam("selection", app.logger.sub("selection"), &camera);
-        let navigator = Layer::new_with_cam("navigator", app.logger.sub("navigator"), &camera);
-        let scrollbar_layer =
-            Layer::new_with_cam("scroll_bar", app.logger.sub("scroll_bar"), &camera);
-        let selection_mask =
-            Layer::new_with_cam("selection_mask", app.logger.sub("selection_mask"), &camera);
+        let base = Layer::new_with_cam("component_groups", &camera);
+        let selection = Layer::new_with_cam("selection", &camera);
+        let navigator = Layer::new_with_cam("navigator", &camera);
+        let scrollbar_layer = Layer::new_with_cam("scroll_bar", &camera);
+        let selection_mask = Layer::new_with_cam("selection_mask", &camera);
         selection.set_mask(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
         app.display.default_scene.layers.node_searcher.add_sublayer(&navigator);
         app.display.default_scene.layers.node_searcher.add_sublayer(&scrollbar_layer);
         let content = &scroll_area.content_layer();
-        let groups = GroupLayers::new(&app.logger, content, &selection);
+        let groups = GroupLayers::new(content, &selection);
         let scroll_layer = scroll_area.content_layer().clone_ref();
         Self { base, selection, groups, selection_mask, navigator, scroll_layer, scrollbar_layer }
     }

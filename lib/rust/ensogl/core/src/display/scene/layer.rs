@@ -185,16 +185,16 @@ impl Debug for Layer {
 
 impl Layer {
     /// Constructor.
-    pub fn new(name: impl Into<String>, logger: Logger) -> Self {
-        let model = LayerModel::new(name, logger);
+    pub fn new(name: impl Into<String>) -> Self {
+        let model = LayerModel::new(name);
         let model = Rc::new(model);
         Self { model }
     }
 
     /// Constructor.
     #[profile(Detail)]
-    pub fn new_with_cam(name: impl Into<String>, logger: Logger, camera: &Camera2d) -> Self {
-        let this = Self::new(name, logger);
+    pub fn new_with_cam(name: impl Into<String>, camera: &Camera2d) -> Self {
+        let this = Self::new(name);
         this.set_camera(camera);
         this
     }
@@ -296,7 +296,7 @@ impl WeakLayer {
         if let Some(layer) = self.upgrade() {
             layer.add_sublayer(sublayer)
         } else {
-            warning!(sublayer.logger, "Attempt to add a sublayer to deallocated layer.");
+            warn!("Attempt to add a sublayer to deallocated layer.");
         }
     }
 
@@ -305,7 +305,7 @@ impl WeakLayer {
         if let Some(layer) = self.upgrade() {
             layer.remove_sublayer(sublayer)
         } else {
-            warning!(sublayer.logger, "Attempt to remove a sublayer from deallocated layer.");
+            warn!("Attempt to remove a sublayer from deallocated layer.");
         }
     }
 }
@@ -336,7 +336,6 @@ impl PartialEq for WeakLayer {
 #[allow(missing_docs)]
 pub struct LayerModel {
     pub name: String,
-    logger: Logger,
     pub camera: RefCell<Camera2d>,
     pub shape_system_registry: ShapeSystemRegistry,
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
@@ -376,7 +375,7 @@ impl Drop for LayerModel {
 }
 
 impl LayerModel {
-    fn new(name: impl Into<String>, logger: Logger) -> Self {
+    fn new(name: impl Into<String>) -> Self {
         let name = name.into();
         let camera = RefCell::new(Camera2d::new());
         let shape_system_registry = default();
@@ -395,7 +394,6 @@ impl LayerModel {
         let mem_mark = default();
         Self {
             name,
-            logger,
             camera,
             shape_system_registry,
             shape_system_to_symbol_info_map,
@@ -652,10 +650,7 @@ impl LayerModel {
                 LayerItem::ShapeSystem(id) => {
                     let out = self.shape_system_to_symbol_info_map.borrow().get(&id).map(|t| t.id);
                     if out.is_none() {
-                        warning!(
-                            self.logger,
-                            "Trying to perform depth-order of non-existing element '{id:?}'."
-                        )
+                        warn!("Trying to perform depth-order of non-existing element '{:?}'.", id)
                     }
                     out
                 }
@@ -735,8 +730,7 @@ impl LayerModel {
 
     /// Create a new sublayer to this layer, with the same camera.
     pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
-        let logger = self.logger.sub("Sublayer");
-        let layer = Layer::new_with_cam(name, logger, &self.camera.borrow());
+        let layer = Layer::new_with_cam(name, &self.camera.borrow());
         self.add_sublayer(&layer);
         layer
     }
@@ -996,9 +990,9 @@ impl AsRef<Layer> for Masked {
 
 impl Masked {
     /// Constructor. The passed [`camera`] is used to render created layers.
-    pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
-        let masked_layer = Layer::new_with_cam("MaskedLayer", logger.sub("MaskedLayer"), camera);
-        let mask_layer = Layer::new_with_cam("MaskLayer", logger.sub("MaskLayer"), camera);
+    pub fn new(camera: &Camera2d) -> Self {
+        let masked_layer = Layer::new_with_cam("MaskedLayer", camera);
+        let mask_layer = Layer::new_with_cam("MaskLayer", camera);
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }

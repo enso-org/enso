@@ -91,10 +91,9 @@ mod tests {
     #[test]
     fn test_that_sublayers_are_dropped() {
         let app = Application::new("root");
-        let logger = &app.logger;
         let camera = &app.display.default_scene.layers.main.camera();
         let display_object = Instance::new();
-        let layer = layer::Masked::new(logger, camera);
+        let layer = layer::Masked::new(camera);
         let display_object = InstanceWithLayer::new(display_object, layer);
         let content_layer = display_object.layer.masked_layer.downgrade();
         assert!(content_layer.upgrade().is_some());

@@ -283,8 +283,8 @@ macro_rules! gen_runner {
 }
 
 macro_rules! gen_fn_trait_impls {
-    ($copy_name:ident $ref_name:ident <$($arg:ident),*>) => {
-        impl<$($arg),*> FnOnce<($($arg),*,)> for registry::$copy_name<$($arg),*>
+    (<$($arg:ident),*>) => {
+        impl<$($arg),*> FnOnce<($($arg),*,)> for Registry<dyn FnMut($($arg),*)>
         where $($arg:Copy),* {
             type Output = ();
             extern "rust-call" fn call_once(self, args: ($($arg),*,)) -> Self::Output {
@@ -292,35 +292,16 @@ macro_rules! gen_fn_trait_impls {
             }
         }
 
-        impl<$($arg),*> FnMut<($($arg),*,)> for registry::$copy_name<$($arg),*>
+        impl<$($arg),*> FnMut<($($arg),*,)> for Registry<dyn FnMut($($arg),*)>
         where $($arg:Copy),* {
             extern "rust-call" fn call_mut(&mut self, args: ($($arg),*,)) -> Self::Output {
                 self.run_impl(args)
             }
         }
 
-        impl<$($arg),*> Fn<($($arg),*,)> for registry::$copy_name<$($arg),*>
+        impl<$($arg),*> Fn<($($arg),*,)> for Registry<dyn FnMut($($arg),*)>
         where $($arg:Copy),* {
             extern "rust-call" fn call(&self, args: ($($arg),*,)) -> Self::Output {
-                self.run_impl(args)
-            }
-        }
-
-        impl<$($arg),*> FnOnce<($(&$arg),*,)> for registry::$ref_name<$($arg),*> {
-            type Output = ();
-            extern "rust-call" fn call_once(self, args: ($(&$arg),*,)) -> Self::Output {
-                self.run_impl(args)
-            }
-        }
-
-        impl<$($arg),*> FnMut<($(&$arg),*,)> for registry::$ref_name<$($arg),*> {
-            extern "rust-call" fn call_mut(&mut self, args: ($(&$arg),*,)) -> Self::Output {
-                self.run_impl(args)
-            }
-        }
-
-        impl<$($arg),*> Fn<($(&$arg),*,)> for registry::$ref_name<$($arg),*> {
-            extern "rust-call" fn call(&self, args: ($(&$arg),*,)) -> Self::Output {
                 self.run_impl(args)
             }
         }
@@ -368,11 +349,11 @@ pub mod traits {
         }
     }
 
-    gen_fn_trait_impls!(Copy1 Ref1 <T1>);
-    gen_fn_trait_impls!(Copy2 Ref2 <T1, T2>);
-    gen_fn_trait_impls!(Copy3 Ref3 <T1, T2, T3>);
-    gen_fn_trait_impls!(Copy4 Ref4 <T1, T2, T3, T4>);
-    gen_fn_trait_impls!(Copy5 Ref5 <T1, T2, T3, T4, T5>);
+    gen_fn_trait_impls!(<T1>);
+    gen_fn_trait_impls!(<T1, T2>);
+    gen_fn_trait_impls!(<T1, T2, T3>);
+    gen_fn_trait_impls!(<T1, T2, T3, T4>);
+    gen_fn_trait_impls!(<T1, T2, T3, T4, T5>);
 
     gen_runner_traits!(RegistryRunner1, RegistryRunnerRef1, (T1));
     gen_runner_traits!(RegistryRunner2, RegistryRunnerRef2, (T1, T2));

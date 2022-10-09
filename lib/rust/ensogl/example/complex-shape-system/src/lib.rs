@@ -94,7 +94,7 @@ pub fn main() {
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    let mask_layer = scene::layer::Layer::new("MaskLayer", logger.sub("MaskLayer"));
+    let mask_layer = scene::layer::Layer::new("MaskLayer");
     scene.layers.node_searcher.set_mask(&mask_layer);
 
     let mask = mask::View::new();

@@ -1596,8 +1596,8 @@ mod tests {
 
     #[test]
     fn layers_test() {
-        let layer1 = Layer::new("0", Logger::new("0"));
-        let layer2 = Layer::new("1", Logger::new("1"));
+        let layer1 = Layer::new("0");
+        let layer2 = Layer::new("1");
         let node1 = Instance::<()>::new();
         let node2 = Instance::<()>::new();
         let node3 = Instance::<()>::new();

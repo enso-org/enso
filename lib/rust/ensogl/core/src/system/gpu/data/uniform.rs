@@ -38,17 +38,15 @@ pub trait UniformValue = Sized where Uniform<Self>: Into<AnyUniform>;
 shared! { UniformScope
 
 /// A scope containing set of uniform values.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UniformScopeData {
-    map     : HashMap<String,AnyUniform>,
-    logger  : Logger,
+    map: HashMap<String, AnyUniform>,
 }
 
 impl {
     /// Constructor.
-    pub fn new(logger:Logger) -> Self {
-        let map = default();
-        Self {map,logger}
+    pub fn new() -> Self {
+        default()
     }
 
     /// Look up uniform by name.

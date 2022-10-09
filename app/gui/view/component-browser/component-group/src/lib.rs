@@ -599,9 +599,9 @@ impl Layers {
     ///
     /// `normal` layers are assigned as sublayers of the `normal_parent`, while `selection`
     /// layers are assigned to the `selected_parent`.
-    pub fn new(logger: &Logger, normal_parent: &Layer, selected_parent: &Layer) -> Self {
-        let normal = LayersInner::new(logger, normal_parent);
-        let selection = LayersInner::new(logger, selected_parent);
+    pub fn new(normal_parent: &Layer, selected_parent: &Layer) -> Self {
+        let normal = LayersInner::new(normal_parent);
+        let selection = LayersInner::new(selected_parent);
         Self { normal, selection }
     }
 }
@@ -619,12 +619,12 @@ impl LayersInner {
     /// Constructor.
     ///
     /// Layers will be attached to a `parent_layer` as sublayers.
-    pub fn new(logger: &Logger, parent_layer: &Layer) -> Self {
+    pub fn new(parent_layer: &Layer) -> Self {
         let camera = parent_layer.camera();
-        let background = Layer::new_with_cam("background", logger.clone_ref(), &camera);
-        let text = Layer::new_with_cam("text", logger.clone_ref(), &camera);
-        let header = Layer::new_with_cam("header", logger.clone_ref(), &camera);
-        let header_text = Layer::new_with_cam("header_text", logger.clone_ref(), &camera);
+        let background = Layer::new_with_cam("background", &camera);
+        let text = Layer::new_with_cam("text", &camera);
+        let header = Layer::new_with_cam("header", &camera);
+        let header_text = Layer::new_with_cam("header_text", &camera);
         background.add_sublayer(&text);
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
