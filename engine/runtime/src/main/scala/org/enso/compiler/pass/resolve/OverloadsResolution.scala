@@ -85,7 +85,8 @@ case object OverloadsResolution extends IRPass {
               method.location
             )
           case _ =>
-            val currentMethods: Set[(String, Boolean)] = seenMethods(method.typeName.map(_.name))
+            val currentMethods: Set[(String, Boolean)] =
+              seenMethods(method.typeName.map(_.name))
             seenMethods = seenMethods + (method.typeName.map(_.name) ->
             (currentMethods + ((method.methodName.name, method.isStatic))))
             method
