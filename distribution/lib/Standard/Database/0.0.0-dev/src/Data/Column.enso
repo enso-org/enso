@@ -130,7 +130,7 @@ type Column
         prepare_operand operand operand_type = case operand of
             other_column : Column ->
                 if Helpers.check_integrity self other_column then other_column.expression else
-                    Error.throw <| Unsupported_Database_Operation_Error "Cannot use columns coming from different contexts in one expression without a join."
+                    Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 Expression.Constant actual_operand_type constant
@@ -495,7 +495,7 @@ type Column
     take self range=(First 1) =
         _ = range
         msg = "`Column.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
        Creates a new Column from the input with the specified range of rows
@@ -507,7 +507,7 @@ type Column
     drop self range=(First 1) =
         _ = range
         msg = "`Column.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
 
@@ -555,6 +555,12 @@ type Column
        Checks for each element of the column if it matches an SQL-like pattern.
     like : Column | Text -> Column
     like self other = self.make_binary_op "LIKE" other new_type=SQL_Type.boolean
+
+    ## PRIVATE
+       Checks for each element of the column if it is contained within the
+       provided vector.
+    is_in self vector =
+        Error.throw (Unsupported_Database_Operation_Error_Data "TODO")
 
     ## PRIVATE
     as_internal : Internal_Column

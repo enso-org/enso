@@ -83,6 +83,7 @@ public abstract class Storage {
     public static final String ENDS_WITH = "ends_with";
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
+    public static final String IS_IN = "is_in";
   }
 
   public static final class Aggregators {

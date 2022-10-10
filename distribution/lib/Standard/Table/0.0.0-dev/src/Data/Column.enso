@@ -591,6 +591,12 @@ type Column
     like self other =
         run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) other
 
+    ## PRIVATE
+       Checks for each element of the column if it is contained within the
+       provided vector.
+    is_in self vector =
+        Error.throw (Unsupported_Database_Operation_Error_Data "TODO")
+
     ## ALIAS Transform Column
 
        Applies `function` to each item in this column and returns the column

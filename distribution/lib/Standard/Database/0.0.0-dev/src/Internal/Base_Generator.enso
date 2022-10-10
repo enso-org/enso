@@ -214,7 +214,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     Expression.Constant sql_type value -> SQL.interpolation sql_type value
     Expression.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
     _ : Order_Descriptor -> generate_order dialect expr
@@ -337,7 +337,7 @@ generate_query dialect query = case query of
         code "SELECT * " ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation_Error_Data "Unsupported query type."
 
 ## PRIVATE
    Arguments:
