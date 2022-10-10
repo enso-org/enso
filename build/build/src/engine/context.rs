@@ -408,13 +408,14 @@ impl RunContext {
             enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
         }
 
-        if build_native_runner {
-            Command::new("./runner")
-                .current_dir(&self.repo_root)
-                .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
-                .run_ok()
-                .await?;
-        }
+        // if build_native_runner {
+        //     Command::new("./runner")
+        //         .current_dir(&self.repo_root)
+        //         .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
+        //         .run_ok()
+        //         .await?;
+        // }
+
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
