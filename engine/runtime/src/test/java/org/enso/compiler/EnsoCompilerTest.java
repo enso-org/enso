@@ -142,6 +142,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testBuiltinMethodAnnotation() throws Exception {
+    parseTest("""
+    normalize x = @Builtin_Method "File.normalize"
+    """);
+  }
+
+  @Test
   @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
