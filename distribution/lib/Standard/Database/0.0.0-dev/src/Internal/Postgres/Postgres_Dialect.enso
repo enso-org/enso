@@ -13,7 +13,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 
 from project.Data.SQL import code
-from project.Errors import Unsupported_Database_Operation_Error
+from project.Errors import Unsupported_Database_Operation_Error_Data
 
 ## PRIVATE
 

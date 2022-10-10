@@ -107,17 +107,18 @@ public abstract class Storage {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param argument the argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result without passing them through the function, this is useful if the function does not support the null-values, but it needs to be set to false if the function should handle them.
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage bimap(
-      String name, BiFunction<Object, Object, Object> function, Object argument) {
+      String name, BiFunction<Object, Object, Object> function, Object argument, boolean skipNulls) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, argument);
     }
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
-      if (it == null) {
+      if (skipNulls && it == null) {
         builder.appendNoGrow(null);
       } else {
         Object result = function.apply(it, argument);

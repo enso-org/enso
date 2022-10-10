@@ -77,6 +77,22 @@ spec =
             t.at 'latitude' . to_vector . should_equal [34.19, 4.88]
             t.at 'elevation' . to_vector . should_equal [Nothing, 19]
 
+    make_varied_type_table =
+        strs = ["strs", ["a", "b", "c", Nothing]]
+        ints = ["ints", [Nothing, 1, 2, 4]]
+        doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
+        doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
+        custom_objects = ["custom_objects", [My.Data 1 2, My.Data 3 4, Nothing, Nothing]]
+        dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
+        times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
+        datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
+        mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
+        mixed_dates = ["mixed_dates", [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40]]
+        just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
+
+        Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
+    varied_type_table = make_varied_type_table
+
     Test.group 'Construction' <|
         Test.specify 'should allow creating a table from rows' <|
             header = ['foo', 'bar']
@@ -87,30 +103,17 @@ spec =
             r.at 'bar' . to_vector . should_equal [False, True, False]
 
         Test.specify "should correctly infer storage types" <|
-            strs = ["strs", ["a", "b", "c", Nothing]]
-            ints = ["ints", [Nothing, 1, 2, 4]]
-            doubles = ["doubles", [0.0, 1.5, Nothing, 2.0]]
-            doubles_and_ints = ["doubles_and_ints", [0, 1.5, Nothing, 2]]
-            custom_objects = ["custom_objects", [My.Data 1 2, My.Data 3 4, Nothing, Nothing]]
-            dates = ["dates", [Nothing, Date.new 2000, Date.new 2022 8 20, Date.new 1999 1 1]]
-            times = ["times", [Time_Of_Day.new 18 00, Time_Of_Day.new 1 2 34, Nothing, Time_Of_Day.new]]
-            datetimes = ["datetimes", [Date_Time.new 2000, Date_Time.new 1999 1 2 3 4 5, Nothing, Date_Time.new 2022 8 27 11 22 25]]
-            mixed = ["mixed", [1, "a", Nothing, Date.new 2022 8 27]]
-            mixed_dates = ["mixed_dates", [Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40, Date.new 1999 1 2, Date_Time.new 1999 1 2 3 40]]
-            just_nulls = ["just_nulls", [Nothing, Nothing, Nothing, Nothing]]
-
-            table = Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
-            table.at "strs" . storage_type . should_equal Storage.Text
-            table.at "ints" . storage_type . should_equal Storage.Integer
-            table.at "doubles" . storage_type . should_equal Storage.Decimal
-            table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
-            table.at "custom_objects" . storage_type . should_equal Storage.Any
-            table.at "dates" . storage_type . should_equal Storage.Date
-            table.at "times" . storage_type . should_equal Storage.Time_Of_Day
-            table.at "datetimes" . storage_type . should_equal Storage.Date_Time
-            table.at "mixed" . storage_type . should_equal Storage.Any
-            table.at "mixed_dates" . storage_type . should_equal Storage.Any
-            table.at "just_nulls" . storage_type . should_equal Storage.Any
+            varied_type_table.at "strs" . storage_type . should_equal Storage.Text
+            varied_type_table.at "ints" . storage_type . should_equal Storage.Integer
+            varied_type_table.at "doubles" . storage_type . should_equal Storage.Decimal
+            varied_type_table.at "doubles_and_ints" . storage_type . should_equal Storage.Decimal
+            varied_type_table.at "custom_objects" . storage_type . should_equal Storage.Any
+            varied_type_table.at "dates" . storage_type . should_equal Storage.Date
+            varied_type_table.at "times" . storage_type . should_equal Storage.Time_Of_Day
+            varied_type_table.at "datetimes" . storage_type . should_equal Storage.Date_Time
+            varied_type_table.at "mixed" . storage_type . should_equal Storage.Any
+            varied_type_table.at "mixed_dates" . storage_type . should_equal Storage.Any
+            varied_type_table.at "just_nulls" . storage_type . should_equal Storage.Any
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
@@ -942,6 +945,29 @@ spec =
             t2 = t.filter (Column.from_vector "f" [False, True, True, True, True, True, True, True])
             t2.at "A" . to_vector . should_equal [2, 3]
             t2.at "B" . to_vector . should_equal [5, 6]
+
+        Test.specify "by a contains check in a Vector, on various types of columns" <|
+            varied_type_table.filter "strs" (Filter_Condition.Is_In ["c", "b", Nothing]) . at "strs" . to_vector . should_equal ["b", "c", Nothing]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In [1, 2, 3]) . at "ints" . to_vector . should_equal [1, 2]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In [1, Nothing]) . at "ints" . to_vector . should_equal [Nothing, 1]
+            varied_type_table.filter "doubles" (Filter_Condition.Is_In [0.0, Nothing]) . at "doubles" . to_vector . should_equal [0.0, Nothing]
+            # TODO dates, times, datetimes, mixed
+
+            t = Table.new [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
+            t.filter "A" (Filter_Condition.Is_In [True, Nothing]) . at "A" . to_vector . should_equal [True, True]
+            t.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
+            t.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True, Nothing]
+            t.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
+            t.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
+            t.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
+
+        Test.specify "should perform `Is_In` efficiently for builtin types" <|
+            t = Table.new [["X", (200.up_to 10000 . to_vector)]]
+            vec = 4000.up_to 13000 . to_vector
+            expected_vector = 4000.up_to 10000 . to_vector
+            # TODO maybe try actually measuring the time
+            t.filter "X" (Filter_Condition.Is_In vec) . at "X" . to_vector . should_equal expected_vector
+
 
 main = Test.Suite.run_main spec
 

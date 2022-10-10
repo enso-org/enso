@@ -595,7 +595,7 @@ type Column
        Checks for each element of the column if it is contained within the
        provided vector.
     is_in self vector =
-        Error.throw (Unsupported_Database_Operation_Error_Data "TODO")
+        run_vectorized_binary_op self "is_in" (elem -> vector -> vector.contains elem) vector skip_nulls=False
 
     ## ALIAS Transform Column
 
@@ -1143,18 +1143,22 @@ type Empty_Error
    - name: The name of the vectorized operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
    - operand: The operand to apply to the function after `column`.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
-run_vectorized_binary_op column name fallback_fn operand = case operand of
+run_vectorized_binary_op column name fallback_fn operand skip_nulls=True = case operand of
     Column.Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
-        rs = s1.zip name fallback_fn s2 True
+        rs = s1.zip name fallback_fn s2 skip_nulls
         Column.Column_Data (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
-        rs = s1.bimap name fallback_fn operand
+        rs = s1.bimap name fallback_fn operand skip_nulls
         Column.Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE

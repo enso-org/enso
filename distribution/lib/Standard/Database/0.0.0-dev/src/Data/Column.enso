@@ -13,7 +13,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation_Error
+from project.Errors import Unsupported_Database_Operation_Error, Unsupported_Database_Operation_Error_Data
 
 type Column
 
