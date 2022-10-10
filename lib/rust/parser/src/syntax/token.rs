@@ -337,6 +337,7 @@ pub struct OperatorProperties {
     is_arrow:                  bool,
     is_sequence:               bool,
     is_suspension:             bool,
+    is_annotation:             bool,
 }
 
 impl OperatorProperties {
@@ -392,6 +393,11 @@ impl OperatorProperties {
         Self { is_sequence: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the annotation operator.
+    pub fn as_annotation(self) -> Self {
+        Self { is_annotation: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to be flagged as the execution-suspension operator.
     pub fn as_suspension(self) -> Self {
         Self { is_suspension: true, ..self }
@@ -445,6 +451,11 @@ impl OperatorProperties {
     /// Return whether this operator is the execution-suspension operator.
     pub fn is_suspension(&self) -> bool {
         self.is_suspension
+    }
+
+    /// Return whether this operator is the annotation operator.
+    pub fn is_annotation(&self) -> bool {
+        self.is_annotation
     }
 
     /// Return this operator's associativity.

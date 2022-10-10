@@ -1020,6 +1020,42 @@ fn trailing_whitespace() {
 }
 
 
+// === Annotations ===
+
+#[test]
+fn annotation_syntax() {
+    #[rustfmt::skip]
+    let cases = [
+        ("foo@bar", block![(OprApp (Ident foo) (Ok "@") (Ident bar))]),
+        ("foo @ bar", block![(OprApp (Ident foo) (Ok "@") (Ident bar))]),
+        ("@Bar", block![(Annotated "@" Bar #() ())]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn inline_annotations() {
+    #[rustfmt::skip]
+    let cases = [
+        ("@Tail_Call go t", block![(Annotated "@" Tail_Call #() (App (Ident go) (Ident t)))]),
+        ("@Tail_Call go\n a\n b", block![
+            (Annotated "@" Tail_Call #()
+             (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b))))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn multiline_annotations() {
+    #[rustfmt::skip]
+    let cases = [
+        ("@Builtin_Type\ntype Date", block![
+            (Annotated "@" Builtin_Type #(()) (TypeDef type Date #() #() #()))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
 
 // ====================
 // === Test Support ===

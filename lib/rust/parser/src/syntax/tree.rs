@@ -299,6 +299,13 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
             pub right: token::CloseSymbol<'s>,
         },
+        /// An expression preceded by an annotation, e.g. `@Builtin_Method foo`.
+        Annotated {
+            pub token:      token::Operator<'s>,
+            pub annotation: token::Ident<'s>,
+            pub newlines:   Vec<token::Newline<'s>>,
+            pub expression: Option<Tree<'s>>,
+        },
     }
 }};}
 
@@ -735,6 +742,14 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.fractional_digits = mem::take(fractional_digits);
             return func;
         }
+        Variant::Annotated(func_ @ Annotated { expression: None, .. }) => {
+            func_.expression = arg.into();
+            return func;
+        }
+        Variant::Annotated(Annotated { expression: Some(expression), .. }) => {
+            *expression = apply(mem::take(expression), arg);
+            return func;
+        }
         _ => (),
     }
     match &mut *arg.variant {
@@ -876,6 +891,18 @@ pub fn apply_operator<'s>(
     Tree::opr_app(lhs, opr, rhs)
 }
 
+/// Apply a unary operator to an operand.
+///
+/// For most inputs this will simply construct a `UnaryOprApp`; however, some operators are special.
+pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
+    if opr.properties.is_annotation()
+            && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
+        Tree::annotated(opr, token, vec![], None)
+    } else {
+        Tree::unary_opr_app(opr, rhs)
+    }
+}
+
 impl<'s> From<Token<'s>> for Tree<'s> {
     fn from(token: Token<'s>) -> Self {
         match token.variant {
@@ -957,6 +984,7 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::TypeSignature(_)
             | Variant::Lambda(_)
             | Variant::Array(_)
+            | Variant::Annotated(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
