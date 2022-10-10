@@ -2,6 +2,8 @@ package org.enso.table.data.column.operation.map.text;
 
 import java.util.BitSet;
 import java.util.regex.Pattern;
+
+import com.ibm.icu.impl.UnicodeRegex;
 import org.enso.base.Regex_Utils;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -18,7 +20,9 @@ public class LikeOp extends StringBooleanOp {
   private final static int REGEX_FLAGS = UNICODE_REGEX | Pattern.DOTALL;
 
   private Pattern createRegexPatternFromSql(String sqlPattern) {
-    return Pattern.compile(Regex_Utils.sql_like_pattern_to_regex(sqlPattern), REGEX_FLAGS);
+    String regex = Regex_Utils.sql_like_pattern_to_regex(sqlPattern);
+    String unicodeTransformed = UnicodeRegex.fix(regex);
+    return Pattern.compile(unicodeTransformed, REGEX_FLAGS);
   }
 
   @Override

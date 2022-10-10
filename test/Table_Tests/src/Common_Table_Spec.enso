@@ -16,7 +16,7 @@ import Standard.Test.Problems
 from project.Util import all
 
 type Test_Selection
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False
 
 ## A common test suite for shared operations on the Table API.
 
@@ -1149,6 +1149,19 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Ends_With '\nb') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\n\n\nb', 'a\nb']
             t.filter "X" (Filter_Condition.Ends_With '\n') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\n\n\n', 'a\n']
             t.filter "X" (Filter_Condition.Starts_With 'c') on_problems=Report_Error . at "X" . to_vector . should_equal ['caa\nbb']
+
+        if test_selection.supports_unicode_normalization then
+            Test.specify "text operations should support Unicode normalization" <|
+                t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
+                t.filter "X" (Filter_Condition.Starts_With 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
+                t.filter "X" (Filter_Condition.Contains 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
+                t.filter "X" (Filter_Condition.Ends_With 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal []
+                t.filter "X" (Filter_Condition.Ends_With 'ć') on_problems=Report_Error . at "X" . to_vector . should_equal ['połać', 'połac\u0301']
+
+            # This test is split off just to mark is as pending, once resolved it can be merged with the one above.
+            Test.specify "text operations should support Unicode normalization (like)" pending='There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.\nhttps://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926' <|
+                t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
+                t.filter "X" (Filter_Condition.Like 'ś%') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
 
         Test.specify "by empty text" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "", " ", Nothing, "nana"]]]

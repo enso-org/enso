@@ -168,12 +168,6 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
         Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
 
-        txt2 = ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
-        txt2.filter (Filter_Condition.Like 'a_') . should_equal ['a\n']
-        txt2.filter (Filter_Condition.Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
-        txt2.filter (Filter_Condition.Like 'a_b') . should_equal ['a\nb']
-        txt2.filter (Filter_Condition.Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
-
         ["", Nothing, " ", "a"].filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
         ["", Nothing, " ", "a"].filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]
         ["abab", "aaabaaaa", "ba"].filter (Filter_Condition.Like "ba") . should_equal ["ba"]
@@ -183,6 +177,21 @@ spec = Test.group "Vectors" <|
         ["a\Qa\Eabb", "aaabb"].filter (Filter_Condition.Like "_\Qa\Ea%") . should_equal ["a\Qa\Eabb"]
         ["f.txt", "abc.*"].filter (Filter_Condition.Like "%.*") . should_equal ["abc.*"]
         ["f.txt", "abc.*"].filter (Filter_Condition.Not_Like "%.*") . should_equal ["f.txt"]
+
+        txt2 = ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
+        txt2.filter (Filter_Condition.Like 'a_') . should_equal ['a\n']
+        txt2.filter (Filter_Condition.Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
+        txt2.filter (Filter_Condition.Like 'a_b') . should_equal ['a\nb']
+        txt2.filter (Filter_Condition.Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
+
+        txt3 = ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
+        txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
+        txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
+        ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
+           https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+        # txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg', 's\u0301nieg']
 
         mixed = [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]
