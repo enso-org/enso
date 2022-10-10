@@ -50,11 +50,25 @@ impl<'s> span::Builder<'s> for Line<'s> {
 /// Build a body block from a sequence of lines; this involves reinterpreting the input expressions
 /// in statement context (i.e. expressions at the top-level of the block that involve the `=`
 /// operator will be reinterpreted as function/variable bindings).
-pub fn body_from_lines<'s>(expressions: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
+pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     use crate::expression_to_statement;
-    let expressions = expressions.into_iter();
-    let statements = expressions.map(|line| line.map_expression(expression_to_statement));
-    let statements = statements.collect();
+    let mut lines = lines.into_iter();
+    let mut statements = Vec::with_capacity(lines.size_hint().0);
+    while let Some(line) = lines.next() {
+        let mut statement = line.map_expression(expression_to_statement);
+        if let Some(Tree {
+            variant: box Variant::Annotated(Annotated { newlines, expression, .. }),
+            ..
+        }) = &mut statement.expression
+        {
+            while expression.is_none() && let Some(line) = lines.next() {
+                let statement = line.map_expression(expression_to_statement);
+                newlines.push(statement.newline);
+                *expression = statement.expression;
+            }
+        }
+        statements.push(statement);
+    }
     Tree::body_block(statements)
 }
 
