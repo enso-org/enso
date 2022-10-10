@@ -153,7 +153,9 @@ final class TreeToIr {
               bindings = cons(t, bindings);
             }
             case Tree.Annotated anno -> {
-              var t = translateModuleSymbol(anno);
+              var n = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+              bindings = cons(n, bindings);
+              var t = translateModuleSymbol(anno.getExpression());
               bindings = cons(t, bindings);
             }
             case null -> {
@@ -409,7 +411,7 @@ final class TreeToIr {
     }
     */
       }
-      default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+    default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
     };
   }
 

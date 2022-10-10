@@ -118,6 +118,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testBuiltinTypeAnnotation() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Date
+    """);
+  }
+
+  @Test
   @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
