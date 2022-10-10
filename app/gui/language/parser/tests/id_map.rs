@@ -2,10 +2,10 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use parser::prelude::*;
+use parser_scala::prelude::*;
 
 use ast::HasIdMap;
-use parser::Parser;
+use parser_scala::Parser;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

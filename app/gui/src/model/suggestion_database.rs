@@ -117,7 +117,7 @@ pub struct NoSuchEntry(pub SuggestionId);
 // ====================
 
 /// Notification about change in a suggestion database,
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// The database has been updated.
     Updated,

@@ -563,8 +563,8 @@ impl<'p> Interpreter<'p> {
                     self.run_continuation(cont_stack, &mut prefix);
                 }
                 Op::U8(data) => prefix.push(*data),
-                Op::U32(data) => prefix.extend(&data.to_le_bytes()),
-                Op::U64(data) => prefix.extend(&data.to_le_bytes()),
+                Op::U32(data) => prefix.extend(data.to_le_bytes()),
+                Op::U64(data) => prefix.extend(data.to_le_bytes()),
                 Op::Case(case) => {
                     if DEBUG {
                         match case {
@@ -612,8 +612,8 @@ impl<'p> Interpreter<'p> {
                 Op::SwitchPush => stack.push(self.continuations[&pc]),
                 Op::SwitchPop => panic!("Fell through a switch at {pc}."),
                 Op::U8(data) => out.push(*data),
-                Op::U32(data) => out.extend(&data.to_le_bytes()),
-                Op::U64(data) => out.extend(&data.to_le_bytes()),
+                Op::U32(data) => out.extend(data.to_le_bytes()),
+                Op::U64(data) => out.extend(data.to_le_bytes()),
                 Op::Case(Case::Accept) => {
                     if let Some(pc_) = stack.pop() {
                         if DEBUG {

@@ -736,7 +736,7 @@ impl TextModel {
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font::DEFAULT_FONT_MONO);
         let glyph_system = {
-            let glyph_system = font::glyph::System::new(&scene, font);
+            let glyph_system = font::glyph::System::new(scene, font);
             display_object.add_child(&glyph_system);
             RefCell::new(glyph_system)
         };
@@ -1421,7 +1421,7 @@ impl TextModel {
         });
 
         if truncated {
-            let divs = (&divs[0..divs.len() - to_be_truncated]).to_vec();
+            let divs = divs[0..divs.len() - to_be_truncated].to_vec();
             let divs = NonEmptyVec::try_from(divs).unwrap_or_else(|_| default_divs());
             line.set_divs(divs);
             line.glyphs.truncate(column.value - to_be_truncated);
@@ -1717,7 +1717,7 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let glyph_system = font::glyph::System::new(&scene, font);
+        let glyph_system = font::glyph::System::new(scene, font);
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
@@ -1983,7 +1983,7 @@ impl application::View for Text {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (PressAndRepeat, "left", "cursor_move_left"),
             (PressAndRepeat, "right", "cursor_move_right"),
             (PressAndRepeat, "up", "cursor_move_up"),
@@ -2030,14 +2030,14 @@ impl application::View for Text {
             (Press, "cmd v", "paste"),
             (Press, "cmd z", "undo"),
             (Press, "escape", "keep_oldest_cursor_only"),
-        ])
-            .iter()
-            .map(|(action, rule, command)| {
-                let only_hovered = *action != Release && rule.contains("left-mouse-button");
-                let condition = if only_hovered { "focused & hovered" } else { "focused" };
-                Self::self_shortcut_when(*action, *rule, *command, condition)
-            })
-            .collect()
+        ]
+        .iter()
+        .map(|(action, rule, command)| {
+            let only_hovered = *action != Release && rule.contains("left-mouse-button");
+            let condition = if only_hovered { "focused & hovered" } else { "focused" };
+            Self::self_shortcut_when(*action, *rule, *command, condition)
+        })
+        .collect()
     }
 }
 

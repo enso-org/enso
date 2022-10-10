@@ -573,7 +573,7 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &parser::Parser, to_add: ImportInfo) -> usize {
+    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: ImportInfo) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
             self.enumerate_imports().take_while(|(_, import)| to_add.target > import.target).last();
@@ -588,7 +588,7 @@ impl Info {
     pub fn add_module_import(
         &mut self,
         here: &QualifiedName,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
         to_add: &QualifiedName,
     ) {
         let is_here = to_add == here;
@@ -648,7 +648,7 @@ impl Info {
         &mut self,
         method: definition::ToAdd,
         location: Placement,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
     ) -> FallibleResult {
         let no_indent = 0;
         let definition_ast = method.ast(no_indent, parser)?;
@@ -687,7 +687,7 @@ impl From<known::Module> for Info {
 // =================
 
 /// Structure describing where to place something being added to the module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the beginning of the module.
     Begin,
@@ -878,7 +878,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_listing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
             let ast = parser.parse_module(code, default()).unwrap();
             let info = Info { ast };
@@ -901,7 +901,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_adding_and_removing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let code = "import Foo.Bar.Baz";
         let ast = parser.parse_module(code, default()).unwrap();
         let mut info = Info { ast };
@@ -930,7 +930,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn implicit_method_resolution() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module_name =
             QualifiedName::from_all_segments(&["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
@@ -1002,7 +1002,7 @@ other def =
 
 last def = inline expression";
 
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = parser.parse_module(code, default()).unwrap();
         let module = Info { ast: module };
 
@@ -1014,14 +1014,14 @@ last def = inline expression";
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("inline expression"));
 
-        let id = definition::Id::new_plain_names(&["other", "nested"]);
+        let id = definition::Id::new_plain_names(["other", "nested"]);
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("nested body"));
     }
 
     #[wasm_bindgen_test]
     fn add_method() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = r#"Main.method1 arg = body
 
 main = Main.method1 10"#;

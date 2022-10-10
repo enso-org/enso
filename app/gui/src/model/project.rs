@@ -14,7 +14,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
 use flo_stream::Subscriber;
 use mockall::automock;
-use parser::Parser;
+use parser_scala::Parser;
 use uuid::Uuid;
 
 
@@ -168,14 +168,14 @@ pub type Synchronized = synchronized::Project;
 // ====================
 
 /// Notification emitted by the project model.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
 }
 
 /// Denotes one of backend connections used by a project.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BackendConnection {
     /// The text connection used to transfer JSON messages.
     LanguageServerJson,

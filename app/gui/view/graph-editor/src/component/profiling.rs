@@ -83,7 +83,7 @@ mod icon {
             // === Needle ===
 
             let needle       = UnevenCapsule(needle_radius_outer,needle_radius_inner,needle_length);
-            let needle       = needle.rotate(&needle_angle);
+            let needle       = needle.rotate(needle_angle);
             let inner_circle = Circle(&inner_circle_radius);
 
 

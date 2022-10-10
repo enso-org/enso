@@ -1,6 +1,11 @@
 # Change log
 CHANGELOG.md
 
+# Build script & utilities
+/run @mwu-tow
+/run.bat @mwu-tow
+/build @mwu-tow
+
 # Rust Libraries and Related Files
 rust-toolchain.toml @MichaelMauderer @mwu-tow @farmaazon
 rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon
@@ -20,8 +25,6 @@ Cargo.toml
 /lib/scala/interpreter-dsl/ @4e6 @jaroslavtulach
 
 # GUI
-/run @MichaelMauderer @wdanilo
-/build/ @MichaelMauderer @wdanilo
 /app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow
 /app/gui/view/ @MichaelMauderer @wdanilo @farmaazon
 /app/ide-desktop/ @MichaelMauderer @wdanilo

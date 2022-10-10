@@ -94,7 +94,7 @@ pub struct MagFilter(GlEnum);
 impl Deref for MagFilter {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 
@@ -121,7 +121,7 @@ pub struct MinFilter(GlEnum);
 impl Deref for MinFilter {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 
@@ -151,7 +151,7 @@ pub struct Wrap(GlEnum);
 impl Deref for Wrap {
     type Target = u32;
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 

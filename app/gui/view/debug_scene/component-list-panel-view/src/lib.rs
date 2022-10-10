@@ -4,7 +4,6 @@
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(associated_type_defaults)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
@@ -21,6 +20,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
@@ -198,8 +198,8 @@ fn init_local_scope_section(searcher_list_panel: &ComponentBrowserPanel) {
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = &Application::new("root");
-        theme::builtin::light::register(&app);
-        theme::builtin::light::enable(&app);
+        theme::builtin::light::register(app);
+        theme::builtin::light::enable(app);
 
         let world = &app.display;
         let scene = &world.default_scene;

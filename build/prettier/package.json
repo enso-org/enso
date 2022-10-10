@@ -7,7 +7,7 @@
     "prettier-plugin-toml": "^0.3.1"
   },
   "scripts": {
-    "write": "cd ../../ && prettier --write .",
-    "check": "cd ../../ && prettier --check ."
+    "write": "cd ../.. && prettier --write .",
+    "check": "cd ../.. && prettier --check ."
   }
 }
