@@ -107,6 +107,7 @@ mod tests {
     use ide_ci::log::setup_logging;
 
     #[tokio::test]
+    #[ignore]
     async fn deserialize() -> Result {
         setup_logging()?;
         let config = r#"

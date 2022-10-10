@@ -424,6 +424,7 @@ impl System {
         let scene = scene.as_ref();
         let sprite_system = SpriteSystem::new(scene);
         let symbol = sprite_system.symbol();
+        #[allow(clippy::let_unit_value)]
         let context = get_context(scene);
         let texture = new_texture(&context, (0, 0));
         let mesh = symbol.surface();
@@ -449,8 +450,7 @@ impl System {
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
         let frp = Frp::new();
-        #[allow(clippy::clone_on_copy)]
-        #[allow(clippy::unit_arg)]
+        #[allow(clippy::clone_on_copy, clippy::let_unit_value, clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
         let sprite = self.sprite_system.new_instance();

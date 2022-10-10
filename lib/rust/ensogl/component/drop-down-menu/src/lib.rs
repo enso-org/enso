@@ -153,6 +153,7 @@ impl Model {
     }
 
     fn set_label(&self, label: &str) {
+        #[allow(clippy::needless_borrow)] // Removing the borrow breaks type inference.
         self.label.set_cursor(&default());
         self.label.select_all();
         self.label.insert(label);
