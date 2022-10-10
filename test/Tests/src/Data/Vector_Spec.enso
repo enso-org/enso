@@ -192,6 +192,8 @@ spec = Test.group "Vectors" <|
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
            https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
         # txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg', 's\u0301nieg']
+        # This should be replaced with the disabled test above, once the related bug is fixed.
+        txt3.filter (Filter_Condition.Like 'ś%') . should_equal ['śnieg']
 
         mixed = [1, Nothing, "b"]
         mixed.filter Filter_Condition.Is_Nothing . should_equal [Nothing]

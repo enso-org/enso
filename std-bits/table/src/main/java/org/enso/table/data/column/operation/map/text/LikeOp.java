@@ -15,9 +15,13 @@ public class LikeOp extends StringBooleanOp {
     super(Storage.Maps.LIKE);
   }
 
-  /** These flags should be consistent with default Enso regex settings. */
-  private final static int UNICODE_REGEX = Pattern.CANON_EQ | Pattern.UNICODE_CHARACTER_CLASS | Pattern.UNICODE_CASE;
-  private final static int REGEX_FLAGS = UNICODE_REGEX | Pattern.DOTALL;
+
+  /**
+   * There is <a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926">a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting</a>.
+   * Once that bug is fixed, we should add all relevant Unicode flags here too,
+   * consistently with the Default Enso regex engine.
+   */
+  private final static int REGEX_FLAGS = Pattern.DOTALL;
 
   private Pattern createRegexPatternFromSql(String sqlPattern) {
     String regex = Regex_Utils.sql_like_pattern_to_regex(sqlPattern);

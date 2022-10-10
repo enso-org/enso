@@ -1151,16 +1151,18 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Starts_With 'c') on_problems=Report_Error . at "X" . to_vector . should_equal ['caa\nbb']
 
         if test_selection.supports_unicode_normalization then
+            t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
             Test.specify "text operations should support Unicode normalization" <|
-                t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
                 t.filter "X" (Filter_Condition.Starts_With 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
                 t.filter "X" (Filter_Condition.Contains 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
                 t.filter "X" (Filter_Condition.Ends_With 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal []
                 t.filter "X" (Filter_Condition.Ends_With 'ć') on_problems=Report_Error . at "X" . to_vector . should_equal ['połać', 'połac\u0301']
 
+                # This should be replaced with the disabled test below, once the related bug is fixed.
+                t.filter "X" (Filter_Condition.Like 'ś%') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg']
+
             # This test is split off just to mark is as pending, once resolved it can be merged with the one above.
             Test.specify "text operations should support Unicode normalization (like)" pending='There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.\nhttps://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926' <|
-                t = table_builder [["X", ['śnieg', 's\u0301nieg', 'X', Nothing, 'połać', 'połac\u0301']]]
                 t.filter "X" (Filter_Condition.Like 'ś%') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
 
         Test.specify "by empty text" <|
