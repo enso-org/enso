@@ -118,6 +118,22 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAnnotation2() throws Exception {
+    parseTest("""
+    go t x = @Tail_Call go t-1 x
+    """);
+  }
+
+  @Test
+  public void testAnnotationBlock() throws Exception {
+    parseTest("""
+    go a b = @Tail_Call go
+        a
+        b
+    """);
+  }
+
+  @Test
   public void testBuiltinTypeAnnotation() throws Exception {
     parseTest("""
     @Builtin_Type
