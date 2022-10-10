@@ -20,7 +20,7 @@ pub fn test_reporter(
     .with_custom_argument("reporter", "java-junit")
     .with_custom_argument("path", path)
     .with_custom_argument("path-replace-backslashes", true)
-    .with_custom_argument("max-annotations", 100)
+    .with_custom_argument("max-annotations", 50) // 50 is the max
     .with_custom_argument("name", report_name)
 }
 
