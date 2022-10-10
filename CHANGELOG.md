@@ -380,6 +380,7 @@
 - [Notify node status to the IDE][3729]
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
+- [Fix performance of method calls on polyglot arrays][3781]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -431,6 +432,7 @@
 [3729]: https://github.com/enso-org/enso/pull/3729
 [3740]: https://github.com/enso-org/enso/pull/3740
 [3742]: https://github.com/enso-org/enso/pull/3742
+[3781]: https://github.com/enso-org/enso/pull/3781
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

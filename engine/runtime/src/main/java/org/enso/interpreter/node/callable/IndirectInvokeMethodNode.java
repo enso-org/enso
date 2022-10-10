@@ -172,7 +172,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
+      @Bind("getPolyglotCallType(self, symbol, interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached HostMethodCallNode hostMethodCallNode,
@@ -194,7 +194,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       guards = {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TEXT"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
       })
   Stateful doConvertText(
       MaterializedFrame frame,
@@ -237,7 +237,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       guards = {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == NOT_SUPPORTED"
+        "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
   Stateful doFallback(
       MaterializedFrame frame,
@@ -252,7 +252,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
+      @Bind("getPolyglotCallType(self, symbol, interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached MethodResolverNode methodResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
