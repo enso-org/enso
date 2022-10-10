@@ -68,14 +68,17 @@ public final class EnsoDuration implements TruffleObject {
     return new EnsoDuration(Duration.between(startTime, endTime));
   }
 
-  private static Temporal convertToDateTime(Object dateObject, boolean timeZoneAware, InteropLibrary interop) {
+  private static Temporal convertToDateTime(
+      Object dateObject, boolean timeZoneAware, InteropLibrary interop) {
     assert interop.isDate(dateObject);
     try {
       LocalDate date = interop.asDate(dateObject);
       LocalTime time = interop.isTime(dateObject) ? interop.asTime(dateObject) : LocalTime.MIN;
       if (timeZoneAware) {
         ZoneId zone =
-            interop.isTimeZone(dateObject) ? interop.asTimeZone(dateObject) : ZoneId.systemDefault();
+            interop.isTimeZone(dateObject)
+                ? interop.asTimeZone(dateObject)
+                : ZoneId.systemDefault();
         return ZonedDateTime.of(date, time, zone);
       } else {
         return LocalDateTime.of(date, time);
@@ -118,28 +121,32 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
-  public EnsoDuration plus(Object durationObject, InteropLibrary interop) throws UnsupportedMessageException {
+  public EnsoDuration plus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
     return new EnsoDuration(duration.plus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
-  public EnsoDuration minus(Object durationObject, InteropLibrary interop) throws UnsupportedMessageException {
+  public EnsoDuration minus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
     return new EnsoDuration(duration.minus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(name = "compare_to_builtin", description = "Compares to other duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
-  public long compareTo(Object durationObject, InteropLibrary interop) throws UnsupportedMessageException {
+  public long compareTo(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
     return duration.compareTo(interop.asDuration(durationObject));
   }
 
   @Builtin.Method(name = "equals_builtin")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
-  public boolean equalsDuration(Object durationObject, InteropLibrary interop) throws UnsupportedMessageException {
+  public boolean equalsDuration(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
     return duration.equals(interop.asDuration(durationObject));
   }
 
