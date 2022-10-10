@@ -47,8 +47,8 @@ case object OverloadsResolution extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    var seenTypes: Set[String]                        = Set()
-    var seenMethods: Map[Option[String], Set[String]] = Map()
+    var seenTypes: Set[String]                                   = Set()
+    var seenMethods: Map[Option[String], Set[(String, Boolean)]] = Map()
 
     val types = ir.bindings.collect {
       case tp: IR.Module.Scope.Definition.Type => tp
@@ -72,7 +72,7 @@ case object OverloadsResolution extends IRPass {
     val newMethods: List[IR.Module.Scope.Definition] = methods.map(method => {
       if (
         seenMethods(method.typeName.map(_.name))
-          .contains(method.methodName.name)
+          .contains((method.methodName.name, method.isStatic))
       ) {
         IR.Error.Redefined
           .Method(method.typeName, method.methodName, method.location)
@@ -85,10 +85,10 @@ case object OverloadsResolution extends IRPass {
               method.location
             )
           case _ =>
-            val currentMethods = seenMethods(method.typeName.map(_.name))
+            val currentMethods: Set[(String, Boolean)] =
+              seenMethods(method.typeName.map(_.name))
             seenMethods = seenMethods + (method.typeName.map(_.name) ->
-            (currentMethods + method.methodName.name))
-
+            (currentMethods + ((method.methodName.name, method.isStatic))))
             method
         }
       }
