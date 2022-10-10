@@ -362,10 +362,10 @@ mod tests {
                     let rgb = Rgb::new(nr, ng, nb);
                     let lch = Lch::from(rgb);
                     let rgb2 = Rgb::from(lch);
-                    let _r2 = (rgb2.red * 255.0) as i32;
-                    let _g2 = (rgb2.green * 255.0) as i32;
-                    let _b2 = (rgb2.blue * 255.0) as i32;
-                    // assert_eq!((r,g,b),(r2,g2,b2));
+                    let r2 = (rgb2.red * 255.0) as i32;
+                    let g2 = (rgb2.green * 255.0) as i32;
+                    let b2 = (rgb2.blue * 255.0) as i32;
+                    assert_eq!((r, g, b), (r2, g2, b2));
                 }
             }
         }
