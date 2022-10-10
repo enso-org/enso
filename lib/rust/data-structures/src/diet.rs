@@ -145,6 +145,11 @@ impl $name {
 
     /// Create an empty data array.
     pub (crate) fn empty_data_array() -> DataArray {
+        // FIXME: Original implementation used:
+        //        `unsafe { MaybeUninit::uninit().assume_init() }`
+        //        However, a doubt was raised whether this is correct or UB.
+        //        The current implementation might suffer from performance issues.
+        //        See: https://github.com/enso-org/enso/pull/3694#discussion_r987216167
         [default();$num]
     }
 
