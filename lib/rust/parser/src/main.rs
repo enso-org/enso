@@ -7,11 +7,11 @@
 #![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
-#![feature(let_chains)]
 #![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]

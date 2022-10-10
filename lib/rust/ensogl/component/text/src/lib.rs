@@ -9,7 +9,6 @@
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(option_zip)]
-#![feature(derive_default_enum)]
 #![feature(generators)]
 #![feature(btree_drain_filter)]
 #![feature(allocator_api)]
@@ -18,6 +17,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]

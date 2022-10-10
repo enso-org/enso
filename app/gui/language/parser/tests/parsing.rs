@@ -5,11 +5,11 @@
 #![warn(unsafe_code)]
 
 use ast::*;
-use parser::prelude::*;
+use parser_scala::prelude::*;
 
 use ast::test_utils::expect_shape;
-use parser::api::Metadata;
-use parser::api::ParsedSourceFile;
+use parser_scala::api::Metadata;
+use parser_scala::api::ParsedSourceFile;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -40,13 +40,13 @@ fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     assert_eq!(*actual, expected);
 }
 
-fn roundtrip_program_with(parser: &parser::Parser, program: &str) {
+fn roundtrip_program_with(parser: &parser_scala::Parser, program: &str) {
     let ast = parser.parse(program.to_string(), Default::default()).unwrap();
     assert_eq!(ast.repr(), program, "{:#?}", ast);
 }
 
 fn roundtrip_program(program: &str) {
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
     roundtrip_program_with(&parser, program);
 }
 
@@ -71,7 +71,7 @@ impl<T: Default + Serialize + DeserializeOwned> Metadata for FauxMetadata<T> {}
 /// Persists parser (which is expensive to construct, so we want to reuse it
 /// between tests. Additionally, hosts a number of helper methods.
 struct Fixture {
-    parser: parser::Parser,
+    parser: parser_scala::Parser,
 }
 
 impl Fixture {
@@ -79,7 +79,7 @@ impl Fixture {
 
     /// Create a new fixture, obtaining a default parser.
     fn new() -> Fixture {
-        Fixture { parser: parser::Parser::new_or_panic() }
+        Fixture { parser: parser_scala::Parser::new_or_panic() }
     }
 
     /// Program is expected to be single line module. The line's Shape subtype
@@ -151,7 +151,7 @@ impl Fixture {
 
     fn deserialize_blank(&mut self) {
         let expect_blank = |_: &Blank| {};
-        let _ast = self.test_shape("_", expect_blank);
+        self.test_shape("_", expect_blank);
     }
 
     fn deserialize_var(&mut self) {
@@ -490,7 +490,7 @@ fn block_roundtrip() {
 /// Test case for https://github.com/enso-org/ide/issues/296
 #[wasm_bindgen_test]
 fn nested_macros() {
-    let parser = parser::Parser::new_or_panic();
+    let parser = parser_scala::Parser::new_or_panic();
 
     // Generate nested brackets. Stop at 8 because it gets slower and slower.
     // At 12 the deserialization fails on WASM.
@@ -532,7 +532,7 @@ fn dealing_with_invalid_metadata() {
     let serialized_text_metadata = serde_json::to_string(&metadata).unwrap();
     assert!(serde_json::from_str::<FauxMetadata<i32>>(&serialized_text_metadata).is_err());
 
-    let parsed_file = parser::api::ParsedSourceFile { ast, metadata };
+    let parsed_file = parser_scala::api::ParsedSourceFile { ast, metadata };
     let generated = parsed_file.serialize().unwrap();
     let expected_generated = r#"variable1
 

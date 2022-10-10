@@ -4,6 +4,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -150,7 +151,7 @@ impl Model {
                     line.set_cap(cap);
 
                     let height_rows =
-                        (message.recipient.id as i32 - message.sender.id as i32).abs() as u32;
+                        (message.recipient.id as i32 - message.sender.id as i32).unsigned_abs();
                     let height_px = ROW_HEIGHT * height_rows as f32;
                     let start = message.recipient.id.min(message.sender.id) as u32;
                     line.set_size(Vector2::new(LINE_WIDTH, height_px));

@@ -74,7 +74,7 @@ pub enum Notification {
 // ==============
 
 /// Describes the state of the visualization on the Language Server.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Status {
     /// Not attached and no ongoing background work.
@@ -156,7 +156,7 @@ impl Default for Status {
 
 /// Desired visualization described using unresolved view metadata structure.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Desired {
     pub visualization_id: VisualizationId,
     pub expression_id:    ast::Id,

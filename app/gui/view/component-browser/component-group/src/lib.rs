@@ -43,10 +43,10 @@
 #![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
-#![feature(derive_default_enum)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -567,7 +567,7 @@ impl component::Frp<Model> for Frp {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl::application::shortcut::ActionType::*;
-        (&[(Press, "tab", "accept_suggestion")])
+        [(Press, "tab", "accept_suggestion")]
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
             .collect()

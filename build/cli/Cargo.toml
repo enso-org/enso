@@ -1,0 +1,31 @@
+[package]
+name = "enso-build-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+anyhow = "1.0.57"
+byte-unit = { version = "4.0.14", features = ["serde"] }
+clap = { version = "3.1.5", features = ["derive", "env", "wrap_help"] }
+chrono = "0.4.19"
+derivative = "2.2.0"
+enso-build = { path = "../build" }
+enso-formatter = { path = "../enso-formatter" }
+futures = "0.3.17"
+futures-util = "0.3.17"
+glob = "0.3.0"
+humantime = "2.1.0"
+ide-ci = { path = "../ci_utils" }
+octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
+  "rustls"
+] }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.68"
+serde_yaml = "0.9.10"
+strum = { version = "0.24.0", features = ["derive"] }
+tempfile = "3.2.0"
+tokio = { workspace = true }
+toml = "0.5.9"
+tracing = { version = "0.1.32" }
+tracing-subscriber = "0.3.11"

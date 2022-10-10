@@ -305,7 +305,7 @@ impl NonVariableFamily {
     /// ignored.
     fn load_all_faces(&self, embedded: &Embedded) {
         for (header, file_name) in &self.definition.map {
-            if let Some(face) = Face::load_from_memory(&*file_name, embedded) {
+            if let Some(face) = Face::load_from_memory(file_name, embedded) {
                 self.faces.borrow_mut().insert(*header, face);
             }
         }

@@ -11,7 +11,7 @@ use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -260,7 +260,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn adding_missing_main() {
         let _ctx = TestWithLocalPoolExecutor::set_up();
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let mut data = crate::test::mock::Unified::new();
         let module_name = data.module_path.module_name();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);

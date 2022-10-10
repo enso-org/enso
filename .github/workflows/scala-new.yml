@@ -24,37 +24,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -66,31 +54,43 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Engine Tests (linux)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Standard Library Tests (linux)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - name: Stdlib test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Enso Standard Library Tests (linux)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
-      - name: Engine test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Engine Tests (linux)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
     runs-on:
@@ -98,37 +98,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -140,31 +128,43 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Engine Tests (macos)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Standard Library Tests (macos)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - name: Stdlib test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Enso Standard Library Tests (macos)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
-      - name: Engine test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Engine Tests (macos)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
     runs-on:
@@ -174,37 +174,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -216,30 +204,42 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Engine Tests (windows)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          max-annotations: 50
+          name: Standard Library Tests (windows)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
-      - name: Stdlib test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Enso Standard Library Tests (windows)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
-      - name: Engine test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Engine Tests (windows)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: "true"
-          reporter: java-junit
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

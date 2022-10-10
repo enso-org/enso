@@ -3,17 +3,12 @@
 // === Features ===
 #![feature(const_trait_impl)]
 
+use ide_ci::prelude::*;
+
+use ide_ci::log::setup_logging;
 use owned_ttf_parser::AsFaceRef;
 use owned_ttf_parser::OwnedFace;
-use std::env;
-use std::fmt::Write;
-use std::fs;
-use std::fs::File;
-use std::io;
-use std::io::BufReader;
-use std::io::Read;
-use std::io::Write as IoWrite;
-use std::path;
+use std::fmt::Write as FmtWrite;
 
 
 
@@ -75,11 +70,6 @@ impl CodeGenerator {
         ln!(0, body, "}}");
         body
     }
-
-    fn write<P: AsRef<path::Path>>(&self, path: P) -> io::Result<()> {
-        let mut file = fs::File::create(path)?;
-        writeln!(file, "{}", self.body())
-    }
 }
 
 
@@ -89,10 +79,10 @@ impl CodeGenerator {
 // ===================
 
 mod deja_vu {
-    use crate::CodeGenerator;
+    use super::*;
 
+    use crate::CodeGenerator;
     use enso_build_utilities::GithubRelease;
-    use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
         project_url: "https://github.com/dejavu-fonts/dejavu-fonts/",
@@ -102,31 +92,33 @@ mod deja_vu {
 
     pub const PACKAGE_FONTS_PREFIX: &str = "dejavu-fonts-ttf-2.37/ttf";
 
-    pub fn extract_font(package_path: &path::Path, file_name: &str) {
-        let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
-        let package_dir = package_path.parent().unwrap();
-        let output_path = package_dir.join(file_name);
-
-        let archive_file = std::fs::File::open(package_path).unwrap();
-        let mut archive = zip::ZipArchive::new(archive_file).unwrap();
-        let mut input_stream = archive.by_name(font_in_package_path.as_str()).unwrap();
-        let mut output_stream = std::fs::File::create(output_path).unwrap();
-        std::io::copy(&mut input_stream, &mut output_stream).unwrap();
-    }
-
     const FILE_NAMES: [&str; 4] =
         ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"];
 
-    pub fn extract_all_fonts(package_path: &path::Path) {
+    pub fn extract_all_fonts(package_path: &Path) -> Result {
+        let archive_file = ide_ci::fs::open(package_path)?;
+        let mut archive = zip::ZipArchive::new(archive_file).unwrap();
         for file_name in FILE_NAMES {
-            extract_font(package_path, file_name);
+            let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
+            let mut input_stream = archive.by_name(&font_in_package_path).with_context(|| {
+                format!(
+                    "Cannot find font file {} in the package {}",
+                    file_name,
+                    package_path.display()
+                )
+            })?;
+            let output_path = package_path.with_file_name(file_name);
+            let mut output_stream = ide_ci::fs::create(&output_path)?;
+            std::io::copy(&mut input_stream, &mut output_stream).with_context(|| {
+                format!("Cannot extract font file {} to {}", file_name, output_path.display())
+            })?;
         }
+        Ok(())
     }
 
-    pub fn download_and_extract_all_fonts(out_dir: &path::Path) {
-        let package_path = out_dir.join(PACKAGE.filename);
-        PACKAGE.download(out_dir);
-        extract_all_fonts(package_path.as_path());
+    pub async fn download_and_extract_all_fonts(out_dir: &Path) -> Result {
+        let package_path = ide_ci::io::download_to_dir(PACKAGE.url()?, out_dir).await?;
+        extract_all_fonts(package_path.as_path())
     }
 
     pub fn add_entries_to_fill_map_rs(file: &mut CodeGenerator) {
@@ -146,7 +138,7 @@ mod google_fonts {
     use super::*;
     use crate::CodeGenerator;
 
-    use std::path;
+    use enso_build::ide::web::download_google_font;
 
     #[derive(Debug)]
     pub struct FaceDefinition {
@@ -162,41 +154,31 @@ mod google_fonts {
 
     pub async fn download_files(
         name: impl AsRef<str>,
-        out_dir: &path::Path,
-    ) -> Vec<DownloadedFile> {
-        let octocrab = enso_build::setup_octocrab().await.expect("Failed to setup GitHub client.");
-        let result = enso_build::ide::web::download_google_font(&octocrab, name.as_ref(), out_dir)
-            .await
-            .expect("Failed ot download font.");
-        result.into_iter().map(|content| DownloadedFile { name: content.name }).collect()
+        out_dir: &Path,
+    ) -> Result<Vec<DownloadedFile>> {
+        let octocrab = enso_build::setup_octocrab().await?;
+        let result = download_google_font(&octocrab, name.as_ref(), out_dir).await?;
+        Ok(result.into_iter().map(|content| DownloadedFile { name: content.name }).collect())
     }
 
-    pub async fn load(out_dir: &path::Path, buffer: &mut CodeGenerator, family_name: &str) {
-        let files = download_files(family_name, out_dir).await;
+    pub async fn load(out_dir: &Path, buffer: &mut CodeGenerator, family_name: &str) -> Result {
+        let files = download_files(family_name, out_dir).await?;
 
         for file in &files {
             buffer.add_font_data(&file.name)
         }
 
-        let font_faces: Vec<FaceDefinition> = files
-            .into_iter()
-            .map(|file| {
-                let file_name = file.name;
-                let path = out_dir.join(&file_name);
-                let err = |action: &str| format!("Cannot {} file {:?}", action, path);
-                let handle = File::open(&path).unwrap_or_else(|_| panic!("{}", err("read")));
-                let mut reader = BufReader::new(handle);
-                let mut bytes = Vec::new();
-                reader.read_to_end(&mut bytes).unwrap_or_else(|_| panic!("{}", err("read")));
-                let face = OwnedFace::from_vec(bytes, 0);
-                let face = face.unwrap_or_else(|_| panic!("{}", err("parse")));
-                FaceDefinition { file_name, face }
-            })
-            .collect();
+        let font_faces: Vec<FaceDefinition> = files.into_iter().try_map(|file| {
+            let file_name = file.name;
+            let path = out_dir.join(&file_name);
+            let bytes = ide_ci::fs::read(&path)?;
+            let face = OwnedFace::from_vec(bytes, 0)
+                .with_context(|| format!("Cannot load font file {}.", path.display()))?;
+            Ok(FaceDefinition { file_name, face })
+        })?;
 
-        if font_faces.is_empty() {
-            panic!("No font faces found for family {}.", family_name);
-        } else if font_faces.len() == 1 && font_faces[0].face.as_face_ref().is_variable() {
+        ensure!(!font_faces.is_empty(), "No font files were downloaded for family {family_name}.",);
+        if font_faces.len() == 1 && font_faces[0].face.as_face_ref().is_variable() {
             let file_name = &font_faces[0].file_name;
             buffer.add_variable_font_definition(family_name, file_name);
         } else {
@@ -205,7 +187,7 @@ mod google_fonts {
                 let err2 = "This is intentionally not supported.";
                 let err3 = "CSS does not support it either,";
                 let err4 = "see: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face";
-                panic!("Family {} {} {} {} {}", family_name, err1, err2, err3, err4);
+                bail!("Family {} {} {} {} {}", family_name, err1, err2, err3, err4);
             }
             let mut code = String::new();
             let fam_def = "family::Definition::NonVariable";
@@ -224,7 +206,8 @@ mod google_fonts {
             }
             ln!(1, code, "]))");
             buffer.add_non_variable_font_definition(family_name, &code);
-        }
+        };
+        Ok(())
     }
 }
 
@@ -234,17 +217,20 @@ mod google_fonts {
 // === Main ===
 // ============
 #[tokio::main]
-async fn main() {
+async fn main() -> Result {
     println!("cargo:rerun-if-changed=build.rs");
-    let out = env::var("OUT_DIR").unwrap();
-    let out_dir = path::Path::new(&out);
-    deja_vu::download_and_extract_all_fonts(out_dir);
+    setup_logging()?;
+    let out_dir = ide_ci::programs::cargo::build_env::OUT_DIR.get()?;
+    deja_vu::download_and_extract_all_fonts(&out_dir).await?;
 
     let mut code_gen = CodeGenerator::default();
-    google_fonts::load(out_dir, &mut code_gen, "mplus1").await;
-    google_fonts::load(out_dir, &mut code_gen, "mplus1p").await;
+    google_fonts::load(&out_dir, &mut code_gen, "mplus1").await?;
+    google_fonts::load(&out_dir, &mut code_gen, "mplus1p").await?;
 
-    let out_path = out_dir.join("embedded_fonts_data.rs");
     deja_vu::add_entries_to_fill_map_rs(&mut code_gen);
-    code_gen.write(out_path).unwrap();
+
+    let body = code_gen.body();
+    let out_path = out_dir.join("embedded_fonts_data.rs");
+    ide_ci::fs::tokio::write(&out_path, body).await?;
+    Ok(())
 }

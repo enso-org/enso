@@ -821,7 +821,7 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
@@ -834,9 +834,9 @@ impl application::View for View {
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
-        ])
-            .iter()
-            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-            .collect()
+        ]
+        .iter()
+        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+        .collect()
     }
 }
