@@ -74,14 +74,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case IR.Module.Scope.Definition.Method
+          case m @ IR.Module.Scope.Definition.Method
                 .Explicit(
                   IR.Name.MethodReference(typePtr, methodName, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
-                ) =>
+                ) if !m.isStaticWrapperForInstanceMethod =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val selfTypeOpt = typePtr match {
               case Some(typePtr) =>
