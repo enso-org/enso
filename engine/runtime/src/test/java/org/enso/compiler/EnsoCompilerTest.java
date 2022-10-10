@@ -104,6 +104,51 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAnnotation0() throws Exception {
+    parseTest("""
+    dont_stop = @Tail_Call dont_stop
+    """);
+  }
+
+  @Test
+  public void testAnnotation1() throws Exception {
+    parseTest("""
+    go t = @Tail_Call go t-1
+    """);
+  }
+
+  @Test
+  public void testAnnotation2() throws Exception {
+    parseTest("""
+    go t x = @Tail_Call go t-1 x
+    """);
+  }
+
+  @Test
+  public void testAnnotationBlock() throws Exception {
+    parseTest("""
+    go a b = @Tail_Call go
+        a
+        b
+    """);
+  }
+
+  @Test
+  public void testBuiltinTypeAnnotation() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Date
+    """);
+  }
+
+  @Test
+  public void testBuiltinMethodAnnotation() throws Exception {
+    parseTest("""
+    normalize x = @Builtin_Method "File.normalize"
+    """);
+  }
+
+  @Test
   @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
