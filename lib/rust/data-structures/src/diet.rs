@@ -182,7 +182,7 @@ impl $name {
         let mut out = Err(self.data_count);
         for i in 0..self.data_count {
             let interval = &self.data[i];
-            if      t + 1 <  interval.start   { out = E./rr(i) ; break }
+            if      t + 1 <  interval.start   { out = Err(i) ; break }
             else if t     <= interval.end + 1 { out = Ok(i)  ; break }
         }
         out
