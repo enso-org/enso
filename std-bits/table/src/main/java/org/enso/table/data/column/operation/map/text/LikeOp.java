@@ -13,8 +13,12 @@ public class LikeOp extends StringBooleanOp {
     super(Storage.Maps.LIKE);
   }
 
+  /** These flags should be consistent with default Enso regex settings. */
+  private final static int UNICODE_REGEX = Pattern.CANON_EQ | Pattern.UNICODE_CHARACTER_CLASS | Pattern.UNICODE_CASE;
+  private final static int REGEX_FLAGS = UNICODE_REGEX | Pattern.DOTALL;
+
   private Pattern createRegexPatternFromSql(String sqlPattern) {
-    return Pattern.compile(Regex_Utils.sql_like_pattern_to_regex(sqlPattern));
+    return Pattern.compile(Regex_Utils.sql_like_pattern_to_regex(sqlPattern), REGEX_FLAGS);
   }
 
   @Override

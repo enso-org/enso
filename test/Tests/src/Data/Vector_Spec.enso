@@ -168,6 +168,12 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
         Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
 
+        txt2 = ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']
+        txt2.filter "X" (Filter_Condition.Like 'a_') . should_equal ['a\n']
+        txt2.filter "X" (Filter_Condition.Like 'a%') . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
+        txt2.filter "X" (Filter_Condition.Like 'a_b') . should_equal ['a\nb']
+        txt2.filter "X" (Filter_Condition.Like '%\nb') . should_equal ['a\n\n\nb', 'a\nb']
+
         ["", Nothing, " ", "a"].filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
         ["", Nothing, " ", "a"].filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]
         ["abab", "aaabaaaa", "ba"].filter (Filter_Condition.Like "ba") . should_equal ["ba"]
