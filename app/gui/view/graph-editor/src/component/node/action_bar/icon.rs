@@ -13,7 +13,7 @@ pub mod visibility {
     use super::*;
 
     ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
 
             let width        = Var::<Pixels>::from("input_size.x");
@@ -50,7 +50,7 @@ pub mod visibility2 {
     use super::*;
 
     ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
             let height       = Var::<Pixels>::from("input_size.y");
@@ -93,7 +93,7 @@ pub mod freeze {
     use super::*;
 
     ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
             let width            = Var::<Pixels>::from("input_size.x");
             let height           = Var::<Pixels>::from("input_size.y");
@@ -130,7 +130,7 @@ pub mod skip {
     use super::*;
 
     ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
             let height       = Var::<Pixels>::from("input_size.y");

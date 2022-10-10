@@ -91,19 +91,19 @@ pub struct ShapeData {
     pub font: FontWithAtlas,
 }
 
-impl display::shape::system::ShapeDataHasher for ShapeData {
-    fn hash(&self) -> display::shape::system::ShapeDataHash {
+impl display::shape::system::ShapeSystemFlavorProvider for ShapeData {
+    fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
         let mut hasher = DefaultHasher::new();
         std::hash::Hash::hash(&self.font.name(), &mut hasher);
-        display::shape::system::ShapeDataHash { hash: hasher.finish() }
+        display::shape::system::ShapeSystemFlavor { flavor: hasher.finish() }
     }
 }
 
 pub mod glyph {
     use super::*;
     ensogl_core::define_shape_system! {
-        SystemData(SystemData)
-        ShapeData(ShapeData)
+        type SystemData = SystemData;
+        type ShapeData = ShapeData;
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
             Plane().into()
         }

@@ -288,7 +288,7 @@ pub mod joint {
 
     ensogl::define_shape_system! {
         pointer_events = false;
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
             let joint         = Circle((radius-PADDING.px())/2.0);
             let joint_color   = Var::<color::Rgba>::from(color_rgba);
@@ -326,7 +326,8 @@ macro_rules! define_corner_start {
 
             ensogl::define_shape_system! {
                 below = [joint];
-                ( radius             : f32
+                ( style:               Style
+                , radius             : f32
                 , angle              : f32
                 , start_angle        : f32
                 , pos                : Vector2<f32>
@@ -424,15 +425,17 @@ macro_rules! define_corner_end {
             use super::*;
             ensogl::define_shape_system! {
                 below = [joint];
-                ( radius:f32
-                , angle:f32
-                , start_angle:f32
-                , pos:Vector2<f32>
-                , dim:Vector2<f32>
-                , focus_split_center:Vector2<f32>
-                , focus_split_angle:f32
-                , color_rgba:Vector4<f32>
-                , focus_color_rgba:Vector4<f32>
+                (
+                    style: Style,
+                    radius: f32,
+                    angle: f32,
+                    start_angle: f32,
+                    pos: Vector2<f32>,
+                    dim: Vector2<f32>,
+                    focus_split_center: Vector2<f32>,
+                    focus_split_angle: f32,
+                    color_rgba: Vector4<f32>,
+                    focus_color_rgba: Vector4<f32>,
                 ) {
                     let width       = &LINE_WIDTH.px();
                     let shape       = corner_base_shape(&radius,width,&angle,&start_angle);
@@ -526,8 +529,13 @@ macro_rules! define_line {
             use super::*;
             ensogl::define_shape_system! {
                 below = [joint];
-                (focus_split_center:Vector2<f32>, focus_split_angle:f32, color_rgba:Vector4<f32>,
-                 focus_color_rgba:Vector4<f32>) {
+                (
+                    style: Style,
+                    focus_split_center: Vector2<f32>,
+                    focus_split_angle: f32,
+                    color_rgba: Vector4<f32>,
+                    focus_color_rgba: Vector4<f32>
+                ) {
                     let width       = LINE_WIDTH.px();
                     let height      = Var::<Pixels>::from("input_size.y");
                     let shape       = Rect((width.clone(),height));
@@ -589,8 +597,13 @@ macro_rules! define_arrow { () => {
         use super::*;
         ensogl::define_shape_system! {
             above = [joint];
-            (focus_split_center:Vector2<f32>, focus_split_angle:f32, color_rgba:Vector4<f32>,
-             focus_color_rgba:Vector4<f32>) {
+            (
+                style: Style,
+                focus_split_center: Vector2<f32>,
+                focus_split_angle: f32,
+                color_rgba: Vector4<f32>,
+                focus_color_rgba: Vector4<f32>
+            ) {
                 let width  : Var<Pixels> = "input_size.x".into();
                 let height : Var<Pixels> = "input_size.y".into();
                 let color                = Var::<color::Rgba>::from(color_rgba);

@@ -30,48 +30,19 @@ newtype_prim_no_default_no_display! {
 }
 
 
-pub trait InstanceParamsTrait {
-    fn swap(&self, other: &Self);
-}
-
-
-pub trait CustomSystemData<S: Shape> {
-    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
-}
-
-impl<S: Shape> CustomSystemData<S> for () {
-    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {
-        ()
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct ShapeDataHash {
-    pub hash: u64,
-}
-
-pub trait ShapeDataHasher {
-    fn hash(&self) -> ShapeDataHash;
-}
-
-impl<T> ShapeDataHasher for T {
-    default fn hash(&self) -> ShapeDataHash {
-        ShapeDataHash { hash: 0 }
-    }
-}
 
 // =============
 // === Shape ===
 // =============
 
-
-pub trait ShapeWithDefaultData = Shape where <Self as Shape>::ShapeData: Default;
-
+/// A shape definition. You do not need to implement it manually, use the `define_shape_system!`
+/// macro instead.
+#[allow(missing_docs)]
 pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
-    type ShapeData: Debug + ShapeDataHasher;
+    type ShapeData: Debug + ShapeSystemFlavorProvider;
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
@@ -80,14 +51,73 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
         gpu_params: &Self::GpuParams,
         id: InstanceIndex,
     ) -> ShapeWithSize<Self>;
-    fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams;
-    fn shape_def(
-        style_watch: &display::shape::StyleWatch,
-    ) -> display::shape::primitive::def::AnyShape;
+    fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
+    fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
+}
+
+/// An alias for [`Shape]` where [`Shape::ShapeData`] is [`Default`].
+pub trait ShapeWithDefaultableData = Shape where <Self as Shape>::ShapeData: Default;
+
+/// A trait that each [`Shape::InstanceParams`] must implement. You do not have to implement it
+/// manually, use the [`define_shape_system!`] macro instead.
+#[allow(missing_docs)]
+pub trait InstanceParamsTrait {
+    fn swap(&self, other: &Self);
+}
+
+/// Some shape systems may want to use custom data in their systems. This trait allows to define
+/// such data. In case a shape system does not need any custom data, the empty tuple will be used.
+pub trait CustomSystemData<S: Shape> {
+    /// Constructor.
+    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
+}
+
+impl<S: Shape> CustomSystemData<S> for () {
+    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {
+    }
 }
 
 
 
+// =========================
+// === ShapeSystemFlavor ===
+// =========================
+
+/// Shape systems are shared between different shape instances. When creating a new shape instance,
+/// currently available shape systems are queried and if one matches the shape definition type, it
+/// is used, not constructed. However, sometimes shapes need a separate shape system nevertheless.
+/// For example, if a shape system uses custom [`ShapeData`] which defines a texture that depends on
+/// some shape variables, we might want to construct a new shape system with a specific texture.
+/// This is what happens with fonts. For each font family, a separate glyph atlas is created, and
+/// thus, a shape system needs to be created for each used font family. The [`ShapeSystemFlavor`] is
+/// used to differentiate such shape systems. You do not need to care about it in most cases.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub struct ShapeSystemFlavor {
+    /// The flavor of the shape system. In most cases, it is computed as a hash of some value, like
+    /// a hash of font family name.
+    pub flavor: u64,
+}
+
+/// Provider of a shape system flavor. Read docs of [`ShapeSystemFlavor`] for more information.
+#[allow(missing_docs)]
+pub trait ShapeSystemFlavorProvider {
+    fn flavor(&self) -> ShapeSystemFlavor;
+}
+
+impl<T> ShapeSystemFlavorProvider for T {
+    default fn flavor(&self) -> ShapeSystemFlavor {
+        ShapeSystemFlavor { flavor: 0 }
+    }
+}
+
+
+
+// =====================
+// === ShapeWithSize ===
+// =====================
+
+/// A shape with its size parameter.
+#[allow(missing_docs)]
 #[derive(Debug, Deref)]
 pub struct ShapeWithSize<S> {
     #[deref]
@@ -96,13 +126,15 @@ pub struct ShapeWithSize<S> {
 }
 
 impl<S> ShapeWithSize<S> {
+    /// Constructor.
     pub fn new(shape: S, size: ProxyParam<sprite::Size>) -> Self {
         Self { shape, size }
     }
 }
 
 impl<S: Shape> ShapeWithSize<S> {
-    pub fn swap(&self, other: &ShapeWithSize<S>) {
+    /// Swap in-place the shape definition with another one.
+    pub(crate) fn swap(&self, other: &ShapeWithSize<S>) {
         self.size.swap(&other.size);
         self.shape.as_ref().swap(other.shape.as_ref());
     }
@@ -114,8 +146,7 @@ impl<S: Shape> ShapeWithSize<S> {
 // === ShapeInstance ===
 // =====================
 
-/// A visible shape instance, bound to a particular [`ShapeSystem`]. Shape instances are stored and
-/// managed by [`ShapeProxy`]s.
+/// A visible shape instance, bound to a particular [`ShapeSystem`].
 #[allow(missing_docs)]
 #[derive(Deref, Debug)]
 pub struct ShapeInstance<S> {
@@ -126,12 +157,14 @@ pub struct ShapeInstance<S> {
 }
 
 impl<S> ShapeInstance<S> {
+    /// Check if given pointer-event-target means this object.
     pub fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         self.sprite.borrow().is_this_target(target)
     }
 }
 
 impl<S: Shape> ShapeInstance<S> {
+    /// Swap in-place the shape definition with another one.
     pub(crate) fn swap(&self, other: &Self) {
         self.shape.swap(&other.shape);
         self.sprite.swap(&other.sprite);
@@ -149,67 +182,11 @@ impl<S> display::Object for ShapeInstance<S> {
 
 
 
-// // ==================
-// // === ShapeProxy ===
-// // ==================
-//
-// /// A proxy for zero or more [`ShapeInstance`]s. Proxies can be created and modified even if no
-// /// [`ShapeInstance`] is created yet. [`ShapeInstance`]s are bound to a particular
-// [`ShapeSystem`]. /// They can be destroyed and created on demand (e.g. after moving the shape to
-// a different layer, /// because each layer has its own copy of [`ShapeSystem`]). The
-// [`ShapeProxy`] is an interface for /// all created [`ShapeInstance`]s. In case there are no
-// [`ShapeInstance`]s, changing a parameter /// will not have any visual effect, however, all the
-// changes will be recorded and applied as soon /// as a new [`ShapeInstance`] appears.
-// #[allow(missing_docs)]
-// #[derive(Deref, Derivative)]
-// #[derivative(Debug(bound = ""))]
-// #[derivative(Default(bound = ""))]
-// #[allow(missing_docs)]
-// pub struct ShapeProxy<S: Shape> {
-//     #[deref]
-//     proxy_params:   S::ProxyParams,
-//     display_object: display::object::Instance,
-//     // In most cases, there will be zero or one instance. Rarely, a shape can be added to two or
-//     // more layers at the same time. Thus, using a small vec with a capacity of 2 is a good usage
-//     // approximation.
-//     instances:      Rc<RefCell<SmallVec<[ShapeInstance<S>; 2]>>>,
-// }
-//
-// impl<S: Shape> ShapeProxy<S> {
-//     /// Add a new shape instance and bind its parameters to the proxy parameters.
-//     #[profile(Debug)]
-//     pub fn add_instance(&self, instance: ShapeInstance<S>) {
-//         self.display_object.add_child(&instance);
-//         S::bind_proxy_params(&self.proxy_params, &instance);
-//         self.instances.borrow_mut().push(instance);
-//     }
-//
-//     /// Drop all shape instances. Unbnind the parameters.
-//     #[profile(Debug)]
-//     pub fn drop_all_instances(&self) {
-//         mem::take(&mut *self.instances.borrow_mut());
-//         S::drop_proxy_params_bindings(&self.proxy_params);
-//     }
-// }
-//
-// impl<S: Shape> display::shape::KnownShapeSystemId for ShapeProxy<S> {
-//     fn shape_system_id() -> display::shape::ShapeSystemId {
-//         ShapeSystem::<S>::id()
-//     }
-// }
-//
-// impl<S: Shape> display::Object for ShapeProxy<S> {
-//     fn display_object(&self) -> &display::object::Instance {
-//         &self.display_object
-//     }
-// }
-
-
-
 // ===================
 // === ShapeSystem ===
 // ===================
 
+/// A shape system instance.
 #[derive(CloneRef, Deref, Derivative)]
 #[clone_ref(bound = "")]
 #[derivative(Clone(bound = ""))]
@@ -218,7 +195,8 @@ pub struct ShapeSystem<S: Shape> {
     data: Rc<ShapeSystemData<S, S::SystemData>>,
 }
 
-
+/// Internal representation of [`ShapeSystem`].
+#[allow(missing_docs)]
 #[derive(Deref, Derivative)]
 #[derivative(Debug(bound = "UserData: Debug"))]
 pub struct ShapeSystemData<S: Shape, UserData> {
@@ -227,30 +205,35 @@ pub struct ShapeSystemData<S: Shape, UserData> {
     pub user:     UserData,
 }
 
+/// The standard shape system data.
+#[allow(missing_docs)]
 #[derive(Deref, Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct ShapeSystemStandardData<S: Shape> {
     #[deref]
     gpu_params:  S::GpuParams,
     pub model:   ShapeSystemModel,
-    style_watch: crate::display::shape::StyleWatch,
+    style_watch: display::shape::StyleWatch,
 }
 
 impl<S: Shape> ShapeSystem<S> {
-    pub const fn id() -> display::shape::ShapeSystemId {
+    /// The ID of this shape system.
+    pub const fn id() -> ShapeSystemId {
         ShapeSystemId::new(std::any::TypeId::of::<S>())
     }
 
+    /// Reference to the underlying sprite system.
     pub fn sprite_system(&self) -> &SpriteSystem {
         &self.data.model.sprite_system
     }
 
+    /// Constructor.
     #[profile(Debug)]
-    pub fn new(scene: &display::scene::Scene, shape_data: &S::ShapeData) -> Self {
+    pub fn new(scene: &Scene, shape_data: &S::ShapeData) -> Self {
         let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(scene, shape_def, events);
+        let model = display::shape::ShapeSystemModel::new(shape_def, events);
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
@@ -259,6 +242,7 @@ impl<S: Shape> ShapeSystem<S> {
         Self { data }.init_refresh_on_style_change()
     }
 
+    /// Constructor of a new shape instance.
     #[profile(Debug)]
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
@@ -271,7 +255,7 @@ impl<S: Shape> ShapeSystem<S> {
     }
 
     #[profile(Debug)]
-    pub fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
+    pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
@@ -282,9 +266,7 @@ impl<S: Shape> ShapeSystem<S> {
         let shape = ShapeInstance { sprite, shape, display_object };
         (shape, global_id)
     }
-}
 
-impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     fn init_refresh_on_style_change(self) -> Self {
         let model = &self.model;
@@ -294,13 +276,14 @@ impl<S: Shape> ShapeSystem<S> {
     }
 }
 
-/// Definition of a shape management system.
-///
-/// Please note that you would rather not need to use it directly, as it would require manual
-/// management of buffer handlers. In order to automate the management, there is
-/// `ShapeSystemInstance` and the `define_shape_system` macro.
-///
-/// Under the hood, it is a specialized version of `SpriteSystem`.
+
+
+// ========================
+// === ShapeSystemModel ===
+// ========================
+
+/// The model of a shape system, a wrapper for sprite system and material with several related
+/// utilities, such as shape reloading.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ShapeSystemModel {
@@ -321,8 +304,7 @@ pub struct ShapeSystemModel {
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new<'t, S>(scene: S, shape: def::AnyShape, pointer_events: bool) -> Self
-    where S: Into<&'t Scene> {
+    pub fn new(shape: def::AnyShape, pointer_events: bool) -> Self {
         let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::default_material()));
         let pointer_events = Immutable(pointer_events);
@@ -335,10 +317,9 @@ impl ShapeSystemModel {
         self.reload_shape();
     }
 
-    // TODO
-    // We should handle these attributes in a nicer way. Currently, they are hardcoded here, and we
-    // use magic to access them in shader builders.
-    /// Defines a default material of this system.
+    // TODO: We should handle these attributes in a nicer way. Currently, they are hardcoded here,
+    //       and we use magic to access them in shader builders. Defines a default material of
+    //       this system.
     fn default_material() -> Material {
         let mut material = Material::new();
         material.add_input("pixel_ratio", 1.0);
@@ -389,20 +370,14 @@ impl display::Object for ShapeSystemModel {
 }
 
 
-/// Abstraction for every entity which is associated with a shape system (user generated one). For
-/// example, all defined shapes are associated with a shape system, and thus they implement this
-/// trait.
-pub trait KnownShapeSystemId {
-    /// The ID of a user defined shape system.
-    fn shape_system_id() -> ShapeSystemId;
-}
-
-
 
 // ==================
 // === ProxyParam ===
 // ==================
 
+/// A wrapper for a parameter, in most cases for [`Atribute`] or for [`Size`]. It allows swapping
+/// the parameter in-place, for example after moving the shape to a new layer, which may require
+/// re-binding it to a new shape system.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ProxyParam<T> {
@@ -414,6 +389,7 @@ where
     T: CellProperty,
     T::Item: Copy + Debug,
 {
+    /// Constructor.
     pub fn new(attribute: T) -> Self {
         let attribute = RefCell::new(attribute);
         Self { attribute }
@@ -434,39 +410,12 @@ where
         self.set(f(self.get()))
     }
 
+    /// Swap in-place the parameter with another one.
     pub fn swap(&self, other: &Self) {
         other.set(self.get());
         self.attribute.swap(&other.attribute);
     }
 }
-
-// /// Internal utilities for managing [`ProxyParam`]s. You would normally not need to ever use it
-// /// explicitly, however, it is exposed as public interface as it is required for user-defined
-// shape /// systems. Again, instead of implementing shape systems from scratch, you'd rather use
-// the /// `define_shape_system!` macro.
-// pub trait DynamicParamInternals<T> {
-//     /// Add a new binding to an attribute. This is done for every [`ProxyParam`] after the
-//     /// [`ShapeProxy`] gets initialized with a new [`Shape`].
-//     fn add_attribute_binding(&self, attribute: T);
-//     /// Remove all attribute bindings. This is used, for example, when the [`ShapeProxy`] gets
-//     /// removed from the display hierarchy.
-//     fn remove_attributes_bindings(&self);
-// }
-//
-// impl<T> DynamicParamInternals<T> for ProxyParam<T>
-// where
-//     T: CellProperty,
-//     T::Item: Copy,
-// {
-//     fn remove_attributes_bindings(&self) {
-//         *self.attributes.borrow_mut() = default();
-//     }
-//
-//     fn add_attribute_binding(&self, attribute: T) {
-//         attribute.set(self.value.get());
-//         self.attributes.borrow_mut().push(attribute);
-//     }
-// }
 
 
 
@@ -474,12 +423,12 @@ where
 // === Macros ===
 // ==============
 
-
+/// Defines a new shape system.
 #[macro_export]
 macro_rules! define_shape_system {
     (
-        $(SystemData($system_data:ident))?
-        $(ShapeData($shape_data:ident))?
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -494,16 +443,6 @@ macro_rules! define_shape_system {
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
-
-    (
-        $($arg:ident = $arg_val:tt;)*
-        ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::define_shape_system! {
-            $($arg = $arg_val;)*
-            (style : Style, $($gpu_param : $gpu_param_type),*){$($body)*}
-        }
-    }
 }
 
 
@@ -523,33 +462,24 @@ macro_rules! _define_shape_system {
     ) => {
 
         pub use shape_system_definition::Shape;
-        // pub use shape_system_definition::ShapeSystemX;
-        // pub use shape_system_definition::ShapeProxy;
-        // pub use shape_system_definition::ProxyParams;
         pub use shape_system_definition::View;
 
-        // FIXME: To be investigated why it's needed. We should not use shorter names, but it's not
-        //        obvious why they appear in the scope here.
         #[allow(unused_qualifications)]
+        #[allow(unused_imports)]
         mod shape_system_definition {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol;
-            use $crate::display::symbol::geometry::compound::sprite;
             use $crate::display::symbol::geometry::Sprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
-            // use $crate::display::shape::DynamicParamInternals;
-            use $crate::display::shape::ShapeInstance;
             use $crate::display::shape::ShapeSystemId;
             use $crate::display::shape::ShapeOps;
-            use $crate::display::shape::Var;
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
             use $crate::system::gpu::data::InstanceIndex;
-            use $crate::data::color;
-            use $crate::display::shape::*;
+            use $crate::display::shape::ShapeWithSize;
+            use $crate::display::shape::system::*;
 
 
             // =============
@@ -567,9 +497,9 @@ macro_rules! _define_shape_system {
                 type SystemData = ($($system_data)?);
                 type ShapeData = ($($shape_data)?);
                 fn pointer_events() -> bool {
-                    let out = true;
-                    $(let out = $pointer_events;)?
-                    out
+                    let _out = true;
+                    $(let _out = $pointer_events;)?
+                    _out
                 }
 
                 fn always_above() -> Vec<ShapeSystemId> {
@@ -600,7 +530,9 @@ macro_rules! _define_shape_system {
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
                 -> display::shape::primitive::def::AnyShape {
                     #[allow(unused_imports)]
-                    use display::style::data::DataMatch; // Operations styles.
+                    use $crate::display::style::data::DataMatch; // Operations on styles.
+                    use $crate::data::color;
+                    use $crate::display::shape::*;
 
                     __style_watch__.reset();
                     let $style  = __style_watch__;
@@ -647,85 +579,4 @@ macro_rules! _define_shape_system {
             pub type View = $crate::gui::component::ShapeView<Shape>;
         }
     };
-}
-
-
-// ==============
-// === Shapes ===
-// ==============
-
-mod shape2 {
-    use super::*;
-
-
-    crate::define_shape_system! {
-        (style:Style, foo:f32) {
-            let circle1    = Circle(50.px());
-            let circle_bg  = circle1.translate_x(-(50.0.px()));
-            let circle_sub = circle1.translate_y(-(50.0.px()));
-            let rect       = Rect((100.0.px(),100.0.px()));
-            let shape      = circle_bg + rect - circle_sub;
-            let shape      = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
-            shape.into()
-        }
-    }
-}
-
-mod shape {
-    use super::*;
-    crate::define_shape_system! {
-        above = [shape2];
-        (style:Style, foo:f32) {
-            let circle1    = Circle(50.px());
-            let circle_bg  = circle1.translate_x(-(50.0.px()));
-            let circle_sub = circle1.translate_y(-(50.0.px()));
-            let rect       = Rect((100.0.px(),100.0.px()));
-            let shape      = circle_bg + rect - circle_sub;
-            let shape      = shape.fill(color::Rgba::new(0.3, 0.3, 0.3, 1.0));
-            shape.into()
-        }
-    }
-}
-
-
-
-// ===================
-// === Entry Point ===
-// ===================
-
-use crate::display::navigation::navigator::Navigator;
-use crate::display::world::World;
-use wasm_bindgen::prelude::*;
-
-/// The example entry point.
-#[entry_point(test)]
-#[allow(dead_code)]
-pub fn main() {
-    let world = World::new().displayed_in("root");
-    let scene = &world.default_scene;
-    let camera = scene.camera().clone_ref();
-    let navigator = Navigator::new(scene, &camera);
-
-    let view1 = shape::View::new();
-    view1.size.set(Vector2::new(300.0, 300.0));
-    view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
-
-    world.add_child(&view1);
-    world.keep_alive_forever();
-
-    frp::new_network! { network
-        trace view1.events.mouse_over;
-        trace view1.events.mouse_out;
-        trace view1.events.mouse_down;
-    }
-
-    world
-        .on
-        .before_frame
-        .add(move |_time| {
-            let _keep_alive = &network;
-            let _keep_alive = &view1;
-            let _keep_alive = &navigator;
-        })
-        .forget();
 }

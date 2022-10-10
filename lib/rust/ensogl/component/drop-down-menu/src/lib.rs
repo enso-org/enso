@@ -73,7 +73,7 @@ pub mod chooser_hover_area {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        () {
+        (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let background           = Rect((&width,&height));

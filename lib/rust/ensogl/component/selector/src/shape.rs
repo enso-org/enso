@@ -78,7 +78,7 @@ pub mod io_rect {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        () {
+        (style: Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
 

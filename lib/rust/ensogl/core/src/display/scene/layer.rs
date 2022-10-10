@@ -8,14 +8,12 @@ use crate::data::OptVec;
 use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::scene::Scene;
-// use crate::display::shape::system::DynShapeSystemInstance;
-// use crate::display::shape::system::DynShapeSystemOf;
-use crate::display::shape::system::KnownShapeSystemId;
+// use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
 // use crate::display::shape::system::ShapeProxy;
-use crate::display::shape::primitive::system::ShapeDataHash;
-use crate::display::shape::primitive::system::ShapeDataHasher;
+use crate::display::shape::primitive::system::ShapeSystemFlavor;
+use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::shape::system::ShapeSystem;
 use crate::display::shape::system::ShapeSystemId;
 // use crate::display::shape::ShapeSystemInstance;
@@ -205,19 +203,15 @@ impl Layer {
         WeakLayer { model }
     }
 
-    /// Add the display object to this layer without removing it from other layers.
+    /// Add the display object to this layer and remove it from a layer it was assigned to, if any.
     pub fn add(&self, object: impl display::Object) {
         object.display_object().add_to_display_layer(self);
     }
 
+    /// Remove the display object from a layer it was assigned to, if any.
     pub fn remove(&self, object: impl display::Object) {
         object.display_object().remove_from_scene_layer(self);
     }
-
-    // /// Add the display object to this layer and remove it from any other layers.
-    // pub fn add_exclusive(&self, object: impl display::Object) {
-    //     object.display_object().add_to_display_layer_exclusive(self);
-    // }
 
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>(
@@ -466,18 +460,12 @@ impl LayerModel {
 
     /// Add depth-order dependency between two shape-like definitions, where a "shape-like"
     /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system.
-    ///
-    /// # Future Improvements
-    /// This implementation can be simplified to `S1:KnownShapeSystemId` (not using [`Content`] at
-    /// all), after the compiler gets updated to newer version.
     pub fn add_shapes_order_dependency<S1, S2>(&self) -> (PhantomData<S1>, PhantomData<S2>)
     where
-        S1: HasContent,
-        S2: HasContent,
-        Content<S1>: KnownShapeSystemId,
-        Content<S2>: KnownShapeSystemId, {
-        let s1_id = <Content<S1>>::shape_system_id();
-        let s2_id = <Content<S2>>::shape_system_id();
+        S1: Shape,
+        S2: Shape, {
+        let s1_id = ShapeSystem::<S1>::id();
+        let s2_id = ShapeSystem::<S2>::id();
         self.add_elements_order_dependency(s1_id, s2_id);
         self.depth_order_dirty.set();
         default()
@@ -486,20 +474,14 @@ impl LayerModel {
     /// Remove depth-order dependency between two shape-like definitions, where a "shape-like"
     /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system. Returns
     /// `true` if the dependency was found, and `false` otherwise.
-    ///
-    /// # Future Improvements
-    /// This implementation can be simplified to `S1:KnownShapeSystemId` (not using [`Content`] at
-    /// all), after the compiler gets updated to newer version.
     pub fn remove_shapes_order_dependency<S1, S2>(
         &self,
     ) -> (bool, PhantomData<S1>, PhantomData<S2>)
     where
-        S1: HasContent,
-        S2: HasContent,
-        Content<S1>: KnownShapeSystemId,
-        Content<S2>: KnownShapeSystemId, {
-        let s1_id = <Content<S1>>::shape_system_id();
-        let s2_id = <Content<S2>>::shape_system_id();
+        S1: Shape,
+        S2: Shape, {
+        let s1_id = ShapeSystem::<S1>::id();
+        let s2_id = ShapeSystem::<S2>::id();
         let found = self.remove_elements_order_dependency(s1_id, s2_id);
         if found {
             self.depth_order_dirty.set();
@@ -1066,7 +1048,7 @@ shared! { ShapeSystemRegistry
 /// the same type on the same layer. Read the docs of [`ShapeProxy`] to learn more.
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
-    shape_system_map : HashMap<(TypeId, ShapeDataHash),ShapeSystemRegistryEntry>,
+    shape_system_map : HashMap<(TypeId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
 }
 
 impl {
@@ -1101,10 +1083,10 @@ impl {
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
     /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
     /// perform necessary cleanup.
-    pub(crate) fn drop_instance<S>(&mut self, data_hash: ShapeDataHash) -> (usize,ShapeSystemId,PhantomData<S>)
+    pub(crate) fn drop_instance<S>(&mut self, flavor: ShapeSystemFlavor) -> (usize,ShapeSystemId,PhantomData<S>)
     where S : Shape {
         let system_id      = ShapeSystem::<S>::id();
-        let instance_count = if let Some(entry) = self.get_mut::<S>(data_hash) {
+        let instance_count = if let Some(entry) = self.get_mut::<S>(flavor) {
             *entry.instance_count -= 1;
             *entry.instance_count
         } else { 0 };
@@ -1115,13 +1097,13 @@ impl {
 impl ShapeSystemRegistryData {
     fn get_mut<S>(
         &mut self,
-        data_hash: ShapeDataHash,
+        flavor: ShapeSystemFlavor,
     ) -> Option<ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>>
     where
         S: Shape,
     {
         let id = TypeId::of::<S>();
-        self.shape_system_map.get_mut(&(id, data_hash)).and_then(|t| {
+        self.shape_system_map.get_mut(&(id, flavor)).and_then(|t| {
             let shape_system = t.shape_system.downcast_mut::<ShapeSystem<S>>();
             let instance_count = &mut t.instance_count;
             shape_system.map(move |shape_system| ShapeSystemRegistryEntryRefMut {
@@ -1141,13 +1123,13 @@ impl ShapeSystemRegistryData {
         S: Shape,
     {
         let id = TypeId::of::<S>();
-        let data_hash = data.hash();
+        let flavor = data.flavor();
         let system = ShapeSystem::<S>::new(scene, data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
-        self.shape_system_map.entry((id, data_hash)).insert_entry(entry);
+        self.shape_system_map.entry((id, flavor)).insert_entry(entry);
         // The following line is safe, as the object was just registered.
-        self.get_mut(data_hash).unwrap()
+        self.get_mut(flavor).unwrap()
     }
 
     fn with_get_or_register_mut<S, F, Out>(
@@ -1160,8 +1142,8 @@ impl ShapeSystemRegistryData {
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
         S: Shape,
     {
-        let data_hash = data.hash();
-        match self.get_mut(data_hash) {
+        let flavor = data.flavor();
+        match self.get_mut(flavor) {
             Some(entry) => f(entry),
             None => f(self.register(scene, data)),
         }
@@ -1233,10 +1215,10 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// Will expand to:
 ///
 /// ```ignore
-/// scene.layers.add_shapes_order_dependency::<output::port::single_port::View, shape::View>();
-/// scene.layers.add_shapes_order_dependency::<output::port::multi_port::View, shape::View>();
-/// scene.layers.add_shapes_order_dependency::<shape::View, input::port::hover::View>();
-/// scene.layers.add_shapes_order_dependency::<input::port::hover::View, input::port::viz::View>();
+/// scene.layers.add_shapes_order_dependency::<output::port::single_port::Shape, shape::Shape>();
+/// scene.layers.add_shapes_order_dependency::<output::port::multi_port::Shape, shape::Shape>();
+/// scene.layers.add_shapes_order_dependency::<shape::Shape, input::port::hover::Shape>();
+/// scene.layers.add_shapes_order_dependency::<input::port::hover::Shape, input::port::viz::Shape>();
 /// ```
 ///
 /// A shape listed on the left side of an arrow (`->`) will be ordered below the shape listed on

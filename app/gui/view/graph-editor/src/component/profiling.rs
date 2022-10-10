@@ -29,7 +29,7 @@ mod icon {
     use ensogl_component::toggle_button::ColorableShape;
 
     ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");

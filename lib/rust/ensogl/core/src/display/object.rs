@@ -64,10 +64,10 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     /// `instance` is attached to.
     pub fn new(instance: Instance, layer: L) -> Self {
         instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
-            for src_layer in source {
+            if let Some(src_layer) = source {
                 src_layer.remove_sublayer(layer.as_ref());
             }
-            for dst_layer in destination {
+            if let Some(dst_layer) = destination {
                 dst_layer.add_sublayer(layer.as_ref());
             }
         }));

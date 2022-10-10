@@ -138,7 +138,8 @@ pub mod shape {
     use super::*;
     crate::define_shape_system! {
         pointer_events = false;
-        ( press  : f32
+        ( style  : Style
+        , press  : f32
         , radius : f32
         , color  : Vector4
         ) {

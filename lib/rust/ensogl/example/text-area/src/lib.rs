@@ -60,7 +60,7 @@ const GREEN: Vector4 = Vector4::new(0.2, 0.85, 0.2, 1.0);
 mod h_line {
     use super::*;
     ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let height = Var::<Pixels>::from("input_size.y");
             let shape = Rect((BORDER_WIDTH.px(), height));
@@ -73,7 +73,7 @@ mod h_line {
 mod v_line {
     use super::*;
     ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let shape = Rect((width, BORDER_WIDTH.px()));

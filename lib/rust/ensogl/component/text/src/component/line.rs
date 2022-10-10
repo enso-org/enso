@@ -29,7 +29,7 @@ const ELLIPSIS_ANIMATION_OFFSET_MS: f32 = 100.0;
 mod ellipsis {
     use super::*;
     ensogl_core::define_shape_system! {
-        (start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
+        (style: Style, start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
             let time = Var::<f32>::from("input_time");
             let time = time - start_time;
             let radius = (&scale * ELLIPSIS_SHAPE_RADIUS).px();

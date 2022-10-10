@@ -171,7 +171,7 @@ pub mod selection_header_background {
 
     ensogl::define_shape_system! {
         pointer_events = false;
-        (color:Vector4, height: f32) {
+        (style: Style, color: Vector4, height: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
@@ -191,7 +191,7 @@ pub mod header_overlay {
 
     ensogl::define_shape_system! {
         above = [background];
-        () {
+        (style: Style) {
             Plane().fill(INVISIBLE_HOVER_COLOR).into()
         }
     }

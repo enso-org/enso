@@ -28,12 +28,9 @@ pub mod fullscreen;
 
 mod shape {
     use super::*;
-
     define_shape_system! {
-        () {
-            // Almost transparent - to not be visible but still catch mouse events.
-            let faux_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
-            Plane().fill(faux_color).into()
+        (style: Style) {
+            Plane().fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 }

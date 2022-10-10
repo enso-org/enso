@@ -15,9 +15,6 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
-use crate::display::shape::system::ShapeSystem;
-// use crate::display::shape::system::StaticShapeSystemInstance;
-use crate::display::shape::ShapeInstance;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -130,7 +127,6 @@ pub struct Mouse {
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
-    pub logger:        Logger,
 }
 
 impl Mouse {
@@ -139,7 +135,6 @@ impl Mouse {
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
         current_js_event: &CurrentJsEvent,
-        logger: Logger,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
@@ -180,17 +175,7 @@ impl Mouse {
             .on_wheel
             .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
         let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
-        Self {
-            mouse_manager,
-            last_position,
-            position,
-            hover_rgba,
-            target,
-            handles,
-            frp,
-            scene_frp,
-            logger,
-        }
+        Self { mouse_manager, last_position, position, hover_rgba, target, handles, frp, scene_frp }
     }
 
     /// Re-emits FRP mouse changed position event with the last mouse position value.
@@ -258,9 +243,9 @@ pub struct Dom {
 
 impl Dom {
     /// Constructor.
-    pub fn new(logger: &Logger) -> Self {
+    pub fn new() -> Self {
         let root = web::document.create_div_or_panic();
-        let layers = DomLayers::new(logger, &root);
+        let layers = DomLayers::new(&root);
         root.set_class_name("scene");
         root.set_style_or_warn("height", "100vh");
         root.set_style_or_warn("width", "100vw");
@@ -275,6 +260,12 @@ impl Dom {
 
     pub fn recompute_shape_with_reflow(&self) {
         self.root.recompute_shape_with_reflow();
+    }
+}
+
+impl Default for Dom {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -315,18 +306,18 @@ pub struct DomLayers {
 
 impl DomLayers {
     /// Constructor.
-    pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
-        let welcome_screen = DomScene::new(logger);
+    pub fn new(dom: &web::HtmlDivElement) -> Self {
+        let welcome_screen = DomScene::new();
         welcome_screen.dom.set_class_name("welcome_screen");
         welcome_screen.dom.set_style_or_warn("z-index", "0");
         dom.append_or_warn(&welcome_screen.dom);
 
-        let back = DomScene::new(logger);
+        let back = DomScene::new();
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("z-index", "1");
         dom.append_or_warn(&back.dom);
 
-        let fullscreen_vis = DomScene::new(logger);
+        let fullscreen_vis = DomScene::new();
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
         fullscreen_vis.dom.set_style_or_warn("z-index", "2");
         dom.append_or_warn(&fullscreen_vis.dom);
@@ -342,12 +333,12 @@ impl DomLayers {
         canvas.set_style_or_warn("pointer-events", "none");
         dom.append_or_warn(&canvas);
 
-        let node_searcher = DomScene::new(logger);
+        let node_searcher = DomScene::new();
         node_searcher.dom.set_class_name("node-searcher");
         node_searcher.dom.set_style_or_warn("z-index", "4");
         dom.append_or_warn(&node_searcher.dom);
 
-        let front = DomScene::new(logger);
+        let front = DomScene::new();
         front.dom.set_class_name("front");
         front.dom.set_style_or_warn("z-index", "5");
         dom.append_or_warn(&front.dom);
@@ -414,7 +405,6 @@ impl Dirty {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
-    pub logger:   Logger,
     dom:          Dom,
     variables:    UniformScope,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
@@ -422,13 +412,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    fn new(logger: impl AnyLogger, dom: &Dom, variables: &UniformScope) -> Self {
-        let logger = Logger::new_sub(logger, "renderer");
+    fn new(dom: &Dom, variables: &UniformScope) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
         let composer = default();
-        Self { logger, dom, variables, pipeline, composer }
+        Self { dom, variables, pipeline, composer }
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
@@ -537,7 +526,7 @@ impl Deref for HardcodedLayers {
 }
 
 impl HardcodedLayers {
-    pub fn new(logger: impl AnyLogger) -> Self {
+    pub fn new() -> Self {
         let root = Layer::new("root");
         let main = Layer::new("main");
         let main_cam = &main.camera();
@@ -598,6 +587,12 @@ impl HardcodedLayers {
             cursor,
             mask,
         }
+    }
+}
+
+impl Default for HardcodedLayers {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -700,7 +695,6 @@ pub struct SceneData {
     pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
-    pub logger: Logger,
     pub renderer: Renderer,
     pub layers: HardcodedLayers,
     pub style_sheet: style::Sheet,
@@ -715,30 +709,25 @@ pub struct SceneData {
 
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: Logger,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
         debug!("Initializing.");
-        let dom = Dom::new(&logger);
+        let dom = Dom::new();
         let display_object = display::object::Instance::new();
         display_object.force_set_visibility(true);
         let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
-        let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
-        let layers = HardcodedLayers::new(&logger);
+        let symbols = SymbolRegistry::mk(&variables, stats, f!(symbols_dirty.set()));
+        let layers = HardcodedLayers::new();
         let stats = stats.clone();
         let background = PointerTarget::new();
         let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
-        let renderer = Renderer::new(&logger, &dom, &variables);
+        let renderer = Renderer::new(&dom, &variables);
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse_logger = Logger::new_sub(&logger, "mouse");
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, mouse_logger);
+        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
@@ -776,7 +765,6 @@ impl SceneData {
             background,
             stats,
             dirty,
-            logger,
             renderer,
             layers,
             style_sheet,
@@ -1022,17 +1010,9 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: impl AnyLogger,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
-        let logger = Logger::new_sub(logger, "scene");
-        let no_mut_access = SceneData::new(logger, stats, on_mut);
+    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
+        let no_mut_access = SceneData::new(stats, on_mut);
         let this = Self { no_mut_access };
-
-        // // FIXME MEMORY LEAK:
-        // this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
         this
     }
 

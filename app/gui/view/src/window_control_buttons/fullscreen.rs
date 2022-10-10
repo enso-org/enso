@@ -20,7 +20,7 @@ pub use ensogl_hardcoded_theme::application::window_control_buttons::fullscreen 
 pub mod shape {
     use super::*;
     ensogl::define_shape_system! {
-        (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
+        (style: Style, background_color: Vector4<f32>, icon_color: Vector4<f32>) {
             let size        = Var::canvas_size();
             let radius      = Min::min(size.x(),size.y()) / 2.0;
             let round       = &radius / 6.0;

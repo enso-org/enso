@@ -23,7 +23,7 @@ use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::system::Shape;
-use ensogl_core::display::shape::system::ShapeWithDefaultData;
+use ensogl_core::display::shape::system::ShapeWithDefaultableData;
 use ensogl_core::gui::component::ShapeView;
 
 
@@ -37,7 +37,7 @@ use ensogl_core::gui::component::ShapeView;
 /// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this
 /// is automatically used by the [`define_shape_system!`] macro, and it's not exposed to the
 /// developer.
-pub trait ColorableShape: ShapeWithDefaultData {
+pub trait ColorableShape: ShapeWithDefaultableData {
     /// Set the color of the shape.
     fn set_color(&self, color: color::Rgba);
 }

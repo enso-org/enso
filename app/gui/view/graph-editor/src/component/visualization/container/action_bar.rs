@@ -41,7 +41,7 @@ mod hover_area {
 
     ensogl::define_shape_system! {
         below = [drop_down_menu::arrow];
-        () {
+        (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let background           = Rect((&width,&height));

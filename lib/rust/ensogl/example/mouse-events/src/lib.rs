@@ -45,7 +45,7 @@ mod shape {
     use super::*;
 
     define_shape_system! {
-        () {
+        (style: Style) {
             Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
         }
     }

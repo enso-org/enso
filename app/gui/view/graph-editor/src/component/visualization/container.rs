@@ -62,7 +62,7 @@ pub mod overlay {
     use super::*;
 
     ensogl::define_shape_system! {
-        (radius:f32,roundness:f32,selection:f32) {
+        (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
             let radius        = 1.px() * &radius;

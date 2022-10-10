@@ -198,13 +198,16 @@ pub struct Callbacks {
 }
 
 
-//
-// thread_local! {
-//     static SCENE: Option<Scene> = None;
-// }
+
+// ======================
+// === Scene Instance ===
+// ======================
 
 static mut SCENE: Option<Scene> = None;
 
+/// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
+/// and should be instantiated before any callback is run.
+#[allow(unsafe_code)]
 pub fn scene() -> &'static Scene {
     unsafe { SCENE.as_ref().unwrap() }
 }
@@ -221,7 +224,6 @@ pub fn scene() -> &'static Scene {
 pub struct WorldData {
     #[deref]
     frp:                  api::private::Output,
-    logger:               Logger,
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
     uniforms:             Uniforms,
@@ -237,13 +239,12 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let logger = Logger::new("world");
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let default_scene = Scene::new(&logger, &stats, on_change);
+        let default_scene = Scene::new(&stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
@@ -252,13 +253,13 @@ impl WorldData {
             log_render_stats(*stats)
         }));
 
+        #[allow(unsafe_code)]
         unsafe {
             SCENE = Some(default_scene.clone_ref());
         }
 
         Self {
             frp,
-            logger,
             default_scene,
             scene_dirty,
             uniforms,
@@ -325,11 +326,10 @@ impl WorldData {
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
-                &self.default_scene,
                 self.default_scene.symbols(),
                 &self.default_scene.layers,
             ))
-            .add(ScreenRenderPass::new(&self.default_scene))
+            .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);
     }

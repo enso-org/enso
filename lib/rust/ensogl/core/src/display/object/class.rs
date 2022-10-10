@@ -288,7 +288,7 @@ impl<Host> Model<Host> {
         let assigned_layer_ref = self.assigned_layer.borrow();
         let assigned_layer = assigned_layer_ref.as_ref();
         let assigned_layers_changed = self.dirty.scene_layer.take().check();
-        let has_assigned_layer = !assigned_layer.is_none();
+        let has_assigned_layer = assigned_layer.is_some();
         let layer_changed = if assigned_layers_changed {
             // We might as well check here if assigned layers were not removed and accidentally the
             // inherited layers are not the same as previously assigned ones, but this is so rare

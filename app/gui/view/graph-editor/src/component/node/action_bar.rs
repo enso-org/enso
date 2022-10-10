@@ -37,7 +37,7 @@ mod hover_area {
     use super::*;
 
     ensogl::define_shape_system! {
-        (corner_radius:f32) {
+        (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));

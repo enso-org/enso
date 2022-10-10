@@ -56,7 +56,7 @@ pub mod background {
     use super::*;
 
     ensogl::define_shape_system! {
-        () {
+        (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
         }
@@ -74,7 +74,7 @@ mod icon {
 
     ensogl::define_shape_system! {
         pointer_events = false;
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
             let ring          = outer_circle - inner_circle;
@@ -100,7 +100,7 @@ mod separator {
 
     ensogl::define_shape_system! {
         pointer_events = false;
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
             let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());

@@ -92,7 +92,7 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::system::Shape;
-use ensogl_core::display::shape::system::ShapeWithDefaultData;
+use ensogl_core::display::shape::system::ShapeWithDefaultableData;
 use ensogl_core::gui::component::ShapeView;
 
 
@@ -149,7 +149,7 @@ impl Default for State {
 }
 
 /// Trait to be defined on a specific button's shape.
-pub trait ButtonShape: ShapeWithDefaultData + 'static {
+pub trait ButtonShape: ShapeWithDefaultableData + 'static {
     /// The human-readable name of the button, for debug purposes.
     fn debug_name() -> &'static str;
 

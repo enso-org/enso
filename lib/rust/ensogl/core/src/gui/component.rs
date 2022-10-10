@@ -10,10 +10,8 @@ use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
-use crate::display::shape::primitive::system::ShapeDataHasher;
 use crate::display::shape::primitive::system::ShapeInstance;
-use crate::display::world;
-// use crate::display::shape::primitive::system::DynamicShapeInternals;
+use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::symbol;
 use crate::frp;
 
@@ -110,7 +108,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 // S : DynamicShapeInternals
 impl<S: Shape> ShapeViewModel<S> {
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let scene = world::scene();
+        let scene = scene();
         // FIXME: "something"
         let (shape, something) = scene.layers.root.instantiate(scene, &data);
         let events = PointerTarget::new();
@@ -138,10 +136,10 @@ impl<S: Shape> ShapeViewModel<S> {
     }
 
     fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
-        let data_hash = self.data.borrow().hash();
+        let flavor = self.data.borrow().flavor();
         if let Some(layer) = old_layer.upgrade() {
             let (instance_count, shape_system_id, _) =
-                layer.shape_system_registry.drop_instance::<S>(data_hash);
+                layer.shape_system_registry.drop_instance::<S>(flavor);
             if instance_count == 0 {
                 layer.remove_shape_system(shape_system_id);
             }
