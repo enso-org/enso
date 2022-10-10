@@ -56,6 +56,9 @@ pub use crate::buffer::RangeLike;
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
 pub const CLIPBOARD_RECORD_SEPARATOR: &str = "\x1E";
 
+/// The default ratio of ascender / descender. Used when creating a new line without glyphs.
+pub const DEFAULT_ASCENDER_TO_DESCENDER_RATIO: f32 = 0.1;
+
 
 
 // ====================
@@ -688,7 +691,6 @@ impl Text {
 
     /// Remove this component from view.
     // TODO see TODO in add_to_scene_layer method.
-    #[allow(non_snake_case)]
     pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.remove_symbols_from_scene_layer(layer);
     }
@@ -794,10 +796,9 @@ impl TextModel {
         display_object: &display::object::Instance,
         default_size: f32,
     ) -> line::View {
-        let default_ascender_to_descender_ratio = 0.1;
         let line = line::View::new(frame_time);
         let ascender = default_size;
-        let descender = ascender * default_ascender_to_descender_ratio;
+        let descender = ascender * DEFAULT_ASCENDER_TO_DESCENDER_RATIO;
         let gap = 0.0;
         let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
@@ -851,7 +852,8 @@ impl TextModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
-            if line.baseline() + line.metrics().descender < object_space.y {
+            let height = line.baseline() + line.metrics().descender + line.metrics().gap / 2.0;
+            if height < object_space.y {
                 break;
             }
             view_line += ViewLine(1);
@@ -1204,7 +1206,7 @@ impl TextModel {
                     })
                     .collect_vec();
 
-                let lines_to_redraw = std_ext::range::merge_overlapping_ranges(&lines_to_redraw);
+                let lines_to_redraw = std_ext::range::merge_overlapping_ranges(lines_to_redraw);
                 self.redraw_sorted_line_ranges(lines_to_redraw);
             }
         })
@@ -1230,6 +1232,7 @@ impl TextModel {
             let end_location = Location(selection_end_line, buffer_selection.end.offset);
             let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
             let width = end_pos.x - start_pos.x;
+            // FIXME: This does not work nicely for multi-line selection.
             let metrics = self.lines.borrow()[selection_start_line].metrics();
             let prev_selection = self.selection_map.borrow_mut().id_map.remove(&id);
             let reused_selection = prev_selection.is_some();
@@ -1306,11 +1309,10 @@ impl TextModel {
     ) {
         self.resize_lines();
         self.width_dirty.set(true);
-        let sorted_line_ranges = sorted_line_ranges.map(|range| {
+        let sorted_line_ranges = sorted_line_ranges.inspect(|range| {
             for line in range.clone() {
                 self.redraw_line(line);
             }
-            range
         });
         self.position_sorted_line_ranges(sorted_line_ranges);
     }

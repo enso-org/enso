@@ -181,6 +181,7 @@ impl From<formatting::Size> for TruncationSize {
 pub struct Metrics {
     pub ascender:  f32,
     pub descender: f32,
+    /// The gap below the descender. In most fonts this is zero.
     pub gap:       f32,
 }
 

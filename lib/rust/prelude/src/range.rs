@@ -121,11 +121,10 @@ where T: PartialOrd + Clone
 // === merge_overlapping_ranges ===
 // ================================
 
-pub fn merge_overlapping_ranges<R>(ranges: &[R]) -> impl Iterator<Item = R>
+pub fn merge_overlapping_ranges<R>(mut ranges: Vec<R>) -> impl Iterator<Item = R>
 where
     R: Clone + RangeOverlap + RangeOps,
-    <R as RangeOps>::Item: Clone + PartialOrd, {
-    let mut ranges = ranges.to_vec();
+    <R as RangeOps>::Item: Clone + Ord, {
     crate::gen_iter!({
         ranges.sort_unstable_by(|a, b| a.start().partial_cmp(b.start()).unwrap());
         let mut iter = ranges.into_iter();
@@ -134,7 +133,9 @@ where
             let mut opt_next = iter.next();
             while let Some(next) = opt_next {
                 if current.overlaps(&next) {
-                    current = current.with_end(next.end().clone());
+                    if next.end() > current.end() {
+                        current = current.with_end(next.end().clone());
+                    }
                 } else {
                     yield current;
                     current = next;
@@ -155,7 +156,7 @@ mod test {
         ([$($ts:tt)*], [$($ts2:tt)*]) => {
             let ranges = vec![$($ts)*];
             let expected = vec![$($ts2)*];
-            let merged = merge_overlapping_ranges(&ranges).collect::<Vec<_>>();
+            let merged = merge_overlapping_ranges(ranges).collect::<Vec<_>>();
             assert_eq!(merged, expected);
         };
     }
@@ -163,7 +164,7 @@ mod test {
     #[test]
     fn test_merge_overlapping_ranges_empty() {
         let empty: Vec<std::ops::Range<usize>> = vec![];
-        assert_eq!(merge_overlapping_ranges(&empty).collect::<Vec<_>>(), empty);
+        assert_eq!(merge_overlapping_ranges(empty.clone()).collect::<Vec<_>>(), empty);
     }
 
     #[test]
@@ -177,5 +178,8 @@ mod test {
         test_merged!([0..=1, 1..=2, 2..=3], [0..=3]);
         test_merged!([0..=2, 3..=5, 1..=4], [0..=5]);
         test_merged!([0..=10, 5..=15], [0..=15]);
+
+        test_merged!([0..2, 0..1], [0..2]);
+        test_merged!([0..10, 4..5, 8..11], [0..11]);
     }
 }
