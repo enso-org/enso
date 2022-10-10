@@ -339,12 +339,12 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         match body.variant {
             box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, arguments }) => {
                 if let Some(lhs) = lhs {
-                    case_lines.push(CaseLine { case: Some(lhs.into()), ..default() });
+                    case_lines.push(CaseLine { case: Some(parse_case(lhs)), ..default() });
                 }
                 case_lines.extend(arguments.into_iter().map(
                     |block::Line { newline, expression }| CaseLine {
                         newline: newline.into(),
-                        case:    expression.map(Case::from),
+                        case:    expression.map(parse_case),
                     },
                 ));
                 if let Some(left_offset) =
@@ -353,10 +353,23 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                     *left_offset += body.span.left_offset;
                 }
             }
-            _ => case_lines.push(CaseLine { case: Some(body.into()), ..default() }),
+            _ => case_lines.push(CaseLine { case: Some(parse_case(body)), ..default() }),
         }
     }
     Tree::case_of(case_, expression, of_, case_lines)
+}
+
+fn parse_case(tree: syntax::tree::Tree) -> syntax::tree::Case {
+    use syntax::tree::*;
+    match tree.variant {
+        box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
+            let pattern = lhs.map(crate::expression_to_pattern);
+            let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
+            *case.left_offset_mut().unwrap() += tree.span.left_offset;
+            case
+        }
+        _ => Case { expression: tree.into(), ..default() },
+    }
 }
 
 /// Array literal.

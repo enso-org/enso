@@ -4,7 +4,6 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
-use crate::expression_to_pattern;
 use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -623,20 +622,6 @@ impl<'s> Case<'s> {
 impl<'s> span::Builder<'s> for Case<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
-    }
-}
-
-impl<'s> From<Tree<'s>> for Case<'s> {
-    fn from(tree: Tree<'s>) -> Self {
-        match tree.variant {
-            box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
-                let pattern = lhs.map(expression_to_pattern);
-                let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
-                *case.left_offset_mut().unwrap() += tree.span.left_offset;
-                case
-            }
-            _ => Case { expression: tree.into(), ..default() },
-        }
     }
 }
 
