@@ -30,6 +30,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
+import org.enso.compiler.core.IR$Name$Annotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
@@ -149,6 +150,12 @@ final class TreeToIr {
             }
             case Tree.ArgumentBlockApplication app -> {
               var t = translateComment(app);
+              bindings = cons(t, bindings);
+            }
+            case Tree.Annotated anno -> {
+              var n = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+              bindings = cons(n, bindings);
+              var t = translateModuleSymbol(anno.getExpression());
               bindings = cons(t, bindings);
             }
             case null -> {
@@ -404,7 +411,7 @@ final class TreeToIr {
     }
     */
       }
-      default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+    default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
     };
   }
 
@@ -817,6 +824,10 @@ final class TreeToIr {
       case Tree.Wildcard wild -> {
         yield new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
       }
+      case Tree.Annotated anno -> {
+        var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        yield translateAnnotation(ir, anno.getExpression(), nil());
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -945,6 +956,30 @@ final class TreeToIr {
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
     */
+  }
+
+  private IR$Application$Prefix translateAnnotation(IR$Name$Annotation ir, Tree expr, List<IR.CallArgument> callArgs) {
+    boolean insideTypeSignature = false;
+    return switch (expr) {
+      case Tree.App fn -> {
+        var fnAsArg = translateCallArgument(fn.getArg(), insideTypeSignature);
+        yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
+      }
+      case Tree.ArgumentBlockApplication fn -> {
+        var fnAsArg = translateCallArgument(fn.getLhs(), insideTypeSignature);
+        var arg = translateCallArgument(expr, insideTypeSignature);
+        callArgs = cons(fnAsArg, cons(arg, callArgs));
+        yield translateAnnotation(ir, null, callArgs);
+      }
+      case null -> {
+        yield new IR$Application$Prefix(ir, callArgs, false, ir.location(), meta(), diag());
+      }
+      default -> {
+        var arg = translateCallArgument(expr, insideTypeSignature);
+        callArgs = cons(arg, callArgs);
+        yield translateAnnotation(ir, null, callArgs);
+      }
+    };
   }
 
   IR.Expression translateDecimalLiteral(Tree.Number ast) {
