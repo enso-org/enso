@@ -294,7 +294,7 @@ final class TreeToIr {
         );
       }
       case Tree.Function fn -> {
-        var nameId = buildName(fn, fn.getName());
+        var nameId = buildName(fn.getName());
 
         /*
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
@@ -386,7 +386,7 @@ final class TreeToIr {
       */
       case Tree.TypeSignature sig -> {
 //      case AstView.TypeAscription(typed, sig) =>
-        var methodName = buildName(sig, sig.getVariable());
+        var methodName = buildName(sig.getVariable());
         var methodReference = new IR$Name$MethodReference(
           Option.empty(),
           methodName,
@@ -807,7 +807,7 @@ final class TreeToIr {
         case IR.Expression e -> e;
       };
       case Tree.TypeSignature sig -> {
-        var methodName = buildName(sig, sig.getVariable());
+        var methodName = buildName(sig.getVariable());
         var methodReference = new IR$CallArgument$Specified(
                 Option.empty(),
                 methodName,

@@ -217,8 +217,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
-            /// The identifier to which the function should be bound.
-            pub name: token::Ident<'s>,
+            /// The (qualified) name to which the function should be bound.
+            pub name: Tree<'s>,
             /// The argument patterns.
             pub args: Vec<ArgumentDefinition<'s>>,
             /// The `=` token.
@@ -254,13 +254,13 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
-            /// The variable whose type is being declared.
-            pub variable: token::Ident<'s>,
+            /// (Qualified) name of the item whose type is being declared.
+            pub variable: Tree<'s>,
             /// The `:` token.
             pub operator: token::Operator<'s>,
             /// The variable's type.
             #[reflect(rename = "type")]
-            pub type_: Tree<'s>,
+            pub type_:    Tree<'s>,
         },
         /// An expression with explicit type information attached.
         TypeAnnotated {
@@ -961,12 +961,10 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::UnaryOprApp(_)
             | Variant::MultiSegmentApp(_)
             | Variant::TypeDef(_)
-            | Variant::Function(_)
             | Variant::Import(_)
             | Variant::Export(_)
             | Variant::Group(_)
             | Variant::CaseOf(_)
-            | Variant::TypeSignature(_)
             | Variant::Lambda(_)
             | Variant::Array(_)
             | Variant::Annotated(_)
@@ -987,6 +985,8 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
             | Variant::DefaultApp(DefaultApp { func: lhs, .. })
             | Variant::Assignment(Assignment { pattern: lhs, .. })
+            | Variant::TypeSignature(TypeSignature { variable: lhs, .. })
+            | Variant::Function(Function { name: lhs, .. })
             | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
         }
     }
