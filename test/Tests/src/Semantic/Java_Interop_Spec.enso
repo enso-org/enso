@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Test
-import Standard.Base.Data.Time.Duration
 
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer
