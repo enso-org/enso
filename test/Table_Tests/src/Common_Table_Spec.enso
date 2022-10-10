@@ -1138,6 +1138,13 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Not_Like "%b") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
             t.filter "Z" (Filter_Condition.Not_Like "[ab]%") on_problems=Report_Error . at "Z" . to_vector . should_equal ["aaaaa", "bbbbb"]
 
+        Test.specify "like wildcards should also match newlines" <|
+            t = table_builder [["X", ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']]]
+            t.filter "X" (Filter_Condition.Like 'a_') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\n']
+            t.filter "X" (Filter_Condition.Like 'a%') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb']
+            t.filter "X" (Filter_Condition.Like 'a_b') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\nb']
+            t.filter "X" (Filter_Condition.Like '%\nb') on_problems=Report_Error . at "X" . to_vector . should_equal ['a\n\n\nb', 'a\nb']
+
         Test.specify "by empty text" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "", " ", Nothing, "nana"]]]
             t.filter "X" Filter_Condition.Is_Empty on_problems=Report_Error . at "X" . to_vector . should_equal ["", Nothing]
