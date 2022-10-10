@@ -1,0 +1,63 @@
+
+
+type Verbs
+    ## PRIVATE
+
+       Checks if the `subject` starts with `argument`.
+
+       Arguments:
+       - subject: The value to check. It must have a `.starts_with` method.
+       - argument: The expected prefix.
+    start_with : Text -> Text -> Assertion
+    start_with self subject argument =
+        if subject.starts_with argument then Success else
+            fail (subject.to_text + " did not start with " + argument.to_text)
+
+    ## PRIVATE
+
+       Checks if the `subject` is equal to the `argument`.
+
+       Arguments:
+       - subject: The value to check for equality against the provided value.
+       - argument: The provided value to check the `subject` for equality
+         against.
+    equal : Any -> Any -> Assertion
+    equal self subject argument =
+        if subject == argument then Success else
+            msg = subject.to_text + " did not equal " + argument.to_text + "."
+            fail msg
+
+    ## PRIVATE
+
+       Checks if `subject` is `argument`.
+
+       Arguments:
+       - subject: The value to check for equality against the provided value.
+       - argument: The provided value to check the `subject` for equality
+         against.
+    be : Any -> Any -> Assertion
+    be self subject argument = self.equal subject argument
+
+    ## PRIVATE
+
+       Checks if `subject` contains `argument`.
+
+       Arguments:
+       - subject: The collection type to check if `argument` is contained in it.
+         This type must have a `.contains` method.
+       - argument: The value to see if it is contained in `subject`.
+    contain : Any -> Any -> Assertion
+    contain self subject argument =
+        if subject.contains argument then Success else
+            msg = subject.to_text + " did not contain " + argument.to_text + "."
+            fail msg
+
+## PRIVATE
+
+   Asserts a property about the receiver.
+
+   Arguments:
+   - verb: The property (see `Verbs`) being asserted
+   - argument: The argument to the verb.
+Any.should : (Verbs -> Any -> Any) -> Any -> Assertion
+Any.should self verb argument = verb Verbs self argument
