@@ -11,9 +11,8 @@
 
 # [WIP] Enso CI Build Scripts
 
-This is a provisional repository for prototyping the new build scripts for
-`enso` repository. As the code stabilizes and is cleaned, it should be merged
-into the `enso` repository.
+The code under this directory is under ongoing intensive development. As such it
+has not been reviewed or cleaned up yet.
 
 ## General principles
 
