@@ -97,15 +97,6 @@ public class UnresolvedSymbol implements TruffleObject {
     return true;
   }
 
-  @Override
-  public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other instanceof UnresolvedSymbol sym) {
-      return this.name.equals(sym.getName()) && this.scope.equals(sym.getScope());
-    }
-    return false;
-  }
-
   /** Implements the logic of executing {@link UnresolvedSymbol} through the interop library. */
   @ExportMessage
   @ImportStatic(Constants.CacheSizes.class)
