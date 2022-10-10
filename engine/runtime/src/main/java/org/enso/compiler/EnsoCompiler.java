@@ -4,7 +4,6 @@ import com.oracle.truffle.api.source.Source;
 import org.enso.compiler.core.IR;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.UnsupportedSyntaxException;
 
 public final class EnsoCompiler implements AutoCloseable {
   private final Parser parser;
@@ -18,12 +17,12 @@ public final class EnsoCompiler implements AutoCloseable {
     this.parser.close();
   }
 
-  IR.Module compile(Source src) throws UnsupportedSyntaxException {
+  IR.Module compile(Source src) {
     var tree = parse(src);
     return generateIR(tree);
   }
 
-  Tree parse(Source src) throws UnsupportedSyntaxException {
+  Tree parse(Source src) {
     return parser.parse(src.getCharacters());
   }
 

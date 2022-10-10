@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Database.Data.Table import Table
-from Standard.Database.Data.Column import Column
+import project.Data.Table.Table
+import project.Data.Column.Column
 
 polyglot java import java.util.regex.Pattern
 
@@ -36,10 +36,6 @@ unify_vector_singleton x = case x of
     _ : Vector.Vector -> x
     _ -> [x]
 
-# TODO Dubious constructor export
-from project.Internal.Helpers.Unsupported_Name_Error import all
-from project.Internal.Helpers.Unsupported_Name_Error export all
-
 ## UNSTABLE
 
    Signals that a name for a column or table is not supported.
@@ -50,8 +46,8 @@ from project.Internal.Helpers.Unsupported_Name_Error export all
    Currently the names can only include ASCII letters, numbers and the
    underscore. This is a temporary limitation simplifying name handling. It will
    be removed in a future version.
-type Unsupported_Name_Error
-    Unsupported_Name_Error_Data text
+type Unsupported_Name
+    Error text
 
     ## PRIVATE
 
@@ -77,5 +73,5 @@ ensure_name_is_sane name =
     is_safe =
         Pattern.matches "[A-Za-z_0-9]+" name
     if is_safe then True else
-        Error.throw <| Unsupported_Name_Error_Data (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
+        Error.throw <| Unsupported_Name.Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
 

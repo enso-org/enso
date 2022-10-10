@@ -1,24 +1,17 @@
 from Standard.Base import all
-
 from Standard.Base.Data.Numbers import Parse_Error_Data
 
-import Standard.Database.Internal.Postgres.Postgres_Connection
-import Standard.Database.Connection.Connection_Options
-
-from Standard.Database.Connection.Credentials import Credentials, Username_And_Password
-
-import Standard.Database.Connection.SSL_Mode
-from Standard.Database.Connection.SSL_Mode import all
-
-import Standard.Database.Connection.Client_Certificate
-
-import Standard.Database.Internal.Postgres.Pgpass
+import project.Connection.Client_Certificate.Client_Certificate
+import project.Connection.Connection_Options.Connection_Options
+import project.Connection.Credentials.Credentials
+import project.Connection.SSL_Mode.SSL_Mode
+import project.Internal.Postgres.Postgres_Connection
+import project.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
-# TODO Dubious constructor export
-from project.Connection.Postgres_Options.Postgres_Options import all
-from project.Connection.Postgres_Options.Postgres_Options export all
+from project.Connection.Postgres_Options.Postgres_Options import Postgres
+from project.Connection.Postgres_Options.Postgres_Options export Postgres
 
 type Postgres_Options
     ## Connect to a PostgreSQL database.
@@ -29,9 +22,9 @@ type Postgres_Options
        - database: The database to connect to. If empty, the default database will be used.
        - schema: The schema to connect to. If empty, the default schema will be used.
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
-       - use_ssl: Whether to use SSL (defaults to `Prefer`).
+       - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -45,7 +38,7 @@ type Postgres_Options
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema =
-            Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+            Postgres_Options.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
 
         Postgres_Connection.create self.jdbc_url properties make_new
 
@@ -70,7 +63,7 @@ type Postgres_Options
                         Pgpass.read self.host self.port self.database username
                     Pair_Data username password ->
                         [Pair_Data 'user' username, Pair_Data 'password' password]
-            Username_And_Password username password ->
+            Credentials.Username_And_Password username password ->
                 [Pair_Data 'user' username, Pair_Data 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
@@ -85,13 +78,13 @@ type Postgres_Options
    connection.
 ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
-    Disable -> []
-    Prefer -> [Pair_Data 'sslmode' 'prefer']
-    Require -> [Pair_Data 'sslmode' 'require']
-    Verify_CA cert_file ->
+    SSL_Mode.Disable -> []
+    SSL_Mode.Prefer -> [Pair_Data 'sslmode' 'prefer']
+    SSL_Mode.Require -> [Pair_Data 'sslmode' 'require']
+    SSL_Mode.Verify_CA cert_file ->
         if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-ca'] else
             [Pair_Data 'sslmode' 'verify-ca', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
-    Full_Verification cert_file ->
+    SSL_Mode.Full_Verification cert_file ->
         if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-full'] else
             [Pair_Data 'sslmode' 'verify-full', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
 

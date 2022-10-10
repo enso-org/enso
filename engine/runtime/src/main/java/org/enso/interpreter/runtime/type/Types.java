@@ -10,10 +10,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -157,6 +154,10 @@ public class Types {
       return ConstantsGen.PANIC;
     } else if (TypesGen.isPanicSentinel(value)) {
       return ConstantsGen.PANIC;
+    } else if (TypesGen.isWarning(value)) {
+      return ConstantsGen.WARNING;
+    } else if (value instanceof WithWarnings) {
+      return getName(((WithWarnings) value).getValue());
     } else {
       return null;
     }

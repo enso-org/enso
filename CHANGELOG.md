@@ -205,6 +205,8 @@
   `add_work_days` which allows to shift a date by a number of work days.][3726]
 - [Added `query` and `read` functions to Database connections.][3727]
 - [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
+- [Replaced `Table.where` with a new API relying on `Table.filter`.][3750]
+- [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -328,6 +330,8 @@
 [3727]: https://github.com/enso-org/enso/pull/3727
 [3733]: https://github.com/enso-org/enso/pull/3733
 [3749]: https://github.com/enso-org/enso/pull/3749
+[3750]: https://github.com/enso-org/enso/pull/3750
+[3770]: https://github.com/enso-org/enso/pull/3770
 
 #### Enso Compiler
 

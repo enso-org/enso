@@ -1,0 +1,82 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Filter_Condition.Filter_Condition import all
+
+type Filter_Condition
+    ## Is less than a value (or another column, in case of Table operations)?
+    Less than:Any
+
+    ## Is less than or equal to a value (or another column, in case of Table operations)?
+    Equal_Or_Less than:Any
+
+    ## Is equal to a value (or another column, in case of Table operations)?
+    Equal to:Any
+
+    ## Is greater than or equal to a value (or another column, in case of Table operations)?
+    Equal_Or_Greater than:Any
+
+    ## Is greater than a value (or another column, in case of Table operations)?
+    Greater than:Any
+
+    ## Is not equal to a value (or another column, in case of Table operations)?
+    Not_Equal to:Any
+
+    ## Is between (inclusive) two values (or columns, in case of Table operations)?
+    Between lower:Any upper:Any
+
+    ## Does the value start with a prefix (Text only)?
+
+       It accepts a Text value to check if the value starts with it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+    Starts_With (prefix:Text)
+
+    ## Does the value end with a suffix (Text only)?
+
+       It accepts a Text value to check if the value ends with it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+    Ends_With (suffix:Text)
+
+    ## Does the value contain the needle (Text only)?
+
+       It accepts a Text value to check if the value contains it. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+    Contains (substring:Text)
+
+    ## Is equal to Nothing?
+    Is_Nothing
+
+    ## Is not equal to Nothing?
+    Not_Nothing
+
+    ## Is the value equal to True (Boolean only)?
+    Is_True
+
+    ## Is the value equal to False (Boolean only)?
+    Is_False
+
+    ## Converts a `Filter_Condition` condition into a predicate taking an
+       element and returning a value indicating whether the element should be
+       accepted by the filter.
+    to_predicate self = case self of
+        Less value -> <value
+        Equal_Or_Less value -> <=value
+        Equal value -> ==value
+        Equal_Or_Greater value -> >=value
+        Greater value -> >value
+        Not_Equal value -> !=value
+        Between lower upper -> elem ->
+            (lower <= elem) && (elem <= upper)
+        Starts_With prefix -> _.starts_with prefix
+        Ends_With suffix -> _.ends_with suffix
+        Contains substring -> _.contains substring
+        Is_Nothing -> elem -> case elem of
+            Nothing -> True
+            _ -> False
+        Not_Nothing -> elem -> case elem of
+            Nothing -> False
+            _ -> True
+        Is_True -> ==True
+        Is_False -> ==False

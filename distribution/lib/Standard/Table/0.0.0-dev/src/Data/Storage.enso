@@ -1,9 +1,5 @@
-# TODO Dubious constructor export
-from project.Data.Storage.Type import all
-from project.Data.Storage.Type export all
-
 ## Represents different types of underlying storage for Columns.
-type Type
+type Storage
 
     ## A column storing text data.
     Text
@@ -28,3 +24,11 @@ type Type
 
     ## A column storing arbitrary data.
     Any
+
+    ## PRIVATE
+       Enumerates storage types in a way that is consistent with
+       `org.enso.table.data.Storage.Storage`, i.e.
+       `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
+       corresponding `Storage.Integer`.
+    types : Vector Storage
+    types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]

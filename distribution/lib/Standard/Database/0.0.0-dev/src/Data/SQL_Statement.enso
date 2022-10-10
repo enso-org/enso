@@ -1,0 +1,78 @@
+from Standard.Base import all
+
+import project.Data.SQL.SQL_Fragment
+
+type SQL_Statement
+
+    ## UNSTABLE
+
+       Represents a built SQL statement.
+
+       Arguments:
+       - internal_fragments: A vector of SQL code fragments.
+
+       The statement consists of SQL code with parameters and values that will be
+       interpolated for these parameters.
+    Value (internal_fragments:(Vector SQL_Fragment))
+
+    ## UNSTABLE
+
+       A vector of code fragments.
+
+       Consists of two types of values:
+       - SQL_Fragment.Code_Part, representing parts of raw SQL code and
+       - SQL_Fragment.Interpolation, representing objects that will be
+         interpolated in between the SQL code.
+    fragments : Vector SQL_Fragment
+    fragments self = self.internal_fragments
+
+    ## UNSAFE
+       UNSTABLE
+       ADVANCED
+
+       This function returns a raw SQL string for the query, manually handling
+       the interpolation that is normally handled by the database engine itself.
+
+       It should be used EXTREMELY carefully - the returned SQL code should
+       always be read by a human to ensure that it does what is expected before
+       executing it in any REPLs or other database interfaces.
+
+       It should NEVER be used in production code.
+    unsafe_to_raw_sql : Text
+    unsafe_to_raw_sql self =
+        strings = self.internal_fragments . map <| case _ of
+            SQL_Fragment.Code_Part code -> code
+            # TODO at some point we may try more sophisticated serialization based on data type
+            SQL_Fragment.Interpolation _ obj -> case obj of
+                Number -> obj.to_text
+                _ -> "'" + obj.to_text.replace "'" "''" + "'"
+        strings.join ""
+
+    ## UNSTABLE
+
+       Returns a pair consisting of the SQL code with holes for values and
+       a list for values that should be substituted.
+    # prepare : [Text, Vector Any]
+    prepare self =
+        to_code fragment = case fragment of
+            SQL_Fragment.Code_Part code -> code
+            SQL_Fragment.Interpolation _ _ -> "?"
+        to_subst fragment = case fragment of
+            SQL_Fragment.Code_Part _ -> []
+            SQL_Fragment.Interpolation typ obj -> [[obj, typ]]
+        sql = self.fragments.map to_code . join ""
+        substitutions = self.fragments.flat_map to_subst
+        [sql, substitutions]
+
+    ## UNSTABLE
+
+       Returns a JSON representation of the statement.
+    to_json : Json
+    to_json self =
+        jsonify fragment = case fragment of
+            SQL_Fragment.Code_Part code -> Json.from_pairs [["sql_code", code]]
+            SQL_Fragment.Interpolation typ obj ->
+                inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
+                Json.from_pairs [["sql_interpolation", inner]]
+        fragments = Json.Array (self.internal_fragments.map jsonify)
+        Json.from_pairs [["query", fragments]]

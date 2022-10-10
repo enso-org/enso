@@ -3583,4 +3583,114 @@ class RuntimeServerTest
       Api.Response(requestId, Api.GetTypeGraphResponse(expectedGraph))
     )
   }
+
+  it should "send updates for values annotated with warning" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idX      = metadata.addItem(46, 71)
+    val idY      = metadata.addItem(126, 5)
+    val idRes    = metadata.addItem(136, 12)
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |    y = x + 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idY, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("43")
+  }
+
+  it should "send updates for values in array annotated with warning" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idMain   = metadata.addItem(37, 79)
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    [Warning.attach_with_stacktrace "x" "y" Runtime.primitive_get_stack_trace]
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
+      context.executionComplete(contextId)
+    )
+  }
+
 }

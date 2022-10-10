@@ -131,6 +131,7 @@ public abstract class TypeOfNode extends Node {
   }
 
   @Fallback
+  @CompilerDirectives.TruffleBoundary
   Object doAny(Object value) {
     return Context.get(this).getBuiltins().error().makeCompileError("unknown type_of for " + value);
   }

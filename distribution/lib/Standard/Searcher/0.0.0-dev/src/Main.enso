@@ -46,7 +46,7 @@ number_input = Error.unimplemented "This function should not be called."
      Creating a node containing a table with two columns, one titled "name", and
      the other titled "stars".
 
-         import Standard.Table
+         from Standard.Table import Table
 
          example_table_input =
              column_1 = ["name", "Enso"]
