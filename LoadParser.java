@@ -182,6 +182,9 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         class NoComments implements Function1<IR.Expression, IR.Expression> {
             @Override
             public IR.Expression apply(IR.Expression exp) {
+                if (exp == null) {
+                    return null;
+                }
                 if (exp instanceof IR$Comment$Documentation) {
                     return null;
                 }
