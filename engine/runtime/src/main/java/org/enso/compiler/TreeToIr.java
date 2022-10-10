@@ -30,6 +30,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
+import org.enso.compiler.core.IR$Name$Annotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
@@ -149,6 +150,10 @@ final class TreeToIr {
             }
             case Tree.ArgumentBlockApplication app -> {
               var t = translateComment(app);
+              bindings = cons(t, bindings);
+            }
+            case Tree.Annotated anno -> {
+              var t = translateModuleSymbol(anno);
               bindings = cons(t, bindings);
             }
             case null -> {
@@ -816,6 +821,25 @@ final class TreeToIr {
       }
       case Tree.Wildcard wild -> {
         yield new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
+      }
+      case Tree.Annotated anno -> {
+        var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        var args = switch (anno.getExpression()) {
+          case Tree.App fn -> {
+            var fnAsArg = translateCallArguments(cons(fn.getFunc(), nil()), nil(), insideTypeSignature);
+            yield translateCallArguments(cons(fn.getArg(), nil()), fnAsArg, insideTypeSignature);
+          }
+          case Tree.ArgumentBlockApplication fn -> {
+            var fnAsArg = translateCallArguments(cons(fn.getLhs(), nil()), nil(), insideTypeSignature);
+            for (var line : fn.getArguments()) {
+              fnAsArg = translateCallArguments(cons(line.getExpression(), nil()), fnAsArg, insideTypeSignature);
+            }
+            yield fnAsArg;
+          }
+          default -> translateCallArguments(cons(anno.getExpression(), nil()), nil(), insideTypeSignature);
+        };
+        var pref = new IR$Application$Prefix(ir, args, false, getIdentifiedLocation(anno), meta(), diag());
+        yield pref;
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };

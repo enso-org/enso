@@ -104,6 +104,20 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAnnotation0() throws Exception {
+    parseTest("""
+    dont_stop = @Tail_Call dont_stop
+    """);
+  }
+
+  @Test
+  public void testAnnotation1() throws Exception {
+    parseTest("""
+    go t = @Tail_Call go t-1
+    """);
+  }
+
+  @Test
   @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
