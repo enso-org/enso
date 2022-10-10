@@ -629,6 +629,12 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .as_compile_time_operation()
                 .as_suspension(),
+        "@" =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::max())
+                .with_binary_infix_precedence(20)
+                .as_compile_time_operation()
+                .as_annotation(),
         "-" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
@@ -666,7 +672,6 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_binary_infix_precedence(1)
                 .as_compile_time_operation()
                 .as_sequence(),
-        "@" => return operator.with_binary_infix_precedence(20).as_compile_time_operation(),
         "." => return operator.with_binary_infix_precedence(21).with_decimal_interpretation(),
         _ => (),
     }

@@ -25,6 +25,7 @@ pub fn all() -> resolver::SegmentMap<'static> {
     macro_map.register(array());
     macro_map.register(tuple());
     macro_map.register(splice());
+
     macro_map
 }
 
