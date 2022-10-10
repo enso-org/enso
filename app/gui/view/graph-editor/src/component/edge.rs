@@ -286,7 +286,7 @@ impl SnapTarget {
 pub mod joint {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
         (style: Style, color_rgba: Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
@@ -324,7 +324,7 @@ macro_rules! define_corner_start {
         pub mod corner {
             use super::*;
 
-            ensogl::define_shape_system! {
+            ensogl::shape! {
                 below = [joint];
                 ( style:               Style
                 , radius             : f32
@@ -423,7 +423,7 @@ macro_rules! define_corner_end {
         /// Shape definition.
         pub mod corner {
             use super::*;
-            ensogl::define_shape_system! {
+            ensogl::shape! {
                 below = [joint];
                 (
                     style: Style,
@@ -527,7 +527,7 @@ macro_rules! define_line {
         /// Shape definition.
         pub mod line {
             use super::*;
-            ensogl::define_shape_system! {
+            ensogl::shape! {
                 below = [joint];
                 (
                     style: Style,
@@ -595,7 +595,7 @@ macro_rules! define_arrow { () => {
     /// Shape definition.
     pub mod arrow {
         use super::*;
-        ensogl::define_shape_system! {
+        ensogl::shape! {
             above = [joint];
             (
                 style: Style,

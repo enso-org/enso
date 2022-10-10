@@ -22,7 +22,6 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_hardcoded_theme::component::label as theme;
@@ -38,7 +37,7 @@ use ensogl_text as text;
 mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style,bg_color:Vector4) {
 
             let width      = Var::<Pixels>::from("input_size.x");

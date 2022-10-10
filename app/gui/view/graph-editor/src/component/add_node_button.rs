@@ -18,7 +18,7 @@ use ensogl_hardcoded_theme::graph_editor::add_node_button as theme;
 mod shape {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, background_color:Vector4<f32>, icon_color:Vector4<f32>) {
             let size = Var::canvas_size();
             let shadow_size = style.get_number(ensogl_hardcoded_theme::shadow::size);

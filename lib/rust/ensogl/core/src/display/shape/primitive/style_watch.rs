@@ -157,7 +157,7 @@ impl StyleWatchFrp {
 // === StyleWatch ===
 // ==================
 
-/// Style watch utility. It's reference is passed to shapes defined with the `define_shape_system`
+/// Style watch utility. It's reference is passed to shapes defined with the `shape`
 /// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
 /// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
 #[derive(Clone, CloneRef, Derivative)]
@@ -182,7 +182,7 @@ impl StyleWatch {
     }
 
     /// Resets the state of style manager. Should be used on each new shape definition. It is
-    /// called automatically when used by `define_shape_system`.
+    /// called automatically when used by `shape`.
     pub fn reset(&self) {
         *self.vars.borrow_mut() = default();
         *self.handles.borrow_mut() = default();

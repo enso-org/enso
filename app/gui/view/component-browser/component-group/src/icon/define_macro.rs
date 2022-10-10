@@ -7,7 +7,7 @@
 /// Macro for defining icon set.
 ///
 /// The macro takes many modules with attached "variant name". Inside the modules, there should
-/// be icon defined with `ensogl::define_shape_system!` macro. The macro will also generate an
+/// be icon defined with `ensogl::shape!` macro. The macro will also generate an
 /// enum called `Id` gathering all icon' "variant names". The enum will allow for dynamically
 /// creating given icon shape view (returned as [`crate::icon::AnyIcon`]).
 ///
@@ -26,7 +26,7 @@
 ///         // define shape system with the macro below; otherwise the generated code wont compile.
 ///         //
 ///         // `use super::*` import is added silently.
-///         ensogl::define_shape_system! {
+///         ensogl::shape! {
 ///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
 ///                 Plane().into()
 ///             }
@@ -34,7 +34,7 @@
 ///     }
 ///
 ///     pub mod icon2(Icon2) {
-///         ensogl::define_shape_system! {
+///         ensogl::shape! {
 ///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
 ///                 Plane().fill(vivid_color).into()
 ///             }

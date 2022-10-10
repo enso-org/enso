@@ -106,7 +106,7 @@ pub type Comment = ImString;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
             let width    = Var::<Pixels>::from("input_size.x");
@@ -125,7 +125,7 @@ pub mod background {
 pub mod backdrop {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         // Disable to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
@@ -186,7 +186,7 @@ pub mod backdrop {
 pub mod drag_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -212,7 +212,7 @@ pub mod drag_area {
 pub mod error_shape {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 

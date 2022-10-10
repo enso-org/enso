@@ -21,7 +21,7 @@ pub mod shape {
     use super::*;
     use ensogl::display::shape::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, position: Vector2<f32>, radius: f32) {
             let node = Circle(radius);
             let node = node.fill(Rgba::new(0.17,0.46,0.15,1.0));

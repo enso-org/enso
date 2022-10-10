@@ -3,8 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use ensogl_core::data::color;
-
 
 
 // =================
@@ -27,7 +25,7 @@ pub const HOVER_PADDING: f32 = 5.0;
 /// Arrow shape that consists of a line and a triangle as arrow head.
 pub mod arrow {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style,color_rgba:Vector4<f32>) {
             let height : Var<Pixels> = "input_size.y".into();
             let zoom                 = Var::<f32>::from("1.0/zoom()");

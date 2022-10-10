@@ -64,7 +64,7 @@ const BLINK_PERIOD: f32 =
 pub mod shape {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style:Style, selection:f32, start_time:f32, not_blinking:f32, color_rgb:Vector3<f32>) {
             let width_abs = Var::<f32>::from("abs(input_size.x)");

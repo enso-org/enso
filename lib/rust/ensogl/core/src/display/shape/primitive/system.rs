@@ -35,7 +35,7 @@ newtype_prim_no_default_no_display! {
 // === Shape ===
 // =============
 
-/// A shape definition. You do not need to implement it manually, use the `define_shape_system!`
+/// A shape definition. You do not need to implement it manually, use the `shape!`
 /// macro instead.
 #[allow(missing_docs)]
 pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
@@ -59,7 +59,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
 pub trait ShapeWithDefaultableData = Shape where <Self as Shape>::ShapeData: Default;
 
 /// A trait that each [`Shape::InstanceParams`] must implement. You do not have to implement it
-/// manually, use the [`define_shape_system!`] macro instead.
+/// manually, use the [`shape!`] macro instead.
 #[allow(missing_docs)]
 pub trait InstanceParamsTrait {
     fn swap(&self, other: &Self);
@@ -192,17 +192,17 @@ impl<S> display::Object for ShapeInstance<S> {
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = "S::SystemData: Debug"))]
 pub struct ShapeSystem<S: Shape> {
-    data: Rc<ShapeSystemData<S, S::SystemData>>,
+    data: Rc<ShapeSystemData<S>>,
 }
 
 /// Internal representation of [`ShapeSystem`].
 #[allow(missing_docs)]
 #[derive(Deref, Derivative)]
-#[derivative(Debug(bound = "UserData: Debug"))]
-pub struct ShapeSystemData<S: Shape, UserData> {
+#[derivative(Debug(bound = "S::SystemData: Debug"))]
+pub struct ShapeSystemData<S: Shape> {
     #[deref]
     pub standard: ShapeSystemStandardData<S>,
-    pub user:     UserData,
+    pub user:     S::SystemData,
 }
 
 /// The standard shape system data.
@@ -423,9 +423,10 @@ where
 // === Macros ===
 // ==============
 
-/// Defines a new shape system.
+/// Defines a new shape system. This is the macro that you want to use to define new shapes. The
+/// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
 #[macro_export]
-macro_rules! define_shape_system {
+macro_rules! shape {
     (
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
@@ -434,7 +435,7 @@ macro_rules! define_shape_system {
         $(pointer_events = $pointer_events:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
-        $crate::_define_shape_system! {
+        $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
@@ -445,11 +446,9 @@ macro_rules! define_shape_system {
     };
 }
 
-
-
-/// Internal helper for `define_shape_system`.
+/// Internal helper for the [`shape`] macro.
 #[macro_export]
-macro_rules! _define_shape_system {
+macro_rules! _shape {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
@@ -486,6 +485,12 @@ macro_rules! _define_shape_system {
             // === Shape ===
             // =============
 
+            /// The type of the shape. It also contains the parameters of the shape. The parameters
+            /// are stored in this type in order to simplify bounds for utlities managing shape
+            /// systems. For example, if we would like to handle any shape with given parameters,
+            /// we will be processing [`ShapeSystem<S>`] and we can add bounds to [`S`] to reflect
+            /// what parameters it should contain.
+            #[allow(missing_docs)]
             #[derive(AsRef, Debug, Deref)]
             pub struct Shape {
                 pub params: InstanceParams,
@@ -507,10 +512,16 @@ macro_rules! _define_shape_system {
                 }
 
                 fn always_below() -> Vec<ShapeSystemId> {
-                    vec![$($( ShapeSystem::<$always_below_1 $(::$always_below_2)*::Shape> :: id()),*)?]
+                    vec![$($(
+                        ShapeSystem::<$always_below_1 $(::$always_below_2)*::Shape> :: id()
+                    ),*)?]
                 }
 
-                fn new_instance_params(sprite: &Sprite, gpu_params:&Self::GpuParams, id: InstanceIndex) -> ShapeWithSize<Shape> {
+                fn new_instance_params(
+                    sprite: &Sprite,
+                    gpu_params:&Self::GpuParams,
+                    id: InstanceIndex
+                ) -> ShapeWithSize<Shape> {
                     let size = ProxyParam::new(sprite.size.clone_ref());
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };
@@ -518,7 +529,9 @@ macro_rules! _define_shape_system {
                     ShapeWithSize::new(shape, size)
                 }
 
-                fn new_gpu_params(shape_system: &display::shape::ShapeSystemModel) -> Self::GpuParams {
+                fn new_gpu_params(
+                    shape_system: &display::shape::ShapeSystemModel
+                ) -> Self::GpuParams {
                     $(
                         let name = stringify!($gpu_param);
                         let val  = gpu::data::default::gpu_default::<$gpu_param_type>();
@@ -530,7 +543,7 @@ macro_rules! _define_shape_system {
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
                 -> display::shape::primitive::def::AnyShape {
                     #[allow(unused_imports)]
-                    use $crate::display::style::data::DataMatch; // Operations on styles.
+                    use $crate::display::style::data::DataMatch;
                     use $crate::data::color;
                     use $crate::display::shape::*;
 

@@ -39,7 +39,7 @@ const ACTION_ICON_SIZE: f32 = 20.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         below = [drop_down_menu::arrow];
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
@@ -56,7 +56,7 @@ mod hover_area {
 mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         below = [hover_area];
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
@@ -86,7 +86,7 @@ mod four_arrow_icon {
     use std::f32::consts::PI;
     const ARROW_LINE_WIDTH: f32 = 1.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
@@ -126,7 +126,7 @@ mod pin_icon {
     use std::f32::consts::PI;
     const PIN_THORN_WIDTH: f32 = 1.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");

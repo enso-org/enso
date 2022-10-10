@@ -28,6 +28,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+#![allow(incomplete_features)]
 
 
 

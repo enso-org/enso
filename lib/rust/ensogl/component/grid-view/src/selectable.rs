@@ -112,7 +112,7 @@ pub struct GridViewTemplate<InnerGridView, Entry, EntryParams: frp::node::Data> 
 /// **Basic**: By default, the highlight is displayed as `highlight::shape::View` instance. The
 /// shapes used by entries should specify if they need to be above or below highlight (for example
 /// by adding `above = [ensogl_grid_view::selectable::highlight::shape]` clause to
-/// [`define_shape_system!`] macro.
+/// [`shape!`] macro.
 ///
 /// **Masked Layer**: The basic highlight, however does not work correctly with case where we want
 /// selected entries having different style (e.g. different text color) when highlighted. Because

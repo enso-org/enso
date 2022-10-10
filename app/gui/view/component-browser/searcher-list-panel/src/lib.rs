@@ -304,7 +304,7 @@ const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement:
 pub mod selection_box {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style:Style,corners_radius:f32,pos:Vector2,selection_size:Vector2,margin_top:f32) {
             let area_width = Var::<Pixels>::from("input_size.x");
@@ -338,7 +338,7 @@ pub mod selection_box {
 mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [component_group::background];
         (style:Style,bg_color:Vector4) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
@@ -381,7 +381,7 @@ mod background {
 mod hline {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
 

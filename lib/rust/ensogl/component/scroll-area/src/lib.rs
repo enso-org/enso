@@ -22,7 +22,6 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
@@ -163,7 +162,7 @@ impl Viewport {
 /// A mask for clipping the scroll area content.
 mod mask {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32,
             corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
             let width: Var<Pixels> = "input_size.x".into();

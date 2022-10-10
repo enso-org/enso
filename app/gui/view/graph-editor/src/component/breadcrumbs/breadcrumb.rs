@@ -55,7 +55,7 @@ const SEPARATOR_MARGIN: f32 = 10.0;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
@@ -72,7 +72,7 @@ pub mod background {
 mod icon {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
@@ -98,7 +98,7 @@ mod icon {
 mod separator {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;

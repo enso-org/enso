@@ -43,7 +43,7 @@ pub const LINE_HEIGHT: f32 = TEXT_SIZE * 1.5;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()

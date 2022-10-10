@@ -40,6 +40,7 @@ pub struct ShapeView<S: Shape> {
 
 // S: DynamicShapeInternals + 'static
 impl<S: Shape> ShapeView<S> {
+    /// Constructor with default shape data.
     pub fn new() -> Self
     where S::ShapeData: Default {
         Self::new_with_data(default())
@@ -105,8 +106,8 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
     }
 }
 
-// S : DynamicShapeInternals
 impl<S: Shape> ShapeViewModel<S> {
+    /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
         let scene = scene();
         // FIXME: "something"

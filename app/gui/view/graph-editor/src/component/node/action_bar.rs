@@ -36,7 +36,7 @@ const HOVER_EXTENSION_X: f32 = 15.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

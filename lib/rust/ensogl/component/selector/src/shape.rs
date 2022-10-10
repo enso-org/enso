@@ -3,7 +3,6 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use ensogl_core::data::color;
 use ensogl_core::display::shape::system::Shape;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
@@ -56,7 +55,7 @@ impl Background {
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style,corner_left:f32,corner_right:f32,color:Vector4,show_shadow:f32) {
             let background = Background::new(&corner_left,&corner_right,style);
             let shadow     = shadow::from_shape_with_alpha(background.shape.clone(),
@@ -77,7 +76,7 @@ pub mod background {
 pub mod io_rect {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style: Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -103,7 +102,7 @@ pub mod io_rect {
 pub mod track {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [background];
         below = [left_overflow, right_overflow, io_rect];
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
@@ -169,7 +168,7 @@ impl OverflowShape {
 pub mod left_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate((-90.0_f32).to_radians().radians());
@@ -183,7 +182,7 @@ pub mod left_overflow {
 pub mod right_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate(90.0_f32.to_radians().radians());
@@ -205,7 +204,6 @@ use ensogl_core::gui::component::ShapeView;
 
 pub use super::frp::*;
 pub use super::model::*;
-use ensogl_core::display;
 use ensogl_core::display::Scene;
 
 /// Return whether a dragging action has been started from the shape passed to this function. A

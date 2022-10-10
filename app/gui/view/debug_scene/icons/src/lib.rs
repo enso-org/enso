@@ -26,7 +26,7 @@ use ide_view_component_group::icon::SHRINK_AMOUNT;
 mod frame {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let inner = Rect((icon::SIZE.px(), icon::SIZE.px()));
             let outer = inner.grow(0.2.px());

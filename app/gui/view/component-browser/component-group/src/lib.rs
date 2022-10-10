@@ -123,7 +123,7 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         below = [list_view::background];
         pointer_events = false;
         (style:Style, color:Vector4) {
@@ -141,7 +141,7 @@ pub mod background {
 pub mod header_background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         above = [background, list_view::background];
         pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
@@ -169,7 +169,7 @@ pub mod header_background {
 pub mod selection_header_background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
         (style: Style, color: Vector4, height: f32) {
             let color = Var::<color::Rgba>::from(color);
@@ -186,10 +186,7 @@ pub mod selection_header_background {
 /// The transparent overlay over Component Group View Header, used for capturing mouse events.
 pub mod header_overlay {
     use super::*;
-
-    use ensogl::display::shape::constants::INVISIBLE_HOVER_COLOR;
-
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         above = [background];
         (style: Style) {
             Plane().fill(INVISIBLE_HOVER_COLOR).into()

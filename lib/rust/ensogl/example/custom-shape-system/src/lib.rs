@@ -11,7 +11,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
@@ -23,7 +22,7 @@ use ensogl_core::display::object::ObjectOps;
 
 mod shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));

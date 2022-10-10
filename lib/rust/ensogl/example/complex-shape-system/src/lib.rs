@@ -24,7 +24,7 @@ use ensogl_core::display::style::theme;
 
 mod shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
@@ -40,7 +40,7 @@ mod shape {
 
 mod mask {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let shape = Circle(60.px());
             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));
@@ -63,8 +63,6 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let logger = Logger::new("ShapeView");
-
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
     let theme1 = theme::Theme::new();

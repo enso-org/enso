@@ -52,7 +52,7 @@ const MENU_WIDTH: f32 = 180.0;
 pub mod arrow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [chooser_hover_area];
         (style:Style) {
             let width            = Var::<Pixels>::from("input_size.x");
@@ -72,7 +72,7 @@ pub mod arrow {
 pub mod chooser_hover_area {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

@@ -20,7 +20,6 @@ use crate::visualization;
 use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
@@ -61,7 +60,7 @@ const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
 pub mod overlay {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -83,7 +82,7 @@ pub mod background {
     use super::*;
     use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, radius:f32, roundness:f32, selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");

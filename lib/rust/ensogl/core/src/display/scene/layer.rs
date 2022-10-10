@@ -121,7 +121,7 @@ use std::any::TypeId;
 /// no situation when it should not be hold. In such a way, you should use this method to define
 /// depth-dependencies. In order to define such compile tie shapes ordering relations, you have to
 /// define them while defining the shape system. The easiest way to do it is by using the
-/// [`define_shape_system!`] macro. Refer to its documentation to learn more.
+/// [`shape!`] macro. Refer to its documentation to learn more.
 ///
 ///
 /// # Layer Lifetime Management

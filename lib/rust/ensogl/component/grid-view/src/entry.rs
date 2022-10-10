@@ -186,7 +186,7 @@ macro_rules! implement_shape_with_entry_contour {
 pub mod overlay {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style, corner_radius: f32) {
             let shape_width  : Var<Pixels> = "input_size.x".into();
             let shape_height : Var<Pixels> = "input_size.y".into();
@@ -207,7 +207,7 @@ pub mod overlay {
 pub mod shape {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [overlay, highlight::shape];
         (style:Style, corner_radius: f32, color: Vector4) {
             let shape_width  : Var<Pixels> = "input_size.x".into();

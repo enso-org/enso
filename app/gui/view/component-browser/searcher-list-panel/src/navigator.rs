@@ -34,7 +34,7 @@ use searcher_theme::list_panel as list_panel_theme;
 pub mod navigator_shadow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [crate::background];
         (style:Style) {
             let theme_path: style::Path = list_panel_theme::HERE.into();

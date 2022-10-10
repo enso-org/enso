@@ -31,7 +31,7 @@ mod background {
     pub const SHADOW_PX: f32 = 10.0;
     pub const CORNER_RADIUS_PX: f32 = 16.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();

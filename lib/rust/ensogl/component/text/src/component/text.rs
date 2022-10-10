@@ -734,7 +734,7 @@ impl TextModel {
         let selection_map = default();
         let display_object = display::object::Instance::new();
         let glyph_system = {
-            let glyph_system = font::glyph::System::new(&scene);
+            let glyph_system = font::glyph::System::new(&scene, font::DEFAULT_FONT_MONO);
             // display_object.add_child(&glyph_system);
             RefCell::new(glyph_system)
         };
@@ -1700,20 +1700,14 @@ impl TextModel {
 
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
-        // FIXME
-        // panic!()
-        // let app = &self.app;
-        // let scene = &app.display.default_scene;
-        // let fonts = scene.extension::<font::Registry>();
-        // let font = fonts.load(font_name);
-        // let glyph_system = font::glyph::System::new(&scene, font);
-        // self.display_object.add_child(&glyph_system);
-        // let old_glyph_system = self.glyph_system.replace(glyph_system);
-        // self.display_object.remove_child(&old_glyph_system);
-        // // Remove old Glyph structures, as they still refer to the old Glyph System.
-        // self.take_lines();
-        // self.add_symbols_to_scene_layer();
-        // self.redraw();
+        let app = &self.app;
+        let scene = &app.display.default_scene;
+        let glyph_system = font::glyph::System::new(scene, font_name);
+        self.glyph_system.replace(glyph_system);
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
+        self.take_lines();
+        self.add_symbols_to_scene_layer();
+        self.redraw();
     }
 }
 

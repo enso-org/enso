@@ -26,7 +26,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
@@ -57,7 +56,7 @@ pub fn main() {
 
 mod content {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             Circle(50.px()).fill(color::Rgb::new(1.0,0.0,0.0)).into()
         }
@@ -66,7 +65,7 @@ mod content {
 
 mod background {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let size = (200.px(), 200.px());
             let color = color::Rgb::new(0.9, 0.9, 0.9);

@@ -29,7 +29,7 @@ pub const PADDING_X: f32 = 4.0;
 /// Port hover shape definition.
 pub mod hover {
     use super::*;
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -55,7 +55,7 @@ pub mod hover {
 /// Port shape definition.
 pub mod viz {
     use super::*;
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         above = [hover];
         pointer_events = false;
         (style:Style, color:Vector4) {

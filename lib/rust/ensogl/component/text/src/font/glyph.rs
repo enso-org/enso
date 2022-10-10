@@ -2,7 +2,6 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
-use ensogl_core::display::world::*;
 
 use crate::buffer::formatting::PropertyDiffApply;
 use crate::font;
@@ -24,9 +23,7 @@ use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::display::world;
 use ensogl_core::frp;
-use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use font::Font;
 use font::FontWithAtlas;
 use font::GlyphRenderInfo;
 use font::Style;
@@ -49,7 +46,7 @@ ensogl_core::define_endpoints_2! {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
 pub struct SystemData {}
 
@@ -86,6 +83,8 @@ impl SystemData {
 }
 
 
+/// Data of the glyph shape.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct ShapeData {
     pub font: FontWithAtlas,
@@ -99,9 +98,9 @@ impl display::shape::system::ShapeSystemFlavorProvider for ShapeData {
     }
 }
 
-pub mod glyph {
+mod glyph_shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
@@ -110,10 +109,10 @@ pub mod glyph {
     }
 }
 
-impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData {
+impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
     fn new(
         scene: &Scene,
-        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph::Shape>,
+        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
@@ -141,8 +140,6 @@ impl ensogl_core::display::shape::CustomSystemData<glyph::Shape> for SystemData 
 // === Glyph ===
 // =============
 
-/// Glyph texture. Contains all letters encoded in MSDF format.
-type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
 type Context = world::Context;
 
@@ -161,7 +158,7 @@ pub struct GlyphData {
     // cloned in the FRP definition and thus will not cause any mem leak.
     #[deref]
     pub frp:                Frp,
-    pub view:               glyph::View,
+    pub view:               glyph_shape::View,
     pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
@@ -470,10 +467,10 @@ pub struct System {
 impl System {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(scene: impl AsRef<Scene>) -> Self {
+    pub fn new(scene: impl AsRef<Scene>, font_name: impl Into<font::Name>) -> Self {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
-        let font = fonts.load(font::DEFAULT_FONT_MONO);
+        let font = fonts.load(font_name);
         let context = scene.context.borrow().as_ref().unwrap().clone_ref();
         Self { context, font }
     }
@@ -494,7 +491,7 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
-        let view = glyph::View::new_with_data(ShapeData { font });
+        let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
         display_object.add_child(&view);

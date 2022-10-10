@@ -456,6 +456,7 @@ pub type NonVariableFont = FontTemplate<NonVariableFamily>;
 pub type VariableFont = FontTemplate<VariableFamily>;
 
 impl Font {
+    /// Font family name getter.
     pub fn name(&self) -> &Name {
         match self {
             Font::NonVariable(font) => &font.name,
@@ -709,6 +710,8 @@ use ensogl_core::system::gpu::texture;
 
 type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
+/// A font with an associated GPU-stored glyph atlas.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct FontWithAtlas {
     #[deref]

@@ -28,7 +28,7 @@ const ELLIPSIS_ANIMATION_OFFSET_MS: f32 = 100.0;
 /// Ellipsis, three dots shown when the text is too long.
 mod ellipsis {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style: Style, start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
             let time = Var::<f32>::from("input_time");
             let time = time - start_time;

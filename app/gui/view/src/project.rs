@@ -112,7 +112,7 @@ ensogl::define_endpoints! {
 mod prompt_background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, color_rgba:Vector4<f32>) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");

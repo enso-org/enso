@@ -231,7 +231,7 @@ fn color_component_slider(app: &Application, caption: &str) -> selector::NumberP
 /// We add a tranparent shape to the [`ScrollArea`] content to make component groups visible.
 mod transparent_circle {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             // As you can see even a zero-radius circle works as a workaround.
             let radius = 0.px();

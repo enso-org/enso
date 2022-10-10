@@ -12,7 +12,7 @@ use ensogl_component::toggle_button::ColorableShape;
 pub mod visibility {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
 
@@ -49,7 +49,7 @@ pub mod visibility {
 pub mod visibility2 {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
@@ -92,7 +92,7 @@ fn make_ring<T: Into<Var<Pixels>>, U: Into<Var<Pixels>>>(
 pub mod freeze {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
             let width            = Var::<Pixels>::from("input_size.x");
@@ -129,7 +129,7 @@ pub mod freeze {
 pub mod skip {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");

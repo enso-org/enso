@@ -45,7 +45,6 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
@@ -102,7 +101,7 @@ pub type BreadcrumbId = usize;
 mod mask {
     use super::*;
     use ensogl_core::display::shape::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style: Style, corners_radius: f32) {
             let width = Var::<Pixels>::from("input_size.x");
