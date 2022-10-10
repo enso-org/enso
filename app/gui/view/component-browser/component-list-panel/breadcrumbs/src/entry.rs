@@ -216,14 +216,18 @@ impl EntryData {
         self.state.get() == State::Text
     }
 
-    /// Return the width of the entry if it is known. If the entry displays text, the width needs to
-    /// be calculated separately.
-    fn fixed_width(&self) -> Option<f32> {
+    fn width(&self, text_offset: f32) -> f32 {
         match self.state.get() {
-            State::Text => None,
-            State::Separator => Some(separator::ICON_WIDTH),
-            State::Ellipsis => Some(ellipsis::ICON_WIDTH),
+            State::Text => self.text_width(self.text.width.value(), text_offset),
+            State::Separator => separator::ICON_WIDTH,
+            State::Ellipsis => ellipsis::ICON_WIDTH,
         }
+    }
+
+    /// Width of the breadcrumb column filled with text of width [`text_width`] and with offset
+    /// [`text_offset`].
+    fn text_width(&self, text_width: f32, text_offset: f32) -> f32 {
+        text_width + text_offset * 2.0
     }
 }
 
@@ -324,16 +328,16 @@ impl ensogl_grid_view::Entry for Entry {
             // === Override column width ===
 
             // We need to adjust the width of the grid view column depending on the width of
-            // the entry. For entries displaying icons we use [`EntryData::fixed_width`] method.
-            // For text entries, we listen for [`Text::width`] changes.
-            out.override_column_width <+ input.set_model.map(
-                f!((model) {
+            // the entry.
+            out.override_column_width <+ input.set_model.map2(&text_offset,
+                f!([data](model, text_offset) {
                     data.set_model(model);
-                    data.fixed_width()
+                    data.width(*text_offset)
                 })
-            ).filter_map(|w| *w);
+            );
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
-            entry_width <- text_width.map2(&text_offset, |w, text_offset| w + text_offset * 2.0);
+            // For text entries, we also listen for [`Text::width`] changes.
+            entry_width <- text_width.map2(&text_offset, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
         }
         init.emit(());
