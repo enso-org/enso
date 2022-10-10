@@ -12,17 +12,6 @@ import Standard.Image
 import Standard.Image.Codecs
 import Standard.Image.Data.Matrix
 
-# TODO Dubious constructor export
-from project.Main.Example_Error_Type import all
-from project.Main.Example_Error_Type export all
-
-## An example error type used in a number of examples.
-
-   Arguments:
-   - message: The message contained in the error type.
-type Example_Error_Type
-    Example_Error_Type_Data message
-
 ## The standard library data directory.
 data_dir : File
 data_dir = enso_project.data
