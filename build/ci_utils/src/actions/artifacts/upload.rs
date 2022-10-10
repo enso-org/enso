@@ -109,7 +109,11 @@ impl ArtifactUploader {
         self.total_size.fetch_add(uploaded_size, Ordering::SeqCst);
         let errors = results.into_iter().filter_map(|r| r.result.err()).collect_vec();
         if !errors.is_empty() {
-            let mut error = anyhow!("Not all file uploads were successful.");
+            let mut error = anyhow!(
+                "Not all file uploads were successful. Encountered {} errors: {:#?}",
+                errors.len(),
+                errors
+            );
             for cause in errors {
                 error = error.context(cause);
             }
