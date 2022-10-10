@@ -1,22 +1,19 @@
 from Standard.Base import all
 
-import Standard.Database.Internal.Helpers
-import Standard.Database.Internal.IR
-from Standard.Database.Data.Table import Table, freshen_columns
-from Standard.Table import Filter_Condition
-
-import Standard.Table.Data.Column.Column as Materialized_Column
-import Standard.Table.Data.Sort_Column_Selector.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column.Sort_Column
+from Standard.Table import Sort_Column, Sort_Column_Selector
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Column.Column as Materialized_Column
 
-from Standard.Database.Data.SQL import SQL_Type, Statement
-from Standard.Database.Data.Table import Integrity_Error
-from Standard.Database.Errors import Unsupported_Database_Operation_Error
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.Helpers
+import project.Internal.IR.Context.Context
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Internal_Column.Internal_Column
 
-# TODO Dubious constructor export
-from project.Data.Column.Column import all
-from project.Data.Column.Column export all
+from project.Data.Table import Table, freshen_columns
+
+from project.Errors import Unsupported_Database_Operation_Error
 
 type Column
 
@@ -37,7 +34,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Column_Data name:Text connection:Connection sql_type:SQL_Type expression:IR.Expression context:IR.Context
+    Value name:Text connection:Connection sql_type:SQL_Type expression:Expression context:Context
 
     ## UNSTABLE
 
@@ -72,7 +69,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table
     to_table self =
-        Table.Table_Data self.name self.connection [self.as_internal] self.context
+        Table.Value self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 
@@ -81,7 +78,7 @@ type Column
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Nothing | Integer) -> Materialized_Column.Column
+    read : (Nothing | Integer) -> Materialized_Column
     read self max_rows=Nothing =
         self.to_table.read max_rows . at self.name
 
@@ -113,7 +110,7 @@ type Column
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this column.
-    to_sql : Statement
+    to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
     ## PRIVATE
@@ -134,18 +131,18 @@ type Column
     make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
         case operand of
-            Column_Data _ _ _ other_expr _ ->
+            Column.Value _ _ _ other_expr _ ->
                 case Helpers.check_integrity self operand of
                     False ->
                         Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
-                        new_expr = IR.Operation op_kind [self.expression, other_expr]
-                        Column_Data self.name self.connection actual_new_type new_expr self.context
+                        new_expr = Expression.Operation op_kind [self.expression, other_expr]
+                        Column.Value self.name self.connection actual_new_type new_expr self.context
             _ ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
-                other = IR.make_constant actual_operand_type operand
-                new_expr = IR.Operation op_kind [self.expression, other]
-                Column_Data self.name self.connection actual_new_type new_expr self.context
+                other = Expression.Constant actual_operand_type operand
+                new_expr = Expression.Operation op_kind [self.expression, other]
+                Column.Value self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
 
@@ -158,8 +155,8 @@ type Column
     make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
     make_unary_op self op_kind new_type=Nothing =
         actual_new_type = new_type.if_nothing self.sql_type
-        new_expr = IR.Operation op_kind [self.expression]
-        Column_Data self.name self.connection actual_new_type new_expr self.context
+        new_expr = Expression.Operation op_kind [self.expression]
+        Column.Value self.name self.connection actual_new_type new_expr self.context
 
     ## UNSTABLE
 
@@ -430,7 +427,7 @@ type Column
             case is_used_in_index of
                 True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
-                    Column_Data new_name self.connection self.sql_type self.expression self.context
+                    Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -521,8 +518,8 @@ type Column
     contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
 
     ## PRIVATE
-    as_internal : IR.Internal_Column
-    as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
+    as_internal : Internal_Column
+    as_internal self = Internal_Column.Value self.name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -537,7 +534,7 @@ type Column
 make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = new_type.if_nothing column.sql_type
-    expr = IR.Operation operation [column.expression]
+    expr = Expression.Operation operation [column.expression]
     case Helpers.ensure_name_is_sane name_suffix of
         True ->
             new_name = column.name + name_suffix
@@ -554,18 +551,18 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
    - expected_type: The expected SQL type of the column.
    - expr: The expression for the query.
    - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> SQL_Type -> IR.Expression -> IR.Context -> Column
+lift_aggregate : Text -> Connection -> SQL_Type -> Expression -> Context -> Column
 lift_aggregate new_name connection expected_type expr context =
     # TODO [RW] This is a simple workaround for #1643 - we always wrap the
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
     ixes = freshen_columns [new_name] context.meta_index
-    col = IR.Internal_Column_Data new_name expected_type expr
+    col = Internal_Column.Value new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first
     cols = setup.second
     new_col = cols.first.first
     new_ixes = cols.second
-    new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
-    Column_Data new_name connection new_col.sql_type new_col.expression new_ctx
+    new_ctx = Context.for_subquery subquery . set_index new_ixes
+    Column.Value new_name connection new_col.sql_type new_col.expression new_ctx
 

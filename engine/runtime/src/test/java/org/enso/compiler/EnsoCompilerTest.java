@@ -342,6 +342,84 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Test
+  public void testAggregateColumnGroupByTrue() throws Exception {
+    parseTest("""
+    prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+    prepare_aggregate_columns aggregates table =
+        # Grouping Key
+        is_a_key c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+      """);
+  }
+
+  @Test
+  public void testUnaryDot() throws Exception {
+    parseTest("""
+    write_file = ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+      """);
+  }
+
+  @Test
+  public void testUnaryMinus() throws Exception {
+    parseTest("""
+    meaning = -42
+      """);
+  }
+
+  @Test
+  public void testExtensionMethod() throws Exception {
+    parseTest("""
+    Any.meaning = -42
+      """);
+  }
+
+  @Test
+  public void testTypeSignature() throws Exception {
+    parseTest("""
+    resolve_aggregate table problem_builder aggregate_column =
+        table_columns = table.columns
+
+        resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
+        resolve c = 42
+    """);
+  }
+
+  @Test
+  public void testCaseOnTextLiteral() throws Exception {
+    parseTest("""
+    choose ch = case ch of
+        "yes" -> True
+        "no" -> False
+      """);
+  }
+
+  @Test
+  public void testCaseWithUnderscore() throws Exception {
+    parseTest("""
+    choose ch = case ch of
+        0 -> _.name
+        _ -> Nothing
+    """);
+  }
+
+  @Test
+  public void testBalanceUpperCase() throws Exception {
+    parseTest("""
+    balance_left k x l r = case r of
+        Bin _ lk lx Tip -> 42
+      """);
+  }
+
+  @Test
+  public void testBalanceLowerCase() throws Exception {
+    parseTest("""
+    balance_left k x l r = case r of
+        Bin _ lk lx tip -> 42
+      """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

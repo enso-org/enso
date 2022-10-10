@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column
-import Standard.Visualization.Helpers
+import project.Helpers
 
 ## PRIVATE
 
@@ -23,7 +23,7 @@ Table.value_column self =
 type Update
 
     ## PRIVATE
-    Update_Data values label
+    Value values label
 
     ## PRIVATE
 
@@ -43,12 +43,12 @@ from_table table =
     col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
-    Update.Update_Data values label
+    Update.Value values label
 
 ## PRIVATE
 from_vector : Vector -> Update
 from_vector vector =
-    Update.Update_Data vector Nothing
+    Update.Value vector Nothing
 
 ## PRIVATE
 from_value : Any -> Update

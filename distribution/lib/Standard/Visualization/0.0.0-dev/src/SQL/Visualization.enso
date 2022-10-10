@@ -1,7 +1,8 @@
 from Standard.Base import all
-from Standard.Database.Data.SQL import SQL_Type
 
-import Standard.Visualization.Helpers
+import Standard.Database.Data.SQL_Type.SQL_Type
+
+import project.Helpers
 
 ## PRIVATE
 

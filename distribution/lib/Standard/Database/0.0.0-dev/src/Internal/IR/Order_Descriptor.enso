@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+import project.Internal.IR.Expression.Expression
+import project.Internal.IR.Nulls_Order.Nulls_Order
+
+## PRIVATE
+type Order_Descriptor
+    Value (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
