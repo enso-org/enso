@@ -29,7 +29,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final Parser parser;
     private final EnsoCompiler compiler;
     private final Set<Path> visited = new LinkedHashSet<>();
-    private final Set<Path> failed = new LinkedHashSet<>();
+    private final Map<Path,Exception> failed = new LinkedHashMap<>();
     private final Set<Path> irTested = new LinkedHashSet<>();
     private final Map<Path,Exception> irFailed = new LinkedHashMap<>();
     private final Set<Path> irDiff = new LinkedHashSet<>();
@@ -66,6 +66,12 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
         return FileVisitResult.CONTINUE;
     }
+    
+    private static Exception newExceptionNoStack(String msg) {
+        var ex = new Exception(msg);
+        ex.setStackTrace(new StackTraceElement[0]);
+        return ex;
+    }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -79,7 +85,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         TEST: try {
             Tree tree = parser.parse(src.getCharacters().toString());
             if (tree == null) {
-                failed.add(file);
+                failed.put(file, newExceptionNoStack("Rust failed"));
             } else {
                 IR.Module ir;
                 try {
@@ -92,15 +98,11 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 } catch (Exception ex) {
                     if (ex.getClass().getName().contains("UnhandledEntity")) {
                         if (ex.getMessage().contains("= Invalid[")) {
-                            failed.add(file);
+                            failed.put(file, newExceptionNoStack("Rust produces Invalid AST"));
                             break TEST;
                         }
                         if (ex.getMessage().contains("translateCaseBranch = Case[null, null")) {
-                            failed.add(file);
-                            break TEST;
-                        }
-                        if (ex.getMessage().contains("OprApp[\"\", \"@")) {
-                            failed.add(file);
+                            failed.put(file, newExceptionNoStack("Rust provides null case"));
                             break TEST;
                         }
                     }
@@ -146,7 +148,8 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 }
             }
         } catch (Exception ex) {
-            failed.add(file);
+            failed.put(file, ex);
+            System.err.println("failed " + file);
         }
 
         return FileVisitResult.CONTINUE;
@@ -155,7 +158,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
         visited.add(file);
-        failed.add(file);
+        failed.put(file, exc);
         return FileVisitResult.CONTINUE;
     }
 
@@ -166,6 +169,12 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
 
     private void printSummary(boolean verbose) {
         if (verbose) {
+            for (var en : failed.entrySet()) {
+                var key = en.getKey();
+                var value = en.getValue();
+                System.err.println("Problem " + key);
+                value.printStackTrace();
+            }
             for (var en : irFailed.entrySet()) {
                 var key = en.getKey();
                 var value = en.getValue();
