@@ -12,7 +12,6 @@
 
 // === Features ===
 #![allow(incomplete_features)]
-#![feature(negative_impls)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
@@ -31,6 +30,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -189,5 +189,78 @@ impl NonVariableFaceHeader {
     /// Constructor.
     pub fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
+    }
+
+    /// Distance between two font variations. It is used to find the closest variations if the
+    /// provided is not available.
+    pub fn similarity_distance(&self, other: NonVariableFaceHeader) -> usize {
+        let width_weight = 10;
+        let weight_weight = 100;
+        let style_weight = 1;
+
+        let self_width = self.width.to_number() as usize;
+        let self_weight = self.weight.to_number() as usize;
+        let self_style: usize = match self.style {
+            Style::Normal => 0,
+            Style::Italic => 1,
+            Style::Oblique => 2,
+        };
+
+        let other_width = other.width.to_number() as usize;
+        let other_weight = other.weight.to_number() as usize;
+        let other_style: usize = match other.style {
+            Style::Normal => 0,
+            Style::Italic => 1,
+            Style::Oblique => 2,
+        };
+
+        let width = self_width.abs_diff(other_width) * width_weight;
+        let weight = self_weight.abs_diff(other_weight) * weight_weight;
+        let style = self_style.abs_diff(other_style) * style_weight;
+        width + weight + style
+    }
+}
+
+
+
+// ==================================
+// === NonVariableFaceHeaderMatch ===
+// ==================================
+
+/// Indicates whether the provided variation was an exact match or a closest match was found.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum NonVariableFaceHeaderMatchType {
+    Exact,
+    Closest,
+}
+
+/// Result of finding a closest font variation for a non-variable font family.
+#[derive(Debug, Copy, Clone)]
+#[allow(missing_docs)]
+pub struct NonVariableFaceHeaderMatch {
+    pub variations: NonVariableFaceHeader,
+    pub match_type: NonVariableFaceHeaderMatchType,
+}
+
+impl NonVariableFaceHeaderMatch {
+    /// Constructor.
+    pub fn exact(variations: NonVariableFaceHeader) -> Self {
+        Self { variations, match_type: NonVariableFaceHeaderMatchType::Exact }
+    }
+
+    /// Constructor.
+    pub fn closest(variations: NonVariableFaceHeader) -> Self {
+        Self { variations, match_type: NonVariableFaceHeaderMatchType::Closest }
+    }
+
+    /// Checks whether the match was exact.
+    pub fn was_exact(&self) -> bool {
+        self.match_type == NonVariableFaceHeaderMatchType::Exact
+    }
+
+    /// Checks whether the match was closest.
+    pub fn was_closest(&self) -> bool {
+        self.match_type == NonVariableFaceHeaderMatchType::Closest
     }
 }

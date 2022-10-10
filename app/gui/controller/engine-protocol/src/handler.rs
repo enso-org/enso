@@ -99,7 +99,7 @@ where
             transport:     Box::new(transport),
             logger:        logger.clone_ref(),
             sender:        None,
-            ongoing_calls: OngoingCalls::new(logger),
+            ongoing_calls: OngoingCalls::new(),
             processor:     Box::new(processor),
         }
     }
@@ -114,7 +114,7 @@ where
 
     /// Feeds the reply to complete the corresponding open request.
     fn process_reply(&mut self, id: Id, reply: Reply) {
-        info!(self.logger, "Processing reply to request {id}: {reply:?}");
+        info!("Processing reply to request {id}: {reply:?}");
         if let Err(error) = self.ongoing_calls.complete_request(id, reply) {
             self.emit_error(error);
         }
@@ -122,7 +122,7 @@ where
 
     /// Helper that wraps error into an appropriate event value and emits it.
     fn emit_error(&mut self, error: impl Into<failure::Error> + Debug) {
-        info!(self.logger, "Emitting error: {error:?}");
+        info!("Emitting error: {error:?}");
         let event = Event::Error(error.into());
         self.emit_event(event);
     }
@@ -133,12 +133,12 @@ where
     /// Main entry point for input data while running. Should be connected to the `Transport`s
     /// output event stream.
     pub fn process_event(&mut self, event: TransportEvent) {
-        debug!(self.logger, "Processing incoming transport event", || {
-            debug!(self.logger, "Transport event contents: {event:?}.");
+        debug_span!("Processing incoming transport event").in_scope(|| {
+            debug!("Transport event contents: {event:?}.");
             match event {
                 TransportEvent::TextMessage(_) | TransportEvent::BinaryMessage(_) => {
                     let disposition = (self.processor)(event);
-                    debug!(self.logger, "Disposition: {disposition:?}");
+                    debug!("Disposition: {disposition:?}");
                     match disposition {
                         Disposition::HandleReply { id, reply } => self.process_reply(id, reply),
                         Disposition::EmitEvent { event } => self.emit_event(event),
@@ -159,10 +159,10 @@ where
     where
         F: FnOnce(Reply) -> FallibleResult<R>,
     {
-        debug!(self.logger, "Making a new RPC call", || {
+        debug_span!("Making a new RPC call").in_scope(|| {
             let id = message.id();
             let ret = self.ongoing_calls.open_new_request(id, f);
-            debug!(self.logger, "Sending message {message:?}");
+            debug!("Sending message {message:?}");
             let sending_result = message.send(self.transport.as_mut());
             if sending_result.is_err() {
                 // If we failed to send the request, it should be immediately removed.

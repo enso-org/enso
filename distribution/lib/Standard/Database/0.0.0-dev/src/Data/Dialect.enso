@@ -1,12 +1,15 @@
 from Standard.Base import all
-
 import Standard.Base.Error.Common as Errors
+
 from Standard.Table import Aggregate_Column
-from Standard.Database.Data.SQL import Statement, SQL_Type
-import Standard.Database.Internal.IR
-import Standard.Database.Internal.Postgres.Postgres_Dialect
-import Standard.Database.Internal.Redshift.Redshift_Dialect
-import Standard.Database.Internal.SQLite.SQLite_Dialect
+
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.Postgres.Postgres_Dialect
+import project.Internal.Redshift.Redshift_Dialect
+import project.Internal.SQLite.SQLite_Dialect
 
 ## PRIVATE
 
@@ -23,7 +26,7 @@ type Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> Statement
+    generate_sql : Query -> SQL_Statement
     generate_sql self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -39,7 +42,7 @@ type Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self = Errors.unimplemented "This is an interface only."
 
 ## PRIVATE

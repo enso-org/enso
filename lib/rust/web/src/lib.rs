@@ -13,6 +13,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -454,7 +455,7 @@ ops! { WindowOps for Window
             f: &Closure<dyn FnMut(f64)>,
         ) -> Result<i32, JsValue>;
         fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
-        fn cancel_animation_frame_or_panic(&self, id: i32);
+        fn cancel_animation_frame_or_warn(&self, id: i32);
         fn performance_or_panic(&self) -> Performance;
     }
 
@@ -471,8 +472,10 @@ ops! { WindowOps for Window
             self.request_animation_frame_with_closure(f).unwrap()
         }
 
-        fn cancel_animation_frame_or_panic(&self, id: i32) {
-            self.cancel_animation_frame(id).unwrap();
+        fn cancel_animation_frame_or_warn(&self, id: i32) {
+            self.cancel_animation_frame(id).unwrap_or_else(|err| {
+                tracing::error!("Error when canceling animation frame: {err:?}");
+            });
         }
 
         fn performance_or_panic(&self) -> Performance {
@@ -895,9 +898,14 @@ pub fn simulate_sleep(duration: f64) {
 // =============
 
 /// Enables forwarding panic messages to `console.error`.
+#[cfg(target_arch = "wasm32")]
 pub fn forward_panic_hook_to_console() {
     std::panic::set_hook(Box::new(report_panic))
 }
+
+/// Enables forwarding panic messages to `console.error`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn forward_panic_hook_to_console() {}
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {
@@ -907,11 +915,6 @@ fn report_panic(info: &std::panic::PanicInfo) {
         api.error(&msg);
     }
     web_sys::console::error_1(&msg.into());
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn report_panic(info: &std::panic::PanicInfo) {
-    eprintln!("{}", info);
 }
 
 

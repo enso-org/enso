@@ -163,7 +163,7 @@ where
 {
     fn new_wrapping(app: &Application, grid: InnerGridView) -> Self {
         use frp::io::keyboard::ArrowDirection as Direction;
-        let highlights = highlight::shape::View::new(Logger::new("highlights"));
+        let highlights = highlight::shape::View::new();
         let header_highlights = Immutable(None);
         let selection_handler = highlight::SelectionHandler::new_connected(app, &grid);
         let hover_handler = highlight::HoverHandler::new_connected(app, &grid);
@@ -216,7 +216,7 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, He
     /// Create new Selectable Grid View With Headers instance.
     pub fn new(app: &Application) -> Self {
         let mut this = Self::new_wrapping(app, header::GridView::<E, HeaderEntry>::new(app));
-        let header_highlights = highlight::shape::View::new(Logger::new("header_highlights"));
+        let header_highlights = highlight::shape::View::new();
         this.grid.add_child(&header_highlights);
         this.selection_handler.connect_with_header_shape(&header_highlights);
         this.hover_handler.connect_with_header_shape(&header_highlights);
@@ -331,7 +331,7 @@ mod tests {
 
         fn new(_: &Application, _: Option<&Layer>) -> Self {
             let frp = EntryFrp::<Self>::new();
-            let display_object = display::object::Instance::new(Logger::new("TestEntry"));
+            let display_object = display::object::Instance::new();
             let network = frp.network();
             let input = &frp.private().input;
             let out = &frp.private().output;

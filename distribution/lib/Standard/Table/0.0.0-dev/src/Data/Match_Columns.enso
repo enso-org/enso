@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Data.Match_Columns.Match_Columns import all
-from project.Data.Match_Columns.Match_Columns export all
-
 ## Specifies how to join columns in the table to existing data.
 type Match_Columns
     ## Columns are matched by Name against an existing file.

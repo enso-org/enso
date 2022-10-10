@@ -2,6 +2,7 @@
 
 use crate::language_server::*;
 
+use enso_text::Utf16CodeUnit;
 use strum_macros::IntoStaticStr;
 
 
@@ -480,17 +481,17 @@ pub struct Position {
     pub character: usize,
 }
 
-impls! { From + &From <enso_text::Location> for Position { |location|
+impls! { From + &From <enso_text::Location<Utf16CodeUnit>> for Position { |location|
     Position {
-        line: location.line.as_usize(),
-        character: location.column.as_usize(),
+        line: location.line.value,
+        character: location.offset.value,
     }
 }}
 
-impls! { From + &From <Position> for enso_text::Location { |position|
+impls! { From + &From <Position> for enso_text::Location<Utf16CodeUnit> { |position|
     enso_text::Location {
         line: position.line.into(),
-        column: position.character.into(),
+        offset: position.character.into(),
     }
 }}
 
@@ -508,14 +509,14 @@ pub struct TextRange {
     pub end:   Position,
 }
 
-impls! { From + &From <enso_text::Range<enso_text::Location>> for TextRange { |range|
+impls! { From + &From <enso_text::Range<enso_text::Location<Utf16CodeUnit>>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location> { |range|
+impls! { From + &From <TextRange> for enso_text::Range<enso_text::Location<Utf16CodeUnit>> { |range|
     enso_text::Range::new(range.start.into(), range.end.into())
 }}
 
@@ -542,12 +543,14 @@ impl TextEdit {
     /// Example:
     /// ```
     /// # use engine_protocol::language_server::{TextEdit, Position, TextRange};
+    /// // Note that 🌊 has two UTF-16 code units.
     /// let source = "\n333<->🌊12345\n";
     /// let target = "\n333x🔥12345\n";
+    /// let expected_removed_len = "<->🌊".encode_utf16().count();
     /// let diff = TextEdit::from_prefix_postfix_differences(source, target);
     /// let edit_range = TextRange {
     ///     start: Position { line: 1, character: 3 },
-    ///     end:   Position { line: 1, character: 7 },
+    ///     end:   Position { line: 1, character: 3 + expected_removed_len },
     /// };
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "x🔥".to_string() });
     ///
@@ -570,25 +573,31 @@ impl TextEdit {
     /// assert_eq!(diff, TextEdit { range: edit_range, text: "".to_string() });
     /// ```
     pub fn from_prefix_postfix_differences(
-        source: impl Into<enso_text::Text>,
-        target: impl Into<enso_text::Text>,
+        source: impl Into<enso_text::Rope>,
+        target: impl Into<enso_text::Rope>,
     ) -> TextEdit {
-        use enso_text::unit::*;
+        use enso_text::index::*;
         use enso_text::Range;
 
         let source = source.into();
         let target = target.into();
+        let source_len = source.len().to_diff();
+        let target_len = target.len().to_diff();
         let common_lengths = source.common_prefix_and_suffix(&target);
 
-        let source_start_byte = common_lengths.prefix;
-        let source_end_byte = Bytes::from(source.len()) - common_lengths.suffix;
+        let source_start_byte = 0.byte() + common_lengths.prefix;
+        let source_end_byte = 0.byte() + source_len - common_lengths.suffix;
 
-        let source_start_position = source.location_of_byte_offset_snapped(source_start_byte);
-        let source_end_position = source.location_of_byte_offset_snapped(source_end_byte);
+        let source_start_position = source.offset_to_location_snapped(source_start_byte);
+        let source_start_position =
+            source.utf16_code_unit_location_of_location(source_start_position);
+        let source_end_position = source.offset_to_location_snapped(source_end_byte);
+        let source_end_position = source.utf16_code_unit_location_of_location(source_end_position);
         let source_text_range = Range::new(source_start_position, source_end_position);
 
-        let target_len: Bytes = target.len().into();
-        let target_range = common_lengths.prefix..(target_len - common_lengths.suffix);
+        let start = 0.byte() + common_lengths.prefix;
+        let end = 0.byte() + target_len - common_lengths.suffix;
+        let target_range = start..end;
         let target_text = target.sub(target_range).to_string();
 
         TextEdit { range: source_text_range.into(), text: target_text }
@@ -876,14 +885,14 @@ pub struct SuggestionEntryScope {
     pub end:   Position,
 }
 
-impls! { From + &From <RangeInclusive<enso_text::Location>> for SuggestionEntryScope { |range|
+impls! { From + &From <RangeInclusive<enso_text::Location<Utf16CodeUnit>>> for SuggestionEntryScope { |range|
     SuggestionEntryScope {
         start : range.start().into(),
         end   : range.end().into(),
     }
 }}
 
-impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location> { |this|
+impls! { From + &From <SuggestionEntryScope> for RangeInclusive<enso_text::Location<Utf16CodeUnit>> { |this|
     this.start.into()..=this.end.into()
 }}
 

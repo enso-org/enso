@@ -35,7 +35,6 @@ pub use searcher::Searcher;
 
 #[derive(Debug)]
 struct Model {
-    logger:          Logger,
     current_project: RefCell<Option<Project>>,
     controller:      controller::Ide,
     view:            view::root::View,
@@ -76,7 +75,7 @@ impl Model {
                 }
                 Err(err) => {
                     let err_msg = format!("Failed to initialize project: {}", err);
-                    error!(self.logger, "{err_msg}");
+                    error!("{err_msg}");
                     self.controller.status_notifications().publish_event(err_msg);
                 }
             }
@@ -87,15 +86,14 @@ impl Model {
     /// a second one for opening the project.
     #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.open_project_by_name(project_name).await {
-                    error!(logger, "Cannot open project by name: {err}.");
+                    error!("Cannot open project by name: {err}.");
                 }
             } else {
-                warning!(logger, "Project opening failed: no ProjectManagingAPI available.");
+                warn!("Project opening failed: no ProjectManagingAPI available.");
             }
         });
     }
@@ -104,23 +102,19 @@ impl Model {
     /// Engine. It makes a call to Project Manager.
     #[profile(Task)]
     fn create_project(&self, template: Option<&str>) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         let template = template.map(ToOwned::to_owned);
         crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.create_new_project(template.clone()).await {
                     if let Some(template) = template {
-                        error!(
-                            logger,
-                            "Could not create new project from template {template}: {err}."
-                        );
+                        error!("Could not create new project from template {template}: {err}.");
                     } else {
-                        error!(logger, "Could not create new project: {err}.");
+                        error!("Could not create new project: {err}.");
                     }
                 }
             } else {
-                warning!(logger, "Project creation failed: no ProjectManagingAPI available.");
+                warn!("Project creation failed: no ProjectManagingAPI available.");
             }
         });
     }
@@ -148,9 +142,8 @@ impl Presenter {
     /// project will be displayed (if any).
     #[profile(Task)]
     pub fn new(controller: controller::Ide, view: ide_view::root::View) -> Self {
-        let logger = Logger::new("Presenter");
         let current_project = default();
-        let model = Rc::new(Model { logger, controller, view, current_project });
+        let model = Rc::new(Model { controller, view, current_project });
 
         frp::new_network! { network
             let welcome_view_frp = &model.view.welcome_screen().frp;
@@ -179,7 +172,6 @@ impl Presenter {
         use controller::ide::BackgroundTaskHandle as ControllerHandle;
         use ide_view::status_bar::process::Id as ViewHandle;
 
-        let logger = self.model.logger.clone_ref();
         let process_map = SharedHashMap::<ControllerHandle, ViewHandle>::new();
         let status_bar = self.model.view.status_bar().clone_ref();
         let status_notifications = self.model.controller.status_notifications().subscribe();
@@ -198,7 +190,7 @@ impl Presenter {
                     if let Some(view_handle) = process_map.remove(&handle) {
                         status_bar.finish_process(view_handle);
                     } else {
-                        warning!(logger, "Controllers finished process not displayed in view");
+                        warn!("Controllers finished process not displayed in view");
                     }
                 }
             }
@@ -228,7 +220,7 @@ impl Presenter {
                     self.model.view.welcome_screen().frp.set_projects_list(names);
                 }
                 Err(err) => {
-                    error!(self.model.logger, "Unable to get list of projects: {err}.");
+                    error!("Unable to get list of projects: {err}.");
                 }
             }
         }

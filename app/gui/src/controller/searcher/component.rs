@@ -338,7 +338,7 @@ pub(crate) mod tests {
         }
     }
 
-    pub fn mock_suggestion_db(logger: impl AnyLogger) -> model::SuggestionDatabase {
+    pub fn mock_suggestion_db() -> model::SuggestionDatabase {
         let top_module_1 = mock_module("test.Test.TopModule1");
         let top_module_2 = mock_module("test.Test.TopModule2");
         let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
@@ -364,7 +364,7 @@ pub(crate) mod tests {
             fun6,
         ];
 
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        let suggestion_db = model::SuggestionDatabase::new_empty();
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry)
         }
@@ -404,13 +404,12 @@ pub(crate) mod tests {
 
     #[test]
     fn filtering_component_list() {
-        let logger = Logger::new("test::update_list_after_filtering_pattern_change");
         let top_module = mock_module("test.Test.TopModule");
         let sub_module = mock_module("test.Test.TopModule.SubModule");
         let fun1 = mock_function(&top_module.module, "fun1");
         let funx2 = mock_function(&sub_module.module, "funx1");
         let all_entries = [&top_module, &sub_module, &fun1, &funx2];
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        let suggestion_db = model::SuggestionDatabase::new_empty();
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry.clone())
         }
@@ -459,8 +458,7 @@ pub(crate) mod tests {
     #[test]
     fn component_list_modules_tree() {
         // Create a components list with sample data.
-        let logger = Logger::new("test::component_list_modules_tree");
-        let suggestion_db = mock_suggestion_db(logger);
+        let suggestion_db = mock_suggestion_db();
         let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..11);
         let list = builder.build();

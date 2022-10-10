@@ -347,7 +347,7 @@ type Number
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
     is_nan self = case self of
-        Decimal -> Double.isNaN self
+        _ : Decimal -> Double.isNaN self
         _ -> False
 
     ## Returns the sign of the number.

@@ -323,8 +323,7 @@ mod tests {
 
     #[test]
     fn building_component_list() {
-        let logger = Logger::new("tests::module_groups_in_component_list");
-        let suggestion_db = mock_suggestion_db(logger);
+        let suggestion_db = mock_suggestion_db();
         let mut builder = List::new().with_local_scope_module_id(0);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
@@ -429,8 +428,7 @@ mod tests {
     /// processed as described in the docs of the [`List::build`] method.
     #[test]
     fn building_component_list_with_favorites() {
-        let logger = Logger::new("tests::building_component_list_with_favorites");
-        let db = mock_suggestion_db(logger);
+        let db = mock_suggestion_db();
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
         let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
@@ -493,8 +491,7 @@ mod tests {
     /// inserted into an existing favorites group.
     #[test]
     fn building_component_list_with_virtual_component_in_existing_favorites_group() {
-        let logger = Logger::new("tests::virtual_component_in_existing_favorites_group");
-        let db = mock_suggestion_db(logger);
+        let db = mock_suggestion_db();
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();
@@ -521,8 +518,7 @@ mod tests {
     /// inserted into a new favorites group.
     #[test]
     fn building_component_list_with_virtual_component_in_new_favorites_group() {
-        let logger = Logger::new("tests::virtual_component_in_new_favorites_group");
-        let db = mock_suggestion_db(logger);
+        let db = mock_suggestion_db();
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();

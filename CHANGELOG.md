@@ -205,6 +205,8 @@
   `add_work_days` which allows to shift a date by a number of work days.][3726]
 - [Added `query` and `read` functions to Database connections.][3727]
 - [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
+- [Replaced `Table.where` with a new API relying on `Table.filter`.][3750]
+- [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -328,6 +330,8 @@
 [3727]: https://github.com/enso-org/enso/pull/3727
 [3733]: https://github.com/enso-org/enso/pull/3733
 [3749]: https://github.com/enso-org/enso/pull/3749
+[3750]: https://github.com/enso-org/enso/pull/3750
+[3770]: https://github.com/enso-org/enso/pull/3770
 
 #### Enso Compiler
 
@@ -373,9 +377,10 @@
 - [main = "Hello World!" is valid Enso sample][3696]
 - [Invalidate module's IR cache if imported module changed][3703]
 - [Don't rename imported Main module that only imports names][3710]
-- [Distinguish static and instance methods][3740]
 - [Notify node status to the IDE][3729]
 - [Make instance methods callable like statics][3764]
+- [Distinguish static and instance methods][3740]
+- [By-type pattern matching][3742]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -427,6 +432,7 @@
 [3729]: https://github.com/enso-org/enso/pull/3729
 [3740]: https://github.com/enso-org/enso/pull/3740
 [3764]: https://github.com/enso-org/enso/pull/3764
+[3742]: https://github.com/enso-org/enso/pull/3742
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

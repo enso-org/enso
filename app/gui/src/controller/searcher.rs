@@ -22,7 +22,9 @@ use double_representation::node::NodeInfo;
 use double_representation::project;
 use double_representation::tp;
 use engine_protocol::language_server;
+use enso_text::Byte;
 use enso_text::Location;
+use enso_text::Rope;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -505,7 +507,7 @@ pub struct Searcher {
     language_server: Rc<language_server::Connection>,
     ide: controller::Ide,
     this_arg: Rc<Option<ThisNode>>,
-    position_in_code: Immutable<Location>,
+    position_in_code: Immutable<Location<Byte>>,
     project: model::Project,
     /// A component list builder with favorites prepopulated with
     /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
@@ -558,8 +560,8 @@ impl Searcher {
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
-        let module_repr: enso_text::Text = module_ast.repr().into();
-        let position = module_repr.location_of_byte_offset_snapped(def_span.end);
+        let module_repr: Rope = module_ast.repr().into();
+        let position = module_repr.offset_to_location_snapped(def_span.end);
         let this_arg = Rc::new(match mode {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
@@ -689,13 +691,13 @@ impl Searcher {
         self.invalidate_fragments_added_by_picking();
         let expression_changed = old_expr != new_expr;
         if expression_changed {
-            debug!(self.logger, "Reloading list.");
+            debug!("Reloading list.");
             self.reload_list();
         } else {
             let data = self.data.borrow();
             data.components.update_filtering(&data.input.pattern);
             if let Actions::Loaded { list } = &data.actions {
-                debug!(self.logger, "Update filtering.");
+                debug!("Update filtering.");
                 list.update_filtering(&data.input.pattern);
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
@@ -847,7 +849,6 @@ impl Searcher {
                 match self.ide.manage_projects() {
                     Ok(_) => {
                         let ide = self.ide.clone_ref();
-                        let logger = self.logger.clone_ref();
                         executor::global::spawn(async move {
                             // We checked that manage_projects returns Some just a moment ago, so
                             // unwrapping is safe.
@@ -859,7 +860,7 @@ impl Searcher {
                                     manage_projects.open_project(*id),
                             };
                             if let Err(err) = result.await {
-                                error!(logger, "Error when creating new project: {err}");
+                                error!("Error when creating new project: {err}");
                             }
                         });
                         Ok(None)
@@ -1098,7 +1099,6 @@ impl Searcher {
     #[profile(Debug)]
     fn this_arg_type_for_next_completion(&self) -> impl Future<Output = Option<String>> {
         let next_id = self.data.borrow().input.next_completion_id();
-        let logger = self.logger.clone_ref();
         let graph = self.graph.clone_ref();
         let this = self.this_arg.clone_ref();
         async move {
@@ -1108,7 +1108,7 @@ impl Searcher {
             }
             let ThisNode { id, .. } = this.deref().as_ref()?;
             let opt_type = graph.expression_type(*id).await.map(Into::into);
-            opt_type.map_none(move || error!(logger, "Failed to obtain type for this node."))
+            opt_type.map_none(move || error!("Failed to obtain type for this node."))
         }
     }
 
@@ -1141,7 +1141,7 @@ impl Searcher {
     ) {
         let ls = self.language_server.clone_ref();
         let graph = self.graph.graph();
-        let position = self.position_in_code.deref().into();
+        let position = self.my_utf16_location().span.into();
         let this = self.clone_ref();
         let return_types = return_types.into_iter().collect_vec();
         let return_types_for_engine = if return_types.is_empty() {
@@ -1151,9 +1151,9 @@ impl Searcher {
         };
         executor::global::spawn(async move {
             let this_type = this_type.await;
-            info!(this.logger, "Requesting new suggestion list. Type of `self` is {this_type:?}.");
+            info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let requests = return_types_for_engine.into_iter().map(|return_type| {
-                info!(this.logger, "Requesting suggestions for returnType {return_type:?}.");
+                info!("Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
                 ls.completion(file, &position, &this_type, &return_type, &tags)
             });
@@ -1161,7 +1161,7 @@ impl Searcher {
                 futures::future::join_all(requests).await.into_iter().collect();
             match responses {
                 Ok(responses) => {
-                    info!(this.logger, "Received suggestions from Language Server.");
+                    info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
@@ -1171,7 +1171,7 @@ impl Searcher {
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
-                    error!(this.logger, "{msg}: {err}");
+                    error!("{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
@@ -1218,7 +1218,6 @@ impl Searcher {
                     .map(|entry| Action::Suggestion(action::Suggestion::FromDatabase(entry)))
                     .handle_err(|e| {
                         error!(
-                            self.logger,
                             "Response provided a suggestion ID that cannot be \
                         resolved: {e}."
                         )
@@ -1243,6 +1242,25 @@ impl Searcher {
         builder.build()
     }
 
+    /// Convert a location within a current module (i.e. module being edited) to a location indexed
+    /// by UTF-16 code units. This enables Language Server protocol compatibility.
+    fn location_to_utf16(
+        &self,
+        location: Location<Byte>,
+    ) -> suggestion_database::entry::ModuleSpan {
+        let module: Rope = self.graph.graph().module.ast().repr().into();
+        suggestion_database::entry::ModuleSpan {
+            module: self.module_qualified_name(),
+            span:   module.utf16_code_unit_location_of_location(location),
+        }
+    }
+
+    /// Convert a position of the searcher in the code to an Engine-compatible UTF-16 location.
+    fn my_utf16_location(&self) -> suggestion_database::entry::ModuleSpan {
+        let location = self.position_in_code.deref().into();
+        self.location_to_utf16(location)
+    }
+
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
         let opt_result = || {
             let call_ast = self.data.borrow().input.expression.as_ref()?.func.clone_ref();
@@ -1253,9 +1271,8 @@ impl Searcher {
                 Some(entry.into_iter().map(action::Suggestion::FromDatabase).collect())
             } else {
                 let name = &call.function_name;
-                let module = self.module_qualified_name();
-                let location = *self.position_in_code;
-                let entries = self.database.lookup_by_name_and_location(name, &module, location);
+                let location = self.my_utf16_location();
+                let entries = self.database.lookup_at(name, &location);
                 Some(entries.into_iter().map(action::Suggestion::FromDatabase).collect())
             }
         };
@@ -1265,11 +1282,10 @@ impl Searcher {
     /// For the simple function call checks if the function is called on the module (if it can be
     /// easily determined) and returns the module's qualified name if it is.
     fn module_whose_method_is_called(&self, call: &SimpleFunctionCall) -> Option<QualifiedName> {
-        let position = *self.position_in_code;
+        let location = self.my_utf16_location();
         let this_name = ast::identifier::name(call.this_argument.as_ref()?)?;
-        let module_name = self.module_qualified_name();
-        let matching_locals =
-            self.database.lookup_locals_by_name_and_location(this_name, &module_name, position);
+        let matching_locals = self.database.lookup_locals_at(this_name, &location);
+        let module_name = location.module;
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
             if this_name == module_name.name().deref() {
@@ -1634,12 +1650,12 @@ pub mod test {
 
     impl MockData {
         fn change_main_body(&mut self, lines: &[&str]) {
-            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(lines)).into();
-            let location = code.location_of_text_end();
+            let code: Rope = crate::test::mock::main_from_lines(lines).into();
+            let location = code.last_line_end_location();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
-            self.graph.graph.code = code.into();
-            self.code_location = location.into();
+            self.graph.graph.code = (&code).into();
+            self.code_location = code.utf16_code_unit_location_of_location(location).into();
         }
 
         fn expect_completion(
@@ -1684,8 +1700,10 @@ pub mod test {
             let mut client = language_server::MockClient::default();
             client.require_all_calls();
             client_setup(&mut data, &mut client);
-            let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
-            let code_range = enso_text::Location::default()..=end_of_code;
+            let code = enso_text::Rope::from(&data.graph.module.code);
+            let start_of_code = enso_text::Location::default();
+            let end_of_code = code.location_of_text_end_utf16_code_unit();
+            let code_range = start_of_code..=end_of_code;
             let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
@@ -1694,7 +1712,7 @@ pub mod test {
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
-            let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
+            let database = suggestion_database_with_mock_entries(module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1724,7 +1742,7 @@ pub mod test {
                 mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
-                position_in_code: Immutable(end_of_code),
+                position_in_code: Immutable(code.last_line_end_location()),
                 project: project.clone_ref(),
                 list_builder_with_favorites: Rc::new(list_builder_with_favs),
                 node_edit_guard: node_metadata_guard,
@@ -1756,11 +1774,10 @@ pub mod test {
     }
 
     fn suggestion_database_with_mock_entries(
-        logger: &Logger,
         module_name: QualifiedName,
         scope: Scope,
     ) -> Rc<SuggestionDatabase> {
-        let database = Rc::new(SuggestionDatabase::new_empty(logger));
+        let database = Rc::new(SuggestionDatabase::new_empty());
         let entry1 = model::suggestion_database::Entry {
             name: "testFunction1".to_string(),
             kind: Kind::Function,

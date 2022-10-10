@@ -47,6 +47,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -411,8 +412,13 @@ ensogl::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, app: &Application, model: &Model, style: &StyleWatchFrp) {
-        let network = &api.network;
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        app: &Application,
+        model: &Model,
+        style: &StyleWatchFrp,
+    ) {
         let mouse_position = app.display.default_scene.mouse.frp.position.clone_ref();
         let input = &api.input;
         let out = &api.output;
@@ -461,16 +467,16 @@ impl component::Frp<Model> for Frp {
             model.header.set_font <+ header_text_font;
             model.selected_header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
-            model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
-            model.selected_header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
+            model.header.set_property_default <+ header_text_size.map(|v| text::Size(*v)).ref_into_some();
+            model.selected_header.set_property_default <+ header_text_size.map(|v| text::Size(*v)).ref_into_some();
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            model.header.set_default_color <+ colors.header_text;
-            model.selected_header.set_default_color <+ all(&colors.selected.header_text,&init)._0();
+            model.header.set_property_default <+ colors.header_text.ref_into_some();
+            model.selected_header.set_property_default <+ all(&colors.selected.header_text,&init)._0().ref_into_some();
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
             eval colors.selected.background((c) model.selection_background.color.set(c.into()));
@@ -639,12 +645,12 @@ impl LayersInner {
 pub struct Model {
     display_object: display::object::Instance,
     entries: list_view::ListView<Entry>,
-    header: text::Area,
+    header: text::Text,
     header_background: header_background::View,
     header_text: Rc<RefCell<String>>,
     header_overlay: header_overlay::View,
     background: background::View,
-    selected_header: text::Area,
+    selected_header: text::Text,
     selection_header_background: selection_header_background::View,
     selection_background: background::View,
 }
@@ -660,16 +666,16 @@ impl component::Model for Model {
         "ComponentGroup"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let header_text = default();
-        let display_object = display::object::Instance::new(&logger);
-        let header_overlay = header_overlay::View::new(&logger);
-        let background = background::View::new(&logger);
-        let selection_background = background::View::new(&logger);
-        let header_background = header_background::View::new(&logger);
-        let selection_header_background = selection_header_background::View::new(&logger);
-        let header = text::Area::new(app);
-        let selected_header = text::Area::new(app);
+        let display_object = display::object::Instance::new();
+        let header_overlay = header_overlay::View::new();
+        let background = background::View::new();
+        let selection_background = background::View::new();
+        let header_background = header_background::View::new();
+        let selection_header_background = selection_header_background::View::new();
+        let header = text::Text::new(app);
+        let selected_header = text::Text::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
@@ -785,9 +791,8 @@ impl Model {
         let header_padding_left = header_geometry.padding_left;
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
-        let header_text = self.header_text.borrow().clone();
-        self.header.set_content_truncated(header_text.clone(), max_text_width);
-        self.selected_header.set_content_truncated(header_text, max_text_width);
+        self.header.set_view_width(max_text_width);
+        self.selected_header.set_view_width(max_text_width);
     }
 
     fn selection_position(

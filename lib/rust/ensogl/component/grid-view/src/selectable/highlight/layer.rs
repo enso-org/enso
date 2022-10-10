@@ -51,7 +51,7 @@ impl<InnerGridView> Handler<InnerGridView> {
     where
         InnerGridView: AsRef<crate::GridView<E>> + display::Object,
     {
-        let shape = shape::View::new(Logger::new("HighlightMask"));
+        let shape = shape::View::new();
         let entries = parent_layer.create_sublayer();
         let text = parent_layer.create_sublayer();
         let header = default();

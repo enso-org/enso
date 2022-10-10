@@ -5,6 +5,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -107,7 +108,7 @@ fn init(app: &Application) {
 
     app.views.register::<root::View>();
     app.views.register::<project::View>();
-    app.views.register::<text::Area>();
+    app.views.register::<text::Text>();
     app.views.register::<GraphEditor>();
     let root_view = app.new_view::<root::View>();
     let project_view = root_view.project();

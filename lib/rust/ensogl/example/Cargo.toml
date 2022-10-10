@@ -14,7 +14,6 @@ ensogl-example-custom-shape-system = { path = "custom-shape-system" }
 ensogl-example-dom-symbols = { path = "dom-symbols" }
 ensogl-example-drop-manager = { path = "drop-manager" }
 ensogl-example-easing-animator = { path = "easing-animator" }
-ensogl-example-glyph-system = { path = "glyph-system" }
 ensogl-example-list-view = { path = "list-view" }
 ensogl-example-grid-view = { path = "grid-view" }
 ensogl-example-mouse-events = { path = "mouse-events" }

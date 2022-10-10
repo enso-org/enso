@@ -25,4 +25,6 @@ spec =
             pattern = "http://example.com"
             Regex.escape pattern . should_equal "\Qhttp://example.com\E"
 
+    ## TODO: Missing tests for No_Such_Group_Error
+
 main = Test.Suite.run_main spec

@@ -1,0 +1,46 @@
+from Standard.Base import all
+
+import project.Data.SQL_Type.SQL_Type
+
+## PRIVATE
+
+   The internal representation of an SQL expression which can be a column
+   reference, an interpolated constant or an operation that combines other
+   expressions.
+type Expression
+    ## PRIVATE
+
+       The internal representation of an SQL expression that gets a value from a
+       column.
+
+       Arguments:
+       - origin: the name of the entity (table or sub-query) that this column
+         originates from, it corresponds to the `alias` field in `from_spec`.
+       - name: the name of the column directly in the table or its alias in a
+         sub-query.
+    Column (origin : Text) (name : Text)
+
+    ## PRIVATE
+
+       The internal representation of an SQL expression which is a constant to
+       be interpolated when building the query.
+
+       Arguments:
+       - sql_type: The SQL type that this object is going to be serialized to.
+         It is usually inferred from the expression's context.
+       - value: the value to be interpolated; it should be a simple Number, Text
+         or other types that are serializable for JDBC.
+    Constant (sql_type : SQL_Type) (value : Any)
+
+    ## PRIVATE
+
+       The internal representation of an SQL expression built from an operation
+       and sub-expressions.
+
+       Arguments:
+       - kind: the name of the operation, these can be both functions or infix
+         operators, the actual implementation is determined by a specific
+         dialect.
+       - expressions: a list of expressions which are arguments to the operation
+         different operations support different amounts of arguments.
+    Operation (kind : Text) (expressions : Vector Expression)

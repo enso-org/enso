@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -122,7 +123,7 @@ struct Model {
     icon:         arrow::View,
     icon_overlay: chooser_hover_area::View,
 
-    label:          text::Area,
+    label:          text::Text,
     selection_menu: list_view::ListView<Entry>,
 
     // `SingleMaskedProvider` allows us to hide the selected element.
@@ -131,12 +132,11 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("drop_down_menu");
-        let display_object = display::object::Instance::new(&logger);
-        let icon = arrow::View::new(&logger);
-        let icon_overlay = chooser_hover_area::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let icon = arrow::View::new();
+        let icon_overlay = chooser_hover_area::View::new();
         let selection_menu = list_view::ListView::new(app);
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let content = default();
 
         Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()
@@ -376,7 +376,7 @@ impl DropDownMenu {
         // shape system (#795)
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
-        model.label.set_default_color(text_color);
+        model.label.set_property_default(text_color);
 
         self
     }

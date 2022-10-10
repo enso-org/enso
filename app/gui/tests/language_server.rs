@@ -305,9 +305,8 @@ async fn file_events() {
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
 async fn setup_ide() -> controller::Ide {
-    let logger = Logger::new("Test");
     let config = enso_gui::config::Startup::default();
-    info!(logger, "Setting up the project.");
+    info!("Setting up the project.");
     let initializer = enso_gui::Initializer::new(config);
     let error_msg = "Couldn't open project.";
     initializer.initialize_ide_controller().await.expect(error_msg)
@@ -317,18 +316,17 @@ async fn setup_ide() -> controller::Ide {
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let logger = Logger::new("Test");
     let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
-    info!(logger, "Got project: {project:?}");
+    info!("Got project: {project:?}");
     // Edit file using the text protocol
     let path = Path::new(project.json_rpc().project_root().id(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
     let written = project.json_rpc().write_file(&path, &contents).await.unwrap();
-    info!(logger, "Written: {written:?}");
+    info!("Written: {written:?}");
     let read_back = project.json_rpc().read_file(&path).await.unwrap();
-    info!(logger, "Read back: {read_back:?}");
+    info!("Read back: {read_back:?}");
     assert_eq!(contents, read_back.contents);
 
     // Edit file using the binary protocol.
@@ -346,10 +344,9 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let logger = Logger::new("Test");
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
-    info!(logger, "Got project: {project:?}");
+    info!("Got project: {project:?}");
 
     use controller::project::MAIN_DEFINITION_NAME;
     use ensogl::system::web::sleep;
@@ -359,7 +356,7 @@ async fn binary_visualization_updates_test_hlp() {
     let method = module_path.method_pointer(project.qualified_name(), MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
-    info!(logger, "Got module: {module:?}");
+    info!("Got module: {module:?}");
     let graph_executed = controller::ExecutedGraph::new(&logger, project, method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
@@ -368,9 +365,9 @@ async fn binary_visualization_updates_test_hlp() {
     // We must yield control for a moment, so the text edit is applied.
     sleep(Duration::from_millis(1)).await;
 
-    info!(logger, "Main graph: {graph_executed:?}");
-    info!(logger, "The code is: {module.ast().repr():?}");
-    info!(logger, "Main node: {the_node:?} with {the_node.expression().repr()}");
+    info!("Main graph: {graph_executed:?}");
+    info!("The code is: {:?}", module.ast().repr());
+    info!("Main node: {the_node:?} with {}", the_node.expression().repr());
 
     let method_pointer = QualifiedMethodPointer::module_method(
         module_qualified_name,
@@ -378,7 +375,7 @@ async fn binary_visualization_updates_test_hlp() {
     );
     let visualization = Visualization::new(the_node.id(), method_pointer, vec![]);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
-    info!(logger, "Attached the visualization {visualization.id}");
+    info!("Attached the visualization {}", visualization.id);
     let mut stream = stream.boxed_local();
     let first_event = stream.next().await.unwrap(); // await update
     assert_eq!(first_event.as_ref(), "30".as_bytes());
