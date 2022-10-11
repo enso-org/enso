@@ -4,8 +4,7 @@ import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Time_Error_Data
-from Standard.Base.Error.Common import unimplemented
+from Standard.Base.Error.Common import Time_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField

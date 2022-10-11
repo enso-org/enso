@@ -209,7 +209,7 @@
 - [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
 - [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
   `Not_Like`.][3775]
-- [Reimplemented `Duration` as a built-in type][3759]
+- [Reimplemented `Duration` as a built-in type.][3759]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
