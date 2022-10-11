@@ -24,6 +24,7 @@ import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
 import org.graalvm.polyglot.Source;
 import scala.Function1;
+import scala.collection.immutable.List;
 
 class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final File root;
@@ -133,7 +134,15 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                     }
                     txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
                   }
-                  return txt;
+                  var sb = new StringBuilder();
+                  for (String l : txt.split("\n")) {
+                    final String pref = "IR.Comment.Documentation";
+                    if (l.contains(pref)) {
+                        continue;
+                    }
+                    sb.append(l).append("\n");
+                  }
+                  return sb.toString();
                 };
 
                 var old = filter.apply(oldIr);
@@ -201,23 +210,21 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 return exp.mapExpressions(this);
             }
         }
-        class NoCommentsInBindings implements Function1<IR$Module$Scope$Definition, IR$Module$Scope$Definition> {
+        class NoCommentsInBindings implements Function1<IR$Module$Scope$Definition, Boolean> {
             @Override
-            public IR$Module$Scope$Definition apply(IR$Module$Scope$Definition exp) {
-                if (exp == null) {
-                    return null;
-                }
+            public Boolean apply(IR$Module$Scope$Definition exp) {
                 if (exp instanceof IR$Comment$Documentation) {
-                    return null;
+                    return false;
+                } else {
+                    return true;
                 }
-                return exp;
             }
         }
         var m1 = m.mapExpressions(new NoComments());
         var m2 = m1.copy(
           m1.copy$default$1(),
           m1.copy$default$2(),
-          m1.bindings().mapConserve(new NoCommentsInBindings()),
+          (List<IR$Module$Scope$Definition>) m1.bindings().filter(new NoCommentsInBindings()),
           m1.copy$default$4(),
           m1.copy$default$5(),
           m1.copy$default$6(),
