@@ -126,11 +126,11 @@ pub async fn dispatch_cloud_image_build_action(octocrab: &Octocrab, version: &Ve
         "version": version.to_string(),
     });
     info!("Dispatching the cloud workflow to build the image.");
-    dbg!(octocrab
+    octocrab
         .actions()
         .create_workflow_dispatch("enso-org", "cloud-v2", "build-image.yaml", "main")
         .inputs(input)
         .send()
         .await
-        .context("Failed to dispatch the cloud image build action."))
+        .context("Failed to dispatch the cloud image build action.")
 }

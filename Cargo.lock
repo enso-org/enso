@@ -3793,7 +3793,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.13.0",
+ "base64 0.10.1",
  "bytes 1.1.0",
  "http",
  "httpdate",
@@ -4904,7 +4904,7 @@ dependencies = [
 [[package]]
 name = "octocrab"
 version = "0.17.0"
-source = "git+https://github.com/enso-org/octocrab#6bbc04b927cab3880bddd697911fb56bfa78b69e"
+source = "git+https://github.com/enso-org/octocrab#88f81c840085ce0aa591f9f53d6c62309cac8260"
 dependencies = [
  "arc-swap",
  "async-trait",
