@@ -17,6 +17,7 @@ import org.enso.compiler.EnsoCompiler;
 import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
+import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.syntax.text.AST;
 import org.enso.syntax.text.Shape;
 import org.enso.syntax2.Parser;
@@ -66,7 +67,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
         return FileVisitResult.CONTINUE;
     }
-    
+
     private static Exception newExceptionNoStack(String msg) {
         var ex = new Exception(msg);
         ex.setStackTrace(new StackTraceElement[0]);
@@ -200,7 +201,29 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 return exp.mapExpressions(this);
             }
         }
-        return m.mapExpressions(new NoComments());
+        class NoCommentsInBindings implements Function1<IR$Module$Scope$Definition, IR$Module$Scope$Definition> {
+            @Override
+            public IR$Module$Scope$Definition apply(IR$Module$Scope$Definition exp) {
+                if (exp == null) {
+                    return null;
+                }
+                if (exp instanceof IR$Comment$Documentation) {
+                    return null;
+                }
+                return exp;
+            }
+        }
+        var m1 = m.mapExpressions(new NoComments());
+        var m2 = m1.copy(
+          m1.copy$default$1(),
+          m1.copy$default$2(),
+          m1.bindings().mapConserve(new NoCommentsInBindings()),
+          m1.copy$default$4(),
+          m1.copy$default$5(),
+          m1.copy$default$6(),
+          m1.copy$default$7()
+        );
+        return m2;
     }
 
 }
