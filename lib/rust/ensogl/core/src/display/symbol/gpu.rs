@@ -274,7 +274,7 @@ shared2! { GlobalInstanceIdProvider
 
 /// Attribute scope type. Attributes can be defined in one of the supported scopes and will be
 /// automatically bound to the material definition during shader compilation.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum ScopeType {
     Mesh(mesh::ScopeType),

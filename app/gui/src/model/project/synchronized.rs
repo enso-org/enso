@@ -24,7 +24,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -279,7 +279,7 @@ impl Project {
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
-        let content_roots = ContentRoots::new_from_connection(&logger, &*language_server);
+        let content_roots = ContentRoots::new_from_connection(&logger, language_server);
         let content_roots = Rc::new(content_roots);
         let notifications = notification::Publisher::default();
         let urm = Rc::new(model::undo_redo::Manager::new(&logger));

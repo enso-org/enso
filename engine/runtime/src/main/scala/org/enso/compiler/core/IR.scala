@@ -1455,6 +1455,21 @@ object IR {
                 true // if it's not a function, it has no arguments, therefore no `self`
             }
 
+            def isStaticWrapperForInstanceMethod: Boolean = body match {
+              case function: Function.Lambda =>
+                function.arguments.map(_.name) match {
+                  case IR.Name.Self(_, true, _, _) :: IR.Name.Self(
+                        _,
+                        false,
+                        _,
+                        _
+                      ) :: _ =>
+                    true
+                  case _ => false
+                }
+              case _ => false
+            }
+
           }
 
           /** The definition of a method for a given constructor using sugared

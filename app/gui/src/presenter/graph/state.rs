@@ -717,7 +717,7 @@ impl<'a> ViewChange<'a> {
 mod tests {
     use super::*;
     use engine_protocol::language_server::MethodPointer;
-    use parser::Parser;
+    use parser_scala::Parser;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {
         let parser = Parser::new_or_panic();

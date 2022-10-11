@@ -52,7 +52,7 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 /// Notification about change in the executed graph.
 ///
 /// It may pertain either the state of the graph itself or the notifications from the execution.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// The notification passed from the graph controller.
     Graph(controller::graph::Notification),
@@ -376,7 +376,7 @@ pub mod tests {
     impl MockData {
         pub fn controller(&self) -> Handle {
             let logger = Logger::new("test");
-            let parser = parser::Parser::new_or_panic();
+            let parser = parser_scala::Parser::new_or_panic();
             let repository = Rc::new(model::undo_redo::Repository::new(&logger));
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();

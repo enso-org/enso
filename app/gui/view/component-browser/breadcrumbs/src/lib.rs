@@ -20,13 +20,12 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(option_result_contains)]
-#![feature(derive_default_enum)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
-#![feature(bool_to_option)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -528,7 +527,7 @@ impl ensogl_core::application::View for Breadcrumbs {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
-        (&[(Press, "shift enter", "move_up"), (Press, "ctrl shift enter", "move_down")])
+        [(Press, "shift enter", "move_up"), (Press, "ctrl shift enter", "move_down")]
             .iter()
             .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
             .collect()

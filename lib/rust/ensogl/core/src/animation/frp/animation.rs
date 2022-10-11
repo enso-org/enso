@@ -136,7 +136,8 @@ where mix::Repr<T>: inertia::Value
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 #[allow(non_camel_case_types)]
-pub struct DEPRECATED_Animation<T: mix::Mixable> {
+pub struct DEPRECATED_Animation<T: mix::Mixable>
+where <T as mix::Mixable>::Repr: inertia::Value {
     #[shrinkwrap(main_field)]
     pub simulator: inertia::DynSimulator<T::Repr>,
     pub value:     frp::Stream<T>,

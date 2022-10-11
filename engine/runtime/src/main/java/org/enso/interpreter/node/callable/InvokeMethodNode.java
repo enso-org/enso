@@ -177,7 +177,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode preResolveMethod,
-      @Bind("getPolyglotCallType(self, symbol.getName(), interop, preResolveMethod)")
+      @Bind("getPolyglotCallType(self, symbol, interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
@@ -214,7 +214,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TEXT"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
       })
   Stateful doConvertText(
       VirtualFrame frame,
@@ -242,7 +242,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ARRAY",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ARRAY",
       },
       rewriteOn = AbstractMethodError.class)
   Stateful doConvertArray(
@@ -272,7 +272,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop, methodResolverNode) == CONVERT_TO_ARRAY"
+        "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY"
       },
       replaces = "doConvertArray")
   Stateful doConvertArrayWithCheck(
@@ -295,7 +295,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
       })
   Stateful doConvertDate(
       VirtualFrame frame,
@@ -323,7 +323,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE_TIME"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
       })
   Stateful doConvertDateTime(
       VirtualFrame frame,
@@ -363,7 +363,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONED_DATE_TIME"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
       })
   Stateful doConvertZonedDateTime(
       VirtualFrame frame,
@@ -393,7 +393,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_ZONE"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
       })
   Stateful doConvertZone(
       VirtualFrame frame,
@@ -421,7 +421,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_OF_DAY"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
       })
   Stateful doConvertTimeOfDay(
       VirtualFrame frame,
@@ -449,7 +449,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == NOT_SUPPORTED"
+        "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
   Stateful doFallback(
       VirtualFrame frame,

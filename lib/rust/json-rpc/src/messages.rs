@@ -15,7 +15,7 @@ use shrinkwraprs::Shrinkwrap;
 // ===============
 
 /// All JSON-RPC messages bear `jsonrpc` version number.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[derive(Shrinkwrap)]
 pub struct Message<T> {
     /// JSON-RPC Protocol version, should be 2.0.
@@ -100,7 +100,7 @@ impl<T> Message<T> {
 pub struct Id(pub i64);
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Version {
     /// JSON-RPC 2.0 specification. The supported version.
     #[serde(rename = "2.0")]
@@ -111,7 +111,7 @@ pub enum Version {
 ///
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[derive(Shrinkwrap)]
 pub struct Request<Call> {
     /// An identifier for this request that will allow matching the response.
@@ -133,12 +133,12 @@ impl<M> Request<M> {
 ///
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Notification<Call>(pub Call);
 
 /// A response to a `Request`. Depending on `result` value it might be
 /// successful or not.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Response<Res> {
     /// Identifier, matching the value given in `Request` when call was made.
     pub id:     Id,
@@ -148,7 +148,7 @@ pub struct Response<Res> {
 }
 
 /// Result of the remote call — either a returned value or en error.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 #[allow(missing_docs)]
 pub enum Result<Res> {
@@ -176,14 +176,14 @@ impl<Res> Result<Res> {
 }
 
 /// Value yield by a successful remote call.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Success<Ret> {
     /// A value returned from a successful remote call.
     pub result: Ret,
 }
 
 /// Error raised on a failed remote call.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Error<Payload = serde_json::Value> {
     /// A number indicating what type of error occurred.
     pub code:    i64,
@@ -195,7 +195,7 @@ pub struct Error<Payload = serde_json::Value> {
 
 /// A message that can come from Server to Client — either a response or
 /// notification.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum IncomingMessage {
     /// A response to a call made by client.
@@ -220,7 +220,7 @@ pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMess
 ///
 /// `In` is any serializable (or already serialized) representation of the
 /// method arguments passed in this call.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[derive(Shrinkwrap)]
 pub struct MethodCall<In> {
     /// Name of the method that is being called.
@@ -242,7 +242,7 @@ mod tests {
     use serde_json::Map;
     use serde_json::Value;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     struct MockRequest {
         number: i64,
     }

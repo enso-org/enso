@@ -1252,7 +1252,7 @@ impl<'s> Lexer<'s> {
             self.submit_token(Token(offset, "", eof));
         }
         let mut internal_error = self.internal_error.take();
-        if self.current_char != None {
+        if self.current_char.is_some() {
             let message = format!("Lexer did not consume all input. State: {self:?}");
             internal_error.get_or_insert(message);
         }

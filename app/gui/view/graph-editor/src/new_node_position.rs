@@ -283,7 +283,7 @@ const MAGNET_ALIGNMENT_THRESHOLD: f32 = 150.0;
 /// The direction in which the Magnet Alignment algorithm will be applied.
 ///
 /// See [`magnet_alignment`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum MagnetAlignmentDirection {
     HorizontallyAndVertically,

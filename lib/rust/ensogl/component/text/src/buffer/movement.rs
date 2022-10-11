@@ -13,7 +13,7 @@ use crate::buffer::selection::Selection;
 // =================
 
 /// Selection transformation patterns. Used for the needs of keyboard and mouse interaction.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Transform {
     /// Select all text.
     All,

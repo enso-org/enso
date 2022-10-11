@@ -5,7 +5,7 @@ use crate::prelude::*;
 use double_representation::definition;
 use double_representation::definition::DefinitionName;
 use double_representation::module;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -83,7 +83,7 @@ impl Example {
 
 /// Creates a pretty documentation from hardcoded inner text.
 pub fn documentation_html_from(inner: &str) -> String {
-    return format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner);
+    format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner)
 }
 
 // =========================

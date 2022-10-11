@@ -207,6 +207,8 @@
 - [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
 - [Replaced `Table.where` with a new API relying on `Table.filter`.][3750]
 - [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
+- [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
+  `Not_Like`.][3775]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -332,6 +334,7 @@
 [3749]: https://github.com/enso-org/enso/pull/3749
 [3750]: https://github.com/enso-org/enso/pull/3750
 [3770]: https://github.com/enso-org/enso/pull/3770
+[3775]: https://github.com/enso-org/enso/pull/3775
 
 #### Enso Compiler
 
@@ -378,8 +381,10 @@
 - [Invalidate module's IR cache if imported module changed][3703]
 - [Don't rename imported Main module that only imports names][3710]
 - [Notify node status to the IDE][3729]
+- [Make instance methods callable like statics][3764]
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
+- [Fix performance of method calls on polyglot arrays][3781]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -430,7 +435,9 @@
 [3710]: https://github.com/enso-org/enso/pull/3710
 [3729]: https://github.com/enso-org/enso/pull/3729
 [3740]: https://github.com/enso-org/enso/pull/3740
+[3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
+[3781]: https://github.com/enso-org/enso/pull/3781
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
