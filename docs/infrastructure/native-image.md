@@ -111,7 +111,9 @@ For example, to update settings for the Launcher:
 java -agentlib:native-image-agent=config-merge-dir=engine/launcher/src/main/resources/META-INF/native-image/org/enso/launcher -jar launcher.jar <arguments>
 ```
 
-Note that for convenience, you can run the launcher/engine runner via `bin/enso`, e.g.
+Note that for convenience, you can run the launcher/engine runner via
+`bin/enso`, e.g.
+
 ```bash
 env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner-native/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
 ```
