@@ -450,6 +450,22 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeSignatureQualified() throws Exception {
+    parseTest("""
+    type Baz
+        resolve : Integer -> Column
+    """);
+  }
+
+  @Test
+  public void testMethodDefQualified() throws Exception {
+    parseTest("""
+    type Foo
+        id x = x
+    """);
+  }
+
+  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of

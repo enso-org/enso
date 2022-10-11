@@ -458,7 +458,7 @@ final class TreeToIr {
         yield null;
       }
       case Tree.TypeSignature sig -> {
-        var typeName = buildName(sig, sig.getVariable(), true);
+        var typeName = buildName(sig, sig.getVariable(), false);
 
         List<IR.Expression> args;
         IR.Expression ret;
@@ -482,7 +482,7 @@ final class TreeToIr {
         yield new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
       }
       case Tree.Function fun -> {
-        var name = buildName(fun, fun.getName(), true);
+        var name = buildName(fun, fun.getName(), false);
         var args = translateArgumentsDefinition(fun.getArgs());
         var body = translateExpression(fun.getBody(), false);
 
@@ -1821,9 +1821,19 @@ final class TreeToIr {
     return buildName(ident, id, false);
   }
   private IR$Name$Literal buildName(Tree ident, Token id, boolean isMethod) {
+    final String name = id.codeRepr();
+    // AST.Opr.any.unapply(ident).isDefined
+    NOT_OPERATOR: if (!isMethod) {
+      for (int i = 0; i < name.length(); i++) {
+        if (Character.isJavaIdentifierPart(name.charAt(i))) {
+          break NOT_OPERATOR;
+        }
+      }
+      isMethod = true;
+    }
     return new IR$Name$Literal(
-      id.codeRepr(),
-      isMethod , // || AST.Opr.any.unapply(ident).isDefined,
+      name,
+      isMethod,
       getIdentifiedLocation(ident),
       meta(), diag()
     );
