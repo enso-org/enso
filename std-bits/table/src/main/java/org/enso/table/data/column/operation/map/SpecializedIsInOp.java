@@ -4,7 +4,6 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Value;
 
-import javax.xml.validation.Validator;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;

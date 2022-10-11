@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
+import org.enso.table.data.NumericConverter;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -69,37 +70,20 @@ public class NumericBuilder extends TypedBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else if (isDouble) {
-      double value = toDouble(o);
+      double value = NumericConverter.toDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else {
-      data[currentSize++] = toLong(o);
+      data[currentSize++] = NumericConverter.toLong(o);
     }
   }
 
   @Override
   public boolean accepts(Object o) {
-    if (isDouble && (o instanceof Double || o instanceof BigDecimal)) {
-      return true;
+    if (isDouble) {
+      return NumericConverter.isCoercibleToDouble(o);
+    } else {
+      return NumericConverter.isCoercibleToLong(o);
     }
-
-    return o instanceof Long || o instanceof Integer || o instanceof Byte;
-  }
-
-  private static double toDouble(Object o) {
-    return switch (o) {
-      case Double x -> x;
-      case BigDecimal x -> x.doubleValue();
-      default -> (double) toLong(o);
-    };
-  }
-
-  private static long toLong(Object o) {
-    return switch (o) {
-      case Long x -> x;
-      case Integer x -> x.longValue();
-      case Byte x -> x.longValue();
-      default -> throw new UnsupportedOperationException();
-    };
   }
 
   @Override

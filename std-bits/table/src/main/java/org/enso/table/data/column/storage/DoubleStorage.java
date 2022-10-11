@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.ObjectComparator;
+import org.enso.table.data.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
@@ -261,9 +262,9 @@ public class DoubleStorage extends NumericStorage {
           boolean hasNulls = false;
           for (Object o : list) {
             hasNulls |= o == null;
-            ObjectComparator
-            if (o instanceof String s) {
-              set.add(s);
+            Double x = NumericConverter.tryToDouble(o);
+            if (x != null) {
+              set.add(x);
             }
           }
           return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);

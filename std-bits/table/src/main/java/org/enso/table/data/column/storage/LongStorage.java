@@ -1,9 +1,11 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
@@ -13,6 +15,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.stream.LongStream;
@@ -363,7 +366,19 @@ public class LongStorage extends NumericStorage {
               public Storage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
-            });
+            })
+        .add(SpecializedIsInOp.make(list -> {
+          HashSet<Object> set = new HashSet<>();
+          boolean hasNulls = false;
+          for (Object o : list) {
+            hasNulls |= o == null;
+            Long x = NumericConverter.tryToLong(o);
+            if (x != null) {
+              set.add(x);
+            }
+          }
+          return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+        }));
     return ops;
   }
 
