@@ -147,6 +147,7 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this date time")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @CompilerDirectives.TruffleBoundary
   public EnsoDateTime plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return new EnsoDateTime(dateTime.plus(interop.asDuration(durationObject)));
@@ -155,6 +156,7 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @CompilerDirectives.TruffleBoundary
   public EnsoDateTime minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return new EnsoDateTime(dateTime.minus(interop.asDuration(durationObject)));

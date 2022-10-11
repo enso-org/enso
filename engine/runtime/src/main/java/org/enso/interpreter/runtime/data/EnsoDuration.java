@@ -61,6 +61,7 @@ public final class EnsoDuration implements TruffleObject {
       description =
           "Construct a new Duration that is between the given start date inclusive, and end date exclusive")
   @Builtin.Specialize
+  @TruffleBoundary
   public static EnsoDuration between(
       Object startInclusive, Object endExclusive, boolean timeZoneAware, InteropLibrary interop) {
     Temporal startTime = convertToDateTime(startInclusive, timeZoneAware, interop);
@@ -95,25 +96,21 @@ public final class EnsoDuration implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets the minutes")
-  @CompilerDirectives.TruffleBoundary
   public long minutes() {
     return duration.toMinutes();
   }
 
   @Builtin.Method(description = "Gets the seconds")
-  @CompilerDirectives.TruffleBoundary
   public long seconds() {
     return duration.toSeconds();
   }
 
   @Builtin.Method(description = "Gets the milliseconds")
-  @CompilerDirectives.TruffleBoundary
   public long milliseconds() {
     return duration.toMillis();
   }
 
   @Builtin.Method(description = "Gets the nanoseconds")
-  @CompilerDirectives.TruffleBoundary
   public long nanoseconds() {
     return duration.toNanos();
   }
@@ -121,6 +118,7 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
   public EnsoDuration plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return new EnsoDuration(duration.plus(interop.asDuration(durationObject)));
@@ -129,6 +127,7 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(name = "minus_builtin", description = "Subtracts another Duration")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
   public EnsoDuration minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return new EnsoDuration(duration.minus(interop.asDuration(durationObject)));

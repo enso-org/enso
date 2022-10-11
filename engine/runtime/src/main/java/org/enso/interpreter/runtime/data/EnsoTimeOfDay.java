@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -80,6 +81,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
   public EnsoTimeOfDay plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     assert interop.isDuration(durationObject);
@@ -91,6 +93,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       description = "Subtracts a duration from this Time_Of_Day")
   @Builtin.Specialize
   @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
   public EnsoTimeOfDay minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     assert interop.isDuration(durationObject);
