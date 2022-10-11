@@ -89,30 +89,34 @@ public final class EnsoDuration implements TruffleObject {
     }
   }
 
-  @Builtin.Method(description = "Gets the hours")
-  @CompilerDirectives.TruffleBoundary
+  @Builtin.Method(description = "Gets the hours part")
   public long hours() {
-    return duration.toHours();
+    return duration.toHoursPart();
   }
 
-  @Builtin.Method(description = "Gets the minutes")
-  public long minutes() {
-    return duration.toMinutes();
+  @Builtin.Method(description = "Gets the minutes part")
+  public int minutes() {
+    return duration.toMinutesPart();
   }
 
-  @Builtin.Method(description = "Gets the seconds")
-  public long seconds() {
-    return duration.toSeconds();
+  @Builtin.Method(description = "Gets the seconds part")
+  public int seconds() {
+    return duration.toSecondsPart();
   }
 
-  @Builtin.Method(description = "Gets the milliseconds")
-  public long milliseconds() {
+  @Builtin.Method(description = "Gets the milliseconds part")
+  public int milliseconds() {
+    return duration.toMillisPart();
+  }
+
+  @Builtin.Method(description = "Gets the nanoseconds part")
+  public int nanoseconds() {
+    return duration.toNanosPart();
+  }
+
+  @Builtin.Method(name = "total_milliseconds_builtin", description = "Gets the total amount of milliseconds")
+  public long totalMilliseconds() {
     return duration.toMillis();
-  }
-
-  @Builtin.Method(description = "Gets the nanoseconds")
-  public long nanoseconds() {
-    return duration.toNanos();
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")

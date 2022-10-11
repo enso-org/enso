@@ -193,16 +193,37 @@ type Duration
     hours : Integer
     hours self = @Builtin_Method "Duration.hours"
 
+    ## UNSTABLE
+       Convert the duration to total milliseconds.
+    total_milliseconds : Integer ! Illegal_Argument_Error
+    total_milliseconds self = Panic.catch ArithmeticException self.total_milliseconds_builtin _ ->
+        Error.throw (Illegal_Argument_Error_Data "The duration is too large to convert it to milliseconds"
+
+    ## UNSTABLE
+       Convert the duration to total seconds.
+    total_seconds : Decimal ! Illegal_Argument_Error
+    total_seconds self = self.total_milliseconds / 1000
+
+    ## UNSTABLE
+       Convert the duration to total minutes.
+    total_minutes : Decimal ! Illegal_Argument_Error
+    total_minutes self = self.total_seconds / 60
+
+    ## UNSTABLE
+       Convert the duration to total minutes.
+    total_hours : Decimal ! Illegal_Argument_Error
+    total_hours self = self.total_minutes / 60
+
     ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds
        and nanoseconds.
 
        > Example
          Convert a duration of one hour to a vector resulting in
-         `[1, 60, 3600, 3600000, 3600000000000]`.
+         `[1, 0, 30, 0, 0]`.
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_vec = 1.hour.to_vector
+             example_to_vec = (Duration.new hours=1 seconds=30).to_vector
 
        > Example
          Convert duration of 800 nanoseconds to a vector returning
@@ -210,7 +231,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_vec = 800.nanoseconds.to_vector
+             example_to_vec = (Duration.new nanoseconds=800)).to_vector
     to_vector : Vector.Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
@@ -243,114 +264,3 @@ type Duration
              example_is_empty = 10.seconds.is_empty
     is_empty : Boolean
     is_empty self = self.to_vector . all (==0)
-
-
-## Create a duration of `self` nanoseconds.
-
-   > Examples
-     Create a duration of 1 nanosecond.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_nano = 1.nanosecond
-Integer.nanosecond : Duration
-Integer.nanosecond self = new nanoseconds=self
-
-## Create a duration of `self` nanoseconds.
-
-   > Examples
-     Create a duration of 20 nanoseconds.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_nano = 20.nanoseconds
-Integer.nanoseconds : Duration
-Integer.nanoseconds self = self.nanosecond
-
-## Create a duration of `self` milliseconds.
-
-   > Example
-     Create a duration of 1 millisecond.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_milli = 1.millisecond
-Integer.millisecond : Duration
-Integer.millisecond self = new milliseconds=self
-
-## Create a duration of `self` milliseconds.
-
-   > Example
-     Create a duration of 20 milliseconds.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_milli = 20.milliseconds
-Integer.milliseconds : Duration
-Integer.milliseconds self = self.millisecond
-
-## Create a duration of `self` seconds.
-
-   > Example
-     Create a duration of 1 second.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_second = 1.second
-Integer.second : Duration
-Integer.second self = new seconds=self
-
-## Create a duration of `self` seconds.
-
-   > Example
-     Create a duration of 20 seconds.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_second = 20.seconds
-Integer.seconds : Duration
-Integer.seconds self = self.second
-
-## Create a duration of `self` minutes.
-
-   > Example
-     Create a duration of 1 minute.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_min = 1.minute
-Integer.minute : Duration
-Integer.minute self = new minutes=self
-
-## Create a duration of `self` minutes.
-
-   > Example
-     Create a duration of 20 minutes.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_min = 20.minutes
-Integer.minutes : Duration
-Integer.minutes self = self.minute
-
-## Create a duration of `self` hours.
-
-   > Example
-     Create a duration of 1 hour.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_hour = 1.hour
-Integer.hour : Duration
-Integer.hour self = new hours=self
-
-## Create a duration of `self` hours.
-
-   > Example
-     Create a duration of 20 hours.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_hour = 20.hours
-Integer.hours : Duration
-Integer.hours self = self.hour
