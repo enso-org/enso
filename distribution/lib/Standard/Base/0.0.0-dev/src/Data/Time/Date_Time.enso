@@ -8,6 +8,7 @@ from Standard.Base.Error.Common import Time_Error
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
+polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -388,8 +389,9 @@ type Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_plus = Date_Time.new 2020 + 15.years + (Duration.new hours=3)
-    + : Duration -> Date_Time
-    + self amount = self.plus_builtin amount
+    + : Duration -> Date_Time ! Polyglot_Error
+    + self amount =
+        Panic.catch ArithmeticException (self.plus_builtin amount) (err -> Error.throw (Polyglot_Error_Data err.getMessage))
 
     ## Shift the date by the specified amount of business days.
 
@@ -441,8 +443,9 @@ type Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_minus = Date_Time.new 2020 - 1.year - 9.months
-    - : Duration -> Date_Time
-    - self amount = self.minus_builtin amount
+    - : Duration -> Date_Time ! Polyglot_Error
+    - self amount =
+        Panic.catch ArithmeticException (self.minus_builtin amount) (err -> Error.throw (Polyglot_Error_Data err.getMessage))
 
     ## Convert this time to text using the default formatter.
 

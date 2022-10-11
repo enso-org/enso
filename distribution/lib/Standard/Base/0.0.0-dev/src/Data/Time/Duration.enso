@@ -84,8 +84,9 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_add = 1.month + (Duration.new hours=12)
-    + : Duration -> Duration
-    + self that = self.plus_builtin that
+    + : Duration -> Duration ! Polyglot_Error
+    + self that =
+        Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Polyglot_Error_Data err.getMessage))
 
     ## Subtract the specified amount of time from this duration.
 
@@ -105,8 +106,9 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
-    - : Duration -> Duration
-    - self that = self.minus_builtin that
+    - : Duration -> Duration ! Polyglot_Error
+    - self that =
+        Panic.catch ArithmeticException (self.minus_builtin that) (err -> Error.throw (Polyglot_Error_Data err.getMessage))
 
     ## Check two durations for equality.
 
