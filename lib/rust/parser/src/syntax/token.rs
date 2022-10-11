@@ -331,8 +331,8 @@ pub struct OperatorProperties {
     // Special properties
     is_compile_time_operation: bool,
     is_right_associative:      bool,
-    can_be_decimal_operator:   bool,
     // Unique operators
+    can_be_decimal_operator:   bool,
     is_type_annotation:        bool,
     is_assignment:             bool,
     is_arrow:                  bool,

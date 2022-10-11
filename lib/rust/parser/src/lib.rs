@@ -213,8 +213,11 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         let colon = annotated.operator;
         let type_ = annotated.type_;
         let variable = annotated.expression;
-        if let Tree { variant: box Variant::OprApp(
-                OprApp { lhs: None, opr: Ok(name), rhs: None }), span: inner } = variable {
+        if let Tree {
+            variant: box Variant::OprApp(OprApp { lhs: None, opr: Ok(name), rhs: None }),
+            span: inner,
+        } = variable
+        {
             let mut tree = Tree::operator_type_signature(name, colon, type_);
             tree.span.left_offset += span.left_offset;
             tree.span.left_offset += inner.left_offset;

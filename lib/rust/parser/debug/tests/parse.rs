@@ -904,7 +904,11 @@ fn new_lambdas() {
 
 #[test]
 fn old_lambdas() {
-    let cases = [("v -> v", block![(OprApp (Ident v) (Ok "->") (Ident v))])];
+    let cases = [
+        ("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+    ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
