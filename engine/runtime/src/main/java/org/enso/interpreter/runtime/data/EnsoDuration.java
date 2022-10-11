@@ -95,22 +95,22 @@ public final class EnsoDuration implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets the minutes part")
-  public int minutes() {
+  public long minutes() {
     return duration.toMinutesPart();
   }
 
   @Builtin.Method(description = "Gets the seconds part")
-  public int seconds() {
+  public long seconds() {
     return duration.toSecondsPart();
   }
 
   @Builtin.Method(description = "Gets the milliseconds part")
-  public int milliseconds() {
+  public long milliseconds() {
     return duration.toMillisPart();
   }
 
   @Builtin.Method(description = "Gets the nanoseconds part")
-  public int nanoseconds() {
+  public long nanoseconds() {
     return duration.toNanosPart();
   }
 
