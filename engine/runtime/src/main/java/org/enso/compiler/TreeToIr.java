@@ -676,6 +676,31 @@ final class TreeToIr {
               yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
             }
           }
+          case "=" -> {
+            var ap = app.getLhs();
+            List<IR.DefinitionArgument> args = nil();
+            while (ap instanceof Tree.App leftApp) {
+              var isSuspended = false;
+              var a = new IR$DefinitionArgument$Specified(
+                      buildName(leftApp.getArg()),
+                      Option.empty(),
+                      Option.empty(),
+                      isSuspended,
+                      getIdentifiedLocation(leftApp),
+                      meta(),
+                      diag()
+              );
+              args = cons(a, args);
+              ap = leftApp.getFunc();
+            }
+            var name = buildName(ap);
+            var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
+            var rhs = translateExpression(app.getRhs(), insideTypeSignature);
+            yield new IR$Function$Binding(
+              (IR.Name)name, args, rhs,
+              getIdentifiedLocation(app), true, meta(), diag()
+            );
+          }
           default -> {
             var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
             var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);

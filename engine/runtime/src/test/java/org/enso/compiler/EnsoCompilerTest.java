@@ -188,6 +188,18 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAtEq() throws Exception {
+    parseTest("""
+    type Array
+        == : Array -> Boolean
+        == self that =
+            if False then True that else
+                eq_at i = self.at i == that.at i
+                eq_at 0
+    """);
+  }
+
+  @Test
   public void testSelf1() throws Exception {
     parseTest("""
     contains self elem = self.contains Nothing
