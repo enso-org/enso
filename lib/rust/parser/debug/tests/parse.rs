@@ -76,6 +76,31 @@ fn comments() {
     test("# a b c", block![()()]);
 }
 
+#[test]
+fn inline_if() {
+    #[rustfmt::skip]
+    test("if True then True else False", block![
+       (MultiSegmentApp #(((Ident if) (Ident True))
+                          ((Ident then) (Ident True))
+                          ((Ident else) (Ident False))))]);
+}
+
+#[test]
+fn then_block() {
+    #[rustfmt::skip]
+    test("if True then\n True", block![
+       (MultiSegmentApp #(((Ident if) (Ident True)) ((Ident then) (BodyBlock #((Ident True))))))]);
+}
+
+#[test]
+fn else_block() {
+    #[rustfmt::skip]
+    test("if True then True else\n False", block![
+       (MultiSegmentApp #(((Ident if) (Ident True))
+                          ((Ident then) (Ident True))
+                          ((Ident else) (BodyBlock #((Ident False))))))]);
+}
+
 
 // === Type Definitions ===
 

@@ -131,12 +131,38 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
 
 /// If-then-else macro definition.
 pub fn if_then_else<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", everything(), "then", everything(), "else", everything())}
+    crate::macro_definition! {
+    ("if", everything(), "then", everything(), "else", everything()) if_body}
 }
 
 /// If-then macro definition.
 pub fn if_then<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", everything(), "then", everything())}
+    crate::macro_definition! {("if", everything(), "then", everything()) if_body}
+}
+
+fn if_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use syntax::tree::*;
+    let segments = segments.mapped(|s| {
+        let header = s.header;
+        let body = s.result.tokens();
+        let body = match operator::resolve_operator_precedence_if_non_empty(body) {
+            Some(Tree {
+                variant:
+                    box Variant::ArgumentBlockApplication(ArgumentBlockApplication {
+                        lhs: None,
+                        arguments,
+                    }),
+                span,
+            }) => {
+                let mut block = block::body_from_lines(arguments);
+                block.span.left_offset += span.left_offset;
+                Some(block)
+            }
+            e => e,
+        };
+        MultiSegmentAppSegment { header, body }
+    });
+    Tree::multi_segment_app(segments)
 }
 
 /// Group macro definition.
