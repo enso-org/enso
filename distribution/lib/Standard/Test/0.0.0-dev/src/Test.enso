@@ -68,7 +68,7 @@ type Test
     specify : Text -> Any -> (Text | Nothing) -> Nothing
     specify label ~behavior pending=Nothing =
         pair = case pending of
-            Nothing -> Duration.time_execution (run_spec behavior)
+            Nothing -> Duration.time_execution (State.run Clue Nothing (run_spec behavior))
             reason -> Pair_Data Duration.zero (Test_Result.Pending reason)
         result = pair.second
         time_taken = pair.first
@@ -129,7 +129,11 @@ type Test
              example_fail = Test.fail "Something went wrong."
     fail : Text -> Test_Result
     fail message details=Nothing =
-        failure = Test_Result.Failure message details
+        clue_data = State.get Clue
+        message_with_clue = case clue_data of
+            Clue_Data add_clue -> add_clue message
+            _                  -> message
+        failure = Test_Result.Failure message_with_clue details
         Panic.throw failure
 
     ## PRIVATE
@@ -140,6 +144,37 @@ type Test
         loc = Meta.get_source_location 1+frames_to_skip
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
         Test.fail msg+'\n'+error.get_stack_trace_text
+
+    ## Executes the block of code passed as behavior and adds a clue modifier which
+       changes how assertion failures are reported.
+
+       Nesting with_clue invocations results in clue aggregation.
+
+       Arguments:
+       - clue: either a text which gets prepended to the failure or a function which transforms the failure message
+       - behavior: the behavior to test
+
+       > Example
+         Add a clue to a test
+            import Standard.Test
+            main = Test.Suite.run_main <|
+                Test.group "Tests" <|
+                    Test.specify "some property" <|
+                        xs = Vector.new 100 (n -> n)
+                        xs.each x->
+                            Test.with_clue ("[" x.to_text "] ") <|
+                                    x . should_equal 0
+
+    with_clue : Text|(Text -> Text) -> Any -> Any
+    with_clue ~clue ~behavior =
+        add_clue = if clue.is_a Text then (x -> clue + x) else clue
+        prev_clue = State.get Clue
+        next_clue = case prev_clue of
+            Clue.Clue_Data prev_add_clue -> (x -> add_clue (prev_add_clue x))
+            _                  -> clue
+        State.put Clue (Clue.Clue_Data next_clue)
+        behavior
+
 
 ## PRIVATE
 
@@ -207,3 +242,14 @@ type Behavior
        Checks if the behavior is a failure.
     is_fail : Boolean
     is_fail self = self.result.is_fail
+
+## PRIVATE
+
+type Clue
+    ## PRIVATE
+
+       Represents a clue as to why a test failed
+
+       Arguments:
+       - add_clue: either Nothing or a function which modifies a failure message
+    Clue_Data ~add_clue
