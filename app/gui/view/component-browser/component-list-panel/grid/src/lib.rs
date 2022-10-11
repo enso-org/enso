@@ -13,10 +13,8 @@
 #![feature(array_methods)]
 #![feature(drain_filter)]
 #![feature(option_result_contains)]
-#![feature(derive_default_enum)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
-#![feature(bool_to_option)]
 #![feature(int_roundings)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -152,6 +150,7 @@ ensogl_core::define_endpoints_2! {
     Output {
         active(ElementId),
         active_section(SectionId),
+        hovered(Option<ElementId>),
         model_for_header_needed(GroupId),
         model_for_entry_needed(GroupEntryId),
         suggestion_accepted(GroupEntryId),
@@ -601,11 +600,14 @@ impl component::Frp<Model> for Frp {
         let selection_color_intensities =
             entry::style::SelectionColorIntensities::from_theme(network, style_frp);
         frp::extend! { network
-            // === Active Entry ===
+            // === Active and Hovered Entry ===
 
             out.active <+ grid.entry_selected.filter_map(f!((loc)
-                model.location_to_element_id(loc.as_ref()?))
-            );
+                model.location_to_element_id(loc.as_ref()?)
+            ));
+            out.hovered <+ grid.entry_hovered.map(f!((loc)
+                model.location_to_element_id(loc.as_ref()?)
+            ));
             out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
 

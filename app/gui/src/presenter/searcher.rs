@@ -355,10 +355,14 @@ impl Searcher {
                     graph.set_node_expression <+ new_input;
 
                     entry_selected <- grid.active.filter_map(|s| s.as_entry_id());
-                    entry_docs <- all_with(
-                        &action_list_changed,
+                    entry_hovered <- grid.hovered.map(|s| s.clone().and_then(component_grid::ElementId::as_entry_id));
+                    entry_docs <- all_with3(&action_list_changed,
                         &entry_selected,
-                        f!((_, entry) model.documentation_of_component(*entry))
+                        &entry_hovered,
+                        f!([model](_, selected, hovered) {
+                            let entry = hovered.as_ref().unwrap_or(selected);
+                            model.documentation_of_component(*entry)
+                        })
                     );
                     header_selected <- grid.active.filter_map(|component_grid::ElementId{group, element}| {
                         matches!(element, component_grid::content::ElementInGroup::Header).as_some(*group)
