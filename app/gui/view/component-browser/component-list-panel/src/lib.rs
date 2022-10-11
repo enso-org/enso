@@ -234,14 +234,14 @@ pub struct Model {
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
-    navigator:             Rc<RefCell<Option<Navigator>>>,
+    scene_navigator:       Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let navigator = default();
+        let scene_navigator = default();
 
         let background = background::View::new();
         display_object.add_child(&background);
@@ -264,7 +264,7 @@ impl Model {
             navigator_shadow,
             grid,
             section_navigator,
-            navigator,
+            scene_navigator,
             breadcrumbs,
         }
     }
@@ -291,24 +291,26 @@ impl Model {
 
     /// Set the navigator so it can be disabled on hover.
     pub fn set_navigator(&self, navigator: Option<Navigator>) {
-        *self.navigator.borrow_mut() = navigator
+        *self.scene_navigator.borrow_mut() = navigator
     }
 
     // Note that this is a workaround for lack of hierarchical mouse over events.
     // We need to know if the mouse is over the panel, but cannot do it via a shape, as
     // sub-components still need to receive all of the mouse events, too.
+    //
+    // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
+    // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let center = self.display_object.position().xy();
         let size = self.background.size().get();
-        let viewport = BoundingBox::from_center_and_size(center, size);
+        let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }
 
     fn on_hover(&self) {
-        if let Some(navigator) = self.navigator.borrow().as_ref() {
+        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
             navigator.disable()
         } else {
-            tracing::warn!(
+            warn!(
                 "Navigator was not initialised on ComponentBrowserPanel. \
             Scroll events will not be handled correctly."
             )
@@ -316,7 +318,7 @@ impl Model {
     }
 
     fn on_hover_end(&self) {
-        if let Some(navigator) = self.navigator.borrow().as_ref() {
+        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
             navigator.enable()
         }
     }
@@ -373,7 +375,7 @@ impl component::Frp<Model> for Frp {
             is_visible <- bool(&input.hide, &input.show);
             is_hovered <- app.cursor.frp.screen_position.map(f!([model,scene](pos) {
                 let pos = scene.screen_to_object_space(&model, pos.xy());
-                model.is_hovered(pos.xy())
+                model.is_hovered(pos)
             })).gate(&is_visible).on_change();
             // TODO[ib] Temporary solution for focus, we grab keyboard events if the
             //   component browser is visible. The proper implementation is tracked in
@@ -406,6 +408,7 @@ impl component::Frp<Model> for Frp {
 
 
             // === Style ===
+
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
