@@ -194,9 +194,7 @@ impl<'s> ExpressionBuilder<'s> {
                     Arity::Binary { tokens, .. } => tokens.into_iter().next().unwrap(),
                     _ => unreachable!(),
                 };
-                let tp = token::Variant::ident(false, 0, false, false);
-                let prev = Token(prev.left_offset, prev.code, tp);
-                self.output.push(Operand::from(syntax::Tree::from(prev)));
+                self.output.push(Operand::from(syntax::Tree::opr_app(None, Ok(prev), None)));
             } else {
                 tokens.push(opr);
                 return;

@@ -227,6 +227,18 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        /// An operator definition, like `== self rhs = True`.
+        OperatorFunction {
+            /// The operator being defined.
+            pub name: token::Operator<'s>,
+            /// The argument patterns.
+            pub args: Vec<ArgumentDefinition<'s>>,
+            /// The `=` token.
+            pub equals: token::Operator<'s>,
+            /// The body, which will typically be an inline expression or a `BodyBlock` expression.
+            /// It is an error for this to be empty.
+            pub body: Option<Tree<'s>>,
+        },
         /// An import statement.
         Import {
             pub polyglot: Option<MultiSegmentAppSegment<'s>>,
@@ -259,6 +271,16 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The `:` token.
             pub operator: token::Operator<'s>,
             /// The variable's type.
+            #[reflect(rename = "type")]
+            pub type_:    Tree<'s>,
+        },
+        /// Statement declaring the type of an operator.
+        OperatorTypeSignature {
+            /// Operator whose type is being declared.
+            pub operator: token::Operator<'s>,
+            /// The `:` token.
+            pub colon:    token::Operator<'s>,
+            /// The method's type.
             #[reflect(rename = "type")]
             pub type_:    Tree<'s>,
         },
@@ -968,6 +990,8 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Lambda(_)
             | Variant::Array(_)
             | Variant::Annotated(_)
+            | Variant::OperatorFunction(_)
+            | Variant::OperatorTypeSignature(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })

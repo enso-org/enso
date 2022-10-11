@@ -164,10 +164,10 @@ fn type_operator_methods() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Foo #() #()
-         #((TypeSignature (Ident #"+") ":"
+         #((OperatorTypeSignature "+" ":"
             (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-            (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ()))
-                      "=" (Ident b))))];
+            (OperatorFunction "+" #((() (Ident self) () ()) (() (Ident b) () ()))
+                              "=" (Ident b))))];
     test(&code.join("\n"), expected);
 }
 
