@@ -5,6 +5,8 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
 
@@ -94,6 +96,20 @@ public class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
+        new UnaryMapOperation<>(Maps.IS_EMPTY) {
+          @Override
+          protected Storage run(SpecializedStorage<String> storage) {
+            BitSet r = new BitSet();
+            for (int i = 0; i < storage.size; i++) {
+              String s = storage.data[i];
+              if (s == null || s.isEmpty()) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, new BitSet(), storage.size, false);
+          }
+        });
+    t.add(
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
@@ -114,6 +130,7 @@ public class StringStorage extends SpecializedStorage<String> {
             return Text_Utils.contains(a, b);
           }
         });
+    t.add(new LikeOp());
     return t;
   }
 }

@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
+polyglot java import org.enso.base.Regex_Utils
+
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
     Less than:Any
@@ -57,6 +59,52 @@ type Filter_Condition
     ## Is the value equal to False (Boolean only)?
     Is_False
 
+    ## Is equal to "" or Nothing (Text only)?
+    Is_Empty
+
+    ## Is not equal to "" and Nothing (Text only)?
+    Not_Empty
+
+    ## Does the value match the SQL pattern (Text only)?
+
+       It accepts a Text value representing the matching pattern. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+
+       The pattern is interpreted according to the standard SQL convention:
+       - the `%` character matches any sequence of characters,
+       - the `_` character matches any single character,
+       - any other character is matched literally.
+
+       ! Known Bugs
+         There is a known bug in Java Regex where escape characters are not
+         handled properly in Unicode-normalized matching mode. Due to this
+         limitation, Unicode normalization has been disabled for this function,
+         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
+         not be matched.
+         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+    Like pattern:Text
+
+    ## Does the value not match the SQL pattern (Text only)?
+
+       It accepts a Text value representing the matching pattern. In case of
+       Table operations, it can accept another column - then the corresponding
+       values from the source column and the provided column are checked.
+
+       The pattern is interpreted according to the standard SQL convention:
+       - the `%` character matches any sequence of characters,
+       - the `_` character matches any single character,
+       - any other character is matched literally.
+
+       ! Known Bugs
+         There is a known bug in Java Regex where escape characters are not
+         handled properly in Unicode-normalized matching mode. Due to this
+         limitation, Unicode normalization has been disabled for this function,
+         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
+         not be matched.
+         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+    Not_Like pattern:Text
+
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
@@ -80,3 +128,25 @@ type Filter_Condition
             _ -> True
         Is_True -> ==True
         Is_False -> ==False
+        Is_Empty -> elem -> case elem of
+            Nothing -> True
+            "" -> True
+            _ -> False
+        Not_Empty -> elem -> case elem of
+            Nothing -> False
+            "" -> False
+            _ -> True
+        Like sql_pattern ->
+            regex = sql_like_to_regex sql_pattern
+            regex.matches
+        Not_Like sql_pattern ->
+            regex = sql_like_to_regex sql_pattern
+            elem -> regex.matches elem . not
+
+## PRIVATE
+sql_like_to_regex sql_pattern =
+    regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
+    ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
+       https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+       Once that bug is fixed, `match_ascii` may be set back to `False`.
+    Regex.compile regex_pattern dot_matches_newline=True match_ascii=True
