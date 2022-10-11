@@ -271,25 +271,24 @@ final class TreeToIr {
       */
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
-        var translatedBody = translateTypeBody(def.getBlock(), true).reverse();
-        for (var c : def.getConstructors()) {
+        var translatedBody = translateTypeBody(def.getBlock(), true);
+        var translatedConstructorsIt = def.getConstructors().stream().map((c) -> {
           var cExpr = c.getExpression();
           if (cExpr == null) {
-            continue;
+            return null;
           }
           var constructorName = buildName(inputAst, cExpr.getConstructor());
           List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
           var cAt = getIdentifiedLocation(inputAst);
-          var data = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
-
-          translatedBody = cons(data, translatedBody);
-        }
+          return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+        }).filter((e) -> e != null).iterator();
+        var translatedConstructors = CollectionConverters.asScala(translatedConstructorsIt).toList();
         // type
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         yield new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
-          translatedBody.reverse(),
+          translatedConstructors.appendedAll(translatedBody),
           getIdentifiedLocation(inputAst),
           meta(), diag()
         );
@@ -460,25 +459,27 @@ final class TreeToIr {
       case Tree.TypeSignature sig -> {
         var typeName = buildName(sig, sig.getVariable(), false);
 
-        List<IR.Expression> args;
-        IR.Expression ret;
-        switch (sig.getType()) {
+        var fn = switch (sig.getType()) {
           case Tree.OprApp app -> {
-            args = cons(translateExpression(app.getLhs(), true), nil());
-            ret = translateExpression(app.getRhs(), true);
+            var args = cons(translateExpression(app.getLhs(), true), nil());
+            var rhs = app.getRhs();
+            while (rhs instanceof Tree.OprApp at && "->".equals(at.getOpr().getRight().codeRepr())) {
+              args = cons(translateExpression(at.getLhs(), true), args);
+              rhs = at.getRhs();
+            }
+            var ret = translateExpression(rhs, true);
+            yield new IR$Type$Function(
+              args,
+              ret,
+              Option.empty(),
+              meta(), diag()
+            );
           }
-          default -> {
-            args = nil();
-            ret = null;
+          case Tree.Ident ident -> {
+            yield buildName(ident);
           }
-        }
-
-        var fn = new IR$Type$Function(
-                args,
-                ret,
-                Option.empty(),
-                meta(), diag()
-        );
+          default -> throw new UnhandledEntity(sig.getType(), "translateTypeBodyExpression");
+        };
         yield new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
       }
       case Tree.Function fun -> {

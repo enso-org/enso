@@ -153,6 +153,34 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testBoolean() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Boolean
+        True
+        False
+
+        == : Boolean -> Boolean
+        == self that = @Builtin_Method "Boolean.=="
+
+        && : Boolean -> Boolean
+        && self ~that = @Builtin_Method "Boolean.&&"
+
+        not : Boolean
+        not self = @Builtin_Method "Boolean.not"
+
+        compare_to : Boolean -> Ordering
+        compare_to self that = @Builtin_Method "Boolean.compare_to"
+
+        if_then_else : Any -> Any -> Any
+        if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+
+        if_then : Any -> Any | Nothing
+        if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+    """);
+  }
+
+  @Test
   public void testBuiltinMethodAnnotation() throws Exception {
     parseTest("""
     normalize x = @Builtin_Method "File.normalize"
