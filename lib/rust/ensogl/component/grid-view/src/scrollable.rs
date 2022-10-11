@@ -27,8 +27,14 @@ ensogl_core::define_endpoints_2! {
         /// Set margins defining an area around an [`Entry`] that should be made visible when
         /// scrolling the GridView's viewport to display the Entry.
         set_preferred_margins_around_entry(crate::Margins),
+        /// Scroll the viewport so the entry will be visible. The scroll is animated.
         scroll_to_entry(Row, Col),
+        /// Jump the viewport so the entry will be visible, without animation.
+        jump_to_entry(Row, Col),
+        /// Select an entry and scroll the viewport so it will be visible. The scroll is animated.
         select_and_scroll_to_entry(Row, Col),
+        /// Select an entry and jump the viewport so it will be visible, without animation.
+        select_and_jump_to_entry(Row, Col),
     }
 
     Output {}
@@ -124,27 +130,31 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let header_layer = default();
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
-        let input = &base_grid.private.input;
+        let base_input = &base_grid.private.input;
         let frp = Frp::new();
+        let input = &frp.private.input;
         let network = &frp.network();
 
         frp::new_bridge_network! { [network, base_network] grid_view_scrollable_base_bridge
             base_grid.set_viewport <+ area.viewport;
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
-            base_grid.select_entry <+ frp.private.input.select_and_scroll_to_entry.map(|&(r, c)| Some((r, c)));
 
             // === Viewport scrolling on selection move ===
 
             input_move_selection <- any4(
-                &input.move_selection_down,
-                &input.move_selection_left,
-                &input.move_selection_right,
-                &input.move_selection_up,
+                &base_input.move_selection_down,
+                &base_input.move_selection_left,
+                &base_input.move_selection_right,
+                &base_input.move_selection_up,
             );
             entry_selected_by_input_move <= base_grid.entry_selected.sample(&input_move_selection);
-            scroll_to_entry <- any(entry_selected_by_input_move, frp.private.input.scroll_to_entry, frp.private.input.select_and_scroll_to_entry);
-            let scroll_margins = &frp.private.input.set_preferred_margins_around_entry;
+            scroll_to_entry <- any(
+                entry_selected_by_input_move,
+                input.scroll_to_entry,
+                input.select_and_scroll_to_entry
+            );
+            let scroll_margins = &input.set_preferred_margins_around_entry;
             scroll_to <- scroll_to_entry.map2(scroll_margins,
                 f!([base_grid] ((row, col), margins)
                     base_grid.position_of_viewport_containing_entry(*row, *col, *margins)
@@ -152,6 +162,24 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             );
             area.scroll_to_x <+ scroll_to.map(|vec| vec.x);
             area.scroll_to_y <+ scroll_to.map(|vec| -vec.y);
+
+
+            // === Viewport jumping ===
+
+            jump_to_entry <- any(input.jump_to_entry, input.select_and_jump_to_entry);
+            jump_to <- jump_to_entry.map2(scroll_margins,
+                f!([base_grid] ((row, col), margins)
+                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins)
+                )
+            );
+            area.jump_to_x <+ jump_to.map(|vec| vec.x);
+            area.jump_to_y <+ jump_to.map(|vec| -vec.y);
+
+
+            // === Selecting Entry ===
+
+            base_grid.select_entry <+ input.select_and_scroll_to_entry.map(|&(r, c)| Some((r, c)));
+            base_grid.select_entry <+ input.select_and_jump_to_entry.map(|&(r, c)| Some((r, c)));
         }
 
         Self { area, inner_grid, frp, text_layer, header_layer, header_text_layer }

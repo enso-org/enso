@@ -502,15 +502,15 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
 
             // === Contour and Color ===
 
-            let header_connected = &connected_header_out.is_entry_connected;
+            let header_connected = connected_header_out.is_entry_connected.clone_ref();
             out.contour <+ all_with3(
-                header_connected,
+                &header_connected,
                 &connected_entry_out.contour,
                 &connected_header_out.contour,
                 |&from_header, &entry, &header| if from_header {header} else {entry}
             );
             out.color <+ all_with3(
-                header_connected,
+                &header_connected,
                 &connected_entry_out.color,
                 &connected_header_out.color,
                 |&from_header, &entry, &header| if from_header {header} else {entry}
@@ -538,10 +538,13 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
             viewport_changed <- grid_frp.viewport.constant(());
             header_sep_changed <- any(viewport_changed, header_hidden_in_highlight_column);
             out.header_separator <+ all_with(&highlight_column, &header_sep_changed, f!((col, ()) model.grid.header_separator(*col)));
-            new_top_clip <- all_with3(&out.header_separator, header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
-            out.top_clip <+ new_top_clip.on_change();
-            prev_top_clip <- out.top_clip.previous();
-            new_clip_jump <- new_top_clip.sample(&became_highlighted).map3(&prev_top_clip, &animations.top_clip_jump.value, |c, p, a| p + a - c);
+            out.top_clip <+ all_with3(&out.header_separator, &header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
+            new_clip_jump <- header_connected.on_change().map4(
+                &out.header_separator,
+                &grid_frp.viewport,
+                &animations.top_clip_jump.value,
+                |hc, hs, v, a| if *hc {hs - v.top} else {v.top - hs} + a
+            );
             animations.top_clip_jump.target <+ new_clip_jump;
             animations.top_clip_jump.skip <+ new_clip_jump.constant(());
             animations.top_clip_jump.target <+ new_clip_jump.constant(0.0);

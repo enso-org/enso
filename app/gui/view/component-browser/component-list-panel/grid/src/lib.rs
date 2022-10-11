@@ -678,17 +678,17 @@ impl component::Frp<Model> for Frp {
 
             // === Scrolling and Jumping to Section ===
 
-            grid_extra_scroll_frp.select_and_scroll_to_entry <+
-                input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(
                 &out.active_section,
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
+            grid_extra_scroll_frp.select_and_jump_to_entry <+
+                input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
                 f!((section) model.entry_to_select_when_switching_to_section(*section))
             );
-            // The content area is higher than just height of all entries, as we add also a gap
+            // The content area is higher than just height of all entries, because there is a gap
             // between all groups and local scope section.
             grid_scroll_frp.set_content_height <+
                 style_and_content_size.map(|(s, c)| c.y + s.column_gap);
