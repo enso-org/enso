@@ -387,7 +387,7 @@ type Date_Time
              from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
-             example_plus = Date_Time.new 2020 + 15.years + 3.hours
+             example_plus = Date_Time.new 2020 + 15.years + (Duration.new hours=3)
     + : Duration -> Date_Time
     + self amount = self.plus_builtin amount
 

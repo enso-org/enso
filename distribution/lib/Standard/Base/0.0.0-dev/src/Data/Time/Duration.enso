@@ -75,14 +75,14 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 3.minutes + 6.seconds
+             example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
        > Example
          Add 12 hours to a duration of a month.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 1.month + 12.hours
+             example_add = 1.month + (Duration.new hours=12)
     + : Duration -> Duration
     + self that = self.plus_builtin that
 
@@ -99,11 +99,11 @@ type Duration
              example_subtract = 3.years - 11.months
 
        > Example
-         Substract 30 minutes from a duration of 7 months.
+         Substract 30 minutes from a duration of 6 hours.
 
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = 7.months - 30.minutes
+             example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
     - : Duration -> Duration
     - self that = self.minus_builtin that
 
@@ -117,7 +117,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_eq = 60.seconds == 1.minute
+             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
     == : Duration -> Boolean
     == self that = self.equals_builtin that
 
@@ -132,8 +132,8 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_compare_to =
-                 duration_1 = 1.hour
-                 duration_2 = 60.minutes + 5.minutes
+                 duration_1 = (Duration.new hour=1)
+                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
     compare_to self that = Ordering.from_sign (self.compare_to_builtin that)
@@ -242,7 +242,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_json = 10.seconds.to_json
+             example_to_json = (Duration.new seconds=10).to_json
     to_json : Json.Object
     to_json self =
         b = Vector.new_builder
