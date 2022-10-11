@@ -1,7 +1,9 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
@@ -11,6 +13,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
 
 /** A column containing floating point numbers. */
@@ -252,7 +255,19 @@ public class DoubleStorage extends NumericStorage {
               public Storage run(DoubleStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
-            });
+            })
+        .add(SpecializedIsInOp.make(list -> {
+          HashSet<Object> set = new HashSet<>();
+          boolean hasNulls = false;
+          for (Object o : list) {
+            hasNulls |= o == null;
+            ObjectComparator
+            if (o instanceof String s) {
+              set.add(s);
+            }
+          }
+          return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+        }));
     return ops;
   }
 
