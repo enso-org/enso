@@ -188,6 +188,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTextOrNothing() throws Exception {
+    parseTest("""
+    type Locale
+        language : Text | Nothing
+    """);
+  }
+
+  @Test
   public void testAtEq() throws Exception {
     parseTest("""
     type Array

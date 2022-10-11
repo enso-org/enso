@@ -460,7 +460,7 @@ final class TreeToIr {
         var typeName = buildName(sig, sig.getVariable(), false);
 
         var fn = switch (sig.getType()) {
-          case Tree.OprApp app -> {
+          case Tree.OprApp app when "->".equals(app.getOpr().getRight().codeRepr()) -> {
             var args = cons(translateExpression(app.getLhs(), true), nil());
             var rhs = app.getRhs();
             while (rhs instanceof Tree.OprApp at && "->".equals(at.getOpr().getRight().codeRepr())) {
@@ -474,6 +474,9 @@ final class TreeToIr {
               Option.empty(),
               meta(), diag()
             );
+          }
+          case Tree.OprApp app -> {
+            yield translateExpression(app, true);
           }
           case Tree.Ident ident -> {
             yield buildName(ident);
