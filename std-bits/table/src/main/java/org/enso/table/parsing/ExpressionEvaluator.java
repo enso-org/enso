@@ -3,7 +3,9 @@ package org.enso.table.parsing;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -11,7 +13,7 @@ public class ExpressionEvaluator {
 
   public static Value evaluate(String expression, Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn, String moduleName)
     throws UnsupportedOperationException {
-    var tokens = ExpressionParser.tokenise(expression);
+    var tokens = ExpressionTokeniser.tokenise(expression);
     List<Value> values = new ArrayList<>(tokens.size());
 
     // Convert Columns and Constants
