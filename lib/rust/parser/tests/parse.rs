@@ -206,6 +206,7 @@ fn type_def_nested() {
     test(&code.join("\n"), expected);
 }
 
+
 // === Variable Assignment ===
 
 #[test]

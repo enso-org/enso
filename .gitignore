@@ -149,4 +149,3 @@ test-results
 *.ir
 *.meta
 .enso/
-/nbproject/private/
