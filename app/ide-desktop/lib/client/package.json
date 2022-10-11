@@ -27,7 +27,7 @@
   "//": "`yargs` dependency is pinned to version 15.4.1 because newer version triggers https://github.com/evanw/esbuild/issues/2441",
   "devDependencies": {
     "electron": "17.1.0",
-    "electron-builder": "^23.3.3",
+    "electron-builder": "^22.14.13",
     "esbuild": "^0.14.43",
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
