@@ -40,15 +40,15 @@ public class SpecializedIsInOp<T extends Storage> extends MapOperation<T> {
   }
 
   @Override
-  public Storage runMap(Storage storage, Object arg) {
+  public Storage runMap(T storage, Object arg) {
     if (arg instanceof List) {
-      return runMap(storage, (List<Value>) arg);
+      return runMap(storage, (List<?>) arg);
     } else {
       throw new IllegalArgumentException("Argument to `is_in` must be a vector.");
     }
   }
 
-  public Storage runMap(Storage storage, List<Value> arg) {
+  public Storage runMap(T storage, List<?> arg) {
     CompactRepresentation compactRepresentation = prepareList.apply(arg);
     BitSet newVals = new BitSet();
     // TODO handling missing
