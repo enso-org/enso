@@ -149,6 +149,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testSelf1() throws Exception {
+    parseTest("""
+    contains self elem = self.contains Nothing
+    """);
+  }
+
+  @Test
   @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""

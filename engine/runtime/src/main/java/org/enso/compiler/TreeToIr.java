@@ -33,6 +33,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
 import org.enso.compiler.core.IR$Name$Annotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
+import org.enso.compiler.core.IR$Name$Self;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
@@ -1252,7 +1253,7 @@ final class TreeToIr {
     return switch (arg) {
       case Tree.NamedApp app -> {
         var expr = translateExpression(app.getArg(), insideTypeSignature);
-        var id = buildName(app, app.getName());
+        var id = sanitizeName(buildName(app, app.getName()));
         yield new IR$CallArgument$Specified(Option.apply(id), expr, loc, meta(), diag());
       }
       case null -> null;
@@ -1428,7 +1429,7 @@ final class TreeToIr {
   IR.Expression translateIdent(Tree identifier, boolean isMethod) {
     return switch (identifier) {
       case null -> null;
-      case Tree.Ident id -> buildName(id, id.getToken(), isMethod);
+      case Tree.Ident id -> sanitizeName(buildName(id, id.getToken(), isMethod));
       default -> throw new UnhandledEntity(identifier, "translateIdent");
     };
     /*
@@ -1793,6 +1794,13 @@ final class TreeToIr {
       getIdentifiedLocation(ident),
       meta(), diag()
     );
+  }
+
+  private IR.Name sanitizeName(IR$Name$Literal id) {
+    return switch (id.name()) {
+      case "self" -> new IR$Name$Self(id.location(), false, id.passData(), id.diagnostics());
+      default -> id;
+    };
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
