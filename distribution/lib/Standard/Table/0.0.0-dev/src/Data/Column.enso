@@ -374,6 +374,11 @@ type Column
     / : Column | Any -> Column
     / self other = run_vectorized_binary_op self '/' (/) other
 
+    ## PRIVATE
+       Element-wise modulus.
+    % : Column | Any -> Column
+    % self other = run_vectorized_binary_op self '%' (%) other
+
     ## ALIAS AND Columns
 
        Element-wise boolean conjunction.

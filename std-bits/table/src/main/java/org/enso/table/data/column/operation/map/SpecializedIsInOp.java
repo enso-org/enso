@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.map;
 
+import org.enso.base.Polyglot_Utils;
+import org.enso.table.data.NumericConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Value;
@@ -15,6 +17,21 @@ public class SpecializedIsInOp<T extends Storage> extends MapOperation<T> {
 
   public static <U extends Storage> SpecializedIsInOp<U> make(Function<List<?>, CompactRepresentation> prepareList) {
     return new SpecializedIsInOp<>(prepareList);
+  }
+
+  public static <U extends Storage> SpecializedIsInOp<U> makeForTimeColumns() {
+    return SpecializedIsInOp.make(list -> {
+      HashSet<Object> set = new HashSet<>();
+      boolean hasNulls = false;
+      for (Object o : list) {
+        hasNulls |= o == null;
+        Object coerced = Polyglot_Utils.convertPolyglotValue(o);
+        if (coerced != null) {
+          set.add(coerced);
+        }
+      }
+      return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+    });
   }
 
   SpecializedIsInOp(Function<List<?>, CompactRepresentation> prepareList) {

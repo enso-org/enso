@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
+import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
@@ -951,7 +952,14 @@ spec =
             varied_type_table.filter "ints" (Filter_Condition.Is_In [1, 2, 3]) . at "ints" . to_vector . should_equal [1, 2]
             varied_type_table.filter "ints" (Filter_Condition.Is_In [1, Nothing]) . at "ints" . to_vector . should_equal [Nothing, 1]
             varied_type_table.filter "doubles" (Filter_Condition.Is_In [0.0, Nothing]) . at "doubles" . to_vector . should_equal [0.0, Nothing]
-            # TODO dates, times, datetimes, mixed
+            varied_type_table.filter "dates" (Filter_Condition.Is_In [Date.new 2000, Date.new 1999 1 1, Date_Time.new 2022 8 20]) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
+            varied_type_table.filter "datetimes" (Filter_Condition.Is_In [Date_Time.new 2022 8 27 11 22 25, Nothing, Date_Time.new 2030, Date.new 2000]) . at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2022 8 27 11 22 25]
+            varied_type_table.filter "times" (Filter_Condition.Is_In [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Date_Time.new 2000 1 1]) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+            varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, "a", 1, Nothing, Date.new 2022 8 27, Date_Time.new 2022 8 27]) . at "mixed" . to_vector . should_equal [1, "a", Nothing, Date.new 2022 8 27]
+            varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, Date_Time.new 2022 8 27, 1]) . at "mixed" . to_vector . should_equal [1]
+            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In []) . at "just_nulls" . to_vector . should_equal []
+            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [Nothing, Nothing, 0]) . at "just_nulls" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [0]) . at "just_nulls" . to_vector . should_equal []
 
             t = Table.new [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
             t.filter "A" (Filter_Condition.Is_In [True, Nothing]) . at "A" . to_vector . should_equal [True, True]
@@ -967,6 +975,16 @@ spec =
             expected_vector = 4000.up_to 10000 . to_vector
             # TODO maybe try actually measuring the time
             t.filter "X" (Filter_Condition.Is_In vec) . at "X" . to_vector . should_equal expected_vector
+
+            bool_vec = Vector.fill 7000 True
+            expected_vector_2 = 200.up_to 10000 . with_step 2 . to_vector
+            t.filter (t.at "X" % 2 == 0) (Filter_Condition.Is_In bool_vec) . at "X" . to_vector . should_equal expected_vector_2
+
+            first_day = Date_Time.new 2000 1 1
+            make_date x = first_day + x.seconds
+            dates_vec = vec.map make_date
+            col = t.at "X" . map make_date
+            t.filter col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
 
 main = Test.Suite.run_main spec
