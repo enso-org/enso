@@ -6476,11 +6476,6 @@ object IR {
       override def toString: String =
         s"""
         |IR.Comment.Documentation(
-        |doc = $doc,
-        |location = $location,
-        |passData = ${this.showPassData},
-        |diagnostics = $diagnostics,
-        |id = $id
         |)
         |""".toSingleLine
 

@@ -128,7 +128,27 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                     case '(': depth++; break;
                     case ')': depth--; break;
                   }
-                  to++;
+                  var sb = new StringBuilder();
+                  for (String l : txt.split("\n")) {
+                    final String pref = "IR.Comment.Documentation";
+                    if (l.contains(pref)) {
+                        continue;
+                    }
+                    sb.append(l).append("\n");
+                  }
+                  return sb.toString();
+                };
+
+                var old = filter.apply(oldIr);
+                var now = filter.apply(ir);
+                if (!old.equals(now)) {
+                    irDiff.add(file);
+                    var oldFile = file.getParent().resolve(file.getFileName() + ".old");
+                    var nowFile = file.getParent().resolve(file.getFileName() + ".now");
+                    System.err.println("difference1: " + oldFile);
+                    System.err.println("difference2: " + nowFile);
+                    Files.writeString(oldFile , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                    Files.writeString(nowFile, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                 }
                 txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
               }
