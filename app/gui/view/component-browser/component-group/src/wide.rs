@@ -275,7 +275,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl::application::shortcut::ActionType::*;
-        (&[(Press, "tab", "accept_suggestion")])
+        [(Press, "tab", "accept_suggestion")]
             .iter()
             .map(|(a, b, c)| View::<COLUMNS>::self_shortcut(*a, *b, *c))
             .collect()

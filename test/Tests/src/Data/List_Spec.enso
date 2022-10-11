@@ -49,6 +49,7 @@ spec = Test.group "List" <|
         list.filter (Filter_Condition.Greater than=3) . should_equal [4, 5].to_list
         list.filter (Filter_Condition.Less than=3.5) . should_equal [1, 2, 3].to_list
         list.filter (Filter_Condition.Equal to=3) . should_equal (Cons 3 Nil)
+        list.filter (Filter_Condition.Not_Equal to=3) . should_equal [1, 2, 4, 5].to_list
         list.filter (Filter_Condition.Equal_Or_Greater than=3) . should_equal [3, 4, 5].to_list
         list.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal Nil
         list.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4].to_list
@@ -68,6 +69,13 @@ spec = Test.group "List" <|
         txt.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
         Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+
+        ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing].to_list
+        ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"].to_list
+        ["abab", "aaabaaaa", "ba"].to_list.filter (Filter_Condition.Like "ba") . should_equal (Cons "ba" Nil)
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "_ba_") . should_equal ["abab"].to_list
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Like "%ba__%") . should_equal ["aaabaaaa"].to_list
+        ["abab", "aaabaaaa"].to_list.filter (Filter_Condition.Not_Like "%ba%") . should_equal Nil
 
         mixed = [1, Nothing, "b"].to_list
         mixed.filter Filter_Condition.Is_Nothing . should_equal (Cons Nothing Nil)

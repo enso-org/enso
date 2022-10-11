@@ -13,37 +13,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -71,37 +59,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -111,6 +87,11 @@ jobs:
           submodules: recursive
       - name: Build Script Setup
         run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
@@ -122,6 +103,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-cli-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
     needs:
@@ -133,37 +119,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -175,6 +149,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -184,6 +163,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -196,37 +180,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -238,6 +210,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -247,6 +224,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -261,37 +243,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -303,6 +273,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -312,6 +287,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -327,37 +307,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -367,6 +335,11 @@ jobs:
           submodules: recursive
       - name: Build Script Setup
         run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run release deploy-to-ecr
@@ -382,6 +355,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -400,37 +378,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -442,6 +408,11 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run release publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -451,10 +422,15 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY  }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
   enso-build-cli-ci-gen-upload-ide-linux:
@@ -470,37 +446,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -512,9 +476,12 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run:
-          ./run ide upload --wasm-source current-ci-run --backend-source release
-          --backend-release ${{env.ENSO_RELEASE_ID}}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: List files if failed (Windows)
@@ -523,6 +490,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -537,37 +509,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -579,9 +539,12 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run:
-          ./run ide upload --wasm-source current-ci-run --backend-source release
-          --backend-release ${{env.ENSO_RELEASE_ID}}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -595,6 +558,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
@@ -611,37 +579,25 @@ jobs:
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
-        if:
-          startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted
-          Agent')
+        if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         with:
           version: v0.10.2
-      - name: Setup the Artifact API environment
+      - name: Expose Artifact API and context information.
         uses: actions/github-script@v6
         with:
-          script: |-
-            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
-            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
-            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run:
-          '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x
-          -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null)
-          || :"'
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
         if: runner.os == 'Windows'
         shell: cmd
       - name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run:
-          "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git
-          hash-object -t tree /dev/null) < /dev/null) || :"
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         if: runner.os != 'Windows'
         shell: bash
       - name: Checking out the repository
@@ -653,9 +609,12 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run:
-          ./run ide upload --wasm-source current-ci-run --backend-source release
-          --backend-release ${{env.ENSO_RELEASE_ID}}
+      - name: Clean before
+        run: ./run git-clean
+        if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
@@ -666,6 +625,11 @@ jobs:
       - name: List files if failed (non-Windows)
         run: ls -lAR
         if: failure() && runner.os != 'Windows'
+      - name: Clean after
+        run: ./run git-clean
+        if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
       ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}

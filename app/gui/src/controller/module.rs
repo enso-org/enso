@@ -12,7 +12,7 @@ use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;
 use engine_protocol::language_server;
 use engine_protocol::types::Sha3_224;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -212,7 +212,7 @@ mod test {
     use ast::Ast;
     use ast::BlockLine;
     use enso_text::index::*;
-    use parser::Parser;
+    use parser_scala::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
 

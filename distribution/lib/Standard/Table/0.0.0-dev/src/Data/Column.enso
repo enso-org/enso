@@ -247,6 +247,21 @@ type Column
     < : Column | Any -> Column
     < self other = run_vectorized_binary_op self "<" (<) other
 
+    ## Element-wise inclusive bounds check.
+
+       Arguments:
+       - lower: The lower bound to compare elements of `self` against. If
+         `lower` is a column, the comparison is performed pairwise between
+         corresponding elements of `self` and `lower`.
+       - upper: The upper bound to compare elements of `self` against. If
+         `upper` is a column, the comparison is performed pairwise between
+         corresponding elements of `self` and `upper`.
+
+       Returns a column with boolean values indicating whether values of this
+       column fit between the lower and upper bounds (both ends inclusive).
+    between : (Column | Any) -> (Column | Any) -> Column
+    between self lower upper = (self >= lower) && (self <= upper)
+
     ## ALIAS Add Columns
 
        Element-wise addition.
@@ -444,6 +459,12 @@ type Column
     is_missing : Column
     is_missing self = run_vectorized_unary_op self "is_missing" (== Nothing)
 
+    ## PRIVATE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains an empty string or `Nothing`.
+    is_empty : Column
+    is_empty self = run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate
+
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
@@ -563,6 +584,12 @@ type Column
     contains : Column | Text -> Column
     contains self other =
         run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
+
+    ## PRIVATE
+       Checks for each element of the column if it matches an SQL-like pattern.
+    like : Column | Text -> Column
+    like self other =
+        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) other
 
     ## ALIAS Transform Column
 

@@ -23,7 +23,7 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use parser::Parser;
+use parser_scala::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
@@ -395,7 +395,7 @@ impl EndpointInfo {
     }
 
     /// Iterates over sibling ports located after this endpoint in its chain.
-    pub fn chained_ports_after<'a>(&'a self) -> impl Iterator<Item = PortRef> + 'a {
+    pub fn chained_ports_after(&self) -> impl Iterator<Item = PortRef> + '_ {
         let parent_port = self.parent_chain_port();
         let ports_after = parent_port.map(move |parent_port| {
             parent_port
@@ -993,7 +993,7 @@ pub mod tests {
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
-    use parser::Parser;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 
@@ -1238,7 +1238,7 @@ main =
         bar b = 5
     print foo"
             .into();
-        test.data.graph_id = definition::Id::new_plain_names(&["main", "foo"]);
+        test.data.graph_id = definition::Id::new_plain_names(["main", "foo"]);
         test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();
@@ -1346,7 +1346,7 @@ main =
         // Not using multi-line raw string literals, as we don't want IntelliJ to automatically
         // strip the trailing whitespace in the lines.
         test.data.code = "main =\n    foo a =\n        bar b = 5\n    print foo".into();
-        test.data.graph_id = definition::Id::new_plain_names(&["main", "foo", "bar"]);
+        test.data.graph_id = definition::Id::new_plain_names(["main", "foo", "bar"]);
         test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();

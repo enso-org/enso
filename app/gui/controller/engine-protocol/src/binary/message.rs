@@ -63,7 +63,7 @@ impl<T> MessageFromServer<T> {
 
 /// Identifies the visualization in the update message.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Copy, PartialEq)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub struct VisualisationContext {
     pub visualization_id: Uuid,
     pub context_id:       Uuid,
@@ -77,7 +77,7 @@ pub enum ErrorPayload {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileSegment {
     pub path:        LSPath,
     pub byte_offset: u64,
@@ -85,7 +85,7 @@ pub struct FileSegment {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EnsoDigest {
     pub bytes: Vec<u8>,
 }
@@ -97,7 +97,7 @@ pub struct EnsoDigest {
 // ================
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ToServerPayloadOwned {
     InitSession { client_id: Uuid },
     WriteFile { path: LSPath, contents: Vec<u8> },

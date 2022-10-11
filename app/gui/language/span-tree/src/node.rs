@@ -383,7 +383,7 @@ impl<'a> IntoIterator for &'a Crumbs {
     type Item = &'a Crumb;
     type IntoIter = std::slice::Iter<'a, Crumb>;
     fn into_iter(self) -> Self::IntoIter {
-        (&*self.vec).iter()
+        (*self.vec).iter()
     }
 }
 

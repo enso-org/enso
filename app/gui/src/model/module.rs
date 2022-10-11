@@ -12,9 +12,9 @@ use double_representation::module::ImportId;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -182,7 +182,7 @@ impl Path {
 
     /// Get the file path.
     pub fn file_path(&self) -> &FilePath {
-        &*self.file_path
+        &self.file_path
     }
 
     /// Gives the file name for the given module name.
@@ -342,7 +342,7 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
-impl parser::api::Metadata for Metadata {}
+impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
@@ -356,7 +356,7 @@ impl Default for Metadata {
 }
 
 /// Project-level metadata. It is stored as part of the project's main module's metadata.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProjectMetadata {
     /// The execution context of the displayed graph editor.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
@@ -746,7 +746,8 @@ pub mod test {
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }.plain(&parser::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }
+            .plain(&parser_scala::Parser::new_or_panic(), urm)
     }
 
     #[test]

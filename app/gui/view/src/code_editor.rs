@@ -152,7 +152,7 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[(Press, "ctrl `", "toggle"), (Press, "escape", "hide")])
+        [(Press, "ctrl `", "toggle"), (Press, "escape", "hide")]
             .iter()
             .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
             .collect()

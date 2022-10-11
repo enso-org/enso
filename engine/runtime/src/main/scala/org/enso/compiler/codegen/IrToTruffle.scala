@@ -1474,7 +1474,11 @@ class IrToTruffle(
 
             val argName = arg.getName
 
-            if (seenArgNames contains argName) {
+            if (
+              argName != Constants.Names.SELF_ARGUMENT && seenArgNames.contains(
+                argName
+              )
+            ) {
               throw new IllegalStateException(
                 s"A duplicate argument name, $argName, was found during codegen."
               )

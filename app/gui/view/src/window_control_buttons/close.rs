@@ -26,7 +26,7 @@ pub mod shape {
             let angle      = Radians::from(45.0.degrees());
             let bar_length = &radius * 4.0 / 3.0;
             let bar_width  = &bar_length / 6.5;
-            #[allow(clippy::blacklisted_name)] // The `bar` name here is totally legit.
+            #[allow(clippy::disallowed_names)] // The `bar` name here is totally legit.
             let bar        = Rect((bar_length, &bar_width)).corners_radius(bar_width);
             let cross      = (bar.rotate(angle) + bar.rotate(-angle)).into();
             shape(background_color, icon_color, cross, radius)

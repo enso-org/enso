@@ -186,7 +186,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let is_enterable = component.can_be_entered();
         let match_info = component.match_info.borrow();
         let label = component.label();
-        let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        let highlighted = bytes_of_matched_letters(&match_info, &label);
         let icon = match component.data {
             component::Data::FromDatabase { entry, .. } => {
                 let kind = entry.kind;

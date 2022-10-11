@@ -78,9 +78,11 @@ public abstract class Storage {
     public static final String AND = "&&";
     public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
+    public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String CONTAINS = "contains";
+    public static final String LIKE = "like";
   }
 
   public static final class Aggregators {

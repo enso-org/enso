@@ -17,7 +17,7 @@ use itertools::Itertools;
 // =============
 
 /// Describes whether a mutable or immutable iterator is being derived.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IsMut {
     Mutable,
     Immutable,
@@ -285,7 +285,7 @@ impl DerivingIterator<'_> {
         let iterator_tydefs = quote!(
             // type FooIterator<'t, T>    = impl Iterator<Item = &'t T>;
             // type FooIteratorMut<'t, T> = impl Iterator<Item = &'t mut T>;
-            type #t_iterator<'t, #(#iterator_params),*> =
+            type #t_iterator<'t, #(#iterator_params: 't),*> =
                 impl Iterator<Item = &'t #opt_mut #target_param>;
         );
         let matched_fields = DependentValue::collect_struct(data, target_param);

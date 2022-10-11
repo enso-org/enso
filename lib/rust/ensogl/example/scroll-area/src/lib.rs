@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -82,9 +83,9 @@ mod background {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(&app);
-    theme::builtin::light::register(&app);
-    theme::builtin::light::enable(&app);
+    theme::builtin::dark::register(app);
+    theme::builtin::light::register(app);
+    theme::builtin::light::enable(app);
 
     let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));

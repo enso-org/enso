@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::notification;
 
 use mockall::automock;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 // ==============

@@ -185,7 +185,7 @@ mod test {
 
     use ast::HasIdMap;
     use enso_prelude::default;
-    use parser::Parser;
+    use parser_scala::Parser;
     use uuid::Uuid;
 
     /// A sample text edit used to test "text api" properties.
@@ -266,9 +266,10 @@ mod test {
     /// Pretty prints the code of module with a single function named `main`. The lines should
     /// contain unindented main function's block lines.
     fn to_main(lines: impl IntoIterator<Item: AsRef<str>>) -> String {
+        use std::fmt::Write;
         let mut ret = "main = ".to_string();
         for line in lines {
-            ret.push_str(&format!("\n    {}", line.as_ref()))
+            write!(ret, "\n    {}", line.as_ref()).unwrap();
         }
         ret
     }

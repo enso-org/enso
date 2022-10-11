@@ -287,7 +287,7 @@ impl NodeFromDroppedFileHandler {
     }
 
     async fn establish_remote_file_name(&self, original_name: &str) -> FallibleResult<String> {
-        pick_non_colliding_name(&*self.project.json_rpc(), &self.data_path(), original_name).await
+        pick_non_colliding_name(&self.project.json_rpc(), &self.data_path(), original_name).await
     }
 
     async fn ensure_data_directory_exists(&self) -> FallibleResult {

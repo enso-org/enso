@@ -12,13 +12,24 @@ from Standard.Base.Data.Filter_Condition.Filter_Condition import all
    It also performs validation and will throw errors if unexpected column types
    are encountered.
 make_filter_column source_column filter_condition = case filter_condition of
+    # Equality
+    Equal value -> (source_column == value)
+    Not_Equal value -> (source_column != value)
+    # Nothing
+    Is_Nothing -> source_column.is_missing
+    Not_Nothing -> source_column.is_missing.not
+    # Boolean
+    Is_True ->
+        Value_Type.expect_boolean source_column.value_type <| source_column
+    Is_False ->
+        Value_Type.expect_boolean source_column.value_type <| source_column.not
+    # Comparisons
     Less value -> (source_column < value)
     Equal_Or_Less value -> (source_column <= value)
-    Equal value -> (source_column == value)
     Equal_Or_Greater value -> (source_column >= value)
     Greater value -> (source_column > value)
-    Not_Equal value -> (source_column != value)
-    Between lower upper -> ((source_column >= lower) && (source_column <= upper))
+    Between lower upper -> source_column.between lower upper
+    # Text
     Starts_With prefix ->
         Value_Type.expect_text source_column.value_type <|
             expect_column_or_value_as_text "prefix" prefix <|
@@ -31,12 +42,20 @@ make_filter_column source_column filter_condition = case filter_condition of
         Value_Type.expect_text source_column.value_type <|
             expect_column_or_value_as_text "substring" substring <|
                 source_column.contains substring
-    Is_Nothing -> source_column.is_missing
-    Not_Nothing -> source_column.is_missing.not
-    Is_True ->
-        Value_Type.expect_boolean source_column.value_type <| source_column
-    Is_False ->
-        Value_Type.expect_boolean source_column.value_type <| source_column.not
+    Is_Empty ->
+        Value_Type.expect_text source_column.value_type <|
+            source_column.is_empty
+    Not_Empty ->
+        Value_Type.expect_text source_column.value_type <|
+            source_column.is_empty.not
+    Like pattern ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "pattern" pattern <|
+                source_column.like pattern
+    Not_Like pattern ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "pattern" pattern <|
+                source_column.like pattern . not
 
 ## PRIVATE
 expect_column_or_value_as_text field_name column_or_value ~action = case column_or_value of

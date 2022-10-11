@@ -21,6 +21,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
@@ -104,7 +105,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
         let mut builder = Self { profile, events };
         // We skip the root node APP_LIFETIME, which is not a real measurement.
         for child in &profile.root_interval().children {
-            builder.visit_interval(*child, 0);
+            builder.visit_interval(*child);
         }
         let Self { events, .. } = builder;
         events
@@ -113,7 +114,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
 
 impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
     /// Translate an interval, and its children.
-    fn visit_interval(&mut self, active: data::IntervalId, row: u32) {
+    fn visit_interval(&mut self, active: data::IntervalId) {
         let active = &self.profile[active];
         let measurement = &self.profile[active.measurement];
         let start = active.interval.start.into_ms();
@@ -133,7 +134,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
             self.events.push(event);
         }
         for child in &active.children {
-            self.visit_interval(*child, row + 1);
+            self.visit_interval(*child);
         }
     }
 }
