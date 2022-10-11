@@ -64,22 +64,44 @@ public final class EnsoDuration implements TruffleObject {
   @TruffleBoundary
   public static EnsoDuration between(
       Object startInclusive, Object endExclusive, boolean timeZoneAware, InteropLibrary interop) {
+    if (!isDateTime(startInclusive, interop)
+        || (timeZoneAware && !hasTimeZone(startInclusive, interop))) {
+      throw createNotDateTimePanic("start_inclusive", startInclusive, interop);
+    }
+    if (!isDateTime(endExclusive, interop)
+        || (timeZoneAware && !hasTimeZone(endExclusive, interop))) {
+      throw createNotDateTimePanic("end_exclusive", endExclusive, interop);
+    }
     Temporal startTime = convertToDateTime(startInclusive, timeZoneAware, interop);
     Temporal endTime = convertToDateTime(endExclusive, timeZoneAware, interop);
     return new EnsoDuration(Duration.between(startTime, endTime));
   }
 
+  private static boolean isDateTime(Object dateTime, InteropLibrary interop) {
+    return interop.isDate(dateTime) && interop.isTime(dateTime);
+  }
+
+  private static boolean hasTimeZone(Object dateTime, InteropLibrary interop) {
+    return interop.isTimeZone(dateTime);
+  }
+
+  private static PanicException createNotDateTimePanic(
+      String varName, Object object, InteropLibrary interop) {
+    return new PanicException(
+        Context.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
+        interop);
+  }
+
   private static Temporal convertToDateTime(
-      Object dateObject, boolean timeZoneAware, InteropLibrary interop) {
-    assert interop.isDate(dateObject);
+      Object dateTimeObject, boolean timeZoneAware, InteropLibrary interop) {
+    assert interop.isDate(dateTimeObject);
+    assert interop.isTime(dateTimeObject);
     try {
-      LocalDate date = interop.asDate(dateObject);
-      LocalTime time = interop.isTime(dateObject) ? interop.asTime(dateObject) : LocalTime.MIN;
+      LocalDate date = interop.asDate(dateTimeObject);
+      LocalTime time = interop.asTime(dateTimeObject);
       if (timeZoneAware) {
-        ZoneId zone =
-            interop.isTimeZone(dateObject)
-                ? interop.asTimeZone(dateObject)
-                : ZoneId.systemDefault();
+        assert interop.isTime(dateTimeObject);
+        ZoneId zone = interop.asTimeZone(dateTimeObject);
         return ZonedDateTime.of(date, time, zone);
       } else {
         return LocalDateTime.of(date, time);
@@ -114,7 +136,9 @@ public final class EnsoDuration implements TruffleObject {
     return duration.toNanosPart();
   }
 
-  @Builtin.Method(name = "total_milliseconds_builtin", description = "Gets the total amount of milliseconds")
+  @Builtin.Method(
+      name = "total_milliseconds_builtin",
+      description = "Gets the total amount of milliseconds")
   public long totalMilliseconds() {
     return duration.toMillis();
   }

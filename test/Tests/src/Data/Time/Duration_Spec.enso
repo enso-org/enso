@@ -5,13 +5,20 @@ import Standard.Test
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.LocalDate
+polyglot java import java.time.LocalDateTime as Java_DateTime
 
 
-java_date year month=1 day=1 =
-    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
+    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
 
-foreign js js_date year month_index=0 day=1 = """
-    return new Date(year, month_index, day)
+js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
+    Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data err.payload.cause))
+
+foreign js js_datetime_impl year month day hour minute second nanosecond = """
+    if (month > 12 || month < 1) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
 
 spec =
     Test.group "Duration" <|
@@ -69,18 +76,20 @@ spec =
             (Java_Duration.ofSeconds 30) . should_equal (Duration.new seconds=30)
 
         Test.specify "Difference of Java Date and Enso date should be an Enso Duration" <|
-            (Duration.between (java_date 2022 01 01) (Date.new 2022 01 02)).total_hours . should_equal 24
-            (Duration.between (Date.new 2022 01 01) (java_date 2022 01 02)).total_hours . should_equal 24
+            (Duration.between (java_datetime 2022 01 01) (Date_Time.new 2022 01 02) timezone_aware=False).total_hours . should_equal 24
+            (Duration.between (Date_Time.new 2022 01 01) (java_datetime 2022 01 02) timezone_aware=False).total_hours . should_equal 24
+            (Duration.between (Date_Time.new 2022 01 01 13) (java_datetime 2022 01 01 14) timezone_aware=False).total_hours . should_equal 1
+            (Duration.between (java_datetime 2022 01 01 13 13) (Date_Time.new 2022 01 01 13 15) timezone_aware=False).total_minutes . should_equal 2
 
         Test.specify "Difference of two Java Dates should be an Enso Duration" <|
-            (Duration.between (java_date 2022 01 01) (java_date 2022 01 02)).total_hours . should_equal 24
+            (Duration.between (java_datetime 2022 01 01) (java_datetime 2022 01 02) timezone_aware=False).total_hours . should_equal 24
 
         Test.specify "Difference of two JS Dates is an Enso Duration" <|
-            (Duration.between (js_date 2022 09 01) (js_date 2022 09 02)).total_hours . should_equal 24
+            (Duration.between (js_datetime 2022 09 01) (js_datetime 2022 09 02) timezone_aware=False).total_hours . should_equal 24
 
         Test.specify "Difference of JS Dates and Java Dates should be Enso Duration" <|
-            (Duration.between (js_date 2022 08 01) (java_date 2022 09 02)).total_hours . should_equal 24
-            (Duration.between (java_date 2022 09 01) (js_date 2022 08 02)).total_hours . should_equal 24
+            (Duration.between (js_datetime 2022 09 08) (java_datetime 2022 09 09) timezone_aware=False).total_hours . should_equal 24
+            (Duration.between (java_datetime 2022 09 09) (js_datetime 2022 09 08) timezone_aware=False).total_hours . should_equal (-24)
 
 
 main = Test.Suite.run_main spec

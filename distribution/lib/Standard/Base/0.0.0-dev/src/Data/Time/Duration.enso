@@ -9,8 +9,8 @@ polyglot java import java.lang.ArithmeticException
 ## Create an interval representing the duration between two points in time.
 
    Arguments:
-   - start_inclusive: The start time of the duration.
-   - end_inclusive: The end time of the duration.
+   - start_inclusive: The start datetime of the duration.
+   - end_inclusive: The end datetime of the duration.
    - timezone_aware: Whether the duration between two given times should be
      aware of the timezone, that can be set for start or end times.
 
@@ -21,7 +21,7 @@ polyglot java import java.lang.ArithmeticException
          import Standard.Base.Data.Time.Duration
 
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
-between : (Date|Date_Time) -> (Date|Date_Time) -> Boolean -> Duration
+between : Date_Time -> Date_Time -> Boolean -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
     Duration.between_builtin start_inclusive end_exclusive timezone_aware
 
@@ -58,10 +58,6 @@ time_execution ~function =
     duration = new nanoseconds=(end - start)
     Pair_Data duration result
 
-
-# TODO Dubious constructor export
-from project.Data.Time.Duration.Duration import all
-from project.Data.Time.Duration.Duration export all
 
 @Builtin_Type
 type Duration
