@@ -384,6 +384,7 @@ impl component::Frp<Model> for Frp {
             on_hover_end <- is_hovered.on_false();
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
+            model.grid.unhover_element <+ on_hover_end;
 
 
             // === Section navigator ===

@@ -146,6 +146,7 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         jump_group_up(),
         jump_group_down(),
+        unhover_element(),
     }
     Output {
         active(ElementId),
@@ -608,6 +609,7 @@ impl component::Frp<Model> for Frp {
             out.hovered <+ grid.entry_hovered.map(f!((loc)
                 model.location_to_element_id(loc.as_ref()?)
             ));
+            grid.hover_entry <+ input.unhover_element.constant(None);
             out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
 
