@@ -260,7 +260,7 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
         Variant::Ident(_) => true,
         Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
             if matches!(&*rhs.variant, Variant::Ident(_)) && opr.properties.is_dot() =>
-                is_qualified_name(lhs),
+            is_qualified_name(lhs),
         _ => false,
     }
 }
