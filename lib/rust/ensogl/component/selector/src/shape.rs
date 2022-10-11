@@ -138,7 +138,7 @@ pub mod track {
 struct OverflowShape {
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub width:  Var<Pixels>,
+    pub width: Var<Pixels>,
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
     pub height: Var<Pixels>,
@@ -154,7 +154,7 @@ impl OverflowShape {
         let height = &sprite_height - shadow::size(style).px();
         let overflow_color = style.get_color(theme::component::slider::overflow::color);
         let shape = Triangle(&sprite_height / 6.0, &sprite_height / 6.0);
-        let shape = shape.fill(&overflow_color);
+        let shape = shape.fill(overflow_color);
 
         let hover_area = Circle(&height);
         let hover_area = hover_area.fill(HOVER_COLOR);

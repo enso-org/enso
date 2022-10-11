@@ -78,17 +78,17 @@
 #![recursion_limit = "256"]
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(let_chains)]
 #![feature(allocator_api)]
 #![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
-#![feature(let_chains)]
-#![feature(let_else)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
@@ -104,7 +104,6 @@
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
-
 
 
 // ==============

@@ -44,7 +44,7 @@ fn pow_impl(msg: MockRequestMessage) -> MockResponseMessage {
 
 // === Protocol Data ===
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct MockRequest {
     i: i64,
 }
@@ -54,12 +54,12 @@ impl RemoteMethodCall for MockRequest {
     type Returned = MockResponse;
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct MockResponse {
     result: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Eq)]
 #[serde(tag = "method", content = "params")]
 pub enum MockNotification {
     Meow { text: String },

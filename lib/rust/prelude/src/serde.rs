@@ -61,12 +61,12 @@ mod tests {
     fn deserialize_or_default_attribute_test() {
         // Two structures - same except for `deserialize_or_default` atribute.
         // One fails to deserialize, second one goes through.
-        #[derive(Debug, Deserialize, PartialEq, Serialize)]
+        #[derive(Debug, Deserialize, PartialEq, Eq, Serialize)]
         struct Foo {
             blah: String,
             boom: Vec<i32>,
         }
-        #[derive(Debug, Deserialize, PartialEq, Serialize)]
+        #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
         struct Bar {
             #[serde(deserialize_with = "deserialize_or_default")]
             blah: String,
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn deserialize_or_default_attribute_for_optional_field() {
-        #[derive(Debug, Deserialize, PartialEq, Serialize)]
+        #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
         struct Foo {
             #[serde(default, deserialize_with = "deserialize_or_default")]
             blah: Option<String>,

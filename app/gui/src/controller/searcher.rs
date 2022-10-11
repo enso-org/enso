@@ -26,7 +26,7 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 // ==============
@@ -550,7 +550,7 @@ impl Searcher {
             Data::new_with_edited_node(
                 project.qualified_name(),
                 &graph.graph(),
-                &*database,
+                &database,
                 node_id,
             )?
         } else {

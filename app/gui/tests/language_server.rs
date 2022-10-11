@@ -323,8 +323,8 @@ async fn file_operations_test() {
     // Edit file using the text protocol
     let path = Path::new(project.json_rpc().project_root().id(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
-    let written = project.json_rpc().write_file(&path, &contents).await.unwrap();
-    info!("Written: {written:?}");
+    project.json_rpc().write_file(&path, &contents).await.unwrap();
+    info!("Written: {contents:?}");
     let read_back = project.json_rpc().read_file(&path).await.unwrap();
     info!("Read back: {read_back:?}");
     assert_eq!(contents, read_back.contents);

@@ -309,7 +309,7 @@ impl BreadcrumbModel {
             .shape_system(scene, PhantomData::<background::DynamicShape>)
             .shape_system
             .symbol;
-        scene.layers.panel.add_exclusive(&background);
+        scene.layers.panel.add_exclusive(background);
         scene.layers.panel.add_exclusive(&icon);
         scene.layers.panel.add_exclusive(&separator);
 
