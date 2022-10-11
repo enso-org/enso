@@ -1,7 +1,5 @@
 //! Parse expressions and compare their results to expected values.
 
-// === Features ===
-#![feature(let_else)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

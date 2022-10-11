@@ -97,7 +97,7 @@ impl World {
 impl Deref for World {
     type Target = WorldDataWithLoop;
     fn deref(&self) -> &Self::Target {
-        &*self.rc
+        &self.rc
     }
 }
 

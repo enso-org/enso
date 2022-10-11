@@ -489,7 +489,7 @@ impl Graph {
             // Position initialization should go before emitting `update_data` event.
             update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
             eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
-            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&*model) {
+            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
                     error!("Failed to update view: {err:?}");

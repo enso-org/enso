@@ -134,7 +134,7 @@ impl Container {
 
     /// Move the container with visualization to `layer`.
     pub fn set_layer(&self, layer: visualization::Layer) {
-        self.visualization.frp.set_layer.emit(&layer);
+        self.visualization.frp.set_layer.emit(layer);
         layer.apply_for_html_component(&self.scene, &self.background_dom);
     }
 }

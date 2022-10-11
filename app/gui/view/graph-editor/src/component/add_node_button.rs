@@ -27,7 +27,7 @@ mod shape {
             let angle      = Radians::from(90.0.degrees());
             let bar_length = &radius * 4.0 / 3.0;
             let bar_width  = &bar_length / 10.0;
-            #[allow(clippy::blacklisted_name)] // The `bar` name here is totally legit.
+            #[allow(clippy::disallowed_names)] // The `bar` name here is totally legit.
             let bar        = Rect((bar_length, &bar_width));
             let plus       = (bar.rotate(angle) + bar).into();
             let shape = shape(background_color, icon_color, plus, radius);

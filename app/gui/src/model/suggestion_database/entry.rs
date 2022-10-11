@@ -75,7 +75,7 @@ im_string_newtype! {
 }
 
 /// A fully qualified name of an [`Entry`].
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
@@ -514,7 +514,7 @@ impl Entry {
             docs_html
         } else {
             docs.map(|docs| {
-                let parser = parser::DocParser::new();
+                let parser = parser_scala::DocParser::new();
                 match parser {
                     Ok(p) => {
                         let output = p.generate_html_doc_pure((*docs).to_string());
@@ -718,7 +718,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
-            let icon_name = IconName::from_snake_case(&body);
+            let icon_name = IconName::from_snake_case(body);
             let as_snake_case = icon_name.to_snake_case();
             if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
                 let msg = format!(
@@ -960,7 +960,7 @@ mod test {
     /// Test the results of converting a [`QualifiedName`] to a string using various methods.
     #[test]
     fn qualified_name_to_string() {
-        let qualified_name = QualifiedName::from_iter(&["Foo", "Bar"]);
+        let qualified_name = QualifiedName::from_iter(["Foo", "Bar"]);
         assert_eq!(qualified_name.to_string(), "Foo.Bar".to_string());
         assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
     }

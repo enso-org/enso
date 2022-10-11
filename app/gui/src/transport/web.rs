@@ -66,7 +66,7 @@ impl SendingError {
 // =============
 
 /// Describes the current state of WebSocket connection.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
     /// Socket has been created. The connection is not yet open.
     Connecting,

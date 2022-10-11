@@ -15,6 +15,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
@@ -70,7 +71,7 @@ use ensogl::system::web;
 use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
-use ensogl::DEPRECATED_Tween;
+use ensogl::Easing;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 
@@ -1649,7 +1650,7 @@ impl GraphEditorModelWithNetwork {
             preprocessor: node_model.visualization.frp.preprocessor.value(),
         };
         metadata.emit(initial_metadata);
-        init.emit(&());
+        init.emit(());
         self.nodes.insert(node_id, node.clone_ref());
         node
     }
@@ -2510,7 +2511,7 @@ impl application::View for GraphEditor {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (Press, "!node_editing", "tab", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
@@ -2564,10 +2565,10 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
-        ])
-            .iter()
-            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-            .collect()
+        ]
+        .iter()
+        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+        .collect()
     }
 }
 
@@ -3139,18 +3140,18 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     eval drag_tgts ((ids) model.disable_grid_snapping_for(ids));
     let node_tgt_pos_anim = DEPRECATED_Animation::<Vector2<f32>>::new(network);
-    let x_snap_strength   = DEPRECATED_Tween::new(network);
-    let y_snap_strength   = DEPRECATED_Tween::new(network);
-    x_snap_strength.set_duration(300.0.ms());
-    y_snap_strength.set_duration(300.0.ms());
+    let x_snap_strength   = Easing::new(network);
+    let y_snap_strength   = Easing::new(network);
+    x_snap_strength.set_duration(300.0);
+    y_snap_strength.set_duration(300.0);
 
     _eval <- node_tgt_pos_rt.map2(&just_pressed,
         f!([model,x_snap_strength,y_snap_strength,node_tgt_pos_anim](pos,just_pressed) {
             let snapped = model.nodes.check_grid_magnet(*pos);
             let x = snapped.x.unwrap_or(pos.x);
             let y = snapped.y.unwrap_or(pos.y);
-            x_snap_strength.set_target_value(if snapped.x.is_none() { 0.0 } else { 1.0 });
-            y_snap_strength.set_target_value(if snapped.y.is_none() { 0.0 } else { 1.0 });
+            x_snap_strength.target(if snapped.x.is_none() { 0.0 } else { 1.0 });
+            y_snap_strength.target(if snapped.y.is_none() { 0.0 } else { 1.0 });
             node_tgt_pos_anim.set_target_value(Vector2::new(x,y));
             if *just_pressed {
                 node_tgt_pos_anim.set_target_value(*pos);

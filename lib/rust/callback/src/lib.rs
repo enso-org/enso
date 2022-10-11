@@ -8,6 +8,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -173,13 +174,13 @@ impl<F: ?Sized> RegistryFnNew for RegistryFnMut<F> {
 
 impl<Args, F: ?Sized + Fn<Args>> RegistryFnCall<Args> for RegistryFn<F> {
     fn call(&self, args: Args) {
-        (&*self.function).call(args);
+        (*self.function).call(args);
     }
 }
 
 impl<Args, F: ?Sized + FnMut<Args>> RegistryFnCall<Args> for RegistryFnMut<F> {
     fn call(&self, args: Args) {
-        (&mut *self.function.borrow_mut()).call_mut(args);
+        (*self.function.borrow_mut()).call_mut(args);
     }
 }
 
@@ -422,7 +423,7 @@ impl DynEventDispatcher {
         let callback = Box::new(move |event: &DynEvent| {
             event.any.downcast_ref::<T>().iter().for_each(|t| f(t))
         });
-        let type_id = (&PhantomData::<T>).type_id();
+        let type_id = PhantomData::<T>.type_id();
         let handle = Handle::default();
         let guard = handle.guard();
         let listeners = self.listener_map.entry(type_id).or_insert_with(default);

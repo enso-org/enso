@@ -19,7 +19,7 @@ use ast::crumbs::Crumbs;
 // ================
 
 /// A connection endpoint.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Endpoint {
     /// Id of the node where the endpoint is located.
     pub node:   Id,
@@ -61,7 +61,7 @@ pub type Destination = Endpoint;
 
 /// Describes a connection between two endpoints: from `source` to `destination`.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
     pub source:      Source,
     pub destination: Destination,
@@ -159,7 +159,7 @@ mod tests {
 
     use ast::crumbs;
     use ast::crumbs::InfixCrumb;
-    use parser::Parser;
+    use parser_scala::Parser;
 
     struct TestRun {
         graph:       GraphInfo,

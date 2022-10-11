@@ -168,14 +168,38 @@ base_dialect =
     bin = name -> [name, make_binary_op name]
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
+
     arith = [bin "+", bin "-", bin "*", bin "/"]
     logic = [bin "AND", bin "OR", unary "NOT"]
-    compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">="]
+    compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
+    text = [["ISEMPTY", make_is_empty], bin "LIKE"]
     nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
-    base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
+    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls)
     Internal_Dialect.Value base_map wrap_in_quotes
+
+## PRIVATE
+make_is_empty : Vector Builder -> Builder
+make_is_empty arguments = case arguments.length of
+    1 ->
+        arg = arguments.at 0
+        is_null = (arg ++ " IS NULL").paren
+        is_empty = (arg ++ " = ''").paren
+        (is_null ++ " OR " ++ is_empty).paren
+    _ ->
+        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation ISEMPTY")
+
+## PRIVATE
+make_between : Vector Builder -> Builder
+make_between arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        lower = arguments.at 1
+        upper = arguments.at 2
+        (expr ++ " BETWEEN " ++ lower ++ " AND " ++ upper).paren
+    _ ->
+        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation BETWEEN")
 
 ## PRIVATE
 

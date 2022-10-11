@@ -35,7 +35,7 @@ impl<T> Log<T> {
     pub fn append(&self, element: T) {
         // Note [Log Safety]
         unsafe {
-            (&mut *self.0.get()).push(element);
+            (*self.0.get()).push(element);
         }
     }
 

@@ -26,7 +26,7 @@ use serde::Serializer;
 /// Provides `Deref` implementation that allows accessing underlying shape `T` value.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownAst<T> {
     ast:     Ast,
     phantom: PhantomData<T>,

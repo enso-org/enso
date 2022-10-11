@@ -11,7 +11,7 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
 use ast::opr;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -91,7 +91,7 @@ pub struct CannotFindChild(Crumb);
 // =================
 
 /// Describes the kind of code block (scope) to which definition can belong.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScopeKind {
     /// Module scope is a file's top-level block.
     Root,
@@ -594,7 +594,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn definition_name_tests() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.Bar.baz").unwrap();
         let name = DefinitionName::from_ast(&ast).unwrap();
 
@@ -609,14 +609,14 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn definition_name_rejecting_incomplete_names() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo. .baz").unwrap();
         assert!(DefinitionName::from_ast(&ast).is_none());
     }
 
     #[wasm_bindgen_test]
     fn definition_info_name() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.bar a b c = baz").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
 
@@ -626,7 +626,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn located_definition_args() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let ast = parser.parse_line_ast("foo bar baz = a + b + c").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
         let (arg0, arg1) = definition.args.expect_tuple();
@@ -668,7 +668,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn list_definition_test() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
 
         // TODO [mwu]
         //  Due to a parser bug, extension methods defining operators cannot be currently
@@ -723,7 +723,7 @@ mod tests {
             ("foo = bar\n\nmain = bar", 2),
         ];
 
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let main_id = Id::new_plain_name("main");
         for (program, expected_line_index) in program_to_expected_main_pos {
             let module = parser.parse_module(program, default()).unwrap();
@@ -749,19 +749,19 @@ main =
 
     add foo bar";
 
-        let module = parser::Parser::new_or_panic().parse_module(program, default()).unwrap();
+        let module = parser_scala::Parser::new_or_panic().parse_module(program, default()).unwrap();
         let check_def = |id, expected_body| {
             let definition = module::get_definition(&module, &id).unwrap();
             assert_eq!(definition.body().repr(), expected_body);
         };
         let check_not_found = |id| assert!(module::get_definition(&module, &id).is_err());
 
-        check_def(Id::new_plain_names(&["main", "add"]), "a + b");
-        check_def(Id::new_plain_names(&["main", "baz"]), "\n        subbaz arg = 4");
-        check_def(Id::new_plain_names(&["main", "baz", "subbaz"]), "4");
+        check_def(Id::new_plain_names(["main", "add"]), "a + b");
+        check_def(Id::new_plain_names(["main", "baz"]), "\n        subbaz arg = 4");
+        check_def(Id::new_plain_names(["main", "baz", "subbaz"]), "4");
 
         // Node are not definitions
-        check_not_found(Id::new_plain_names(&["main", "foo"]));
-        check_not_found(Id::new_plain_names(&["main", "baz2", "subbaz2"]));
+        check_not_found(Id::new_plain_names(["main", "foo"]));
+        check_not_found(Id::new_plain_names(["main", "baz2", "subbaz2"]));
     }
 }
