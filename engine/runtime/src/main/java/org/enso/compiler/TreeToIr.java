@@ -620,20 +620,26 @@ final class TreeToIr {
         var op = app.getOpr().getRight();
         yield switch (op.codeRepr()) {
           case "." -> {
-            var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
-            var lhs = translateExpression(app.getLhs(), insideTypeSignature);
-            IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, getIdentifiedLocation(tree), meta(), diag());
-            var firstArg = cons(callArgument, nil());
-            var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
-            var prefix = new IR$Application$Prefix(
-                rhs, args,
-                false,
-                getIdentifiedLocation(tree),
-                meta(),
-                diag()
-            );
-            yield prefix;
+            final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
+            if (insideTypeSignature) {
+              yield buildQualifiedName(app, loc, true);
+            } else {
+              var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
+              var lhs = translateExpression(app.getLhs(), insideTypeSignature);
+              IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, loc, meta(), diag());
+              var firstArg = cons(callArgument, nil());
+              var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
+              var prefix = new IR$Application$Prefix(
+                  rhs, args,
+                  false,
+                  getIdentifiedLocation(tree),
+                  meta(),
+                  diag()
+              );
+              yield prefix;
+            }
           }
+
           case "->" -> {
             if (insideTypeSignature) {
               var literal = translateExpression(app.getLhs(), insideTypeSignature);
@@ -1239,7 +1245,7 @@ final class TreeToIr {
     * handled deeper in the compiler pipeline.
     */
   IR.Expression translateQualifiedNameOrExpression(Tree arg) {
-    IR$Name$Qualified name = buildQualifiedName(arg, false);
+    IR$Name$Qualified name = buildQualifiedName(arg, Option.empty(), false);
     if (name != null) {
       return name;
     } else {
@@ -1654,11 +1660,11 @@ final class TreeToIr {
   */
 
   private IR$Name$Qualified buildQualifiedName(Tree t) {
-    return buildQualifiedName(t, true);
+    return buildQualifiedName(t, Option.empty(), true);
   }
-  private IR$Name$Qualified buildQualifiedName(Tree t, boolean fail) {
+  private IR$Name$Qualified buildQualifiedName(Tree t, Option<IdentifiedLocation> loc, boolean fail) {
     var segments = buildNames(t, '.', fail);
-    return segments == null ? null : new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+    return segments == null ? null : new IR$Name$Qualified(segments, loc, meta(), diag());
   }
 
   private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {

@@ -196,6 +196,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testInterval() throws Exception {
+    parseTest("""
+    type Interval
+        Interval_Data (start : Bound.Bound)
+    """);
+  }
+
+  @Test
   public void testAtEq() throws Exception {
     parseTest("""
     type Array
