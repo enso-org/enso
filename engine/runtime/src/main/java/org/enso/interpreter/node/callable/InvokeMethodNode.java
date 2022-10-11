@@ -360,7 +360,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DURATION"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
       })
   Stateful doConvertDuration(
       VirtualFrame frame,
