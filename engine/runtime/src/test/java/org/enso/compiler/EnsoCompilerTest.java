@@ -53,6 +53,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeMethodWithSignature() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Fuzzy
+        == : Correct -> Wrong
+        == self right = @Builtin_Method "Fuzzy.=="
+    """
+    );
+  }
+
+  @Test
   public void testImport() throws Exception {
     parseTest("""
     from Standard.Base.Data.Any import all

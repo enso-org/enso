@@ -271,7 +271,7 @@ final class TreeToIr {
       */
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
-        var translatedBody = translateTypeBody(def.getBlock(), true);
+        var translatedBody = translateTypeBody(def.getBlock(), true).reverse();
         for (var c : def.getConstructors()) {
           var cExpr = c.getExpression();
           if (cExpr == null) {
@@ -456,6 +456,39 @@ final class TreeToIr {
 //          );
 //        }
         yield null;
+      }
+      case Tree.TypeSignature sig -> {
+        var typeName = buildName(sig, sig.getVariable(), true);
+
+        List<IR.Expression> args;
+        IR.Expression ret;
+        switch (sig.getType()) {
+          case Tree.OprApp app -> {
+            args = cons(translateExpression(app.getLhs(), true), nil());
+            ret = translateExpression(app.getRhs(), true);
+          }
+          default -> {
+            args = nil();
+            ret = null;
+          }
+        }
+
+        var fn = new IR$Type$Function(
+                args,
+                ret,
+                Option.empty(),
+                meta(), diag()
+        );
+        yield new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
+      }
+      case Tree.Function fun -> {
+        var name = buildName(fun, fun.getName(), true);
+        var args = translateArgumentsDefinition(fun.getArgs());
+        var body = translateExpression(fun.getBody(), false);
+
+        yield new IR$Function$Binding(name, args, body,
+            getIdentifiedLocation(fun), true, meta(), diag()
+        );
       }
       /*
       case AstView.FunctionSugar(
