@@ -256,18 +256,20 @@ public class DoubleStorage extends NumericStorage {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
-        .add(SpecializedIsInOp.make(list -> {
-          HashSet<Object> set = new HashSet<>();
-          boolean hasNulls = false;
-          for (Object o : list) {
-            hasNulls |= o == null;
-            Double x = NumericConverter.tryConvertingToDouble(o);
-            if (x != null) {
-              set.add(x);
-            }
-          }
-          return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
-        }));
+        .add(
+            SpecializedIsInOp.make(
+                list -> {
+                  HashSet<Object> set = new HashSet<>();
+                  boolean hasNulls = false;
+                  for (Object o : list) {
+                    hasNulls |= o == null;
+                    Double x = NumericConverter.tryConvertingToDouble(o);
+                    if (x != null) {
+                      set.add(x);
+                    }
+                  }
+                  return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+                }));
     return ops;
   }
 

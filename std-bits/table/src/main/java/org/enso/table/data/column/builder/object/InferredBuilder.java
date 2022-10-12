@@ -115,8 +115,7 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Float.class, Storage.Type.DOUBLE),
           new RetypeInfo(Integer.class, Storage.Type.LONG),
           new RetypeInfo(Short.class, Storage.Type.LONG),
-          new RetypeInfo(Byte.class, Storage.Type.LONG)
-      );
+          new RetypeInfo(Byte.class, Storage.Type.LONG));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
