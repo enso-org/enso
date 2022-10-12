@@ -18,7 +18,7 @@ public class DateStorage extends SpecializedStorage<LocalDate> {
 
   private static MapOpStorage<SpecializedStorage<LocalDate>> buildOps() {
     MapOpStorage<SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
-    t.add(SpecializedIsInOp.makeForTimeColumns());
+    t.add(SpecializedIsInOp.makeForTimeColumns(LocalDate.class));
     return t;
   }
 

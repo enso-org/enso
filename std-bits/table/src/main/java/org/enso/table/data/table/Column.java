@@ -1,6 +1,6 @@
 package org.enso.table.data.table;
 
-import org.enso.base.Polyglot_Utils;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,8 +13,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Function;

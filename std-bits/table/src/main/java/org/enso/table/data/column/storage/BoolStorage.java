@@ -289,7 +289,7 @@ public class BoolStorage extends Storage {
                 }
               }
             })
-        .add(new BooleanIsInOp<>());
+        .add(new BooleanIsInOp());
     return ops;
   }
 

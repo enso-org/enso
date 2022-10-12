@@ -1,11 +1,10 @@
 package org.enso.table.data.column.builder.object;
 
-import org.enso.table.data.NumericConverter;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -70,10 +69,10 @@ public class NumericBuilder extends TypedBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else if (isDouble) {
-      double value = NumericConverter.toDouble(o);
+      double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else {
-      data[currentSize++] = NumericConverter.toLong(o);
+      data[currentSize++] = NumericConverter.coerceToLong(o);
     }
   }
 

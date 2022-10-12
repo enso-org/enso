@@ -18,7 +18,7 @@ public class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
 
   private static MapOpStorage<SpecializedStorage<LocalTime>> buildOps() {
     MapOpStorage<SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();
-    t.add(SpecializedIsInOp.makeForTimeColumns());
+    t.add(SpecializedIsInOp.makeForTimeColumns(LocalTime.class));
     return t;
   }
 

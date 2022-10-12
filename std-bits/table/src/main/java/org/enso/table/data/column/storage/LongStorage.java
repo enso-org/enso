@@ -1,6 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.NumericConverter;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
@@ -372,7 +372,7 @@ public class LongStorage extends NumericStorage {
           boolean hasNulls = false;
           for (Object o : list) {
             hasNulls |= o == null;
-            Long x = NumericConverter.tryToLong(o);
+            Long x = NumericConverter.tryConvertingToLong(o);
             if (x != null) {
               set.add(x);
             }

@@ -1,6 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.base.Polyglot_Utils;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;

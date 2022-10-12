@@ -1,23 +1,23 @@
 package org.enso.table.data.column.operation.map.bool;
 
-import org.enso.base.Polyglot_Utils;
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.function.Function;
-
-public class BooleanIsInOp<T extends BoolStorage> extends MapOperation<T> {
+/**
+ * A specialized implementation for the IS_IN operation on booleans - since booleans have just three
+ * possible values we can have a highly efficient implementation that does not even rely on hashmap
+ * and after processing the input vector, performs the checks in constant time.
+ */
+public class BooleanIsInOp extends MapOperation<BoolStorage> {
   public BooleanIsInOp() {
     super(Storage.Maps.IS_IN);
   }
 
   @Override
-  public Storage runMap(T storage, Object arg) {
+  public Storage runMap(BoolStorage storage, Object arg) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -25,7 +25,7 @@ public class BooleanIsInOp<T extends BoolStorage> extends MapOperation<T> {
     }
   }
 
-  public Storage runMap(T storage, List<?> arg) {
+  public Storage runMap(BoolStorage storage, List<?> arg) {
     boolean hadTrue = false;
     boolean hadFalse = false;
     boolean hadNull = false;
@@ -59,7 +59,7 @@ public class BooleanIsInOp<T extends BoolStorage> extends MapOperation<T> {
   }
 
   @Override
-  public Storage runZip(T storage, Storage arg) {
+  public Storage runZip(BoolStorage storage, Storage arg) {
     throw new IllegalStateException("Zip mode is not supported for this operation.");
   }
 }

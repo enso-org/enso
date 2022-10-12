@@ -18,7 +18,7 @@ public class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
 
   private static MapOpStorage<SpecializedStorage<ZonedDateTime>> buildOps() {
     MapOpStorage<SpecializedStorage<ZonedDateTime>> t = ObjectStorage.buildObjectOps();
-    t.add(SpecializedIsInOp.makeForTimeColumns());
+    t.add(SpecializedIsInOp.makeForTimeColumns(ZonedDateTime.class));
     return t;
   }
 
