@@ -142,7 +142,6 @@ impl Model {
 
     fn set_content(&self, t: &str) { // -> Vector2 {
         self.label.set_content(t);
-        // self.set_width(self.label.width.value())
     }
 
     fn set_opacity(&self, value: f32) {
@@ -192,10 +191,6 @@ impl Label {
 
         frp::extend! { network
             eval frp.set_content((t) model.set_content(t));
-            // frp.source.size <+ frp.set_content.map(f!((t)
-            //     model.set_content(t)
-            // ));
-            // eval model.label.width((w) model.set_width(*w));
             frp.source.size <+ model.label.width.map(f!((w)
                 model.set_width(*w)
             ));
