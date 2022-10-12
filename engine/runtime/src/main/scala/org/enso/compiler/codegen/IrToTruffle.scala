@@ -375,7 +375,6 @@ class IrToTruffle(
                 ) Right(None)
                 else Left(l)
               )
-              .map(_.filterNot(_ => cons.isBuiltin))
           case fn: IR.Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(

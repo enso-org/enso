@@ -1,12 +1,13 @@
 from Standard.Base import all
 
-import Standard.Base.System.File.Option
-import Standard.Base.System.File.File_Permissions
+import Standard.Base.Data.Array
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Error.Common import Unsupported_File_Type
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
-from Standard.Base.Error.Common import Unsupported_File_Type
+import Standard.Base.System.File.Option
+import Standard.Base.System.File.File_Permissions
 
 polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils

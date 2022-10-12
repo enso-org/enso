@@ -1,5 +1,7 @@
 @Builtin_Type
 type Array
+    at self index = @Builtin_Method "Array.at"
+    length self = @Builtin_Method "Array.length"
 
 new_1 item_1 = @Builtin_Method "Array.new_1"
 new_2 item_1 item_2 = @Builtin_Method "Array.new_2"

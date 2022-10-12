@@ -8,3 +8,4 @@ type Date
     year self = @Builtin_Method "Date.year"
     month self = @Builtin_Method "Date.month"
     day self = @Builtin_Method "Date.day"
+    internal_local_date self = @Builtin_Method "Date.internal_local_date"

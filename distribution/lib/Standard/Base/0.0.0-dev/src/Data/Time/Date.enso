@@ -63,9 +63,11 @@ new year (month = 1) (day = 1) =
        instead of Enso format. Hopefully this will be fixed with
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
+    Panic.recover Any (internal_new year month day) . catch Any e-> case e of
         Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
         ex -> ex
+
+internal_new year month day = @Builtin_Method "Date.internal_new"
 
 ## ALIAS Date from Text
 
@@ -132,12 +134,14 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> Date.internal_parse text 0
-        _ : Text -> Date.internal_parse text pattern
+        Nothing -> internal_parse text 0
+        _ : Text -> internal_parse text pattern
         _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error_Data err -> Time_Error_Data err.getMessage
         ex -> ex
+
+internal_parse text pattern = @Builtin_Method "Date.internal_parse"
 
 
 ## This type represents a date, often viewed as year-month-day.
@@ -317,6 +321,8 @@ type Date
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
+    to_time_builtin self time_of_day zone = @Builtin_Method "Date.to_time_builtin"
+
     ## Add the specified amount of time to this instant to get another date.
 
        Arguments:
@@ -484,6 +490,7 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
+    internal_local_date self = @Builtin_Method "Date.internal_local_date"
 
     ## A Date to Json conversion.
 

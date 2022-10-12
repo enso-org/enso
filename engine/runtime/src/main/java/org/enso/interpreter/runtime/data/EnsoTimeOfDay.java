@@ -107,7 +107,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "to_time_builtin",
+      name = "to_date_time_builtin",
       description = "Combine this time of day with a date to create a point in time.")
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
