@@ -7,16 +7,16 @@
 use enso_build_cli::prelude::*;
 
 use enso_build::setup_octocrab;
+use ide_ci::github::Repo;
 use ide_ci::io::web::handle_error_response;
 use ide_ci::log::setup_logging;
-use ide_ci::models::config::RepoContext;
 
 
 
 #[tokio::main]
 async fn main() -> Result {
     setup_logging()?;
-    let repo = RepoContext::from_str("enso-org/enso")?;
+    let repo = Repo::from_str("enso-org/enso")?;
     let octo = setup_octocrab().await?;
 
     let releases = repo.all_releases(&octo).await?;

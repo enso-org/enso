@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::cache::Cache;
 use crate::cache::Storable;
-use crate::models::config::RepoContext;
+use crate::github::Repo;
 
 use octocrab::models::ArtifactId;
 
@@ -10,7 +10,7 @@ use octocrab::models::ArtifactId;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key {
-    pub repository:  RepoContext,
+    pub repository:  Repo,
     pub artifact_id: ArtifactId,
 }
 

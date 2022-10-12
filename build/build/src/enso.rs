@@ -5,7 +5,6 @@ use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
 
-use ide_ci::env::Variable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
@@ -82,9 +81,8 @@ impl BuiltEnso {
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port().await?;
         let _postgres = match TARGET_OS {
             OS::Linux => {
-                let runner_context_string = crate::env::RunnerContainerName
-                    .fetch()
-                    .map(|name| name.0)
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
                     .unwrap_or_else(|_| Uuid::new_v4().to_string());
                 // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in

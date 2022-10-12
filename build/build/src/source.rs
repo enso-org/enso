@@ -4,7 +4,7 @@ use crate::project::IsTarget;
 use crate::project::IsWatchable;
 
 use derivative::Derivative;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github::Repo;
 use octocrab::models::AssetId;
 use octocrab::models::RunId;
 
@@ -41,7 +41,7 @@ pub struct OngoingCiRunSource {
 #[derivative(Debug)]
 pub struct CiRunSource {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
-    pub repository:    RepoContext,
+    pub repository:    Repo,
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub run_id:        RunId,
     pub artifact_name: String,
@@ -51,7 +51,7 @@ pub struct CiRunSource {
 #[derivative(Debug)]
 pub struct ReleaseSource {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
-    pub repository: RepoContext,
+    pub repository: Repo,
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub asset_id:   AssetId,
 }

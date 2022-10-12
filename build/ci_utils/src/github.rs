@@ -14,13 +14,18 @@ use octocrab::models::ReleaseId;
 use octocrab::models::RunId;
 use octocrab::params::actions::ArchiveFormat;
 use reqwest::Response;
-
+use serde_json::json;
 
 
 const MAX_PER_PAGE: u8 = 100;
 
 pub mod model;
 pub mod release;
+pub mod repo;
+
+pub use repo::Repo;
+pub use repo::RepoRef;
+
 
 /// Goes over all the pages and returns result.
 ///
@@ -37,7 +42,7 @@ pub async fn get_all<T: DeserializeOwned>(
 
 /// Entity that uniquely identifies a GitHub-hosted repository.
 #[async_trait]
-pub trait RepoPointer: Display {
+pub trait IsRepo: Display {
     fn owner(&self) -> &str;
     fn name(&self) -> &str;
 
@@ -194,6 +199,31 @@ pub trait RepoPointer: Display {
         let output_path = output_dir.as_ref().join(&asset.name);
         self.download_asset_as(client, asset.id, output_path.clone()).await?;
         Ok(output_path)
+    }
+
+    // Function that invokes GitHub API REST API workflow dispatch.
+    async fn dispatch_workflow(
+        &self,
+        client: &Octocrab,
+        workflow_id: impl AsRef<str> + Send + Sync + 'static,
+        r#ref: impl AsRef<str> + Send + Sync + 'static,
+        inputs: &(impl Serialize + Send + Sync + 'static),
+    ) -> Result {
+        let workflow_id = workflow_id.as_ref();
+        let name = self.name();
+        let owner = self.owner();
+        let url = client.absolute_url(format!(
+            "/repos/{owner}/{name}/actions/workflows/{workflow_id}/dispatches"
+        ))?;
+        let r#ref = r#ref.as_ref();
+        let body = json!({
+            "ref": r#ref,
+            "inputs": inputs,
+        });
+        let response = client._post(url, Some(&body)).await?;
+        let _response = crate::io::web::handle_error_response(response).await?;
+        // Nothing interesting in OK response, so we just return empty struct.
+        Ok(())
     }
 }
 

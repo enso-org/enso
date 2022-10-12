@@ -44,7 +44,8 @@ pub fn debug(message: &str) {
 /// variables are case-sensitive and you can include punctuation.
 ///
 /// Just logs and sets variable locally if used under non-GH CI.
-pub fn set_env(name: &str, value: &impl ToString) -> Result {
+pub fn set_env(name: impl AsRef<str>, value: &impl ToString) -> Result {
+    let name = name.as_ref();
     let value_string = value.to_string();
     debug!("Will try writing Github Actions environment variable: {name}={value_string}");
     std::env::set_var(name, value.to_string());

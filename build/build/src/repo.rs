@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-
+pub mod cloud;
 
 /// Heuristic that checks if given path can be plausibly considered to be the root of the Enso
 /// repository.

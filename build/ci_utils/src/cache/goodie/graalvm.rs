@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use crate::cache::goodie::Goodie;
-use crate::models::config::RepoContext;
+use crate::github::Repo;
 use crate::programs::java;
 use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
@@ -36,8 +36,8 @@ pub async fn find_graal_version() -> Result<Version> {
 }
 
 /// The repository that contains the GraalVM CE releases for download.
-pub fn ce_build_repository() -> RepoContext {
-    RepoContext { owner: GITHUB_ORGANIZATION.into(), name: CE_BUILDS_REPOSITORY.into() }
+pub fn ce_build_repository() -> Repo {
+    Repo { owner: GITHUB_ORGANIZATION.into(), name: CE_BUILDS_REPOSITORY.into() }
 }
 
 /// Description necessary to download and install GraalVM.

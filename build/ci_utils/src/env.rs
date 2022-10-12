@@ -150,9 +150,10 @@ pub mod new {
         }
     }
 
-    #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, derive_more::Deref)]
     pub struct SimpleVariable<Value, Borrowed: ?Sized = Value> {
-        pub name:          Cow<'static, str>,
+        #[deref]
+        pub name:          &'static str,
         pub phantom_data:  PhantomData<Value>,
         pub phantom_data2: PhantomData<Borrowed>,
     }
@@ -163,7 +164,7 @@ pub mod new {
         }
     }
 
-    impl<Value, Borrowed: ?Sized> AsRef<str> for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
         fn as_ref(&self) -> &str {
             &self.name
         }
@@ -183,15 +184,11 @@ pub mod new {
 
     impl<Value, Borrowed: ?Sized> SimpleVariable<Value, Borrowed> {
         pub const fn new(name: &'static str) -> Self {
-            Self {
-                name:          Cow::Borrowed(name),
-                phantom_data:  PhantomData,
-                phantom_data2: PhantomData,
-            }
+            Self { name, phantom_data: PhantomData, phantom_data2: PhantomData }
         }
     }
 
-    impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> const RawVariable for SimpleVariable<Value, Borrowed> {
         fn name(&self) -> &str {
             &self.name
         }
@@ -263,30 +260,6 @@ pub mod new {
         fn generate(&self, value: &Self::Borrowed) -> Result<String> {
             Ok(value.join(self.separator))
         }
-    }
-}
-
-//
-//
-// impl<'a, T> SpecFromIter<T> for std::slice::Iter<'a, T> {
-//     fn f(&self) {}
-// }
-
-#[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
-pub struct StrLikeVariable {
-    pub name: &'static str,
-}
-
-impl StrLikeVariable {
-    pub const fn new(name: &'static str) -> Self {
-        Self { name }
-    }
-}
-
-impl Variable for StrLikeVariable {
-    const NAME: &'static str = "";
-    fn name(&self) -> &str {
-        self.name
     }
 }
 

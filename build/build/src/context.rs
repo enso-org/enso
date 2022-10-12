@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::paths::TargetTriple;
 
 use derivative::Derivative;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github::Repo;
 use ide_ci::programs::Git;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
@@ -25,7 +25,7 @@ pub struct BuildContext {
 
     /// Remote repository is used for release-related operations. This also includes deducing a new
     /// version number.
-    pub remote_repo: RepoContext,
+    pub remote_repo: Repo,
 }
 
 impl BuildContext {

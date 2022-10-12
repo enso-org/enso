@@ -19,18 +19,17 @@ use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::project::ProcessWrapper;
-use crate::retrieve_github_access_token;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
 use ide_ci::env::Variable;
+use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
 use sysinfo::SystemExt;
-
 
 
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
@@ -481,28 +480,27 @@ impl RunContext {
     }
 
     pub async fn execute(&self, operation: Operation) -> Result {
-        match &operation {
+        match operation {
             Operation::Release(ReleaseOperation { command, repo }) => match command {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
-
-                    // Make packages.
-                    let release_id = crate::env::ReleaseId.fetch()?;
-                    let client = ide_ci::github::create_client(retrieve_github_access_token()?)?;
-                    let upload_asset = |asset: PathBuf| {
-                        ide_ci::github::release::upload_asset(repo, &client, release_id, asset)
-                    };
+                    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+                    let release = ide_ci::github::release::ReleaseHandle::new(
+                        &self.inner.octocrab,
+                        repo,
+                        release_id,
+                    );
                     for package in artifacts.packages.into_iter() {
                         package.pack().await?;
-                        upload_asset(package.artifact_archive).await?;
+                        release.upload_asset_file(package.artifact_archive).await?;
                     }
                     for bundle in artifacts.bundles.into_iter() {
                         bundle.pack().await?;
-                        upload_asset(bundle.artifact_archive).await?;
+                        release.upload_asset_file(bundle.artifact_archive).await?;
                     }
                     if TARGET_OS == OS::Linux {
-                        upload_asset(self.paths.manifest_file()).await?;
-                        upload_asset(self.paths.launcher_manifest_file()).await?;
+                        release.upload_asset_file(self.paths.manifest_file()).await?;
+                        release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
                     }
                 }
             },

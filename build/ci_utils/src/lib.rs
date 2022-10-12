@@ -16,6 +16,7 @@
 #![feature(io_error_other)]
 #![feature(string_remove_matches)]
 #![feature(once_cell)]
+#![feature(const_deref)]
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
 #![feature(is_some_with)]
@@ -157,7 +158,8 @@ pub mod prelude {
     pub use crate::anyhow::ResultExt;
     pub use crate::env::Variable as EnvironmentVariable;
     pub use crate::extensions::str::StrLikeExt;
-    pub use crate::github::RepoPointer;
+    pub use crate::github::release::IsRelease;
+    pub use crate::github::IsRepo;
     pub use crate::goodie::Goodie;
     pub use crate::log::setup_logging;
     pub use crate::os::target::TARGET_ARCH;
@@ -168,6 +170,7 @@ pub mod prelude {
     pub use crate::program::command::MyCommand;
     pub use crate::program::Program;
     pub use crate::program::Shell;
+
 
     pub use crate::cache::goodie::GoodieExt as _;
     pub use crate::env::new::RawVariable as _;
@@ -182,6 +185,7 @@ pub mod prelude {
     pub use crate::extensions::output::OutputExt as _;
     pub use crate::extensions::path::PathExt as _;
     pub use crate::extensions::result::ResultExt as _;
+    pub use crate::github::release::IsReleaseExt as _;
     pub use crate::program::command::provider::CommandProviderExt as _;
     pub use crate::program::version::IsVersion as _;
     pub use crate::program::ProgramExt as _;

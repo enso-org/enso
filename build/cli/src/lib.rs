@@ -81,7 +81,6 @@ use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
-use ide_ci::github::release::upload_asset;
 use ide_ci::global;
 use ide_ci::log::setup_logging;
 use ide_ci::ok_ready_boxed;
@@ -487,13 +486,15 @@ impl Processor {
             arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
                 let build_job = self.build_ide(params);
-                let remote_repo = self.remote_repo.clone();
-                let client = self.octocrab.client.clone();
+                let release = ide_ci::github::release::ReleaseHandle::new(
+                    &self.octocrab,
+                    self.remote_repo.clone(),
+                    release_id,
+                );
                 async move {
                     let artifacts = build_job.await?;
-                    upload_asset(&remote_repo, &client, release_id, &artifacts.image).await?;
-                    upload_asset(&remote_repo, &client, release_id, &artifacts.image_checksum)
-                        .await?;
+                    release.upload_asset_file(&artifacts.image).await?;
+                    release.upload_asset_file(&artifacts.image_checksum).await?;
                     Ok(())
                 }
                 .boxed()
@@ -854,7 +855,7 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             }
             Action::DeployToEcr(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
-                enso_build::release::dispatch_cloud_image_build_action(
+                enso_build::repo::cloud::build_image_workflow_dispatch_input(
                     &ctx.octocrab,
                     &ctx.triple.versions.version,
                 )

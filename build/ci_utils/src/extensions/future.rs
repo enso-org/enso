@@ -30,6 +30,17 @@ pub trait TryFutureExt: TryFuture {
         self.map_ok(void)
     }
 
+    fn context(
+        self,
+        context: impl Display + Send + Sync + 'static,
+    ) -> BoxFuture<'static, Result<Self::Ok>>
+    where
+        Self: Sized + Send + 'static,
+        Self::Error: Into<anyhow::Error> + Send + Sync + 'static,
+    {
+        self.map_err(|err| err.into().context(context)).boxed()
+    }
+
     fn anyhow_err(self) -> MapErr<Self, fn(Self::Error) -> anyhow::Error>
     where
         Self: Sized,

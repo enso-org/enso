@@ -7,7 +7,7 @@ use crate::paths::ComponentPaths;
 use crate::paths::Paths;
 
 use ide_ci::future::AsyncPolicy;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github::Repo;
 use std::collections::BTreeSet;
 
 
@@ -191,7 +191,7 @@ pub enum ReleaseCommand {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReleaseOperation {
     pub command: ReleaseCommand,
-    pub repo:    RepoContext,
+    pub repo:    Repo,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]

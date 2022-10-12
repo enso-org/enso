@@ -8,7 +8,7 @@ use clap::Subcommand;
 use derivative::Derivative;
 use ide_ci::cache;
 use ide_ci::extensions::path::display_fmt;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github::Repo;
 use octocrab::models::RunId;
 
 
@@ -38,10 +38,10 @@ pub fn default_repo_path() -> Option<PathBuf> {
     enso_build::repo::deduce_repository_path().ok()
 }
 
-pub fn default_repo_remote() -> RepoContext {
+pub fn default_repo_remote() -> Repo {
     ide_ci::actions::env::GITHUB_REPOSITORY
         .get()
-        .unwrap_or_else(|_| RepoContext::from_str(DEFAULT_REMOTE_REPOSITORY_FALLBACK).unwrap())
+        .unwrap_or_else(|_| Repo::from_str(DEFAULT_REMOTE_REPOSITORY_FALLBACK).unwrap())
 }
 
 pub fn default_cache_path() -> Option<PathBuf> {
@@ -156,7 +156,7 @@ pub struct Cli {
     /// released versions to generate a new one, or uploading release assets).
     /// The argument should follow the format `owner/repo_name`.
     #[clap(long, global = true, default_value_t = default_repo_remote(), enso_env())]
-    pub repo_remote: RepoContext,
+    pub repo_remote: Repo,
 
     /// The build kind. Affects the default version generation.
     #[clap(long, global = true, arg_enum, default_value_t = enso_build::version::BuildKind::Dev, env = crate::BuildKind::NAME)]

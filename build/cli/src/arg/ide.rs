@@ -12,8 +12,6 @@ use enso_build::project::gui::Gui;
 use enso_build::project::wasm::DEFAULT_INTEGRATION_TESTS_WASM_TIMEOUT;
 use octocrab::models::ReleaseId;
 
-
-
 source_args_hlp!(Target, "ide", BuildInput);
 
 #[derive(Args, Clone, Debug, PartialEq)]
@@ -37,7 +35,7 @@ pub enum Command {
     Upload {
         #[clap(flatten)]
         params:     BuildInput,
-        #[clap(long, env = enso_build::env::ReleaseId::NAME)]
+        #[clap(long, env = *enso_build::env::ENSO_RELEASE_ID)]
         release_id: ReleaseId,
     },
     /// Like `Build` but automatically starts the IDE.

@@ -11,8 +11,6 @@ use ide_ci::programs::Docker;
 use octocrab::models::repos::Release;
 use tempfile::tempdir;
 
-
-
 pub async fn create_release(context: &BuildContext) -> Result<Release> {
     let versions = &context.triple.versions;
     let commit = ide_ci::actions::env::GITHUB_SHA.get()?;
@@ -35,7 +33,7 @@ pub async fn create_release(context: &BuildContext) -> Result<Release> {
         .send()
         .await?;
 
-    crate::env::ReleaseId.emit(&release.id)?;
+    ide_ci::actions::env::set_and_emit(&crate::env::ENSO_RELEASE_ID, &release.id)?;
     Ok(release)
 }
 
@@ -43,7 +41,7 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     let BuildContext { inner: project::Context { octocrab, .. }, remote_repo, triple, .. } =
         context;
 
-    let release_id = crate::env::ReleaseId.fetch()?;
+    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
 
     debug!("Looking for release with id {release_id} on github.");
     let release = remote_repo.repos(octocrab).releases().get_by_id(release_id).await?;
@@ -73,9 +71,78 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     Ok(())
 }
 
+pub async fn get_engine_package(
+    octocrab: &Octocrab,
+    repo: impl IsRepo + Send + Sync + 'static,
+    output: impl AsRef<Path>,
+    triple: &TargetTriple,
+) -> Result<generated::EnginePackage> {
+    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+    let package_name = generated::RepoRootBuiltDistribution::new_root(".", triple.to_string())
+        .enso_engine_triple
+        .file_name()
+        .context("Failed to get Engine Package name.")?
+        .as_str()
+        .to_string();
+
+    let release = repo.find_release_by_id(octocrab, release_id).await?;
+    let asset = github::find_asset_by_text(&release, &package_name)?;
+    let temp_for_archive = tempdir()?;
+    let downloaded_asset =
+        repo.download_asset_to(octocrab, asset, temp_for_archive.path().to_owned()).await?;
+
+    ide_ci::archive::extract_to(&downloaded_asset, output.as_ref()).await?;
+
+    let engine_package =
+        generated::EnginePackage::new_under(output.as_ref(), triple.versions.version.to_string());
+    Ok(engine_package)
+}
+
+pub async fn generate_runtime_image(
+    context: &BuildContext,
+    tag: impl Into<String>,
+) -> Result<ide_ci::programs::docker::ImageId> {
+    let octocrab = &context.octocrab;
+    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+
+    let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
+    let package_name =
+        generated::RepoRootBuiltDistribution::new_root(".", linux_triple.to_string())
+            .enso_engine_triple
+            .file_name()
+            .context("Failed to get Engine Package name.")?
+            .as_str()
+            .to_string();
+
+    let release = context.remote_repo.find_release_by_id(octocrab, release_id).await?;
+    let asset = github::find_asset_by_text(&release, &package_name)?;
+
+
+    let temp_for_archive = tempdir()?;
+    let downloaded_asset = context
+        .remote_repo
+        .download_asset_to(octocrab, asset, temp_for_archive.path().to_owned())
+        .await?;
+
+    let temp_for_extraction = tempdir()?;
+    ide_ci::archive::extract_to(&downloaded_asset, &temp_for_extraction).await?;
+
+    let engine_package = generated::EnginePackage::new_under(
+        &temp_for_extraction,
+        context.triple.versions.version.to_string(),
+    );
+
+    crate::aws::ecr::runtime::build_runtime_image(
+        context.repo_root.tools.ci.docker.clone(),
+        engine_package,
+        tag.into(),
+    )
+    .await
+}
+
 pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result {
     let octocrab = &context.octocrab;
-    let release_id = crate::env::ReleaseId.fetch()?;
+    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
 
     let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
     let package_name =
@@ -120,17 +187,18 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
     Ok(())
 }
-
-pub async fn dispatch_cloud_image_build_action(octocrab: &Octocrab, version: &Version) -> Result {
-    let input = serde_json::json!({
-        "version": version.to_string(),
-    });
-    info!("Dispatching the cloud workflow to build the image.");
-    octocrab
-        .actions()
-        .create_workflow_dispatch("enso-org", "cloud-v2", "build-image.yaml", "main")
-        .inputs(input)
-        .send()
-        .await
-        .context("Failed to dispatch the cloud image build action.")
-}
+//
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::setup_octocrab;
+//
+//     #[tokio::test]
+//     #[ignore]
+//     async fn dispatch_workflow() -> Result {
+//         let octo = setup_octocrab().await?;
+//         let version = Version::parse("2022.1.1-nightly.2022-10-11.1")?;
+//         dispatch_cloud_image_build_action(&octo, &version).await?;
+//         Ok(())
+//     }
+// }
