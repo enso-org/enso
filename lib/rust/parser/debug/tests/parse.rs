@@ -368,7 +368,6 @@ fn code_block_operator() {
 }
 
 #[test]
-//#[ignore] // WIP
 fn dot_operator_blocks() {
     let code = ["rect1", "    . width = 7", "    . center", "        + x"];
     #[rustfmt::skip]
@@ -907,8 +906,10 @@ fn new_lambdas() {
 fn old_lambdas() {
     let cases = [
         ("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x->y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
         ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
         ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+        ("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
