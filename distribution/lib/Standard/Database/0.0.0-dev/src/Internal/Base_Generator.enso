@@ -212,7 +212,10 @@ make_is_in arguments = case arguments.length of
     _ ->
         expr = arguments.first
         list = arguments.tail
-        (expr ++ " IN (" ++ (SQL.join ", " list) ++ ")").paren
+        is_in = expr ++ " IN (" ++ (SQL.join ", " list) ++ ")"
+        ## We ensure that even `NULL IN (...)` is coalesced to False, so that
+           negation will work as expected.
+        code "COALESCE(" ++ is_in ++ ", 2=1)"
 
 ## PRIVATE
 
