@@ -1218,9 +1218,21 @@ spec prefix table_builder test_selection pending=Nothing =
             t2.at "X" . to_vector . should_equal [1, 4]
 
         Test.specify "by a contains check in a Vector" <|
-            t = table_builder [["ix", [1, 2, 3, Nothing, 5]], ["X", ["a", "b", "ccc", "X", "f"]]]
-            t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "f"]
-            t.filter "ix" (Filter_Condition.Is_In ["c", 3, 2]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, 3]
+            t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
+            t.filter "X" (Filter_Condition.Is_In ["X", "a", "c"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
+            t.filter "X" (Filter_Condition.Is_In ["ccc"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["ccc"]
+            t.filter "X" (Filter_Condition.Is_In []) on_problems=Report_Error . at "X" . to_vector . should_equal []
+
+            t.filter "ix" (Filter_Condition.Is_In [Nothing, 2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
+
+            v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) on_problems=Report_Error . at "X" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v1.should_equal ["b", "f"]
+                False -> v1.should_fail_with SQL_Error_Data
+            v2 = t.filter "ix" (Filter_Condition.Is_In ["c", 3, 2, "5"]) on_problems=Report_Error . at "ix" . to_vector
+            case test_selection.allows_mixed_type_comparisons of
+                True -> v2.should_equal [2, 3]
+                False -> v2.should_fail_with SQL_Error_Data
 
         Test.specify "by a boolean mask" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]

@@ -176,7 +176,8 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     text = [["ISEMPTY", make_is_empty], bin "LIKE"]
     nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
-    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls)
+    contains = [["IS_IN", make_is_in]]
+    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -200,6 +201,18 @@ make_between arguments = case arguments.length of
         (expr ++ " BETWEEN " ++ lower ++ " AND " ++ upper).paren
     _ ->
         Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation BETWEEN")
+
+## PRIVATE
+make_is_in : Vector Builder -> Builder
+make_is_in arguments = case arguments.length of
+    0 -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN requires at least one argument.")
+    ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
+       `IN ()` would be more meaningful, but it is a syntax error.
+    1 -> code '2=1' . paren
+    _ ->
+        expr = arguments.first
+        list = arguments.tail
+        (expr ++ " IN (" ++ (SQL.join ", " list) ++ ")").paren
 
 ## PRIVATE
 

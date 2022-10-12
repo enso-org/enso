@@ -560,7 +560,18 @@ type Column
        Checks for each element of the column if it is contained within the
        provided vector.
     is_in self vector =
-        Error.throw (Unsupported_Database_Operation_Error_Data "TODO")
+        ## This is slightly hacky - we don't provide operand types as we want to
+           allow any type to get through and currently we do not have a mapping
+           from Enso types to SQL types (it may be available in the future). So
+           we just rely on Nothing resolving to the current column type. That
+           type may not always match the operands, but the current
+           implementation uses this type only for two purposes: generated SQL
+           visualization (so the color will be consistent with the column type
+           and not the value type - that can be confusing, we probably want to
+           fix it later) and setting up the query - but at the set up this only
+           applies to adding nulls - setting any other object does not check the
+           type at this level anyway.
+        self.make_op "IS_IN" operands=vector new_type=SQL_Type.boolean
 
     ## PRIVATE
     as_internal : Internal_Column
