@@ -385,13 +385,8 @@ spec =
             col.count . should_equal 2
             col.count_missing . should_equal 1
 
+    # TODO move these to Common_Table_Spec
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
-            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-            d = t.filter_blank_rows when_any=True
-            d.at "a" . to_vector . should_equal [1, 4]
-            d.at "b" . to_vector . should_equal [1, "x"]
-
         Test.specify "should drop columns that contain at least one missing row in a Table" <|
             a = ["a", [1, Nothing, 3, 4]]
             b = ["b", [1, 2, Nothing, "x"]]
