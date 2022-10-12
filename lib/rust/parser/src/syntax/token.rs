@@ -290,6 +290,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(as = "char")]
             pub value: Option<char>,
         },
+        TextInitialNewline,
         Invalid,
     }
 }}}

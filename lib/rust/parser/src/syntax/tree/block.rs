@@ -57,11 +57,15 @@ pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s
     while let Some(line) = lines.next() {
         let mut statement = line.map_expression(expression_to_statement);
         if let Some(Tree {
-            variant: box Variant::Annotated(Annotated { newlines, expression, .. }),
+            variant:
+                box Variant::Annotated(Annotated { newlines, expression, .. })
+                | box Variant::Documented(Documented { newlines, expression, .. }),
             ..
         }) = &mut statement.expression
         {
-            while expression.is_none() && let Some(line) = lines.next() {
+            while expression.is_none() &&
+            let Some(line) = lines.next()
+            {
                 let statement = line.map_expression(expression_to_statement);
                 newlines.push(statement.newline);
                 *expression = statement.expression;
