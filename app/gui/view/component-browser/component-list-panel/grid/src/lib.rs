@@ -149,8 +149,8 @@ ensogl_core::define_endpoints_2! {
         unhover_element(),
     }
     Output {
-        active(ElementId),
-        active_section(SectionId),
+        active(Option<ElementId>),
+        active_section(Option<SectionId>),
         hovered(Option<ElementId>),
         model_for_header_needed(GroupId),
         model_for_entry_needed(GroupEntryId),
@@ -548,11 +548,11 @@ impl Model {
 
     fn navigation_scroll_margins(
         &self,
-        active_section: SectionId,
+        active_section: Option<SectionId>,
         style: &Style,
     ) -> grid_view::Margins {
         let vertical_margin = style.content_size().y - style.entry_height;
-        if active_section == SectionId::LocalScope {
+        if active_section == Some(SectionId::LocalScope) {
             grid_view::Margins {
                 bottom: vertical_margin + style.column_gap,
                 top: -style.column_gap,
@@ -603,14 +603,14 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             // === Active and Hovered Entry ===
 
-            out.active <+ grid.entry_selected.filter_map(f!((loc)
+            out.active <+ grid.entry_selected.map(f!((loc)
                 model.location_to_element_id(loc.as_ref()?)
             ));
+            out.active_section <+ out.active.map(|&e| Some(e?.group.section)).on_change();
             out.hovered <+ grid.entry_hovered.map(f!((loc)
                 model.location_to_element_id(loc.as_ref()?)
             ));
             grid.hover_entry <+ input.unhover_element.constant(None);
-            out.active_section <+ out.active.map(|e| e.group.section).on_change();
 
 
             // === Accepting Suggestion and Expression ===
@@ -619,7 +619,7 @@ impl component::Frp<Model> for Frp {
             out.module_entered <+ action.filter_map(|m| m.enter_module());
             out.expression_accepted <+ action.filter_map(|e| e.accept());
             element_on_suggestion_accept <- out.active.sample(&input.accept_suggestion);
-            out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|e| e.as_entry_id());
+            out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|&e| e?.as_entry_id());
 
 
             // === Groups colors ===
@@ -643,7 +643,10 @@ impl component::Frp<Model> for Frp {
             // === Style and Entries Params ===
 
             style_and_content_size <- all(&style.update, &grid.content_size);
-            dimmed_groups <- out.active_section.map(|s| entry::DimmedGroups::AllExceptSection(*s));
+            dimmed_groups <- out.active_section.map(|opt_section| match opt_section {
+                Some(section) => entry::DimmedGroups::AllExceptSection(*section),
+                None => entry::DimmedGroups::None,
+            });
             entries_style <-
                 all4(&style.update, &entry_style.update, &color_intensities.update, &group_colors);
             entries_params <-
@@ -727,14 +730,14 @@ impl component::Frp<Model> for Frp {
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
-        (&[
+        [
             (Press, "tab", "accept_suggestion"),
             (Press, "cmd up", "jump_group_up"),
             (Press, "cmd down", "jump_group_down"),
-        ])
-            .iter()
-            .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
-            .collect()
+        ]
+        .iter()
+        .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+        .collect()
     }
 }
 

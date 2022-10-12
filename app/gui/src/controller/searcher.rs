@@ -854,7 +854,7 @@ impl Searcher {
             self.mode.node_id(),
             Box::new(|md| md.intended_method = intended_method),
         )?;
-        warn!("Previewing expression: \"{:?}\".", expression);
+        debug!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())

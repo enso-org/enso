@@ -74,7 +74,7 @@ pub struct Style {
 // =========================================================
 
 /// Convert [`SectionId`] to index on [`Navigator::bottom_buttons`].
-fn section_id_to_list_index(id: &SectionId) -> usize {
+fn section_id_to_list_index(id: SectionId) -> usize {
     match id {
         SectionId::Popular => 1,
         SectionId::LocalScope => 2,
@@ -115,7 +115,7 @@ pub struct Navigator {
     network:            frp::Network,
     bottom_buttons:     list_view::ListView<icon::Entry>,
     top_buttons:        list_view::ListView<icon::Entry>,
-    pub select_section: frp::Any<SectionId>,
+    pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
 
@@ -140,13 +140,13 @@ impl Navigator {
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-        bottom_buttons.select_entry(Some(section_id_to_list_index(&SectionId::Popular)));
+        bottom_buttons.select_entry(Some(section_id_to_list_index(SectionId::Popular)));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         frp::extend! { network
             select_section <- any(...);
             bottom_buttons.select_entry <+
-                select_section.map(section_id_to_list_index).cloned_into_some();
+                select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_list_index));
             chosen_section <-
                 bottom_buttons.chosen_entry.map(|&id| id.as_ref().map(index_to_section_id));
         }

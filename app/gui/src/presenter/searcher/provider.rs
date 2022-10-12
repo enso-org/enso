@@ -287,7 +287,7 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
     let can_be_entered = component.can_be_entered();
     let match_info = component.match_info.borrow();
     let caption = component.label();
-    let highlighted = bytes_of_matched_letters(&*match_info, &caption);
+    let highlighted = bytes_of_matched_letters(&match_info, &caption);
     let icon = match &component.data {
         component::Data::FromDatabase { entry, .. } => {
             let kind = entry.kind;

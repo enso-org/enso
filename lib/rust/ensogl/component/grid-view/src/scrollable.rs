@@ -140,6 +140,13 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             area.set_content_width <+ base_grid.content_size.map(|s| s.x);
             area.set_content_height <+ base_grid.content_size.map(|s| s.y);
 
+            // === Selecting Entry ===
+
+            // This section should go first, as a developer using the Grid View could update
+            // scroll margins depending on selected entry, as it is a case for Component Browser.
+            base_grid.select_entry <+ input.select_and_scroll_to_entry.map(|&(r, c)| Some((r, c)));
+            base_grid.select_entry <+ input.select_and_jump_to_entry.map(|&(r, c)| Some((r, c)));
+
             // === Viewport scrolling on selection move ===
 
             input_move_selection <- any4(
@@ -174,12 +181,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             );
             area.jump_to_x <+ jump_to.map(|vec| vec.x);
             area.jump_to_y <+ jump_to.map(|vec| -vec.y);
-
-
-            // === Selecting Entry ===
-
-            base_grid.select_entry <+ input.select_and_scroll_to_entry.map(|&(r, c)| Some((r, c)));
-            base_grid.select_entry <+ input.select_and_jump_to_entry.map(|&(r, c)| Some((r, c)));
         }
 
         Self { area, inner_grid, frp, text_layer, header_layer, header_text_layer }

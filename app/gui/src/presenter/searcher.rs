@@ -354,8 +354,8 @@ impl Searcher {
                     new_input <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     graph.set_node_expression <+ new_input;
 
-                    entry_selected <- grid.active.filter_map(|s| s.as_entry_id());
-                    entry_hovered <- grid.hovered.map(|s| s.clone().and_then(component_grid::ElementId::as_entry_id));
+                    entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
+                    entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
                     entry_docs <- all_with3(&action_list_changed,
                         &entry_selected,
                         &entry_hovered,
@@ -364,8 +364,13 @@ impl Searcher {
                             model.documentation_of_component(*entry)
                         })
                     );
-                    header_selected <- grid.active.filter_map(|component_grid::ElementId{group, element}| {
-                        matches!(element, component_grid::content::ElementInGroup::Header).as_some(*group)
+                    header_selected <- grid.active.filter_map(|element| {
+                        use component_grid::content::ElementId;
+                        use component_grid::content::ElementInGroup::Header;
+                        match element {
+                            Some(ElementId { element: Header, group}) => Some(*group),
+                            _ => None
+                        }
                     });
                     header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
                     documentation.frp.display_documentation <+ entry_docs;
