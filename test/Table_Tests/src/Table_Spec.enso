@@ -388,7 +388,7 @@ spec =
     Test.group "Dropping Missing Values" <|
         Test.specify "should drop rows that contain at least one missing column in a Table" <|
             t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-            d = t.drop_missing_rows
+            d = t.filter_blank_rows when_any=True
             d.at "a" . to_vector . should_equal [1, 4]
             d.at "b" . to_vector . should_equal [1, "x"]
 

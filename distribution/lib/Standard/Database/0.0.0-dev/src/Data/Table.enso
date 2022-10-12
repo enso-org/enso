@@ -784,12 +784,30 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
-    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
-    drop_missing_rows : Table
-    drop_missing_rows self =
-        filters = self.columns.map (c -> c.is_missing.not.expression)
-        new_ctx = self.context.set_where_filters (self.context.where_filters + filters)
-        self.updated_context new_ctx
+    ## ALIAS dropna
+       ALIAS drop_missing_rows
+       Remove rows which are all blank or containing blank values.
+
+       Arguments:
+       - when_any: If `True`, then remove any row containing any blank values.
+         If `False`, then only remove rows with all blank values.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    filter_blank_rows : Boolean -> Boolean -> Table
+    filter_blank_rows self when_any=False treat_nans_as_blank=False =
+        cols = self.columns
+        case cols.not_empty of
+            True ->
+                is_missing_or_empty col = case col.sql_type.is_definitely_text of
+                    True -> col.is_empty
+                    False -> col.is_missing
+                join = if when_any then (||) else (&&)
+                missing_mask = cols.map is_missing_or_empty . reduce join
+                non_missing_mask = missing_mask.not
+                self.filter non_missing_mask
+            False -> self
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table

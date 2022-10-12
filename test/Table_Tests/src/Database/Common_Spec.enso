@@ -185,11 +185,18 @@ spec prefix connection pending=Nothing =
             col.count . should_equal 3
             col.count_missing . should_equal 2
 
-        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            d = t4.drop_missing_rows.read
+        Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
+            d = (t4.filter_blank_rows when_any=True).read
             d.at 'a' . to_vector . should_equal [0]
             d.at 'b' . to_vector . should_equal [True]
             d.at 'c' . to_vector . should_equal [""]
+
+            d2 = (t4.filter_blank_rows when_any=False).read
+            d2.at 'a' . to_vector . should_equal [0, 1, Nothing, 42]
+            d2.at 'b' . to_vector . should_equal [True, Nothing, True, False]
+            d2.at 'c' . to_vector . should_equal ["", "foo", "bar", Nothing]
+
+            # TODO test for nan handling and empty string treated as blank
 
         Test.specify "drop_missing_columns should drop columns that contain at least one missing row in a Table" <|
             t5 = upload "T5" <|
