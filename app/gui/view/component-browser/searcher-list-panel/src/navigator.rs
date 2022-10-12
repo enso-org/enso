@@ -26,6 +26,18 @@ use searcher_theme::list_panel as list_panel_theme;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
+const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
+const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
+const MARKETPLACE_BUTTON_INDEX: usize = 1;
+const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScope, icon::Id::Star];
+
+
+
 // ==============
 // === Shadow ===
 // ==============
@@ -91,9 +103,6 @@ pub struct Navigator {
     pub chosen_section: frp::Source<Option<Section>>,
 }
 
-const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScope, icon::Id::Star];
-
 impl Navigator {
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
@@ -104,23 +113,19 @@ impl Navigator {
         bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
-        // top_buttons.disable_selecting_entries_with_mouse();
         bottom_buttons.disable_selecting_entries_with_mouse();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         // TODO[mc]: do we need it this way or can just add to display_object? is done like this in
         // GraphEditorModel.init()
         app.display.default_scene.add_child(&tooltip);
-        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
-        // top_buttons.hide_selection();
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         let tooltip_hide_timer = DelayedAnimation::new(&network);
-        // FIXME[mc]: const TOOLTIP_HIDE_ONSET_DELAY_MS
-        tooltip_hide_timer.set_delay(3000.0);
+        tooltip_hide_timer.set_delay(MARKETPLACE_TOOLTIP_HIDE_DELAY_MS);
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             chosen_section <- source();
@@ -132,29 +137,23 @@ impl Navigator {
 
             // === Show tooltip when hovering the Marketplace button
 
-            // FIXME[mc]: const for `1`
-            marketplace_button_selected <- top_buttons.selected_entry.map(|id| *id == Some(1));
+            let is_marketplace_btn_idx = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
+            marketplace_button_selected <- top_buttons.selected_entry.map(is_marketplace_btn_idx);
             marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
             tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
-            tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false(); // TODO[mc]: ok?
+            tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
             // FIXME[mc]: rename
             tooltip_not_timed_out <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
             showing_tooltip <- marketplace_button_hovered && tooltip_not_timed_out;
-            // tooltip.frp.set_style <+ marketplace_button_hovered.map(|hovered| if *hovered {
             tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
-                    // FIXME[mc]: const TOOLTIP_LOCATION
-                    tooltip::Style::set_label("Marketplace will be available soon.".into()).with_placement(tooltip::Placement::Bottom)
+                    let text = "Marketplace will be available soon.";
+                    let style = tooltip::Style::set_label(text.into());
+                    style.with_placement(MARKETPLACE_TOOLTIP_PLACEMENT)
                 } else {
                     tooltip::Style::unset_label()
                 }
             );
-            eval marketplace_button_hovered([](hovered) {
-                tracing::warn!("MCDBG marketplace_button_hovered {hovered}")
-            });
-            eval tooltip_not_timed_out([](not_timed_out) {
-                tracing::warn!("MCDBG tooltip_not_timed_out {not_timed_out}")
-            });
         }
         bottom_buttons.select_entry(Some(2));
         tooltip_hide_timer.reset();
