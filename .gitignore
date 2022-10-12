@@ -25,6 +25,12 @@ generated/
 /target
 /build/rust/target/
 
+###########
+## Scala ##
+###########
+
+.metals/
+
 #############
 ## Haskell ##
 #############
