@@ -96,8 +96,7 @@ public abstract class CaseNode extends ExpressionNode {
           Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
-      return e.getResult().getValue();
+      return e.getResult();
     }
   }
 

@@ -12,7 +12,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -49,33 +49,29 @@ public abstract class BracketNode extends Node {
     return BracketNodeGen.create();
   }
 
-  abstract Stateful execute(
-      @MonadicState Object state,
+  abstract Object execute(
+      @MonadicState State state,
       VirtualFrame frame,
       @Suspend Object constructor,
       Object destructor, // TODO: based on stdlib signature this should be suspended as well
       Object action); // TODO: based on stdlib signature this should be suspended as well
 
   @Specialization
-  Stateful doBracket(
-      Object state,
+  Object doBracket(
+      State state,
       VirtualFrame frame,
       Object constructor,
       Object destructor,
       Object action,
       @Cached BranchProfile initializationFailedWithDataflowErrorProfile) {
-    Stateful resourceStateful =
+    Object resource =
         invokeConstructorNode.executeThunk(constructor, state, BaseNode.TailStatus.NOT_TAIL);
-    Object resource = resourceStateful.getValue();
     if (TypesGen.isDataflowError(resource)) {
       initializationFailedWithDataflowErrorProfile.enter();
-      return resourceStateful;
+      return resource;
     }
-    state = resourceStateful.getState();
     try {
-      Stateful result = invokeActionNode.execute(action, frame, state, new Object[] {resource});
-      state = result.getState();
-      return result;
+      return invokeActionNode.execute(action, frame, state, new Object[] {resource});
     } finally {
       invokeDestructorNode.execute(destructor, frame, state, new Object[] {resource});
     }

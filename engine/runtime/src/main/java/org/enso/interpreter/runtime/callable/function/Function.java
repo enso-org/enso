@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
@@ -116,12 +116,16 @@ public final class Function implements TruffleObject {
     return callTarget;
   }
 
-  /** @return the name of this function. */
+  /**
+   * @return the name of this function.
+   */
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
 
-  /** @return the source section this function was defined in. */
+  /**
+   * @return the source section this function was defined in.
+   */
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
   }
@@ -185,8 +189,9 @@ public final class Function implements TruffleObject {
     static Object doCall(
         Function function,
         Object[] arguments,
-        @Cached InteropApplicationNode interopApplicationNode) {
-      return interopApplicationNode.execute(function, EmptyMap.create(), arguments);
+        @Cached InteropApplicationNode interopApplicationNode,
+        @CachedLibrary("function") InteropLibrary thisLib) {
+      return interopApplicationNode.execute(function, Context.get(thisLib).emptyState(), arguments);
     }
   }
 
@@ -329,8 +334,8 @@ public final class Function implements TruffleObject {
      *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
      * @return the state for the function
      */
-    public static Object getState(Object[] arguments) {
-      return arguments[2];
+    public static State getState(Object[] arguments) {
+      return (State) arguments[2];
     }
 
     /**

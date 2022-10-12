@@ -7,7 +7,7 @@ import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /** Node responsible for handling user-requested thunks forcing. */
 @NodeInfo(shortName = "Force", description = "Forces execution of a thunk at runtime")
@@ -29,9 +29,7 @@ public abstract class ForceNode extends ExpressionNode {
   @Specialization
   Object passToExecutorNode(
       VirtualFrame frame, Object thunk, @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    Stateful result = thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
-    frame.setObject(getStateFrameSlot(), result.getState());
-    return result.getValue();
+    State state = (State) FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
   }
 }

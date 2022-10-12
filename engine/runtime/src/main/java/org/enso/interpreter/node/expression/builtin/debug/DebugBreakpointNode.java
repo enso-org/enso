@@ -12,7 +12,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(type = "Debug", name = "breakpoint", description = "Instrumentation marker node.")
 @GenerateWrapper
@@ -36,11 +36,11 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
     return true;
   }
 
-  abstract Stateful execute(VirtualFrame frame, CallerInfo callerInfo, @MonadicState Object state);
+  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo, @MonadicState State state);
 
   @Specialization
-  Stateful doExecute(VirtualFrame frame, CallerInfo callerInfo, Object state) {
-    return new Stateful(state, Context.get(this).getNothing());
+  Object doExecute(VirtualFrame frame, CallerInfo callerInfo, State state) {
+    return Context.get(this).getNothing();
   }
 
   /**

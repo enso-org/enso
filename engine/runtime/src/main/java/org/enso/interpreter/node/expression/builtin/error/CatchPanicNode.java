@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Panic",
@@ -40,13 +40,13 @@ public abstract class CatchPanicNode extends Node {
     return CatchPanicNodeGen.create();
   }
 
-  abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, @Suspend Object action, Object handler);
+  abstract Object execute(
+      VirtualFrame frame, @MonadicState State state, @Suspend Object action, Object handler);
 
   @Specialization
-  Stateful doExecute(
+  Object doExecute(
       VirtualFrame frame,
-      @MonadicState Object state,
+      @MonadicState State state,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
@@ -65,9 +65,9 @@ public abstract class CatchPanicNode extends Node {
     }
   }
 
-  private Stateful executeCallback(
+  private Object executeCallback(
       VirtualFrame frame,
-      Object state,
+      State state,
       Object handler,
       Object payload,
       AbstractTruffleException originalException) {

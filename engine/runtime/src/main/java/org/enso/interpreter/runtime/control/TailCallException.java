@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class TailCallException extends ControlFlowException {
   private final Function function;
   private final CallerInfo callerInfo;
-  private final Object state;
   private final Object[] arguments;
 
   /**
@@ -23,11 +22,10 @@ public class TailCallException extends ControlFlowException {
    * @param arguments the arguments to {@code function}
    */
   public TailCallException(
-      Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
+      Function function, CallerInfo callerInfo, Object[] arguments) {
     this.function = function;
     this.callerInfo = callerInfo;
     this.arguments = arguments;
-    this.state = state;
   }
 
   /**
@@ -46,15 +44,6 @@ public class TailCallException extends ControlFlowException {
    */
   public Object[] getArguments() {
     return arguments;
-  }
-
-  /**
-   * Gets the state to pass to the function.
-   *
-   * @return the state to pass for next call
-   */
-  public Object getState() {
-    return state;
   }
 
   /**

@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
@@ -63,9 +63,9 @@ public abstract class InvokeConversionNode extends BaseNode {
     this.invokeFunctionNode.setTailStatus(tailStatus);
   }
 
-  public abstract Stateful execute(
+  public abstract Object execute(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -86,9 +86,9 @@ public abstract class InvokeConversionNode extends BaseNode {
   }
 
   @Specialization(guards = {"dispatch.hasType(that)", "!dispatch.hasSpecialDispatch(that)"})
-  Stateful doConvertFrom(
+  Object doConvertFrom(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -102,9 +102,9 @@ public abstract class InvokeConversionNode extends BaseNode {
   }
 
   @Specialization
-  Stateful doDataflowError(
+  Object doDataflowError(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       DataflowError that,
@@ -117,14 +117,14 @@ public abstract class InvokeConversionNode extends BaseNode {
     if (function != null) {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } else {
-      return new Stateful(state, that);
+      return that;
     }
   }
 
   @Specialization
-  Stateful doPanicSentinel(
+  Object doPanicSentinel(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       PanicSentinel that,
@@ -133,9 +133,9 @@ public abstract class InvokeConversionNode extends BaseNode {
   }
 
   @Specialization
-  Stateful doWarning(
+  Object doWarning(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       WithWarnings that,
@@ -163,15 +163,15 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
     arguments[thatArgumentPosition] = that.getValue();
     ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
-    Stateful result =
+    Object result =
         childDispatch.execute(frame, state, conversion, self, that.getValue(), arguments);
-    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+    return WithWarnings.prependTo(result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")
-  Stateful doConvertText(
+  Object doConvertText(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -197,9 +197,9 @@ public abstract class InvokeConversionNode extends BaseNode {
         "!interop.isString(that)",
         "!methods.hasSpecialDispatch(that)"
       })
-  Stateful doFallback(
+  Object doFallback(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
