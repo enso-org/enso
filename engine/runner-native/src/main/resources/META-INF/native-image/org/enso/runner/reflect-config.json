@@ -287,6 +287,10 @@
     "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
   {
+    "name":"org.enso.interpreter.node.expression.builtin.date.TotalMillisecondsBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
     "name":"org.enso.interpreter.node.expression.builtin.date.Duration",
     "methods":[{"name":"<init>","parameterTypes":[] }]}
 ,
