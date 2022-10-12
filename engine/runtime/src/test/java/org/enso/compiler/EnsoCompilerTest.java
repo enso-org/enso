@@ -506,18 +506,20 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
   public void testTypeSignatureQualified() throws Exception {
     parseTest("""
     type Baz
-        resolve : Integer -> Column
+        Foo.resolve : Integer -> Column
     """);
   }
 
   @Test
+  @Ignore
   public void testMethodDefQualified() throws Exception {
     parseTest("""
     type Foo
-        id x = x
+        Identity.id x = x
     """);
   }
 

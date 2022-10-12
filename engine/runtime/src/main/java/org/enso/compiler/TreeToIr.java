@@ -294,7 +294,7 @@ final class TreeToIr {
         );
       }
       case Tree.Function fn -> {
-        var nameId = buildName(fn, fn.getName());
+        var nameId = buildName(fn.getName());
 
         /*
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
@@ -386,7 +386,7 @@ final class TreeToIr {
       */
       case Tree.TypeSignature sig -> {
 //      case AstView.TypeAscription(typed, sig) =>
-        var methodName = buildName(sig, sig.getVariable());
+        var methodName = buildName(sig.getVariable());
         var methodReference = new IR$Name$MethodReference(
           Option.empty(),
           methodName,
@@ -457,7 +457,7 @@ final class TreeToIr {
         yield null;
       }
       case Tree.TypeSignature sig -> {
-        var typeName = buildName(sig, sig.getVariable(), false);
+        var typeName = buildName(sig.getVariable());
 
         var fn = switch (sig.getType()) {
           case Tree.OprApp app when "->".equals(app.getOpr().getRight().codeRepr()) -> {
@@ -486,7 +486,7 @@ final class TreeToIr {
         yield new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
       }
       case Tree.Function fun -> {
-        var name = buildName(fun, fun.getName(), false);
+        var name = buildName(fun.getName());
         var args = translateArgumentsDefinition(fun.getArgs());
         var body = translateExpression(fun.getBody(), false);
 
@@ -685,31 +685,6 @@ final class TreeToIr {
               yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
             }
           }
-          case "=" -> {
-            var ap = app.getLhs();
-            List<IR.DefinitionArgument> args = nil();
-            while (ap instanceof Tree.App leftApp) {
-              var isSuspended = false;
-              var a = new IR$DefinitionArgument$Specified(
-                      buildName(leftApp.getArg()),
-                      Option.empty(),
-                      Option.empty(),
-                      isSuspended,
-                      getIdentifiedLocation(leftApp),
-                      meta(),
-                      diag()
-              );
-              args = cons(a, args);
-              ap = leftApp.getFunc();
-            }
-            var name = buildName(ap);
-            var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
-            var rhs = translateExpression(app.getRhs(), insideTypeSignature);
-            yield new IR$Function$Binding(
-              (IR.Name)name, args, rhs,
-              getIdentifiedLocation(app), true, meta(), diag()
-            );
-          }
           default -> {
             var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
             var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);
@@ -876,7 +851,7 @@ final class TreeToIr {
         case IR.Expression e -> e;
       };
       case Tree.TypeSignature sig -> {
-        var methodName = buildName(sig, sig.getVariable());
+        var methodName = buildName(sig.getVariable());
         var methodReference = new IR$CallArgument$Specified(
                 Option.empty(),
                 methodName,
@@ -1848,7 +1823,7 @@ final class TreeToIr {
   }
   private IR$Name$Literal buildName(Tree ident) {
     return switch (ident) {
-      case Tree.Ident id -> buildName(id.getToken());
+      case Tree.Ident id -> buildName(ident, id.getToken(), false);
       default -> throw new UnhandledEntity(ident, "buildName");
     };
   }
