@@ -25,4 +25,6 @@ ensogl-text-embedded-fonts = { path = "../../../src/font/embedded" }
 ensogl-text-font-family = { path = "../../../src/font/family" }
 
 [build-dependencies]
-enso-build-utilities = { path = "../../../../../../../../build/build-utils" }
+ide-ci = { path = "../../../../../../../../build/ci_utils" }
+enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
+tokio = { workspace = true }

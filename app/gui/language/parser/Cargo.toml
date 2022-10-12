@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "parser-scala"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
@@ -31,11 +31,11 @@ wasm-bindgen = { version = "0.2.78" }
 wasm-bindgen-test = { version = "0.3.8" }
 
 [build-dependencies]
-enso-build-utilities = { path = "../../../../build/build-utils" }
-bytes = { version = "0.5.4" }
+ide-ci = { path = "../../../../build/ci_utils" }
+bytes = { version = "1.1.0" }
 futures = { version = "0.3.1" }
-reqwest = { version = "0.10.1" }
-tokio = { version = "0.2.10", features = ["macros"] }
+reqwest = { version = "0.11.12" }
+tokio = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 websocket = "0.23.0"

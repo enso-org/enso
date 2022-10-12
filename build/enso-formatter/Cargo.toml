@@ -6,4 +6,5 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
-lazy_static = "1.4.0"
+ide-ci = { path = "../ci_utils" }
+tokio = { workspace = true }

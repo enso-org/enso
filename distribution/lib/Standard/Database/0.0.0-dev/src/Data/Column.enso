@@ -114,6 +114,34 @@ type Column
     to_sql self = self.to_table.to_sql
 
     ## PRIVATE
+       Sets up an operation of arbitrary arity.
+
+       Arguments:
+       - op_kind: The kind of the operation
+       - operands: A vector of additional operation arguments (the column itself
+         is always passed as the first argument).
+       - new_type: The type of the SQL column that results from applying the
+         operator. If not specified, the type of this column is used.
+       - operand_types: The SQL types of the additional arguments. They are used
+         if additional arguments are constants (and if not provided, the type of
+         this column is used). If the other argument is a column, its type is
+         used.
+    make_op self op_kind operands new_type=Nothing operand_types=Nothing =
+        prepare_operand operand operand_type = case operand of
+            other_column : Column ->
+                if Helpers.check_integrity self other_column then other_column.expression else
+                    Error.throw <| Unsupported_Database_Operation_Error "Cannot use columns coming from different contexts in one expression without a join."
+            constant ->
+                actual_operand_type = operand_type.if_nothing self.sql_type
+                Expression.Constant actual_operand_type constant
+        actual_operand_types = operand_types.if_nothing (Vector.fill operands.length Nothing)
+        expressions = operands.zip actual_operand_types prepare_operand
+
+        actual_new_type = new_type.if_nothing self.sql_type
+        new_expr = Expression.Operation op_kind ([self.expression] + expressions)
+        Column.Value self.name self.connection actual_new_type new_expr self.context
+
+    ## PRIVATE
 
        Creates a binary operation with given kind and operand.
 
@@ -129,20 +157,7 @@ type Column
        defaults to the current type if not provided.
     make_binary_op : Text -> Text -> (Column | Any) -> (SQL_Type | Nothing) -> (SQL_Type | Nothing) -> Column
     make_binary_op self op_kind operand new_type=Nothing operand_type=Nothing =
-        actual_new_type = new_type.if_nothing self.sql_type
-        case operand of
-            Column.Value _ _ _ other_expr _ ->
-                case Helpers.check_integrity self operand of
-                    False ->
-                        Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
-                    True ->
-                        new_expr = Expression.Operation op_kind [self.expression, other_expr]
-                        Column.Value self.name self.connection actual_new_type new_expr self.context
-            _ ->
-                actual_operand_type = operand_type.if_nothing self.sql_type
-                other = Expression.Constant actual_operand_type operand
-                new_expr = Expression.Operation op_kind [self.expression, other]
-                Column.Value self.name self.connection actual_new_type new_expr self.context
+        self.make_op op_kind [operand] new_type [operand_type]
 
     ## PRIVATE
 
@@ -153,10 +168,7 @@ type Column
        - new_type: The type of the SQL column that results from applying the
          operator.
     make_unary_op : Text -> Text -> (SQL_Type | Nothing) -> Column
-    make_unary_op self op_kind new_type=Nothing =
-        actual_new_type = new_type.if_nothing self.sql_type
-        new_expr = Expression.Operation op_kind [self.expression]
-        Column.Value self.name self.connection actual_new_type new_expr self.context
+    make_unary_op self op_kind new_type=Nothing = self.make_op op_kind [] new_type
 
     ## UNSTABLE
 
@@ -314,6 +326,22 @@ type Column
     < : Column | Any -> Column
     < self other = self.make_binary_op "<" other new_type=SQL_Type.boolean
 
+    ## Element-wise inclusive bounds check.
+
+       Arguments:
+       - lower: The lower bound to compare elements of `self` against. If
+         `lower` is a column, the comparison is performed pairwise between
+         corresponding elements of `self` and `lower`.
+       - upper: The upper bound to compare elements of `self` against. If
+         `upper` is a column, the comparison is performed pairwise between
+         corresponding elements of `self` and `upper`.
+
+       Returns a column with boolean values indicating whether values of this
+       column fit between the lower and upper bounds (both ends inclusive).
+    between : (Column | Any) -> (Column | Any) -> Column
+    between self lower upper =
+        self.make_op "BETWEEN" [lower, upper] new_type=SQL_Type.boolean
+
     ## UNSTABLE
 
        Element-wise addition.
@@ -406,6 +434,12 @@ type Column
        this column contains a `Nothing`.
     is_missing : Column
     is_missing self = self.make_unary_op "ISNULL" new_type=SQL_Type.boolean
+
+    ## PRIVATE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains an empty string or `Nothing`.
+    is_empty : Column
+    is_empty self = self.make_unary_op "ISEMPTY" new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -516,6 +550,11 @@ type Column
        on these missing values is vendor specific.
     contains : Column | Text -> Column
     contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
+
+    ## PRIVATE
+       Checks for each element of the column if it matches an SQL-like pattern.
+    like : Column | Text -> Column
+    like self other = self.make_binary_op "LIKE" other new_type=SQL_Type.boolean
 
     ## PRIVATE
     as_internal : Internal_Column

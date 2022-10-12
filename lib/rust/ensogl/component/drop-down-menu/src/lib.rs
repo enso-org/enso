@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -152,6 +153,7 @@ impl Model {
     }
 
     fn set_label(&self, label: &str) {
+        #[allow(clippy::needless_borrow)] // Removing the borrow breaks type inference.
         self.label.set_cursor(&default());
         self.label.select_all();
         self.label.insert(label);

@@ -21,7 +21,7 @@ import Standard.Base.Runtime.Ref
              Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
 measure : Any -> Text -> Integer -> Integer -> Nothing
 measure = ~act -> label -> iter_size -> num_iters ->
-    result = Ref.new 0
+    result = Ref.new 0.0
     single_call = _ ->
         x1 = System.nano_time
         Runtime.no_inline act

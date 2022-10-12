@@ -132,7 +132,7 @@ object StdBits {
     cacheFactory: sbt.util.CacheStoreFactory,
     log: sbt.Logger,
     defaultDevEnsoVersion: String
-  ) = Def.task {
+  ) = {
     log.info(s"Building standard library package for '$name'")
     val prefix = "Standard"
     val targetPkgRoot = root / "lib" / prefix / name / defaultDevEnsoVersion

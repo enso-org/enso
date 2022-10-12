@@ -98,6 +98,16 @@ spec =
             c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
+        Test.specify "should generate a single BETWEEN expression" <|
+            t2 = t1.filter "A" (Filter_Condition.Between 10 20)
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
+
+            t3 = t1.filter "A" (Filter_Condition.Between (t1.at "B") (t1.at "C"))
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND "T1"."C")', []]
+
+            t4 = t1.filter "A" (Filter_Condition.Between (t1.at "B") 33)
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [[33, int]]]
+
     Test.group "[Codegen] Joining Tables" <|
         t2 = test_connection.query (SQL_Query.Table_Name "T2")
         t3 = test_connection.query (SQL_Query.Table_Name "T3")

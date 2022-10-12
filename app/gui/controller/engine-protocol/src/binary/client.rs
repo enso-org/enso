@@ -39,7 +39,7 @@ pub type RpcError = json_rpc::error::RpcError<ErrorPayload>;
 // ====================
 
 /// The notifications that binary protocol client may receive.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// A new data has been sent for a visualization.
     VisualizationUpdate {

@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -234,7 +235,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &*self.model.display_object
+        &self.model.display_object
     }
 }
 

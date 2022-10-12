@@ -5,6 +5,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -37,7 +38,7 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
-use parser::Parser;
+use parser_scala::Parser;
 use uuid::Uuid;
 
 

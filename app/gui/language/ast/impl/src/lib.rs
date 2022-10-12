@@ -1,12 +1,12 @@
 // === Features ===
 #![feature(associated_type_bounds)]
-#![feature(bool_to_option)]
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
 use crate::prelude::*;
@@ -950,7 +950,7 @@ pub struct Modified<T> {
 // === Tokenizer ===
 
 /// An enum of valid Ast tokens.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token<'a> {
     Off(usize),
     Chr(char),
@@ -1862,7 +1862,7 @@ mod tests {
         let ab = Ast::prefix(a, b);
         let abc = Ast::prefix(ab, c); // repr is `a b c`
 
-        assert_eq!((&abc).iter().count(), 2); // for App's two children
+        assert_eq!((abc).iter().count(), 2); // for App's two children
         assert_eq!(abc.iter_recursive().count(), 5); // for 2 Apps and 3 Vars
     }
 

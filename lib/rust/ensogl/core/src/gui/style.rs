@@ -72,7 +72,11 @@ macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $
     /// that cursor does not implement any complex style management (like pushing or popping a style
     /// from a style stack) on purpose, as it is stateful, while it is straightforward to implement
     /// it in FRP.
-    #[derive(Debug,Clone,Default,PartialEq)]
+    // We don't know what types this struct will be instantiated with. So, sometimes we might not be
+    // able to derive Eq because of floats, but other structs might not use floats, and will then be
+    // flagged by clippy.
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Debug, Clone, Default, PartialEq)]
     pub struct Style {
         $($(#$meta)? $field : Option<StyleValue<$field_type>>),*
     }

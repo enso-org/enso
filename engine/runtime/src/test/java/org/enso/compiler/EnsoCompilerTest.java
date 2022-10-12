@@ -53,6 +53,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeMethodWithSignature() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Fuzzy
+        == : Correct -> Wrong
+        == self right = @Builtin_Method "Fuzzy.=="
+    """
+    );
+  }
+
+  @Test
   public void testImport() throws Exception {
     parseTest("""
     from Standard.Base.Data.Any import all
@@ -100,6 +111,114 @@ public class EnsoCompilerTest {
   public void testComments() throws Exception {
     parseTest("""
     # a b c
+    """);
+  }
+
+  @Test
+  public void testAnnotation0() throws Exception {
+    parseTest("""
+    dont_stop = @Tail_Call dont_stop
+    """);
+  }
+
+  @Test
+  public void testAnnotation1() throws Exception {
+    parseTest("""
+    go t = @Tail_Call go t-1
+    """);
+  }
+
+  @Test
+  public void testAnnotation2() throws Exception {
+    parseTest("""
+    go t x = @Tail_Call go t-1 x
+    """);
+  }
+
+  @Test
+  public void testAnnotationBlock() throws Exception {
+    parseTest("""
+    go a b = @Tail_Call go
+        a
+        b
+    """);
+  }
+
+  @Test
+  public void testBuiltinTypeAnnotation() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Date
+    """);
+  }
+
+  @Test
+  public void testBoolean() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Boolean
+        True
+        False
+
+        == : Boolean -> Boolean
+        == self that = @Builtin_Method "Boolean.=="
+
+        && : Boolean -> Boolean
+        && self ~that = @Builtin_Method "Boolean.&&"
+
+        not : Boolean
+        not self = @Builtin_Method "Boolean.not"
+
+        compare_to : Boolean -> Ordering
+        compare_to self that = @Builtin_Method "Boolean.compare_to"
+
+        if_then_else : Any -> Any -> Any
+        if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+
+        if_then : Any -> Any | Nothing
+        if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+    """);
+  }
+
+  @Test
+  public void testBuiltinMethodAnnotation() throws Exception {
+    parseTest("""
+    normalize x = @Builtin_Method "File.normalize"
+    """);
+  }
+
+  @Test
+  public void testTextOrNothing() throws Exception {
+    parseTest("""
+    type Locale
+        language : Text | Nothing
+    """);
+  }
+
+  @Test
+  public void testInterval() throws Exception {
+    parseTest("""
+    type Interval
+        Interval_Data (start : Bound.Bound)
+    """);
+  }
+
+  @Test
+  public void testAtEq() throws Exception {
+    parseTest("""
+    type Array
+        == : Array -> Boolean
+        == self that =
+            if False then True that else
+                eq_at i = self.at i == that.at i
+                eq_at 0
+    """);
+  }
+
+  @Test
+  public void testSelf1() throws Exception {
+    parseTest("""
+    contains self elem = self.contains Nothing
     """);
   }
 
@@ -383,6 +502,22 @@ public class EnsoCompilerTest {
 
         resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
         resolve c = 42
+    """);
+  }
+
+  @Test
+  public void testTypeSignatureQualified() throws Exception {
+    parseTest("""
+    type Baz
+        resolve : Integer -> Column
+    """);
+  }
+
+  @Test
+  public void testMethodDefQualified() throws Exception {
+    parseTest("""
+    type Foo
+        id x = x
     """);
   }
 

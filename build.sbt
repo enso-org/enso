@@ -2039,7 +2039,7 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
-val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
+val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2057,7 +2057,7 @@ buildStdLib := Def.inputTaskDyn {
 }.evaluated
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
-pkgStdLibInternal := Def.inputTaskDyn {
+pkgStdLibInternal := Def.inputTask {
   val cmd             = allStdBits.parsed
   val root            = engineDistributionRoot.value
   val log: sbt.Logger = streams.value.log
@@ -2073,15 +2073,27 @@ pkgStdLibInternal := Def.inputTaskDyn {
       (`std-image` / Compile / packageBin).value
     case "Table" =>
       (`std-table` / Compile / packageBin).value
+    case "All" =>
+      (`std-base` / Compile / packageBin).value
+      (`std-table` / Compile / packageBin).value
+      (`std-database` / Compile / packageBin).value
+      (`std-image` / Compile / packageBin).value
+      (`std-google-api` / Compile / packageBin).value
     case _ =>
   }
-  StdBits.buildStdLibPackage(
-    cmd,
-    root,
-    cacheFactory,
-    log,
-    defaultDevEnsoVersion
-  )
+  val libs = if (cmd != "All") Seq(cmd) else {
+    val prefix = "Standard."
+    Editions.standardLibraries.filter(_.startsWith(prefix)).map(_.stripPrefix(prefix))
+  }
+  libs.foreach { lib =>
+    StdBits.buildStdLibPackage(
+      lib,
+      root,
+      cacheFactory,
+      log,
+      defaultDevEnsoVersion
+    )
+  }
 }.evaluated
 
 lazy val buildLauncherDistribution =
