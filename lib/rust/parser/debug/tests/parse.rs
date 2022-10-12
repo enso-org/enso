@@ -55,12 +55,12 @@ fn parentheses() {
     test("(a b)", block![(Group (App (Ident a) (Ident b)))]);
     test("x)", block![(App (Ident x) (Invalid))]);
     test("(x", block![(App (Invalid) (Ident x))]);
+    test("(a) (b)", block![(App (Group (Ident a)) (Group (Ident b)))]);
     #[rustfmt::skip]
-    let expected = block![
+    test("((a b) c)", block![
         (Group
          (App (Group (App (Ident a) (Ident b)))
-              (Ident c)))];
-    test("((a b) c)", expected);
+              (Ident c)))]);
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn else_block() {
 
 #[test]
 fn plain_comments() {
-    test("# a b c", block![()()]);
+    test("# a b c", block![()]);
 }
 
 #[test]
@@ -1048,6 +1048,29 @@ fn case_expression() {
             (Group (App (App (Ident My_Type) (Wildcard -1)) (Wildcard -1))))
            "->" (Ident x)))))];
     test(&code.join("\n"), expected);
+}
+
+#[test]
+fn case_by_type() {
+    macro_rules! test_case {
+        ( $code:expr, $case:tt ) => {
+            test(&format!("case foo of\n {}", $code), block![(CaseOf (Ident foo) #(($case)))]);
+        }
+    }
+    test_case!("f:A->B -> x",
+        ((TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
+    test_case!("f : A->B -> x",
+        ((TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
+    test_case!("v : A -> x->x",
+        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+    test_case!("v : A -> x -> x",
+        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+    test_case!("v:A->x->x",
+        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+    test_case!("v:A->x", ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (Ident x)));
+    test_case!("v : A -> _ + x",
+        ((TypeAnnotated (Ident v) ":" (Ident A)) "->"
+         (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "+") (Ident x)))));
 }
 
 #[test]

@@ -359,7 +359,7 @@ pub fn case<'s>() -> Definition<'s> {
     crate::macro_definition! {("case", everything(), "of", everything()) case_body}
 }
 
-fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn case_body<'s>(segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
     use operator::resolve_operator_precedence_if_non_empty;
     use syntax::tree::*;
     let (of, mut rest) = segments.pop();
@@ -368,43 +368,100 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let expression = case.result.tokens();
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let of_ = into_ident(of.header);
-    let body = of.result.tokens();
-    let body = resolve_operator_precedence_if_non_empty(body);
-    let mut case_lines = vec![];
-    if let Some(body) = body {
-        match body.variant {
-            box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, arguments }) => {
-                if let Some(lhs) = lhs {
-                    case_lines.push(CaseLine { case: Some(parse_case(lhs)), ..default() });
-                }
-                case_lines.extend(arguments.into_iter().map(
-                    |block::Line { newline, expression }| CaseLine {
-                        newline: newline.into(),
-                        case:    expression.map(parse_case),
-                    },
-                ));
-                if let Some(left_offset) =
-                    case_lines.first_mut().and_then(CaseLine::left_offset_mut)
-                {
-                    *left_offset += body.span.left_offset;
-                }
+    let mut case_lines: Vec<CaseLine> = vec![];
+    let mut case_builder = CaseBuilder::default();
+    let finish_line = |case: Option<Case<'s>>, case_lines: &mut Vec<CaseLine<'s>>| {
+        if let Some(case) = case {
+            if case_lines.is_empty() {
+                case_lines.push(default());
             }
-            _ => case_lines.push(CaseLine { case: Some(parse_case(body)), ..default() }),
+            case_lines.last_mut().unwrap().case = Some(case);
         }
+    };
+    for item in of.result.tokens() {
+        if let syntax::Item::Block(items) = item {
+            for item in items {
+                if let syntax::Item::Token(syntax::Token {
+                    left_offset,
+                    code,
+                    variant: syntax::token::Variant::Newline(_),
+                }) = item
+                {
+                    finish_line(case_builder.finish(), &mut case_lines);
+                    let newline = syntax::token::newline(left_offset, code).into();
+                    case_lines.push(CaseLine { newline, ..default() });
+                    continue;
+                }
+                case_builder.push(item);
+            }
+            continue;
+        }
+        case_builder.push(item);
     }
+    finish_line(case_builder.finish(), &mut case_lines);
     Tree::case_of(case_, expression, of_, case_lines)
 }
 
-fn parse_case(tree: syntax::tree::Tree) -> syntax::tree::Case {
-    use syntax::tree::*;
-    match tree.variant {
-        box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
-            let pattern = lhs.map(crate::expression_to_pattern);
-            let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
-            *case.left_offset_mut().unwrap() += tree.span.left_offset;
-            case
+#[derive(Default)]
+struct CaseBuilder<'s> {
+    tokens:   Vec<syntax::Item<'s>>,
+    resolver: operator::Precedence<'s>,
+    pattern:  Option<syntax::Tree<'s>>,
+    arrow:    Option<syntax::token::Operator<'s>>,
+    spaces:   bool,
+}
+
+impl<'s> CaseBuilder<'s> {
+    fn push(&mut self, token: syntax::Item<'s>) {
+        if self.arrow.is_none() &&
+                let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
+                && op.properties.is_arrow()
+                && !left_offset.is_empty() {
+            self.resolver.extend(self.tokens.drain(..));
+            self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
+            self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
+            return;
         }
-        _ => Case { expression: tree.into(), ..default() },
+        if let syntax::Item::Token(syntax::Token { left_offset, .. }) = &token {
+            self.spaces = self.spaces || (!left_offset.is_empty() && !self.tokens.is_empty());
+        }
+        self.tokens.push(token);
+    }
+
+    fn finish(&mut self) -> Option<syntax::tree::Case<'s>> {
+        if self.arrow.is_none() && !self.spaces {
+            for (i, token) in self.tokens.iter().enumerate() {
+                if let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
+                    && op.properties.is_arrow() {
+                    self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
+                    let including_arrow = self.tokens.drain(..=i);
+                    self.resolver.extend(including_arrow.take(i));
+                    self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
+                    break;
+                }
+            }
+        }
+        self.resolver.extend(self.tokens.drain(..));
+        let pattern = self.pattern.take();
+        let arrow = self.arrow.take();
+        let expression = match self.resolver.finish() {
+            Some(syntax::Tree {
+                span,
+                variant:
+                    box syntax::tree::Variant::ArgumentBlockApplication(
+                        syntax::tree::ArgumentBlockApplication { lhs: None, arguments },
+                    ),
+            }) => {
+                let mut block = syntax::tree::block::body_from_lines(arguments);
+                block.span.left_offset += span.left_offset;
+                Some(block)
+            }
+            e => e,
+        };
+        if pattern.is_none() && arrow.is_none() && expression.is_none() {
+            return None;
+        }
+        Some(syntax::tree::Case { pattern, arrow, expression })
     }
 }
 

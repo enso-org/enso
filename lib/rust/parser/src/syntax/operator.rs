@@ -40,7 +40,8 @@ impl<'s> Precedence<'s> {
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
     ) -> Option<syntax::Tree<'s>> {
-        self.resolve_(items).map(|op| op.value)
+        items.into_iter().for_each(|i| self.push(i));
+        self.finish_().map(|op| op.value)
     }
 
     /// Resolve precedence.
@@ -48,31 +49,44 @@ impl<'s> Precedence<'s> {
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
     ) -> Option<syntax::Tree<'s>> {
-        self.resolve_(items).map(syntax::Tree::from)
+        items.into_iter().for_each(|i| self.push(i));
+        self.finish()
     }
 
-    fn resolve_(
-        &mut self,
-        items: impl IntoIterator<Item = syntax::Item<'s>>,
-    ) -> Option<Operand<syntax::Tree<'s>>> {
-        for item in items {
-            if starts_new_no_space_group(&item) {
-                self.builder.extend_from(&mut self.nospace_builder);
-            }
-            match item {
-                syntax::Item::Token(Token {
-                    variant: token::Variant::Operator(opr),
-                    left_offset,
-                    code,
-                }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
-                syntax::Item::Token(token) =>
-                    self.nospace_builder.operand(syntax::Tree::from(token).into()),
-                syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
-                syntax::Item::Block(_) => self.nospace_builder.operand(item.to_ast().into()),
-            }
+    /// Extend the expression with a token.
+    pub fn push(&mut self, item: syntax::Item<'s>) {
+        if starts_new_no_space_group(&item) {
+            self.builder.extend_from(&mut self.nospace_builder);
         }
+        match item {
+            syntax::Item::Token(Token {
+                                    variant: token::Variant::Operator(opr),
+                                    left_offset,
+                                    code,
+                                }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
+            syntax::Item::Token(token) =>
+                self.nospace_builder.operand(syntax::Tree::from(token).into()),
+            syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
+            syntax::Item::Block(_) => self.nospace_builder.operand(item.to_ast().into()),
+        }
+    }
+
+    fn finish_(&mut self) -> Option<Operand<syntax::Tree<'s>>> {
         self.builder.extend_from(&mut self.nospace_builder);
         self.builder.finish()
+    }
+
+    /// Return the result.
+    pub fn finish(&mut self) -> Option<syntax::Tree<'s>> {
+        self.finish_().map(syntax::Tree::from)
+    }
+}
+
+impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
+    fn extend<T: IntoIterator<Item=syntax::Item<'s>>>(&mut self, iter: T) {
+        for token in iter {
+            self.push(token);
+        }
     }
 }
 
