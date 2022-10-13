@@ -1240,7 +1240,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 True -> v2.should_equal [2, 3]
                 False -> v2.should_fail_with SQL_Error_Data
 
-            t2 = table_builder [["A", [True, True, True]], ["B", [False, Nothing, True]]]
+            t2 = table_builder [["ix", [1,2,3]],["A", [True, True, True]], ["B", [False, Nothing, True]]]
             t2.filter "A" (Filter_Condition.Is_In [True, False]) on_problems=Report_Error . at "A" . to_vector . should_equal [True, True, True]
             t2.filter "A" (Filter_Condition.Is_In [False]) on_problems=Report_Error . at "A" . to_vector . should_equal []
             t2.filter "B" (Filter_Condition.Is_In [False]) on_problems=Report_Error . at "B" . to_vector . should_equal [False]
@@ -1251,6 +1251,15 @@ spec prefix table_builder test_selection pending=Nothing =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             t.filter "b" on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 4, 5]
             t.filter "b" Filter_Condition.Is_False on_problems=Report_Error . at "ix" . to_vector . should_equal [2]
+
+        Test.specify "should correctly reorder all kinds of columns" <|
+            t = table_builder [["ints", [1, 2, 3, Nothing, 4]], ["floats", [4.0, Nothing, 3.0, 2.0, 1.0]], ["bools", [False, False, True, Nothing, False]], ["strings", ["a", Nothing, "b", "c", "d"]], ["mask", [False, True, True, True, Nothing]]]
+            t2 = t.filter "mask" on_problems=Report_Error
+            t2.at "ints" . to_vector . should_equal [2, 3, Nothing]
+            t2.at "floats" . to_vector . should_equal [Nothing, 3.0, 2.0]
+            t2.at "bools" . to_vector . should_equal [False, True, Nothing]
+            t2.at "strings" . to_vector . should_equal [Nothing, "b", "c"]
+            t2.at "mask" . to_vector . should_equal [True, True, True]
 
         Test.specify "should check types of boolean operations" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
