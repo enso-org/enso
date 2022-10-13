@@ -947,7 +947,7 @@ spec =
             t2.at "A" . to_vector . should_equal [2, 3]
             t2.at "B" . to_vector . should_equal [5, 6]
 
-        Test.specify "by a contains check in a Vector, on various types of columns" <|
+        Test.specify "by an Is_In check in a Vector, on various types of columns" <|
             varied_type_table.filter "strs" (Filter_Condition.Is_In ["c", "b", Nothing]) . at "strs" . to_vector . should_equal ["b", "c", Nothing]
             varied_type_table.filter "ints" (Filter_Condition.Is_In [1, 2, 3]) . at "ints" . to_vector . should_equal [1, 2]
             varied_type_table.filter "ints" (Filter_Condition.Is_In [1, Nothing]) . at "ints" . to_vector . should_equal [Nothing, 1]
