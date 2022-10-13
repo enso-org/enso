@@ -91,32 +91,7 @@ final class TreeToIr {
         for (Line line : b.getStatements()) {
           switch (line.getExpression()) {
             case Tree.Assignment a -> {
-              var r = switch (a.getPattern()) {
-                case Tree.Ident id -> {
-                  var name = new IR$Name$Literal(
-                    id.getToken().codeRepr(), false,
-                    getIdentifiedLocation(id),
-                    meta(), diag()
-                  );
-                  yield new IR$Name$MethodReference(
-                    Option.empty(),
-                    name,
-                    name.location(),
-                    meta(), diag()
-                  );
-                }
-                case Tree.OprApp opr -> {
-                  var pointer = buildQualifiedName(opr.getLhs());
-                  var name = buildName(opr.getRhs());
-                  yield new IR$Name$MethodReference(
-                    Option.apply(pointer),
-                    name,
-                    Option.empty(),
-                    meta(), diag()
-                  );
-                }
-                default -> throw new IllegalStateException("Not an identifier: " + a.getPattern());
-              };
+              var r = translateMethodReference(a.getPattern(), false);
               var m = new IR$Module$Scope$Definition$Method$Binding(
                 r,
                 nil(),
@@ -295,46 +270,7 @@ final class TreeToIr {
         );
       }
       case Tree.Function fn -> {
-        var nameId = buildName(fn.getName());
-
-        /*
-      case AstView.MethodDefinition(targetPath, name, args, definition) =>
-        val nameId: AST.Ident = name match {
-          case AST.Ident.Var.any(name) => name
-          case AST.Ident.Opr.any(opr)  => opr
-          case _ =>
-            throw new UnhandledEntity(name, "translateModuleSymbol")
-        }
-
-        val methodRef = if (targetPath.nonEmpty) {
-          val pathSegments = targetPath.collect { case AST.Ident.Cons.any(c) =>
-            c
-          }
-          val pathNames = pathSegments.map(buildName(_))
-
-          val methodSegments = pathNames :+ buildName(nameId)
-
-          val typeSegments = methodSegments.init
-
-          Name.MethodReference(
-            Some(
-              IR.Name.Qualified(
-                typeSegments,
-                MethodReference.genLocation(typeSegments)
-              )
-            ),
-            methodSegments.last,
-            MethodReference.genLocation(methodSegments)
-          )
-        } else {
-        */
-        var methodName = nameId;
-        var methodRef = new IR$Name$MethodReference(
-          Option.empty(),
-          methodName,
-          getIdentifiedLocation(fn),
-          meta(), diag()
-        );
+        var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody(), false);
 
@@ -387,13 +323,7 @@ final class TreeToIr {
       */
       case Tree.TypeSignature sig -> {
 //      case AstView.TypeAscription(typed, sig) =>
-        var methodName = buildName(sig.getVariable());
-        var methodReference = new IR$Name$MethodReference(
-          Option.empty(),
-          methodName,
-          getIdentifiedLocation(sig),
-          meta(), diag()
-        );
+        var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateExpression(sig.getType(), true);
         yield new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
         /*
@@ -610,20 +540,31 @@ final class TreeToIr {
     *
     * @param inputAst the method reference to translate
     * @return the [[IR]] representation of `inputAst`
-
-  def translateMethodReference(inputAst: AST): IR.Name.MethodReference = {
-    inputAst match {
-      case AstView.MethodReference(path, methodName) =>
-        val typeParts = path.map(translateExpression(_).asInstanceOf[IR.Name])
-        IR.Name.MethodReference(
-          Some(
-            IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts))
-          ),
-          translateExpression(methodName).asInstanceOf[IR.Name],
-          getIdentifiedLocation(inputAst)
-        )
-      case _ => throw new UnhandledEntity(inputAst, "translateMethodReference")
+    */
+  IR$Name$MethodReference translateMethodReference(Tree sig, boolean alwaysLocation) {
+    IR.Name method;
+    Option<IR.Name> type;
+    Option<IdentifiedLocation> loc;
+    switch (sig) {
+      case Tree.Ident id -> {
+        type = Option.empty();
+        method = buildName(id);
+        loc = getIdentifiedLocation(sig);
+      }
+      case Tree.OprApp app when ".".equals(app.getOpr().getRight().codeRepr()) -> {
+        type = Option.apply(buildQualifiedName(app.getLhs()));
+        method = buildName(app.getRhs());
+        if (alwaysLocation) {
+          loc = getIdentifiedLocation(sig);
+        } else {
+          loc = Option.empty();
+        }
+      }
+      default -> throw new UnhandledEntity(sig, "translateMethodReference");
     }
+    return new IR$Name$MethodReference(type, method,
+      loc, meta(), diag()
+    );
   }
 
   /** Translates an arbitrary program expression from {@link Tree} into {@link IR}.

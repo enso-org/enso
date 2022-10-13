@@ -309,6 +309,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNumberTimes() throws Exception {
+    parseTest("""
+    Standard.Base.Number.times : List Any
+    Standard.Base.Number.times self act =
+        act
+    """);
+  }
+
+  @Test
   public void testIfThenBlock() throws Exception {
     parseTest("""
       from_java_set java_set =
