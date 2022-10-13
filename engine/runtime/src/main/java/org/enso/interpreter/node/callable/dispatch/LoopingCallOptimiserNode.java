@@ -182,9 +182,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the state to pass to the next function
      */
     public Object getNextState(VirtualFrame frame) {
-      Object result = FrameUtil.getObjectSafe(frame, stateSlot);
-      frame.setObject(stateSlot, null);
-      return result;
+      return FrameUtil.getObjectSafe(frame, stateSlot);
     }
 
     /**

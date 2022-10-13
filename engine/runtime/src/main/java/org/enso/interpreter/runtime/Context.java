@@ -1,12 +1,12 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -17,7 +17,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.State;
@@ -67,7 +66,8 @@ public class Context {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-  @CompilerDirectives.CompilationFinal private Optional<AtomConstructor> date;
+
+  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
 
   /**
    * Creates a new Enso context.
@@ -490,6 +490,6 @@ public class Context {
   }
 
   public State emptyState() {
-    return new State(null, null);
+    return new State(new State.Container(rootStateShape));
   }
 }
