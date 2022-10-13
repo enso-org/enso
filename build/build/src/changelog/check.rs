@@ -50,6 +50,7 @@ pub async fn check(repo_path: RepoRoot, context: ide_ci::actions::Context) -> Re
     let default_branch =
         repository.default_branch.context("Missing default branch information.")?;
     let git = Git::new(&repo_path).await?;
+    git.fetch_branch(REMOTE_NAME, &default_branch).await?;
     let remote_base = format!("{REMOTE_NAME}/{default_branch}");
     let files_changed = git.diff_against(remote_base).await?;
     debug!("Files changed: {files_changed:#?}.");
