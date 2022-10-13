@@ -459,20 +459,20 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing self = self.make_unary_op "ISNULL" new_type=SQL_Type.boolean
+    is_missing self = self.make_unary_op "IS_NULL" new_type=SQL_Type.boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = self.make_unary_op "ISEMPTY" new_type=SQL_Type.boolean
+    is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
        Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
-    fill_missing self default = self.make_binary_op "FILLNULL" default
+    fill_missing self default = self.make_binary_op "FILL_NULL" default
 
     ## UNSTABLE
 
