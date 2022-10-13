@@ -611,15 +611,39 @@ type Column
     contains self other =
         run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
 
-    ## PRIVATE
-       Checks for each element of the column if it matches an SQL-like pattern.
-    like : Column | Text -> Column
-    like self other =
-        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) other
+    ## Checks for each element of the column if it matches an SQL-like pattern.
 
-    ## PRIVATE
-       Checks for each element of the column if it is contained within the
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column. The pattern is an SQL-like pattern, where
+         `%` matches any sequence of characters and `_` matches any single
+         character.
+
+       > Example
+         Check if elements of a column start with 'F' and end with a dot.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.like "F%."
+    like : Column | Text -> Column
+    like self pattern =
+        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
+
+    ## Checks for each element of the column if it is contained within the
        provided vector.
+
+       Arguments:
+       - vector: A vector of elements. The resulting column will contain true at
+         the positions where the corresponding element of `self` is contained
+         in `vector`.
+
+       > Example
+         Check if elements of a column are contained in a provided vector.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in self vector =
         run_vectorized_binary_op self "is_in" (elem -> vector -> vector.contains elem) vector skip_nulls=False
 
