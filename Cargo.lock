@@ -1941,6 +1941,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-build-base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "fn-error-context",
+ "futures 0.3.24",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "serde_yaml 0.9.13",
+ "tracing",
+]
+
+[[package]]
 name = "enso-build-cli"
 version = "0.1.0"
 dependencies = [
@@ -1950,6 +1964,7 @@ dependencies = [
  "clap 3.1.15",
  "derivative",
  "enso-build",
+ "enso-build-base",
  "enso-formatter",
  "futures 0.3.24",
  "futures-util",
@@ -3793,7 +3808,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate",
@@ -3836,10 +3851,10 @@ dependencies = [
  "derivative",
  "derive_more",
  "dirs",
+ "enso-build-base",
  "filetime",
  "flate2",
  "flume",
- "fn-error-context",
  "fs_extra",
  "futures 0.3.24",
  "futures-util",
@@ -3878,7 +3893,6 @@ dependencies = [
  "serde_yaml 0.9.13",
  "sha2",
  "shrinkwraprs 0.3.0",
- "snafu",
  "strum",
  "symlink",
  "syn",
@@ -6573,18 +6587,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a99cb8c4b9a8ef0e7907cd3b617cc8dc04d571c4e73c8ae403d80ac160bb122"
+checksum = "10deb33631e3c9018b9baf9dcbbc4f737320d2b576bac10f6aefa048fa407e3e"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a891860d3c8d66fec8e73ddb3765f90082374dbaaa833407b904a94f1a7eb43"
+checksum = "982d17546b47146b28f7c22e3d08465f6b8903d0ea13c1660d9d84a6e7adcdbb"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -17,6 +17,7 @@ use reqwest::Response;
 use serde_json::json;
 
 
+
 const MAX_PER_PAGE: u8 = 100;
 
 pub mod model;

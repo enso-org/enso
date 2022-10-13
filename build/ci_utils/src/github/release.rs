@@ -1,11 +1,14 @@
 use crate::prelude::*;
-use mime::Mime;
 
 use crate::github::Repo;
+
+use mime::Mime;
 use octocrab::models::repos::Asset;
 use octocrab::models::ReleaseId;
 use reqwest::Body;
 use tracing::instrument;
+
+
 
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {

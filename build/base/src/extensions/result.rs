@@ -25,6 +25,18 @@ pub trait ResultExt<T, E>: Sized {
         E: Into<E2>,
         T2: Send + 'a,
         E2: Send + 'a;
+
+
+    fn anyhow_err(self) -> Result<T>
+    where E: Into<anyhow::Error>;
+
+    fn flatten_fut(
+        self,
+    ) -> futures::future::Either<
+        std::future::Ready<std::result::Result<T::Ok, T::Error>>,
+        futures::future::IntoFuture<T>,
+    >
+    where T: TryFuture<Error: From<E>>;
 }
 
 impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
@@ -60,6 +72,24 @@ impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
         match self {
             Ok(v) => f(v).left_future(),
             Err(e) => ready(Err(e.into())).right_future(),
+        }
+    }
+
+    fn anyhow_err(self) -> Result<T>
+    where E: Into<anyhow::Error> {
+        self.map_err(E::into)
+    }
+
+    fn flatten_fut(
+        self,
+    ) -> futures::future::Either<
+        std::future::Ready<std::result::Result<T::Ok, T::Error>>,
+        futures::future::IntoFuture<T>,
+    >
+    where T: TryFuture<Error: From<E>> {
+        match self {
+            Ok(fut) => fut.into_future().right_future(),
+            Err(e) => ready(Err(T::Error::from(e))).left_future(),
         }
     }
 }

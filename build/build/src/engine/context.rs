@@ -32,6 +32,7 @@ use ide_ci::programs::Sbt;
 use sysinfo::SystemExt;
 
 
+
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
 
 pub type EnginePackageProvider = dyn FnMut() -> FutureEnginePackage + Send + Sync + 'static;

@@ -4,12 +4,13 @@ use crate::prelude::*;
 
 use crate::github::IsRepo;
 use crate::github::OrganizationPointer;
+use crate::github::Repo;
 use crate::serde::regex_vec;
 use crate::serde::single_or_sequence;
 
-use crate::github::Repo;
 use regex::Regex;
 use std::collections::HashMap;
+
 
 
 pub type Config = BTreeMap<String, MachineConfig>;

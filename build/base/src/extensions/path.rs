@@ -5,6 +5,7 @@ use serde::de::DeserializeOwned;
 
 
 pub trait PathExt: AsRef<Path> {
+    /// Append multiple segments to this path.
     fn join_iter<P: AsRef<Path>>(&self, segments: impl IntoIterator<Item = P>) -> PathBuf {
         let mut ret = self.as_ref().to_path_buf();
         ret.extend(segments);
@@ -42,18 +43,27 @@ pub trait PathExt: AsRef<Path> {
         }
     }
 
+    /// Parse this file's contents as a JSON-serialized value.
     #[context("Failed to deserialize file `{}` as type `{}`.", self.as_ref().display(), std::any::type_name::<T>())]
     fn read_to_json<T: DeserializeOwned>(&self) -> Result<T> {
         let content = crate::fs::read_to_string(self)?;
         serde_json::from_str(&content).anyhow_err()
     }
 
+    /// Write this file with a JSON-serialized value.
     fn write_as_json<T: Serialize>(&self, value: &T) -> Result {
         trace!("Writing JSON to {}.", self.as_ref().display());
         let file = crate::fs::create(self)?;
         serde_json::to_writer(file, value).anyhow_err()
     }
 
+    /// Parse this file's contents as a YAML-serialized value.
+    fn read_to_yaml<T: DeserializeOwned>(&self) -> Result<T> {
+        let content = crate::fs::read_to_string(self)?;
+        serde_yaml::from_str(&content).anyhow_err()
+    }
+
+    /// Write this file with a YAML-serialized value.
     fn write_as_yaml<T: Serialize>(&self, value: &T) -> Result {
         trace!("Writing YAML to {}.", self.as_ref().display());
         let file = crate::fs::create(self)?;

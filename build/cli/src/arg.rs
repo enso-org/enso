@@ -6,8 +6,8 @@ use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use derivative::Derivative;
+use enso_build_base::extensions::path::display_fmt;
 use ide_ci::cache;
-use ide_ci::extensions::path::display_fmt;
 use ide_ci::github::Repo;
 use octocrab::models::RunId;
 

@@ -65,14 +65,6 @@ pub trait TryFutureExt: TryFuture {
 impl<T: ?Sized> TryFutureExt for T where T: TryFuture {}
 
 
-pub fn receiver_to_stream<T>(
-    mut receiver: tokio::sync::mpsc::Receiver<T>,
-) -> impl Stream<Item = T> {
-    futures::stream::poll_fn(move |ctx| receiver.poll_recv(ctx))
-}
-
-
-
 pub trait TryStreamExt: TryStream {
     fn anyhow_err(self) -> stream::MapErr<Self, fn(Self::Error) -> anyhow::Error>
     where

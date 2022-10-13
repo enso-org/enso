@@ -10,6 +10,7 @@ byte-unit = { version = "4.0.14", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env", "wrap_help"] }
 chrono = "0.4.19"
 derivative = "2.2.0"
+enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
 enso-formatter = { path = "../enso-formatter" }
 futures = "0.3.17"
