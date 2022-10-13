@@ -216,6 +216,16 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNestedBlocks() throws Exception {
+    parseTest("""
+    type Array
+        meaning =
+            catch_primitive handler
+                42
+    """);
+  }
+
+  @Test
   public void testSelf1() throws Exception {
     parseTest("""
     contains self elem = self.contains Nothing

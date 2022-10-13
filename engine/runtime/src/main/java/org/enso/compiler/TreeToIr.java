@@ -487,12 +487,7 @@ final class TreeToIr {
       }
       case Tree.Function fun -> {
         var name = buildName(fun.getName());
-        var args = translateArgumentsDefinition(fun.getArgs());
-        var body = translateExpression(fun.getBody(), false);
-
-        yield new IR$Function$Binding(name, args, body,
-            getIdentifiedLocation(fun), true, meta(), diag()
-        );
+        yield translateFunction(fun, name, fun.getArgs(), fun.getBody());
       }
       /*
       case AstView.FunctionSugar(
@@ -544,6 +539,32 @@ final class TreeToIr {
         new IR$Error$Syntax(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
     };
   }
+
+  private IR.Expression translateFunction(Tree fun, IR.Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
+       var args = translateArgumentsDefinition(arguments);
+       var body = translateExpression(treeBody, false);
+      if (args.isEmpty()) {
+        if (body instanceof IR$Expression$Block block) {
+          // suspended block has a name and no arguments
+          body = block.copy(
+            block.copy$default$1(),
+            block.copy$default$2(),
+            block.copy$default$3(),
+            true,
+            block.copy$default$5(),
+            block.copy$default$6(),
+            block.copy$default$7()
+          );
+        }
+        return new IR$Expression$Binding(name, body,
+          getIdentifiedLocation(fun), meta(), diag()
+        );
+      } else {
+        return new IR$Function$Binding(name, args, body,
+          getIdentifiedLocation(fun), true, meta(), diag()
+        );
+      }
+   }
 
   /*
   private def translateForeignDefinition(header: List[AST], body: AST): Either[
@@ -793,7 +814,25 @@ final class TreeToIr {
           }
           last = translateExpression(expr, insideTypeSignature);
         }
-        yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
+        var block = new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
+        if (body.getLhs() != null) {
+          var fn = translateExpression(body.getLhs(), insideTypeSignature);
+          List<IR.CallArgument> args = nil();
+          for (var line : body.getArguments()) {
+            var expr = line.getExpression();
+            if (expr != null) {
+              continue;
+            }
+            var call = translateCallArgument(expr, insideTypeSignature);
+            args = cons(call, args);
+          }
+          yield switch (fn) {
+            case IR$Application$Prefix pref -> patchPrefixWithBlock(pref, block, args);
+            default -> block;
+          };
+        } else {
+          yield block;
+        }
       }
       case Tree.TypeAnnotated anno -> {
         var type = translateCallArgument(anno.getType(), true);
@@ -1000,6 +1039,14 @@ final class TreeToIr {
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
     */
+  }
+
+  @SuppressWarnings("unchecked")
+  private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+    List<IR.CallArgument> allArgs = (List<IR.CallArgument>) pref.arguments().appendedAll(args.reverse());
+    final IR$CallArgument$Specified blockArg = new IR$CallArgument$Specified(Option.empty(), block, block.location(), meta(), diag());
+    List<IR.CallArgument> withBlockArgs = (List<IR.CallArgument>) allArgs.appended(blockArg);
+    return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
   private IR$Application$Prefix translateAnnotation(IR$Name$Annotation ir, Tree expr, List<IR.CallArgument> callArgs) {
