@@ -338,6 +338,7 @@ pub struct OperatorProperties {
     is_sequence:               bool,
     is_suspension:             bool,
     is_annotation:             bool,
+    is_dot:                    bool,
 }
 
 impl OperatorProperties {
@@ -403,6 +404,11 @@ impl OperatorProperties {
         Self { is_suspension: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the dot operator.
+    pub fn as_dot(self) -> Self {
+        Self { is_dot: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
     pub fn with_decimal_interpretation(self) -> Self {
         Self { can_be_decimal_operator: true, ..self }
@@ -456,6 +462,11 @@ impl OperatorProperties {
     /// Return whether this operator is the annotation operator.
     pub fn is_annotation(&self) -> bool {
         self.is_annotation
+    }
+
+    /// Return whether this operator is the dot operator.
+    pub fn is_dot(&self) -> bool {
+        self.is_dot
     }
 
     /// Return this operator's associativity.

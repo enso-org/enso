@@ -3,10 +3,12 @@
 #![recursion_limit = "256"]
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(assert_matches)]
 #![feature(allocator_api)]
 #![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
+#![feature(let_chains)]
 #![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -60,21 +62,25 @@ fn check_file(path: &str, mut code: &str) {
     });
     for (error, span) in &*errors.borrow() {
         let whitespace = &span.left_offset.code.repr;
-        let start = whitespace.as_ptr() as usize + whitespace.len() - code.as_ptr() as usize;
-        let mut line = 1;
-        let mut char = 0;
-        for (i, c) in code.char_indices() {
-            if i >= start {
-                break;
+        if matches!(whitespace, Cow::Borrowed(_)) {
+            let start = whitespace.as_ptr() as usize + whitespace.len() - code.as_ptr() as usize;
+            let mut line = 1;
+            let mut char = 0;
+            for (i, c) in code.char_indices() {
+                if i >= start {
+                    break;
+                }
+                if c == '\n' {
+                    line += 1;
+                    char = 0;
+                } else {
+                    char += 1;
+                }
             }
-            if c == '\n' {
-                line += 1;
-                char = 0;
-            } else {
-                char += 1;
-            }
-        }
-        eprintln!("{path}:{line}:{char}: {}", &error.error.message);
+            eprintln!("{path}:{line}:{char}: {}", &error.error.message);
+        } else {
+            eprintln!("{path}:?:?: {}", &error.error.message);
+        };
     }
     for (parsed, original) in ast.code().lines().zip(code.lines()) {
         assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {}", path);

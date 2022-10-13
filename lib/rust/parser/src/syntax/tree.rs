@@ -4,7 +4,6 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
-use crate::expression_to_pattern;
 use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -218,8 +217,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A function definition, like `add x y = x + y`.
         Function {
-            /// The identifier to which the function should be bound.
-            pub name: token::Ident<'s>,
+            /// The (qualified) name to which the function should be bound.
+            pub name: Tree<'s>,
             /// The argument patterns.
             pub args: Vec<ArgumentDefinition<'s>>,
             /// The `=` token.
@@ -255,13 +254,13 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// Statement declaring the type of a variable.
         TypeSignature {
-            /// The variable whose type is being declared.
-            pub variable: token::Ident<'s>,
+            /// (Qualified) name of the item whose type is being declared.
+            pub variable: Tree<'s>,
             /// The `:` token.
             pub operator: token::Operator<'s>,
             /// The variable's type.
             #[reflect(rename = "type")]
-            pub type_: Tree<'s>,
+            pub type_:    Tree<'s>,
         },
         /// An expression with explicit type information attached.
         TypeAnnotated {
@@ -626,20 +625,6 @@ impl<'s> span::Builder<'s> for Case<'s> {
     }
 }
 
-impl<'s> From<Tree<'s>> for Case<'s> {
-    fn from(tree: Tree<'s>) -> Self {
-        match tree.variant {
-            box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) if opr.properties.is_arrow() => {
-                let pattern = lhs.map(expression_to_pattern);
-                let mut case = Case { pattern, arrow: opr.into(), expression: rhs };
-                *case.left_offset_mut().unwrap() += tree.span.left_offset;
-                case
-            }
-            _ => Case { expression: tree.into(), ..default() },
-        }
-    }
-}
-
 
 // === OprApp ===
 
@@ -976,12 +961,10 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::UnaryOprApp(_)
             | Variant::MultiSegmentApp(_)
             | Variant::TypeDef(_)
-            | Variant::Function(_)
             | Variant::Import(_)
             | Variant::Export(_)
             | Variant::Group(_)
             | Variant::CaseOf(_)
-            | Variant::TypeSignature(_)
             | Variant::Lambda(_)
             | Variant::Array(_)
             | Variant::Annotated(_)
@@ -1002,6 +985,8 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
             | Variant::DefaultApp(DefaultApp { func: lhs, .. })
             | Variant::Assignment(Assignment { pattern: lhs, .. })
+            | Variant::TypeSignature(TypeSignature { variable: lhs, .. })
+            | Variant::Function(Function { name: lhs, .. })
             | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
         }
     }

@@ -2213,6 +2213,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-parser-debug"
+version = "0.1.0"
+dependencies = [
+ "enso-metamodel",
+ "enso-metamodel-lexpr",
+ "enso-parser",
+ "enso-reflect",
+ "lexpr",
+ "serde",
+]
+
+[[package]]
 name = "enso-parser-generate-java"
 version = "0.1.0"
 dependencies = [
