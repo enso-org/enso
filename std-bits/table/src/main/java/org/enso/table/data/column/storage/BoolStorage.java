@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -10,9 +12,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
-import java.util.List;
 
 /** A boolean column storage. */
 public class BoolStorage extends Storage {
@@ -34,7 +33,9 @@ public class BoolStorage extends Storage {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -119,6 +120,10 @@ public class BoolStorage extends Storage {
           newMissing.set(resultIx++);
         } else if (values.get(i)) {
           newValues.set(resultIx++);
+        } else {
+          // We don't set any bits, but still increment the counter to indicate that we have just
+          // 'inserted' a false value.
+          resultIx++;
         }
       }
     }
@@ -174,8 +179,8 @@ public class BoolStorage extends Storage {
             new MapOperation<>(Maps.EQ) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean) {
-                  if ((Boolean) arg) {
+                if (arg instanceof Boolean v) {
+                  if (v) {
                     return storage;
                   } else {
                     return new BoolStorage(
@@ -206,8 +211,7 @@ public class BoolStorage extends Storage {
             new MapOperation<>(Maps.AND) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean) {
-                  boolean v = (Boolean) arg;
+                if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
                   } else {
@@ -249,8 +253,7 @@ public class BoolStorage extends Storage {
             new MapOperation<>(Maps.OR) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean) {
-                  boolean v = (Boolean) arg;
+                if (arg instanceof Boolean v) {
                   if (v) {
                     return new BoolStorage(new BitSet(), storage.isMissing, storage.size, true);
                   } else {
