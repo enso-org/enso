@@ -565,10 +565,6 @@ pub struct Searcher {
     this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location<Byte>>,
     project: model::Project,
-    /// A component list builder with favorites prepopulated with
-    /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
-    /// [`database`] lookups performed when updating [`Data::components`].
-    list_builder_with_favorites: Rc<component::builder::List>,
     node_edit_guard: Rc<Option<EditGuard>>,
 }
 
@@ -622,10 +618,6 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
-        let favorites = graph.component_groups();
-        let module_name = graph.module_qualified_name(&*project);
-        let list_builder_with_favs =
-            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
             logger,
@@ -640,7 +632,6 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            list_builder_with_favorites: Rc::new(list_builder_with_favs),
             node_edit_guard: node_metadata_guard,
         };
         Ok(ret.init())
@@ -1269,7 +1260,9 @@ impl Searcher {
         this_type: &Option<String>,
         return_types: &[String],
     ) -> component::List {
-        let mut builder = self.list_builder_with_favorites.deref().clone();
+        let favorites = self.graph.component_groups();
+        let module_name = self.module_qualified_name();
+        let mut builder = component_list_builder_with_favorites(&self.database, &module_name, &*favorites);
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
@@ -1755,10 +1748,6 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorites = graph.component_groups();
-            let module_qn = graph.module_qualified_name(&*project);
-            let list_builder_with_favs =
-                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
@@ -1774,7 +1763,6 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(code.last_line_end_location()),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_builder_with_favs),
                 node_edit_guard: node_metadata_guard,
             };
             let entry1 = searcher.database.lookup(1).unwrap();
