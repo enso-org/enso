@@ -39,6 +39,7 @@ import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
 import org.enso.compiler.core.IR$Pattern$Name;
 import org.enso.compiler.core.IR$Pattern$Literal;
+import org.enso.compiler.core.IR$Pattern$Type;
 import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
@@ -1267,7 +1268,7 @@ final class TreeToIr {
     * handled deeper in the compiler pipeline.
     */
   IR.Expression translateQualifiedNameOrExpression(Tree arg) {
-    IR$Name$Qualified name = buildQualifiedName(arg, Option.empty(), false);
+    var name = buildQualifiedName(arg, Option.empty(), false);
     if (name != null) {
       return name;
     } else {
@@ -1630,6 +1631,11 @@ final class TreeToIr {
       case Tree.Number num -> {
         yield new IR$Pattern$Literal((IR.Literal) translateDecimalLiteral(num), getIdentifiedLocation(num), meta(), diag());
       }
+      case Tree.TypeAnnotated anno -> {
+        var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
+        var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
+        yield new IR$Pattern$Type(expr, type instanceof IR.Name ? (IR.Name) type : null, Option.empty(), meta(), diag());
+      }
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
   }
@@ -1688,7 +1694,17 @@ final class TreeToIr {
     var segments = buildNames(t, '.', fail);
     return segments == null ? null : new IR$Name$Qualified(segments, loc, meta(), diag());
   }
-
+  private IR.Name buildNameOrQualifiedName(Tree t) {
+    var segments = buildNames(t, '.', true);
+    if (segments == null) {
+      return null;
+    }
+    if (segments.length() == 1) {
+      return segments.last();
+    } else {
+      return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+    }
+  }
   private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {
     List<IR.Name> segments = nil();
     for (;;) {

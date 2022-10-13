@@ -115,6 +115,23 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseTypeOf() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:Vector_2d -> x
+        _ -> x
+    """);
+  }
+
+  @Test
+  public void testCaseTypeOf2() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:My_Type -> x
+    """);
+  }
+
+  @Test
   public void testAnnotation0() throws Exception {
     parseTest("""
     dont_stop = @Tail_Call dont_stop
