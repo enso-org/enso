@@ -116,8 +116,6 @@ impl Navigator {
         bottom_buttons.disable_selecting_entries_with_mouse();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
-        // TODO[mc]: do we need it this way or can just add to display_object? is done like this in
-        // GraphEditorModel.init()
         app.display.default_scene.add_child(&tooltip);
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
@@ -137,15 +135,14 @@ impl Navigator {
 
             // === Show tooltip when hovering the Marketplace button
 
-            let is_marketplace_btn_idx = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
-            marketplace_button_selected <- top_buttons.selected_entry.map(is_marketplace_btn_idx);
+            let idx_of_marketplace_btn = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
+            marketplace_button_selected <- top_buttons.selected_entry.map(idx_of_marketplace_btn);
             marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
             tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
             tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
-            // FIXME[mc]: rename
-            tooltip_not_timed_out <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
-            showing_tooltip <- marketplace_button_hovered && tooltip_not_timed_out;
+            tooltip_not_hidden <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
+            showing_tooltip <- marketplace_button_hovered && tooltip_not_hidden;
             tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
                     let text = "Marketplace will be available soon.";
                     let style = tooltip::Style::set_label(text.into());
