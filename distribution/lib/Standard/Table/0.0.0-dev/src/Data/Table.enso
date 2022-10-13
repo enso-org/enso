@@ -1021,10 +1021,13 @@ type Table
             True ->
                 is_missing_or_empty col = case col.storage_type of
                     Storage.Text -> col.is_empty
-                    _ -> col.is_missing || (col == "")
+                    _ -> col.is_missing || ((col == "").fill_missing False)
                 join = if when_any then (||) else (&&)
+                newcols = cols.map c->
+                    (is_missing_or_empty c).rename c.name
                 missing_mask = cols.map is_missing_or_empty . reduce join
                 non_missing_mask = missing_mask.not
+                non_missing_mask . rename "non_missing_mask" . join [missing_mask . rename "missing_mask"]+newcols . print
                 self.filter non_missing_mask
             False -> self
 
