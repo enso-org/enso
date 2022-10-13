@@ -457,7 +457,7 @@ final class TreeToIr {
         yield null;
       }
       case Tree.TypeSignature sig -> {
-        var typeName = buildName(sig.getVariable());
+        var typeName = translateExpression(sig.getVariable(), false);
 
         var fn = switch (sig.getType()) {
           case Tree.OprApp app when "->".equals(app.getOpr().getRight().codeRepr()) -> {
