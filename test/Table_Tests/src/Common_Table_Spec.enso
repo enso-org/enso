@@ -1240,12 +1240,30 @@ spec prefix table_builder test_selection pending=Nothing =
                 True -> v2.should_equal [2, 3]
                 False -> v2.should_fail_with SQL_Error_Data
 
-            t2 = table_builder [["ix", [1,2,3]],["A", [True, True, True]], ["B", [False, Nothing, True]]]
-            t2.filter "A" (Filter_Condition.Is_In [True, False]) on_problems=Report_Error . at "A" . to_vector . should_equal [True, True, True]
-            t2.filter "A" (Filter_Condition.Is_In [False]) on_problems=Report_Error . at "A" . to_vector . should_equal []
-            t2.filter "B" (Filter_Condition.Is_In [False]) on_problems=Report_Error . at "B" . to_vector . should_equal [False]
-            t2.filter "B" (Filter_Condition.Is_In []) on_problems=Report_Error . at "B" . to_vector . should_equal []
-            t2.filter "B" (Filter_Condition.Is_In [True, False, Nothing]) on_problems=Report_Error . at "B" . to_vector . should_equal [False, Nothing, True]
+            # We tests these very carefully as our implementation relies on some short-circuit logic that is not as trivial as the hashmap checks which are done for other builtin types.
+            [True, False].each has_nulls->
+                [True, False].each has_true->
+                    [True, False].each has_false->
+                        vec_builder = Vector.new_builder
+                        if has_nulls then vec_builder.append Nothing
+                        if has_true then vec_builder.append True
+                        if has_false then vec_builder.append False
+                        in_vector = vec_builder.to_vector
+
+                        vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]
+                        vectors.each column_vector->
+                            not x = case x of
+                                True -> False
+                                False -> True
+                                Nothing -> Nothing
+                            negated_column_vector = column_vector.map not
+                            t = table_builder [["X", column_vector]]
+
+                            expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
+                            expected_neg_vector = negated_column_vector.filter (Filter_Condition.Is_In in_vector)
+
+                            t.filter "X" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
+                            t.filter (t.at "X" . not) (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . not . to_vector . should_equal expected_neg_vector
 
         Test.specify "by a boolean mask" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]

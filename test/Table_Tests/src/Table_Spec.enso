@@ -960,6 +960,7 @@ spec =
             varied_type_table.filter "just_nulls" (Filter_Condition.Is_In []) . at "just_nulls" . to_vector . should_equal []
             varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [Nothing, Nothing, 0]) . at "just_nulls" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
             varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [0]) . at "just_nulls" . to_vector . should_equal []
+            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In [2, My.Data 2 1, Nothing]) . at "custom_objects" . to_vector . should_equal [My.Data 1 2, Nothing, Nothing]
 
             t = Table.new [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
             t.filter "A" (Filter_Condition.Is_In [True, Nothing]) . at "A" . to_vector . should_equal [True, True]

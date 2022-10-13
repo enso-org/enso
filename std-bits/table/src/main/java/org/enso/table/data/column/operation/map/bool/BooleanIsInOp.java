@@ -2,6 +2,8 @@ package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
+
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -41,21 +43,44 @@ public class BooleanIsInOp extends MapOperation<BoolStorage> {
       }
     }
 
-    BitSet newVals = new BitSet();
-    BitSet newMissing = new BitSet();
-    for (int i = 0; i < storage.size(); i++) {
-      if (storage.isNa(i)) {
-        if (hadNull) {
-          newVals.set(i);
+    BitSet newVals;
+    boolean negated = false;
+
+    if (hadNull && hadTrue && hadFalse) {
+      // We use empty newVals which has everything set to false and negate it to make all of that set to true with zero cost.
+      newVals = new BitSet();
+      negated = true;
+    } else if (!hadNull && !hadTrue && !hadFalse) {
+      // No values are present, so the result is to be false everywhere.
+      newVals = new BitSet();
+    }
+    else if (hadNull && !hadTrue && !hadFalse) {
+      // Only missing values are in the set, so we just return the missing indicator.
+      newVals = storage.getIsMissing();
+    } else if (hadTrue && hadFalse) { // && !hadNull
+      // All non-missing values are in the set - so we just return the negated missing indicator.
+      newVals = storage.getIsMissing();
+      negated = true;
+    } else {
+      // hadTrue != hadFalse
+      newVals = storage.getValues().get(0, storage.size());
+      if (hadTrue) {
+        if (storage.isNegated()) {
+          newVals.flip(0, storage.size());
         }
-      } else {
-        boolean val = storage.getItem(i);
-        if ((val && hadTrue) || (!val && hadFalse)) {
-          newVals.set(i);
+      } else { // hadFalse
+        if (!storage.isNegated()) {
+          newVals.flip(0, storage.size());
         }
       }
+      newVals.andNot(storage.getIsMissing());
+
+      if (hadNull) {
+        newVals.or(storage.getIsMissing());
+      }
     }
-    return new BoolStorage(newVals, newMissing, storage.size(), false);
+
+    return new BoolStorage(newVals, new BitSet(), storage.size(), negated);
   }
 
   @Override
