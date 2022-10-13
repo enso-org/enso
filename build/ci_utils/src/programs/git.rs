@@ -50,6 +50,12 @@ impl Git {
         self.cmd()?.args(["rev-parse", "--verify", "HEAD"]).output_ok().await?.single_line_stdout()
     }
 
+    /// Fetch a branch from a remote repository.
+    #[context("Failed to fetch branch {} from remote {}.", branch, remote)]
+    pub async fn fetch_branch(&self, remote: &str, branch: &str) -> Result {
+        self.cmd()?.args(["fetch", remote, branch]).run_ok().await
+    }
+
     /// List of files that are different than the compared commit.
     #[context("Failed to list files that are different than {}.", compare_against.as_ref())]
     pub async fn diff_against(&self, compare_against: impl AsRef<str>) -> Result<Vec<PathBuf>> {
