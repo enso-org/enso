@@ -374,8 +374,29 @@ type Column
     / : Column | Any -> Column
     / self other = run_vectorized_binary_op self '/' (/) other
 
-    ## PRIVATE
-       Element-wise modulus.
+    ## Element-wise modulus.
+
+       Arguments:
+       - other: The value to modulo `self` against. If `other` is a column, the
+         modulus is performed pairwise between corresponding elements of `self`
+         and `other`.
+
+       Returns a column with results of modulus this column's elements against
+       `other`.
+
+       > Example
+         Modulus of two columns against each other.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % Examples.decimal_column
+
+       > Example
+         Modulus of a column with a number.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % 3
     % : Column | Any -> Column
     % self other = run_vectorized_binary_op self '%' (%) other
 
