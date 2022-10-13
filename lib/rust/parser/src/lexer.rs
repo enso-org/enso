@@ -925,10 +925,10 @@ impl<'s> Lexer<'s> {
                 text_start = self.mark();
                 continue;
             }
-            if char == '\\' {
+            if interpolate && char == '\\' {
                 let backslash_start = self.mark();
                 self.take_next();
-                if let Some(char) = self.current_char && (interpolate || closing_char == Some(char)) {
+                if let Some(char) = self.current_char {
                     let token = self.make_token(
                         text_start,
                         backslash_start.clone(),
