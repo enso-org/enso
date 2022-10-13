@@ -11,7 +11,7 @@ use ide_ci::programs::docker;
 pub mod runtime;
 
 
-
+/// Lookup the repository by name.
 #[instrument(skip(client))]
 pub async fn resolve_repository(
     client: &aws_sdk_ecr::Client,
@@ -23,7 +23,7 @@ pub async fn resolve_repository(
         .repositories
         .context("Missing repositories information.")?
         .pop()
-        .context(format!("Cannot find repository {repository_name} in the registry."))
+        .with_context(|| format!("Cannot find repository {repository_name} in the registry."))
 }
 
 #[instrument(skip(client))]

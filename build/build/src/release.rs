@@ -73,9 +73,10 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     Ok(())
 }
 
+/// Download the Enso Engine distribution from the GitHub release.
 pub async fn get_engine_package(
     octocrab: &Octocrab,
-    repo: impl IsRepo + Send + Sync + 'static,
+    repo: &(impl IsRepo + Send + Sync + 'static),
     output: impl AsRef<Path>,
     triple: &TargetTriple,
 ) -> Result<generated::EnginePackage> {
@@ -100,40 +101,23 @@ pub async fn get_engine_package(
     Ok(engine_package)
 }
 
+/// Download the Enso Engine distribution from the GitHub release and build RUntime Docker image
+/// from it.
 pub async fn generate_runtime_image(
     context: &BuildContext,
     tag: impl Into<String>,
 ) -> Result<ide_ci::programs::docker::ImageId> {
     let octocrab = &context.octocrab;
-    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-
+    // Our runtime images always target Linux.
     let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
-    let package_name =
-        generated::RepoRootBuiltDistribution::new_root(".", linux_triple.to_string())
-            .enso_engine_triple
-            .file_name()
-            .context("Failed to get Engine Package name.")?
-            .as_str()
-            .to_string();
-
-    let release = context.remote_repo.find_release_by_id(octocrab, release_id).await?;
-    let asset = github::find_asset_by_text(&release, &package_name)?;
-
-
-    let temp_for_archive = tempdir()?;
-    let downloaded_asset = context
-        .remote_repo
-        .download_asset_to(octocrab, asset, temp_for_archive.path().to_owned())
-        .await?;
-
     let temp_for_extraction = tempdir()?;
-    ide_ci::archive::extract_to(&downloaded_asset, &temp_for_extraction).await?;
-
-    let engine_package = generated::EnginePackage::new_under(
-        &temp_for_extraction,
-        context.triple.versions.version.to_string(),
-    );
-
+    let engine_package = get_engine_package(
+        octocrab,
+        &context.remote_repo,
+        temp_for_extraction.path(),
+        &linux_triple,
+    )
+    .await?;
     crate::aws::ecr::runtime::build_runtime_image(
         context.repo_root.tools.ci.docker.clone(),
         engine_package,
@@ -143,48 +127,12 @@ pub async fn generate_runtime_image(
 }
 
 pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result {
-    let octocrab = &context.octocrab;
-    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-
-    let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
-    let package_name =
-        generated::RepoRootBuiltDistribution::new_root(".", linux_triple.to_string())
-            .enso_engine_triple
-            .file_name()
-            .context("Failed to get Engine Package name.")?
-            .as_str()
-            .to_string();
-
-    let release = context.remote_repo.find_release_by_id(octocrab, release_id).await?;
-    let asset = github::find_asset_by_text(&release, &package_name)?;
-
-
-    let temp_for_archive = tempdir()?;
-    let downloaded_asset = context
-        .remote_repo
-        .download_asset_to(octocrab, asset, temp_for_archive.path().to_owned())
-        .await?;
-
-    let temp_for_extraction = tempdir()?;
-    ide_ci::archive::extract_to(&downloaded_asset, &temp_for_extraction).await?;
-
-    let engine_package = generated::EnginePackage::new_under(
-        &temp_for_extraction,
-        context.triple.versions.version.to_string(),
-    );
-
-
     let config = &aws_config::load_from_env().await;
     let client = aws_sdk_ecr::Client::new(config);
     let repository_uri = crate::aws::ecr::get_repository_uri(&client, &repository).await?;
     let tag = format!("{}:{}", repository_uri, context.triple.versions.version);
-    let _image = crate::aws::ecr::runtime::build_runtime_image(
-        context.repo_root.tools.ci.docker.clone(),
-        engine_package,
-        tag.clone(),
-    )
-    .await?;
-
+    // We don't care about the image ID, we will refer to it by the tag.
+    let _image_id = generate_runtime_image(context, &repository).await?;
     let credentials = crate::aws::ecr::get_credentials(&client).await?;
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
     Ok(())
