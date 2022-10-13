@@ -371,6 +371,9 @@ impl Component {
         }
         let content = provider.create_grid_content_info();
         grid.reset(content);
+        if provider.displaying_module() {
+            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope)
+        }
         Self { _network: network }
     }
 }

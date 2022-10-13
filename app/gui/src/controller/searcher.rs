@@ -528,6 +528,11 @@ impl ComponentsProvider {
         }
     }
 
+    /// Returns true if providing a content of some module currently.
+    pub fn displaying_module(&self) -> bool {
+        self.breadcrumbs.selected().is_some()
+    }
+
     fn components(&self) -> &component::List {
         &self.list
     }

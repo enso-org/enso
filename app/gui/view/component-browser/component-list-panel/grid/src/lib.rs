@@ -143,6 +143,7 @@ ensogl_core::define_endpoints_2! {
         model_for_header(GroupId, HeaderModel),
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
+        switch_section_no_animation(SectionId),
         accept_suggestion(),
         jump_group_up(),
         jump_group_down(),
@@ -690,11 +691,17 @@ impl component::Frp<Model> for Frp {
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
-            grid_extra_scroll_frp.select_and_jump_to_entry <+
-                input.reset.filter_map(f_!(model.entry_to_select_after_reset()));
+            select_after_reset <- input.reset.map(f_!(model.entry_to_select_after_reset()));
+            grid_extra_scroll_frp.select_and_jump_to_entry <+ select_after_reset.filter_map(|e| *e);
+            grid.select_entry <+ select_after_reset.filter(|e| e.is_none()).constant(None);
+            grid_selection_frp.skip_animations <+ input.reset.constant(());
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
                 f!((section) model.entry_to_select_when_switching_to_section(*section))
             );
+            grid_extra_scroll_frp.select_and_jump_to_entry <+
+                input.switch_section_no_animation.filter_map(
+                    f!((section) model.entry_to_select_when_switching_to_section(*section))
+                );
             // The content area is higher than just height of all entries, because there is a gap
             // between all groups and local scope section.
             grid_scroll_frp.set_content_height <+

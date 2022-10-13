@@ -54,6 +54,7 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         entry_highlighted(Option<(Row, Col)>),
         setup_masked_layer(Option<WeakLayer>),
         set_entries_params(EntryParams),
+        skip_animations(),
     }
     Output {
         entries_params(EntryParams),
@@ -109,6 +110,10 @@ impl Animations {
             corners_radius.skip <+ frp.color.gate(&not_visible).constant(());
             position_jump.skip <+ frp.position.gate(&not_visible).constant(());
             color.skip <+ frp.color.gate(&not_visible).constant(());
+            size.skip <+ frp.private.input.skip_animations;
+            corners_radius.skip <+ frp.private.input.skip_animations;
+            color.skip <+ frp.private.input.skip_animations;
+            top_clip_jump.skip <+ frp.private.input.skip_animations;
         }
         init.emit(());
         Self { position_jump, position, size, corners_radius, color, top_clip_jump, top_clip }
@@ -450,7 +455,6 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
         let grid_frp = grid.frp();
         let headers_frp = grid.header_frp();
         frp::extend! {network
-
 
             // === Updating `connected_entry` Field ===
 
