@@ -466,7 +466,7 @@ final class TreeToIr {
       }
 
       case Tree.OperatorFunction fun -> {
-        var name = buildName(fun.getName());
+        var name = buildName(getIdentifiedLocation(fun.getName()), fun.getName(), true);
         yield translateFunction(fun, name, fun.getArgs(), fun.getBody());
       }
       case Tree.Function fun -> {
@@ -1844,16 +1844,7 @@ final class TreeToIr {
 
   private IR$Name$Literal buildName(Option<IdentifiedLocation> loc, Token id, boolean isMethod) {
     final String name = id.codeRepr();
-    // AST.Opr.any.unapply(ident).isDefined
-    NOT_OPERATOR: if (!isMethod) {
-      for (int i = 0; i < name.length(); i++) {
-        if (Character.isJavaIdentifierPart(name.charAt(i))) {
-          break NOT_OPERATOR;
-        }
-      }
-      isMethod = true;
-    }
-    return new IR$Name$Literal(name, isMethod,loc, meta(), diag());
+    return new IR$Name$Literal(name, isMethod, loc, meta(), diag());
   }
 
   private IR.Name sanitizeName(IR$Name$Literal id) {
