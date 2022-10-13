@@ -763,7 +763,7 @@ type Table
             'Invalid_Value_Type'.
 
        > Example
-         Replace with underscores in a column named "variable_names".
+         Replace dashes with underscores in a column named "variable_names".
 
              table.replace_text "variable_names" "-" "_" 
 
