@@ -82,8 +82,6 @@ public class SpecializedIsInOp<T extends Storage> extends MapOperation<T> {
   public Storage runMap(T storage, List<?> arg) {
     CompactRepresentation compactRepresentation = prepareList.apply(arg);
     BitSet newVals = new BitSet();
-    // TODO handling missing
-    BitSet newMissing = new BitSet();
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i) && compactRepresentation.hasNulls) {
         newVals.set(i);
@@ -91,7 +89,7 @@ public class SpecializedIsInOp<T extends Storage> extends MapOperation<T> {
         newVals.set(i);
       }
     }
-    return new BoolStorage(newVals, newMissing, storage.size(), false);
+    return new BoolStorage(newVals, new BitSet(), storage.size(), false);
   }
 
   @Override
