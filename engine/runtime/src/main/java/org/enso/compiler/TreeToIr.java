@@ -412,6 +412,7 @@ final class TreeToIr {
           case Tree.Ident ident -> {
             yield buildName(ident);
           }
+          case Tree.App app -> translateTypeApplication(app);
           default -> throw new UnhandledEntity(sig.getType(), "translateTypeBodyExpression");
         };
         yield new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
@@ -469,6 +470,31 @@ final class TreeToIr {
       default ->
         new IR$Error$Syntax(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
     };
+  }
+
+  @SuppressWarnings("unchecked")
+  private IR$Application$Prefix translateTypeApplication(Tree.App app) {
+      List<IR.CallArgument> args = nil();
+      Tree t = app;
+      while (t instanceof Tree.App tApp) {
+          args = cons(translateCallArgument(tApp.getArg(), true), args);
+          t = tApp.getFunc();
+      }
+      var fullQualifiedNames = buildNames(t, '.', true).reverse();
+      var type = switch (fullQualifiedNames.length()) {
+          case 1 -> fullQualifiedNames.head();
+          default -> {
+              var name = fullQualifiedNames.head();
+              name = new IR$Name$Literal(name.name(), true, name.location(), name.passData(), name.diagnostics());
+              var tail = ((List)fullQualifiedNames.tail()).reverse();
+              final Option<IdentifiedLocation> loc = getIdentifiedLocation(app);
+              var q = new IR$Name$Qualified(tail, loc, meta(), diag());
+              var ca = new IR$CallArgument$Specified(Option.empty(), q, loc, meta(), diag());
+              args = cons(ca, args);
+              yield name;
+          }
+      };
+      return new IR$Application$Prefix(type, args, false, getIdentifiedLocation(app), meta(), diag());
   }
 
   private IR.Expression translateFunction(Tree fun, IR.Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
