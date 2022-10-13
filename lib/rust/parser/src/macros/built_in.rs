@@ -12,20 +12,30 @@ use crate::syntax::operator;
 // =======================
 
 /// All built-in macro definitions.
-pub fn all() -> resolver::SegmentMap<'static> {
+pub fn all() -> resolver::MacroMap {
+    resolver::MacroMap { expression: expression(), statement: statement() }
+}
+
+/// Built-in macro definitions that match anywhere in an expression.
+fn expression() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
     macro_map.register(if_then());
     macro_map.register(if_then_else());
-    register_import_macros(&mut macro_map);
-    register_export_macros(&mut macro_map);
     macro_map.register(group());
-    macro_map.register(type_def());
     macro_map.register(lambda());
     macro_map.register(case());
     macro_map.register(array());
     macro_map.register(tuple());
     macro_map.register(splice());
+    macro_map
+}
 
+/// Built-in macro definitions that match only from the first token in a line.
+fn statement() -> resolver::SegmentMap<'static> {
+    let mut macro_map = resolver::SegmentMap::default();
+    register_import_macros(&mut macro_map);
+    register_export_macros(&mut macro_map);
+    macro_map.register(type_def());
     macro_map
 }
 

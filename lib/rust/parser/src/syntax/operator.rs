@@ -147,8 +147,24 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, mut operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type.replace(ItemType::Ast) == Some(ItemType::Ast) {
-            operand =
-                self.output.pop().unwrap().map(|lhs| syntax::tree::apply(lhs, operand.into()));
+            if let syntax::tree::Variant::OprApp(
+                    syntax::tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: None })
+                = &*self.output.last().unwrap().value.variant
+                    && opr.properties.associativity() == token::Associativity::Right
+                    && opr.left_offset.is_empty() {
+                let syntax::Tree { span, variant: box syntax::tree::Variant::OprApp(
+                        syntax::tree::OprApp { lhs: Some(mut lhs), opr: Ok(operator), rhs: None }) }
+                    = self.output.pop().unwrap().value
+                else { unreachable!() };
+                lhs.span.left_offset += span.left_offset;
+                let precedence = operator.properties.binary_infix_precedence().unwrap();
+                let associativity = operator.properties.associativity();
+                let opr = Arity::Unary(Unary::LeftCurriedBinary { lhs, operator });
+                self.operator_stack.push(Operator { precedence, associativity, opr });
+            } else {
+                operand =
+                    self.output.pop().unwrap().map(|lhs| syntax::tree::apply(lhs, operand.into()));
+            }
         }
         self.output.push(operand);
     }
@@ -167,7 +183,7 @@ impl<'s> ExpressionBuilder<'s> {
                 self.binary_operator(prec, assoc, opr),
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
             // it's acting as unary.
-            (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::Unary(opr)),
+            (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::unary(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
             (false, None, Some(_)) =>
                 self.operand(syntax::tree::apply_unary_operator(opr, None).into()),
@@ -194,9 +210,7 @@ impl<'s> ExpressionBuilder<'s> {
                     Arity::Binary { tokens, .. } => tokens.into_iter().next().unwrap(),
                     _ => unreachable!(),
                 };
-                let tp = token::Variant::ident(false, 0, false, false);
-                let prev = Token(prev.left_offset, prev.code, tp);
-                self.output.push(Operand::from(syntax::Tree::from(prev)));
+                self.output.push(Operand::from(syntax::Tree::opr_app(None, Ok(prev), None)));
             } else {
                 tokens.push(opr);
                 return;
@@ -238,8 +252,14 @@ impl<'s> ExpressionBuilder<'s> {
         }) {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
-                Arity::Unary(opr) =>
+                Arity::Unary(Unary::Simple(opr)) =>
                     Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
+                Arity::Unary(Unary::LeftCurriedBinary { lhs, operator }) => {
+                    let lhs = lhs.into();
+                    let opr = vec![operator];
+                    let rhs = rhs_.unwrap().value.into();
+                    syntax::tree::apply_operator(lhs, opr, rhs, self.nospace).into()
+                }
                 Arity::Binary { tokens, lhs_section_termination } => {
                     let lhs = self.output.pop();
                     if let Some(lhs_termination) = lhs_section_termination {
@@ -286,7 +306,8 @@ impl<'s> ExpressionBuilder<'s> {
     pub fn extend_from(&mut self, child: &mut Self) {
         if child.output.is_empty() && let Some(op) = child.operator_stack.pop() {
             match op.opr {
-                Arity::Unary(un) => self.operator(un),
+                Arity::Unary(Unary::Simple(un)) => self.operator(un),
+                Arity::Unary(Unary::LeftCurriedBinary{ .. }) => unreachable!(),
                 Arity::Binary { tokens, .. } => tokens.into_iter().for_each(|op| self.operator(op)),
             };
             child.prev_type = None;
@@ -317,7 +338,7 @@ struct Operator<'s> {
 /// Classifies the role of an operator.
 #[derive(Debug)]
 enum Arity<'s> {
-    Unary(token::Operator<'s>),
+    Unary(Unary<'s>),
     Binary {
         tokens:                  Vec<token::Operator<'s>>,
         lhs_section_termination: Option<SectionTermination>,
@@ -330,6 +351,16 @@ impl<'s> Arity<'s> {
         let tokens = vec![tok];
         Self::Binary { tokens, lhs_section_termination }
     }
+
+    fn unary(tok: token::Operator<'s>) -> Self {
+        Self::Unary(Unary::Simple(tok))
+    }
+}
+
+#[derive(Debug)]
+enum Unary<'s> {
+    Simple(token::Operator<'s>),
+    LeftCurriedBinary { lhs: syntax::Tree<'s>, operator: token::Operator<'s> },
 }
 
 
@@ -339,7 +370,9 @@ impl<'s> Arity<'s> {
 #[derive(Default, Debug)]
 struct Operand<T> {
     value:     T,
+    /// Number of elided operands in the subtree, potentially forming an *operator section*.
     elided:    u32,
+    /// Number of wildcards in the subtree, potentially forming a *template function*.
     wildcards: u32,
 }
 

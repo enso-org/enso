@@ -227,6 +227,18 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        /// An operator definition, like `== self rhs = True`.
+        OperatorFunction {
+            /// The operator being defined.
+            pub name: token::Operator<'s>,
+            /// The argument patterns.
+            pub args: Vec<ArgumentDefinition<'s>>,
+            /// The `=` token.
+            pub equals: token::Operator<'s>,
+            /// The body, which will typically be an inline expression or a `BodyBlock` expression.
+            /// It is an error for this to be empty.
+            pub body: Option<Tree<'s>>,
+        },
         /// An import statement.
         Import {
             pub polyglot: Option<MultiSegmentAppSegment<'s>>,
@@ -259,6 +271,16 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The `:` token.
             pub operator: token::Operator<'s>,
             /// The variable's type.
+            #[reflect(rename = "type")]
+            pub type_:    Tree<'s>,
+        },
+        /// Statement declaring the type of an operator.
+        OperatorTypeSignature {
+            /// Operator whose type is being declared.
+            pub operator: token::Operator<'s>,
+            /// The `:` token.
+            pub colon:    token::Operator<'s>,
+            /// The method's type.
             #[reflect(rename = "type")]
             pub type_:    Tree<'s>,
         },
@@ -713,32 +735,32 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// For most input types, this simply constructs an `App`; however, for some operand types
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
-    match &mut *func.variant {
-        Variant::TextLiteral(lhs) if lhs.close.is_none()
-                && let Tree { variant: box Variant::TextLiteral(rhs), span } = arg => {
-            join_text_literals(lhs, rhs, span);
-            return func;
+    match (&mut *func.variant, &mut *arg.variant) {
+        (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if lhs.close.is_none() => {
+            join_text_literals(lhs, rhs.clone(), mem::take(&mut arg.span));
+            func
         }
-        Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None })
-            if let box
-            Variant::Number(Number { base: None, integer, fractional_digits }) = &mut arg.variant
-        => {
+        (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
+                Variant::Number(Number { base: None, integer, fractional_digits })) => {
             func_.integer = mem::take(integer);
             func_.fractional_digits = mem::take(fractional_digits);
-            return func;
+            func
         }
-        Variant::Annotated(func_ @ Annotated { expression: None, .. }) => {
+        (Variant::Annotated(func_ @ Annotated { expression: None, .. }), _) => {
             func_.expression = arg.into();
-            return func;
+            func
         }
-        Variant::Annotated(Annotated { expression: Some(expression), .. }) => {
+        (Variant::Annotated(Annotated { expression: Some(expression), .. }), _) => {
             *expression = apply(mem::take(expression), arg);
-            return func;
+            func
         }
-        _ => (),
-    }
-    match &mut *arg.variant {
-        Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
+        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs }),
+                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }))
+        if rhs.is_none() => {
+            *rhs = block::body_from_lines(mem::take(arguments)).into();
+            func
+        }
+        (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
             let func_left_offset = mem::take(&mut func.span.left_offset);
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.arguments.first_mut() {
@@ -747,7 +769,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             block.lhs = Some(func);
             arg
         }
-        Variant::OperatorBlockApplication(block) if block.lhs.is_none() => {
+        (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
             let func_left_offset = mem::take(&mut func.span.left_offset);
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.expressions.first_mut() {
@@ -756,22 +778,23 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             block.lhs = Some(func);
             arg
         }
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-                if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+        (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
+        if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut lhs = lhs.token.clone();
             lhs.left_offset += arg.span.left_offset.clone();
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
-        Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }) if let box
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &body.variant
-                && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+        (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
+        if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+            = &body.variant
+        && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
             let mut open = open.clone();
             open.left_offset += arg.span.left_offset.clone();
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
-        Variant::Ident(Ident { token }) if token.is_default => {
+        (_, Variant::Ident(Ident { token })) if token.is_default => {
             let mut token = token.clone();
             token.left_offset += arg.span.left_offset.clone();
             Tree::default_app(func, token)
@@ -968,6 +991,8 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Lambda(_)
             | Variant::Array(_)
             | Variant::Annotated(_)
+            | Variant::OperatorFunction(_)
+            | Variant::OperatorTypeSignature(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
