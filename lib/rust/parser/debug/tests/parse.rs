@@ -523,11 +523,15 @@ fn multiple_operator_error() {
 
 #[test]
 fn precedence() {
-    let code = ["x * y + z"];
-    let expected = block![
-        (OprApp (OprApp (Ident x) (Ok "*") (Ident y)) (Ok "+") (Ident z))
+    #[rustfmt::skip]
+    let cases = [
+        ("x * y + z", block![(OprApp (OprApp (Ident x) (Ok "*") (Ident y)) (Ok "+") (Ident z))]),
+        ("x + y * z", block![(OprApp (Ident x) (Ok "+") (OprApp (Ident y) (Ok "*") (Ident z)))]),
+        ("w + x + y * z", block![
+            (OprApp (OprApp (Ident w) (Ok "+") (Ident x)) (Ok "+")
+                    (OprApp (Ident y) (Ok "*") (Ident z)))]),
     ];
-    test(&code.join("\n"), expected);
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
@@ -535,6 +539,15 @@ fn right_associative_operators() {
     let code = ["x --> y ---> z"];
     let expected = block![
         (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z)))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn left_associative_operators() {
+    let code = ["x + y + z"];
+    let expected = block![
+        (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z))
     ];
     test(&code.join("\n"), expected);
 }
@@ -963,6 +976,8 @@ fn old_lambdas() {
         ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
         ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
         ("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+        ("f x->\n y", block![
+            (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
