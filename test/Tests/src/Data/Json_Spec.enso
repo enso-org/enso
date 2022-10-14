@@ -13,7 +13,7 @@ Text.should_fail_parsing_with self expected =
         _ -> Test_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
         Json.Parse_Error_Data msg ->
-            if msg.contains expected then Test.Success else
+            if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
                 Test_Result.Failure fail_msg
         _ ->

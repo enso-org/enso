@@ -148,7 +148,7 @@ Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Any.should_start_with : Text -> Integer -> Test_Result
 Any.should_start_with self that frames_to_skip=0 = case self of
-    Text -> if self.starts_with that then Test_Result.Success else
+    _ : Text -> if self.starts_with that then Test_Result.Success else
         loc = Meta.get_source_location 3+frames_to_skip
         msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
         fail msg
@@ -172,7 +172,7 @@ Any.should_start_with self that frames_to_skip=0 = case self of
          example_should_start_with = "Hello World!" . should_contain "World"
 Any.should_contain : Text -> Integer -> Test_Result
 Any.should_contain self that frames_to_skip=0 = case self of
-    Text -> if self.contains that then Test_Result.Success else
+    _ : Text -> if self.contains that then Test_Result.Success else
         loc = Meta.get_source_location 3+frames_to_skip
         msg = self.to_text + " does not contain " + that.to_text + " (at " + loc + ")."
         fail msg
