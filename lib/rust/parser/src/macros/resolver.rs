@@ -36,6 +36,36 @@ use std::collections::VecDeque;
 
 
 
+// ================
+// === MacroMap ===
+// ================
+
+/// Represents the sets of macros defined in different contexts.
+#[derive(Default, Debug)]
+pub struct MacroMap {
+    /// Macros that can occur anywhere in an expression.
+    pub expression: SegmentMap<'static>,
+    /// Macros that can only occur in statement context.
+    pub statement:  SegmentMap<'static>,
+}
+
+impl MacroMap {
+    /// Return the macro matching the given token in the given context, if any.
+    fn get(&self, key: &str, context: Context) -> Option<&NonEmptyVec<SegmentEntry<'static>>> {
+        let statement_result = || self.statement.get(key);
+        let expression_result = || self.expression.get(key);
+        (context == Context::Statement).then(statement_result).flatten().or_else(expression_result)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Context {
+    Expression,
+    Statement,
+}
+
+
+
 // ==================
 // === SegmentMap ===
 // ==================
@@ -267,7 +297,7 @@ impl<'s> Resolver<'s> {
     /// Run the resolver. Returns the resolved AST.
     pub fn run(
         mut self,
-        root_macro_map: &SegmentMap<'s>,
+        root_macro_map: &MacroMap,
         tokens: Vec<syntax::Item<'s>>,
     ) -> syntax::Tree<'s> {
         let mut tokens = tokens.into_iter();
@@ -319,9 +349,13 @@ impl<'s> Resolver<'s> {
                 self.line_contains_items = false;
                 continue;
             }
-            self.line_contains_items = true;
+            let line_contained_items = mem::replace(&mut self.line_contains_items, true);
+            let context = match line_contained_items {
+                true => Context::Expression,
+                false => Context::Statement,
+            };
             let step_result = match token {
-                syntax::Item::Token(token) => self.process_token(root_macro_map, token),
+                syntax::Item::Token(token) => self.process_token(root_macro_map, token, context),
                 syntax::Item::Block(tokens_) => {
                     let parent_tokens = mem::replace(&mut tokens, tokens_.into_iter());
                     let new_root = PartiallyMatchedMacro::new_root();
@@ -419,7 +453,12 @@ impl<'s> Resolver<'s> {
         tree
     }
 
-    fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
+    fn process_token(
+        &mut self,
+        root_macro_map: &MacroMap,
+        token: Token<'s>,
+        context: Context,
+    ) -> Step<'s> {
         let repr = &**token.code;
         if !token.variant.can_start_macro_segment() {
             return Step::NormalToken(token.into());
@@ -437,7 +476,7 @@ impl<'s> Resolver<'s> {
             trace!("Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
-        } else if let Some(segments) = root_macro_map.get(repr) {
+        } else if let Some(segments) = root_macro_map.get(repr, context) {
             trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let mut current_macro = PartiallyMatchedMacro {

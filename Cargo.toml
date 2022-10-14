@@ -12,6 +12,7 @@ members = [
   "lib/rust/parser/src/syntax/tree/visitor",
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",
+  "lib/rust/parser/debug",
   "lib/rust/profiler/data",
   "lib/rust/profiler/demo-data",
   "integration-test",
