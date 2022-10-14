@@ -633,6 +633,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testOperatorSectionRight() throws Exception {
+    parseTest("""
+    type Filter_Condition
+        to_predicate self = case self of
+            Less value -> <value
+    """);
+  }
+
+  @Test
   public void testAutoScope() throws Exception {
     parseTest("""
     fn that_meta =

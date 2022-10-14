@@ -3,6 +3,7 @@ package org.enso.compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
+import org.enso.compiler.core.IR$Application$Operator$Section$Right;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Case$Branch;
@@ -703,17 +704,20 @@ final class TreeToIr {
           default -> {
             var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
             var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);
-            yield new IR$Application$Operator$Binary(
-              lhs,
-              new IR$Name$Literal(
-                op.codeRepr(), true,
-                getIdentifiedLocation(app),
-                meta(), diag()
-              ),
-              rhs,
+            var name = new IR$Name$Literal(
+              op.codeRepr(), true,
               getIdentifiedLocation(app),
               meta(), diag()
             );
+            var loc = getIdentifiedLocation(app);
+            yield lhs != null ? new IR$Application$Operator$Binary(
+              lhs,name,rhs,
+              loc,meta(), diag()
+            ) : new IR$Application$Operator$Section$Right(
+              name, rhs,
+              loc, meta(), diag()
+            );
+
           }
         };
       }
