@@ -1,3 +1,4 @@
+//! A lexical token is a string with an assigned and thus identified meaning. Each token remembers
 //! its source code and can be printed back. It also contains information about the offset to the
 //! previous token if any.
 //!
@@ -262,14 +263,14 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         },
         AutoScope,
         Ident {
-            pub is_free:    bool,
-            pub lift_level: usize,
+            pub is_free:     bool,
+            pub lift_level:  usize,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_type:    bool,
+            pub is_type:     bool,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_default: bool,
+            pub is_default:  bool,
         },
         Operator {
             #[serde(skip)]
@@ -330,8 +331,8 @@ pub struct OperatorProperties {
     // Special properties
     is_compile_time_operation: bool,
     is_right_associative:      bool,
-    can_be_decimal_operator:   bool,
     // Unique operators
+    can_be_decimal_operator:   bool,
     is_type_annotation:        bool,
     is_assignment:             bool,
     is_arrow:                  bool,

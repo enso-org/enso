@@ -164,10 +164,10 @@ fn type_operator_methods() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Foo #() #()
-         #((TypeSignature (Ident #"+") ":"
+         #((OperatorTypeSignature "+" ":"
             (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-            (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ()))
-                      "=" (Ident b))))];
+            (OperatorFunction "+" #((() (Ident self) () ()) (() (Ident b) () ()))
+                              "=" (Ident b))))];
     test(&code.join("\n"), expected);
 }
 
@@ -368,7 +368,6 @@ fn code_block_operator() {
 }
 
 #[test]
-//#[ignore] // WIP
 fn dot_operator_blocks() {
     let code = ["rect1", "    . width = 7", "    . center", "        + x"];
     #[rustfmt::skip]
@@ -798,9 +797,10 @@ fn inline_text_literals() {
             (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a"))))]),
         (r#"'Other quote type'"#, block![(TextLiteral #((Section "Other quote type")))]),
         (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")))]),
-        (r#""String with \" escape""#, block![
+        (r#""Non-escape: \""#, block![(TextLiteral #((Section "Non-escape: \\")))]),
+        (r#"'String with \' escape'"#, block![
             (TextLiteral
-             #((Section "String with ") (Escape '\"') (Section " escape")))]),
+             #((Section "String with ") (Escape '\'') (Section " escape")))]),
         (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
          (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
         (r#"('\n')"#, block![(Group (TextLiteral #((Escape '\n'))))]),
@@ -904,7 +904,13 @@ fn new_lambdas() {
 
 #[test]
 fn old_lambdas() {
-    let cases = [("v -> v", block![(OprApp (Ident v) (Ok "->") (Ident v))])];
+    let cases = [
+        ("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x->y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
+        ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+        ("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+    ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
