@@ -268,7 +268,7 @@ type Image
          Subtract a matrix from the image.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_minus =
                  image = Examples.image
@@ -370,7 +370,7 @@ type Image
          Divide an image by a matrix.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_div =
                  image = Examples.image

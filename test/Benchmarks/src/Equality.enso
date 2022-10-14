@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Time.Duration
 
-import Standard.Test.Bench
+from Standard.Test import Bench
 
 polyglot java import java.util.Random
 polyglot java import org.graalvm.collections.Pair as Graal_Pair
