@@ -209,6 +209,7 @@
 - [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
 - [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
   `Not_Like`.][3775]
+- [Implemented `Table.replace_text` for in-memory table.][3793]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -335,6 +336,7 @@
 [3750]: https://github.com/enso-org/enso/pull/3750
 [3770]: https://github.com/enso-org/enso/pull/3770
 [3775]: https://github.com/enso-org/enso/pull/3775
+[3793]: https://github.com/enso-org/enso/pull/3793
 
 #### Enso Compiler
 
