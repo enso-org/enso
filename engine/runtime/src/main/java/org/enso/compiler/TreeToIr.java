@@ -632,6 +632,19 @@ final class TreeToIr {
             } else {
               var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
               var lhs = translateExpression(app.getLhs(), insideTypeSignature);
+              if (moreArgs.isEmpty() && rhs instanceof IR$Application$Prefix first && lhs instanceof IR$Application$Prefix pref) {
+                IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), pref, loc, meta(), diag());
+                var args = cons(callArgument, first.arguments());
+                yield first.copy(
+                  first.copy$default$1(),
+                  args,
+                  first.copy$default$3(),
+                  first.copy$default$4(),
+                  first.copy$default$5(),
+                  first.copy$default$6(),
+                  first.copy$default$7()
+                );
+              }
               IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, loc, meta(), diag());
               var firstArg = cons(callArgument, nil());
               if (moreArgs.size() == 1 && moreArgs.head() instanceof Tree.AutoScope) {
@@ -727,7 +740,7 @@ final class TreeToIr {
         yield fn;
       }
       case Tree.NamedApp app -> {
-        var fn = translateExpression(app.getFunc(), cons(app, moreArgs), insideTypeSignature, false);
+        var fn = translateExpression(app.getFunc(), cons(app, moreArgs), insideTypeSignature, isMethod);
         yield fn;
       }
       case Tree.Array arr -> {

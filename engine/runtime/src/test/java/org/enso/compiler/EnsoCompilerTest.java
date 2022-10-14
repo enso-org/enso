@@ -657,8 +657,16 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testListBody() throws Exception {
+    parseTest("""
+          list directory name_filter=Nothing recursive=False =
+              new directory . list name_filter=name_filter recursive=recursive
+                  """);
+  }
+
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws IOException {
+  static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
