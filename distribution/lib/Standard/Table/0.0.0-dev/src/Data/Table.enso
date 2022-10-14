@@ -12,6 +12,8 @@ import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
+import project.Data.Storage.Storage
+import project.Data.Value_Type.Value_Type
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -21,10 +23,11 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.IO.Auto_Detect.Auto_Detect
 
+from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Delimited.Delimited_Format import Delimited
 from project.Internal.Filter_Condition_Helpers import make_filter_column
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -112,7 +115,7 @@ type Table
         display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
-                if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
+                if col.isNa row_num then "Nothing" else get_item_string col row_num
             [index.ilocString row_num] + cols
         table = print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
@@ -726,6 +729,87 @@ type Table
         result = Table.new new_columns
         on_problems.attach_problems_after result problem_builder.to_vector
 
+    ## Replaces the first, last, or all occurrences of `term` with
+       `new_text` in each text row of selected columns.
+       If `term` is empty, the function returns the table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - columns: Column selection criteria or a column name or index.
+       - term: The term to find.
+       - new_text: The new text to replace occurrences of `term` with.
+         If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
+         patterns (such as `$<n>`) for a marked group.
+       - mode: Specifies which occurences of term the engine tries to find. When the
+         mode is `First` or `Last`, this method replaces the first or last occurence
+         of term in each individual table cell. If set to `All`, it replaces all
+         occurences of term.
+       - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+         rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+         regular expression and matched using the associated options.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
+         - If a column in columns does not have a storage type of `Text`, or `Any`,
+           thus it is guaranteed that it can't contain any text values, a
+           `Invalid_Value_Type`.
+
+       > Example
+         Replace dashes with underscores in a column named "variable_names".
+
+             table.replace_text "variable_names" "-" "_" 
+
+       > Example
+         Remove leading and trailing spaces from cells in multiple columns.
+
+             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Regex_Matcher_Data
+
+       > Example
+         Replace texts in quotes with parentheses in column at index 1.
+
+             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Regex_Matcher_Data
+    replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
+    replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
+        problem_builder = Problem_Builder.new
+        
+        selector = case columns of
+            _ : Column_Selector -> columns
+            name : Text -> Column_Selector.By_Name [name]
+            index : Integer -> Column_Selector.By_Index [index]
+        selection = Table_Helpers.select_columns_helper self.columns selector reorder=False problem_builder
+        selected_names = Map.from_vector (selection.map column-> [column.name, True])
+
+        map_preserve_name column f = column.map f . rename column.name
+        do_replace = _.replace term new_text mode matcher
+        do_replace_only_text = case _ of
+                item : Text -> do_replace item
+                item -> item
+
+        transform column = case column.storage_type of
+            Storage.Text -> map_preserve_name column do_replace
+            Storage.Any -> map_preserve_name column do_replace_only_text
+            _ ->
+                problem = Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char column.value_type
+                problem_builder.report_other_warning problem
+                column
+
+        new_columns = self.columns.map column->
+            is_selected = selected_names.get_or_else column.name False
+            if is_selected then transform column else column 
+            
+        result = Table.new new_columns
+        problem_builder.attach_problems_after on_problems result
+      
     ## ALIAS Filter Rows
 
        Selects only the rows of this table that correspond to `True` values of
