@@ -553,19 +553,19 @@ impl ComponentsProvider {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger: Logger,
-    data: Rc<RefCell<Data>>,
-    breadcrumbs: Breadcrumbs,
-    notifier: notification::Publisher<Notification>,
-    graph: controller::ExecutedGraph,
-    mode: Immutable<Mode>,
-    database: Rc<model::SuggestionDatabase>,
-    language_server: Rc<language_server::Connection>,
-    ide: controller::Ide,
-    this_arg: Rc<Option<ThisNode>>,
+    logger:           Logger,
+    data:             Rc<RefCell<Data>>,
+    breadcrumbs:      Breadcrumbs,
+    notifier:         notification::Publisher<Notification>,
+    graph:            controller::ExecutedGraph,
+    mode:             Immutable<Mode>,
+    database:         Rc<model::SuggestionDatabase>,
+    language_server:  Rc<language_server::Connection>,
+    ide:              controller::Ide,
+    this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location<Byte>>,
-    project: model::Project,
-    node_edit_guard: Rc<Option<EditGuard>>,
+    project:          model::Project,
+    node_edit_guard:  Rc<Option<EditGuard>>,
 }
 
 impl Searcher {
@@ -1262,7 +1262,8 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
-        let mut builder = component_list_builder_with_favorites(&self.database, &module_name, &*favorites);
+        let mut builder =
+            component_list_builder_with_favorites(&self.database, &module_name, &*favorites);
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
