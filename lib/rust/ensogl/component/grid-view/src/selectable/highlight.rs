@@ -54,12 +54,13 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         entry_highlighted(Option<(Row, Col)>),
         setup_masked_layer(Option<WeakLayer>),
         set_entries_params(EntryParams),
+        skip_animations(),
     }
     Output {
         entries_params(EntryParams),
         position(Vector2),
         contour(entry::Contour),
-        color(color::Rgba),
+        color(color::Lcha),
         /// Used in [Grid Views with headers](header::GridView). The y position of line separating
         /// the header of scrolled down section from the rest of entries. If other entry than
         /// this header is selected, the highlight should be top-clipped at this position.
@@ -80,7 +81,7 @@ pub struct Animations {
     position:       frp::Stream<Vector2>,
     size:           Animation<Vector2>,
     corners_radius: Animation<f32>,
-    color:          Animation<color::Rgba>,
+    color:          color::Animation,
     top_clip_jump:  Animation<f32>,
     top_clip:       frp::Stream<f32>,
 }
@@ -92,7 +93,7 @@ impl Animations {
         let position_jump = Animation::<Vector2>::new(network);
         let size = Animation::<Vector2>::new(network);
         let corners_radius = Animation::<f32>::new(network);
-        let color = Animation::<color::Rgba>::new(network);
+        let color = color::Animation::new(network);
         let top_clip_jump = Animation::<f32>::new(network);
 
         frp::extend! { network
@@ -109,6 +110,10 @@ impl Animations {
             corners_radius.skip <+ frp.color.gate(&not_visible).constant(());
             position_jump.skip <+ frp.position.gate(&not_visible).constant(());
             color.skip <+ frp.color.gate(&not_visible).constant(());
+            size.skip <+ frp.private.input.skip_animations;
+            corners_radius.skip <+ frp.private.input.skip_animations;
+            color.skip <+ frp.private.input.skip_animations;
+            top_clip_jump.skip <+ frp.private.input.skip_animations;
         }
         init.emit(());
         Self { position_jump, position, size, corners_radius, color, top_clip_jump, top_clip }
@@ -168,7 +173,7 @@ where InnerGrid: AsRef<crate::GridView<E>>
             frp::extend! { network
                 highlight_grid_frp.set_entries_params <+ entries_params;
             }
-            kind::Hover::set_color(shape, color::Rgba::black());
+            kind::Hover::set_color(shape, color::Lcha::black());
             kind::Selection::set_size(shape, default());
             layers
         });
@@ -451,7 +456,6 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
         let headers_frp = grid.header_frp();
         frp::extend! {network
 
-
             // === Updating `connected_entry` Field ===
 
             shown_with_highlighted <-
@@ -502,15 +506,15 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
 
             // === Contour and Color ===
 
-            let header_connected = &connected_header_out.is_entry_connected;
+            let header_connected = connected_header_out.is_entry_connected.clone_ref();
             out.contour <+ all_with3(
-                header_connected,
+                &header_connected,
                 &connected_entry_out.contour,
                 &connected_header_out.contour,
                 |&from_header, &entry, &header| if from_header {header} else {entry}
             );
             out.color <+ all_with3(
-                header_connected,
+                &header_connected,
                 &connected_entry_out.color,
                 &connected_header_out.color,
                 |&from_header, &entry, &header| if from_header {header} else {entry}
@@ -531,20 +535,20 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
             // === Highlight Shape Clipping ===
 
             highlight_column <- became_highlighted._1();
-            header_moved_in_highlight_column <- headers_frp.header_position_changed.map2(
-                &frp.entry_highlighted,
-                |&(_, col, _), h| h.map_or(false, |(_, h_col)| col == h_col)
-            ).filter(|v| *v).constant(());
             header_hidden_in_highlight_column <- headers_frp.header_hidden.map2(
                 &frp.entry_highlighted,
                 |&(_, col), h| h.map_or(false, |(_, h_col)| col == h_col)
             ).filter(|v| *v).constant(());
-            header_sep_changed <- any(header_moved_in_highlight_column, header_hidden_in_highlight_column);
+            viewport_changed <- grid_frp.viewport.constant(());
+            header_sep_changed <- any(viewport_changed, header_hidden_in_highlight_column);
             out.header_separator <+ all_with(&highlight_column, &header_sep_changed, f!((col, ()) model.grid.header_separator(*col)));
-            new_top_clip <- all_with3(&out.header_separator, header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
-            out.top_clip <+ new_top_clip.on_change();
-            prev_top_clip <- out.top_clip.previous();
-            new_clip_jump <- new_top_clip.sample(&became_highlighted).map3(&prev_top_clip, &animations.top_clip_jump.value, |c, p, a| p + a - c);
+            out.top_clip <+ all_with3(&out.header_separator, &header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
+            new_clip_jump <- header_connected.on_change().map4(
+                &out.header_separator,
+                &grid_frp.viewport,
+                &animations.top_clip_jump.value,
+                |hc, hs, v, a| if *hc {hs - v.top} else {v.top - hs} + a
+            );
             animations.top_clip_jump.target <+ new_clip_jump;
             animations.top_clip_jump.skip <+ new_clip_jump.constant(());
             animations.top_clip_jump.target <+ new_clip_jump.constant(0.0);

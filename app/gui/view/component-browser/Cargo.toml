@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-prelude = { path = "../../../../lib/rust/prelude" }
-ide-view-breadcrumbs = { path = "breadcrumbs" }
-ide-view-component-group = { path = "component-group" }
-ide-view-component-list-panel = { path = "searcher-list-panel" }
+ide-view-component-list-panel-breadcrumbs = { path = "component-list-panel/breadcrumbs" }
+ide-view-component-list-panel = { path = "component-list-panel" }
 ensogl-text = { path = "../../../../lib/rust/ensogl/component/text" }

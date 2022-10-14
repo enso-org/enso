@@ -6,6 +6,7 @@ use ensogl::system::web::traits::*;
 
 use crate::code_editor;
 use crate::component_browser;
+use crate::component_browser::component_list_panel;
 use crate::debug_mode_popup;
 use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::documentation;
@@ -93,7 +94,7 @@ ensogl::define_endpoints! {
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
         editing_committed_old_searcher (NodeId, Option<searcher::entry::Id>),
-        editing_committed              (NodeId, Option<component_browser::list_panel::EntryId>),
+        editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
         open_dialog_shown              (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -155,7 +156,7 @@ pub enum SearcherVariant {
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.enable_new_component_browser.unwrap_or(false) {
+        if ARGS.enable_new_component_browser.unwrap_or(true) {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
             Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
@@ -171,10 +172,10 @@ impl SearcherVariant {
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
-                let list_panel = &view.model().list;
+                let grid = &view.model().list.model().grid;
                 frp::extend! {project_view_network
                     is_empty <- source::<bool>();
-                    editing_committed <- list_panel.expression_accepted.constant(());
+                    editing_committed <- grid.expression_accepted.constant(());
                 }
                 is_empty.emit(false);
                 SearcherFrp {
@@ -579,9 +580,9 @@ impl View {
 
         match &model.searcher {
             SearcherVariant::ComponentBrowser(browser) => {
-                let list_panel = &browser.model().list;
+                let grid = &browser.model().list.model().grid;
                 frp::extend! { network
-                    committed_in_browser <- list_panel.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+                    committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
                     frp.source.editing_committed <+ committed_in_browser;
                     frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
                 }

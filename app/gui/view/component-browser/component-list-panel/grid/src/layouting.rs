@@ -5,7 +5,7 @@
 
 use ensogl_core::prelude::*;
 
-use crate::layout::Group;
+use crate::content::Group;
 use crate::layout::Layout;
 use crate::layout::HEADER_HEIGHT_IN_ROWS;
 
@@ -139,16 +139,17 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ide_view_component_group::set::GroupId;
-    use ide_view_component_group::set::SectionId;
+
+    use crate::GroupId;
+    use crate::SectionId;
 
     /// Test that the algorithm doesn't panic even with a small count of component groups.
     #[test]
     fn test_small_count_of_groups() {
         for count in 0..4 {
-            let group_ids =
-                (0..count).map(|index| GroupId { section: SectionId::Favorites, index });
-            let groups = group_ids.map(|id| Group { id, height: 1, original_height: 1 });
+            let group_ids = (0..count).map(|index| GroupId { section: SectionId::Popular, index });
+            let groups =
+                group_ids.map(|id| Group { id, height: 1, original_height: 1, color: default() });
             let arranged = Layouter::new(groups).arrange();
             let total_count = arranged[LEFT].len() + arranged[CENTER].len() + arranged[RIGHT].len();
             assert_eq!(total_count, count);
@@ -157,9 +158,10 @@ mod tests {
 
     fn make_groups(index_height_pairs: Vec<(usize, usize)>) -> impl Iterator<Item = Group> {
         index_height_pairs.into_iter().map(|(index, height)| Group {
-            id: GroupId { section: SectionId::Favorites, index },
+            id: GroupId { section: SectionId::Popular, index },
             height,
             original_height: height,
+            color: default(),
         })
     }
 
