@@ -27,14 +27,14 @@ wrap_junit_testsuites config builder ~action =
    Prints a report on the tests to standard output.
 print_report : Spec -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 print_report spec config builder =
-    total_time = spec.behaviors.fold 0.milliseconds acc-> behavior->
+    total_time = spec.behaviors.fold Duration.zero acc-> behavior->
         acc + behavior.time_taken
     if config.should_output_junit then
         builder.append ('    <testsuite name="' + (escape_xml spec.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + spec.behaviors.length.to_text + '"')
         builder.append (' disabled="' + spec.behaviors.filter (x->(x.is_a Test_Result.Pending)) . length . to_text + '"')
         builder.append (' errors="' + spec.behaviors.filter (x->(x.is_a Test_Result.Failure)) . length . to_text + '"')
-        builder.append (' time="' + (total_time.total_milliseconds / 1000.0).to_text + '"')
+        builder.append (' time="' + total_time.total_seconds.to_text + '"')
         builder.append ('>\n')
 
         spec.behaviors.reverse.each behavior->
