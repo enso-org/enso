@@ -146,8 +146,6 @@ public abstract class HostMethodCallNode extends Node {
         if (fn != null) {
           return PolyglotCallType.CONVERT_TO_ARRAY;
         }
-      } else {
-        return PolyglotCallType.CONVERT_TO_ARRAY;
       }
     }
 
