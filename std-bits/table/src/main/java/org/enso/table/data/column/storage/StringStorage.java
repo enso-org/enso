@@ -14,7 +14,7 @@ import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
-public class StringStorage extends SpecializedStorage<String> {
+public final class StringStorage extends SpecializedStorage<String> {
 
   /**
    * @param data the underlying data
@@ -135,7 +135,7 @@ public class StringStorage extends SpecializedStorage<String> {
         });
     t.add(new LikeOp());
     t.add(SpecializedIsInOp.make(list -> {
-      HashSet<Object> set = new HashSet<>();
+      HashSet<String> set = new HashSet<>();
       boolean hasNulls = false;
       for (Object o : list) {
         hasNulls |= o == null;
@@ -143,7 +143,7 @@ public class StringStorage extends SpecializedStorage<String> {
           set.add(s);
         }
       }
-      return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+      return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
     }));
     return t;
   }

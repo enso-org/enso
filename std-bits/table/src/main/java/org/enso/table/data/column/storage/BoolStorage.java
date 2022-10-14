@@ -14,7 +14,7 @@ import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
-public class BoolStorage extends Storage {
+public final class BoolStorage extends Storage implements TypedStorage<Boolean> {
   private static final MapOpStorage<BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isMissing;
@@ -47,8 +47,13 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Boolean getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : getItem(idx);
+  }
+
+  @Override
+  public Boolean getItemTyped(int idx) {
+    return getItemBoxed(idx);
   }
 
   public boolean getItem(long idx) {

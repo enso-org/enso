@@ -8,7 +8,7 @@ import org.enso.table.data.mask.SliceRange;
 import java.util.BitSet;
 import java.util.List;
 
-public abstract class SpecializedStorage<T> extends Storage {
+public abstract class SpecializedStorage<T> extends Storage implements TypedStorage<T> {
 
   protected abstract SpecializedStorage<T> newInstance(T[] data, int size);
 
@@ -60,6 +60,11 @@ public abstract class SpecializedStorage<T> extends Storage {
   @Override
   public T getItemBoxed(int idx) {
     return data[idx];
+  }
+
+  @Override
+  public T getItemTyped(int idx) {
+    return getItemBoxed(idx);
   }
 
   /** @inheritDoc */

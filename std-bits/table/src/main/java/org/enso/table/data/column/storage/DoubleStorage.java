@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 
 /** A column containing floating point numbers. */
-public class DoubleStorage extends NumericStorage {
+public final class DoubleStorage extends NumericStorage implements TypedStorage<Double> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -61,7 +61,12 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Double getItemTyped(int idx) {
+    return getItemBoxed(idx);
+  }
+
+  @Override
+  public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
@@ -259,7 +264,7 @@ public class DoubleStorage extends NumericStorage {
         .add(
             SpecializedIsInOp.make(
                 list -> {
-                  HashSet<Object> set = new HashSet<>();
+                  HashSet<Double> set = new HashSet<>();
                   boolean hasNulls = false;
                   for (Object o : list) {
                     hasNulls |= o == null;
@@ -268,7 +273,7 @@ public class DoubleStorage extends NumericStorage {
                       set.add(x);
                     }
                   }
-                  return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
                 }));
     return ops;
   }

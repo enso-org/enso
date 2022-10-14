@@ -6,7 +6,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import java.util.BitSet;
 
 /** A column storing arbitrary objects. */
-public class ObjectStorage extends SpecializedStorage<Object> {
+public final class ObjectStorage extends SpecializedStorage<Object> {
   /**
    * @param data the underlying data
    * @param size the number of items stored

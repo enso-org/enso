@@ -5,7 +5,7 @@ import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 
 import java.time.LocalTime;
 
-public class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
+public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
    * @param data the underlying data
    * @param size the number of items stored

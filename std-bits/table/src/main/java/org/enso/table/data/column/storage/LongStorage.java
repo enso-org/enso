@@ -21,7 +21,7 @@ import java.util.OptionalLong;
 import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
-public class LongStorage extends NumericStorage {
+public final class LongStorage extends NumericStorage implements TypedStorage<Long> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -69,8 +69,13 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Long getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : data[idx];
+  }
+
+  @Override
+  public Long getItemTyped(int idx) {
+    return getItemBoxed(idx);
   }
 
   /** @inheritDoc */
@@ -368,7 +373,7 @@ public class LongStorage extends NumericStorage {
               }
             })
         .add(SpecializedIsInOp.make(list -> {
-          HashSet<Object> set = new HashSet<>();
+          HashSet<Long> set = new HashSet<>();
           boolean hasNulls = false;
           for (Object o : list) {
             hasNulls |= o == null;
@@ -377,7 +382,7 @@ public class LongStorage extends NumericStorage {
               set.add(x);
             }
           }
-          return new SpecializedIsInOp.CompactRepresentation(set, hasNulls);
+          return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
         }));
     return ops;
   }
