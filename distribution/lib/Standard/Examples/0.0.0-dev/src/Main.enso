@@ -12,6 +12,13 @@ import Standard.Image
 import Standard.Image.Codecs
 import Standard.Image.Data.Matrix
 
+## An example error type used in a number of examples.
+
+   Arguments:
+   - message: The message contained in the error type.
+type Example_Error_Type
+    Error message
+
 ## The standard library data directory.
 data_dir : File
 data_dir = enso_project.data
