@@ -632,15 +632,25 @@ final class TreeToIr {
               var lhs = translateExpression(app.getLhs(), insideTypeSignature);
               IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, loc, meta(), diag());
               var firstArg = cons(callArgument, nil());
-              var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
-              var prefix = new IR$Application$Prefix(
-                  rhs, args,
-                  false,
-                  getIdentifiedLocation(tree),
-                  meta(),
-                  diag()
-              );
-              yield prefix;
+              if (moreArgs.size() == 1 && moreArgs.head() instanceof Tree.AutoScope) {
+                yield new IR$Application$Prefix(
+                    rhs, firstArg,
+                    true,
+                    getIdentifiedLocation(tree),
+                    meta(),
+                    diag()
+                );
+              } else {
+                var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
+                var prefix = new IR$Application$Prefix(
+                    rhs, args,
+                    false,
+                    getIdentifiedLocation(tree),
+                    meta(),
+                    diag()
+                );
+                yield prefix;
+              }
             }
           }
 
@@ -893,6 +903,9 @@ final class TreeToIr {
       case Tree.Annotated anno -> {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
+      }
+      case Tree.AutoScope auto -> {
+        yield buildName(auto.getToken());
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };

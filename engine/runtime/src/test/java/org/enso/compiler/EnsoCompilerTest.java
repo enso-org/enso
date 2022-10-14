@@ -632,6 +632,14 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Test
+  public void testAutoScope() throws Exception {
+    parseTest("""
+    fn that_meta =
+        c_2 = that_meta.constructor ...
+        """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
