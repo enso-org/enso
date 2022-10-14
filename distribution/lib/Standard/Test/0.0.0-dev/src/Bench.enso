@@ -103,4 +103,3 @@ Number.times self act =
         @Tail_Call go (Cons (act number) results) number-1
     res = reverse_list (go Nil self)
     res
-

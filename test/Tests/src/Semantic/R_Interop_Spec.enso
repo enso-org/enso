@@ -150,7 +150,7 @@ spec =
 
         Test.specify "should properly report parse errors" <|
             err = Panic.recover Any does_not_parse
-            err.catch.to_display_text.should .contain 'parse exception'
+            err.catch.to_display_text.should_contain 'parse exception'
 
         Test.specify "should perform maths with mixed numbers" <|
             r_num = make_int

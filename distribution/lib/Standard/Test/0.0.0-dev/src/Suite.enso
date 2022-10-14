@@ -3,10 +3,22 @@ import Standard.Base.Data.Time.Duration
 import Standard.Base.Runtime.State
 import Standard.Base.System
 
-polyglot java import java.lang.NullPointerException
+import project.Suite_Config.Suite_Config
+import project.Test_Reporter
+
 polyglot java import java.lang.StringBuilder
 
 type Suite
+    ## PRIVATE
+
+       The top-level entry point for a test suite.
+
+       Arguments:
+       - config: Suite_Config controlloing the test run.
+       - specs: The specs contained within the test suite.
+       - builder: StringBuilder for JUnit output.
+    Value config specs builder
+
     ## Creates a new test group, describing properties of the object
        described by `self`.
 
@@ -26,7 +38,7 @@ type Suite
                          2*3 . should_equal 6
     run_main : Any -> Nothing
     run_main ~specs =
-        config = config_from_env
+        config = Suite_Config.from_environment
         r = Suite.run specs config
         code = if r.is_fail then 1 else 0
         System.exit code
@@ -51,52 +63,13 @@ type Suite
     run : Any -> Suite_Config -> Any
     run ~specs config =
         builder = if config.should_output_junit then StringBuilder.new else Nothing
-        wrap_junit_testsuites config builder <|
+        Test_Reporter.wrap_junit_testsuites config builder <|
             State.run Suite (Suite_Data config Nil builder) <|
                 specs
                 State.get Suite
 
+    ## PRIVATE
 
-## PRIVATE
-   Creates an Suite_Config based off environment and caller location
-config_from_env : Suite_Config
-config_from_env =
-    only_group_regexp = Environment.get "TEST_ONLY_GROUP"
-    print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
-    junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
-    results_path = if junit_folder.is_nothing then Nothing else
-        caller_script = find_caller_script Runtime.get_stack_trace
-        project_root = find_project_root caller_script
-        case project_root.is_nothing of
-            True ->
-                IO.println "Unable to determine root project path. JUnit output disabled."
-                Nothing
-            False ->
-                (File.new junit_folder) / project_root.name / "JUnit.xml"
-
-    Suite_Config_Data only_group_regexp print_only_failures results_path
-
-## PRIVATE
-find_project_root : File -> File
-find_project_root path =
-    if path.is_nothing then Nothing else
-        handler _ = Nothing
-        Panic.catch NullPointerException handler=handler <|
-            if path.name == "src" then path.parent else
-                @Tail_Call find_project_root path.parent
-
-## PRIVATE
-find_caller_script : [Stack_Trace_Element] -> File
-find_caller_script stack =
-    find_main idx =
-        if stack.at idx . name == "Suite.type.run_main" then idx else
-            @Tail_Call find_main (idx + 1)
-    main_index = find_main 0
-
-    find_caller idx =
-        source = stack.at idx . source_location
-        if source.is_a Source_Location_Data then stack.at idx . source_location . file else
-            if (idx + 1 == stack.length) then Nothing else
-                @Tail_Call find_caller (idx + 1)
-
-    find_caller (main_index + 1)
+       Checks if the suite contains any failures, and hence fails itself.
+    is_fail : Boolean
+    is_fail self = self.specs.any .is_fail

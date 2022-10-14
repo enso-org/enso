@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import project.Test_Result.Test_Result
+from project.Test import fail, fail_match_on_unexpected_error
+
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
@@ -15,7 +18,7 @@ from Standard.Base import all
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Any.should_fail_with : Any -> Integer -> Assertion
+Any.should_fail_with : Any -> Integer -> Test_Result
 Any.should_fail_with self matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
@@ -35,7 +38,7 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
-Error.should_fail_with : Any -> Integer -> Assertion
+Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught.is_a matcher then Nothing else
@@ -56,9 +59,9 @@ Error.should_fail_with self matcher frames_to_skip=0 =
          import Standard.Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Any.should_equal : Any -> Integer -> Assertion
+Any.should_equal : Any -> Integer -> Test_Result
 Any.should_equal self that frames_to_skip=0 = case self == that of
-    True -> Success
+    True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
@@ -78,9 +81,9 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
          import Standard.Test
 
          example_should_equal = Examples.some_tpe . should_equal_tpe Vector.Vector
-Any.should_equal_type : Any -> Integer -> Assertion
+Any.should_equal_type : Any -> Integer -> Test_Result
 Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that) of
-    True -> Success
+    True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
@@ -100,9 +103,9 @@ Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as 
          import Standard.Test
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
-Any.should_not_equal : Any -> Integer -> Assertion
+Any.should_not_equal : Any -> Integer -> Test_Result
 Any.should_not_equal self that frames_to_skip=0 = case self != that of
-    True -> Success
+    True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
@@ -122,12 +125,60 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
          import Standard.Test
 
          example_should_not_equal = Examples.some_tpe . should_not_equal_tpe Vector.Vector
-Any.should_not_equal_type : Any -> Integer -> Assertion
+Any.should_not_equal_type : Any -> Integer -> Test_Result
 Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that . not) of
-    True -> Success
+    True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
+        fail msg
+
+## Asserts that `self` value is a Text value and starts with `that`.
+
+   Arguments:
+   - that: The value to check `self` starts with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should start with another.
+
+         import Standard.Test
+
+         example_should_start_with = "Hello World!" . should_start_with "Hello"
+Any.should_start_with : Text -> Integer -> Test_Result
+Any.should_start_with self that frames_to_skip=0 = case self of
+    Text -> if self.starts_with that then Test_Result.Success else
+        loc = Meta.get_source_location 3+frames_to_skip
+        msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
+        fail msg
+    _ ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+        fail msg
+
+## Asserts that `self` value is a Text value and contains `that`.
+
+   Arguments:
+   - that: The value to check `self` contains.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should contain another.
+
+         import Standard.Test
+
+         example_should_start_with = "Hello World!" . should_contain "World"
+Any.should_contain : Text -> Integer -> Test_Result
+Any.should_contain self that frames_to_skip=0 = case self of
+    Text -> if self.contains that then Test_Result.Success else
+        loc = Meta.get_source_location 3+frames_to_skip
+        msg = self.to_text + " does not contain " + that.to_text + " (at " + loc + ")."
+        fail msg
+    _ ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
         fail msg
 
 ## Asserts that `self` value is equal to the expected value.
@@ -142,7 +193,7 @@ Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object
          import Standard.Test
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
-Error.should_equal : Any -> Assertion
+Error.should_equal : Any -> Test_Result
 Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -167,13 +218,13 @@ Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self
 
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
-Number.should_equal : Decimal -> Decimal -> Integer -> Assertion
+Number.should_equal : Decimal -> Decimal -> Integer -> Test_Result
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         _ : Number -> self.equals that epsilon
         _ -> False
     case matches of
-        True -> Success
+        True -> Test_Result.Success
         False ->
             loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
@@ -221,12 +272,12 @@ Error.should_succeed self frames_to_skip=0 =
          import Standard.Test
 
          example_should_be_true = Examples.get_boolean . should_be_true
-Boolean.should_be_true : Assertion
+Boolean.should_be_true : Test_Result
 Boolean.should_be_true self = case self of
-    True -> Success
+    True -> Test_Result.Success
     False ->
         loc = Meta.get_source_location 2
-        Panic.throw (Failure "Expected False to be True (at "+loc+").")
+        Panic.throw (Test_Result.Failure "Expected False to be True (at "+loc+").")
 
 ## Asserts that the given `Boolean` is `True`.
 
@@ -237,7 +288,7 @@ Boolean.should_be_true self = case self of
          import Standard.Test
 
          example_should_be_true = Examples.get_boolean . should_be_true
-Error.should_be_true : Assertion
+Error.should_be_true : Test_Result
 Error.should_be_true self = fail_match_on_unexpected_error self 1
 
 ## Asserts that the given `Boolean` is `False`
@@ -249,12 +300,12 @@ Error.should_be_true self = fail_match_on_unexpected_error self 1
          import Standard.Test
 
          example_should_be_false = Examples.get_boolean . should_be_false
-Boolean.should_be_false : Assertion
+Boolean.should_be_false : Test_Result
 Boolean.should_be_false self = case self of
     True ->
         loc = Meta.get_source_location 2
-        Panic.throw (Failure "Expected True to be False (at "+loc+").")
-    False -> Success
+        Panic.throw (Test_Result.Failure "Expected True to be False (at "+loc+").")
+    False -> Test_Result.Success
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -265,7 +316,7 @@ Boolean.should_be_false self = case self of
          import Standard.Test
 
          example_should_be_false = Examples.get_boolean . should_be_false
-Error.should_be_false : Assertion
+Error.should_be_false : Test_Result
 Error.should_be_false self = fail_match_on_unexpected_error self 1
 
 ## Asserts that a value is of a given type.
@@ -279,13 +330,13 @@ Error.should_be_false self = fail_match_on_unexpected_error self 1
          import Standard.Test
 
          example_should_be_a = 1.should_be_a Boolean
-Any.should_be_a : Any -> Assertion
-Any.should_be_a self typ = if self.is_a typ || self==typ then Success else
+Any.should_be_a : Any -> Test_Result
+Any.should_be_a self typ = if self.is_a typ || self==typ then Test_Result.Success else
     loc = Meta.get_source_location 0
     expected_type = Meta.get_qualified_type_name typ
     actual_type = Meta.get_qualified_type_name self
     message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
-    Panic.throw <| Failure message
+    Panic.throw <| Test_Result.Failure message
 
 ## Asserts that a value is of a given type.
 
@@ -298,7 +349,7 @@ Any.should_be_a self typ = if self.is_a typ || self==typ then Success else
          import Standard.Test
 
          example_should_be_an = 1.should_be_an Integer
-Any.should_be_an : Any -> Assertion
+Any.should_be_an : Any -> Test_Result
 Any.should_be_an self typ = self.should_be_a typ
 
 ## Asserts that `self` value contains the same elements as `that`.
@@ -322,7 +373,7 @@ Any.should_be_an self typ = self.should_be_a typ
          import Standard.Test
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
+Any.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
 Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
@@ -355,5 +406,5 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
          import Standard.Test
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
-Error.should_contain_the_same_elements_as : Any -> Assertion
+Error.should_contain_the_same_elements_as : Any -> Test_Result
 Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
